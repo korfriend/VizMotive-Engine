@@ -37,7 +37,6 @@ int main(int, char**)
 
 	myParcle::InitEngine(g_apiLogger);
 	myParcle::SetRenderTargetSize(512, 512);
-	myParcle::DeinitEngine();
 
 	// Create application window
 	//ImGui_ImplWin32_EnableDpiAwareness();
@@ -161,6 +160,61 @@ int main(int, char**)
 			ImGui::End();
 		}
 
+		{
+			//ImGui::SetNextWindowPos(ImVec2((g_sizeWinX - g_sizeRightPanelW) / 2 + 10, 5), ImGuiCond_Once);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+			ImGui::PushStyleColor(ImGuiCol_WindowBg, clear_color); // Set window background to 
+			ImGui::Begin("My Test");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+
+			ImVec2 curItemPos = ImGui::GetCursorPos();
+			ImVec2 curWindowSize = ImGui::GetWindowSize();
+			static ImVec2 rtSize(0, 0);
+			static ImVec2 prevWindowSize(0, 0);
+			bool resizedFrame = false;
+			bool readyCallRender = false;
+			if (prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y) {
+				// resize...
+				if (prevWindowSize.x * prevWindowSize.y == 0) {
+					ImGui::SetWindowSize(ImVec2(0, 0)); // leading to update new canvas_size
+				}
+
+				{
+					rtSize = ImGui::GetContentRegionAvail();
+
+					myParcle::SetRenderTargetSize(rtSize.x, rtSize.y);
+
+					resizedFrame = true;
+					readyCallRender = true;
+				}
+				prevWindowSize.x = curWindowSize.x;
+				prevWindowSize.y = curWindowSize.y;
+			}
+
+
+			ImVec2 itemSize = ImVec2(rtSize.x, rtSize.y);
+			ImGui::InvisibleButton("my ibt", itemSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+			ImGui::SetItemAllowOverlap();
+
+			if (readyCallRender)
+				myParcle::DoTest();
+
+			ID3D11ShaderResourceView* my_texture = NULL;
+			int w = 0, h = 0;
+			myParcle::GetDX11SharedRenderTarget(g_pd3dDevice, &my_texture, w, h);
+			{
+				w == rtSize.x;
+				h == rtSize.y;
+			}
+
+			ImGui::SetCursorPos(curItemPos);
+			ImGui::Image(my_texture, ImVec2(w, h)); // render texture 
+			ImGui::SetItemAllowOverlap();
+
+			ImGui::End();
+			ImGui::PopStyleVar();
+			ImGui::PopStyleColor();
+		}
+
 		// Rendering
 		ImGui::Render();
 		const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
@@ -176,6 +230,8 @@ int main(int, char**)
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
+
+	myParcle::DeinitEngine();
 
 	CleanupDeviceD3D();
 	::DestroyWindow(hwnd);

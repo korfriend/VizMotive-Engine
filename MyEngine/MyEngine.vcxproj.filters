@@ -6,4 +6,11 @@
   <ItemGroup>
     <ClCompile Include="MyEngineAPI.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="hlsl\PShaders.hlsl" />
+    <FxCompile Include="hlsl\VShaders.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="hlsl\Header.hlsli" />
+  </ItemGroup>
 </Project>

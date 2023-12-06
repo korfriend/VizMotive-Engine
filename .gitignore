@@ -10,6 +10,7 @@
 *.exe
 *.bsc
 *.ini
+*.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
