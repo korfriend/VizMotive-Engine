@@ -11,7 +11,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "../MyEngine/MyEngineAPI.h"
+//#include "../MyEngine/MyEngineAPI.h"
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
