@@ -382,7 +382,7 @@ namespace vz
 			visibility_reflection.flags =
 				vz::renderer::Visibility::ALLOW_OBJECTS |
 				vz::renderer::Visibility::ALLOW_EMITTERS |
-				vz::renderer::Visibility::ALLOW_HAIRS |
+				//vz::renderer::Visibility::ALLOW_HAIRS |
 				vz::renderer::Visibility::ALLOW_LIGHTS
 				;
 			vz::renderer::UpdateVisibility(visibility_reflection);
@@ -714,16 +714,6 @@ namespace vz
 		vz::jobsystem::context ctx;
 
 		CommandList cmd_copypages;
-		if (scene->terrains.GetCount() > 0)
-		{
-			cmd_copypages = device->BeginCommandList(QUEUE_COPY);
-			vz::jobsystem::Execute(ctx, [this, cmd_copypages](vz::jobsystem::JobArgs args) {
-				for (size_t i = 0; i < scene->terrains.GetCount(); ++i)
-				{
-					scene->terrains[i].CopyVirtualTexturePageStatusGPU(cmd_copypages);
-				}
-				});
-		}
 
 		// Preparing the frame:
 		CommandList cmd = device->BeginCommandList();
@@ -803,7 +793,7 @@ namespace vz
 		static const uint32_t drawscene_flags =
 			vz::renderer::DRAWSCENE_OPAQUE |
 			vz::renderer::DRAWSCENE_IMPOSTOR |
-			vz::renderer::DRAWSCENE_HAIRPARTICLE |
+			//vz::renderer::DRAWSCENE_HAIRPARTICLE |
 			vz::renderer::DRAWSCENE_TESSELLATION |
 			vz::renderer::DRAWSCENE_OCCLUSIONCULLING |
 			vz::renderer::DRAWSCENE_MAINCAMERA
@@ -1112,7 +1102,7 @@ namespace vz
 					cmd,
 					vz::renderer::DRAWSCENE_OPAQUE |
 					vz::renderer::DRAWSCENE_IMPOSTOR |
-					vz::renderer::DRAWSCENE_HAIRPARTICLE |
+					//vz::renderer::DRAWSCENE_HAIRPARTICLE |
 					vz::renderer::DRAWSCENE_SKIP_PLANAR_REFLECTION_OBJECTS
 				);
 
@@ -1198,7 +1188,7 @@ namespace vz
 					cmd,
 					vz::renderer::DRAWSCENE_OPAQUE |
 					vz::renderer::DRAWSCENE_IMPOSTOR |
-					vz::renderer::DRAWSCENE_HAIRPARTICLE |
+					//vz::renderer::DRAWSCENE_HAIRPARTICLE |
 					vz::renderer::DRAWSCENE_SKIP_PLANAR_REFLECTION_OBJECTS
 				);
 				vz::renderer::DrawScene(
@@ -1468,27 +1458,6 @@ namespace vz
 
 			device->EventEnd(cmd);
 		});
-
-		if (scene->terrains.GetCount() > 0)
-		{
-			CommandList cmd_allocation_tilerequest = device->BeginCommandList(QUEUE_COMPUTE);
-			device->WaitCommandList(cmd_allocation_tilerequest, cmd); // wait for opaque scene
-			vz::jobsystem::Execute(ctx, [this, cmd_allocation_tilerequest](vz::jobsystem::JobArgs args) {
-				for (size_t i = 0; i < scene->terrains.GetCount(); ++i)
-				{
-					scene->terrains[i].AllocateVirtualTextureTileRequestsGPU(cmd_allocation_tilerequest);
-				}
-			});
-
-			CommandList cmd_writeback_tilerequest = device->BeginCommandList(QUEUE_COPY);
-			device->WaitCommandList(cmd_writeback_tilerequest, cmd_allocation_tilerequest);
-			vz::jobsystem::Execute(ctx, [this, cmd_writeback_tilerequest](vz::jobsystem::JobArgs args) {
-				for (size_t i = 0; i < scene->terrains.GetCount(); ++i)
-				{
-					scene->terrains[i].WritebackTileRequestsGPU(cmd_writeback_tilerequest);
-				}
-			});
-		}
 
 		// Transparents, post processes, etc:
 		cmd = device->BeginCommandList();

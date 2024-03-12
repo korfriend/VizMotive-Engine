@@ -59,7 +59,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)vzGraphicsDevice_DX12.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzGraphicsDevice_Vulkan.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzScene_Components.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)vzTerrain.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzUnorderedSet.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzInput.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzPrimitive.h" />
@@ -80,7 +79,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)vzGraphics.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzGraphicsDevice.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzGUI.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)vzHairParticle.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzImage.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzInitializer.h" />
@@ -109,7 +107,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)vzVersion.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzVideo.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzVoxelGrid.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)vzXInput.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzAudio.h" />
   </ItemGroup>
   <ItemGroup>
@@ -153,7 +150,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)vzRenderPath2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzRenderPath3D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzScene_Components.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)vzTerrain.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzBacklog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzEmittedParticle.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzFadeManager.cpp" />
@@ -162,7 +158,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)vzSDLInput.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzShaderCompiler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzGUI.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)vzHairParticle.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzImage.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzInitializer.cpp" />
@@ -188,7 +183,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)vzVersion.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzVideo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzVoxelGrid.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)vzXInput.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzAudio.cpp" />
   </ItemGroup>
   <ItemGroup>

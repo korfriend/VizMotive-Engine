@@ -9,8 +9,8 @@
 #include "vzECS.h"
 #include "vzScene_Components.h"
 #include "vzEmittedParticle.h"
-#include "vzHairParticle.h"
-#include "vzTerrain.h"
+//#include "vzHairParticle.h"
+//#include "vzTerrain.h"
 #include "vzBVH.h"
 #include "vzUnorderedSet.h"
 #include "vzVoxelGrid.h"
@@ -47,7 +47,7 @@ namespace vz::scene
 		vz::ecs::ComponentManager<AnimationComponent>& animations = componentLibrary.Register<AnimationComponent>("vz::scene::Scene::animations", 2); // version = 2
 		vz::ecs::ComponentManager<AnimationDataComponent>& animation_datas = componentLibrary.Register<AnimationDataComponent>("vz::scene::Scene::animation_datas");
 		vz::ecs::ComponentManager<EmittedParticleSystem>& emitters = componentLibrary.Register<EmittedParticleSystem>("vz::scene::Scene::emitters");
-		vz::ecs::ComponentManager<HairParticleSystem>& hairs = componentLibrary.Register<HairParticleSystem>("vz::scene::Scene::hairs");
+		//vz::ecs::ComponentManager<HairParticleSystem>& hairs = componentLibrary.Register<HairParticleSystem>("vz::scene::Scene::hairs");
 		vz::ecs::ComponentManager<WeatherComponent>& weathers = componentLibrary.Register<WeatherComponent>("vz::scene::Scene::weathers", 5); // version = 5
 		vz::ecs::ComponentManager<SoundComponent>& sounds = componentLibrary.Register<SoundComponent>("vz::scene::Scene::sounds", 1); // version = 1
 		vz::ecs::ComponentManager<VideoComponent>& videos = componentLibrary.Register<VideoComponent>("vz::scene::Scene::videos");
@@ -57,7 +57,7 @@ namespace vz::scene
 		vz::ecs::ComponentManager<ScriptComponent>& scripts = componentLibrary.Register<ScriptComponent>("vz::scene::Scene::scripts");
 		vz::ecs::ComponentManager<ExpressionComponent>& expressions = componentLibrary.Register<ExpressionComponent>("vz::scene::Scene::expressions");
 		vz::ecs::ComponentManager<HumanoidComponent>& humanoids = componentLibrary.Register<HumanoidComponent>("vz::scene::Scene::humanoids");
-		vz::ecs::ComponentManager<vz::terrain::Terrain>& terrains = componentLibrary.Register<vz::terrain::Terrain>("vz::scene::Scene::terrains", 3); // version = 3
+		//vz::ecs::ComponentManager<vz::terrain::Terrain>& terrains = componentLibrary.Register<vz::terrain::Terrain>("vz::scene::Scene::terrains", 3); // version = 3
 		vz::ecs::ComponentManager<vz::Sprite>& sprites = componentLibrary.Register<vz::Sprite>("vz::scene::Scene::sprites");
 		vz::ecs::ComponentManager<vz::SpriteFont>& fonts = componentLibrary.Register<vz::SpriteFont>("vz::scene::Scene::fonts");
 		vz::ecs::ComponentManager<vz::VoxelGrid>& voxel_grids = componentLibrary.Register<vz::VoxelGrid>("vz::scene::Scene::voxel_grids");

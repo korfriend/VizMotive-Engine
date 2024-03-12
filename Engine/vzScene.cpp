@@ -38,22 +38,9 @@ namespace vz::scene
 
 		ScanAnimationDependencies();
 
-		// Terrains updates kick off:
-		if (dt > 0)
-		{
-			// Because this also spawns render tasks, this must not be during dt == 0 (eg. background loading)
-			for (size_t i = 0; i < terrains.GetCount(); ++i)
-			{
-				vz::terrain::Terrain& terrain = terrains[i];
-				terrain.terrainEntity = terrains.GetEntity(i);
-				terrain.scene = this;
-				terrain.Generation_Update(camera);
-			}
-		}
-
 		GraphicsDevice* device = vz::graphics::GetDevice();
 
-		instanceArraySize = objects.GetCount() + hairs.GetCount() + emitters.GetCount();
+		instanceArraySize = objects.GetCount() + emitters.GetCount();
 		if (impostors.GetCount() > 0)
 		{
 			impostorInstanceOffset = uint32_t(instanceArraySize);
@@ -249,7 +236,6 @@ namespace vz::scene
 
 		// GPU subset count allocation is ready at this point:
 		geometryArraySize = geometryAllocator.load();
-		geometryArraySize += hairs.GetCount();
 		geometryArraySize += emitters.GetCount();
 		if (impostors.GetCount() > 0)
 		{
@@ -1316,8 +1302,6 @@ namespace vz::scene
 		Entity entity = CreateEntity();
 
 		names.Create(entity) = name;
-
-		hairs.Create(entity);
 
 		TransformComponent& transform = transforms.Create(entity);
 		transform.Translate(position);
@@ -4506,109 +4490,6 @@ namespace vz::scene
 	}
 	void Scene::RunParticleUpdateSystem(vz::jobsystem::context& ctx)
 	{
-		vz::jobsystem::Dispatch(ctx, (uint32_t)hairs.GetCount(), small_subtask_groupsize, [&](vz::jobsystem::JobArgs args) {
-
-			HairParticleSystem& hair = hairs[args.jobIndex];
-			Entity entity = hairs.GetEntity(args.jobIndex);
-			if (!transforms.Contains(entity))
-				return;
-
-			const LayerComponent* layer = layers.GetComponent(entity);
-			if (layer != nullptr)
-			{
-				hair.layerMask = layer->GetLayerMask();
-			}
-
-			if (hair.meshID != INVALID_ENTITY)
-			{
-				const MeshComponent* mesh = meshes.GetComponent(hair.meshID);
-
-				if (mesh != nullptr)
-				{
-					const TransformComponent& transform = *transforms.GetComponent(entity);
-
-					hair.UpdateCPU(transform, *mesh, dt);
-				}
-			}
-
-			GraphicsDevice* device = vz::graphics::GetDevice();
-
-			uint32_t indexCount = hair.GetParticleCount() * 6;
-			uint32_t triangleCount = indexCount / 3u;
-			uint32_t meshletCount = triangle_count_to_meshlet_count(triangleCount);
-			uint32_t meshletOffset = meshletAllocator.fetch_add(meshletCount);
-
-			ShaderGeometry geometry;
-			geometry.init();
-			geometry.indexOffset = 0;
-			geometry.indexCount = indexCount;
-			geometry.materialIndex = (uint)materials.GetIndex(entity);
-			geometry.ib = device->GetDescriptorIndex(&hair.primitiveBuffer, SubresourceType::SRV);
-			geometry.vb_pos_wind = hair.vb_pos[0].descriptor_srv;
-			geometry.vb_nor = hair.vb_nor.descriptor_srv;
-			geometry.vb_pre = hair.vb_pos[1].descriptor_srv;
-			geometry.vb_uvs = hair.vb_uvs.descriptor_srv;
-			geometry.flags = SHADERMESH_FLAG_DOUBLE_SIDED | SHADERMESH_FLAG_HAIRPARTICLE;
-			geometry.meshletOffset = 0;
-			geometry.meshletCount = meshletCount;
-			geometry.aabb_min = hair.aabb._min;
-			geometry.aabb_max = hair.aabb._max;
-
-			size_t geometryAllocation = geometryAllocator.fetch_add(1);
-			std::memcpy(geometryArrayMapped + geometryAllocation, &geometry, sizeof(geometry));
-
-			ShaderMeshInstance inst;
-			inst.init();
-			inst.uid = entity;
-			inst.layerMask = hair.layerMask;
-			inst.emissive = vz::math::Pack_R11G11B10_FLOAT(XMFLOAT3(1, 1, 1));
-			inst.color = vz::math::CompressColor(XMFLOAT4(1, 1, 1, 1));
-			inst.center = hair.aabb.getCenter();
-			inst.radius = hair.aabb.getRadius();
-			inst.geometryOffset = (uint)geometryAllocation;
-			inst.geometryCount = 1;
-			inst.baseGeometryOffset = inst.geometryOffset;
-			inst.baseGeometryCount = inst.geometryCount;
-			inst.meshletOffset = meshletOffset;
-
-			XMFLOAT4X4 remapMatrix;
-			XMStoreFloat4x4(&remapMatrix, hair.aabb.getUnormRemapMatrix());
-			inst.transform.Create(remapMatrix);
-			inst.transformPrev = inst.transform;
-
-			const size_t instanceIndex = objects.GetCount() + args.jobIndex;
-			std::memcpy(instanceArrayMapped + instanceIndex, &inst, sizeof(inst));
-
-			if (TLAS_instancesMapped != nullptr)
-			{
-				if (!hair.BLAS.IsValid())
-				{
-					hair.CreateRaytracingRenderData();
-				}
-				if (hair.BLAS.IsValid())
-				{
-					// TLAS instance data:
-					RaytracingAccelerationStructureDesc::TopLevel::Instance instance;
-					for (int i = 0; i < arraysize(instance.transform); ++i)
-					{
-						for (int j = 0; j < arraysize(instance.transform[i]); ++j)
-						{
-							instance.transform[i][j] = remapMatrix.m[j][i];
-						}
-					}
-					instance.instance_id = (uint32_t)instanceIndex;
-					instance.instance_mask = hair.layerMask == 0 ? 0 : 0xFF;
-					instance.bottom_level = &hair.BLAS;
-					instance.instance_contribution_to_hit_group_index = 0;
-					instance.flags = RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_CULL_DISABLE;
-
-					void* dest = (void*)((size_t)TLAS_instancesMapped + instanceIndex * device->GetTopLevelAccelerationStructureInstanceSize());
-					device->WriteTopLevelAccelerationStructureInstance(&instance, dest);
-				}
-			}
-
-		});
-
 		vz::jobsystem::Dispatch(ctx, (uint32_t)emitters.GetCount(), small_subtask_groupsize, [&](vz::jobsystem::JobArgs args) {
 
 			EmittedParticleSystem& emitter = emitters[args.jobIndex];
@@ -4670,7 +4551,7 @@ namespace vz::scene
 			inst.baseGeometryOffset = inst.geometryOffset;
 			inst.baseGeometryCount = inst.geometryCount;
 
-			const size_t instanceIndex = objects.GetCount() + hairs.GetCount() + args.jobIndex;
+			const size_t instanceIndex = objects.GetCount() + args.jobIndex;
 			std::memcpy(instanceArrayMapped + instanceIndex, &inst, sizeof(inst));
 
 			if (TLAS_instancesMapped != nullptr)

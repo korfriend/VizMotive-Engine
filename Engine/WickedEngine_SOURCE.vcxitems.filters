@@ -60,9 +60,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)vzImage.h">
       <Filter>ENGINE\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)vzHairParticle.h">
-      <Filter>ENGINE\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)vzEmittedParticle.h">
       <Filter>ENGINE\Graphics</Filter>
     </ClInclude>
@@ -101,9 +98,6 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)vzFadeManager.h">
       <Filter>ENGINE\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)vzXInput.h">
-      <Filter>ENGINE\Input</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)vzRawInput.h">
       <Filter>ENGINE\Input</Filter>
@@ -288,9 +282,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)vzConfig.h">
       <Filter>ENGINE\Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)vzTerrain.h">
-      <Filter>ENGINE\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)vzScene_Components.h">
       <Filter>ENGINE\System</Filter>
     </ClInclude>
@@ -344,9 +335,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)vzImage.cpp">
       <Filter>ENGINE\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)vzHairParticle.cpp">
-      <Filter>ENGINE\Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzEmittedParticle.cpp">
       <Filter>ENGINE\Graphics</Filter>
     </ClCompile>
@@ -376,9 +364,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzFadeManager.cpp">
       <Filter>ENGINE\Helpers</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)vzXInput.cpp">
-      <Filter>ENGINE\Input</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzRawInput.cpp">
       <Filter>ENGINE\Input</Filter>
@@ -484,9 +469,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzConfig.cpp">
       <Filter>ENGINE\Helpers</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)vzTerrain.cpp">
-      <Filter>ENGINE\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzScene_Components.cpp">
       <Filter>ENGINE\System</Filter>
