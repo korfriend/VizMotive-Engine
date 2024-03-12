@@ -2091,7 +2091,6 @@ namespace vz::scene
 			aabbs_tmp.Serialize(archive, seri);
 			animations.Serialize(archive, seri);
 			emitters.Serialize(archive, seri);
-			hairs.Serialize(archive, seri);
 			weathers.Serialize(archive, seri);
 			if (archive.GetVersion() >= 30)
 			{
@@ -2624,15 +2623,6 @@ namespace vz::scene
 					archive >> component_exists;
 					if (component_exists)
 					{
-						auto& component = scene.hairs.Create(entity);
-						component.Serialize(archive, seri);
-					}
-				}
-				{
-					bool component_exists;
-					archive >> component_exists;
-					if (component_exists)
-					{
 						auto& component = scene.weathers.Create(entity);
 						component.Serialize(archive, seri);
 					}
@@ -2924,18 +2914,6 @@ namespace vz::scene
 				}
 				{
 					auto component = scene.emitters.GetComponent(entity);
-					if (component != nullptr)
-					{
-						archive << true;
-						component->Serialize(archive, seri);
-					}
-					else
-					{
-						archive << false;
-					}
-				}
-				{
-					auto component = scene.hairs.GetComponent(entity);
 					if (component != nullptr)
 					{
 						archive << true;

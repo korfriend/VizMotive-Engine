@@ -310,16 +310,6 @@ namespace vz
 		if (sam < target)
 		{
 			CommandList cmd_copypages;
-			if (scene->terrains.GetCount() > 0)
-			{
-				cmd_copypages = device->BeginCommandList(QUEUE_COPY);
-				vz::jobsystem::Execute(ctx, [this, cmd_copypages](vz::jobsystem::JobArgs args) {
-					for (size_t i = 0; i < scene->terrains.GetCount(); ++i)
-					{
-						scene->terrains[i].CopyVirtualTexturePageStatusGPU(cmd_copypages);
-					}
-					});
-			}
 
 			// Setup:
 			CommandList cmd = device->BeginCommandList();
@@ -399,28 +389,7 @@ namespace vz
 					vz::profiler::EndRange(range); // Traced Scene
 				}
 
-				});
-
-			if (scene->terrains.GetCount() > 0)
-			{
-				CommandList cmd_allocation_tilerequest = device->BeginCommandList(QUEUE_COMPUTE);
-				device->WaitCommandList(cmd_allocation_tilerequest, cmd); // wait for opaque scene
-				vz::jobsystem::Execute(ctx, [this, cmd_allocation_tilerequest](vz::jobsystem::JobArgs args) {
-					for (size_t i = 0; i < scene->terrains.GetCount(); ++i)
-					{
-						scene->terrains[i].AllocateVirtualTextureTileRequestsGPU(cmd_allocation_tilerequest);
-					}
-					});
-
-				CommandList cmd_writeback_tilerequest = device->BeginCommandList(QUEUE_COPY);
-				device->WaitCommandList(cmd_writeback_tilerequest, cmd_allocation_tilerequest);
-				vz::jobsystem::Execute(ctx, [this, cmd_writeback_tilerequest](vz::jobsystem::JobArgs args) {
-					for (size_t i = 0; i < scene->terrains.GetCount(); ++i)
-					{
-						scene->terrains[i].WritebackTileRequestsGPU(cmd_writeback_tilerequest);
-					}
-					});
-			}
+			});
 		}
 
 		// Composite, tonemap etc:

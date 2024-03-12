@@ -48,7 +48,6 @@ namespace vz::initializer
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::input::Initialize(); systems[INITIALIZED_SYSTEM_INPUT].store(true); });
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::renderer::Initialize(); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::texturehelper::Initialize(); systems[INITIALIZED_SYSTEM_TEXTUREHELPER].store(true); });
-		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::HairParticleSystem::Initialize(); systems[INITIALIZED_SYSTEM_HAIRPARTICLESYSTEM].store(true); });
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::EmittedParticleSystem::Initialize(); systems[INITIALIZED_SYSTEM_EMITTEDPARTICLESYSTEM].store(true); });
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::Ocean::Initialize(); systems[INITIALIZED_SYSTEM_OCEAN].store(true); });
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::gpusortlib::Initialize(); systems[INITIALIZED_SYSTEM_GPUSORTLIB].store(true); });

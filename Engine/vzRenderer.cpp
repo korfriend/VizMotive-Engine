@@ -1,5 +1,4 @@
 #include "vzRenderer.h"
-#include "vzHairParticle.h"
 #include "vzEmittedParticle.h"
 #include "vzSprite.h"
 #include "vzScene.h"
@@ -3229,33 +3228,6 @@ void UpdateVisibility(Visibility& vis)
 			});
 	}
 
-	if (vis.flags & Visibility::ALLOW_HAIRS)
-	{
-		vz::jobsystem::Execute(ctx, [&](vz::jobsystem::JobArgs args) {
-			// Cull hairs:
-			for (size_t i = 0; i < vis.scene->hairs.GetCount(); ++i)
-			{
-				const vz::HairParticleSystem& hair = vis.scene->hairs[i];
-				if (!(hair.layerMask & vis.layerMask))
-				{
-					continue;
-				}
-				if (!hair.regenerate_frame)
-				{
-					const float dist = vz::math::Distance(vis.camera->Eye, hair.aabb.getCenter());
-					const float radius = hair.aabb.getRadius();
-					if (dist - radius > hair.viewDistance)
-						continue;
-				}
-				if (hair.meshID == INVALID_ENTITY || !vis.frustum.CheckBoxFast(hair.aabb))
-				{
-					continue;
-				}
-				vis.visibleHairs.push_back((uint32_t)i);
-			}
-			});
-	}
-
 	vz::jobsystem::Wait(ctx);
 
 	// finalize stream compaction:
@@ -4382,42 +4354,6 @@ void UpdateRenderData(
 
 	barrier_stack_flush(cmd); // wind/skinning flush
 
-	// Hair particle initialization is needed for all, not just visible ones:
-	//	This fixes an issue when hair is included in ray tracing acceleration
-	//	structure, but not yet updated properly, because it was not yet visible
-	for (size_t i = 0; i < vis.scene->hairs.GetCount(); ++i)
-	{
-		vis.scene->hairs[i].InitializeGPUDataIfNeeded(cmd);
-	}
-
-	// Hair particle systems GPU simulation:
-	//	(This must be non-async too, as prepass will render hairs!)
-	static thread_local vz::vector<HairParticleSystem::UpdateGPUItem> hair_updates;
-	if (!vis.visibleHairs.empty())
-	{
-		auto range = vz::profiler::BeginRangeGPU("HairParticles - Simulate", cmd);
-		for (uint32_t hairIndex : vis.visibleHairs)
-		{
-			const vz::HairParticleSystem& hair = vis.scene->hairs[hairIndex];
-			const MeshComponent* mesh = vis.scene->meshes.GetComponent(hair.meshID);
-
-			if (mesh != nullptr)
-			{
-				Entity entity = vis.scene->hairs.GetEntity(hairIndex);
-				size_t materialIndex = vis.scene->materials.GetIndex(entity);
-				const MaterialComponent& material = vis.scene->materials[materialIndex];
-				auto& hair_update = hair_updates.emplace_back();
-				hair_update.hair = &hair;
-				hair_update.instanceIndex = (uint32_t)vis.scene->objects.GetCount() + hairIndex;
-				hair_update.mesh = mesh;
-				hair_update.material = &material;
-			}
-		}
-		HairParticleSystem::UpdateGPU(hair_updates.data(), (uint32_t)hair_updates.size(), cmd);
-		hair_updates.clear();
-		vz::profiler::EndRange(range);
-	}
-
 	// Impostor prepare:
 	if (vis.scene->impostors.GetCount() > 0 && vis.scene->objects.GetCount() > 0 && vis.scene->impostorBuffer.IsValid())
 	{
@@ -4642,7 +4578,7 @@ void UpdateRenderDataAsync(
 			Entity entity = vis.scene->emitters.GetEntity(emitterIndex);
 			const TransformComponent& transform = *vis.scene->transforms.GetComponent(entity);
 			const MeshComponent* mesh = vis.scene->meshes.GetComponent(emitter.meshID);
-			const uint32_t instanceIndex = uint32_t(vis.scene->objects.GetCount() + vis.scene->hairs.GetCount()) + emitterIndex;
+			const uint32_t instanceIndex = uint32_t(vis.scene->objects.GetCount()) + emitterIndex;
 
 			emitter.UpdateGPU(instanceIndex, mesh, cmd);
 		}
@@ -4667,11 +4603,6 @@ void UpdateRenderDataAsync(
 			vis.scene->ocean.UpdateDisplacementMap(vis.scene->weather.oceanParameters, cmd);
 			vz::profiler::EndRange(range);
 		}
-	}
-
-	for (size_t i = 0; i < vis.scene->terrains.GetCount(); ++i)
-	{
-		vis.scene->terrains[i].UpdateVirtualTexturesGPU(cmd);
 	}
 
 	device->EventEnd(cmd);
@@ -4721,16 +4652,6 @@ void UpdateRaytracingAccelerationStructures(const Scene& scene, CommandList cmd)
 					}
 				}
 				mesh.BLAS_state = MeshComponent::BLAS_STATE_COMPLETE;
-			}
-
-			for (size_t i = 0; i < scene.hairs.GetCount(); ++i)
-			{
-				const vz::HairParticleSystem& hair = scene.hairs[i];
-
-				if (hair.meshID != INVALID_ENTITY && hair.BLAS.IsValid())
-				{
-					device->BuildRaytracingAccelerationStructure(&hair.BLAS, cmd, nullptr);
-				}
 			}
 
 			for (size_t i = 0; i < scene.emitters.GetCount(); ++i)
@@ -5695,37 +5616,6 @@ void DrawShadowmaps(
 					}
 				}
 
-				if (!vis.visibleHairs.empty())
-				{
-					cb.cameras[0].position = vis.camera->Eye;
-					for (uint32_t cascade = 0; cascade < cascade_count; ++cascade)
-					{
-						XMStoreFloat4x4(&cb.cameras[0].view_projection, shcams[cascade].view_projection);
-						device->BindDynamicConstantBuffer(cb, CBSLOT_RENDERER_CAMERA, cmd);
-
-						Viewport vp;
-						vp.top_left_x = float(shadow_rect.x + cascade * shadow_rect.w);
-						vp.top_left_y = float(shadow_rect.y);
-						vp.width = float(shadow_rect.w);
-						vp.height = float(shadow_rect.h);
-						vp.min_depth = 0.0f;
-						vp.max_depth = 1.0f;
-						device->BindViewports(1, &vp, cmd);
-
-						for (uint32_t hairIndex : vis.visibleHairs)
-						{
-							const HairParticleSystem& hair = vis.scene->hairs[hairIndex];
-							if (!shcams[cascade].frustum.CheckBoxFast(hair.aabb))
-								continue;
-							Entity entity = vis.scene->hairs.GetEntity(hairIndex);
-							const MaterialComponent* material = vis.scene->materials.GetComponent(entity);
-							if (material != nullptr)
-							{
-								hair.Draw(*material, RENDERPASS_SHADOW, cmd);
-							}
-						}
-					}
-				}
 			}
 			break;
 			case LightComponent::SPOT:
@@ -5793,35 +5683,6 @@ void DrawShadowmaps(
 					if (predicationRequest && light.occlusionquery >= 0)
 					{
 						device->PredicationEnd(cmd);
-					}
-				}
-
-				if (!vis.visibleHairs.empty())
-				{
-					cb.cameras[0].position = vis.camera->Eye;
-					XMStoreFloat4x4(&cb.cameras[0].view_projection, shcam.view_projection);
-					device->BindDynamicConstantBuffer(cb, CBSLOT_RENDERER_CAMERA, cmd);
-
-					Viewport vp;
-					vp.top_left_x = float(shadow_rect.x);
-					vp.top_left_y = float(shadow_rect.y);
-					vp.width = float(shadow_rect.w);
-					vp.height = float(shadow_rect.h);
-					vp.min_depth = 0.0f;
-					vp.max_depth = 1.0f;
-					device->BindViewports(1, &vp, cmd);
-
-					for (uint32_t hairIndex : vis.visibleHairs)
-					{
-						const HairParticleSystem& hair = vis.scene->hairs[hairIndex];
-						if (!shcam.frustum.CheckBoxFast(hair.aabb))
-							continue;
-						Entity entity = vis.scene->hairs.GetEntity(hairIndex);
-						const MaterialComponent* material = vis.scene->materials.GetComponent(entity);
-						if (material != nullptr)
-						{
-							hair.Draw(*material, RENDERPASS_SHADOW, cmd);
-						}
 					}
 				}
 
@@ -5924,38 +5785,6 @@ void DrawShadowmaps(
 					}
 				}
 
-				if (!vis.visibleHairs.empty())
-				{
-					cb.cameras[0].position = vis.camera->Eye;
-					for (uint32_t shcam = 0; shcam < arraysize(cameras); ++shcam)
-					{
-						XMStoreFloat4x4(&cb.cameras[0].view_projection, cameras[shcam].view_projection);
-						device->BindDynamicConstantBuffer(cb, CBSLOT_RENDERER_CAMERA, cmd);
-
-						Viewport vp;
-						vp.top_left_x = float(shadow_rect.x + shcam * shadow_rect.w);
-						vp.top_left_y = float(shadow_rect.y);
-						vp.width = float(shadow_rect.w);
-						vp.height = float(shadow_rect.h);
-						vp.min_depth = 0;
-						vp.max_depth = 1;
-						device->BindViewports(1, &vp, cmd);
-
-						for (uint32_t hairIndex : vis.visibleHairs)
-						{
-							const HairParticleSystem& hair = vis.scene->hairs[hairIndex];
-							if (!cameras[shcam].frustum.CheckBoxFast(hair.aabb))
-								continue;
-							Entity entity = vis.scene->hairs.GetEntity(hairIndex);
-							const MaterialComponent* material = vis.scene->materials.GetComponent(entity);
-							if (material != nullptr)
-							{
-								hair.Draw(*material, RENDERPASS_SHADOW, cmd);
-							}
-						}
-					}
-				}
-
 			}
 			break;
 			} // terminate switch
@@ -6030,7 +5859,7 @@ void DrawScene(
 {
 	const bool opaque = flags & DRAWSCENE_OPAQUE;
 	const bool transparent = flags & DRAWSCENE_TRANSPARENT;
-	const bool hairparticle = flags & DRAWSCENE_HAIRPARTICLE;
+	//const bool hairparticle = flags & DRAWSCENE_HAIRPARTICLE;
 	const bool impostor = flags & DRAWSCENE_IMPOSTOR;
 	const bool occlusion = (flags & DRAWSCENE_OCCLUSIONCULLING) && (vis.flags & Visibility::ALLOW_OCCLUSION_CULLING) && GetOcclusionCullingEnabled();
 	const bool ocean = flags & DRAWSCENE_OCEAN;
@@ -6108,21 +5937,6 @@ void DrawScene(
 	if (impostor)
 	{
 		RenderImpostors(vis, renderPass, cmd);
-	}
-
-	if (hairparticle)
-	{
-		if (IsWireRender() || !transparent)
-		{
-			for (uint32_t hairIndex : vis.visibleHairs)
-			{
-				const vz::HairParticleSystem& hair = vis.scene->hairs[hairIndex];
-				Entity entity = vis.scene->hairs.GetEntity(hairIndex);
-				const MaterialComponent& material = *vis.scene->materials.GetComponent(entity);
-
-				hair.Draw(material, renderPass, cmd);
-			}
-		}
 	}
 
 	device->BindShadingRate(ShadingRate::RATE_1X1, cmd);

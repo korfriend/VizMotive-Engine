@@ -113,7 +113,7 @@ namespace vz::renderer
 			ALLOW_DECALS = 1 << 2,
 			ALLOW_ENVPROBES = 1 << 3,
 			ALLOW_EMITTERS = 1 << 4,
-			ALLOW_HAIRS = 1 << 5,
+			//ALLOW_HAIRS = 1 << 5,
 			ALLOW_REQUEST_REFLECTION = 1 << 6,
 			ALLOW_OCCLUSION_CULLING = 1 << 7,
 			ALLOW_SHADOW_ATLAS_PACKING = 1 << 8,
@@ -128,7 +128,6 @@ namespace vz::renderer
 		vz::vector<uint32_t> visibleDecals;
 		vz::vector<uint32_t> visibleEnvProbes;
 		vz::vector<uint32_t> visibleEmitters;
-		vz::vector<uint32_t> visibleHairs;
 		vz::vector<uint32_t> visibleLights;
 		vz::rectpacker::State shadow_packer;
 		vz::rectpacker::Rect rain_blocker_shadow_rect;
@@ -151,7 +150,6 @@ namespace vz::renderer
 			visibleDecals.clear();
 			visibleEnvProbes.clear();
 			visibleEmitters.clear();
-			visibleHairs.clear();
 
 			object_counter.store(0);
 			light_counter.store(0);
@@ -216,7 +214,7 @@ namespace vz::renderer
 		DRAWSCENE_TRANSPARENT = 1 << 1, // include transparent objects
 		DRAWSCENE_OCCLUSIONCULLING = 1 << 2, // enable skipping objects based on occlusion culling results
 		DRAWSCENE_TESSELLATION = 1 << 3, // enable tessellation
-		DRAWSCENE_HAIRPARTICLE = 1 << 4, // include hair particles
+		//DRAWSCENE_HAIRPARTICLE = 1 << 4, // include hair particles
 		DRAWSCENE_IMPOSTOR = 1 << 5, // include impostors
 		DRAWSCENE_OCEAN = 1 << 6, // include ocean
 		DRAWSCENE_SKIP_PLANAR_REFLECTION_OBJECTS = 1 << 7, // don't draw subsets which have planar reflection material
