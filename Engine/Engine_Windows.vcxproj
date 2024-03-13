@@ -11,12 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="wickedengine.natvis" />
+    <Natvis Include="engine.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{06163DCB-B183-4ED9-9C62-13EF1658E049}</ProjectGuid>
+    <ProjectGuid>{D86799C4-9D93-4981-93B7-48C219D40915}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>WickedEngine_Windows</RootNamespace>
+    <RootNamespace>Engine_Windows</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>Engine_Windows</ProjectName>
   </PropertyGroup>
@@ -38,7 +38,7 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
-    <Import Project="WickedEngine_SOURCE.vcxitems" Label="Shared" />
+    <Import Project="Engine_SOURCE.vcxitems" Label="Shared" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
