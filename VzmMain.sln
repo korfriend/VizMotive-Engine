@@ -5,11 +5,11 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Startup", "Startup\Startup.vcxproj", "{E6996B15-A296-4C69-90EA-7F1787FF69DC}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_SOURCE", "Engine\WickedEngine_SOURCE.vcxitems", "{45D41ACC-2C3C-43D2-BC10-02AA73FFC7C7}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_Windows", "Engine\WickedEngine_Windows.vcxproj", "{06163DCB-B183-4ED9-9C62-13EF1658E049}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OfflineShaderCompiler", "Engine\OfflineShaderCompiler.vcxproj", "{3B74A7FE-CED7-4723-8824-AC708A865B98}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_SOURCE", "Engine\Engine_SOURCE.vcxitems", "{EE40CE42-7583-4534-ADA2-4BA4FA298681}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_Windows", "Engine\Engine_Windows.vcxproj", "{D86799C4-9D93-4981-93B7-48C219D40915}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,14 +27,6 @@ Global
 		{E6996B15-A296-4C69-90EA-7F1787FF69DC}.Release|x64.Build.0 = Release|x64
 		{E6996B15-A296-4C69-90EA-7F1787FF69DC}.Release|x86.ActiveCfg = Release|Win32
 		{E6996B15-A296-4C69-90EA-7F1787FF69DC}.Release|x86.Build.0 = Release|Win32
-		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Debug|x64.ActiveCfg = Debug|x64
-		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Debug|x64.Build.0 = Debug|x64
-		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Debug|x86.ActiveCfg = Debug|x64
-		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Debug|x86.Build.0 = Debug|x64
-		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Release|x64.ActiveCfg = Release|x64
-		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Release|x64.Build.0 = Release|x64
-		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Release|x86.ActiveCfg = Release|x64
-		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Release|x86.Build.0 = Release|x64
 		{3B74A7FE-CED7-4723-8824-AC708A865B98}.Debug|x64.ActiveCfg = Debug|x64
 		{3B74A7FE-CED7-4723-8824-AC708A865B98}.Debug|x64.Build.0 = Debug|x64
 		{3B74A7FE-CED7-4723-8824-AC708A865B98}.Debug|x86.ActiveCfg = Debug|x64
@@ -43,6 +35,14 @@ Global
 		{3B74A7FE-CED7-4723-8824-AC708A865B98}.Release|x64.Build.0 = Release|x64
 		{3B74A7FE-CED7-4723-8824-AC708A865B98}.Release|x86.ActiveCfg = Release|x64
 		{3B74A7FE-CED7-4723-8824-AC708A865B98}.Release|x86.Build.0 = Release|x64
+		{D86799C4-9D93-4981-93B7-48C219D40915}.Debug|x64.ActiveCfg = Debug|x64
+		{D86799C4-9D93-4981-93B7-48C219D40915}.Debug|x64.Build.0 = Debug|x64
+		{D86799C4-9D93-4981-93B7-48C219D40915}.Debug|x86.ActiveCfg = Debug|x64
+		{D86799C4-9D93-4981-93B7-48C219D40915}.Debug|x86.Build.0 = Debug|x64
+		{D86799C4-9D93-4981-93B7-48C219D40915}.Release|x64.ActiveCfg = Release|x64
+		{D86799C4-9D93-4981-93B7-48C219D40915}.Release|x64.Build.0 = Release|x64
+		{D86799C4-9D93-4981-93B7-48C219D40915}.Release|x86.ActiveCfg = Release|x64
+		{D86799C4-9D93-4981-93B7-48C219D40915}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -51,7 +51,7 @@ Global
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		Engine\WickedEngine_SOURCE.vcxitems*{06163dcb-b183-4ed9-9c62-13ef1658e049}*SharedItemsImports = 4
-		Engine\WickedEngine_SOURCE.vcxitems*{45d41acc-2c3c-43d2-bc10-02aa73ffc7c7}*SharedItemsImports = 9
+		Engine\Engine_SOURCE.vcxitems*{d86799c4-9d93-4981-93b7-48c219d40915}*SharedItemsImports = 4
+		Engine\Engine_SOURCE.vcxitems*{ee40ce42-7583-4534-ada2-4ba4fa298681}*SharedItemsImports = 9
 	EndGlobalSection
 EndGlobal
