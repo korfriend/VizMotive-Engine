@@ -20,6 +20,13 @@ using namespace vz::scene;
 
 namespace vz::physics
 {
+	void Initialize() {}
+	bool IsEnabled() { return false; }
+	void RunPhysicsUpdateSystem(
+		vz::jobsystem::context& ctx,
+		vz::scene::Scene& scene,
+		float dt
+	) {};
 	/*
 	namespace bullet
 	{

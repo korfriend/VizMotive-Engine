@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_H
-#define WI_SHADERINTEROP_H
+#ifndef VZM_SHADERINTEROP_H
+#define VZM_SHADERINTEROP_H
 
 #ifdef __cplusplus // not invoking shader compiler, but included in engine source
 
@@ -142,4 +142,4 @@ static const uint IndirectDispatchArgsAlignment = 4u;
 #define CBSLOT_FSR								4
 #endif // !__PSSL__ && !__SCE__
 
-#endif // WI_SHADERINTEROP_H
+#endif // VZM_SHADERINTEROP_H

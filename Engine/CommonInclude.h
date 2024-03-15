@@ -245,4 +245,4 @@ constexpr bool has_flag(E lhs, E rhs)
 	return (lhs & rhs) == rhs;
 }
 
-#endif //WICKEDENGINE_COMMONINCLUDE_H
+#endif //VZMENGINE_COMMONINCLUDE_H

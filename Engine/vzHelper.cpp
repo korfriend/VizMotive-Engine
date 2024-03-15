@@ -1089,12 +1089,12 @@ namespace vz::helper
 	{
 		return FileRead_Impl(fileName, data);
 	}
-#if WI_VECTOR_TYPE
+#if VZM_VECTOR_TYPE
 	bool FileRead(const std::string& fileName, std::vector<uint8_t>& data)
 	{
 		return FileRead_Impl(fileName, data);
 	}
-#endif // WI_VECTOR_TYPE
+#endif // VZM_VECTOR_TYPE
 
 	bool FileWrite(const std::string& fileName, const uint8_t* data, size_t size)
 	{

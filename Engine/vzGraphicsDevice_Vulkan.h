@@ -3,10 +3,10 @@
 #include "vzPlatform.h"
 
 #if defined(PLATFORM_WINDOWS_DESKTOP) || defined(PLATFORM_LINUX)
-#define WICKEDENGINE_BUILD_VULKAN
+#define VZMENGINE_BUILD_VULKAN
 #endif // PLATFORM_WINDOWS_DESKTOP || PLATFORM_LINUX
 
-#ifdef WICKEDENGINE_BUILD_VULKAN
+#ifdef VZMENGINE_BUILD_VULKAN
 #include "vzGraphicsDevice.h"
 #include "vzUnorderedMap.h"
 #include "vzVector.h"
@@ -703,4 +703,4 @@ namespace vz::graphics
 	};
 }
 
-#endif // WICKEDENGINE_BUILD_VULKAN
+#endif // VZMENGINE_BUILD_VULKAN

@@ -324,6 +324,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)vzAudio.h">
       <Filter>ENGINE\Audio</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)VizEngineAPIs.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzVersion.cpp">
@@ -494,6 +495,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)vzAudio.cpp">
       <Filter>ENGINE\Audio</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)VizEngineAPIs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Utility\DirectXCollision.inl">

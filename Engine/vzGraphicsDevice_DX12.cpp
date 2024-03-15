@@ -1,6 +1,6 @@
 #include "vzGraphicsDevice_DX12.h"
 
-#ifdef WICKEDENGINE_BUILD_DX12
+#ifdef VZMENGINE_BUILD_DX12
 #include "vzHelper.h"
 #include "vzBacklog.h"
 #include "vzTimer.h"
@@ -7459,4 +7459,4 @@ using namespace dx12_internal;
 
 }
 
-#endif // WICKEDENGINE_BUILD_DX12
+#endif // VZMENGINE_BUILD_DX12

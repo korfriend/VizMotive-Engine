@@ -105,7 +105,7 @@ namespace vz
 		}
 
 #if 0
-#ifdef WICKEDENGINE_BUILD_DX12
+#ifdef VZMENGINE_BUILD_DX12
 		static bool startup_workaround = false;
 		if (!startup_workaround)
 		{
@@ -117,32 +117,8 @@ namespace vz
 				graphicsDevice->SubmitCommandLists();
 			}
 		}
-#endif // WICKEDENGINE_BUILD_DX12
+#endif // VZMENGINE_BUILD_DX12
 #endif
-
-		//static bool startup_script = false;
-		//if (!startup_script)
-		//{
-		//	startup_script = true;
-		//	Luna<vz::lua::Application_BindLua>::push_global(vz::lua::GetLuaState(), "main", this);
-		//	Luna<vz::lua::Application_BindLua>::push_global(vz::lua::GetLuaState(), "application", this);
-		//	std::string startup_lua_filename = vz::helper::GetCurrentPath() + "/startup.lua";
-		//	if (vz::helper::FileExists(startup_lua_filename))
-		//	{
-		//		if (vz::lua::RunFile(startup_lua_filename))
-		//		{
-		//			vz::backlog::post("Executed startup file: " + startup_lua_filename);
-		//		}
-		//	}
-		//	std::string startup_luab_filename = vz::helper::GetCurrentPath() + "/startup.luab";
-		//	if (vz::helper::FileExists(startup_luab_filename))
-		//	{
-		//		if (vz::lua::RunBinaryFile(startup_luab_filename))
-		//		{
-		//			vz::backlog::post("Executed startup file: " + startup_luab_filename);
-		//		}
-		//	}
-		//}
 
 		if (!is_window_active && !vz::arguments::HasArgument("alwaysactive"))
 		{
@@ -348,18 +324,18 @@ namespace vz
 				infodisplay_str += "[UWP]";
 #endif // PLATFORM_UWP
 
-#ifdef WICKEDENGINE_BUILD_DX12
+#ifdef VZMENGINE_BUILD_DX12
 				if (dynamic_cast<GraphicsDevice_DX12*>(graphicsDevice.get()))
 				{
 					infodisplay_str += "[DX12]";
 				}
-#endif // WICKEDENGINE_BUILD_DX12
-#ifdef WICKEDENGINE_BUILD_VULKAN
+#endif // VZMENGINE_BUILD_DX12
+#ifdef VZMENGINE_BUILD_VULKAN
 				if (dynamic_cast<GraphicsDevice_Vulkan*>(graphicsDevice.get()))
 				{
 					infodisplay_str += "[Vulkan]";
 				}
-#endif // WICKEDENGINE_BUILD_VULKAN
+#endif // VZMENGINE_BUILD_VULKAN
 
 #ifdef _DEBUG
 				infodisplay_str += "[DEBUG]";
@@ -556,24 +532,24 @@ namespace vz
 			bool use_dx12 = vz::arguments::HasArgument("dx12");
 			bool use_vulkan = vz::arguments::HasArgument("vulkan");
 
-#ifndef WICKEDENGINE_BUILD_DX12
+#ifndef VZMENGINE_BUILD_DX12
 			if (use_dx12) {
 				vz::helper::messageBox("The engine was built without DX12 support!", "Error");
 				use_dx12 = false;
 			}
-#endif // WICKEDENGINE_BUILD_DX12
-#ifndef WICKEDENGINE_BUILD_VULKAN
+#endif // VZMENGINE_BUILD_DX12
+#ifndef VZMENGINE_BUILD_VULKAN
 			if (use_vulkan) {
 				vz::helper::messageBox("The engine was built without Vulkan support!", "Error");
 				use_vulkan = false;
 			}
-#endif // WICKEDENGINE_BUILD_VULKAN
+#endif // VZMENGINE_BUILD_VULKAN
 
 			if (!use_dx12 && !use_vulkan)
 			{
-#if defined(WICKEDENGINE_BUILD_DX12)
+#if defined(VZMENGINE_BUILD_DX12)
 				use_dx12 = true;
-#elif defined(WICKEDENGINE_BUILD_VULKAN)
+#elif defined(VZMENGINE_BUILD_VULKAN)
 				use_vulkan = true;
 #else
 				vz::backlog::post("No rendering backend is enabled! Please enable at least one so we can use it as default", vz::backlog::LogLevel::Error);
@@ -584,14 +560,14 @@ namespace vz
 
 			if (use_vulkan)
 			{
-#ifdef WICKEDENGINE_BUILD_VULKAN
+#ifdef VZMENGINE_BUILD_VULKAN
 				vz::renderer::SetShaderPath(vz::renderer::GetShaderPath() + "spirv/");
 				graphicsDevice = std::make_unique<GraphicsDevice_Vulkan>(window, validationMode, preference);
 #endif
 			}
 			else if (use_dx12)
 			{
-#ifdef WICKEDENGINE_BUILD_DX12
+#ifdef VZMENGINE_BUILD_DX12
 
 				vz::renderer::SetShaderPath(vz::renderer::GetShaderPath() + "hlsl6/");
 				graphicsDevice = std::make_unique<GraphicsDevice_DX12>(validationMode, preference);

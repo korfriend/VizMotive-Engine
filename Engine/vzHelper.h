@@ -82,10 +82,10 @@ namespace vz::helper
 
 	bool FileRead(const std::string& fileName, vz::vector<uint8_t>& data);
 
-#if WI_VECTOR_TYPE
+#if VZM_VECTOR_TYPE
 	// This version is provided if std::vector != vz::vector
 	bool FileRead(const std::string& fileName, std::vector<uint8_t>& data);
-#endif // WI_VECTOR_TYPE
+#endif // VZM_VECTOR_TYPE
 
 	bool FileWrite(const std::string& fileName, const uint8_t* data, size_t size);
 

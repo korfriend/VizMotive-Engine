@@ -1,5 +1,5 @@
-#ifndef WICKEDENGINE_VERSION_DEFINED
-#define WICKEDENGINE_VERSION_DEFINED
+#ifndef VZMENGINE_VERSION_DEFINED
+#define VZMENGINE_VERSION_DEFINED
 
 namespace vz::version
 {
@@ -15,4 +15,4 @@ namespace vz::version
 	const char* GetCreditsString();
 }
 
-#endif // WICKEDENGINE_VERSION_DEFINED
+#endif // VZMENGINE_VERSION_DEFINED

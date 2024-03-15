@@ -72,7 +72,11 @@
 #include "vzPathQuery.h"
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
-#pragma comment(lib,"Engine_Windows.lib")
+#ifdef _DEBUG
+#pragma comment(lib,"VizEngined.lib")
+#else
+#pragma comment(lib,"VizEngine.lib")
+#endif
 #endif // PLATFORM_WINDOWS_DESKTOP
 
 #ifdef PLATFORM_UWP

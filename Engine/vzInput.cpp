@@ -1,6 +1,5 @@
 #include "vzInput.h"
 #include "vzPlatform.h"
-#include "vzXInput.h"
 #include "vzRawInput.h"
 #include "vzSDLInput.h"
 #include "vzHelper.h"
@@ -72,10 +71,8 @@ namespace vz::input
 		enum DeviceType
 		{
 			DISCONNECTED,
-			XINPUT,
 			RAWINPUT,
 			SDLINPUT,
-			PS5,
 		};
 		DeviceType deviceType;
 		int deviceIndex;
@@ -106,7 +103,6 @@ namespace vz::input
 
 		auto range = vz::profiler::BeginRangeCPU("Input");
 
-		vz::input::xinput::Update();
 		vz::input::rawinput::Update();
 		vz::input::sdlinput::Update();
 
@@ -230,37 +226,6 @@ namespace vz::input
 			pen_override = false;
 		}
 
-		// Check if low-level XINPUT controller is not registered for playerindex slot and register:
-		for (int i = 0; i < vz::input::xinput::GetMaxControllerCount(); ++i)
-		{
-			if (vz::input::xinput::GetControllerState(nullptr, i))
-			{
-				int slot = -1;
-				for (int j = 0; j < (int)controllers.size(); ++j)
-				{
-					if (slot < 0 && controllers[j].deviceType == Controller::DISCONNECTED)
-					{
-						// take the first disconnected slot
-						slot = j;
-					}
-					if (controllers[j].deviceType == Controller::XINPUT && controllers[j].deviceIndex == i)
-					{
-						// it is already registered to this slot
-						slot = j;
-						break;
-					}
-				}
-				if (slot == -1)
-				{
-					// no disconnected slot was found, and it was not registered
-					slot = (int)controllers.size();
-					controllers.emplace_back();
-				}
-				controllers[slot].deviceType = Controller::XINPUT;
-				controllers[slot].deviceIndex = i;
-			}
-		}
-
 		// Check if low-level RAWINPUT controller is not registered for playerindex slot and register:
 		for (int i = 0; i < vz::input::rawinput::GetMaxControllerCount(); ++i)
 		{
@@ -329,9 +294,6 @@ namespace vz::input
 			bool connected = false;
 			switch (controller.deviceType)
 			{
-				case Controller::XINPUT:
-					connected = vz::input::xinput::GetControllerState(&controller.state, controller.deviceIndex);
-					break;
 				case Controller::RAWINPUT:
 					connected = vz::input::rawinput::GetControllerState(&controller.state, controller.deviceIndex);
 					break;
@@ -723,11 +685,7 @@ namespace vz::input
 		{
 			const Controller& controller = controllers[playerindex];
 
-			if (controller.deviceType == Controller::XINPUT)
-			{
-				vz::input::xinput::SetControllerFeedback(data, controller.deviceIndex);
-			}
-			else if (controller.deviceType == Controller::RAWINPUT)
+			if (controller.deviceType == Controller::RAWINPUT)
 			{
 				vz::input::rawinput::SetControllerFeedback(data, controller.deviceIndex);
 			}

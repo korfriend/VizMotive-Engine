@@ -1,5 +1,5 @@
-#ifndef WI_ENTITY_COMPONENT_SYSTEM_H
-#define WI_ENTITY_COMPONENT_SYSTEM_H
+#ifndef VZM_ENTITY_COMPONENT_SYSTEM_H
+#define VZM_ENTITY_COMPONENT_SYSTEM_H
 
 #include "vzArchive.h"
 #include "vzJobSystem.h"
@@ -561,4 +561,4 @@ namespace vz::ecs
 	};
 }
 
-#endif // WI_ENTITY_COMPONENT_SYSTEM_H
+#endif // VZM_ENTITY_COMPONENT_SYSTEM_H

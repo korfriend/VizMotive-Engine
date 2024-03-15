@@ -3,10 +3,10 @@
 #include "vzPlatform.h"
 
 #ifdef _WIN32
-#define WICKEDENGINE_BUILD_DX12
+#define VZMENGINE_BUILD_DX12
 #endif // _WIN32
 
-#ifdef WICKEDENGINE_BUILD_DX12
+#ifdef VZMENGINE_BUILD_DX12
 #include "vzGraphicsDevice.h"
 #include "vzUnorderedMap.h"
 #include "vzVector.h"
@@ -629,4 +629,4 @@ namespace vz::graphics
 
 }
 
-#endif // WICKEDENGINE_BUILD_DX12
+#endif // VZMENGINE_BUILD_DX12
