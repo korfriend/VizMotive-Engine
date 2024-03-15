@@ -11,7 +11,7 @@
 
 #include <spdlog/spdlog.h>
 
-//#include "../MyEngine/MyEngineAPI.h"
+#include "VizEngineAPIs.h"
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
@@ -35,8 +35,7 @@ int main(int, char**)
 	g_apiLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
 	g_apiLogger->info("hello {}", 3);
 
-	myParcle::InitEngine(g_apiLogger);
-	myParcle::SetRenderTargetSize(512, 512);
+	vzm::InitEngineLib();
 
 	// Create application window
 	//ImGui_ImplWin32_EnableDpiAwareness();
@@ -178,14 +177,6 @@ int main(int, char**)
 					ImGui::SetWindowSize(ImVec2(0, 0)); // leading to update new canvas_size
 				}
 
-				{
-					rtSize = ImGui::GetContentRegionAvail();
-
-					myParcle::SetRenderTargetSize(rtSize.x, rtSize.y);
-
-					resizedFrame = true;
-					readyCallRender = true;
-				}
 				prevWindowSize.x = curWindowSize.x;
 				prevWindowSize.y = curWindowSize.y;
 			}
@@ -193,21 +184,6 @@ int main(int, char**)
 
 			ImVec2 itemSize = ImVec2(rtSize.x, rtSize.y);
 			ImGui::InvisibleButton("my ibt", itemSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-			ImGui::SetItemAllowOverlap();
-
-			if (readyCallRender)
-				myParcle::DoTest();
-
-			ID3D11ShaderResourceView* my_texture = NULL;
-			int w = 0, h = 0;
-			myParcle::GetDX11SharedRenderTarget(g_pd3dDevice, &my_texture, w, h);
-			{
-				w == rtSize.x;
-				h == rtSize.y;
-			}
-
-			ImGui::SetCursorPos(curItemPos);
-			ImGui::Image(my_texture, ImVec2(w, h)); // render texture 
 			ImGui::SetItemAllowOverlap();
 
 			ImGui::End();
@@ -231,7 +207,7 @@ int main(int, char**)
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 
-	myParcle::DeinitEngine();
+	vzm::DeinitEngineLib();
 
 	CleanupDeviceD3D();
 	::DestroyWindow(hwnd);

@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_EMITTEDPARTICLE_H
-#define WI_SHADERINTEROP_EMITTEDPARTICLE_H
+#ifndef VZM_SHADERINTEROP_EMITTEDPARTICLE_H
+#define VZM_SHADERINTEROP_EMITTEDPARTICLE_H
 
 #include "ShaderInterop.h"
 #include "ShaderInterop_Renderer.h"
@@ -160,5 +160,5 @@ static const int3 sph_neighbor_offsets[27] = {
 	int3(1, 1, 1),
 };
 
-#endif // WI_SHADERINTEROP_EMITTEDPARTICLE_H
+#endif // VZM_SHADERINTEROP_EMITTEDPARTICLE_H
 

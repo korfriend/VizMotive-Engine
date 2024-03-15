@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_SURFEL_GI_H
-#define WI_SHADERINTEROP_SURFEL_GI_H
+#ifndef SHADERINTEROP_SURFEL_GI_H
+#define SHADERINTEROP_SURFEL_GI_H
 #include "ShaderInterop.h"
 #include "ShaderInterop_Renderer.h"
 
@@ -306,4 +306,4 @@ void MultiscaleMeanEstimator(
 
 #endif // __cplusplus
 
-#endif // WI_SHADERINTEROP_SURFEL_GI_H
+#endif // SHADERINTEROP_SURFEL_GI_H

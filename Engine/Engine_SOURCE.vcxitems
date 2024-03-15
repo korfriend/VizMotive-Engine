@@ -23,6 +23,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utility\minimp4.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utility\pugiconfig.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utility\pugixml.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)VizEngineAPIs.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzBVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzConfig.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzLocalization.h" />
@@ -112,6 +113,7 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utility\lodepng.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utility\pugixml.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)VizEngineAPIs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzConfig.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzLocalization.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzPathQuery.cpp" />

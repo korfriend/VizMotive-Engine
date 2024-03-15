@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_RENDERER_H
-#define WI_SHADERINTEROP_RENDERER_H
+#ifndef SHADERINTEROP_RENDERER_H
+#define SHADERINTEROP_RENDERER_H
 #include "ShaderInterop.h"
 #include "ShaderInterop_Weather.h"
 #include "ShaderInterop_VXGI.h"
@@ -1397,4 +1397,4 @@ struct VirtualTextureTileRequestsPush
 };
 
 
-#endif // WI_SHADERINTEROP_RENDERER_H
+#endif // SHADERINTEROP_RENDERER_H

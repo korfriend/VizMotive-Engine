@@ -1,6 +1,6 @@
 #include "vzGraphicsDevice_Vulkan.h"
 
-#ifdef WICKEDENGINE_BUILD_VULKAN
+#ifdef VZMENGINE_BUILD_VULKAN
 #include "vzHelper.h"
 #include "vzBacklog.h"
 #include "vzVersion.h"
@@ -9174,4 +9174,4 @@ using namespace vulkan_internal;
 
 }
 
-#endif // WICKEDENGINE_BUILD_VULKAN
+#endif // VZMENGINE_BUILD_VULKAN
