@@ -179,7 +179,7 @@ namespace vzm
 		return vzmApp.CreateSceneEntity(sceneName);
 	}
 
-	VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameters& cParams)
+	VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameters& cParams, const VID parentId)
 	{
 		Scene* scene = vzmApp.GetScene(sceneId);
 		if (scene == nullptr)
@@ -199,6 +199,20 @@ namespace vzm
 		case CameraParameters::ProjectionMode::SLICER_CURVED:
 		default:
 			return INVALID_ENTITY;
+		}
+
+		if (parentId != INVALID_ENTITY)
+		{
+			bool isValid = false;
+			for (auto& entry : scene->componentLibrary.entries)
+			{
+				if (entry.second.component_manager->Contains(parentId))
+				{
+					isValid = true;
+					break;
+				}
+			}
+			scene->hierarchy.Create(parentId);
 		}
 
 		return ety;
