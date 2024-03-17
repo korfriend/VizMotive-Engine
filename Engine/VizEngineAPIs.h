@@ -284,13 +284,22 @@ namespace vzm
 		}
 	};
 
-	// Components
-
+	
+	// This must be called before using engine APIs
+	//  - paired with DeinitEngineLib()
 	__dojostatic VZRESULT InitEngineLib(const std::string& coreName = "VzmEngine", const std::string& logFileName = "EngineApi.log");
 
+	// Create new scene and return scene ID
+	//  - return zero in case of failure (the name is already registered or overflow VID)
 	__dojostatic VID NewScene(const std::string& sceneName);
-	//__dojostatic VZRESULT NewActor(const ActorParameters& actor_params, const std::string& actor_name, int& actor_id);
-	__dojostatic VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameters& cParams);
+	// Create new actor and return actor ID (global entity)
+	//  - Must belong to a scene
+	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
+	//__dojostatic VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameters& aParams, const VID parentId = 0u);
+	// Create new camera and return camera ID (global entity)
+	//  - Must belong to a scene
+	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
+	__dojostatic VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameters& cParams, const VID parentId = 0u);
 	//__dojostatic VZRESULT NewLight(const LightParameters& light_params, const std::string& light_name, int& light_id);
 
 	__dojostatic VZRESULT DeinitEngineLib();
