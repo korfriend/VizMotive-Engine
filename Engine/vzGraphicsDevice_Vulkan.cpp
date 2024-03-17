@@ -2356,9 +2356,9 @@ using namespace vulkan_internal;
 		// Fill out application info:
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pApplicationName = "Wicked Engine Application";
+		appInfo.pApplicationName = "VizMotive Engine Application";
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = "Wicked Engine";
+		appInfo.pEngineName = "VizMotive Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(vz::version::GetMajor(), vz::version::GetMinor(), vz::version::GetRevision());
 		appInfo.apiVersion = VK_API_VERSION_1_3;
 

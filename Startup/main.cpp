@@ -159,38 +159,6 @@ int main(int, char**)
 			ImGui::End();
 		}
 
-		{
-			//ImGui::SetNextWindowPos(ImVec2((g_sizeWinX - g_sizeRightPanelW) / 2 + 10, 5), ImGuiCond_Once);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, clear_color); // Set window background to 
-			ImGui::Begin("My Test");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-
-			ImVec2 curItemPos = ImGui::GetCursorPos();
-			ImVec2 curWindowSize = ImGui::GetWindowSize();
-			static ImVec2 rtSize(0, 0);
-			static ImVec2 prevWindowSize(0, 0);
-			bool resizedFrame = false;
-			bool readyCallRender = false;
-			if (prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y) {
-				// resize...
-				if (prevWindowSize.x * prevWindowSize.y == 0) {
-					ImGui::SetWindowSize(ImVec2(0, 0)); // leading to update new canvas_size
-				}
-
-				prevWindowSize.x = curWindowSize.x;
-				prevWindowSize.y = curWindowSize.y;
-			}
-
-
-			ImVec2 itemSize = ImVec2(rtSize.x, rtSize.y);
-			ImGui::InvisibleButton("my ibt", itemSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-			ImGui::SetItemAllowOverlap();
-
-			ImGui::End();
-			ImGui::PopStyleVar();
-			ImGui::PopStyleColor();
-		}
-
 		// Rendering
 		ImGui::Render();
 		const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };

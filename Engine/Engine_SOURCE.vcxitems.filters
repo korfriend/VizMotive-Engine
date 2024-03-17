@@ -336,9 +336,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)vzImage.cpp">
       <Filter>ENGINE\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)vzEmittedParticle.cpp">
-      <Filter>ENGINE\Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzRenderer.cpp">
       <Filter>ENGINE\Graphics</Filter>
     </ClCompile>
@@ -496,6 +493,9 @@
       <Filter>ENGINE\Audio</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)VizEngineAPIs.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)vzEmittedParticle.cpp">
+      <Filter>ENGINE\Graphics\API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Utility\DirectXCollision.inl">

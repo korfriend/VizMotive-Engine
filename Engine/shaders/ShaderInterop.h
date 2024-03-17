@@ -43,7 +43,7 @@ using int4 = XMINT4;
 #define PUSHCONSTANT(name, type) ConstantBuffer<type> name : register(b999)
 #endif // __PSSL__
 
-namespace wi
+namespace vz
 {
 	namespace graphics
 	{

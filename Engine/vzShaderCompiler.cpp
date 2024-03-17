@@ -54,14 +54,14 @@ namespace vz::shadercompiler
 		{
 #ifdef _WIN32
 			const std::string library = "dxcompiler" + modifier + ".dll";
-			HMODULE dxcompiler = wiLoadLibrary(library.c_str());
+			HMODULE dxcompiler = vzLoadLibrary(library.c_str());
 #elif defined(PLATFORM_LINUX)
 			const std::string library = "./libdxcompiler" + modifier + ".so";
-			HMODULE dxcompiler = wiLoadLibrary(library.c_str());
+			HMODULE dxcompiler = vzLoadLibrary(library.c_str());
 #endif
 			if (dxcompiler != nullptr)
 			{
-				DxcCreateInstance = (DxcCreateInstanceProc)wiGetProcAddress(dxcompiler, "DxcCreateInstance");
+				DxcCreateInstance = (DxcCreateInstanceProc)vzGetProcAddress(dxcompiler, "DxcCreateInstance");
 				if (DxcCreateInstance != nullptr)
 				{
 					CComPtr<IDxcCompiler3> dxcCompiler;
@@ -547,10 +547,10 @@ namespace vz::shadercompiler
 				return; // already initialized
 			}
 
-			HMODULE d3dcompiler = wiLoadLibrary("d3dcompiler_47.dll");
+			HMODULE d3dcompiler = vzLoadLibrary("d3dcompiler_47.dll");
 			if (d3dcompiler != nullptr)
 			{
-				D3DCompile = (PFN_D3DCOMPILE)wiGetProcAddress(d3dcompiler, "D3DCompile");
+				D3DCompile = (PFN_D3DCOMPILE)vzGetProcAddress(d3dcompiler, "D3DCompile");
 				if (D3DCompile != nullptr)
 				{
 					vz::backlog::post("vz::shadercompiler: loaded d3dcompiler_47.dll");

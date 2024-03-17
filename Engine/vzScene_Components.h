@@ -789,7 +789,7 @@ namespace vz::scene
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct ObjectComponent
+	struct ObjectComponent	// Actor
 	{
 		enum FLAGS
 		{

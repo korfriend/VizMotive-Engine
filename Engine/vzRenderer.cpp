@@ -72,11 +72,11 @@ namespace vz::renderer
 #ifdef SHADERDUMP_ENABLED
 	// Note: when using Shader Dump, use relative directory, because the dump will contain relative names too
 	std::string SHADERPATH = "shaders/";
-	std::string SHADERSOURCEPATH = "../WickedEngine/shaders/";
+	std::string SHADERSOURCEPATH = "../Engine/shaders/";
 #else
 	// Note: when NOT using Shader Dump, use absolute directory, to avoid the case when something (eg. file dialog) overrides working directory
 	std::string SHADERPATH = vz::helper::GetCurrentPath() + "/shaders/";
-	std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "/../WickedEngine/shaders/";
+	std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "/../Engine/shaders/";
 #endif // SHADERDUMP_ENABLED
 
 	// define this to use raytracing pipeline for raytraced reflections:
@@ -1190,7 +1190,7 @@ namespace vz::renderer
 			customShader.filterMask = FILTER_TRANSPARENT;
 			customShader.pso[RENDERPASS_MAIN] = pso;
 			RegisterCustomShader(customShader);
-			});
+		});
 
 
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) {
