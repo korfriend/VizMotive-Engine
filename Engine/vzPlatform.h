@@ -15,8 +15,8 @@
 
 #if WINAPI_FAMILY == WINAPI_FAMILY_APP
 #define PLATFORM_UWP
-#define wiLoadLibrary(name) LoadPackagedLibrary(_T(name),0)
-#define wiGetProcAddress(handle,name) GetProcAddress(handle, name)
+#define vzLoadLibrary(name) LoadPackagedLibrary(_T(name),0)
+#define vzGetProcAddress(handle,name) GetProcAddress(handle, name)
 #include <winrt/Windows.UI.Core.h>
 #include <winrt/Windows.Graphics.Display.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
@@ -26,14 +26,14 @@ NOT SUPPORT!!
 #else
 #define PLATFORM_WINDOWS_DESKTOP
 #endif // WINAPI_FAMILY_GAMES
-#define wiLoadLibrary(name) LoadLibraryA(name)
-#define wiGetProcAddress(handle,name) GetProcAddress(handle, name)
+#define vzLoadLibrary(name) LoadLibraryA(name)
+#define vzGetProcAddress(handle,name) GetProcAddress(handle, name)
 #endif // WINAPI_FAMILY_APP
 #else
 #define PLATFORM_LINUX
 #include <dlfcn.h>
-#define wiLoadLibrary(name) dlopen(name, RTLD_LAZY)
-#define wiGetProcAddress(handle,name) dlsym(handle, name)
+#define vzLoadLibrary(name) dlopen(name, RTLD_LAZY)
+#define vzGetProcAddress(handle,name) dlsym(handle, name)
 typedef void* HMODULE;
 #endif // _WIN32
 

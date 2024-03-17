@@ -149,7 +149,7 @@ namespace vz
 	bool Localization::Export(const std::string& filename) const
 	{
 		pugi::xml_document doc;
-		doc.append_child(pugi::node_comment).set_value("This file was created by Wicked Engine for language localization.");
+		doc.append_child(pugi::node_comment).set_value("This file was created by VizMotive Engine for language localization.");
 		doc.append_child(pugi::node_comment).set_value("You can import this file with the vz::Localization::Import() function.");
 
 		recursive_export(*this, doc);

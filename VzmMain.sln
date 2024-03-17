@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_SOURCE", "Engine\Eng
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_Windows", "Engine\Engine_Windows.vcxproj", "{D86799C4-9D93-4981-93B7-48C219D40915}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shaders_SOURCE", "Engine\shaders\Shaders_SOURCE.vcxitems", "{92E86448-0724-4387-ABAC-96E63EDF4190}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,7 @@ Global
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Engine\shaders\Shaders_SOURCE.vcxitems*{92e86448-0724-4387-abac-96e63edf4190}*SharedItemsImports = 9
 		Engine\Engine_SOURCE.vcxitems*{d86799c4-9d93-4981-93b7-48c219d40915}*SharedItemsImports = 4
 		Engine\Engine_SOURCE.vcxitems*{ee40ce42-7583-4534-ada2-4ba4fa298681}*SharedItemsImports = 9
 	EndGlobalSection

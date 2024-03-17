@@ -24,7 +24,7 @@ namespace vz::initializer
 		initializationStarted = true;
 
 		std::string ss;
-		ss += "\n[vz::initializer] Initializing Wicked Engine, please wait...\n";
+		ss += "\n[vz::initializer] Initializing Engine, please wait...\n";
 		ss += "Version: ";
 		ss += vz::version::GetVersionString();
 		vz::backlog::post(ss);
@@ -55,12 +55,9 @@ namespace vz::initializer
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::physics::Initialize(); systems[INITIALIZED_SYSTEM_PHYSICS].store(true); });
 		vz::jobsystem::Execute(ctx, [](vz::jobsystem::JobArgs args) { vz::audio::Initialize(); systems[INITIALIZED_SYSTEM_AUDIO].store(true); });
 
-		// Initialize this immediately:
-		//vz::lua::Initialize(); systems[INITIALIZED_SYSTEM_LUA].store(true);
-
 		std::thread([] {
 			vz::jobsystem::Wait(ctx);
-			vz::backlog::post("\n[vz::initializer] Wicked Engine Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)");
+			vz::backlog::post("\n[vz::initializer] Engine Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)");
 		}).detach();
 
 	}

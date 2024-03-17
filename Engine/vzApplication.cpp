@@ -308,7 +308,7 @@ namespace vz
 			infodisplay_str.clear();
 			if (infoDisplay.watermark)
 			{
-				infodisplay_str += "Wicked Engine ";
+				infodisplay_str += "VizMotive Engine ";
 				infodisplay_str += vz::version::GetVersionString();
 				infodisplay_str += " ";
 
@@ -577,6 +577,9 @@ namespace vz
 		vz::graphics::GetDevice() = graphicsDevice.get();
 
 		canvas.init(window);
+
+		if (window == NULL) 
+			return;
 
 		SwapChainDesc desc;
 		if (swapChain.IsValid())
