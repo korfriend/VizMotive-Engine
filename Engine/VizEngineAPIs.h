@@ -129,7 +129,6 @@ namespace vzm
 			SAFE_GET_COPY(z_axis, __z_axis, float, 3);
 		}
 	};
-
 	struct TextItem
 	{
 	private:
@@ -145,9 +144,16 @@ namespace vzm
 		int fontWeight = 4; // 1 : thinest, 4 : regular, 7 : bold, 9 : maximum heavy
 		int posScreenX = 0, posScreenY = 0; // 
 	};
-
-	struct CameraParameters
+	struct TransformParameter
 	{
+	private:
+		bool is_rowMajor = false;
+		bool use_localTrans = true;
+		float __pivot2os[16] = { 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f }; // original object space to pivot object space 
+		float __os2ls[16] = { 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f }; // object space to local space (used in hierarchical tree structure)
+		float __os2ws[16] = { 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f }; // 4x4 matrix col-major (same as in glm::fmat4x4)
+
+	public:
 		// note that those lookAt parameters are used for LOCAL matrix
 		float pos[3] = { 0, 0, 0 };
 		float view[3] = { 0, 0, -1.f };
@@ -158,7 +164,29 @@ namespace vzm
 			float length = sqrt(view[0] * view[0] + view[1] * view[1] + view[2] * view[2]);
 			if (length > 0) { view[0] /= length; view[1] /= length; view[2] /= length; }
 		}
+		bool IsLocalTransform() { return use_localTrans; }
+		void SetWorldTransform(const float* os2ws) {
+			memcpy(__os2ws, os2ws, sizeof(float) * 16); use_localTrans = false;
+		};
+		void UpdateWorldTransform(const float* os2ws) {
+			memcpy(__os2ws, os2ws, sizeof(float) * 16);
+		}
+		const float* GetWorldTransform() const { return __os2ws; };
 
+		// those local interfaces will be implemented when supporting group interfaces! //
+		void SetLocalTransform(const float* os2ls) {
+			memcpy(__os2ls, os2ls, sizeof(float) * 16); use_localTrans = true;
+		};
+		const float* GetLocalTransform() const { return __os2ls; };
+
+		void SetObjectPivot(const float* pivot2os) {
+			memcpy(__pivot2os, pivot2os, sizeof(float) * 16);
+		}
+
+		const float* GetPivotTransform() const { return __pivot2os; };
+	};
+	struct CameraParameter : TransformParameter
+	{
 		enum ProjectionMode {
 			UNDEFINED = 0,
 			IMAGEPLANE_SIZE = 1, // use ip_w, ip_h instead of fov_y
@@ -283,24 +311,118 @@ namespace vzm
 			script_params.SetParam("OUTLINE_THICKNESS_PIX", lineThicknessPix);
 		}
 	};
+	struct ActorParameter : TransformParameter
+	{
+	public:
+		enum RES_USAGE
+		{
+			GEOMETRY, // main volume or primitives
+			VR_OTF,
+			MPR_WINDOWING,
+			COLOR_MAP,
+			TEXTURE_VOLUME,
+			TEXTURE_2D,
+			MASK_VOLUME, // only for volume rendering ... multi-OTF
+		};
+	private:
+		ParamMap<RES_USAGE> associated_obj_ids; // <usage, obj_id> 
 
-	
+	public:
+		bool isVisible = true;
+		bool isPickable = false;
+
+		int GetResourceID(const RES_USAGE res_usage) {
+			return associated_obj_ids.GetParam(res_usage, (int)0);
+		}
+		void SetResourceID(const RES_USAGE res_usage, const int obj_id) {
+			associated_obj_ids.SetParam(res_usage, obj_id);
+		}
+
+		TextItem label;
+		ParamMap<std::string> scriptParams;
+		ParamMap<std::string> testParams; // direct mapping to VmActor
+
+		void ShowOutline(const bool showOutline, const float* colorRGB = NULL, const int thick_pixs = 3, const bool fadeEffect = true) {
+			scriptParams.SetParam("SHOW_OUTLINE", showOutline);
+			scriptParams.SetParam("SILHOUETTE_THICKNESS", thick_pixs);
+			if (colorRGB != NULL) {
+				std::vector<float> color = { colorRGB[0], colorRGB[1], colorRGB[2] };
+				scriptParams.SetParam("SILHOUETTE_COLOR_RGB", color);
+			}
+			scriptParams.SetParam("SILHOUETTE_FADEEFFECT", fadeEffect);
+		}
+		void ShowGroupOutline(const bool showOutline) {
+			scriptParams.SetParam("SHOW_GROUPOUTLINE", showOutline);
+		}
+		void SetClipBox(const vzm::BoxTr* clipBox) {
+			if (clipBox) scriptParams.SetParam("CLIPSETTING_BOX", *clipBox);
+			else scriptParams.RemoveParam("CLIPSETTING_BOX");
+		}
+		void SetClipPlane(const float* pos_vec_plane) {
+			if (pos_vec_plane) {
+				std::vector<float> _pos_vec_plane = { pos_vec_plane[0], pos_vec_plane[1], pos_vec_plane[2], pos_vec_plane[3], pos_vec_plane[4], pos_vec_plane[5] };
+				scriptParams.SetParam("CLIPSETTING_PLANE", _pos_vec_plane);
+			}
+			else scriptParams.RemoveParam("CLIPSETTING_PLANE");
+		}
+		void SetGeoOS2VolOS(const float* mat) {
+			std::vector<float> matValues(16);
+			memcpy(&matValues[0], mat, sizeof(float) * 16);
+			scriptParams.SetParam("MATRIX_GeoOS2VolOS", matValues);
+		}
+		void SetSculptIndex(const int sculptIndex) {
+			scriptParams.SetParam("SCULPT_INDEX", sculptIndex);
+		}
+		void DisableSolidFillingOnSlicer(const bool disableSolidFill) {
+			scriptParams.SetParam("SLICER_NO_SOLID_FILL", disableSolidFill);
+		}
+		void SetDistanceMapper(const float vMin, const float vMax, const bool colorClip, const int aidDistTo) {
+			scriptParams.SetParam("COLORMAP_VMIN", vMin);
+			scriptParams.SetParam("COLORMAP_VMAX", vMax);
+			scriptParams.SetParam("COLORMAP_CLIP", colorClip);
+			scriptParams.SetParam("COLORMAP_DST_ACTOR", aidDistTo);
+			//script_params.SetParam("VOLUMEACTOR_ISOVALUE", isoValue);
+		}
+		bool GetClipBox(vzm::BoxTr& clipBox) {
+			return scriptParams.GetParamCheck("CLIPSETTING_BOX", clipBox);
+		}
+		bool GetClipPlane(std::vector<float>& pos_vec_plane) {
+			return scriptParams.GetParamCheck("CLIPSETTING_PLANE", pos_vec_plane);
+		}
+		void SetClipFree(const bool clipFree) {
+			scriptParams.SetParam("CLIP_FREE", clipFree);
+		}
+		void SetUndercut(const bool applyUndercut, const float* undercutDir, const float* undercutColorRGB, const bool useUndercutMap = true) {
+			scriptParams.SetParam("APPLY_UNDERCUT", applyUndercut);
+			scriptParams.SetParam("USE_UNDERCUTMAP", useUndercutMap);
+			scriptParams.SetParam("UNDERCUT_DIR", std::vector<float> {undercutDir[0], undercutDir[1], undercutDir[2]});
+			scriptParams.SetParam("UNDERCUT_COLOR", std::vector<float> {undercutColorRGB[0], undercutColorRGB[1], undercutColorRGB[2]});
+		}
+	};
+	struct LightParameter : TransformParameter
+	{
+		//float pos_light[3] = { 0, 0, 0 }, dir_light[3] = { 0, 0, -1.f };
+		float pos[3] = { 0, 0, 0 };
+		float dir[3] = { 0, 0, -1.f };
+		float up[3] = { 0, 1.f, 0 }; // Local coordinates
+	};
+
 	// This must be called before using engine APIs
 	//  - paired with DeinitEngineLib()
 	__dojostatic VZRESULT InitEngineLib(const std::string& coreName = "VzmEngine", const std::string& logFileName = "EngineApi.log");
 
 	// Create new scene and return scene ID
 	//  - return zero in case of failure (the name is already registered or overflow VID)
-	__dojostatic VID NewScene(const std::string& sceneName);
+	//__dojostatic VID NewScene(const std::string& sceneName);
 	// Create new actor and return actor ID (global entity)
 	//  - Must belong to a scene
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
-	//__dojostatic VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameters& aParams, const VID parentId = 0u);
+	//__dojostatic VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameter& aParams, const VID parentId = 0u);
 	// Create new camera and return camera ID (global entity)
 	//  - Must belong to a scene
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
-	__dojostatic VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameters& cParams, const VID parentId = 0u);
-	//__dojostatic VZRESULT NewLight(const LightParameters& light_params, const std::string& light_name, int& light_id);
+	//__dojostatic VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameter& cParams, const VID parentId = 0u);
+	//__dojostatic VID NewLight(const LightParameters& light_params, const std::string& light_name, int& light_id);
 
 	__dojostatic VZRESULT DeinitEngineLib();
 }
