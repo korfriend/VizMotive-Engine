@@ -25,6 +25,11 @@ namespace vz::scene
 {
 	const uint32_t small_subtask_groupsize = 64u;
 
+	Scene::~Scene()
+	{
+		// To Do
+	}
+
 	void Scene::Update(float dt)
 	{
 		this->dt = dt;

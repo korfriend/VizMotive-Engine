@@ -90,6 +90,11 @@ namespace vz
 			return GetScene(it->second);
 		}
 
+		inline unordered_map<VID, Scene>& GetScenes()
+		{
+			return scenes;
+		}
+
 		void Initialize() override
 		{
 			// device creation
@@ -179,7 +184,53 @@ namespace vzm
 		return vzmApp.CreateSceneEntity(sceneName);
 	}
 
-	VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameters& cParams, const VID parentId)
+	/*
+	void MoveToParent(const Entity entity, const Entity parentEntity)
+	{
+		for (auto& kv : vzmApp.GetScenes())
+		{
+			Scene& scene = kv.second;
+
+			for (auto& entry : scene.componentLibrary.entries)
+			{
+				if (entry.second.component_manager->Contains(parentId))
+				{
+					scene->hierarchy.Create(ett).parentID = parentId;
+					break;
+				}
+			}
+		}
+
+		// get scene...
+		if (parentEntity != INVALID_ENTITY)
+		{
+			for (auto& entry : scene->componentLibrary.entries)
+			{
+				if (entry.second.component_manager->Contains(parentId))
+				{
+					scene->hierarchy.Create(ett).parentID = parentId;
+					break;
+				}
+			}
+		}
+	}
+
+	VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameter& aParams, const VID parentId)
+	{
+		Scene* scene = vzmApp.GetScene(sceneId);
+		if (scene == nullptr)
+		{
+			return INVALID_ENTITY;
+		}
+
+		Entity ett = scene->Entity_CreateObject(actorName, (float)cParams.w, (float)cParams.h, cParams.np, cParams.fp, cParams.fov_y);
+
+		
+
+		return ett;
+	}
+
+	VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameter& cParams, const VID parentId)
 	{
 		Scene* scene = vzmApp.GetScene(sceneId);
 		if (scene == nullptr)
@@ -190,31 +241,30 @@ namespace vzm
 		Entity ety = INVALID_ENTITY;
 		switch (cParams.projection_mode)
 		{
-		case CameraParameters::ProjectionMode::CAMERA_FOV:
+		case CameraParameter::ProjectionMode::CAMERA_FOV:
 			ety = scene->Entity_CreateCamera(camName, (float)cParams.w, (float)cParams.h, cParams.np, cParams.fp, cParams.fov_y);
 			break;
-		case CameraParameters::ProjectionMode::CAMERA_INTRINSICS:
-		case CameraParameters::ProjectionMode::IMAGEPLANE_SIZE:
-		case CameraParameters::ProjectionMode::SLICER_PLANE:
-		case CameraParameters::ProjectionMode::SLICER_CURVED:
+		case CameraParameter::ProjectionMode::CAMERA_INTRINSICS:
+		case CameraParameter::ProjectionMode::IMAGEPLANE_SIZE:
+		case CameraParameter::ProjectionMode::SLICER_PLANE:
+		case CameraParameter::ProjectionMode::SLICER_CURVED:
 		default:
 			return INVALID_ENTITY;
 		}
 
 		if (parentId != INVALID_ENTITY)
 		{
-			bool isValid = false;
 			for (auto& entry : scene->componentLibrary.entries)
 			{
 				if (entry.second.component_manager->Contains(parentId))
 				{
-					isValid = true;
+					scene->hierarchy.Create(ety).parentID = parentId;
 					break;
 				}
 			}
-			scene->hierarchy.Create(parentId);
 		}
 
 		return ety;
 	}
+	/**/
 }
