@@ -26,10 +26,6 @@ namespace vz::ecs
 	inline Entity CreateEntity()
 	{
 		static std::atomic<Entity> next{ INVALID_ENTITY + 1 };
-
-		vz::components::entitySceneRefCounter[next]++;
-		vz::components::entityComponentFlag[next] = 0ull;
-
 		return next.fetch_add(1);
 	}
 
@@ -161,26 +157,20 @@ namespace vz::ecs
 		//	The other component manager is not retained after this operation!
 		inline void Merge(ComponentManager<Component>& other)
 		{
-			//components.reserve(GetCount() + other.GetCount());
-			//entities.reserve(GetCount() + other.GetCount());
-			//lookup.reserve(GetCount() + other.GetCount());
+			components.reserve(GetCount() + other.GetCount());
+			entities.reserve(GetCount() + other.GetCount());
+			lookup.reserve(GetCount() + other.GetCount());
 
 			for (size_t i = 0; i < other.GetCount(); ++i)
 			{
 				Entity entity = other.entities[i];
-				if (Contains(entity))
-				{
-					continue;
-				}
+				assert(!Contains(entity));
 				entities.push_back(entity);
 				lookup[entity] = components.size();
 				components.push_back(std::move(other.components[i]));
 			}
 
-			//if (!preserveComponents)
-			//{
-			//	other.Clear();
-			//}
+			other.Clear();
 		}
 
 		inline void Copy(const ComponentManager_Interface& other)
