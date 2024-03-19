@@ -23,6 +23,13 @@
 
 using VID = uint32_t;
 
+constexpr float VZ_PI = 3.141592654f;
+constexpr float VZ_2PI = 6.283185307f;
+constexpr float VZ_1DIVPI = 0.318309886f;
+constexpr float VZ_1DIV2PI = 0.159154943f;
+constexpr float VZ_PIDIV2 = 1.570796327f;
+constexpr float VZ_PIDIV4 = 0.785398163f;
+
 namespace vmath
 {
 	__dojostatic inline void TransformPoint(const float* pos_src, const float* mat, const bool is_rowMajor, float* pos_dst);
@@ -147,6 +154,12 @@ namespace vzm
 	struct TransformParameter
 	{
 	private:
+		float position[3] = { 0, 0, 0 };
+		float direction[3] = { 0, 1, 0 };
+		float rotation[4] = { 0, 0, 0, 1 };
+		float scale[3] = { 1, 1, 1 };
+
+
 		bool is_rowMajor = false;
 		bool use_localTrans = true;
 		float __pivot2os[16] = { 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f }; // original object space to pivot object space 
@@ -401,10 +414,85 @@ namespace vzm
 	};
 	struct LightParameter : TransformParameter
 	{
-		//float pos_light[3] = { 0, 0, 0 }, dir_light[3] = { 0, 0, -1.f };
-		float pos[3] = { 0, 0, 0 };
-		float dir[3] = { 0, 0, -1.f };
-		float up[3] = { 0, 1.f, 0 }; // Local coordinates
+		enum FLAGS
+		{
+			EMPTY = 0,
+			CAST_SHADOW = 1 << 0,
+			VOLUMETRICS = 1 << 1,
+			VISUALIZER = 1 << 2,
+			LIGHTMAPONLY_STATIC = 1 << 3,
+			VOLUMETRICCLOUDS = 1 << 4,
+		};
+		uint32_t _flags = EMPTY;
+
+		enum LightType
+		{
+			DIRECTIONAL = 0,
+			POINT,
+			SPOT,
+			LIGHTTYPE_COUNT,
+			ENUM_FORCE_UINT32 = 0xFFFFFFFF,
+		};
+		LightType type = POINT;
+
+		float color[3] = { 1, 1, 1 };
+		float intensity = 1.0f; // Brightness of light in. The units that this is defined in depend on the type of light. Point and spot lights use luminous intensity in candela (lm/sr) while directional lights use illuminance in lux (lm/m2). https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual
+		float range = 10.0f;
+		float outerConeAngle = VZ_PIDIV4;
+		float innerConeAngle = 0; // default value is 0, means only outer cone angle is used
+		float radius = 0.025f;
+		float length = 0;
+
+		std::vector<float> cascade_distances = { 8,80,800 };
+		std::vector<std::string> lensFlareNames;
+
+		int forced_shadow_resolution = -1; // -1: disabled, greater: fixed shadow map resolution
+
+		// Non-serialized attributes:
+		float position[3] = { 0, 0, 0 };
+		float direction[3] = { 0, 1, 0 };
+		float rotation[4] = { 0, 0, 0, 1 };
+		float scale[3] = { 1, 1, 1 };
+		mutable int occlusionquery = -1;
+
+		inline void SetCastShadow(bool value) { if (value) { _flags |= CAST_SHADOW; } else { _flags &= ~CAST_SHADOW; } }
+		inline void SetVolumetricsEnabled(bool value) { if (value) { _flags |= VOLUMETRICS; } else { _flags &= ~VOLUMETRICS; } }
+		inline void SetVisualizerEnabled(bool value) { if (value) { _flags |= VISUALIZER; } else { _flags &= ~VISUALIZER; } }
+		inline void SetStatic(bool value) { if (value) { _flags |= LIGHTMAPONLY_STATIC; } else { _flags &= ~LIGHTMAPONLY_STATIC; } }
+		inline void SetVolumetricCloudsEnabled(bool value) { if (value) { _flags |= VOLUMETRICCLOUDS; } else { _flags &= ~VOLUMETRICCLOUDS; } }
+
+		inline bool IsCastingShadow() const { return _flags & CAST_SHADOW; }
+		inline bool IsVolumetricsEnabled() const { return _flags & VOLUMETRICS; }
+		inline bool IsVisualizerEnabled() const { return _flags & VISUALIZER; }
+		inline bool IsStatic() const { return _flags & LIGHTMAPONLY_STATIC; }
+		inline bool IsVolumetricCloudsEnabled() const { return _flags & VOLUMETRICCLOUDS; }
+
+		inline float GetRange() const
+		{
+			float retval = range;
+			retval = std::max(0.001f, retval);
+			retval = std::min(retval, 65504.0f); // clamp to 16-bit float max value
+			return retval;
+		}
+
+		inline void SetType(LightType val) { type = val; }
+		inline LightType GetType() const { return type; }
+
+		// Set energy amount with non physical light units (from before version 0.70.0):
+		inline void BackCompatSetEnergy(float energy)
+		{
+			switch (type)
+			{
+			case POINT:
+				intensity = energy * 20;
+				break;
+			case SPOT:
+				intensity = energy * 200;
+				break;
+			default:
+				break;
+			}
+		}
 	};
 
 	// This must be called before using engine APIs
@@ -413,16 +501,19 @@ namespace vzm
 
 	// Create new scene and return scene ID
 	//  - return zero in case of failure (the name is already registered or overflow VID)
-	//__dojostatic VID NewScene(const std::string& sceneName);
+	__dojostatic VID NewScene(const std::string& sceneName);
 	// Create new actor and return actor ID (global entity)
 	//  - Must belong to a scene
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
-	//__dojostatic VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameter& aParams, const VID parentId = 0u);
+	__dojostatic VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameter& aParams, const VID parentId = 0u);
 	// Create new camera and return camera ID (global entity)
 	//  - Must belong to a scene
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
-	//__dojostatic VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameter& cParams, const VID parentId = 0u);
-	//__dojostatic VID NewLight(const LightParameters& light_params, const std::string& light_name, int& light_id);
+	__dojostatic VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameter& cParams, const VID parentId = 0u);
+	// Create new camera and return camera ID (global entity)
+	//  - Must belong to a scene
+	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
+	__dojostatic VID NewLight(const VID sceneId, const std::string& lightName, const LightParameter& lParams, const VID parentId = 0u);
 
 	__dojostatic VZRESULT DeinitEngineLib();
 }

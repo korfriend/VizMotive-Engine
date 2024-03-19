@@ -19,147 +19,44 @@
 #include <string>
 #include <memory>
 #include <limits>
-#include <set>
-
-namespace vz::components
-{
-	using namespace vz::scene;
-
-	static unordered_map<vz::ecs::Entity, uint16_t> entitySceneRefCounter;
-	
-	static enum class ComponentFlag 
-	{
-		Name = 1 << 0,
-		Layer = 1 << 1,
-		Transform = 1 << 2,
-		Hierarchy = 1 << 3,
-		Material = 1 << 4,
-		Mesh = 1 << 5,
-		Impostor = 1 << 6,
-		Object = 1 << 7,
-		RigidBodyPhysics = 1 << 8,
-		SoftBodyPhysics = 1 << 9,
-		Armature = 1 << 10,
-		Light = 1 << 11,
-		Camera = 1 << 12,
-		EnvironmentProbe = 1 << 13,
-		ForceField = 1 << 14,
-		Decal = 1 << 15,
-		Animation = 1 << 16,
-		AnimationData = 1 << 17,
-		EmittedParticleSystem = 1 << 18,
-		Weather = 1 << 19,
-		Sound = 1 << 20,
-		Video = 1 << 21,
-		InverseKinematics = 1 << 22,
-		Spring = 1 << 23,
-		Collider = 1 << 24,
-		Script = 1 << 25,
-		Expression = 1 << 26,
-		Humanoid = 1 << 27,
-		Sprite = 1 << 28,
-		SpriteFont = 1 << 29,
-		VoxelGrid = 1 << 30,
-	};
-	static unordered_map<vz::ecs::Entity, uint64_t> entityComponentFlag;
-
-	static void EraseEntity(vz::ecs::Entity entity)
-	{
-		auto it = entityComponentFlag.find(entity);
-		if (it == entityComponentFlag.end())
-		{
-			return;
-		}
-		if (it->second == 0)
-		{
-
-		}
-	}
-	static void EraseEntities()
-	{
-		for (auto& ett : entityComponentFlag) 
-		{
-			EraseEntity(ett.first);
-		}
-	}
-
-	static vz::ecs::ComponentLibrary componentLibrary;
-
-	static vz::ecs::ComponentManager<NameComponent>& names = componentLibrary.Register<NameComponent>("vz::scene::Scene::names");
-	static vz::ecs::ComponentManager<LayerComponent>& layers = componentLibrary.Register<LayerComponent>("vz::scene::Scene::layers");
-	static vz::ecs::ComponentManager<TransformComponent>& transforms = componentLibrary.Register<TransformComponent>("vz::scene::Scene::transforms");
-	static vz::ecs::ComponentManager<HierarchyComponent>& hierarchy = componentLibrary.Register<HierarchyComponent>("vz::scene::Scene::hierarchy");
-	static vz::ecs::ComponentManager<MaterialComponent>& materials = componentLibrary.Register<MaterialComponent>("vz::scene::Scene::materials", 3); // version = 3
-	static vz::ecs::ComponentManager<MeshComponent>& meshes = componentLibrary.Register<MeshComponent>("vz::scene::Scene::meshes", 2); // version = 2
-	static vz::ecs::ComponentManager<ImpostorComponent>& impostors = componentLibrary.Register<ImpostorComponent>("vz::scene::Scene::impostors");
-	static vz::ecs::ComponentManager<ObjectComponent>& objects = componentLibrary.Register<ObjectComponent>("vz::scene::Scene::objects", 3); // version = 3
-	static vz::ecs::ComponentManager<RigidBodyPhysicsComponent>& rigidbodies = componentLibrary.Register<RigidBodyPhysicsComponent>("vz::scene::Scene::rigidbodies", 1); // version = 1
-	static vz::ecs::ComponentManager<SoftBodyPhysicsComponent>& softbodies = componentLibrary.Register<SoftBodyPhysicsComponent>("vz::scene::Scene::softbodies");
-	static vz::ecs::ComponentManager<ArmatureComponent>& armatures = componentLibrary.Register<ArmatureComponent>("vz::scene::Scene::armatures");
-	static vz::ecs::ComponentManager<LightComponent>& lights = componentLibrary.Register<LightComponent>("vz::scene::Scene::lights", 2); // version = 2
-	static vz::ecs::ComponentManager<CameraComponent>& cameras = componentLibrary.Register<CameraComponent>("vz::scene::Scene::cameras");
-	static vz::ecs::ComponentManager<EnvironmentProbeComponent>& probes = componentLibrary.Register<EnvironmentProbeComponent>("vz::scene::Scene::probes", 1); // version = 1
-	static vz::ecs::ComponentManager<ForceFieldComponent>& forces = componentLibrary.Register<ForceFieldComponent>("vz::scene::Scene::forces", 1); // version = 1
-	static vz::ecs::ComponentManager<DecalComponent>& decals = componentLibrary.Register<DecalComponent>("vz::scene::Scene::decals", 1); // version = 1
-	static vz::ecs::ComponentManager<AnimationComponent>& animations = componentLibrary.Register<AnimationComponent>("vz::scene::Scene::animations", 2); // version = 2
-	static vz::ecs::ComponentManager<AnimationDataComponent>& animation_datas = componentLibrary.Register<AnimationDataComponent>("vz::scene::Scene::animation_datas");
-	static vz::ecs::ComponentManager<EmittedParticleSystem>& emitters = componentLibrary.Register<EmittedParticleSystem>("vz::scene::Scene::emitters");
-	static vz::ecs::ComponentManager<WeatherComponent>& weathers = componentLibrary.Register<WeatherComponent>("vz::scene::Scene::weathers", 5); // version = 5
-	static vz::ecs::ComponentManager<SoundComponent>& sounds = componentLibrary.Register<SoundComponent>("vz::scene::Scene::sounds", 1); // version = 1
-	static vz::ecs::ComponentManager<VideoComponent>& videos = componentLibrary.Register<VideoComponent>("vz::scene::Scene::videos");
-	static vz::ecs::ComponentManager<InverseKinematicsComponent>& inverse_kinematics = componentLibrary.Register<InverseKinematicsComponent>("vz::scene::Scene::inverse_kinematics");
-	static vz::ecs::ComponentManager<SpringComponent>& springs = componentLibrary.Register<SpringComponent>("vz::scene::Scene::springs", 1); // version = 1
-	static vz::ecs::ComponentManager<ColliderComponent>& colliders = componentLibrary.Register<ColliderComponent>("vz::scene::Scene::colliders", 2); // version = 2
-	static vz::ecs::ComponentManager<ScriptComponent>& scripts = componentLibrary.Register<ScriptComponent>("vz::scene::Scene::scripts");
-	static vz::ecs::ComponentManager<ExpressionComponent>& expressions = componentLibrary.Register<ExpressionComponent>("vz::scene::Scene::expressions");
-	static vz::ecs::ComponentManager<HumanoidComponent>& humanoids = componentLibrary.Register<HumanoidComponent>("vz::scene::Scene::humanoids");
-	static vz::ecs::ComponentManager<vz::Sprite>& sprites = componentLibrary.Register<vz::Sprite>("vz::scene::Scene::sprites");
-	static vz::ecs::ComponentManager<vz::SpriteFont>& fonts = componentLibrary.Register<vz::SpriteFont>("vz::scene::Scene::fonts");
-	static vz::ecs::ComponentManager<vz::VoxelGrid>& voxel_grids = componentLibrary.Register<vz::VoxelGrid>("vz::scene::Scene::voxel_grids");
-}
 
 namespace vz::scene
 {
-	using namespace vz::components;
-
 	struct Scene
 	{
-		std::set<vz::ecs::Entity> sceneEntities;
+		vz::ecs::ComponentLibrary componentLibrary;
 
-		vz::ecs::ComponentLibrary& componentLibrary = vz::components::componentLibrary;
-		vz::ecs::ComponentManager<NameComponent>& names = vz::components::names;
-		vz::ecs::ComponentManager<LayerComponent>& layers = vz::components::layers;
-		vz::ecs::ComponentManager<TransformComponent>& transforms = vz::components::transforms;
-		vz::ecs::ComponentManager<HierarchyComponent>& hierarchy = vz::components::hierarchy;
-		vz::ecs::ComponentManager<MaterialComponent>& materials = vz::components::materials; // version = 3
-		vz::ecs::ComponentManager<MeshComponent>& meshes = vz::components::meshes; // version = 2
-		vz::ecs::ComponentManager<ImpostorComponent>& impostors = vz::components::impostors;
-		vz::ecs::ComponentManager<ObjectComponent>& objects = vz::components::objects; // version = 3
-		vz::ecs::ComponentManager<RigidBodyPhysicsComponent>& rigidbodies = vz::components::rigidbodies; // version = 1
-		vz::ecs::ComponentManager<SoftBodyPhysicsComponent>& softbodies = vz::components::softbodies;
-		vz::ecs::ComponentManager<ArmatureComponent>& armatures = vz::components::armatures;
-		vz::ecs::ComponentManager<LightComponent>& lights = vz::components::lights; // version = 2
-		vz::ecs::ComponentManager<CameraComponent>& cameras = vz::components::cameras;
-		vz::ecs::ComponentManager<EnvironmentProbeComponent>& probes = vz::components::probes; // version = 1
-		vz::ecs::ComponentManager<ForceFieldComponent>& forces = vz::components::forces; // version = 1
-		vz::ecs::ComponentManager<DecalComponent>& decals = vz::components::decals; // version = 1
-		vz::ecs::ComponentManager<AnimationComponent>& animations = vz::components::animations; // version = 2
-		vz::ecs::ComponentManager<AnimationDataComponent>& animation_datas = vz::components::animation_datas;
-		vz::ecs::ComponentManager<EmittedParticleSystem>& emitters = vz::components::emitters;
-		//vz::ecs::ComponentManager<HairParticleSystem>& hairs = vz::components::hairs;
-		vz::ecs::ComponentManager<WeatherComponent>& weathers = vz::components::weathers; // version = 5
-		vz::ecs::ComponentManager<SoundComponent>& sounds = vz::components::sounds; // version = 1
-		vz::ecs::ComponentManager<VideoComponent>& videos = vz::components::videos;
-		vz::ecs::ComponentManager<InverseKinematicsComponent>& inverse_kinematics = vz::components::inverse_kinematics;
-		vz::ecs::ComponentManager<SpringComponent>& springs = vz::components::springs; // version = 1
-		vz::ecs::ComponentManager<ColliderComponent>& colliders = vz::components::colliders; // version = 2
-		vz::ecs::ComponentManager<ScriptComponent>& scripts = vz::components::scripts;
-		vz::ecs::ComponentManager<ExpressionComponent>& expressions = vz::components::expressions;
-		vz::ecs::ComponentManager<HumanoidComponent>& humanoids = vz::components::humanoids;
-		//vz::ecs::ComponentManager<vz::terrain::Terrain>& terrains = vz::components::terrains; // version = 3
-		vz::ecs::ComponentManager<vz::Sprite>& sprites = vz::components::sprites;
-		vz::ecs::ComponentManager<vz::SpriteFont>& fonts = vz::components::fonts;
-		vz::ecs::ComponentManager<vz::VoxelGrid>& voxel_grids = vz::components::voxel_grids;
+		vz::ecs::ComponentManager<NameComponent>& names = componentLibrary.Register<NameComponent>("vz::scene::Scene::names");
+		vz::ecs::ComponentManager<LayerComponent>& layers = componentLibrary.Register<LayerComponent>("vz::scene::Scene::layers");
+		vz::ecs::ComponentManager<TransformComponent>& transforms = componentLibrary.Register<TransformComponent>("vz::scene::Scene::transforms");
+		vz::ecs::ComponentManager<HierarchyComponent>& hierarchy = componentLibrary.Register<HierarchyComponent>("vz::scene::Scene::hierarchy");
+		vz::ecs::ComponentManager<MaterialComponent>& materials = componentLibrary.Register<MaterialComponent>("vz::scene::Scene::materials", 3); // version = 3
+		vz::ecs::ComponentManager<MeshComponent>& meshes = componentLibrary.Register<MeshComponent>("vz::scene::Scene::meshes", 2); // version = 2
+		vz::ecs::ComponentManager<ImpostorComponent>& impostors = componentLibrary.Register<ImpostorComponent>("vz::scene::Scene::impostors");
+		vz::ecs::ComponentManager<ObjectComponent>& objects = componentLibrary.Register<ObjectComponent>("vz::scene::Scene::objects", 3); // version = 3
+		vz::ecs::ComponentManager<RigidBodyPhysicsComponent>& rigidbodies = componentLibrary.Register<RigidBodyPhysicsComponent>("vz::scene::Scene::rigidbodies", 1); // version = 1
+		vz::ecs::ComponentManager<SoftBodyPhysicsComponent>& softbodies = componentLibrary.Register<SoftBodyPhysicsComponent>("vz::scene::Scene::softbodies");
+		vz::ecs::ComponentManager<ArmatureComponent>& armatures = componentLibrary.Register<ArmatureComponent>("vz::scene::Scene::armatures");
+		vz::ecs::ComponentManager<LightComponent>& lights = componentLibrary.Register<LightComponent>("vz::scene::Scene::lights", 2); // version = 2
+		vz::ecs::ComponentManager<CameraComponent>& cameras = componentLibrary.Register<CameraComponent>("vz::scene::Scene::cameras");
+		vz::ecs::ComponentManager<EnvironmentProbeComponent>& probes = componentLibrary.Register<EnvironmentProbeComponent>("vz::scene::Scene::probes", 1); // version = 1
+		vz::ecs::ComponentManager<ForceFieldComponent>& forces = componentLibrary.Register<ForceFieldComponent>("vz::scene::Scene::forces", 1); // version = 1
+		vz::ecs::ComponentManager<DecalComponent>& decals = componentLibrary.Register<DecalComponent>("vz::scene::Scene::decals", 1); // version = 1
+		vz::ecs::ComponentManager<AnimationComponent>& animations = componentLibrary.Register<AnimationComponent>("vz::scene::Scene::animations", 2); // version = 2
+		vz::ecs::ComponentManager<AnimationDataComponent>& animation_datas = componentLibrary.Register<AnimationDataComponent>("vz::scene::Scene::animation_datas");
+		vz::ecs::ComponentManager<EmittedParticleSystem>& emitters = componentLibrary.Register<EmittedParticleSystem>("vz::scene::Scene::emitters");
+		vz::ecs::ComponentManager<WeatherComponent>& weathers = componentLibrary.Register<WeatherComponent>("vz::scene::Scene::weathers", 5); // version = 5
+		vz::ecs::ComponentManager<SoundComponent>& sounds = componentLibrary.Register<SoundComponent>("vz::scene::Scene::sounds", 1); // version = 1
+		vz::ecs::ComponentManager<VideoComponent>& videos = componentLibrary.Register<VideoComponent>("vz::scene::Scene::videos");
+		vz::ecs::ComponentManager<InverseKinematicsComponent>& inverse_kinematics = componentLibrary.Register<InverseKinematicsComponent>("vz::scene::Scene::inverse_kinematics");
+		vz::ecs::ComponentManager<SpringComponent>& springs = componentLibrary.Register<SpringComponent>("vz::scene::Scene::springs", 1); // version = 1
+		vz::ecs::ComponentManager<ColliderComponent>& colliders = componentLibrary.Register<ColliderComponent>("vz::scene::Scene::colliders", 2); // version = 2
+		vz::ecs::ComponentManager<ScriptComponent>& scripts = componentLibrary.Register<ScriptComponent>("vz::scene::Scene::scripts");
+		vz::ecs::ComponentManager<ExpressionComponent>& expressions = componentLibrary.Register<ExpressionComponent>("vz::scene::Scene::expressions");
+		vz::ecs::ComponentManager<HumanoidComponent>& humanoids = componentLibrary.Register<HumanoidComponent>("vz::scene::Scene::humanoids");
+		vz::ecs::ComponentManager<vz::Sprite>& sprites = componentLibrary.Register<vz::Sprite>("vz::scene::Scene::sprites");
+		vz::ecs::ComponentManager<vz::SpriteFont>& fonts = componentLibrary.Register<vz::SpriteFont>("vz::scene::Scene::fonts");
+		vz::ecs::ComponentManager<vz::VoxelGrid>& voxel_grids = componentLibrary.Register<vz::VoxelGrid>("vz::scene::Scene::voxel_grids");
 
 		virtual ~Scene() = default;
 

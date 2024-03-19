@@ -184,32 +184,17 @@ namespace vzm
 		return vzmApp.CreateSceneEntity(sceneName);
 	}
 
-	/*
-	void MoveToParent(const Entity entity, const Entity parentEntity)
+	void MoveToParent(const Entity entity, const Entity parentEntity, Scene* scene)
 	{
-		for (auto& kv : vzmApp.GetScenes())
-		{
-			Scene& scene = kv.second;
-
-			for (auto& entry : scene.componentLibrary.entries)
-			{
-				if (entry.second.component_manager->Contains(parentId))
-				{
-					scene->hierarchy.Create(ett).parentID = parentId;
-					break;
-				}
-			}
-		}
-
-		// get scene...
+		assert(entity != parentEntity);
 		if (parentEntity != INVALID_ENTITY)
 		{
 			for (auto& entry : scene->componentLibrary.entries)
 			{
-				if (entry.second.component_manager->Contains(parentId))
+				if (entry.second.component_manager->Contains(parentEntity))
 				{
-					scene->hierarchy.Create(ett).parentID = parentId;
-					break;
+					scene->hierarchy.Create(entity).parentID = parentEntity;
+					return;
 				}
 			}
 		}
@@ -223,9 +208,14 @@ namespace vzm
 			return INVALID_ENTITY;
 		}
 
-		Entity ett = scene->Entity_CreateObject(actorName, (float)cParams.w, (float)cParams.h, cParams.np, cParams.fp, cParams.fov_y);
+		Entity ett = scene->Entity_CreateObject(actorName);
 
-		
+		// TO DO
+		{
+			ObjectComponent* objComponent = scene->objects.GetComponent(ett);
+		}
+
+		MoveToParent(ett, parentId, scene);
 
 		return ett;
 	}
@@ -238,11 +228,11 @@ namespace vzm
 			return INVALID_ENTITY;
 		}
 
-		Entity ety = INVALID_ENTITY;
+		Entity ett = INVALID_ENTITY;
 		switch (cParams.projection_mode)
 		{
 		case CameraParameter::ProjectionMode::CAMERA_FOV:
-			ety = scene->Entity_CreateCamera(camName, (float)cParams.w, (float)cParams.h, cParams.np, cParams.fp, cParams.fov_y);
+			ett = scene->Entity_CreateCamera(camName, (float)cParams.w, (float)cParams.h, cParams.np, cParams.fp, cParams.fov_y);
 			break;
 		case CameraParameter::ProjectionMode::CAMERA_INTRINSICS:
 		case CameraParameter::ProjectionMode::IMAGEPLANE_SIZE:
@@ -252,19 +242,8 @@ namespace vzm
 			return INVALID_ENTITY;
 		}
 
-		if (parentId != INVALID_ENTITY)
-		{
-			for (auto& entry : scene->componentLibrary.entries)
-			{
-				if (entry.second.component_manager->Contains(parentId))
-				{
-					scene->hierarchy.Create(ety).parentID = parentId;
-					break;
-				}
-			}
-		}
+		MoveToParent(ett, parentId, scene);
 
-		return ety;
+		return ett;
 	}
-	/**/
 }
