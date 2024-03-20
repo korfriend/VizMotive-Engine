@@ -1,5 +1,5 @@
-#ifndef WI_IMPOSTOR_HF
-#define WI_IMPOSTOR_HF
+#ifndef VZ_IMPOSTOR_HF
+#define VZ_IMPOSTOR_HF
 
 struct VSOut
 {
@@ -15,4 +15,4 @@ struct VSOut
 
 Texture2DArray<float4> impostorTex : register(t1);
 
-#endif // WI_IMPOSTOR_HF
+#endif // VZ_IMPOSTOR_HF

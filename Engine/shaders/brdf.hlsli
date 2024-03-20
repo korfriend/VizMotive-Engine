@@ -1,5 +1,5 @@
-#ifndef WI_BRDF_HF
-#define WI_BRDF_HF
+#ifndef VZ_BRDF_HF
+#define VZ_BRDF_HF
 #include "globals.hlsli"
 #include "surfaceHF.hlsli"
 
@@ -207,4 +207,4 @@ float3 BRDF_GetDiffuse(in Surface surface, in SurfaceToLight surface_to_light)
 	return diffuse * surface_to_light.NdotL_sss;
 }
 
-#endif // WI_BRDF_HF
+#endif // VZ_BRDF_HF

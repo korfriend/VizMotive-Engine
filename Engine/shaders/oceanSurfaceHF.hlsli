@@ -1,5 +1,5 @@
-#ifndef WI_OCEAN_SURFACE_HF
-#define WI_OCEAN_SURFACE_HF
+#ifndef VZ_OCEAN_SURFACE_HF
+#define VZ_OCEAN_SURFACE_HF
 #include "globals.hlsli"
 #include "ShaderInterop_Ocean.h"
 
@@ -19,4 +19,4 @@ float3 intersectPlaneClampInfinite(in float3 rayOrigin, in float3 rayDirection, 
 		return float3(rayOrigin.x, planeHeight, rayOrigin.z) - normalize(float3(rayDirection.x, 0, rayDirection.z)) * GetCamera().z_far;
 }
 
-#endif // WI_OCEAN_SURFACE_HF
+#endif // VZ_OCEAN_SURFACE_HF

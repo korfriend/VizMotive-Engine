@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_IMAGE_H
-#define WI_SHADERINTEROP_IMAGE_H
+#ifndef VZ_SHADERINTEROP_IMAGE_H
+#define VZ_SHADERINTEROP_IMAGE_H
 #include "ShaderInterop.h"
 
 static const uint IMAGE_FLAG_EXTRACT_NORMALMAP = 1u << 0u;
@@ -36,4 +36,4 @@ struct ImageConstants
 };
 CONSTANTBUFFER(image, ImageConstants, CBSLOT_IMAGE);
 
-#endif // WI_SHADERINTEROP_IMAGE_H
+#endif // VZ_SHADERINTEROP_IMAGE_H

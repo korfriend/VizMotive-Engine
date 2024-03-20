@@ -1,5 +1,5 @@
-#ifndef WI_OBJECTSHADER_HF
-#define WI_OBJECTSHADER_HF
+#ifndef VZ_OBJECTSHADER_HF
+#define VZ_OBJECTSHADER_HF
 
 #ifdef TRANSPARENT
 #define TRANSPARENT_SHADOWMAP_SECONDARY_DEPTH_CHECK
@@ -978,5 +978,5 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 
 
 
-#endif // WI_OBJECTSHADER_HF
+#endif // VZ_OBJECTSHADER_HF
 

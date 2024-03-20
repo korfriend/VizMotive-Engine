@@ -1,5 +1,5 @@
-#ifndef WI_HAIRPARTICLE_HF
-#define WI_HAIRPARTICLE_HF
+#ifndef VZ_HAIRPARTICLE_HF
+#define VZ_HAIRPARTICLE_HF
 #include "globals.hlsli"
 #include "ShaderInterop_HairParticle.h"
 
@@ -27,4 +27,4 @@ struct VertexToPixel
 	min16float3 nor : NORMAL;
 };
 
-#endif // WI_HAIRPARTICLE_HF
+#endif // VZ_HAIRPARTICLE_HF

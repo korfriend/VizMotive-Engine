@@ -1,5 +1,5 @@
-#ifndef WI_SHADING_HF
-#define WI_SHADING_HF
+#ifndef VZ_SHADING_HF
+#define VZ_SHADING_HF
 #include "globals.hlsli"
 #include "surfaceHF.hlsli"
 #include "lightingHF.hlsli"
@@ -665,4 +665,4 @@ inline uint AlphaToCoverage(float alpha, float alphaTest, float4 svposition)
 	return 0;
 }
 
-#endif // WI_SHADING_HF
+#endif // VZ_SHADING_HF

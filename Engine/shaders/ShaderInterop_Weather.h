@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_WEATHER_H
-#define WI_SHADERINTEROP_WEATHER_H
+#ifndef VZ_SHADERINTEROP_WEATHER_H
+#define VZ_SHADERINTEROP_WEATHER_H
 #include "ShaderInterop.h"
 
 struct AtmosphereParameters
@@ -383,4 +383,4 @@ struct ShaderWeather
 	VolumetricCloudParameters volumetric_clouds;
 };
 
-#endif // WI_SHADERINTEROP_WEATHER_H
+#endif // VZ_SHADERINTEROP_WEATHER_H

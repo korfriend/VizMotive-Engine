@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_DDGI_H
-#define WI_SHADERINTEROP_DDGI_H
+#ifndef VZ_SHADERINTEROP_DDGI_H
+#define VZ_SHADERINTEROP_DDGI_H
 #include "ShaderInterop.h"
 #include "ShaderInterop_Renderer.h"
 
@@ -380,4 +380,4 @@ static const uint4 DDGI_DEPTH_BORDER_OFFSETS[68] = {
 
 #endif // __cplusplus
 
-#endif // WI_SHADERINTEROP_DDGI_H
+#endif // VZ_SHADERINTEROP_DDGI_H

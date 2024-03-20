@@ -1,5 +1,5 @@
-#ifndef WI_VOXEL_CONERACING_HF
-#define WI_VOXEL_CONERACING_HF
+#ifndef VZ_VOXEL_CONERACING_HF
+#define VZ_VOXEL_CONERACING_HF
 #include "globals.hlsli"
 
 // With help from: https://github.com/compix/VoxelConeTracingGI/blob/master/assets/shaders/voxelConeTracing/finalLightingPass.frag

@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_FONT_H
-#define WI_SHADERINTEROP_FONT_H
+#ifndef VZ_SHADERINTEROP_FONT_H
+#define VZ_SHADERINTEROP_FONT_H
 #include "ShaderInterop.h"
 
 static const uint FONT_FLAG_SDF_RENDERING = 1u << 0u;
@@ -37,4 +37,4 @@ struct FontConstants
 };
 CONSTANTBUFFER(font, FontConstants, CBSLOT_FONT);
 
-#endif // WI_SHADERINTEROP_FONT_H
+#endif // VZ_SHADERINTEROP_FONT_H

@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_FONT_H
-#define WI_SHADERINTEROP_FONT_H
+#ifndef VZ_SHADERINTEROP_FONT_H
+#define VZ_SHADERINTEROP_FONT_H
 // This file contains settings to apply to FSR2 at compilation time
 
 #ifdef __cplusplus
@@ -24,4 +24,4 @@
 #define FFX_FSR2_OPTION_REPROJECT_SAMPLERS_USE_DATA_HALF 1
 #define FFX_FSR2_OPTION_UPSAMPLE_SAMPLERS_USE_DATA_HALF 0 // missing header errors when enabled. They can be also deleted and it will compile, but didn't seem to make a difference
 
-#endif // WI_SHADERINTEROP_FONT_H
+#endif // VZ_SHADERINTEROP_FONT_H

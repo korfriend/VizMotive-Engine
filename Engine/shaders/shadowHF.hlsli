@@ -1,5 +1,5 @@
-#ifndef WI_SHADOW_HF
-#define WI_SHADOW_HF
+#ifndef VZ_SHADOW_HF
+#define VZ_SHADOW_HF
 #include "globals.hlsli"
 
 inline float3 sample_shadow(float2 uv, float cmp)
@@ -192,4 +192,4 @@ inline bool rain_blocker_check_prev(in float3 P)
 	return false;
 }
 
-#endif // WI_SHADOW_HF
+#endif // VZ_SHADOW_HF
