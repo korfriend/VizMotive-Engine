@@ -499,7 +499,7 @@ namespace vzm
 	//  - paired with DeinitEngineLib()
 	__dojostatic VZRESULT InitEngineLib(const std::string& coreName = "VzmEngine", const std::string& logFileName = "EngineApi.log");
 
-	// Create new scene and return scene ID
+	// Create new scene and return scene (NOT a scene item) ID, a scene 
 	//  - return zero in case of failure (the name is already registered or overflow VID)
 	__dojostatic VID NewScene(const std::string& sceneName);
 	// Create new actor and return actor ID (global entity)
