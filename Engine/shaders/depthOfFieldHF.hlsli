@@ -1,5 +1,5 @@
-#ifndef WI_DEPTHOFFIELD_HF
-#define WI_DEPTHOFFIELD_HF
+#ifndef VZ_DEPTHOFFIELD_HF
+#define VZ_DEPTHOFFIELD_HF
 
 PUSHCONSTANT(postprocess, PostProcess);
 
@@ -124,4 +124,4 @@ static const float3 disc[] =
 static const uint ringSampleCount[] = { 0, 8, 24, 48, 80 };
 static const float ringNormFactor[] = { 1.0, 0.111111, 0.040000, 0.020408, 0.012346 };
 
-#endif // WI_DEPTHOFFIELD_HF
+#endif // VZ_DEPTHOFFIELD_HF

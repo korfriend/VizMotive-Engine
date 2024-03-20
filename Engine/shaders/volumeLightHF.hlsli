@@ -1,5 +1,5 @@
-#ifndef WI_VOLUMELIGHT_HF
-#define WI_VOLUMELIGHT_HF
+#ifndef VZ_VOLUMELIGHT_HF
+#define VZ_VOLUMELIGHT_HF
 #include "globals.hlsli"
 
 struct VertexToPixel{
@@ -7,4 +7,4 @@ struct VertexToPixel{
 	float4 col			: COLOR;
 };
 
-#endif // WI_VOLUMELIGHT_HF
+#endif // VZ_VOLUMELIGHT_HF

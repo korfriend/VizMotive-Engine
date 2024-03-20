@@ -1,5 +1,5 @@
-#ifndef WI_VOLUMETRICLIGHT_HF
-#define WI_VOLUMETRICLIGHT_HF
+#ifndef VZ_VOLUMETRICLIGHT_HF
+#define VZ_VOLUMETRICLIGHT_HF
 #include "globals.hlsli"
 #include "brdf.hlsli"
 #include "lightingHF.hlsli"
@@ -19,4 +19,4 @@ float ComputeScattering(float lightDotView)
 	return result;
 }
 
-#endif // WI_VOLUMETRICLIGHT_HF
+#endif // VZ_VOLUMETRICLIGHT_HF

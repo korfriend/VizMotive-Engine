@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_BVH_H
-#define WI_SHADERINTEROP_BVH_H
+#ifndef VZ_SHADERINTEROP_BVH_H
+#define VZ_SHADERINTEROP_BVH_H
 #include "ShaderInterop_Renderer.h"
 
 struct BVHPushConstants
@@ -54,4 +54,4 @@ struct BVHNode
 	uint RightChildIndex;
 };
 
-#endif // WI_SHADERINTEROP_BVH_H
+#endif // VZ_SHADERINTEROP_BVH_H

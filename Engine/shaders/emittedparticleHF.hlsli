@@ -1,5 +1,5 @@
-#ifndef WI_EMITTEDPARTICLE_HF
-#define WI_EMITTEDPARTICLE_HF
+#ifndef VZ_EMITTEDPARTICLE_HF
+#define VZ_EMITTEDPARTICLE_HF
 #include "globals.hlsli"
 #include "ShaderInterop_EmittedParticle.h"
 
@@ -28,4 +28,4 @@ struct VertextoPixel
 	nointerpolation uint color : PARTICLECOLOR;
 };
 
-#endif // WI_EMITTEDPARTICLE_HF
+#endif // VZ_EMITTEDPARTICLE_HF

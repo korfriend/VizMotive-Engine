@@ -1,5 +1,5 @@
-#ifndef WI_LIGHTING_HF
-#define WI_LIGHTING_HF
+#ifndef VZ_LIGHTING_HF
+#define VZ_LIGHTING_HF
 #include "globals.hlsli"
 #include "shadowHF.hlsli"
 #include "brdf.hlsli"
@@ -497,4 +497,4 @@ inline void VoxelGI(inout Surface surface, inout Lighting lighting)
 	}
 }
 
-#endif // WI_LIGHTING_HF
+#endif // VZ_LIGHTING_HF

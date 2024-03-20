@@ -1,5 +1,5 @@
-#ifndef WI_BITONIC_SORT_COMPUTE_HF
-#define WI_BITONIC_SORT_COMPUTE_HF
+#ifndef VZ_BITONIC_SORT_COMPUTE_HF
+#define VZ_BITONIC_SORT_COMPUTE_HF
 
 CBUFFER(CB,0)
 {
@@ -17,4 +17,4 @@ RWByteAddressBuffer Data : register(u0);
 static const uint _stride = 4; // using 32 bit uints
 
 
-#endif // WI_BITONIC_SORT_COMPUTE_HF
+#endif // VZ_BITONIC_SORT_COMPUTE_HF

@@ -1,5 +1,5 @@
-#ifndef WI_VOLUMETRICCLOUDS_HF
-#define WI_VOLUMETRICCLOUDS_HF 
+#ifndef VZ_VOLUMETRICCLOUDS_HF
+#define VZ_VOLUMETRICCLOUDS_HF 
 #include "globals.hlsli"
 
 #define HALF_FLT_MAX 65504.0
@@ -561,4 +561,4 @@ float3 SampleExtinction(float densityFirst, float densitySecond)
 	return saturate(extinctionFirst + extinctionSecond);
 }
 
-#endif // WI_VOLUMETRICCLOUDS_HF
+#endif // VZ_VOLUMETRICCLOUDS_HF

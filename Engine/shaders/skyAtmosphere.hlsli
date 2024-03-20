@@ -1,5 +1,5 @@
-#ifndef WI_SKYATMOSPHERE_HF
-#define WI_SKYATMOSPHERE_HF
+#ifndef VZ_SKYATMOSPHERE_HF
+#define VZ_SKYATMOSPHERE_HF
 #include "globals.hlsli"
 #include "shadowHF.hlsli"
 
@@ -761,4 +761,4 @@ SingleScatteringResult IntegrateScatteredLuminance(
 	return result;
 }
 
-#endif // WI_SKYATMOSPHERE_HF
+#endif // VZ_SKYATMOSPHERE_HF

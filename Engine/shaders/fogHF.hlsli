@@ -1,5 +1,5 @@
-#ifndef WI_FOG_HF
-#define WI_FOG_HF
+#ifndef VZ_FOG_HF
+#define VZ_FOG_HF
 #include "globals.hlsli"
 #include "skyAtmosphere.hlsli"
 
@@ -96,4 +96,4 @@ inline float4 GetFog(float distance, float3 O, float3 V)
 }
 
 
-#endif // WI_FOG_HF
+#endif // VZ_FOG_HF

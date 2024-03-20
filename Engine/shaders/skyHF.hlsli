@@ -1,5 +1,5 @@
-#ifndef WI_SKY_HF
-#define WI_SKY_HF
+#ifndef VZ_SKY_HF
+#define VZ_SKY_HF
 #include "globals.hlsli"
 #include "skyAtmosphere.hlsli"
 #include "fogHF.hlsli"
@@ -179,4 +179,4 @@ float3 GetStaticSkyColor(in float3 V)
 }
 
 
-#endif // WI_SKY_HF
+#endif // VZ_SKY_HF

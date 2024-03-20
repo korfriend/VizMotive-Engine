@@ -1,5 +1,5 @@
-#ifndef WI_STOCHASTICSSR_HF
-#define WI_STOCHASTICSSR_HF
+#ifndef VZ_STOCHASTICSSR_HF
+#define VZ_STOCHASTICSSR_HF
 #include "brdf.hlsli"
 #include "ShaderInterop_Postprocess.h"
 
@@ -147,4 +147,4 @@ float Luminance(float3 color)
 	return dot(color, float3(0.2126, 0.7152, 0.0722));
 }
 
-#endif // WI_STOCHASTICSSR_HF
+#endif // VZ_STOCHASTICSSR_HF

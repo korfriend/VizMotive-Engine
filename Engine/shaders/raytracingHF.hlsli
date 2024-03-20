@@ -1,5 +1,5 @@
-#ifndef WI_RAYTRACING_HF
-#define WI_RAYTRACING_HF
+#ifndef VZ_RAYTRACING_HF
+#define VZ_RAYTRACING_HF
 #include "globals.hlsli"
 #include "ShaderInterop_Raytracing.h"
 #include "ShaderInterop_BVH.h"
@@ -418,4 +418,4 @@ inline uint TraceRay_DebugBVH(RayDesc ray)
 
 #endif // RTAPI
 
-#endif // WI_RAYTRACING_HF
+#endif // VZ_RAYTRACING_HF

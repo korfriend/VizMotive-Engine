@@ -7,6 +7,7 @@
 #define VZRESULT int
 #define VZ_OK 0
 #define VZ_FAIL 1
+#define VZ_JOB_WAIT 1
 
 #define SAFE_GET_COPY(DST_PTR, SRC_PTR, TYPE, ELEMENTS) { if(DST_PTR) memcpy(DST_PTR, SRC_PTR, sizeof(TYPE)*ELEMENTS); }
 #define GET_COPY(DST_PTR, SRC_PTR, TYPE, ELEMENTS) { memcpy(DST_PTR, SRC_PTR, sizeof(TYPE)*ELEMENTS); }
@@ -54,10 +55,10 @@ namespace vzm
 			param = std::any_cast<SRCV&>(it->second);
 			return true;
 		}
-		template <typename SRCV> SRCV GetParam(const ID& key, const SRCV& init_v) {
+		template <typename SRCV> SRCV GetParam(const ID& key, const SRCV& init_v) const {
 			auto it = __params.find(key);
 			if (it == __params.end()) return init_v;
-			return std::any_cast<SRCV&>(it->second);
+			return std::any_cast<const SRCV&>(it->second);
 		}
 		template <typename SRCV> SRCV* GetParamPtr(const ID& key) {
 			auto it = __params.find(key);
@@ -208,22 +209,7 @@ namespace vzm
 			SLICER_PLANE = 4, // mpr sectional mode
 			SLICER_CURVED = 5, // pano sectional mode
 		};
-		enum VolumeRayCastMode {
-			OPTICAL_INTEGRATION = 0,
-			OPTICAL_INTEGRATION_MULTI_OTF = 23,
-			OPTICAL_INTEGRATION_TRANSPARENCY = 1,
-			OPTICAL_INTEGRATION_MULTI_OTF_TRANSPARENCY = 2,
-			OPTICAL_INTEGRATION_SCULPT_MASK = 22,
-			OPTICAL_INTEGRATION_SCULPT_MASK_TRANSPARENCY = 25,
-			ISO_SURFACE = 21,
-			ISO_SURFACE_MULTI_OTF = 26,
-			VOLMASK_VISUALIZATION = 24,
-			MAXIMUM_INTENSITY = 10,
-			MINIMUM_INTENSITY = 11,
-			AVERAGE_INTENSITY = 12
-		};
-		ProjectionMode projection_mode = ProjectionMode::UNDEFINED;
-		VolumeRayCastMode volraycast_mode = VolumeRayCastMode::OPTICAL_INTEGRATION;
+		ProjectionMode projectionMode = ProjectionMode::UNDEFINED;
 		union {
 			struct { // projection_mode == 1 or 4 or 5
 				float ip_w;
@@ -247,55 +233,71 @@ namespace vzm
 		float fp = 1000.f; // the scale difference is recommended : ~100000 (in a single precision (float))
 		int w = 0;
 		int h = 0; // resolution. note that the aspect ratio is recomputed w.r.t. w and h during the camera setting.
-		bool is_rgba_write = false; // if false, use BGRA order
-		bool skip_sys_fb_update = false; // if false, skip the copyback process of the final rendertarget to system update buffers
-		//HWND hWnd = NULL; // if NULL, offscreen rendering is performed
+		bool gridHelper = false;
 
-		ParamMap<std::string> script_params;
-		ParamMap<std::string> test_params;
-		ParamMap<std::string> text_items; // value must be TextItem
+
+		// NOT APPLIED YET... DOJO TO DO...
+		enum VolumeRayCastMode {
+			OPTICAL_INTEGRATION = 0,
+			OPTICAL_INTEGRATION_MULTI_OTF = 23,
+			OPTICAL_INTEGRATION_TRANSPARENCY = 1,
+			OPTICAL_INTEGRATION_MULTI_OTF_TRANSPARENCY = 2,
+			OPTICAL_INTEGRATION_SCULPT_MASK = 22,
+			OPTICAL_INTEGRATION_SCULPT_MASK_TRANSPARENCY = 25,
+			ISO_SURFACE = 21,
+			ISO_SURFACE_MULTI_OTF = 26,
+			VOLMASK_VISUALIZATION = 24,
+			MAXIMUM_INTENSITY = 10,
+			MINIMUM_INTENSITY = 11,
+			AVERAGE_INTENSITY = 12
+		};
+		VolumeRayCastMode volraycastMode = VolumeRayCastMode::OPTICAL_INTEGRATION;
+
+		ParamMap<std::string> scriptParams;
+		ParamMap<std::string> testParams;
+		ParamMap<std::string> textItems; // value must be TextItem
 		bool displayCamTextItem = false;
 		bool displayActorLabel = false;
 		unsigned long long timeStamp = 0ull; // will be automatically set 
 
 		std::set<int> hidden_actors;
 		void SetCurvedSlicer(const float curved_plane_w, const float curved_plane_h, const float* curve_pos_pts, const float* curve_up_pts, const float* curve_tan_pts, const int num_curve_pts) {
-			script_params.SetParam("CURVED_PLANE_WIDTH", curved_plane_w);
-			script_params.SetParam("CURVED_PLANE_HEIGHT", curved_plane_h);
+			scriptParams.SetParam("CURVED_PLANE_WIDTH", curved_plane_w);
+			scriptParams.SetParam("CURVED_PLANE_HEIGHT", curved_plane_h);
 			std::vector<float> vf_curve_pos_pts(num_curve_pts * 3), vf_curve_up_pts(num_curve_pts * 3), vf_curve_tan_pts(num_curve_pts * 3);
 			memcpy(&vf_curve_pos_pts[0], curve_pos_pts, sizeof(float) * 3 * num_curve_pts);
 			memcpy(&vf_curve_up_pts[0], curve_up_pts, sizeof(float) * 3 * num_curve_pts);
 			memcpy(&vf_curve_tan_pts[0], curve_tan_pts, sizeof(float) * 3 * num_curve_pts);
-			script_params.SetParam("COUNT_INTERPOLATION_POINTS", num_curve_pts);
-			script_params.SetParam("ARRAY_CURVE_INTERPOLATION_POS", vf_curve_pos_pts);
-			script_params.SetParam("ARRAY_CURVE_INTERPOLATION_UP", vf_curve_up_pts);
-			script_params.SetParam("ARRAY_CURVE_INTERPOLATION_TANGENT", vf_curve_tan_pts);
+			scriptParams.SetParam("COUNT_INTERPOLATION_POINTS", num_curve_pts);
+			scriptParams.SetParam("ARRAY_CURVE_INTERPOLATION_POS", vf_curve_pos_pts);
+			scriptParams.SetParam("ARRAY_CURVE_INTERPOLATION_UP", vf_curve_up_pts);
+			scriptParams.SetParam("ARRAY_CURVE_INTERPOLATION_TANGENT", vf_curve_tan_pts);
 		}
 		void SetOrthogonalProjection(const bool orthoproj_mode) {
 			// only available when projection_mode == IMAGEPLANE_SIZE
-			script_params.SetParam("ORTHOGONAL_PROJECTION", orthoproj_mode);
+			scriptParams.SetParam("ORTHOGONAL_PROJECTION", orthoproj_mode);
 		}
 		void SetSlicerThickness(const float thickness) {
 			// only available when projection_mode == SLICER_PLANE or SLICER_CURVED
-			script_params.SetParam("SLICER_THICKNESS", thickness);
+			scriptParams.SetParam("SLICER_THICKNESS", thickness);
 		}
 		void StoreSlicerCutLines(const bool is_store) {
 			// only available when projection_mode == SLICER_PLANE or SLICER_CURVED
-			script_params.SetParam("STORE_SLICERCUTLINES", is_store);
+			scriptParams.SetParam("STORE_SLICERCUTLINES", is_store);
 		}
 		void Set2xVolumeRayCaster(const bool enable) {
 			// only available when projection_mode == SLICER_PLANE or SLICER_CURVED
-			script_params.SetParam("FAST_VOLRAYCASTER2X", enable);
+			scriptParams.SetParam("FAST_VOLRAYCASTER2X", enable);
 		}
 		void SetOutlineEffect(const int thick_pixs, const float depth_thres, const float* outline_color_rgb, const bool fadeEffect) {
 			// if thick_pixs == 0, no outline
-			script_params.SetParam("SILHOUETTE_THICKNESS", thick_pixs);
-			script_params.SetParam("SILHOUETTE_DEPTH_THRES", depth_thres);
+			scriptParams.SetParam("SILHOUETTE_THICKNESS", thick_pixs);
+			scriptParams.SetParam("SILHOUETTE_DEPTH_THRES", depth_thres);
 			if (outline_color_rgb != NULL) {
 				std::vector<float> color = { outline_color_rgb[0], outline_color_rgb[1], outline_color_rgb[2] };
-				script_params.SetParam("SILHOUETTE_COLOR_RGB", color);
+				scriptParams.SetParam("SILHOUETTE_COLOR_RGB", color);
 			}
-			script_params.SetParam("SILHOUETTE_FADEEFFECT", fadeEffect);
+			scriptParams.SetParam("SILHOUETTE_FADEEFFECT", fadeEffect);
 		}
 		void HideActor(const int actor_id) {
 			hidden_actors.insert(actor_id);
@@ -307,21 +309,21 @@ namespace vzm
 		}
 		// this clipper is prior to the actor's clipper
 		void SetClipper(const BoxTr* clipBox = NULL, const float* plane = NULL) {
-			if (clipBox != NULL) script_params.SetParam("BOX_CLIPPER", *clipBox);
-			else script_params.RemoveParam("BOX_CLIPPER");
+			if (clipBox != NULL) scriptParams.SetParam("BOX_CLIPPER", *clipBox);
+			else scriptParams.RemoveParam("BOX_CLIPPER");
 			if (plane != NULL) {
 				std::vector<float> _plane(6);
-				script_params.SetParam("PLANE_CLIPPER", std::vector<float>(plane, plane + 6));
+				scriptParams.SetParam("PLANE_CLIPPER", std::vector<float>(plane, plane + 6));
 			}
-			else script_params.RemoveParam("PLANE_CLIPPER");
+			else scriptParams.RemoveParam("PLANE_CLIPPER");
 		}
 		void Set2ndLayerDisplayOptions(const int patternInterval = 3, const float blendingW = 0.2f) {
-			script_params.SetParam("SECOND_LAYER_PATTERN_INTERVAL", patternInterval);
-			script_params.SetParam("SECOND_LAYER_BLENDING_WEIGHT", blendingW);
+			scriptParams.SetParam("SECOND_LAYER_PATTERN_INTERVAL", patternInterval);
+			scriptParams.SetParam("SECOND_LAYER_BLENDING_WEIGHT", blendingW);
 		}
 		// when using negative value, the outline will use the actor's parameter
 		void SetSlicerOutlinePixels(const float lineThicknessPix = -1.f) {
-			script_params.SetParam("OUTLINE_THICKNESS_PIX", lineThicknessPix);
+			scriptParams.SetParam("OUTLINE_THICKNESS_PIX", lineThicknessPix);
 		}
 	};
 	struct ActorParameter : TransformParameter
@@ -338,17 +340,17 @@ namespace vzm
 			MASK_VOLUME, // only for volume rendering ... multi-OTF
 		};
 	private:
-		ParamMap<RES_USAGE> associated_obj_ids; // <usage, obj_id> 
+		ParamMap<RES_USAGE> associatedObjIds; // <usage, obj_id> 
 
 	public:
 		bool isVisible = true;
 		bool isPickable = false;
 
-		int GetResourceID(const RES_USAGE res_usage) {
-			return associated_obj_ids.GetParam(res_usage, (int)0);
+		VID GetResourceID(const RES_USAGE resUsage) const {
+			return associatedObjIds.GetParam(resUsage, (VID)0);
 		}
-		void SetResourceID(const RES_USAGE res_usage, const int obj_id) {
-			associated_obj_ids.SetParam(res_usage, obj_id);
+		void SetResourceID(const RES_USAGE resUsage, const VID resId) {
+			associatedObjIds.SetParam(resUsage, resId);
 		}
 
 		TextItem label;
@@ -502,18 +504,29 @@ namespace vzm
 	// Create new scene and return scene (NOT a scene item) ID, a scene 
 	//  - return zero in case of failure (the name is already registered or overflow VID)
 	__dojostatic VID NewScene(const std::string& sceneName);
-	// Create new actor and return actor ID (global entity)
+	// Create new actor and return actor (scene item) ID (global entity)
 	//  - Must belong to a scene
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
 	__dojostatic VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameter& aParams, const VID parentId = 0u);
-	// Create new camera and return camera ID (global entity)
+	// Create new camera and return camera (scene item) ID (global entity), scene item
 	//  - Must belong to a scene
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
 	__dojostatic VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameter& cParams, const VID parentId = 0u);
-	// Create new camera and return camera ID (global entity)
+	// Create new camera and return light (scene item) ID (global entity), scene item
 	//  - Must belong to a scene
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
 	__dojostatic VID NewLight(const VID sceneId, const std::string& lightName, const LightParameter& lParams, const VID parentId = 0u);
+	// Load model component and return resource ID (global entity), resource item
+	//  - Must belong to the internal scene
+	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
+	__dojostatic VID LoadMeshModel(const std::string& file, const std::string& resName);
+	// Render a scene (sceneId) with a camera (camId)
+	//  - Must belong to the internal scene
+	__dojostatic VZRESULT RenderScene(const int sceneId, const int camId);
+	__dojostatic VZRESULT UpdateScene(const int sceneId); // animation or simulation...
+	// Get a graphics render target view 
+	//  - Must belong to the internal scene
+	__dojostatic VZRESULT GetGraphicsSharedRenderTarget(const int camId, const void* graphicsViewPtr, void** resPtr, int* fbuf_w, int* fbuf_h);
 
 	__dojostatic VZRESULT DeinitEngineLib();
 }

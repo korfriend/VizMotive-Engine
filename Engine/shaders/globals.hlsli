@@ -1,5 +1,5 @@
-#ifndef WI_SHADER_GLOBALS_HF
-#define WI_SHADER_GLOBALS_HF
+#ifndef VZ_SHADER_GLOBALS_HF
+#define VZ_SHADER_GLOBALS_HF
 #include "ColorSpaceUtility.hlsli"
 #include "PixelPacking_R11G11B10.hlsli"
 #include "PixelPacking_RGBE.hlsli"
@@ -1588,4 +1588,4 @@ inline void ParallaxOcclusionMapping_Impl(
 	}
 }
 
-#endif // WI_SHADER_GLOBALS_HF
+#endif // VZ_SHADER_GLOBALS_HF

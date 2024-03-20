@@ -1,5 +1,5 @@
-#ifndef WI_IMAGE_HF
-#define WI_IMAGE_HF
+#ifndef VZ_IMAGE_HF
+#define VZ_IMAGE_HF
 #include "globals.hlsli"
 #include "ShaderInterop_Image.h"
 
@@ -77,5 +77,5 @@ struct VertextoPixel
 	}
 };
 
-#endif // WI_IMAGE_HF
+#endif // VZ_IMAGE_HF
 

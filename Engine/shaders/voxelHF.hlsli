@@ -1,5 +1,5 @@
-#ifndef WI_VOXEL_HF
-#define WI_VOXEL_HF
+#ifndef VZ_VOXEL_HF
+#define VZ_VOXEL_HF
 #include "ColorSpaceUtility.hlsli"
 
 static const float __hdrRange = 10.0f;		// HDR to SDR packing scale
@@ -42,4 +42,4 @@ float UnpackVoxelChannel(uint value)
 	return float(value) / 1024.0f;
 }
 
-#endif // WI_VOXEL_HF
+#endif // VZ_VOXEL_HF

@@ -578,9 +578,6 @@ namespace vz
 
 		canvas.init(window);
 
-		if (window == NULL) 
-			return;
-
 		SwapChainDesc desc;
 		if (swapChain.IsValid())
 		{

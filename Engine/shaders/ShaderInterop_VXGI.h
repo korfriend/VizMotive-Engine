@@ -1,5 +1,5 @@
-#ifndef WI_SHADERINTEROP_VXGI_H
-#define WI_SHADERINTEROP_VXGI_H
+#ifndef VZ_SHADERINTEROP_VXGI_H
+#define VZ_SHADERINTEROP_VXGI_H
 #include "ShaderInterop.h"
 #include "ShaderInterop_Renderer.h"
 
@@ -146,4 +146,4 @@ static const float3 DIFFUSE_CONE_DIRECTIONS[16] = {
 };
 #endif
 
-#endif // WI_SHADERINTEROP_VXGI_H
+#endif // VZ_SHADERINTEROP_VXGI_H
