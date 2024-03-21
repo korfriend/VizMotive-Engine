@@ -7,11 +7,17 @@
 using namespace vz::ecs;
 using namespace vz::scene;
 
-namespace vz 
+namespace vzm
 {
+	using namespace vz;
+
 	class VzmRenderer : public vz::RenderPath3D
 	{
 	public:
+		float deltaTime = 0;
+		float deltaTimeAccumulator = 0;
+		vz::Timer timer;
+
 		bool gridHelper = false;
 
 		struct InfoDisplayer
@@ -72,7 +78,7 @@ namespace vz
 	};
 
 	static inline constexpr Entity INVALID_SCENE_ENTITY = 0;
-	class ApiManager
+	class SceneManager
 	{
 	private:
 		std::unique_ptr<vz::graphics::GraphicsDevice> graphicsDevice;
@@ -264,7 +270,7 @@ namespace vz
 			vz::graphics::GetDevice() = graphicsDevice.get();
 
 			vz::initializer::InitializeComponentsAsync();
-
+			
 			// Reset all state that tests might have modified:
 			vz::eventhandler::SetVSync(true);
 			vz::renderer::SetToDrawGridHelper(false);
@@ -292,7 +298,7 @@ namespace vmath
 
 namespace vzm
 {
-	vz::ApiManager vzmApp;
+	SceneManager sceneManager;
 
 	VZRESULT InitEngineLib(const std::string& coreName, const std::string& logFileName)
 	{
@@ -303,7 +309,7 @@ namespace vzm
 		}
 
 		ParamMap<std::string> arguments;
-		vzmApp.Initialize(arguments);
+		sceneManager.Initialize(arguments);
 
 		return VZ_OK;
 	}
@@ -316,12 +322,12 @@ namespace vzm
 
 	VID NewScene(const std::string& sceneName)
 	{
-		Scene* scene = vzmApp.GetSceneByName(sceneName);
+		Scene* scene = sceneManager.GetSceneByName(sceneName);
 		if (scene != nullptr)
 		{
 			return INVALID_ENTITY;
 		}
-		return vzmApp.CreateSceneEntity(sceneName);
+		return sceneManager.CreateSceneEntity(sceneName);
 	}
 
 	void MoveToParent(const Entity entity, const Entity parentEntity, Scene* scene)
@@ -342,7 +348,7 @@ namespace vzm
 
 	VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameter& aParams, const VID parentId)
 	{
-		Scene* scene = vzmApp.GetScene(sceneId);
+		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
 		{
 			return INVALID_ENTITY;
@@ -359,7 +365,7 @@ namespace vzm
 
 	VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameter& cParams, const VID parentId)
 	{
-		Scene* scene = vzmApp.GetScene(sceneId);
+		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
 		{
 			return INVALID_ENTITY;
@@ -377,14 +383,15 @@ namespace vzm
 		default:
 			return INVALID_ENTITY;
 		}
-		vzmApp.CreateRenderer(ett);
+		VzmRenderer* renderer = sceneManager.CreateRenderer(ett);
+		renderer->init(cParams.w, cParams.h);
 		MoveToParent(ett, parentId, scene);
 		return ett;
 	}
 
 	VID NewLight(const VID sceneId, const std::string& lightName, const LightParameter& lParams, const VID parentId)
 	{
-		Scene* scene = vzmApp.GetScene(sceneId);
+		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
 		{
 			return INVALID_ENTITY;
@@ -396,27 +403,35 @@ namespace vzm
 
 	VID LoadMeshModel(const std::string& file, const std::string& resName)
 	{
-		return vzmApp.internalResArchive.Entity_CreateMesh(file);
+		return sceneManager.internalResArchive.Entity_CreateMesh(file);
 	}
 
 	VZRESULT RenderScene(const int sceneId, const int camId)
 	{
-		vz::font::UpdateAtlas(vzmApp.canvas.GetDPIScaling());
+		Scene* scene = sceneManager.GetScene(sceneId);
+		VzmRenderer* renderer = sceneManager.GetRenderer(camId);
+		if (scene == nullptr || renderer == nullptr)
+		{
+			return VZ_FAIL;
+		}
 
-		//ColorSpace colorspace = graphicsDevice->GetSwapChainColorSpace(&swapChain);
+		vz::font::UpdateAtlas(renderer->GetDPIScaling());
+
+		vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
 
 		if (!vz::initializer::IsInitializeFinished())
 		{
 			// Until engine is not loaded, present initialization screen...
 			vz::graphics::CommandList cmd = graphicsDevice->BeginCommandList();
-			graphicsDevice->RenderPassBegin(&swapChain, cmd);
+			vz::graphics::RenderPassImage rt[] = { vz::graphics::RenderPassImage::RenderTarget(&renderer->rtMain) };
+			graphicsDevice->RenderPassBegin(rt, 1, cmd);
 			vz::graphics::Viewport viewport;
-			viewport.width = (float)swapChain.desc.width;
-			viewport.height = (float)swapChain.desc.height;
+			viewport.width = (float)renderer->width;
+			viewport.height = (float)renderer->height;
 			graphicsDevice->BindViewports(1, &viewport, cmd);
 			if (vz::initializer::IsInitializeFinished(vz::initializer::INITIALIZED_SYSTEM_FONT))
 			{
-				vz::backlog::DrawOutputText(canvas, cmd, colorspace);
+				vz::backlog::DrawOutputText(*renderer, cmd);
 			}
 			graphicsDevice->RenderPassEnd(cmd);
 			graphicsDevice->SubmitCommandLists();
@@ -424,6 +439,10 @@ namespace vzm
 		}
 
 		vz::profiler::BeginFrame();
+
+		renderer->deltaTime = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+		renderer->Update(renderer->deltaTime);
+		renderer->Render();
 
 		return VZ_OK;
 	}
