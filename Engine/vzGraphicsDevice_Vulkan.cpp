@@ -3545,6 +3545,8 @@ using namespace vulkan_internal;
 	}
 	GraphicsDevice_Vulkan::~GraphicsDevice_Vulkan()
 	{
+		mapDevRT.clear();
+
 		VkResult res = vkDeviceWaitIdle(device);
 		assert(res == VK_SUCCESS);
 
@@ -6737,6 +6739,11 @@ using namespace vulkan_internal;
 			break;
 		}
 		return -1;
+	}
+
+	void* GraphicsDevice_Vulkan::OpenSharedResource(const void* device2, Texture* texture) 
+	{
+		return nullptr;
 	}
 
 	int GraphicsDevice_Vulkan::GetDescriptorIndex(const GPUResource* resource, SubresourceType type, int subresource) const

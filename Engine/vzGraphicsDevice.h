@@ -66,6 +66,13 @@ namespace vz::graphics
 		std::string driverDescription;
 		AdapterType adapterType = AdapterType::Other;
 
+		struct Res {
+			std::unordered_map<void*, Texture> mapDevSharedTexture;
+			void* old_internal_state = nullptr; // do not release this!
+		};
+
+		std::unordered_map<Texture*, Res> mapDevRT; //src device and render target
+
 	public:
 		virtual ~GraphicsDevice() = default;
 
@@ -85,6 +92,8 @@ namespace vz::graphics
 
 		virtual int CreateSubresource(Texture* texture, SubresourceType type, uint32_t firstSlice, uint32_t sliceCount, uint32_t firstMip, uint32_t mipCount, const Format* format_change = nullptr, const ImageAspect* aspect = nullptr, const Swizzle* swizzle = nullptr) const = 0;
 		virtual int CreateSubresource(GPUBuffer* buffer, SubresourceType type, uint64_t offset, uint64_t size = ~0, const Format* format_change = nullptr, const uint32_t* structuredbuffer_stride_change = nullptr) const = 0;
+
+		virtual void* OpenSharedResource(const void* device2, Texture* texture) = 0;
 
 		virtual int GetDescriptorIndex(const GPUResource* resource, SubresourceType type, int subresource = -1) const = 0;
 		virtual int GetDescriptorIndex(const Sampler* sampler) const = 0;

@@ -37,7 +37,7 @@ namespace dx12_internal
 	// Bindless allocation limits:
 	static constexpr int BINDLESS_RESOURCE_CAPACITY = 500000;
 	static constexpr int BINDLESS_SAMPLER_CAPACITY = 256;
-
+	
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
 	// On Windows PC we load DLLs manually because graphics device can be chosen at runtime:
@@ -2990,6 +2990,8 @@ using namespace dx12_internal;
 	{
 		WaitForGPU();
 
+		mapDevRT.clear();
+
 #ifdef PLATFORM_WINDOWS_DESKTOP
 		std::ignore = UnregisterWait(deviceRemovedWaitHandle);
 		deviceRemovedFence.Reset();
@@ -4475,6 +4477,71 @@ using namespace dx12_internal;
 		assert(SUCCEEDED(hr));
 
 		return SUCCEEDED(hr);
+	}
+
+	void* GraphicsDevice_DX12::OpenSharedResource(const void* device2, Texture* texture) 
+	{
+		if (texture->shared_handle == nullptr)
+		{
+			return nullptr;
+		}
+
+		UINT handle_increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		auto it = mapDevRT.find(texture);
+		if (it != mapDevRT.end())
+		{
+			auto dev_it = it->second.mapDevSharedTexture.find((void*)device2);
+			if (dev_it != it->second.mapDevSharedTexture.end())
+			{
+				if (dev_it->second.internal_state.get() == it->second.old_internal_state)
+				{
+					Texture shared_texture = dev_it->second;
+					int descriptorIndex = GetDescriptorIndex(&shared_texture, SubresourceType::SRV);
+
+					D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
+					gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
+
+					return (void*)gpu_descriptor_handler.ptr;
+				}
+			}
+		}
+
+		Texture shared_texture;
+
+		auto internal_state = std::make_shared<Texture_DX12>();
+		internal_state->allocationhandler = allocationhandler;
+		shared_texture.internal_state = internal_state;
+		shared_texture.type = GPUResource::Type::TEXTURE;
+		shared_texture.mapped_data = nullptr;
+		shared_texture.mapped_size = 0;
+		shared_texture.mapped_subresources = nullptr;
+		shared_texture.mapped_subresource_count = 0;
+		shared_texture.sparse_properties = nullptr;
+		shared_texture.desc = texture->desc;
+
+		HRESULT hr = ((ID3D12Device*)device2)->OpenSharedHandle(
+			texture->shared_handle,
+			PPV_ARGS(internal_state->resource)
+		);
+
+		if (FAILED(hr)) {
+			internal_state.reset();
+			return nullptr;
+		}
+
+		CreateSubresource(&shared_texture, SubresourceType::SRV, 0, -1, 0, -1);
+
+		Res sharedRes;
+		sharedRes.mapDevSharedTexture[(void*)device2] = shared_texture;
+		sharedRes.old_internal_state = shared_texture.internal_state.get();
+		mapDevRT[texture] = sharedRes;
+
+		int descriptorIndex = GetDescriptorIndex(&shared_texture, SubresourceType::SRV);
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
+		gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
+
+		return (void*)gpu_descriptor_handler.ptr;
 	}
 
 	int GraphicsDevice_DX12::CreateSubresource(Texture* texture, SubresourceType type, uint32_t firstSlice, uint32_t sliceCount, uint32_t firstMip, uint32_t mipCount, const Format* format_change, const ImageAspect* aspect, const Swizzle* swizzle) const

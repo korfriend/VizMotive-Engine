@@ -98,6 +98,8 @@ namespace vz
 			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			desc.width = internalResolution.x;
 			desc.height = internalResolution.y;
+			// dojo to do: ResourceMiscFlag::SHARED is for outside-device to access the render target
+			desc.misc_flags = ResourceMiscFlag::SHARED;
 			desc.sample_count = 1;
 
 			device->CreateTexture(&desc, nullptr, &rtMain);
