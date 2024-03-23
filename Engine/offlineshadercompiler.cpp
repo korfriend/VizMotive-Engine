@@ -221,7 +221,7 @@ vz::vector<ShaderEntry> shaders = {
 	{"virtualTextureTileRequestsCS", vz::graphics::ShaderStage::CS },
 	{"virtualTextureTileAllocateCS", vz::graphics::ShaderStage::CS },
 	{"virtualTextureResidencyUpdateCS", vz::graphics::ShaderStage::CS },
-	{"vzndCS", vz::graphics::ShaderStage::CS },
+	{"windCS", vz::graphics::ShaderStage::CS },
 	{"yuv_to_rgbCS", vz::graphics::ShaderStage::CS },
 
 

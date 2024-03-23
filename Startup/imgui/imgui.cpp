@@ -10614,7 +10614,7 @@ bool ImGui::BeginPopupContextWindow(const char* str_id, ImGuiPopupFlags popup_fl
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
     if (!str_id)
-        str_id = "vzndow_context";
+        str_id = "window_context";
     ImGuiID id = window->GetID(str_id);
     int mouse_button = (popup_flags & ImGuiPopupFlags_MouseButtonMask_);
     if (IsMouseReleased(mouse_button) && IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))

@@ -417,7 +417,7 @@ namespace vz::gui
 		if (value.length() <= 0)
 		{
 			static std::atomic<uint32_t> widgetID{ 0 };
-			name = "vzdget_" + std::to_string(widgetID.fetch_add(1));
+			name = "widget_" + std::to_string(widgetID.fetch_add(1));
 		}
 		else
 		{

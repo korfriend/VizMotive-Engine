@@ -21,6 +21,7 @@
 #include <any>
 #include <list>
 #include <memory>
+#include <algorithm>
 
 using VID = uint32_t;
 
@@ -522,11 +523,11 @@ namespace vzm
 	__dojostatic VID LoadMeshModel(const std::string& file, const std::string& resName);
 	// Render a scene (sceneId) with a camera (camId)
 	//  - Must belong to the internal scene
-	__dojostatic VZRESULT RenderScene(const int sceneId, const int camId);
+	__dojostatic VZRESULT Render(const int camId);
 	__dojostatic VZRESULT UpdateScene(const int sceneId); // animation or simulation...
 	// Get a graphics render target view 
 	//  - Must belong to the internal scene
-	__dojostatic VZRESULT GetGraphicsSharedRenderTarget(const int camId, const void* graphicsViewPtr, void** resPtr, int* fbuf_w, int* fbuf_h);
+	__dojostatic void* GetGraphicsSharedRenderTarget(const int camId, const void* graphicsDev2, uint32_t* w = NULL, uint32_t* h = NULL);
 
 	__dojostatic VZRESULT DeinitEngineLib();
 }

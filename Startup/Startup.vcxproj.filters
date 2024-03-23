@@ -27,7 +27,11 @@
     <ClCompile Include="imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
+    <ClCompile Include="main_dx11.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="imgui\imgui_impl_dx12.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imgui.h">
@@ -52,6 +56,9 @@
       <Filter>imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui\imstb_truetype.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_impl_dx12.h">
       <Filter>imgui</Filter>
     </ClInclude>
   </ItemGroup>

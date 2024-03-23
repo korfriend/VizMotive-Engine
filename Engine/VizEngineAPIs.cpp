@@ -71,10 +71,10 @@ namespace vzm
 			vz::font::UpdateAtlas(GetDPIScaling());
 		}
 
-		void Update(float dt) override
-		{
-			RenderPath3D::Update(dt);
-		}
+		//void Update(float dt) override
+		//{
+		//	RenderPath3D::Update(dt);
+		//}
 	};
 
 	static inline constexpr Entity INVALID_SCENE_ENTITY = 0;
@@ -107,7 +107,7 @@ namespace vzm
 
 			Entity ett = next.fetch_add(1);
 			if (ett != INVALID_SCENE_ENTITY) {
-				Scene& scene = scenes[next];
+				Scene& scene = scenes[ett];
 				scene.weather = WeatherComponent();
 				sceneNames[name] = next;
 			}
@@ -406,11 +406,10 @@ namespace vzm
 		return sceneManager.internalResArchive.Entity_CreateMesh(file);
 	}
 
-	VZRESULT RenderScene(const int sceneId, const int camId)
+	VZRESULT Render(const int camId)
 	{
-		Scene* scene = sceneManager.GetScene(sceneId);
 		VzmRenderer* renderer = sceneManager.GetRenderer(camId);
-		if (scene == nullptr || renderer == nullptr)
+		if (renderer == nullptr)
 		{
 			return VZ_FAIL;
 		}
@@ -445,5 +444,20 @@ namespace vzm
 		renderer->Render();
 
 		return VZ_OK;
+	}
+
+	void* GetGraphicsSharedRenderTarget(const int camId, const void* graphicsDev2, uint32_t* w, uint32_t* h)
+	{
+		VzmRenderer* renderer = sceneManager.GetRenderer(camId);
+		if (renderer == nullptr)
+		{
+			return nullptr;
+		}
+
+		if (w) *w = renderer->width;
+		if (h) *h = renderer->height;
+
+		vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
+		return graphicsDevice->OpenSharedResource(graphicsDev2, &renderer->rtMain);
 	}
 }
