@@ -17,6 +17,16 @@
 
 #include <spdlog/spdlog.h>
 
+// math using GLM
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/gtc/constants.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/vector_angle.hpp"
+
+#define GLM_F3 *(glm::fvec3*)
+
 #ifdef _DEBUG
 #define DX12_ENABLE_DEBUG_LAYER
 #endif
@@ -155,8 +165,13 @@ int main(int, char**)
 				sid = vzm::NewScene("my scene");
 				vzm::CameraParameter cp;
 
-				cp 세팅부터 하기
-
+				cp.projectionMode = vzm::CameraParameter::ProjectionMode::CAMERA_FOV;
+				cp.w = ImGui::GetWindowWidth();
+				cp.h = ImGui::GetWindowHeight();
+				cp.fov_y = glm::pi<float>() * 0.5f;
+				GLM_F3 cp.pos = glm::fvec3(2, 2, 2);
+				GLM_F3 cp.up = glm::fvec3(0, 1, 0);
+				GLM_F3 cp.view = glm::fvec3(0, -1, 0);
 				cid = vzm::NewCamera(sid, "my camera", cp);
 			}
 			vzm::Render(cid);
@@ -168,7 +183,7 @@ int main(int, char**)
 			ImGui::Begin("DirectX12 Texture Test");
 			ImGui::Text("size = %d x %d", w, h);
 			// Note that we pass the GPU SRV handle here, *not* the CPU handle. We're passing the internal pointer value, cast to an ImTextureID
-			ImGui::Image(texId, ImVec2((float)w, (float)h));
+			ImGui::ImageButton(texId, ImVec2((float)w, (float)h));
 			ImGui::End();
 		}
 
