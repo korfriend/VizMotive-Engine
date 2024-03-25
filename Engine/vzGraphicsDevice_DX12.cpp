@@ -4496,13 +4496,13 @@ using namespace dx12_internal;
 			{
 				if (dev_it->second.internal_state.get() == it->second.old_internal_state)
 				{
-					Texture shared_texture = dev_it->second;
-					int descriptorIndex = GetDescriptorIndex(&shared_texture, SubresourceType::SRV);
+					Texture* shared_texture = &dev_it->second;
+					int descriptorIndex = GetDescriptorIndex(shared_texture, SubresourceType::SRV);
 
 					D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
 					gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
 
-					return (void*)gpu_descriptor_handler.ptr;
+					return (void*)shared_texture;// gpu_descriptor_handler.ptr;
 				}
 			}
 		}
@@ -4541,7 +4541,8 @@ using namespace dx12_internal;
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
 		gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
 
-		return (void*)gpu_descriptor_handler.ptr;
+		//return (void*)gpu_descriptor_handler.ptr;
+		return (void*)&mapDevRT[texture].mapDevSharedTexture[(void*)device2];
 	}
 
 	int GraphicsDevice_DX12::CreateSubresource(Texture* texture, SubresourceType type, uint32_t firstSlice, uint32_t sliceCount, uint32_t firstMip, uint32_t mipCount, const Format* format_change, const ImageAspect* aspect, const Swizzle* swizzle) const
@@ -5897,10 +5898,10 @@ using namespace dx12_internal;
 				RTV.cpuDescriptor = descriptor.handle;
 				RTV.BeginningAccess.Type = beginning_access_type;
 				RTV.EndingAccess.Type = ending_access_type;
-				clear_value.Color[0] = desc.clear.color[0];
-				clear_value.Color[1] = desc.clear.color[1];
-				clear_value.Color[2] = desc.clear.color[2];
-				clear_value.Color[3] = desc.clear.color[3];
+				clear_value.Color[0] = 1;// desc.clear.color[0];
+				clear_value.Color[1] = 1;// desc.clear.color[1];
+				clear_value.Color[2] = 1;// desc.clear.color[2];
+				clear_value.Color[3] = 1;// desc.clear.color[3];
 				RTV.BeginningAccess.Clear.ClearValue = clear_value;
 				resolve_src_info.resource = internal_state->resource.Get();
 				resolve_src_info.preserve = ending_access_type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;

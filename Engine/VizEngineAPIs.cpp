@@ -421,24 +421,25 @@ namespace vzm
 		if (!vz::initializer::IsInitializeFinished())
 		{
 			// Until engine is not loaded, present initialization screen...
-			vz::graphics::CommandList cmd = graphicsDevice->BeginCommandList();
-			vz::graphics::RenderPassImage rt[] = { vz::graphics::RenderPassImage::RenderTarget(&renderer->rtMain) };
-			graphicsDevice->RenderPassBegin(rt, 1, cmd);
-			vz::graphics::Viewport viewport;
-			viewport.width = (float)renderer->width;
-			viewport.height = (float)renderer->height;
-			graphicsDevice->BindViewports(1, &viewport, cmd);
-			if (vz::initializer::IsInitializeFinished(vz::initializer::INITIALIZED_SYSTEM_FONT))
-			{
-				vz::backlog::DrawOutputText(*renderer, cmd);
-			}
-			graphicsDevice->RenderPassEnd(cmd);
-			graphicsDevice->SubmitCommandLists();
+			//vz::graphics::CommandList cmd = graphicsDevice->BeginCommandList();
+			//vz::graphics::RenderPassImage rt[] = { vz::graphics::RenderPassImage::RenderTarget(&renderer->rtMain) };
+			//graphicsDevice->RenderPassBegin(rt, 1, cmd);
+			//vz::graphics::Viewport viewport;
+			//viewport.width = (float)renderer->width;
+			//viewport.height = (float)renderer->height;
+			//graphicsDevice->BindViewports(1, &viewport, cmd);
+			//if (vz::initializer::IsInitializeFinished(vz::initializer::INITIALIZED_SYSTEM_FONT))
+			//{
+			//	vz::backlog::DrawOutputText(*renderer, cmd);
+			//}
+			//graphicsDevice->RenderPassEnd(cmd);
+			//graphicsDevice->SubmitCommandLists();
 			return VZ_JOB_WAIT;
 		}
 
 		vz::profiler::BeginFrame();
 
+		vz::renderer::SetToDrawGridHelper(true);
 		renderer->deltaTime = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
 		renderer->Update(renderer->deltaTime);
 		renderer->Render();

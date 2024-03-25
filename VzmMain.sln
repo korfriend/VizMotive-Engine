@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Startup", "Startup\Startup.vcxproj", "{E6996B15-A296-4C69-90EA-7F1787FF69DC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OfflineShaderCompiler", "Engine\OfflineShaderCompiler.vcxproj", "{3B74A7FE-CED7-4723-8824-AC708A865B98}"
 EndProject
@@ -12,6 +15,12 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_Windows", "Engine\Engine_Windows.vcxproj", "{D86799C4-9D93-4981-93B7-48C219D40915}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shaders_SOURCE", "Engine\shaders\Shaders_SOURCE.vcxitems", "{92E86448-0724-4387-ABAC-96E63EDF4190}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Example_ImGui", "Example_ImGui\Example_ImGui.vcxproj", "{2B636202-EF12-43CF-8431-FA516F2E132C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{67975BED-EA57-4D56-8C1F-C06E6BF3ED09}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Example_ImGui_Docking", "Example_ImGui_Docking\Example_ImGui_Docking.vcxproj", "{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,9 +54,30 @@ Global
 		{D86799C4-9D93-4981-93B7-48C219D40915}.Release|x64.Build.0 = Release|x64
 		{D86799C4-9D93-4981-93B7-48C219D40915}.Release|x86.ActiveCfg = Release|x64
 		{D86799C4-9D93-4981-93B7-48C219D40915}.Release|x86.Build.0 = Release|x64
+		{2B636202-EF12-43CF-8431-FA516F2E132C}.Debug|x64.ActiveCfg = Debug|x64
+		{2B636202-EF12-43CF-8431-FA516F2E132C}.Debug|x64.Build.0 = Debug|x64
+		{2B636202-EF12-43CF-8431-FA516F2E132C}.Debug|x86.ActiveCfg = Debug|x64
+		{2B636202-EF12-43CF-8431-FA516F2E132C}.Debug|x86.Build.0 = Debug|x64
+		{2B636202-EF12-43CF-8431-FA516F2E132C}.Release|x64.ActiveCfg = Release|x64
+		{2B636202-EF12-43CF-8431-FA516F2E132C}.Release|x64.Build.0 = Release|x64
+		{2B636202-EF12-43CF-8431-FA516F2E132C}.Release|x86.ActiveCfg = Release|x64
+		{2B636202-EF12-43CF-8431-FA516F2E132C}.Release|x86.Build.0 = Release|x64
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}.Debug|x64.ActiveCfg = Debug|x64
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}.Debug|x64.Build.0 = Debug|x64
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}.Debug|x86.ActiveCfg = Debug|x64
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}.Debug|x86.Build.0 = Debug|x64
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}.Release|x64.ActiveCfg = Release|x64
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}.Release|x64.Build.0 = Release|x64
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}.Release|x86.ActiveCfg = Release|x64
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E6996B15-A296-4C69-90EA-7F1787FF69DC} = {67975BED-EA57-4D56-8C1F-C06E6BF3ED09}
+		{2B636202-EF12-43CF-8431-FA516F2E132C} = {67975BED-EA57-4D56-8C1F-C06E6BF3ED09}
+		{5646F9FB-C9E3-4DA4-8AAA-EB7A46DD777E} = {67975BED-EA57-4D56-8C1F-C06E6BF3ED09}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}
