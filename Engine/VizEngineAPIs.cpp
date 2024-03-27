@@ -467,7 +467,9 @@ namespace vzm
 			}
 			else
 			{
-				vz::graphics::RenderPassImage rt[] = { vz::graphics::RenderPassImage::RenderTarget(&renderResult) };
+				vz::graphics::RenderPassImage rt[] = { 
+					vz::graphics::RenderPassImage::RenderTarget(&renderResult, vz::graphics::RenderPassImage::LoadOp::CLEAR)
+				};
 				graphicsDevice->RenderPassBegin(rt, 1, cmd);
 			}
 
@@ -775,22 +777,23 @@ namespace vzm
 			return INVALID_ENTITY;
 		}
 
-		TransformComponent transform;
-		transform.Translate(XMFLOAT3(8, 8, 2));
-		transform.UpdateTransform();
-
 		CameraComponent* camComponent = scene->cameras.GetComponent(ett);
 		assert(camComponent);
-		camComponent->TransformCamera(transform);
-
-		카메라 update...
-		camComponent->Eye = XMFLOAT3(8, 8, 2);
+		TransformComponent* transform = scene->transforms.GetComponent(ett);
+		//transform->Translate(XMFLOAT3(10, 20.f, -40.5f));
+		//transform->UpdateTransform();
+		
+		camComponent->Eye = XMFLOAT3(100, 100, 100);
+		camComponent->At = XMFLOAT3(-1, -1, -1);
 		camComponent->UpdateCamera();
+		transform->MatrixTransform(camComponent->GetView());
 
 		VzmRenderer* renderer = sceneManager.CreateRenderer(ett);
 		renderer->init(cParams.w, cParams.h);
 		renderer->Start(); // call ResizeBuffers();
 		renderer->Load();
+		renderer->camera = camComponent;
+		renderer->scene = scene;
 		MoveToParent(ett, parentId, scene);
 		return ett;
 	}
@@ -809,7 +812,9 @@ namespace vzm
 
 	VID LoadMeshModel(const std::string& file, const std::string& resName)
 	{
-		return sceneManager.internalResArchive.Entity_CreateMesh(file);
+		Entity ett = sceneManager.internalResArchive.Entity_CreateMesh(resName);
+		// loading.. with file
+		return ett;
 	}
 
 	VZRESULT Render(const int camId)
@@ -833,35 +838,62 @@ namespace vzm
 			return VZ_JOB_WAIT;
 		}
 
-		vz::profiler::BeginFrame();
-
+		// remove...
 		vz::renderer::SetToDrawGridHelper(true);
-		renderer->deltaTime = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
-		renderer->PreUpdate(); // current to previous
-		auto range = vz::profiler::BeginRangeCPU("Fixed Update");
-		if (renderer->frameskip)
-		{
-			renderer->deltaTimeAccumulator += renderer->deltaTime;
-			if (renderer->deltaTimeAccumulator > 10)
-			{
-				// application probably lost control, fixed update would take too long
-				renderer->deltaTimeAccumulator = 0;
-			}
 
-			const float targetFrameRateInv = 1.0f / renderer->targetFrameRate;
-			while (renderer->deltaTimeAccumulator >= targetFrameRateInv)
+		vz::profiler::BeginFrame();
+		renderer->deltaTime = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+
+		const float target_deltaTime = 1.0f / renderer->targetFrameRate;
+		if (renderer->framerate_lock && renderer->deltaTime < target_deltaTime)
+		{
+			vz::helper::QuickSleep((target_deltaTime - renderer->deltaTime) * 1000);
+			renderer->deltaTime += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+		}
+		// Wake up the events that need to be executed on the main thread, in thread safe manner:
+		vz::eventhandler::FireEvent(vz::eventhandler::EVENT_THREAD_SAFE_POINT, 0);
+		renderer->fadeManager.Update(renderer->deltaTime);
+		renderer->PreUpdate(); // current to previous
+
+		// Fixed time update:
+		{
+			auto range = vz::profiler::BeginRangeCPU("Fixed Update");
+			if (renderer->frameskip)
+			{
+				renderer->deltaTimeAccumulator += renderer->deltaTime;
+				if (renderer->deltaTimeAccumulator > 10)
+				{
+					// application probably lost control, fixed update would take too long
+					renderer->deltaTimeAccumulator = 0;
+				}
+
+				const float targetFrameRateInv = 1.0f / renderer->targetFrameRate;
+				while (renderer->deltaTimeAccumulator >= targetFrameRateInv)
+				{
+					renderer->FixedUpdate();
+					renderer->deltaTimeAccumulator -= targetFrameRateInv;
+				}
+			}
+			else
 			{
 				renderer->FixedUpdate();
-				renderer->deltaTimeAccumulator -= targetFrameRateInv;
 			}
+			vz::profiler::EndRange(range); // Fixed Update
 		}
-		else
+
 		{
-			renderer->FixedUpdate();
+			auto range = vz::profiler::BeginRangeCPU("Update");
+			vz::backlog::Update(*renderer, renderer->deltaTime);
+			renderer->Update(renderer->deltaTime);
+			renderer->PostUpdate();
+			vz::profiler::EndRange(range); // Update
 		}
-		vz::profiler::EndRange(range); // Fixed Update
-		renderer->Update(renderer->deltaTime);
-		renderer->Render();
+
+		{
+			auto range = vz::profiler::BeginRangeCPU("Render");
+			renderer->Render();
+			vz::profiler::EndRange(range); // Render
+		}
 		renderer->RenderFinalize();
 
 		return VZ_OK;
