@@ -9,6 +9,19 @@ using namespace vz::scene;
 
 namespace vzm
 {
+	void TransformPoint(const float* pos_src, const float* mat, const bool is_rowMajor, float* pos_dst)
+	{
+
+	}
+	void TransformVector(const float* vec_src, const float* mat, const bool is_rowMajor, float* vec_dst)
+	{
+
+	}
+	void ComputeBoxTransformMatrix(const float* cube_scale, const float* pos_center, const float* y_axis, const float* z_axis, const bool is_rowMajor, float* mat_tr, float* inv_mat_tr)
+	{
+
+	}
+
 	using namespace vz;
 
 	class VzmRenderer : public vz::RenderPath3D
@@ -23,6 +36,9 @@ namespace vzm
 
 		float deltaTime = 0;
 		float deltaTimeAccumulator = 0;
+		float targetFrameRate = 60;
+		bool frameskip = true;
+		bool framerate_lock = false;
 		vz::Timer timer;
 		int fps_avg_counter = 0;
 
@@ -437,6 +453,35 @@ namespace vzm
 			vz::profiler::EndFrame(cmd);
 			graphicsDevice->SubmitCommandLists();
 		}
+
+		void WaitRender()
+		{
+			vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
+			if (!graphicsDevice)
+				return;
+
+			vz::graphics::CommandList cmd = graphicsDevice->BeginCommandList();
+			if (swapChain.IsValid())
+			{
+				graphicsDevice->RenderPassBegin(&swapChain, cmd);
+			}
+			else
+			{
+				vz::graphics::RenderPassImage rt[] = { vz::graphics::RenderPassImage::RenderTarget(&renderResult) };
+				graphicsDevice->RenderPassBegin(rt, 1, cmd);
+			}
+
+			vz::graphics::Viewport viewport;
+			viewport.width = (float)width;
+			viewport.height = (float)height;
+			graphicsDevice->BindViewports(1, &viewport, cmd);
+			if (vz::initializer::IsInitializeFinished(vz::initializer::INITIALIZED_SYSTEM_FONT))
+			{
+				vz::backlog::DrawOutputText(*this, cmd);
+			}
+			graphicsDevice->RenderPassEnd(cmd);
+			graphicsDevice->SubmitCommandLists();
+		}
 	};
 
 	static inline constexpr Entity INVALID_SCENE_ENTITY = 0;
@@ -642,22 +687,6 @@ namespace vzm
 	};
 }
 
-namespace vmath 
-{
-	void vmath::TransformPoint(const float* pos_src, const float* mat, const bool is_rowMajor, float* pos_dst)
-	{
-
-	}
-	void vmath::TransformVector(const float* vec_src, const float* mat, const bool is_rowMajor, float* vec_dst)
-	{
-
-	}
-	void vmath::ComputeBoxTransformMatrix(const float* cube_scale, const float* pos_center, const float* y_axis, const float* z_axis, const bool is_rowMajor, float* mat_tr, float* inv_mat_tr)
-	{
-
-	}
-}
-
 namespace vzm
 {
 	SceneManager sceneManager;
@@ -747,14 +776,21 @@ namespace vzm
 		}
 
 		TransformComponent transform;
-		transform.Translate(XMFLOAT3(0, 2.f, -4.5f));
+		transform.Translate(XMFLOAT3(8, 8, 2));
 		transform.UpdateTransform();
 
-		scene->cameras.GetComponent(ett)->TransformCamera(transform);
+		CameraComponent* camComponent = scene->cameras.GetComponent(ett);
+		assert(camComponent);
+		camComponent->TransformCamera(transform);
+
+		카메라 update...
+		camComponent->Eye = XMFLOAT3(8, 8, 2);
+		camComponent->UpdateCamera();
 
 		VzmRenderer* renderer = sceneManager.CreateRenderer(ett);
 		renderer->init(cParams.w, cParams.h);
 		renderer->Start(); // call ResizeBuffers();
+		renderer->Load();
 		MoveToParent(ett, parentId, scene);
 		return ett;
 	}
@@ -788,43 +824,49 @@ namespace vzm
 
 		vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
 
+		renderer->UpdateRenderOutputRes();
+
 		if (!vz::initializer::IsInitializeFinished())
 		{
 			// Until engine is not loaded, present initialization screen...
-			//vz::graphics::CommandList cmd = graphicsDevice->BeginCommandList();
-			//vz::graphics::RenderPassImage rt[] = { vz::graphics::RenderPassImage::RenderTarget(&renderer->rtMain) };
-			//graphicsDevice->RenderPassBegin(rt, 1, cmd);
-			//vz::graphics::Viewport viewport;
-			//viewport.width = (float)renderer->width;
-			//viewport.height = (float)renderer->height;
-			//graphicsDevice->BindViewports(1, &viewport, cmd);
-			//if (vz::initializer::IsInitializeFinished(vz::initializer::INITIALIZED_SYSTEM_FONT))
-			//{
-			//	vz::backlog::DrawOutputText(*renderer, cmd);
-			//}
-			//graphicsDevice->RenderPassEnd(cmd);
-			//graphicsDevice->SubmitCommandLists();
+			renderer->WaitRender();
 			return VZ_JOB_WAIT;
 		}
 
-		//vz::profiler::BeginFrame();
-		//
+		vz::profiler::BeginFrame();
+
 		vz::renderer::SetToDrawGridHelper(true);
 		renderer->deltaTime = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
-
-		renderer->UpdateRenderOutputRes();
 		renderer->PreUpdate(); // current to previous
-		renderer->FixedUpdate();
+		auto range = vz::profiler::BeginRangeCPU("Fixed Update");
+		if (renderer->frameskip)
+		{
+			renderer->deltaTimeAccumulator += renderer->deltaTime;
+			if (renderer->deltaTimeAccumulator > 10)
+			{
+				// application probably lost control, fixed update would take too long
+				renderer->deltaTimeAccumulator = 0;
+			}
+
+			const float targetFrameRateInv = 1.0f / renderer->targetFrameRate;
+			while (renderer->deltaTimeAccumulator >= targetFrameRateInv)
+			{
+				renderer->FixedUpdate();
+				renderer->deltaTimeAccumulator -= targetFrameRateInv;
+			}
+		}
+		else
+		{
+			renderer->FixedUpdate();
+		}
+		vz::profiler::EndRange(range); // Fixed Update
 		renderer->Update(renderer->deltaTime);
-
-		//graphicsDevice->Test((vz::graphics::Texture*)& renderer->GetRenderResult());
-		//graphicsDevice->Test(&renderer->rtMain);
-
 		renderer->Render();
 		renderer->RenderFinalize();
 
 		return VZ_OK;
 	}
+
 	void* TEST()
 	{
 		return vz::graphics::GetDevice();
