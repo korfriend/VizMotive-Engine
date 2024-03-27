@@ -53,6 +53,8 @@ namespace vz
 			desc.format = Format::R8G8B8A8_UNORM;
 			desc.width = GetPhysicalWidth();
 			desc.height = GetPhysicalHeight();
+			// dojo to do: ResourceMiscFlag::SHARED is for outside-device to access the render target
+			//desc.misc_flags = ResourceMiscFlag::SHARED;
 			device->CreateTexture(&desc, nullptr, &rtFinal);
 			device->SetName(&rtFinal, "rtFinal");
 		}

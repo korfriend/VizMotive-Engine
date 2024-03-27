@@ -3578,7 +3578,7 @@ using namespace dx12_internal;
 			{
 				// Dedicated memory
 				allocationDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
-
+				
 				// What about D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER and D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER?
 				allocationDesc.ExtraHeapFlags |= D3D12_HEAP_FLAG_SHARED;
 			}
@@ -4486,32 +4486,33 @@ using namespace dx12_internal;
 			return nullptr;
 		}
 
+
 		UINT handle_increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		auto it = mapDevRT.find(texture);
-		if (it != mapDevRT.end())
-		{
-			auto dev_it = it->second.mapDevSharedTexture.find((void*)device2);
-			if (dev_it != it->second.mapDevSharedTexture.end())
-			{
-				if (dev_it->second.internal_state.get() == it->second.old_internal_state)
-				{
-					Texture* shared_texture = &dev_it->second;
-					int descriptorIndex = GetDescriptorIndex(shared_texture, SubresourceType::SRV);
-
-					D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
-					gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
-
-					return (void*)shared_texture;// gpu_descriptor_handler.ptr;
-				}
-			}
-		}
+		//auto it = mapDevRT.find(texture);
+		//if (it != mapDevRT.end())
+		//{
+		//	auto dev_it = it->second.mapDevSharedTexture.find((void*)device2);
+		//	if (dev_it != it->second.mapDevSharedTexture.end())
+		//	{
+		//		if (dev_it->second.internal_state.get() == it->second.old_internal_state)
+		//		{
+		//			Texture* shared_texture = &dev_it->second;
+		//			int descriptorIndex = GetDescriptorIndex(shared_texture, SubresourceType::SRV);
+		//
+		//			D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
+		//			gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
+		//
+		//			return (void*)gpu_descriptor_handler.ptr;
+		//			//return (void*)shared_texture;// gpu_descriptor_handler.ptr;
+		//		}
+		//	}
+		//}
 
 		Texture shared_texture;
 
 		auto internal_state = std::make_shared<Texture_DX12>();
 		internal_state->allocationhandler = allocationhandler;
-		shared_texture.internal_state = internal_state;
 		shared_texture.type = GPUResource::Type::TEXTURE;
 		shared_texture.mapped_data = nullptr;
 		shared_texture.mapped_size = 0;
@@ -4520,11 +4521,14 @@ using namespace dx12_internal;
 		shared_texture.sparse_properties = nullptr;
 		shared_texture.desc = texture->desc;
 
-		HRESULT hr = ((ID3D12Device*)device2)->OpenSharedHandle(
-			texture->shared_handle,
-			PPV_ARGS(internal_state->resource)
-		);
-
+		HRESULT hr;
+		{
+			hr = ((ID3D12Device*)device2)->OpenSharedHandle(
+				texture->shared_handle,
+				PPV_ARGS(internal_state->resource)
+			);
+			shared_texture.internal_state = internal_state;
+		}
 		if (FAILED(hr)) {
 			internal_state.reset();
 			return nullptr;
@@ -4541,9 +4545,71 @@ using namespace dx12_internal;
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
 		gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
 
-		//return (void*)gpu_descriptor_handler.ptr;
-		return (void*)&mapDevRT[texture].mapDevSharedTexture[(void*)device2];
+		return (void*)gpu_descriptor_handler.ptr;
+		//return (void*)&(mapDevRT[texture].mapDevSharedTexture[(void*)device2]);
 	}
+
+	void GraphicsDevice_DX12::Test(Texture* texture)
+	{
+		ID3D12CommandAllocator* commandAllocator = nullptr;
+		HRESULT hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
+		if (FAILED(hr))
+		{
+			// 에러 처리
+		}
+		{
+			ComPtr<ID3D12GraphicsCommandList> commandList;
+			hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList));
+			if (FAILED(hr))
+			{
+				// 에러 처리
+			}
+
+
+			Texture_DX12* texRes = to_internal(texture);
+			const float clearColor[] = { 1.0f, 0.2f, 0.4f, 1.0f };
+			commandList->ClearRenderTargetView(texRes->rtv.handle, clearColor, 0, nullptr);
+			commandList->Close();
+
+			ID3D12CommandList* ppCommandLists[] = { commandList.Get() };
+
+			ID3D12CommandQueue* commandQueue = nullptr;
+			D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+			queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+			queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT; // 직접 커맨드 리스트를 사용합니다.
+
+			HRESULT hr = device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&commandQueue));
+			if (FAILED(hr))
+			{
+				// 커맨드 큐 생성 실패 처리
+			}
+
+			commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+			// 펜스 생성
+			ID3D12Fence* fence = nullptr;
+			UINT64 fenceValue = 1; // 이 값은 각 제출 후에 증가해야 합니다.
+			device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+
+			// 커맨드 리스트 실행 후
+			commandQueue->Signal(fence, fenceValue); // GPU에 펜스 신호를 보냅니다.
+
+			// CPU에서 GPU 작업 완료를 기다립니다.
+			if (fence->GetCompletedValue() < fenceValue)
+			{
+				HANDLE eventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+				fence->SetEventOnCompletion(fenceValue, eventHandle);
+				WaitForSingleObject(eventHandle, INFINITE);
+				CloseHandle(eventHandle);
+			}
+
+			fence->Release();
+			commandQueue->Release();
+		}
+
+		commandAllocator->Release();
+	}
+
 
 	int GraphicsDevice_DX12::CreateSubresource(Texture* texture, SubresourceType type, uint32_t firstSlice, uint32_t sliceCount, uint32_t firstMip, uint32_t mipCount, const Format* format_change, const ImageAspect* aspect, const Swizzle* swizzle) const
 	{
@@ -5898,10 +5964,10 @@ using namespace dx12_internal;
 				RTV.cpuDescriptor = descriptor.handle;
 				RTV.BeginningAccess.Type = beginning_access_type;
 				RTV.EndingAccess.Type = ending_access_type;
-				clear_value.Color[0] = 1;// desc.clear.color[0];
-				clear_value.Color[1] = 1;// desc.clear.color[1];
-				clear_value.Color[2] = 1;// desc.clear.color[2];
-				clear_value.Color[3] = 1;// desc.clear.color[3];
+				clear_value.Color[0] = desc.clear.color[0];
+				clear_value.Color[1] = desc.clear.color[1];
+				clear_value.Color[2] = desc.clear.color[2];
+				clear_value.Color[3] = desc.clear.color[3];
 				RTV.BeginningAccess.Clear.ClearValue = clear_value;
 				resolve_src_info.resource = internal_state->resource.Get();
 				resolve_src_info.preserve = ending_access_type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;

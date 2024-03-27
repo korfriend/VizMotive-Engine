@@ -150,7 +150,7 @@ void Example_ImGui::Initialize()
 	infoDisplay.heap_allocation_counter = true;
 
 	renderer.init(canvas);
-	renderer.Load();
+	//renderer.Load();
 
 	ActivatePath(&renderer);
 }

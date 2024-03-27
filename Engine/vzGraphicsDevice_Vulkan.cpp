@@ -6746,6 +6746,11 @@ using namespace vulkan_internal;
 		return nullptr;
 	}
 
+	void GraphicsDevice_Vulkan::Test(Texture* texture)
+	{
+
+	}
+
 	int GraphicsDevice_Vulkan::GetDescriptorIndex(const GPUResource* resource, SubresourceType type, int subresource) const
 	{
 		if (resource == nullptr || !resource->IsValid())
