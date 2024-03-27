@@ -25,6 +25,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utility\pugixml.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)VizComponentAPIs.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)VizEngineAPIs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)vzArcBall.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzBVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzConfig.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)vzLocalization.h" />
