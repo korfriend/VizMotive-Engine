@@ -94,6 +94,7 @@ namespace vz::graphics
 		virtual int CreateSubresource(GPUBuffer* buffer, SubresourceType type, uint64_t offset, uint64_t size = ~0, const Format* format_change = nullptr, const uint32_t* structuredbuffer_stride_change = nullptr) const = 0;
 
 		virtual void* OpenSharedResource(const void* device2, Texture* texture) = 0;
+		virtual void Test(Texture* texture) = 0;
 
 		virtual int GetDescriptorIndex(const GPUResource* resource, SubresourceType type, int subresource = -1) const = 0;
 		virtual int GetDescriptorIndex(const Sampler* sampler) const = 0;

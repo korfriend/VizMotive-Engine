@@ -8,6 +8,9 @@
 
 #include "VizEngineAPIs.h"
 
+#include "wrl/client.h"
+using namespace Microsoft::WRL;
+
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
@@ -157,7 +160,7 @@ int main(int, char**)
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-
+		
 		{
 			static VID sid = 0, cid = 0;
 			if (sid == 0)
@@ -183,9 +186,10 @@ int main(int, char**)
 			ImGui::Begin("DirectX12 Texture Test");
 			ImGui::Text("size = %d x %d", w, h);
 			// Note that we pass the GPU SRV handle here, *not* the CPU handle. We're passing the internal pointer value, cast to an ImTextureID
-			ImGui::ImageButton(texId, ImVec2((float)w, (float)h));
+			ImGui::Image(texId, ImVec2((float)w, (float)h));
 			ImGui::End();
 		}
+		/**/
 
 		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
 		{

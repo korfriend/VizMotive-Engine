@@ -528,6 +528,7 @@ namespace vzm
 	// Get a graphics render target view 
 	//  - Must belong to the internal scene
 	__dojostatic void* GetGraphicsSharedRenderTarget(const int camId, const void* graphicsDev2, uint32_t* w = NULL, uint32_t* h = NULL);
+	__dojostatic void* TEST();
 
 	__dojostatic VZRESULT DeinitEngineLib();
 }
