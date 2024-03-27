@@ -325,6 +325,7 @@
       <Filter>ENGINE\Audio</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)VizEngineAPIs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)VizComponentAPIs.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzVersion.cpp">
