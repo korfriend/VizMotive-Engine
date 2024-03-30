@@ -126,7 +126,7 @@ int main(int, char**)
 			if (sid == 0)
 			{
 				sid = vzm::NewScene("my scene");
-				vzm::CameraParameter cp;
+				vzm::CameraParams cp;
 				cid = vzm::NewCamera(sid, "my camera", cp);
 			}
 			vzm::Render(cid);

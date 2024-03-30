@@ -1,9 +1,11 @@
 #pragma once
 
+#include <iostream>
 #include <vzMath.h>
 
 namespace arcball
 {
+	// following row major convention
 	struct CameraState
 	{
 		XMFLOAT3 posCamera;
@@ -20,48 +22,47 @@ namespace arcball
 	class ArcBall
 	{
 	private:
-		XMFLOAT3 __posArcballCenter;   // Rotation Center
+		XMVECTOR __posArcballCenter;   // Rotation Center
 		float __radius;   // Arcball Radius
 		float __activatedRadius;  // Min(m_dRadius, Center2EyeLength - );
 
-		XMFLOAT3 __posOnSurfaceStart;
+		XMVECTOR __posOnSurfaceStart;
 
 		// Statics 
 		XMMATRIX __matSS2WS;
-		XMFLOAT3 __vecView;
-		XMFLOAT3 __posCam;
+		XMVECTOR __vecView;
+		XMVECTOR __posCam;
 
 		CameraState __camStateSetInStart;
 
 		bool __isPerspective = false;
-		float __np = 0.1;
+		float __np = 0.1f;
 
 		bool __isTrackBall = true; // Otherwise, Plane Coordinate
 		bool __isStateSet = false;
 		bool __isStartArcball = false;
 		bool __isFixRotationAxis = false;
-		XMFLOAT3 __rotAxis;
+		XMVECTOR __rotAxis;
 
 		float __trackballSensitive = 10;
 
-		XMFLOAT3 ComputeTargetPoint(const float dPointX, const float dPointY)
+		XMVECTOR ComputeTargetPoint(const float dPointX, const float dPointY)
 		{
-			XMFLOAT3 posOnSurface = XMFLOAT3();
+			XMVECTOR posOnSurface;
 
 			// ==> Make Function
 			// Get Near Plane's Position
-			XMFLOAT3 posPointSS = XMFLOAT3(dPointX, dPointY, 0);
-			XMFLOAT4 posPointWS_h = __matSS2WS * XMFLOAT4(posPointSS, 1.f);
-			XMFLOAT3 posPointWS = posPointWS_h / posPointWS_h.w;
+			XMVECTOR posPointSS = XMVectorSet(dPointX, dPointY, 0, 1);
+			XMVECTOR posPointWS = XMVector3TransformCoord(posPointSS, __matSS2WS);
 
-			XMFLOAT3 vecRayDir = __vecView;
+			XMVECTOR vecRayDir = __vecView;
 
 			if (__isTrackBall)
 			{
 				// Use Planar Coordinate
 				if (!__isPerspective && __np < 0.1f/*float.Epsilon*/)
 				{
-					posPointWS = posPointWS + vecRayDir * 0.1f;   // <== Think
+					posPointWS = posPointWS + XMVectorScale(vecRayDir, 0.1f);   // <== Think
 				}
 
 				posOnSurface = posPointWS;
@@ -79,13 +80,13 @@ namespace arcball
 				// A = d3PosPointWS, v = v3VecRayDir
 
 				// 1st compute A - B = (a`, b`, c`)
-				XMFLOAT3 v3BA = posPointWS - __posArcballCenter;
+				XMVECTOR v3BA = posPointWS - __posArcballCenter;
 				// 2nd compute v*v = a^2 + b^2 + c^2
-				float dDotVV = glm::dot(vecRayDir, vecRayDir);
+				float dDotVV = XMVectorGetX(XMVector3Dot(vecRayDir, vecRayDir));
 				// 3rd compute (A - B)*v = a`a + b`b + c`c
-				float dDotBAV = glm::dot(v3BA, vecRayDir);
+				float dDotBAV = XMVectorGetX(XMVector3Dot(v3BA, vecRayDir));
 				// if there's cross then, 4th compute sqrt for min t
-				float dDet = dDotBAV * dDotBAV - dDotVV * (glm::dot(v3BA, v3BA) - __activatedRadius * __activatedRadius);
+				float dDet = dDotBAV * dDotBAV - dDotVV * (XMVectorGetX(XMVector3Dot(v3BA, v3BA)) - __activatedRadius * __activatedRadius);
 				float dT;
 
 				if (dDet >= 0)
@@ -107,16 +108,16 @@ namespace arcball
 		float __start_x, __start_y;
 
 		ArcBall() { __is_set_stage = false; };
-		~ArcBall() {};
+		~ArcBall() = default;
 
 		void SetArcBallMovingStyle(const bool bIsTrackBall)
 		{
 			__isTrackBall = bIsTrackBall;
 		}
 
-		XMFLOAT3 GetCenterStage() { return __posArcballCenter; };
+		XMVECTOR GetCenterStage() { return __posArcballCenter; };
 
-		void FitArcballToSphere(const XMFLOAT3& posArcballCenter, const float radius)
+		void FitArcballToSphere(const XMVECTOR& posArcballCenter, const float radius)
 		{
 			__posArcballCenter = posArcballCenter;
 			__radius = radius;
@@ -140,15 +141,15 @@ namespace arcball
 			__camStateSetInStart = arcballCamState;
 			__isPerspective = arcballCamState.isPerspective;
 			__np = arcballCamState.np;
-			__posCam = arcballCamState.posCamera;
-			__vecView = arcballCamState.vecView;
-
-			XMFLOAT3 vecCam2Center = __posArcballCenter - __posCam;
-			__activatedRadius = min(__radius, (float)glm::length(vecCam2Center) * 0.8);
+			__posCam = XMLoadFloat3(&arcballCamState.posCamera);
+			__vecView = XMLoadFloat3(&arcballCamState.vecView);
+			
+			XMVECTOR vecCam2Center = __posArcballCenter - __posCam;
+			__activatedRadius = std::min(__radius, XMVectorGetX(XMVector3Length(vecCam2Center)) * 0.8f);
 
 			if (arcballCamState.isPerspective)
 			{
-				if (glm::length(vecCam2Center) < arcballCamState.np)
+				if (XMVectorGetX(XMVector3Length(vecCam2Center)) < arcballCamState.np)
 				{
 					std::cout << "Arcball Sphere Center is too near to control the arcball - Error!" << std::endl;
 					return;
@@ -158,7 +159,7 @@ namespace arcball
 			__posOnSurfaceStart = ComputeTargetPoint(pointX, pointY);
 		}
 
-		void FixRotationAxis(const XMFLOAT3& rotationAxis)
+		void FixRotationAxis(const XMVECTOR& rotationAxis)
 		{
 			__isFixRotationAxis = true;
 			__rotAxis = rotationAxis;
@@ -176,24 +177,24 @@ namespace arcball
 
 		float MoveArcball(XMMATRIX& matRotatedWS, const float pointX, const float pointY, const bool isReverseDir)
 		{
-			matRotatedWS = XMMATRIX(1); // identity
+			matRotatedWS = XMMatrixIdentity(); // identity
 
 			if (!__isStartArcball)
 				return 0;
 
-			XMFLOAT3 posOnSurfaceEnd = ComputeTargetPoint(pointX, pointY);
+			XMVECTOR posOnSurfaceEnd = ComputeTargetPoint(pointX, pointY);
 
-			XMFLOAT3 vecCenter3SurfStart = __posOnSurfaceStart - __posArcballCenter;
-			XMFLOAT3 vecCenter3SurfEnd = posOnSurfaceEnd - __posArcballCenter;
+			XMVECTOR vecCenter3SurfStart = __posOnSurfaceStart - __posArcballCenter;
+			XMVECTOR vecCenter3SurfEnd = posOnSurfaceEnd - __posArcballCenter;
+			
+			vecCenter3SurfStart = XMVector3Normalize(vecCenter3SurfStart);
+			vecCenter3SurfEnd = XMVector3Normalize(vecCenter3SurfEnd);
 
-			vecCenter3SurfStart = glm::normalize(vecCenter3SurfStart);
-			vecCenter3SurfEnd = glm::normalize(vecCenter3SurfEnd);
-
-			XMFLOAT3 rotDir = glm::cross(vecCenter3SurfStart, vecCenter3SurfEnd);
+			XMVECTOR rotDir = XMVector3Cross(vecCenter3SurfStart, vecCenter3SurfEnd);
 			bool isInvert = false;
 			if (__isFixRotationAxis)
 			{
-				if (glm::dot(rotDir, __rotAxis) >= 0)
+				if (XMVectorGetX(XMVector3Dot(rotDir, __rotAxis)) >= 0)
 					rotDir = __rotAxis;
 				else
 				{
@@ -204,38 +205,39 @@ namespace arcball
 
 			if (isReverseDir)
 				rotDir *= -1;
-			if (glm::dot(rotDir, rotDir) < DBL_EPSILON)
+			if (XMVectorGetX(XMVector3Dot(rotDir, rotDir)) < DBL_EPSILON)
 				return 0;
 
 			float angle = 0;
 			if (__isTrackBall)
 			{
-				rotDir = glm::normalize(rotDir);
-				float circumference = glm::pi<float>() * 2.0 * __radius;
+				rotDir = XMVector3Normalize(rotDir);
+				float circumference = XM_PI * 2.0f * __radius;
 
-				XMFLOAT3 vecStart2End = posOnSurfaceEnd - __posOnSurfaceStart;
+				XMVECTOR vecStart2End = posOnSurfaceEnd - __posOnSurfaceStart;
 
 				if (__isFixRotationAxis)
 				{
-					vecStart2End = vecStart2End - glm::dot(vecStart2End, rotDir) * rotDir;
+					vecStart2End = 
+						vecStart2End - XMVectorGetX(XMVector3Dot(vecStart2End, rotDir)) * rotDir;
 				}
 
-				angle = glm::length(vecStart2End) / circumference * __trackballSensitive;
+				angle = XMVectorGetX(XMVector3Length(vecStart2End)) / circumference * __trackballSensitive;
 				if (__isPerspective)
 				{
-					angle *= glm::length(__posCam - __posArcballCenter) / __np; //500
+					angle *= XMVectorGetX(XMVector3Length(__posCam - __posArcballCenter)) / __np; //500
 				}
 			}
 			else
 			{
 				//dAngleDeg = Vector3D.AngleBetween(v3VecCenter3SurfStart, v3VecCenter3SurfEnd);
-				angle = acos(max(min(glm::dot(vecCenter3SurfStart, vecCenter3SurfEnd), 1.0), -1.0)); // 0 to PI
+				angle = acos(std::max(std::min(XMVectorGetX(XMVector3Dot(vecCenter3SurfStart, vecCenter3SurfEnd)), 1.0f), -1.0f)); // 0 to PI
 			}
 			if (angle == 0) return 0;
 
-			XMMATRIX mat_rot = glm::rotate(angle, rotDir);
-			XMMATRIX mat_trs_1 = glm::translate(__posArcballCenter);
-			XMMATRIX mat_trs_0 = glm::translate(-__posArcballCenter);
+			XMMATRIX mat_rot = XMMatrixRotationAxis(rotDir, angle);
+			XMMATRIX mat_trs_1 = XMMatrixTranslationFromVector(__posArcballCenter);
+			XMMATRIX mat_trs_0 = XMMatrixTranslationFromVector(-__posArcballCenter);
 
 			matRotatedWS = mat_trs_1 * mat_rot * mat_trs_0;
 

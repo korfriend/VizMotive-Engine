@@ -1,6 +1,6 @@
 #pragma once
 #define __dojostatic extern "C" __declspec(dllexport)
-#define __dojoclass class __declspec(dllexport)
+#define __dojoclass class //__declspec(dllexport)
 #define __dojostruct struct __declspec(dllexport)
 
 #define __FP (float*)&
@@ -22,8 +22,10 @@
 #include <list>
 #include <memory>
 #include <algorithm>
+#include <chrono>
 
 using VID = uint32_t;
+using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 constexpr float VZ_PI = 3.141592654f;
 constexpr float VZ_2PI = 6.283185307f;
@@ -34,9 +36,10 @@ constexpr float VZ_PIDIV4 = 0.785398163f;
 
 namespace vzm
 {
-	__dojostatic inline void TransformPoint(const float* pos_src, const float* mat, const bool is_rowMajor, float* pos_dst);
-	__dojostatic inline void TransformVector(const float* vec_src, const float* mat, const bool is_rowMajor, float* vec_dst);
-	__dojostatic inline void ComputeBoxTransformMatrix(const float* cube_scale, const float* pos_center, const float* y_axis, const float* z_axis, const bool is_rowMajor, float* mat_tr, float* inv_mat_tr);
+	__dojostatic inline void TransformPoint(const float posSrc[3], const float mat[16], const bool rowMajor, float posDst[3]);
+	__dojostatic inline void TransformVector(const float vecSrc[3], const float mat[16], const bool rowMajor, float vecDst[3]);
+	__dojostatic inline void ComputeBoxTransformMatrix(const float cubeScale[3], const float posCenter[3],
+		const float yAxis[3], const float zAxis[3], const bool rowMajor, float mat[16], float matInv[16]);
 
 	template <typename ID> struct ParamMap {
 	private:
@@ -115,24 +118,24 @@ namespace vzm
 		float __inv_mat_tr[16] = { 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f }; // inverse
 		bool __is_rowMajor = false;
 	public:
-		void SetBoxTr(const float* cube_size, const float* pos_center, const float* y_axis, const float* z_axis, const bool is_rowMajor = false) {
-			SAFE_GET_COPY(__cube_size, cube_size, float, 3);
-			SAFE_GET_COPY(__pos_center, pos_center, float, 3);
-			SAFE_GET_COPY(__y_axis, y_axis, float, 3);
-			SAFE_GET_COPY(__z_axis, z_axis, float, 3);
-			ComputeBoxTransformMatrix(cube_size, pos_center, y_axis, z_axis, is_rowMajor, __mat_tr, __inv_mat_tr);
+		void SetBoxTr(const float cubeSize[3], const float posCenter[3], const float yAxis[3], const float zAxis[3], const bool rowMajor = false) {
+			SAFE_GET_COPY(__cube_size, cubeSize, float, 3);
+			SAFE_GET_COPY(__pos_center, posCenter, float, 3);
+			SAFE_GET_COPY(__y_axis, yAxis, float, 3);
+			SAFE_GET_COPY(__z_axis, zAxis, float, 3);
+			ComputeBoxTransformMatrix(cubeSize, posCenter, yAxis, zAxis, rowMajor, __mat_tr, __inv_mat_tr);
 		}
 		// mat_tr : to aligned unit-cube
 		// inv_mat_tr : to oblique cube
-		void GetMatrix(float* mat_tr, float* inv_mat_tr) const {
-			SAFE_GET_COPY(mat_tr, __mat_tr, float, 16);
-			SAFE_GET_COPY(inv_mat_tr, __inv_mat_tr, float, 16);
+		void GetMatrix(float mat[16], float matnv[16]) const {
+			SAFE_GET_COPY(mat, __mat_tr, float, 16);
+			SAFE_GET_COPY(matnv, __inv_mat_tr, float, 16);
 		}
-		void GetCubeInfo(float* cube_size, float* pos_center, float* y_axis, float* z_axis) const {
-			SAFE_GET_COPY(cube_size, __cube_size, float, 3);
-			SAFE_GET_COPY(pos_center, __pos_center, float, 3);
-			SAFE_GET_COPY(y_axis, __y_axis, float, 3);
-			SAFE_GET_COPY(z_axis, __z_axis, float, 3);
+		void GetCubeInfo(float cubeSize[3], float posCenter[3], float yAxis[3], float zAxis[3]) const {
+			SAFE_GET_COPY(cubeSize, __cube_size, float, 3);
+			SAFE_GET_COPY(posCenter, __pos_center, float, 3);
+			SAFE_GET_COPY(yAxis, __y_axis, float, 3);
+			SAFE_GET_COPY(zAxis, __z_axis, float, 3);
 		}
 	};
 	struct TextItem
@@ -150,17 +153,16 @@ namespace vzm
 		int fontWeight = 4; // 1 : thinest, 4 : regular, 7 : bold, 9 : maximum heavy
 		int posScreenX = 0, posScreenY = 0; // 
 	};
-	struct TransformParameter
+	struct TransformParams
 	{
 	private:
 		float position[3] = { 0, 0, 0 };
 		float direction[3] = { 0, 1, 0 };
-		float rotation[4] = { 0, 0, 0, 1 };
+		float rotation[4] = { 0, 0, 0, 1 };	// quaternion
 		float scale[3] = { 1, 1, 1 };
 
-
-		bool is_rowMajor = false;
-		bool use_localTrans = true;
+		bool rowMajor = false; // true : column major
+		bool localTransform = true; // false : worldTransform
 		float __pivot2os[16] = { 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f }; // original object space to pivot object space 
 		float __os2ls[16] = { 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f }; // object space to local space (used in hierarchical tree structure)
 		float __os2ws[16] = { 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f }; // 4x4 matrix col-major (same as in glm::fmat4x4)
@@ -171,33 +173,40 @@ namespace vzm
 		float view[3] = { 0, 0, -1.f };
 		float up[3] = { 0, 1.f, 0 }; // default..
 
-		void SetLookAt(const float* look_at) { // note that pos must be set before calling this
-			view[0] = look_at[0] - pos[0]; view[1] = look_at[1] - pos[1]; view[2] = look_at[2] - pos[2];
+		// type T must have 3 float-type parameters 
+		template<typename T> void SetPos(const T& p) {
+			memcpy(pos, p, sizeof(float) * 3);
+		}
+		template<typename T> void SetView(const T& v) {
+			memcpy(view, v, sizeof(float) * 3);
+		}
+		template<typename T> void SetUp(const T& u) {
+			memcpy(up, u, sizeof(float) * 3);
+		}
+
+		void SetLookAt(const float lookAt[3]) { // note that pos must be set before calling this
+			view[0] = lookAt[0] - pos[0]; view[1] = lookAt[1] - pos[1]; view[2] = lookAt[2] - pos[2];
 			float length = sqrt(view[0] * view[0] + view[1] * view[1] + view[2] * view[2]);
 			if (length > 0) { view[0] /= length; view[1] /= length; view[2] /= length; }
 		}
-		bool IsLocalTransform() { return use_localTrans; }
-		void SetWorldTransform(const float* os2ws) {
-			memcpy(__os2ws, os2ws, sizeof(float) * 16); use_localTrans = false;
+		bool IsLocalTransform() { return localTransform; }
+		void SetWorldTransform(const float os2ws[16]) {
+			memcpy(__os2ws, os2ws, sizeof(float) * 16); localTransform = false;
 		};
-		void UpdateWorldTransform(const float* os2ws) {
+		void UpdateWorldTransform(const float os2ws[16]) {
 			memcpy(__os2ws, os2ws, sizeof(float) * 16);
 		}
 		const float* GetWorldTransform() const { return __os2ws; };
-
-		// those local interfaces will be implemented when supporting group interfaces! //
-		void SetLocalTransform(const float* os2ls) {
-			memcpy(__os2ls, os2ls, sizeof(float) * 16); use_localTrans = true;
+		void SetLocalTransform(const float os2ls[16]) {
+			memcpy(__os2ls, os2ls, sizeof(float) * 16); localTransform = true;
 		};
 		const float* GetLocalTransform() const { return __os2ls; };
-
-		void SetObjectPivot(const float* pivot2os) {
+		void SetObjectPivot(const float pivot2os[16]) {
 			memcpy(__pivot2os, pivot2os, sizeof(float) * 16);
 		}
-
 		const float* GetPivotTransform() const { return __pivot2os; };
 	};
-	struct CameraParameter : TransformParameter
+	struct CameraParams : TransformParams
 	{
 		enum ProjectionMode {
 			UNDEFINED = 0,
@@ -229,102 +238,18 @@ namespace vzm
 		};
 		float np = 0.01f;
 		float fp = 1000.f; // the scale difference is recommended : ~100000 (in a single precision (float))
-		int w = 0;
-		int h = 0; // resolution. note that the aspect ratio is recomputed w.r.t. w and h during the camera setting.
-		bool gridHelper = false;
-
-
-		// NOT APPLIED YET... DOJO TO DO...
-		enum VolumeRayCastMode {
-			OPTICAL_INTEGRATION = 0,
-			OPTICAL_INTEGRATION_MULTI_OTF = 23,
-			OPTICAL_INTEGRATION_TRANSPARENCY = 1,
-			OPTICAL_INTEGRATION_MULTI_OTF_TRANSPARENCY = 2,
-			OPTICAL_INTEGRATION_SCULPT_MASK = 22,
-			OPTICAL_INTEGRATION_SCULPT_MASK_TRANSPARENCY = 25,
-			ISO_SURFACE = 21,
-			ISO_SURFACE_MULTI_OTF = 26,
-			VOLMASK_VISUALIZATION = 24,
-			MAXIMUM_INTENSITY = 10,
-			MINIMUM_INTENSITY = 11,
-			AVERAGE_INTENSITY = 12
-		};
-		VolumeRayCastMode volraycastMode = VolumeRayCastMode::OPTICAL_INTEGRATION;
-
-		ParamMap<std::string> scriptParams;
-		ParamMap<std::string> testParams;
-		ParamMap<std::string> textItems; // value must be TextItem
+		float w = 0;
+		float h = 0; // resolution. note that the aspect ratio is recomputed w.r.t. w and h during the camera setting.
+		float dpi = 96.f;
 		bool displayCamTextItem = false;
 		bool displayActorLabel = false;
-		unsigned long long timeStamp = 0ull; // will be automatically set 
 
-		std::set<int> hidden_actors;
-		void SetCurvedSlicer(const float curved_plane_w, const float curved_plane_h, const float* curve_pos_pts, const float* curve_up_pts, const float* curve_tan_pts, const int num_curve_pts) {
-			scriptParams.SetParam("CURVED_PLANE_WIDTH", curved_plane_w);
-			scriptParams.SetParam("CURVED_PLANE_HEIGHT", curved_plane_h);
-			std::vector<float> vf_curve_pos_pts(num_curve_pts * 3), vf_curve_up_pts(num_curve_pts * 3), vf_curve_tan_pts(num_curve_pts * 3);
-			memcpy(&vf_curve_pos_pts[0], curve_pos_pts, sizeof(float) * 3 * num_curve_pts);
-			memcpy(&vf_curve_up_pts[0], curve_up_pts, sizeof(float) * 3 * num_curve_pts);
-			memcpy(&vf_curve_tan_pts[0], curve_tan_pts, sizeof(float) * 3 * num_curve_pts);
-			scriptParams.SetParam("COUNT_INTERPOLATION_POINTS", num_curve_pts);
-			scriptParams.SetParam("ARRAY_CURVE_INTERPOLATION_POS", vf_curve_pos_pts);
-			scriptParams.SetParam("ARRAY_CURVE_INTERPOLATION_UP", vf_curve_up_pts);
-			scriptParams.SetParam("ARRAY_CURVE_INTERPOLATION_TANGENT", vf_curve_tan_pts);
-		}
-		void SetOrthogonalProjection(const bool orthoproj_mode) {
-			// only available when projection_mode == IMAGEPLANE_SIZE
-			scriptParams.SetParam("ORTHOGONAL_PROJECTION", orthoproj_mode);
-		}
-		void SetSlicerThickness(const float thickness) {
-			// only available when projection_mode == SLICER_PLANE or SLICER_CURVED
-			scriptParams.SetParam("SLICER_THICKNESS", thickness);
-		}
-		void StoreSlicerCutLines(const bool is_store) {
-			// only available when projection_mode == SLICER_PLANE or SLICER_CURVED
-			scriptParams.SetParam("STORE_SLICERCUTLINES", is_store);
-		}
-		void Set2xVolumeRayCaster(const bool enable) {
-			// only available when projection_mode == SLICER_PLANE or SLICER_CURVED
-			scriptParams.SetParam("FAST_VOLRAYCASTER2X", enable);
-		}
-		void SetOutlineEffect(const int thick_pixs, const float depth_thres, const float* outline_color_rgb, const bool fadeEffect) {
-			// if thick_pixs == 0, no outline
-			scriptParams.SetParam("SILHOUETTE_THICKNESS", thick_pixs);
-			scriptParams.SetParam("SILHOUETTE_DEPTH_THRES", depth_thres);
-			if (outline_color_rgb != NULL) {
-				std::vector<float> color = { outline_color_rgb[0], outline_color_rgb[1], outline_color_rgb[2] };
-				scriptParams.SetParam("SILHOUETTE_COLOR_RGB", color);
-			}
-			scriptParams.SetParam("SILHOUETTE_FADEEFFECT", fadeEffect);
-		}
-		void HideActor(const int actor_id) {
-			hidden_actors.insert(actor_id);
-		}
-		void DeactiveHiddenActor(const int actor_id) {
-			auto it = hidden_actors.find(actor_id);
-			if (it != hidden_actors.end())
-				hidden_actors.erase(it);
-		}
-		// this clipper is prior to the actor's clipper
-		void SetClipper(const BoxTr* clipBox = NULL, const float* plane = NULL) {
-			if (clipBox != NULL) scriptParams.SetParam("BOX_CLIPPER", *clipBox);
-			else scriptParams.RemoveParam("BOX_CLIPPER");
-			if (plane != NULL) {
-				std::vector<float> _plane(6);
-				scriptParams.SetParam("PLANE_CLIPPER", std::vector<float>(plane, plane + 6));
-			}
-			else scriptParams.RemoveParam("PLANE_CLIPPER");
-		}
-		void Set2ndLayerDisplayOptions(const int patternInterval = 3, const float blendingW = 0.2f) {
-			scriptParams.SetParam("SECOND_LAYER_PATTERN_INTERVAL", patternInterval);
-			scriptParams.SetParam("SECOND_LAYER_BLENDING_WEIGHT", blendingW);
-		}
-		// when using negative value, the outline will use the actor's parameter
-		void SetSlicerOutlinePixels(const float lineThicknessPix = -1.f) {
-			scriptParams.SetParam("OUTLINE_THICKNESS_PIX", lineThicknessPix);
-		}
+		TimeStamp timeStamp = std::chrono::high_resolution_clock::now(); // will be automatically set 
+
+		ParamMap<std::string> attributes;
+		ParamMap<std::string> textItems; // value must be TextItem
 	};
-	struct ActorParameter : TransformParameter
+	struct ActorParams : TransformParams
 	{
 	public:
 		enum RES_USAGE
@@ -351,68 +276,12 @@ namespace vzm
 			associatedObjIds.SetParam(resUsage, resId);
 		}
 
-		TextItem label;
-		ParamMap<std::string> scriptParams;
-		ParamMap<std::string> testParams; // direct mapping to VmActor
+		TimeStamp timeStamp = std::chrono::high_resolution_clock::now(); // will be automatically set 
 
-		void ShowOutline(const bool showOutline, const float* colorRGB = NULL, const int thick_pixs = 3, const bool fadeEffect = true) {
-			scriptParams.SetParam("SHOW_OUTLINE", showOutline);
-			scriptParams.SetParam("SILHOUETTE_THICKNESS", thick_pixs);
-			if (colorRGB != NULL) {
-				std::vector<float> color = { colorRGB[0], colorRGB[1], colorRGB[2] };
-				scriptParams.SetParam("SILHOUETTE_COLOR_RGB", color);
-			}
-			scriptParams.SetParam("SILHOUETTE_FADEEFFECT", fadeEffect);
-		}
-		void ShowGroupOutline(const bool showOutline) {
-			scriptParams.SetParam("SHOW_GROUPOUTLINE", showOutline);
-		}
-		void SetClipBox(const vzm::BoxTr* clipBox) {
-			if (clipBox) scriptParams.SetParam("CLIPSETTING_BOX", *clipBox);
-			else scriptParams.RemoveParam("CLIPSETTING_BOX");
-		}
-		void SetClipPlane(const float* pos_vec_plane) {
-			if (pos_vec_plane) {
-				std::vector<float> _pos_vec_plane = { pos_vec_plane[0], pos_vec_plane[1], pos_vec_plane[2], pos_vec_plane[3], pos_vec_plane[4], pos_vec_plane[5] };
-				scriptParams.SetParam("CLIPSETTING_PLANE", _pos_vec_plane);
-			}
-			else scriptParams.RemoveParam("CLIPSETTING_PLANE");
-		}
-		void SetGeoOS2VolOS(const float* mat) {
-			std::vector<float> matValues(16);
-			memcpy(&matValues[0], mat, sizeof(float) * 16);
-			scriptParams.SetParam("MATRIX_GeoOS2VolOS", matValues);
-		}
-		void SetSculptIndex(const int sculptIndex) {
-			scriptParams.SetParam("SCULPT_INDEX", sculptIndex);
-		}
-		void DisableSolidFillingOnSlicer(const bool disableSolidFill) {
-			scriptParams.SetParam("SLICER_NO_SOLID_FILL", disableSolidFill);
-		}
-		void SetDistanceMapper(const float vMin, const float vMax, const bool colorClip, const int aidDistTo) {
-			scriptParams.SetParam("COLORMAP_VMIN", vMin);
-			scriptParams.SetParam("COLORMAP_VMAX", vMax);
-			scriptParams.SetParam("COLORMAP_CLIP", colorClip);
-			scriptParams.SetParam("COLORMAP_DST_ACTOR", aidDistTo);
-			//script_params.SetParam("VOLUMEACTOR_ISOVALUE", isoValue);
-		}
-		bool GetClipBox(vzm::BoxTr& clipBox) {
-			return scriptParams.GetParamCheck("CLIPSETTING_BOX", clipBox);
-		}
-		bool GetClipPlane(std::vector<float>& pos_vec_plane) {
-			return scriptParams.GetParamCheck("CLIPSETTING_PLANE", pos_vec_plane);
-		}
-		void SetClipFree(const bool clipFree) {
-			scriptParams.SetParam("CLIP_FREE", clipFree);
-		}
-		void SetUndercut(const bool applyUndercut, const float* undercutDir, const float* undercutColorRGB, const bool useUndercutMap = true) {
-			scriptParams.SetParam("APPLY_UNDERCUT", applyUndercut);
-			scriptParams.SetParam("USE_UNDERCUTMAP", useUndercutMap);
-			scriptParams.SetParam("UNDERCUT_DIR", std::vector<float> {undercutDir[0], undercutDir[1], undercutDir[2]});
-			scriptParams.SetParam("UNDERCUT_COLOR", std::vector<float> {undercutColorRGB[0], undercutColorRGB[1], undercutColorRGB[2]});
-		}
+		TextItem label;
+		ParamMap<std::string> attributes;
 	};
-	struct LightParameter : TransformParameter
+	struct LightParams : TransformParams
 	{
 		enum FLAGS
 		{
