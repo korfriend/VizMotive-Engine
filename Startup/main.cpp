@@ -166,15 +166,15 @@ int main(int, char**)
 			if (sid == 0)
 			{
 				sid = vzm::NewScene("my scene");
-				vzm::CameraParameter cp;
+				vzm::CameraParams cp;
 
-				cp.projectionMode = vzm::CameraParameter::ProjectionMode::CAMERA_FOV;
+				cp.projectionMode = vzm::CameraParams::ProjectionMode::CAMERA_FOV;
 				cp.w = ImGui::GetWindowWidth();
 				cp.h = ImGui::GetWindowHeight();
 				cp.fov_y = glm::pi<float>() * 0.5f;
-				GLM_F3 cp.pos = glm::fvec3(2, 2, 2);
+				GLM_F3 cp.pos = glm::fvec3(0, 5, 10);
 				GLM_F3 cp.up = glm::fvec3(0, 1, 0);
-				GLM_F3 cp.view = glm::fvec3(0, -1, 0);
+				GLM_F3 cp.view = glm::fvec3(0, 0, -1);
 				cid = vzm::NewCamera(sid, "my camera", cp);
 			}
 			vzm::Render(cid);

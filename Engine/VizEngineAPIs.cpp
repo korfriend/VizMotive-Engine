@@ -7,19 +7,53 @@
 using namespace vz::ecs;
 using namespace vz::scene;
 
+static bool g_is_display = true;
+auto fail_ret = [](const std::string& err_str, const bool _warn = false)
+	{
+		if (g_is_display) 
+		{
+			vz::backlog::post(err_str, _warn ? vz::backlog::LogLevel::Warning : vz::backlog::LogLevel::Error);
+		}
+		return false;
+	};
+
 namespace vzm
 {
-	void TransformPoint(const float* pos_src, const float* mat, const bool is_rowMajor, float* pos_dst)
+	void TransformPoint(const float posSrc[3], const float mat[16], const bool rowMajor, float posDst[3])
 	{
-
+		XMVECTOR p = XMLoadFloat3((XMFLOAT3*)posSrc);
+		XMMATRIX m(mat);
+		if (!rowMajor) {
+			m = XMMatrixTranspose(m);
+		}
+		p = XMVector3TransformCoord(p, m);
+		XMStoreFloat3((XMFLOAT3*)posDst, p);
 	}
-	void TransformVector(const float* vec_src, const float* mat, const bool is_rowMajor, float* vec_dst)
+	void TransformVector(const float vecSrc[3], const float mat[16], const bool rowMajor, float vecDst[3])
 	{
-
+		XMVECTOR v = XMLoadFloat3((XMFLOAT3*)vecSrc);
+		XMMATRIX m(mat);
+		if (!rowMajor) {
+			m = XMMatrixTranspose(m);
+		}
+		v = XMVector3TransformNormal(v, m);
+		XMStoreFloat3((XMFLOAT3*)vecDst, v);
 	}
-	void ComputeBoxTransformMatrix(const float* cube_scale, const float* pos_center, const float* y_axis, const float* z_axis, const bool is_rowMajor, float* mat_tr, float* inv_mat_tr)
+	void ComputeBoxTransformMatrix(const float cubeScale[3], const float posCenter[3],
+		const float yAxis[3], const float zAxis[3], const bool rowMajor, float mat[16], float matInv[16])
 	{
+		XMVECTOR vec_scale = XMLoadFloat3((XMFLOAT3*)cubeScale);
+		XMVECTOR pos_eye = XMLoadFloat3((XMFLOAT3*)posCenter);
+		XMVECTOR vec_up = XMLoadFloat3((XMFLOAT3*)yAxis);
+		XMVECTOR vec_view = -XMLoadFloat3((XMFLOAT3*)zAxis);
+		XMMATRIX ws2cs = XMMatrixLookToRH(pos_eye, vec_view, vec_up);
+		vec_scale = XMVectorReciprocal(vec_scale);
+		XMMATRIX scale = XMMatrixScaling(XMVectorGetX(vec_scale), XMVectorGetY(vec_scale), XMVectorGetZ(vec_scale));
+		//glm::fmat4x4 translate = glm::translate(glm::fvec3(0.5f));
 
+		XMMATRIX ws2cs_unit = ws2cs * scale; // row major
+		*(XMMATRIX*)mat = rowMajor ? ws2cs_unit : XMMatrixTranspose(ws2cs_unit); // note that our renderer uses row-major
+		*(XMMATRIX*)matInv = XMMatrixInverse(NULL, ws2cs_unit);
 	}
 
 	using namespace vz;
@@ -33,6 +67,9 @@ namespace vzm
 		bool prev_colorspace_conversion_required = false;
 
 	public:
+		std::unique_ptr<CameraParams> cParam;
+		TimeStamp cParam_timeStamp = std::chrono::high_resolution_clock::now();
+		vz::scene::TransformComponent* transform = nullptr;
 
 		float deltaTime = 0;
 		float deltaTimeAccumulator = 0;
@@ -41,11 +78,11 @@ namespace vzm
 		bool framerate_lock = false;
 		vz::Timer timer;
 		int fps_avg_counter = 0;
-
+		
 		vz::FadeManager fadeManager;
 
 		// render target 을 compose... 
-		Entity camEntity;
+		Entity camEntity = INVALID_ENTITY; // for searching 
 		bool colorspace_conversion_required = false;
 		vz::graphics::ColorSpace colorspace = vz::graphics::ColorSpace::SRGB;
 
@@ -89,7 +126,7 @@ namespace vzm
 		std::string infodisplay_str;
 		float deltatimes[20] = {};
 
-		void UpdateRenderOutputRes()
+		void ResizeRenderTargets()
 		{
 			vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
 			if (graphicsDevice == nullptr)
@@ -484,9 +521,37 @@ namespace vzm
 			graphicsDevice->RenderPassEnd(cmd);
 			graphicsDevice->SubmitCommandLists();
 		}
+
+		void UpdateCParams()
+		{
+			if (cParam == nullptr)
+			{
+				return;
+			}
+			std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(cParam_timeStamp - cParam->timeStamp);
+			if (time_span.count() >= 0)
+			{
+				return;
+			}
+
+			camera->Eye = *(XMFLOAT3*)cParam->pos;
+			camera->At = XMFLOAT3(cParam->pos[0] + cParam->view[0], cParam->pos[1] + cParam->view[1], cParam->pos[2] + cParam->view[2]);
+
+			// up vector correction
+			XMVECTOR _view = XMLoadFloat3((XMFLOAT3*)cParam->view);
+			XMVECTOR _up = XMLoadFloat3((XMFLOAT3*)cParam->up);
+			XMVECTOR _right = XMVector3Cross(_view, _up);
+			_up = XMVector3Normalize(XMVector3Cross(_right, _view));
+			XMStoreFloat3(&camera->Up, _up);
+
+			camera->UpdateCamera();
+			transform->MatrixTransform(camera->GetView());
+			init(cParam->w, cParam->h, cParam->dpi);
+
+			cParam_timeStamp = std::chrono::high_resolution_clock::now();
+		}
 	};
 
-	static inline constexpr Entity INVALID_SCENE_ENTITY = 0;
 	class SceneManager
 	{
 	private:
@@ -496,8 +561,7 @@ namespace vzm
 		// one camera component to one renderer
 		unordered_map<VID, VzmRenderer> renderers;				// <CamEntity, VzmRenderer> (including camera and scene)
 
-		unordered_map<std::string, VID> sceneNames;		
-		unordered_map<std::string, VID> cameraNames;
+		unordered_map<std::string, VID> nameMap;				// not allowed redundant name
 
 
 	public:
@@ -506,19 +570,19 @@ namespace vzm
 		// Runtime can create a new entity with this
 		inline Entity CreateSceneEntity(const std::string& name)
 		{
-			static std::atomic<Entity> next{ INVALID_SCENE_ENTITY + 1 };
-
-			auto sid = sceneNames.find(name);
-			if (sid != sceneNames.end())
+			auto sid = nameMap.find(name);
+			if (sid != nameMap.end())
 			{
-				return INVALID_SCENE_ENTITY;
+				vz::backlog::post(name + " is already registered!", backlog::LogLevel::Error);
+				return INVALID_ENTITY;
 			}
 
-			Entity ett = next.fetch_add(1);
-			if (ett != INVALID_SCENE_ENTITY) {
+			Entity ett = CreateEntity();
+
+			if (ett != INVALID_ENTITY) {
 				Scene& scene = scenes[ett];
 				scene.weather = WeatherComponent();
-				sceneNames[name] = next;
+				nameMap[name] = ett;
 			}
 			return ett;
 		}
@@ -528,14 +592,24 @@ namespace vzm
 			if (scene)
 			{
 				scenes.erase(sid);
-				for (auto it : sceneNames)
+				for (auto it : nameMap)
 				{
 					if (sid == it.second)
 					{
-						sceneNames.erase(it.first);
+						nameMap.erase(it.first);
+						return;
 					}
 				}
 			};
+		}
+		inline VID GetVidByName(const std::string& name)
+		{
+			auto it = nameMap.find(name);
+			if (it == nameMap.end())
+			{
+				return INVALID_ENTITY;
+			}
+			return it->second;
 		}
 		inline Scene* GetScene(const VID sid)
 		{
@@ -548,12 +622,7 @@ namespace vzm
 		}
 		inline Scene* GetSceneByName(const std::string& name) 
 		{
-			auto it = sceneNames.find(name);
-			if (it == sceneNames.end())
-			{
-				return nullptr;
-			}
-			return GetScene(it->second);
+			return GetScene(GetVidByName(name));
 		}
 		inline unordered_map<VID, Scene>& GetScenes()
 		{
@@ -574,7 +643,7 @@ namespace vzm
 				{
 					renderer->scene = scene;
 					renderer->camera = camera;
-					cameraNames[scene->names.GetComponent(camEntity)->name] = camEntity;
+					nameMap[scene->names.GetComponent(camEntity)->name] = camEntity;
 					return renderer;
 				}
 			}
@@ -584,11 +653,12 @@ namespace vzm
 		inline void RemoveRenderer(Entity camEntity)
 		{
 			renderers.erase(camEntity);
-			for (auto it : cameraNames)
+			for (auto it : nameMap)
 			{
 				if (camEntity == it.second)
 				{
-					cameraNames.erase(it.first);
+					nameMap.erase(it.first);
+					return;
 				}
 			}
 		}
@@ -600,6 +670,10 @@ namespace vzm
 				return nullptr;
 			}
 			return &it->second;
+		}
+		inline VzmRenderer* GetRendererByName(const std::string& name)
+		{
+			return GetRenderer(GetVidByName(name));
 		}
 
 		void Initialize(::vzm::ParamMap<std::string>& argument)
@@ -713,6 +787,11 @@ namespace vzm
 		return VZ_OK;
 	}
 
+	VID GetIdByName(const std::string& name)
+	{
+		return sceneManager.GetVidByName(name);
+	}
+
 	VID NewScene(const std::string& sceneName)
 	{
 		Scene* scene = sceneManager.GetSceneByName(sceneName);
@@ -739,7 +818,7 @@ namespace vzm
 		}
 	}
 
-	VID NewActor(const VID sceneId, const std::string& actorName, const ActorParameter& aParams, const VID parentId)
+	VID NewActor(const VID sceneId, const std::string& actorName, const ActorParams& aParams, const VID parentId)
 	{
 		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
@@ -750,13 +829,17 @@ namespace vzm
 		// TO DO
 		{
 			ObjectComponent* objComponent = scene->objects.GetComponent(ett);
-			objComponent->meshID = aParams.GetResourceID(ActorParameter::RES_USAGE::GEOMETRY);
+			objComponent->meshID = aParams.GetResourceID(ActorParams::RES_USAGE::GEOMETRY);
 		}
 		MoveToParent(ett, parentId, scene);
 		return ett;
 	}
 
-	VID NewCamera(const VID sceneId, const std::string& camName, const CameraParameter& cParams, const VID parentId)
+	// cameraComponent, renderer, ==> CameraParams
+	// objectComponent ==> ActorParams
+	// lightCompoenent ==> LightParams
+
+	VID NewCamera(const VID sceneId, const std::string& camName, const CameraParams& cParams, const VID parentId)
 	{
 		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
@@ -766,13 +849,13 @@ namespace vzm
 		Entity ett = INVALID_ENTITY;
 		switch (cParams.projectionMode)
 		{
-		case CameraParameter::ProjectionMode::CAMERA_FOV:
+		case CameraParams::ProjectionMode::CAMERA_FOV:
 			ett = scene->Entity_CreateCamera(camName, (float)cParams.w, (float)cParams.h, cParams.np, cParams.fp, cParams.fov_y);
 			break;
-		case CameraParameter::ProjectionMode::CAMERA_INTRINSICS:
-		case CameraParameter::ProjectionMode::IMAGEPLANE_SIZE:
-		case CameraParameter::ProjectionMode::SLICER_PLANE:
-		case CameraParameter::ProjectionMode::SLICER_CURVED:
+		case CameraParams::ProjectionMode::CAMERA_INTRINSICS:
+		case CameraParams::ProjectionMode::IMAGEPLANE_SIZE:
+		case CameraParams::ProjectionMode::SLICER_PLANE:
+		case CameraParams::ProjectionMode::SLICER_CURVED:
 		default:
 			return INVALID_ENTITY;
 		}
@@ -783,22 +866,24 @@ namespace vzm
 		//transform->Translate(XMFLOAT3(10, 20.f, -40.5f));
 		//transform->UpdateTransform();
 		
-		camComponent->Eye = XMFLOAT3(100, 100, 100);
-		camComponent->At = XMFLOAT3(-1, -1, -1);
-		camComponent->UpdateCamera();
-		transform->MatrixTransform(camComponent->GetView());
-
+		// camComponent's Eye, At and Up are basically updated when applying transform
+		// if it has no transform, then they are used for computing the transform
+		// Entity_CreateCamera provides a transform component by default
+		// So, here, we just use the lookAt interface (UpdateCamera) of the camComponent
 		VzmRenderer* renderer = sceneManager.CreateRenderer(ett);
-		renderer->init(cParams.w, cParams.h);
+		renderer->camera = camComponent;
+		renderer->transform = transform;
+		renderer->scene = scene;
+		renderer->cParam = std::make_unique<CameraParams>(cParams);
+		renderer->cParam->timeStamp = std::chrono::high_resolution_clock::now();
+		renderer->UpdateCParams();
 		renderer->Start(); // call ResizeBuffers();
 		renderer->Load();
-		renderer->camera = camComponent;
-		renderer->scene = scene;
 		MoveToParent(ett, parentId, scene);
 		return ett;
 	}
 
-	VID NewLight(const VID sceneId, const std::string& lightName, const LightParameter& lParams, const VID parentId)
+	VID NewLight(const VID sceneId, const std::string& lightName, const LightParams& lParams, const VID parentId)
 	{
 		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
@@ -808,6 +893,28 @@ namespace vzm
 		Entity ett = scene->Entity_CreateLight(lightName);
 		MoveToParent(ett, parentId, scene);
 		return ett;
+	}
+
+	CameraParams* GetCamera(const VID camId)
+	{
+		VzmRenderer* renderer = sceneManager.GetRenderer(camId);
+		if (renderer == nullptr)
+		{
+			return nullptr;
+		}
+		renderer->cParam->timeStamp = std::chrono::high_resolution_clock::now();
+		return renderer->cParam.get();
+	}
+
+	void UpdateCamera(const VID camId)
+	{
+		VzmRenderer* renderer = sceneManager.GetRenderer(camId);
+		if (renderer)
+		{
+			renderer->UpdateCParams();
+		}
+		
+		return;
 	}
 
 	VID LoadMeshModel(const std::string& file, const std::string& resName)
@@ -829,7 +936,7 @@ namespace vzm
 
 		vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
 
-		renderer->UpdateRenderOutputRes();
+		renderer->ResizeRenderTargets();
 
 		if (!vz::initializer::IsInitializeFinished())
 		{
@@ -919,5 +1026,171 @@ namespace vzm
 		//return graphicsDevice->OpenSharedResource(graphicsDev2, const_cast<vz::graphics::Texture*>(&renderer->GetRenderResult()));
 		//return graphicsDevice->OpenSharedResource(graphicsDev2, &renderer->rtMain);
 		return graphicsDevice->OpenSharedResource(graphicsDev2, const_cast<vz::graphics::Texture*>(&renderer->renderResult));
+	}
+}
+
+#include "vzArcBall.h"
+
+namespace vzm
+{
+	std::unordered_map<ArcBall*, arcball::ArcBall> map_arcballs;
+
+	ArcBall::ArcBall()
+	{
+		map_arcballs[this] = arcball::ArcBall();
+	}
+	ArcBall::~ArcBall()
+	{
+		map_arcballs.erase(this);
+	}
+	bool ArcBall::Intializer(const float stage_center[3], const float stage_radius)
+	{
+		auto itr = map_arcballs.find(this);
+		if (itr == map_arcballs.end())
+			return fail_ret("NOT AVAILABLE ARCBALL!");
+		arcball::ArcBall& arc_ball = itr->second;
+		XMVECTOR dstage_center = XMLoadFloat3((XMFLOAT3*)stage_center);
+		arc_ball.FitArcballToSphere(dstage_center, stage_radius);
+		arc_ball.__is_set_stage = true;
+		return true;
+	}
+	void compute_screen_matrix(XMMATRIX& ps2ss, const float w, const float h)
+	{
+		XMMATRIX matTranslate = XMMatrixTranslation(1.f, -1.f, 0.f);
+		XMMATRIX matScale = XMMatrixScaling(0.5f * w, -0.5f * h, 0.5f);
+
+		XMMATRIX matTranslateSampleModel = XMMatrixTranslation(-0.5f, -0.5f, 0.f);
+
+		ps2ss = XMMatrixMultiply(XMMatrixMultiply(matTranslate, matScale), matTranslateSampleModel);
+	}
+	bool ArcBall::Start(const int pos_xy[2], const float screen_size[2],
+		const float pos[3], const float view[3], const float up[3],
+		const float np, const float fp, const float sensitivity)
+	{
+		auto itr = map_arcballs.find(this);
+		if (itr == map_arcballs.end())
+			return fail_ret("NOT AVAILABLE ARCBALL!");
+		arcball::ArcBall& arc_ball = itr->second;
+		if (!arc_ball.__is_set_stage)
+			return fail_ret("NO INITIALIZATION IN THIS ARCBALL!");
+		
+		arcball::CameraState cam_pose_ac;
+		cam_pose_ac.isPerspective = true;
+		cam_pose_ac.posCamera = XMFLOAT3(pos);
+		cam_pose_ac.vecView = XMFLOAT3(view);
+		cam_pose_ac.vecUp = XMFLOAT3(up);
+		cam_pose_ac.np = np;
+
+		XMMATRIX ws2cs, cs2ps, ps2ss;
+		ws2cs = XMMatrixLookToRH(XMLoadFloat3(&cam_pose_ac.posCamera), 
+			XMLoadFloat3(&cam_pose_ac.vecView), XMLoadFloat3(&cam_pose_ac.vecUp));
+		cs2ps = XMMatrixPerspectiveFovRH(XM_PIDIV4, (float)screen_size[0] / (float)screen_size[1], np, fp);
+		compute_screen_matrix(ps2ss, screen_size[0], screen_size[1]);
+		cam_pose_ac.matWS2SS = XMMatrixMultiply(XMMatrixMultiply(ws2cs, cs2ps), ps2ss);
+		cam_pose_ac.matSS2WS = XMMatrixInverse(NULL, cam_pose_ac.matWS2SS);
+
+		arc_ball.StartArcball((float)pos_xy[0], (float)pos_xy[1], cam_pose_ac, 10.f * sensitivity);
+
+		return true;
+	}
+	bool ArcBall::Move(const int pos_xy[2], float mat_r_onmove[16])
+	{
+		auto itr = map_arcballs.find(this);
+		if (itr == map_arcballs.end())
+			return fail_ret("NOT AVAILABLE ARCBALL!");
+		arcball::ArcBall& arc_ball = itr->second;
+		if (!arc_ball.__is_set_stage)
+			return fail_ret("NO INITIALIZATION IN THIS ARCBALL!");
+
+		XMMATRIX mat_tr;
+		arc_ball.MoveArcball(mat_tr, (float)pos_xy[0], (float)pos_xy[1], false); // cf. true
+		*(XMMATRIX*)mat_r_onmove = XMMatrixTranspose(mat_tr);
+		return true;
+	}
+	bool ArcBall::Move(const int pos_xy[2], float pos[3], float view[3], float up[3])
+	{
+		auto itr = map_arcballs.find(this);
+		if (itr == map_arcballs.end())
+			return fail_ret("NOT AVAILABLE ARCBALL!");
+		arcball::ArcBall& arc_ball = itr->second;
+		if (!arc_ball.__is_set_stage)
+			return fail_ret("NO INITIALIZATION IN THIS ARCBALL!");
+
+		XMMATRIX mat_tr;
+		arc_ball.MoveArcball(mat_tr, (float)pos_xy[0], (float)pos_xy[1], true);
+
+		arcball::CameraState cam_pose_begin = arc_ball.GetCameraStateSetInStart();
+		XMVECTOR pos_eye = XMVector3TransformCoord(XMLoadFloat3(&cam_pose_begin.posCamera), mat_tr);
+		XMVECTOR vec_view = XMVector3TransformNormal(XMLoadFloat3(&cam_pose_begin.vecView), mat_tr);
+		XMVECTOR vec_up = XMVector3TransformNormal(XMLoadFloat3(&cam_pose_begin.vecUp), mat_tr);
+
+		XMStoreFloat3((XMFLOAT3*)pos, pos_eye);
+		XMStoreFloat3((XMFLOAT3*)view, XMVector3Normalize(vec_view));
+		XMStoreFloat3((XMFLOAT3*)up, XMVector3Normalize(vec_up));
+
+		return true;
+	}
+	bool ArcBall::PanMove(const int pos_xy[2], float pos[3], float view[3], float up[3])
+	{
+		auto itr = map_arcballs.find(this);
+		if (itr == map_arcballs.end())
+			return fail_ret("NOT AVAILABLE ARCBALL!");
+		arcball::ArcBall& arc_ball = itr->second;
+		if (!arc_ball.__is_set_stage)
+			return fail_ret("NO INITIALIZATION IN THIS ARCBALL!");
+
+		arcball::CameraState cam_pose_begin = arc_ball.GetCameraStateSetInStart();
+
+		XMMATRIX& mat_ws2ss = cam_pose_begin.matWS2SS;
+		XMMATRIX& mat_ss2ws = cam_pose_begin.matSS2WS;
+
+		if (!cam_pose_begin.isPerspective)
+		{
+			XMVECTOR pos_eye_ws = XMLoadFloat3(&cam_pose_begin.posCamera);
+			XMVECTOR pos_eye_ss = XMVector3TransformCoord(pos_eye_ws, mat_ws2ss);
+
+			XMFLOAT3 v = XMFLOAT3((float)pos_xy[0] - arc_ball.__start_x, (float)pos_xy[1] - arc_ball.__start_y, 0);
+			XMVECTOR diff_ss = XMLoadFloat3(&v);
+
+			pos_eye_ss = pos_eye_ss - diff_ss; // Think Panning! reverse camera moving
+			pos_eye_ws = XMVector3TransformCoord(pos_eye_ss, mat_ss2ws);
+
+			XMStoreFloat3((XMFLOAT3*)pos, pos_eye_ws);
+			*(XMFLOAT3*)up = cam_pose_begin.vecUp;
+			*(XMFLOAT3*)view = cam_pose_begin.vecView;
+		}
+		else
+		{
+			XMFLOAT3 f = XMFLOAT3((float)pos_xy[0], (float)pos_xy[1], 0);
+			XMVECTOR pos_cur_ss = XMLoadFloat3(&f);
+			f = XMFLOAT3(arc_ball.__start_x, arc_ball.__start_y, 0);
+			XMVECTOR pos_old_ss = XMLoadFloat3(&f);
+			XMVECTOR pos_cur_ws = XMVector3TransformCoord(pos_cur_ss, mat_ss2ws);
+			XMVECTOR pos_old_ws = XMVector3TransformCoord(pos_old_ss, mat_ss2ws);
+			XMVECTOR diff_ws = pos_cur_ws - pos_old_ws;
+
+			if (XMVectorGetX(XMVector3Length(diff_ws)) < DBL_EPSILON)
+			{
+				*(XMFLOAT3*)pos = cam_pose_begin.posCamera;
+				*(XMFLOAT3*)up = cam_pose_begin.vecUp;
+				*(XMFLOAT3*)view = cam_pose_begin.vecView;
+				return true;
+			}
+
+			//cout << "-----0> " << glm::length(diff_ws) << endl;
+			//cout << "-----1> " << pos.x << ", " << pos.y << endl;
+			//cout << "-----2> " << arc_ball.__start_x << ", " << arc_ball.__start_y << endl;
+			XMVECTOR pos_center_ws = arc_ball.GetCenterStage();
+			XMVECTOR vec_eye2center_ws = pos_center_ws - XMLoadFloat3(&cam_pose_begin.posCamera);
+
+			float panningCorrected = XMVectorGetX(XMVector3Length(diff_ws)) * XMVectorGetX(XMVector3Length(vec_eye2center_ws)) / cam_pose_begin.np;
+
+			diff_ws = XMVector3Normalize(diff_ws);
+			XMVECTOR v = XMLoadFloat3(&cam_pose_begin.posCamera) - XMVectorScale(diff_ws, panningCorrected);
+			XMStoreFloat3((XMFLOAT3*)pos, v);
+			*(XMFLOAT3*)up = cam_pose_begin.vecUp;
+			*(XMFLOAT3*)view = cam_pose_begin.vecView;
+		}
+		return true;
 	}
 }
