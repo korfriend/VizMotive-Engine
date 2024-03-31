@@ -61,7 +61,7 @@ namespace vz
 		//	Use this to render to a graphics viewport
 		inline XMMATRIX GetProjection() const
 		{
-			return XMMatrixOrthographicOffCenterLH(0, (float)GetLogicalWidth(), (float)GetLogicalHeight(), 0, -1, 1);
+			return VZMatrixOrthographicOffCenter(0, (float)GetLogicalWidth(), (float)GetLogicalHeight(), 0, -1, 1);
 		}
 	};
 

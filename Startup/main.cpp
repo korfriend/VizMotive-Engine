@@ -163,29 +163,94 @@ int main(int, char**)
 		
 		{
 			static VID sid = 0, cid = 0;
+			static vzm::ArcBall arcball;
+			static ImVec2 wh(512, 512);
 			if (sid == 0)
 			{
 				sid = vzm::NewScene("my scene");
 				vzm::CameraParams cp;
-
 				cp.projectionMode = vzm::CameraParams::ProjectionMode::CAMERA_FOV;
-				cp.w = ImGui::GetWindowWidth();
-				cp.h = ImGui::GetWindowHeight();
+				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+				cp.w = wh.x;
+				cp.h = wh.y;
 				cp.fov_y = glm::pi<float>() * 0.5f;
-				GLM_F3 cp.pos = glm::fvec3(0, 5, 10);
+				cp.dpi = 96.f;
+				GLM_F3 cp.pos = glm::fvec3(0, 5, 5);
 				GLM_F3 cp.up = glm::fvec3(0, 1, 0);
-				GLM_F3 cp.view = glm::fvec3(0, 0, -1);
+				GLM_F3 cp.view = glm::fvec3(0, 0, 0) - GLM_F3 cp.pos;
 				cid = vzm::NewCamera(sid, "my camera", cp);
-			}
-			vzm::Render(cid);
 
-			// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
+				glm::fvec3 center(0);
+				arcball.Intializer(__FP center, 10.f);
+			}
+
+			ImGui::Begin("DirectX12 Texture Test");
+			// Note that we pass the GPU SRV handle here, *not* the CPU handle. We're passing the internal pointer value, cast to an ImTextureID
+
+			static ImVec2 prevWindowSize = ImVec2(0, 0);
+			ImVec2 curWindowSize = ImGui::GetWindowSize();
+
+			//if (prevWindowSize.x * prevWindowSize.y == 0)
+			//	ImGui::SetWindowSize(ImVec2(0, 0));
+
+			bool resized = prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y;
+			prevWindowSize = curWindowSize;
+
+			ImVec2 winPos = ImGui::GetWindowPos();
+			ImVec2 curItemPos = ImGui::GetCursorPos();
+			if (resized)
+			{
+				vzm::CameraParams* cp = vzm::GetCamera(cid);
+				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+				cp->w = std::max(canvas_size.x, 1.f);
+				cp->h = std::max(canvas_size.y, 1.f);
+				wh = canvas_size;
+			}
+			ImGui::InvisibleButton("render window", wh, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+			ImGui::SetItemAllowOverlap();
+
+			const bool is_hovered = ImGui::IsItemHovered(); // Hovered
+			const bool is_active = ImGui::IsItemActive();   // Held
+
+			{
+				static glm::fvec2 __prevMousePos(0);
+				glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
+				glm::fvec2 s_pos = *(glm::fvec2*)&curItemPos;
+				glm::fvec2 w_pos = *(glm::fvec2*)&winPos;
+				glm::fvec2 m_pos = ioPos - s_pos - w_pos;
+				glm::ivec2 pos_ss = m_pos;
+
+				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right)) 
+				{
+					vzm::CameraParams* cp = vzm::GetCamera(cid);
+					arcball.Start((int*)&pos_ss, __FP wh, cp->pos, cp->view, cp->up, cp->np, cp->fp);
+				}
+				else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f))
+					&& glm::length2(__prevMousePos - m_pos) > 0) 
+				{
+					vzm::CameraParams* cp = vzm::GetCamera(cid);
+					if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+						arcball.PanMove((int*)&pos_ss, cp->pos, cp->view, cp->up);
+					else 
+						arcball.Move((int*)&pos_ss, cp->pos, cp->view, cp->up);
+				}
+				else if (io.MouseWheel != 0) 
+				{
+					vzm::CameraParams* cp = vzm::GetCamera(cid);
+					if (io.MouseWheel > 0)
+						*(glm::fvec3*)cp->pos += 0.2f * (*(glm::fvec3*)cp->view);
+					else
+						*(glm::fvec3*)cp->pos -= 0.2f * (*(glm::fvec3*)cp->view);
+				}
+				__prevMousePos = pos_ss;
+			}
+			ImGui::SetCursorPos(curItemPos);
+
+			vzm::Render(cid);
 
 			uint32_t w, h;
 			ImTextureID texId = vzm::GetGraphicsSharedRenderTarget(cid, g_pd3dDevice, &w, &h);
-			ImGui::Begin("DirectX12 Texture Test");
-			ImGui::Text("size = %d x %d", w, h);
-			// Note that we pass the GPU SRV handle here, *not* the CPU handle. We're passing the internal pointer value, cast to an ImTextureID
+			// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 			ImGui::Image(texId, ImVec2((float)w, (float)h));
 			ImGui::End();
 		}

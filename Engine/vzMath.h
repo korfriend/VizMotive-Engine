@@ -27,6 +27,19 @@
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
+#define RENDERING_LHS
+#ifdef RENDERING_LHS
+#define VZMatrixLookTo XMMatrixLookToLH
+#define VZMatrixLookAt XMMatrixLookAtLH
+#define VZMatrixOrthographicOffCenter XMMatrixOrthographicOffCenterLH
+#define VZMatrixPerspectiveFov XMMatrixPerspectiveFovLH
+#else
+#define VZMatrixLookTo XMMatrixLookToRH
+#define VZMatrixLookAt XMMatrixLookAtRH
+#define VZMatrixOrthographicOffCenter XMMatrixOrthographicOffCenterRH
+#define VZMatrixPerspectiveFov XMMatrixPerspectiveFovRH
+#endif
+
 namespace vz::math
 {
 	inline constexpr XMFLOAT4X4 IDENTITY_MATRIX = XMFLOAT4X4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);

@@ -1927,7 +1927,7 @@ namespace vz::scene
 	{
 		if (!IsCustomProjectionEnabled())
 		{
-			XMStoreFloat4x4(&Projection, XMMatrixPerspectiveFovLH(fov, width / height, zFarP, zNearP)); // reverse zbuffer!
+			XMStoreFloat4x4(&Projection, VZMatrixPerspectiveFov(fov, width / height, zFarP, zNearP)); // reverse zbuffer!
 			Projection.m[2][0] = jitter.x;
 			Projection.m[2][1] = jitter.y;
 		}
@@ -1936,7 +1936,7 @@ namespace vz::scene
 		XMVECTOR _At = XMLoadFloat3(&At);
 		XMVECTOR _Up = XMLoadFloat3(&Up);
 
-		XMMATRIX _V = XMMatrixLookToLH(_Eye, _At, _Up);
+		XMMATRIX _V = VZMatrixLookTo(_Eye, _At, _Up);
 		XMStoreFloat4x4(&View, _V);
 
 		XMMATRIX _P = XMLoadFloat4x4(&Projection);
@@ -1961,7 +1961,7 @@ namespace vz::scene
 		XMVECTOR _At = XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 0, 1, 0), W));
 		XMVECTOR _Up = XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W));
 
-		XMMATRIX _V = XMMatrixLookToLH(_Eye, _At, _Up);
+		XMMATRIX _V = VZMatrixLookTo(_Eye, _At, _Up);
 		XMStoreFloat4x4(&View, _V);
 
 		XMStoreFloat3x3(&rotationMatrix, XMMatrixInverse(nullptr, _V));
