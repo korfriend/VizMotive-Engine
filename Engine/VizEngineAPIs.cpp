@@ -46,7 +46,7 @@ namespace vzm
 		XMVECTOR pos_eye = XMLoadFloat3((XMFLOAT3*)posCenter);
 		XMVECTOR vec_up = XMLoadFloat3((XMFLOAT3*)yAxis);
 		XMVECTOR vec_view = -XMLoadFloat3((XMFLOAT3*)zAxis);
-		XMMATRIX ws2cs = XMMatrixLookToRH(pos_eye, vec_view, vec_up);
+		XMMATRIX ws2cs = VZMatrixLookTo(pos_eye, vec_view, vec_up);
 		vec_scale = XMVectorReciprocal(vec_scale);
 		XMMATRIX scale = XMMatrixScaling(XMVectorGetX(vec_scale), XMVectorGetY(vec_scale), XMVectorGetZ(vec_scale));
 		//glm::fmat4x4 translate = glm::translate(glm::fvec3(0.5f));
@@ -535,18 +535,23 @@ namespace vzm
 			}
 
 			camera->Eye = *(XMFLOAT3*)cParam->pos;
-			camera->At = XMFLOAT3(cParam->pos[0] + cParam->view[0], cParam->pos[1] + cParam->view[1], cParam->pos[2] + cParam->view[2]);
+			//camera->At = XMFLOAT3(cParam->pos[0] + cParam->view[0], cParam->pos[1] + cParam->view[1], cParam->pos[2] + cParam->view[2]);
+			// Note At is the view direction
+
 
 			// up vector correction
-			XMVECTOR _view = XMLoadFloat3((XMFLOAT3*)cParam->view);
+			XMVECTOR _view = XMVector3Normalize(XMLoadFloat3((XMFLOAT3*)cParam->view));
+			//camera->At = *(XMFLOAT3*)cParam->view;
+			XMStoreFloat3(&camera->At, _view);
 			XMVECTOR _up = XMLoadFloat3((XMFLOAT3*)cParam->up);
 			XMVECTOR _right = XMVector3Cross(_view, _up);
 			_up = XMVector3Normalize(XMVector3Cross(_right, _view));
 			XMStoreFloat3(&camera->Up, _up);
 
-			camera->UpdateCamera();
-			transform->MatrixTransform(camera->GetView());
-			init(cParam->w, cParam->h, cParam->dpi);
+			camera->UpdateCamera(); 
+			transform->ClearTransform();
+			transform->MatrixTransform(camera->GetInvView());
+			init((uint32_t)std::max(cParam->w, 16.f), (uint32_t)std::max(cParam->h, 16.f), cParam->dpi);
 
 			cParam_timeStamp = std::chrono::high_resolution_clock::now();
 		}
@@ -936,6 +941,7 @@ namespace vzm
 
 		vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
 
+		renderer->UpdateCParams();
 		renderer->ResizeRenderTargets();
 
 		if (!vz::initializer::IsInitializeFinished())
@@ -1049,19 +1055,19 @@ namespace vzm
 		if (itr == map_arcballs.end())
 			return fail_ret("NOT AVAILABLE ARCBALL!");
 		arcball::ArcBall& arc_ball = itr->second;
-		XMVECTOR dstage_center = XMLoadFloat3((XMFLOAT3*)stage_center);
-		arc_ball.FitArcballToSphere(dstage_center, stage_radius);
+		XMVECTOR _stage_center = XMLoadFloat3((XMFLOAT3*)stage_center);
+		arc_ball.FitArcballToSphere(_stage_center, stage_radius);
 		arc_ball.__is_set_stage = true;
 		return true;
 	}
 	void compute_screen_matrix(XMMATRIX& ps2ss, const float w, const float h)
 	{
 		XMMATRIX matTranslate = XMMatrixTranslation(1.f, -1.f, 0.f);
-		XMMATRIX matScale = XMMatrixScaling(0.5f * w, -0.5f * h, 0.5f);
+		XMMATRIX matScale = XMMatrixScaling(0.5f * w, -0.5f * h, 1.f);
 
 		XMMATRIX matTranslateSampleModel = XMMatrixTranslation(-0.5f, -0.5f, 0.f);
 
-		ps2ss = XMMatrixMultiply(XMMatrixMultiply(matTranslate, matScale), matTranslateSampleModel);
+		ps2ss = matTranslate * matScale * matTranslateSampleModel;
 	}
 	bool ArcBall::Start(const int pos_xy[2], const float screen_size[2],
 		const float pos[3], const float view[3], const float up[3],
@@ -1076,17 +1082,23 @@ namespace vzm
 		
 		arcball::CameraState cam_pose_ac;
 		cam_pose_ac.isPerspective = true;
+		cam_pose_ac.np = np;
 		cam_pose_ac.posCamera = XMFLOAT3(pos);
 		cam_pose_ac.vecView = XMFLOAT3(view);
-		cam_pose_ac.vecUp = XMFLOAT3(up);
-		cam_pose_ac.np = np;
+
+		// up vector correction
+		XMVECTOR _view = XMLoadFloat3((XMFLOAT3*)view);
+		XMVECTOR _up = XMLoadFloat3((XMFLOAT3*)up);
+		XMVECTOR _right = XMVector3Cross(_view, _up);
+		_up = XMVector3Normalize(XMVector3Cross(_right, _view));
+		XMStoreFloat3(&cam_pose_ac.vecUp, _up);
 
 		XMMATRIX ws2cs, cs2ps, ps2ss;
-		ws2cs = XMMatrixLookToRH(XMLoadFloat3(&cam_pose_ac.posCamera), 
+		ws2cs = VZMatrixLookTo(XMLoadFloat3(&cam_pose_ac.posCamera), 
 			XMLoadFloat3(&cam_pose_ac.vecView), XMLoadFloat3(&cam_pose_ac.vecUp));
-		cs2ps = XMMatrixPerspectiveFovRH(XM_PIDIV4, (float)screen_size[0] / (float)screen_size[1], np, fp);
+		cs2ps = VZMatrixPerspectiveFov(XM_PIDIV4, (float)screen_size[0] / (float)screen_size[1], np, fp);
 		compute_screen_matrix(ps2ss, screen_size[0], screen_size[1]);
-		cam_pose_ac.matWS2SS = XMMatrixMultiply(XMMatrixMultiply(ws2cs, cs2ps), ps2ss);
+		cam_pose_ac.matWS2SS = ws2cs * cs2ps * ps2ss;
 		cam_pose_ac.matSS2WS = XMMatrixInverse(NULL, cam_pose_ac.matWS2SS);
 
 		arc_ball.StartArcball((float)pos_xy[0], (float)pos_xy[1], cam_pose_ac, 10.f * sensitivity);

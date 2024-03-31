@@ -2475,8 +2475,8 @@ namespace vz::renderer
 			const XMMATRIX rot = XMMatrixRotationQuaternion(Q);
 			const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), rot);
 			const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rot);
-			const XMMATRIX V = XMMatrixLookToLH(E, to, up);
-			const XMMATRIX P = XMMatrixPerspectiveFovLH(fov, 1, farPlane, nearPlane);
+			const XMMATRIX V = VZMatrixLookTo(E, to, up);
+			const XMMATRIX P = VZMatrixPerspectiveFov(fov, 1, farPlane, nearPlane);
 			view_projection = XMMatrixMultiply(V, P);
 			frustum.Create(view_projection);
 
@@ -2499,7 +2499,7 @@ namespace vz::renderer
 		const XMMATRIX lightRotation = XMMatrixRotationQuaternion(XMLoadFloat4(&light.rotation));
 		const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), lightRotation);
 		const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), lightRotation);
-		const XMMATRIX lightView = XMMatrixLookToLH(XMVectorZero(), to, up); // important to not move (zero out eye vector) the light view matrix itself because texel snapping must be done on projection matrix!
+		const XMMATRIX lightView = VZMatrixLookTo(XMVectorZero(), to, up); // important to not move (zero out eye vector) the light view matrix itself because texel snapping must be done on projection matrix!
 		const float farPlane = camera.zFarP;
 
 		// Unproject main frustum corners into world space (notice the reversed Z projection!):
@@ -2574,7 +2574,7 @@ namespace vz::renderer
 			_min.z = _center.z - ext;
 			_max.z = _center.z + ext;
 
-			const XMMATRIX lightProjection = XMMatrixOrthographicOffCenterLH(_min.x, _max.x, _min.y, _max.y, _max.z, _min.z); // notice reversed Z!
+			const XMMATRIX lightProjection = VZMatrixOrthographicOffCenter(_min.x, _max.x, _min.y, _max.y, _max.z, _min.z); // notice reversed Z!
 
 			shcams[cascade].view_projection = XMMatrixMultiply(lightView, lightProjection);
 			shcams[cascade].frustum.Create(shcams[cascade].view_projection);
@@ -3456,8 +3456,8 @@ namespace vz::renderer
 			const XMMATRIX lightRotation = XMMatrixRotationQuaternion(XMLoadFloat4(&scene.weather.stars_rotation_quaternion)); // We only care about prioritized directional light anyway
 			const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), lightRotation);
 
-			XMMATRIX cloudShadowProjection = XMMatrixOrthographicOffCenterLH(-cloudShadowExtent, cloudShadowExtent, -cloudShadowExtent, cloudShadowExtent, cloudShadowNearPlane, cloudShadowFarPlane);
-			XMMATRIX cloudShadowView = XMMatrixLookAtLH(lightPosition, lookAtPosition, up);
+			XMMATRIX cloudShadowProjection = VZMatrixOrthographicOffCenter(-cloudShadowExtent, cloudShadowExtent, -cloudShadowExtent, cloudShadowExtent, cloudShadowNearPlane, cloudShadowFarPlane);
+			XMMATRIX cloudShadowView = VZMatrixLookAt(lightPosition, lookAtPosition, up);
 
 			XMMATRIX cloudShadowLightSpaceMatrix = XMMatrixMultiply(cloudShadowView, cloudShadowProjection);
 			XMMATRIX cloudShadowLightSpaceMatrixInverse = XMMatrixInverse(nullptr, cloudShadowLightSpaceMatrix);
@@ -4881,7 +4881,7 @@ namespace vz::renderer
 
 		XMVECTOR vvv = abs(vis.reflectionPlane.x) > 0.99f ? XMVectorSet(0, 1, 0, 0) : XMVectorSet(1, 0, 0, 0);
 		XMVECTOR dir = XMLoadFloat4(&vis.reflectionPlane);
-		XMMATRIX R = XMMatrixLookToLH(XMVectorZero(), dir, XMVector3Cross(vvv, dir));
+		XMMATRIX R = VZMatrixLookTo(XMVectorZero(), dir, XMVector3Cross(vvv, dir));
 
 		device->EventBegin("Water Ripples", cmd);
 		for (auto& x : vis.scene->waterRipples)
@@ -8173,7 +8173,7 @@ namespace vz::renderer
 				camera_transform.ClearTransform();
 				camera_transform.Translate(boundingsphere.center);
 
-				XMMATRIX P = XMMatrixOrthographicOffCenterLH(-boundingsphere.radius, boundingsphere.radius, -boundingsphere.radius, boundingsphere.radius, -boundingsphere.radius, boundingsphere.radius);
+				XMMATRIX P = VZMatrixOrthographicOffCenter(-boundingsphere.radius, boundingsphere.radius, -boundingsphere.radius, boundingsphere.radius, -boundingsphere.radius, boundingsphere.radius);
 				XMStoreFloat4x4(&impostorcamera.Projection, P);
 				XMVECTOR Q = XMQuaternionNormalize(XMQuaternionRotationAxis(XMVectorSet(0, 1, 0, 0), XM_2PI * (float)i / (float)impostorCaptureAngles));
 				XMStoreFloat4(&camera_transform.rotation_local, Q);
