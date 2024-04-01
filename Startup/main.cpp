@@ -183,7 +183,7 @@ int main(int, char**)
 				glm::fvec3 center(0);
 				arcball.Intializer(__FP center, 10.f);
 
-				vzm::LoadMeshModel("D:\\VisMotive\\data\\obj files\\skull\\12140_Skull_v3_L2.obj", "my obj");
+				vzm::LoadMeshModel(sid, "D:\\VisMotive\\data\\obj files\\skull\\12140_Skull_v3_L2.obj", "my obj");
 			}
 
 			ImGui::Begin("DirectX12 Texture Test");

@@ -609,7 +609,7 @@ namespace vzm
 
 
 	public:
-		Scene internalResArchive;
+		//Scene internalResArchive;
 
 		// Runtime can create a new entity with this
 		inline Entity CreateSceneEntity(const std::string& name)
@@ -948,9 +948,15 @@ namespace vzm
 		return renderer->cParam.get();
 	}
 
-	VID LoadMeshModel(const std::string& file, const std::string& rootName)
+	VID LoadMeshModel(const VID sceneId, const std::string& file, const std::string& rootName)
 	{
-		Entity ett = INVALID_ENTITY; //sceneManager.internalResArchive.Entity_CreateMesh(actorName);
+		Scene* scene = sceneManager.GetScene(sceneId);
+		if (scene == nullptr)
+		{
+			return INVALID_ENTITY;
+		}
+
+		Entity rootEntity = INVALID_ENTITY; //sceneManager.internalResArchive.Entity_CreateMesh(actorName);
 		// loading.. with file
 
 		std::string extension = vz::helper::toUpper(vz::helper::GetExtensionFromFileName(file));
@@ -965,12 +971,10 @@ namespace vzm
 
 		if (type == FileType::OBJ) // wavefront-obj
 		{
-			Scene scene;
-			//Scene* _scene = sceneManager.GetScene(1);
-			//size_t camera_count = _scene->cameras.GetCount();
-			ImportModel_OBJ(file, scene);	// reassign transform components
-
-			//_scene->Merge(scene);
+			Scene sceneTmp;
+			rootEntity = ImportModel_OBJ(file, sceneTmp);	// reassign transform components
+			sceneTmp.names.GetComponent(rootEntity)->name = rootName;
+			scene->Merge(sceneTmp);
 		}
 		else if (type == FileType::GLTF || type == FileType::GLB || type == FileType::VRM) // gltf, vrm
 		{
@@ -978,7 +982,7 @@ namespace vzm
 			ImportModel_GLTF(file, scene);
 			//GetCurrentScene().Merge(scene);
 		}
-		return ett;
+		return rootEntity;
 	}
 
 	VZRESULT Render(const int camId)
