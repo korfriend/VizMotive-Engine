@@ -43,6 +43,9 @@
     <Filter Include="ENGINE\Audio">
       <UniqueIdentifier>{eeb02a15-d162-4b42-8411-d882a53d938b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HELPER">
+      <UniqueIdentifier>{2a8bfdc0-88f2-4f14-a21f-4003268cb768}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)vzVersion.h">
@@ -329,6 +332,18 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)vzArcBall.h">
       <Filter>ENGINE\Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Helpers\ModelImporter.h">
+      <Filter>HELPER</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Helpers\tiny_gltf.h">
+      <Filter>HELPER</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Helpers\tiny_obj_loader.h">
+      <Filter>HELPER</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Helpers\json.hpp">
+      <Filter>HELPER</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)vzVersion.cpp">
@@ -499,6 +514,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)VizEngineAPIs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vzEmittedParticle.cpp">
       <Filter>ENGINE\Graphics\API</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Helpers\ModelImporter_GLTF.cpp">
+      <Filter>HELPER</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Helpers\ModelImporter_OBJ.cpp">
+      <Filter>HELPER</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
