@@ -30,7 +30,7 @@ namespace vzm
 	// Load model component and return resource ID (global entity), resource item
 	//  - Must belong to the internal scene
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
-	__dojostatic VID LoadMeshModel(const std::string& file, const std::string& rootName);
+	__dojostatic VID LoadMeshModel(const VID sceneId, const std::string& file, const std::string& rootName);
 	// Render a scene (sceneId) with a camera (camId)
 	//  - Must belong to the internal scene
 	__dojostatic VZRESULT Render(const int camId);
