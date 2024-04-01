@@ -4,8 +4,28 @@
 #include "vzGraphicsDevice_DX12.h"
 #include "vzGraphicsDevice_Vulkan.h"
 
+#include "Helpers/ModelImporter.h"
+
 using namespace vz::ecs;
 using namespace vz::scene;
+
+enum class FileType
+{
+	INVALID,
+	OBJ,
+	GLTF,
+	GLB,
+	VRM,
+	IMAGE,
+	VIDEO,
+	SOUND,
+};
+static vz::unordered_map<std::string, FileType> filetypes = {
+	{"OBJ", FileType::OBJ},
+	{"GLTF", FileType::GLTF},
+	{"GLB", FileType::GLB},
+	{"VRM", FileType::VRM},
+};
 
 static bool g_is_display = true;
 auto fail_ret = [](const std::string& err_str, const bool _warn = false)
@@ -69,7 +89,6 @@ namespace vzm
 	public:
 		std::unique_ptr<CameraParams> cParam;
 		TimeStamp cParam_timeStamp = std::chrono::high_resolution_clock::now();
-		vz::scene::TransformComponent* transform = nullptr;
 
 		float deltaTime = 0;
 		float deltaTimeAccumulator = 0;
@@ -538,7 +557,6 @@ namespace vzm
 			//camera->At = XMFLOAT3(cParam->pos[0] + cParam->view[0], cParam->pos[1] + cParam->view[1], cParam->pos[2] + cParam->view[2]);
 			// Note At is the view direction
 
-
 			// up vector correction
 			XMVECTOR _view = XMVector3Normalize(XMLoadFloat3((XMFLOAT3*)cParam->view));
 			//camera->At = *(XMFLOAT3*)cParam->view;
@@ -548,9 +566,30 @@ namespace vzm
 			_up = XMVector3Normalize(XMVector3Cross(_right, _view));
 			XMStoreFloat3(&camera->Up, _up);
 
-			camera->UpdateCamera(); 
-			transform->ClearTransform();
-			transform->MatrixTransform(camera->GetInvView());
+			TransformComponent* transform = scene->transforms.GetComponent(camEntity);
+			if (transform)
+			{
+				XMVECTOR _Eye = XMLoadFloat3(&camera->Eye);
+				XMVECTOR _At = XMLoadFloat3(&camera->At);
+				XMVECTOR _Up = XMLoadFloat3(&camera->Up);
+				XMMATRIX _V = VZMatrixLookTo(_Eye, _At, _Up);
+				XMMATRIX _InvV = XMMatrixInverse(nullptr, _V);
+				transform->ClearTransform();
+				transform->MatrixTransform(_InvV);
+				transform->UpdateTransform();
+
+				camera->Eye = XMFLOAT3(0, 0, 0);
+				camera->At = XMFLOAT3(0, 0, -1);
+				camera->Up = XMFLOAT3(0, 1, 0);
+				camera->TransformCamera(*transform);
+			}
+			//transform->MatrixTransform(camera->GetInvView());
+			//transform->UpdateTransform();
+			camera->UpdateCamera();
+
+			//camera->TransformCamera(*transform);
+			//camera->UpdateCamera();
+
 			init((uint32_t)std::max(cParam->w, 16.f), (uint32_t)std::max(cParam->h, 16.f), cParam->dpi);
 
 			cParam_timeStamp = std::chrono::high_resolution_clock::now();
@@ -639,6 +678,7 @@ namespace vzm
 			assert(it == renderers.end());
 
 			VzmRenderer* renderer = &renderers[camEntity];
+			renderer->camEntity = camEntity;
 
 			for (auto it = scenes.begin(); it != scenes.end(); it++)
 			{
@@ -867,9 +907,7 @@ namespace vzm
 
 		CameraComponent* camComponent = scene->cameras.GetComponent(ett);
 		assert(camComponent);
-		TransformComponent* transform = scene->transforms.GetComponent(ett);
-		//transform->Translate(XMFLOAT3(10, 20.f, -40.5f));
-		//transform->UpdateTransform();
+		//TransformComponent* transform = scene->transforms.GetComponent(ett);
 		
 		// camComponent's Eye, At and Up are basically updated when applying transform
 		// if it has no transform, then they are used for computing the transform
@@ -877,7 +915,6 @@ namespace vzm
 		// So, here, we just use the lookAt interface (UpdateCamera) of the camComponent
 		VzmRenderer* renderer = sceneManager.CreateRenderer(ett);
 		renderer->camera = camComponent;
-		renderer->transform = transform;
 		renderer->scene = scene;
 		renderer->cParam = std::make_unique<CameraParams>(cParams);
 		renderer->cParam->timeStamp = std::chrono::high_resolution_clock::now();
@@ -911,21 +948,36 @@ namespace vzm
 		return renderer->cParam.get();
 	}
 
-	void UpdateCamera(const VID camId)
+	VID LoadMeshModel(const std::string& file, const std::string& rootName)
 	{
-		VzmRenderer* renderer = sceneManager.GetRenderer(camId);
-		if (renderer)
-		{
-			renderer->UpdateCParams();
-		}
-		
-		return;
-	}
-
-	VID LoadMeshModel(const std::string& file, const std::string& resName)
-	{
-		Entity ett = sceneManager.internalResArchive.Entity_CreateMesh(resName);
+		Entity ett = INVALID_ENTITY; //sceneManager.internalResArchive.Entity_CreateMesh(actorName);
 		// loading.. with file
+
+		std::string extension = vz::helper::toUpper(vz::helper::GetExtensionFromFileName(file));
+		FileType type = FileType::INVALID;
+		auto it = filetypes.find(extension);
+		if (it != filetypes.end())
+		{
+			type = it->second;
+		}
+		if (type == FileType::INVALID)
+			return INVALID_ENTITY;
+
+		if (type == FileType::OBJ) // wavefront-obj
+		{
+			Scene scene;
+			//Scene* _scene = sceneManager.GetScene(1);
+			//size_t camera_count = _scene->cameras.GetCount();
+			ImportModel_OBJ(file, scene);	// reassign transform components
+
+			//_scene->Merge(scene);
+		}
+		else if (type == FileType::GLTF || type == FileType::GLB || type == FileType::VRM) // gltf, vrm
+		{
+			Scene scene;
+			ImportModel_GLTF(file, scene);
+			//GetCurrentScene().Merge(scene);
+		}
 		return ett;
 	}
 
