@@ -4486,28 +4486,27 @@ using namespace dx12_internal;
 			return nullptr;
 		}
 
-
 		UINT handle_increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		//auto it = mapDevRT.find(texture);
-		//if (it != mapDevRT.end())
-		//{
-		//	auto dev_it = it->second.mapDevSharedTexture.find((void*)device2);
-		//	if (dev_it != it->second.mapDevSharedTexture.end())
-		//	{
-		//		if (dev_it->second.internal_state.get() == it->second.old_internal_state)
-		//		{
-		//			Texture* shared_texture = &dev_it->second;
-		//			int descriptorIndex = GetDescriptorIndex(shared_texture, SubresourceType::SRV);
-		//
-		//			D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
-		//			gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
-		//
-		//			return (void*)gpu_descriptor_handler.ptr;
-		//			//return (void*)shared_texture;// gpu_descriptor_handler.ptr;
-		//		}
-		//	}
-		//}
+		auto it = mapDevRT.find(texture);
+		if (it != mapDevRT.end())
+		{
+			auto dev_it = it->second.mapDevSharedTexture.find((void*)device2);
+			if (dev_it != it->second.mapDevSharedTexture.end())
+			{
+				if (texture->shared_handle == it->second.old_shared_handle)
+				{
+					Texture* shared_texture = &dev_it->second;
+					int descriptorIndex = GetDescriptorIndex(shared_texture, SubresourceType::SRV);
+		
+					D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
+					gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
+		
+					return (void*)gpu_descriptor_handler.ptr;
+					//return (void*)shared_texture;// gpu_descriptor_handler.ptr;
+				}
+			}
+		}
 
 		Texture shared_texture;
 
@@ -4536,14 +4535,14 @@ using namespace dx12_internal;
 
 		CreateSubresource(&shared_texture, SubresourceType::SRV, 0, -1, 0, -1);
 
-		Res sharedRes;
-		sharedRes.mapDevSharedTexture[(void*)device2] = shared_texture;
-		sharedRes.old_internal_state = shared_texture.internal_state.get();
-		mapDevRT[texture] = sharedRes;
-
 		int descriptorIndex = GetDescriptorIndex(&shared_texture, SubresourceType::SRV);
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
 		gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
+
+		Res sharedRes;
+		sharedRes.mapDevSharedTexture[(void*)device2] = shared_texture;
+		sharedRes.old_shared_handle = texture->shared_handle;
+		mapDevRT[texture] = sharedRes;
 
 		return (void*)gpu_descriptor_handler.ptr;
 		//return (void*)&(mapDevRT[texture].mapDevSharedTexture[(void*)device2]);

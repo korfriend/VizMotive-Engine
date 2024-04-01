@@ -68,7 +68,7 @@ namespace vz::graphics
 
 		struct Res {
 			std::unordered_map<void*, Texture> mapDevSharedTexture;
-			void* old_internal_state = nullptr; // do not release this!
+			void* old_shared_handle = nullptr; // do not release this!
 		};
 
 		std::unordered_map<Texture*, Res> mapDevRT; //src device and render target
