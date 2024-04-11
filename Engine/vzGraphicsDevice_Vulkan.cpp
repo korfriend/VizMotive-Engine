@@ -6741,7 +6741,7 @@ using namespace vulkan_internal;
 		return -1;
 	}
 
-	void* GraphicsDevice_Vulkan::OpenSharedResource(const void* device2, Texture* texture) 
+	void* GraphicsDevice_Vulkan::OpenSharedResource(const void* device2, const void* srv_desc_heap2, const int descriptor_index, Texture* texture)
 	{
 		return nullptr;
 	}

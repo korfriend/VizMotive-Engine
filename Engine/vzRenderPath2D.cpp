@@ -54,7 +54,7 @@ namespace vz
 			desc.width = GetPhysicalWidth();
 			desc.height = GetPhysicalHeight();
 			// dojo to do: ResourceMiscFlag::SHARED is for outside-device to access the render target
-			//desc.misc_flags = ResourceMiscFlag::SHARED;
+			desc.misc_flags = ResourceMiscFlag::SHARED;
 			device->CreateTexture(&desc, nullptr, &rtFinal);
 			device->SetName(&rtFinal, "rtFinal");
 		}
@@ -77,7 +77,7 @@ namespace vz
 			ResizeLayout();
 		}
 
-		GetGUI().Update(*this, dt);
+		//GetGUI().Update(*this, dt);
 
 		for (auto& x : layers)
 		{

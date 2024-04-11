@@ -140,8 +140,8 @@ namespace vz::input
 		if (!isRegisteredUWP)
 		{
 			isRegisteredUWP = true;
-			using namespace vznrt::Windows::UI::Core;
-			using namespace vznrt::Windows::Devices::Input;
+			using namespace winrt::Windows::UI::Core;
+			using namespace winrt::Windows::Devices::Input;
 
 			auto window = CoreWindow::GetForCurrentThread();
 			window.PointerPressed([](CoreWindow, PointerEventArgs args) {

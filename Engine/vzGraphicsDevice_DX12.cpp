@@ -4479,71 +4479,64 @@ using namespace dx12_internal;
 		return SUCCEEDED(hr);
 	}
 
-	void* GraphicsDevice_DX12::OpenSharedResource(const void* device2, Texture* texture) 
+	void* GraphicsDevice_DX12::OpenSharedResource(const void* _device2, const void* _srv_desc_heap2, const int descriptor_index, Texture* texture)
 	{
 		if (texture->shared_handle == nullptr)
 		{
 			return nullptr;
 		}
 
-		UINT handle_increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		ID3D12Device* device2 = (ID3D12Device*)_device2;
+		UINT handle_increment_gpu2 = device2->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		auto it = mapDevRT.find(texture);
-		if (it != mapDevRT.end())
+		struct Res {
+			ComPtr<ID3D12Resource> shared_texture;
+			UINT64 shared_srv_ptr = 0;
+			void* old_shared_handle = nullptr; // do not release this!
+		};
+		static std::unordered_map<void*, std::unordered_map<Texture*, Res>> devResMap;
+		std::unordered_map<Texture*, Res>& texResMap = devResMap[device2];
+		Res& _res = texResMap[texture];
+		if (texture->shared_handle == _res.old_shared_handle)
 		{
-			auto dev_it = it->second.mapDevSharedTexture.find((void*)device2);
-			if (dev_it != it->second.mapDevSharedTexture.end())
-			{
-				if (texture->shared_handle == it->second.old_shared_handle)
-				{
-					Texture* shared_texture = &dev_it->second;
-					int descriptorIndex = GetDescriptorIndex(shared_texture, SubresourceType::SRV);
-		
-					D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
-					gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
-		
-					return (void*)gpu_descriptor_handler.ptr;
-					//return (void*)shared_texture;// gpu_descriptor_handler.ptr;
-				}
-			}
+			return (void*)_res.shared_srv_ptr;
 		}
 
-		Texture shared_texture;
-
-		auto internal_state = std::make_shared<Texture_DX12>();
-		internal_state->allocationhandler = allocationhandler;
-		shared_texture.type = GPUResource::Type::TEXTURE;
-		shared_texture.mapped_data = nullptr;
-		shared_texture.mapped_size = 0;
-		shared_texture.mapped_subresources = nullptr;
-		shared_texture.mapped_subresource_count = 0;
-		shared_texture.sparse_properties = nullptr;
-		shared_texture.desc = texture->desc;
-
-		HRESULT hr;
-		{
-			hr = ((ID3D12Device*)device2)->OpenSharedHandle(
-				texture->shared_handle,
-				PPV_ARGS(internal_state->resource)
-			);
-			shared_texture.internal_state = internal_state;
-		}
+		HRESULT hr = device2->OpenSharedHandle(texture->shared_handle, PPV_ARGS(_res.shared_texture));
 		if (FAILED(hr)) {
-			internal_state.reset();
 			return nullptr;
 		}
 
-		CreateSubresource(&shared_texture, SubresourceType::SRV, 0, -1, 0, -1);
+		//CreateSubresource(&shared_texture, SubresourceType::SRV, 0, -1, 0, -1);
 
-		int descriptorIndex = GetDescriptorIndex(&shared_texture, SubresourceType::SRV);
-		D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = descriptorheap_res.start_gpu;
-		gpu_descriptor_handler.ptr += handle_increment * descriptorIndex;
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.Format = _ConvertFormat(texture->desc.format);
+		if (texture->desc.sample_count > 1)
+		{
+			srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+		}
+		else
+		{
+			srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srv_desc.Texture2D.MostDetailedMip = 0;
+			srv_desc.Texture2D.MipLevels = 1;
+		}
+		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-		Res sharedRes;
-		sharedRes.mapDevSharedTexture[(void*)device2] = shared_texture;
-		sharedRes.old_shared_handle = texture->shared_handle;
-		mapDevRT[texture] = sharedRes;
+		// Get CPU/GPU handles for the shader resource view
+		// Normally your engine will have some sort of allocator for these - here we assume that there's an SRV descriptor heap in
+		// g_pd3dSrvDescHeap with at least two descriptors allocated, and descriptor 1 is unused
 
+		ID3D12DescriptorHeap* srv_desc_heap2 = (ID3D12DescriptorHeap*)_srv_desc_heap2;
+		D3D12_CPU_DESCRIPTOR_HANDLE cpu_descriptor_handler = srv_desc_heap2->GetCPUDescriptorHandleForHeapStart();
+		cpu_descriptor_handler.ptr += (handle_increment_gpu2 * descriptor_index);
+		device2->CreateShaderResourceView(_res.shared_texture.Get(), &srv_desc, cpu_descriptor_handler);
+
+
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = srv_desc_heap2->GetGPUDescriptorHandleForHeapStart();
+		gpu_descriptor_handler.ptr += (handle_increment_gpu2 * descriptor_index);
+		_res.shared_srv_ptr = gpu_descriptor_handler.ptr;
+		_res.old_shared_handle = texture->shared_handle;
 		return (void*)gpu_descriptor_handler.ptr;
 		//return (void*)&(mapDevRT[texture].mapDevSharedTexture[(void*)device2]);
 	}

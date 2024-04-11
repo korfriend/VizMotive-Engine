@@ -1,13 +1,18 @@
-﻿#include "VizEngineAPIs.h"
+﻿//#pragma warning(disable:4819)
+#include "VizEngineAPIs.h" 
 #include "vzEngine.h"
 
 #include "vzGraphicsDevice_DX12.h"
 #include "vzGraphicsDevice_Vulkan.h"
 
-#include "Helpers/ModelImporter.h"
+#include "../Helpers/ModelImporter.h"
 
 using namespace vz::ecs;
 using namespace vz::scene;
+
+#define CANVAS_INIT_W 16u
+#define CANVAS_INIT_H 16u
+#define CANVAS_INIT_DPI 96.f
 
 enum class FileType
 {
@@ -27,15 +32,62 @@ static vz::unordered_map<std::string, FileType> filetypes = {
 	{"VRM", FileType::VRM},
 };
 
+enum class VmCompType
+{
+	INVALID,
+	ANIMATION,
+	ACTOR,
+	LIGHT,
+};
+static vz::unordered_map<std::string, VmCompType> vmcomptypes = {
+	{typeid(vzm::VmActor).name(), VmCompType::ACTOR},
+	{typeid(vzm::VmLight).name(), VmCompType::LIGHT},
+	{typeid(vzm::VmAnimation).name(), VmCompType::ANIMATION},
+};
+
+enum class CompType
+{
+	INVALID,
+	NameComponent_,
+	LayerComponent_,
+	TransformComponent_,
+	HierarchyComponent_,
+	MaterialComponent_,
+	MeshComponent_,
+	ImpostorComponent_,
+	ObjectComponent_,
+	LightComponent_,
+	CameraComponent_,
+	EnvironmentProbeComponent_,
+	AnimationComponent_,
+};
+static vz::unordered_map<std::string, CompType> comptypes = {
+	{typeid(vz::scene::NameComponent).name(), CompType::NameComponent_},
+	{typeid(vz::scene::LayerComponent).name(), CompType::LayerComponent_},
+	{typeid(vz::scene::TransformComponent).name(), CompType::TransformComponent_},
+	{typeid(vz::scene::HierarchyComponent).name(), CompType::HierarchyComponent_},
+	{typeid(vz::scene::MaterialComponent).name(), CompType::MaterialComponent_},
+	{typeid(vz::scene::MeshComponent).name(), CompType::MeshComponent_},
+	//{typeid(vz::scene::ObjectComponent).name(), CompType::ObjectComponent_},
+	{typeid(vz::scene::LightComponent).name(), CompType::LightComponent_},
+	{typeid(vz::scene::CameraComponent).name(), CompType::CameraComponent_},
+	{typeid(vz::scene::EnvironmentProbeComponent).name(), CompType::EnvironmentProbeComponent_},
+	{typeid(vz::scene::AnimationComponent).name(), CompType::AnimationComponent_},
+};
+
+
+
+
 static bool g_is_display = true;
 auto fail_ret = [](const std::string& err_str, const bool _warn = false)
 	{
-		if (g_is_display) 
+		if (g_is_display)
 		{
 			vz::backlog::post(err_str, _warn ? vz::backlog::LogLevel::Warning : vz::backlog::LogLevel::Error);
 		}
 		return false;
 	};
+
 
 namespace vzm
 {
@@ -86,9 +138,78 @@ namespace vzm
 		float prev_dpi = 96;
 		bool prev_colorspace_conversion_required = false;
 
+		std::unique_ptr<VmCamera> vmCam;
+		TimeStamp timeStamp_vmUpdate;
+
+		void TryResizeRenderTargets()
+		{
+			vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
+			if (graphicsDevice == nullptr)
+				return;
+
+			if (swapChain.IsValid())
+			{
+				colorspace = graphicsDevice->GetSwapChainColorSpace(&swapChain);
+			}
+			colorspace_conversion_required = colorspace == vz::graphics::ColorSpace::HDR10_ST2084;
+
+			bool requireUpdateRenderTarget = prev_width != width || prev_height != height || prev_dpi != dpi
+				|| prev_colorspace_conversion_required != colorspace_conversion_required;
+			if (!requireUpdateRenderTarget)
+				return;
+
+			init(width, height, dpi);
+			swapChain = {};
+			renderResult = {};
+			renderInterResult = {};
+
+			auto CreateRenderTarget = [&](vz::graphics::Texture& renderTexture, const bool isInterResult)
+				{
+					if (!renderTexture.IsValid())
+					{
+						vz::graphics::TextureDesc desc;
+						desc.width = width;
+						desc.height = height;
+						desc.bind_flags = vz::graphics::BindFlag::RENDER_TARGET | vz::graphics::BindFlag::SHADER_RESOURCE;
+						if (!isInterResult)
+						{
+							// we assume the main GUI and engine use the same GPU device
+							// vz::graphics::ResourceMiscFlag::SHARED_ACROSS_ADAPTER;
+							desc.misc_flags = vz::graphics::ResourceMiscFlag::SHARED;
+							desc.format = vz::graphics::Format::R10G10B10A2_UNORM;
+						}
+						else
+						{
+							desc.format = vz::graphics::Format::R11G11B10_FLOAT;
+						}
+						bool success = graphicsDevice->CreateTexture(&desc, nullptr, &renderTexture);
+						assert(success);
+
+						graphicsDevice->SetName(&renderTexture, (isInterResult ? "VzmRenderer::renderInterResult_" : "VzmRenderer::renderResult_") + camEntity);
+					}
+				};
+			if (colorspace_conversion_required)
+			{
+				CreateRenderTarget(renderInterResult, true);
+			}
+			if (swapChain.IsValid())
+			{
+				// dojo to do ... create swapchain...
+				// a window handler required 
+			}
+			else
+			{
+				CreateRenderTarget(renderResult, false);
+			}
+
+			Start(); // call ResizeBuffers();
+			prev_width = width;
+			prev_height = height;
+			prev_dpi = dpi;
+			prev_colorspace_conversion_required = colorspace_conversion_required;
+		}
+
 	public:
-		std::unique_ptr<CameraParams> cParam;
-		TimeStamp cParam_timeStamp = std::chrono::high_resolution_clock::now();
 
 		float deltaTime = 0;
 		float deltaTimeAccumulator = 0;
@@ -97,7 +218,7 @@ namespace vzm
 		bool framerate_lock = false;
 		vz::Timer timer;
 		int fps_avg_counter = 0;
-		
+
 		vz::FadeManager fadeManager;
 
 		// render target 을 compose... 
@@ -145,85 +266,68 @@ namespace vzm
 		std::string infodisplay_str;
 		float deltatimes[20] = {};
 
-		void ResizeRenderTargets()
+		// kind of initializer
+		void Load() override
 		{
-			vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
-			if (graphicsDevice == nullptr)
-				return;
-
-			if (swapChain.IsValid())
-			{
-				colorspace = graphicsDevice->GetSwapChainColorSpace(&swapChain);
-			}
-			colorspace_conversion_required = colorspace == vz::graphics::ColorSpace::HDR10_ST2084;
-
-			bool requireUpdateRenderTarget = prev_width != width || prev_height != height || prev_dpi != dpi
-				|| prev_colorspace_conversion_required != colorspace_conversion_required;
-			if (!requireUpdateRenderTarget)
-				return;
-
-			swapChain = {};
-			renderResult = {};
-			renderInterResult = {};
-			
-			auto CreateRenderTarget = [&](vz::graphics::Texture& renderTexture, const bool isInterResult) 
-				{
-					if (!renderTexture.IsValid())
-					{
-						vz::graphics::TextureDesc desc;
-						desc.width = width;
-						desc.height = height;
-						desc.format = vz::graphics::Format::R11G11B10_FLOAT;
-						desc.bind_flags = vz::graphics::BindFlag::RENDER_TARGET | vz::graphics::BindFlag::SHADER_RESOURCE;
-						if (!isInterResult)
-						{
-							desc.misc_flags = vz::graphics::ResourceMiscFlag::SHARED;
-						}
-						bool success = graphicsDevice->CreateTexture(&desc, nullptr, &renderTexture);
-						assert(success);
-
-						graphicsDevice->SetName(&renderTexture, (isInterResult ? "VzmRenderer::renderInterResult_" : "VzmRenderer::renderResult_") + camEntity);
-					}
-				};
-			if (colorspace_conversion_required)
-			{
-				CreateRenderTarget(renderInterResult, true);
-			}
-			if (swapChain.IsValid())
-			{
-				// dojo to do ... create swapchain...
-			}
-			else
-			{
-				CreateRenderTarget(renderResult, false);
-			}
-
-			Start(); // call ResizeBuffers();
-			prev_width = width;
-			prev_height = height;
-			prev_dpi = dpi;
-			prev_colorspace_conversion_required = colorspace_conversion_required;
-		}
-
-		void Load() override	// loading image
-		{
-			setSSREnabled(false);
-			setReflectionsEnabled(true);
-			setFXAAEnabled(false);
 
 			this->ClearSprites();
 			this->ClearFonts();
-
-			RenderPath3D::Load();
 
 			gridHelper = false;
 			infoDisplay.active = true;
 			infoDisplay.watermark = true;
 			infoDisplay.fpsinfo = true;
 			infoDisplay.resolution = true;
+			infoDisplay.colorspace = true;
+			infoDisplay.device_name = true;
+			infoDisplay.vram_usage = true;
 			infoDisplay.heap_allocation_counter = true;
 
+			// remove...
+			vz::renderer::SetToDrawGridHelper(true);
+			vz::renderer::SetVXGIReflectionsEnabled(false);
+			vz::renderer::SetTemporalAAEnabled(true);
+			setSSREnabled(false);
+			setFXAAEnabled(false);
+			setReflectionsEnabled(true);
+			setRaytracedReflectionsEnabled(true);
+			setFSR2Enabled(false);
+			setEyeAdaptionEnabled(true);
+			setEyeAdaptionKey(0.1f);
+			setEyeAdaptionRate(0.5f);
+
 			vz::font::UpdateAtlas(GetDPIScaling());
+
+			RenderPath3D::Load();
+
+			assert(width > 0 && height > 0);
+			{
+				const float fadeSeconds = 0.f;
+				vz::Color fadeColor = vz::Color(0, 0, 0, 255);
+				// Fade manager will activate on fadeout
+				fadeManager.Clear();
+				fadeManager.Start(fadeSeconds, fadeColor, [this]() {
+					Start();
+					});
+
+				fadeManager.Update(0); // If user calls ActivatePath without fadeout, it will be instant
+			}
+		}
+
+		void Update(float dt) override
+		{
+			RenderPath3D::Update(dt);	// calls RenderPath2D::Update(dt);
+		}
+
+		void PostUpdate() override
+		{
+			RenderPath2D::PostUpdate();
+			RenderPath3D::PostUpdate();
+		}
+
+		void FixedUpdate() override
+		{
+			RenderPath2D::FixedUpdate();
 		}
 
 		void Compose(vz::graphics::CommandList cmd)
@@ -254,7 +358,7 @@ namespace vzm
 				infodisplay_str.clear();
 				if (infoDisplay.watermark)
 				{
-					infodisplay_str += "VizMotive Engine ";
+					infodisplay_str += "Wicked Engine ";
 					infodisplay_str += vz::version::GetVersionString();
 					infodisplay_str += " ";
 
@@ -282,6 +386,12 @@ namespace vzm
 						infodisplay_str += "[Vulkan]";
 					}
 #endif // VZMENGINE_BUILD_VULKAN
+#ifdef PLATFORM_PS5
+					if (dynamic_cast<GraphicsDevice_PS5*>(graphicsDevice.get()))
+					{
+						infodisplay_str += "[PS5]";
+					}
+#endif // PLATFORM_PS5
 
 #ifdef _DEBUG
 					infodisplay_str += "[DEBUG]";
@@ -319,7 +429,7 @@ namespace vzm
 				if (infoDisplay.colorspace)
 				{
 					infodisplay_str += "Color Space: ";
-					ColorSpace colorSpace = graphicsDevice->GetSwapChainColorSpace(&swapChain);
+					ColorSpace colorSpace = colorspace; // graphicsDevice->GetSwapChainColorSpace(&swapChain);
 					switch (colorSpace)
 					{
 					default:
@@ -354,7 +464,7 @@ namespace vzm
 				if (infoDisplay.heap_allocation_counter)
 				{
 					infodisplay_str += "Heap allocations per frame: ";
-#ifdef WICKED_ENGINE_HEAP_ALLOCATION_COUNTER
+#ifdef VZM_ENGINE_HEAP_ALLOCATION_COUNTER
 					infodisplay_str += std::to_string(number_of_heap_allocations.load());
 					infodisplay_str += " (";
 					infodisplay_str += std::to_string(size_of_heap_allocations.load());
@@ -363,7 +473,7 @@ namespace vzm
 					size_of_heap_allocations.store(0);
 #else
 					infodisplay_str += "[disabled]\n";
-#endif // WICKED_ENGINE_HEAP_ALLOCATION_COUNTER
+#endif // VZM_ENGINE_HEAP_ALLOCATION_COUNTER
 				}
 				if (infoDisplay.pipeline_count)
 				{
@@ -486,19 +596,29 @@ namespace vzm
 				else
 				{
 					RenderPassImage rp[] = {
-						RenderPassImage::RenderTarget(&renderResult, RenderPassImage::LoadOp::CLEAR),
+						RenderPassImage::RenderTarget(&renderResult, RenderPassImage::LoadOp::LOAD),
 					};
 					graphicsDevice->RenderPassBegin(rp, arraysize(rp), cmd);
 				}
 			}
 
 			Compose(cmd);
-
 			graphicsDevice->RenderPassEnd(cmd);
+
 			if (colorspace_conversion_required)
 			{
 				// In HDR10, we perform a final mapping from linear to HDR10, into the swapchain
-				graphicsDevice->RenderPassBegin(&swapChain, cmd);
+				if (swapChain.IsValid())
+				{
+					graphicsDevice->RenderPassBegin(&swapChain, cmd);
+				}
+				else
+				{
+					RenderPassImage rp[] = {
+						RenderPassImage::RenderTarget(&renderResult, RenderPassImage::LoadOp::LOAD),
+					};
+					graphicsDevice->RenderPassBegin(rp, arraysize(rp), cmd);
+				}
 				vz::image::Params fx;
 				fx.enableFullScreen();
 				fx.enableHDR10OutputMapping();
@@ -523,7 +643,7 @@ namespace vzm
 			}
 			else
 			{
-				vz::graphics::RenderPassImage rt[] = { 
+				vz::graphics::RenderPassImage rt[] = {
 					vz::graphics::RenderPassImage::RenderTarget(&renderResult, vz::graphics::RenderPassImage::LoadOp::CLEAR)
 				};
 				graphicsDevice->RenderPassBegin(rt, 1, cmd);
@@ -541,59 +661,48 @@ namespace vzm
 			graphicsDevice->SubmitCommandLists();
 		}
 
-		void UpdateCParams()
+		bool UpdateVmCamera(const VmCamera* _vmCam = nullptr)
 		{
-			if (cParam == nullptr)
+			// note Scene::Merge... rearrange the components
+			camera = scene->cameras.GetComponent(camEntity);
+
+			if (_vmCam != nullptr)
 			{
-				return;
+				vmCam = std::make_unique<VmCamera>(*_vmCam);
+				camEntity = vmCam->componentVID;
 			}
-			std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(cParam_timeStamp - cParam->timeStamp);
-			if (time_span.count() >= 0)
+			std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(timeStamp_vmUpdate - vmCam->timeStamp);
+			if (time_span.count() > 0)
 			{
-				return;
+				return true;
 			}
+			TryResizeRenderTargets();
 
-			camera->Eye = *(XMFLOAT3*)cParam->pos;
-			//camera->At = XMFLOAT3(cParam->pos[0] + cParam->view[0], cParam->pos[1] + cParam->view[1], cParam->pos[2] + cParam->view[2]);
-			// Note At is the view direction
-
-			// up vector correction
-			XMVECTOR _view = XMVector3Normalize(XMLoadFloat3((XMFLOAT3*)cParam->view));
-			//camera->At = *(XMFLOAT3*)cParam->view;
-			XMStoreFloat3(&camera->At, _view);
-			XMVECTOR _up = XMLoadFloat3((XMFLOAT3*)cParam->up);
-			XMVECTOR _right = XMVector3Cross(_view, _up);
-			_up = XMVector3Normalize(XMVector3Cross(_right, _view));
-			XMStoreFloat3(&camera->Up, _up);
-
+			// ???? DOJO TO DO... SetPose 에서 해 보기... flickering 동작 확인
 			TransformComponent* transform = scene->transforms.GetComponent(camEntity);
 			if (transform)
 			{
-				XMVECTOR _Eye = XMLoadFloat3(&camera->Eye);
-				XMVECTOR _At = XMLoadFloat3(&camera->At);
-				XMVECTOR _Up = XMLoadFloat3(&camera->Up);
-				XMMATRIX _V = VZMatrixLookTo(_Eye, _At, _Up);
-				XMMATRIX _InvV = XMMatrixInverse(nullptr, _V);
-				transform->ClearTransform();
-				transform->MatrixTransform(_InvV);
 				transform->UpdateTransform();
-
-				camera->Eye = XMFLOAT3(0, 0, 0);
-				camera->At = XMFLOAT3(0, 0, -1);
-				camera->Up = XMFLOAT3(0, 1, 0);
-				camera->TransformCamera(*transform);
 			}
-			//transform->MatrixTransform(camera->GetInvView());
-			//transform->UpdateTransform();
-			camera->UpdateCamera();
+			else
+			{
+				camera->UpdateCamera();
+			}
+			timeStamp_vmUpdate = std::chrono::high_resolution_clock::now();
 
-			//camera->TransformCamera(*transform);
-			//camera->UpdateCamera();
-
-			init((uint32_t)std::max(cParam->w, 16.f), (uint32_t)std::max(cParam->h, 16.f), cParam->dpi);
-
-			cParam_timeStamp = std::chrono::high_resolution_clock::now();
+			return true;
 		}
+
+		VmCamera* GetVmCamera()
+		{
+			return vmCam.get();
+		}
+	};
+
+	struct VzmScene : Scene
+	{
+		VID sceneId = INVALID_VID;
+		std::string name;
 	};
 
 	class SceneManager
@@ -601,125 +710,15 @@ namespace vzm
 	private:
 		std::unique_ptr<vz::graphics::GraphicsDevice> graphicsDevice;
 
-		unordered_map<VID, Scene> scenes;						// <SceneEntity, Scene>
+		// archive
+		std::map<VID, VzmScene> scenes;						// <SceneEntity, Scene>
 		// one camera component to one renderer
-		unordered_map<VID, VzmRenderer> renderers;				// <CamEntity, VzmRenderer> (including camera and scene)
+		std::map<VID, VzmRenderer> renderers;				// <CamEntity, VzmRenderer> (including camera and scene)
+		std::map<VID, std::unique_ptr<VmCompBase>> vmComponents;
 
-		unordered_map<std::string, VID> nameMap;				// not allowed redundant name
-
+		std::map<std::string, VID> nameMap;				// not allowed redundant name
 
 	public:
-		//Scene internalResArchive;
-
-		// Runtime can create a new entity with this
-		inline Entity CreateSceneEntity(const std::string& name)
-		{
-			auto sid = nameMap.find(name);
-			if (sid != nameMap.end())
-			{
-				vz::backlog::post(name + " is already registered!", backlog::LogLevel::Error);
-				return INVALID_ENTITY;
-			}
-
-			Entity ett = CreateEntity();
-
-			if (ett != INVALID_ENTITY) {
-				Scene& scene = scenes[ett];
-				scene.weather = WeatherComponent();
-				nameMap[name] = ett;
-			}
-			return ett;
-		}
-		inline void RemoveScene(Entity sid)
-		{
-			Scene* scene = GetScene(sid);
-			if (scene)
-			{
-				scenes.erase(sid);
-				for (auto it : nameMap)
-				{
-					if (sid == it.second)
-					{
-						nameMap.erase(it.first);
-						return;
-					}
-				}
-			};
-		}
-		inline VID GetVidByName(const std::string& name)
-		{
-			auto it = nameMap.find(name);
-			if (it == nameMap.end())
-			{
-				return INVALID_ENTITY;
-			}
-			return it->second;
-		}
-		inline Scene* GetScene(const VID sid)
-		{
-			auto it = scenes.find(sid);
-			if (it == scenes.end())
-			{
-				return nullptr;
-			}
-			return &it->second;
-		}
-		inline Scene* GetSceneByName(const std::string& name) 
-		{
-			return GetScene(GetVidByName(name));
-		}
-		inline unordered_map<VID, Scene>& GetScenes()
-		{
-			return scenes;
-		}
-		inline VzmRenderer* CreateRenderer(const VID camEntity)
-		{
-			auto it = renderers.find(camEntity);
-			assert(it == renderers.end());
-
-			VzmRenderer* renderer = &renderers[camEntity];
-			renderer->camEntity = camEntity;
-
-			for (auto it = scenes.begin(); it != scenes.end(); it++)
-			{
-				Scene* scene = &it->second;
-				CameraComponent* camera = scene->cameras.GetComponent(camEntity);
-				if (camera)
-				{
-					renderer->scene = scene;
-					renderer->camera = camera;
-					nameMap[scene->names.GetComponent(camEntity)->name] = camEntity;
-					return renderer;
-				}
-			}
-			renderers.erase(camEntity);
-			return nullptr;
-		}
-		inline void RemoveRenderer(Entity camEntity)
-		{
-			renderers.erase(camEntity);
-			for (auto it : nameMap)
-			{
-				if (camEntity == it.second)
-				{
-					nameMap.erase(it.first);
-					return;
-				}
-			}
-		}
-		inline VzmRenderer* GetRenderer(const VID camEntity)
-		{
-			auto it = renderers.find(camEntity);
-			if (it == renderers.end())
-			{
-				return nullptr;
-			}
-			return &it->second;
-		}
-		inline VzmRenderer* GetRendererByName(const std::string& name)
-		{
-			return GetRenderer(GetVidByName(name));
-		}
 
 		void Initialize(::vzm::ParamMap<std::string>& argument)
 		{
@@ -789,7 +788,6 @@ namespace vzm
 				else if (use_dx12)
 				{
 #ifdef VZMENGINE_BUILD_DX12
-
 					vz::renderer::SetShaderPath(vz::renderer::GetShaderPath() + "hlsl6/");
 					graphicsDevice = std::make_unique<GraphicsDevice_DX12>(validationMode, preference);
 #endif
@@ -798,20 +796,356 @@ namespace vzm
 			vz::graphics::GetDevice() = graphicsDevice.get();
 
 			vz::initializer::InitializeComponentsAsync();
-			
+			//vz::initializer::InitializeComponentsImmediate();
+
 			// Reset all state that tests might have modified:
 			vz::eventhandler::SetVSync(true);
-			vz::renderer::SetToDrawGridHelper(false);
-			vz::renderer::SetTemporalAAEnabled(false);
-			vz::renderer::ClearWorld(vz::scene::GetScene());
+			//vz::renderer::SetToDrawGridHelper(false);
+			//vz::renderer::SetTemporalAAEnabled(false);
+			//vz::renderer::ClearWorld(vz::scene::GetScene());
+		}
+
+		// Runtime can create a new entity with this
+		inline Entity CreateSceneEntity(const std::string& name)
+		{
+			auto sid = nameMap.find(name);
+			if (sid != nameMap.end())
+			{
+				vz::backlog::post(name + " is already registered!", backlog::LogLevel::Error);
+				return INVALID_ENTITY;
+			}
+
+			Entity ett = CreateEntity();
+
+			if (ett != INVALID_ENTITY) {
+				VzmScene& scene = scenes[ett];
+				vz::renderer::ClearWorld(scene);
+				scene.weather = WeatherComponent();
+				scene.weather.ambient = XMFLOAT3(0.9f, 0.9f, 0.9f);
+				vz::Color default_sky_zenith = vz::Color(30, 40, 60, 200);
+				scene.weather.zenith = default_sky_zenith;
+				vz::Color default_sky_horizon = vz::Color(10, 10, 20, 220); // darker elements will lerp towards this
+				scene.weather.horizon = default_sky_horizon;
+				scene.weather.fogStart = std::numeric_limits<float>::max();
+				scene.weather.fogDensity = 0;
+				scene.name = name;
+				scene.sceneId = ett;
+				nameMap[name] = ett;
+			}
+
+			return ett;
+		}
+		inline VzmRenderer* CreateRenderer(const VID camEntity)
+		{
+			auto it = renderers.find(camEntity);
+			assert(it == renderers.end());
+
+			VzmRenderer* renderer = &renderers[camEntity];
+			renderer->camEntity = camEntity;
+
+			for (auto it = scenes.begin(); it != scenes.end(); it++)
+			{
+				VzmScene* scene = &it->second;
+				CameraComponent* camera = scene->cameras.GetComponent(camEntity);
+				if (camera)
+				{
+					renderer->scene = scene;
+					renderer->camera = camera;
+
+					nameMap[scene->names.GetComponent(camEntity)->name] = camEntity;
+					return renderer;
+				}
+			}
+			renderers.erase(camEntity);
+			return nullptr;
+		}
+
+		inline VID GetVidByName(const std::string& name)
+		{
+			for (auto it = scenes.begin(); it != scenes.end(); it++)
+			{
+				Entity ett = it->second.Entity_FindByName(name);
+				if (ett != INVALID_ENTITY)
+				{
+					return ett;
+				}
+				if (it->second.name == name)
+				{
+					return it->second.sceneId;
+				}
+			}
+			return INVALID_VID;
+		}
+		inline std::string GetNameByVid(const VID vid)
+		{
+			for (auto it = scenes.begin(); it != scenes.end(); it++)
+			{
+				NameComponent* nameComp = it->second.names.GetComponent(vid);
+				if (nameComp)
+				{
+					return nameComp->name;
+				}
+			}
+			auto it = scenes.find(vid);
+			if (it != scenes.end())
+			{
+				return it->second.name;
+			}
+			return "";
+		}
+		inline VzmScene* GetScene(const VID sid)
+		{
+			auto it = scenes.find(sid);
+			if (it == scenes.end())
+			{
+				return nullptr;
+			}
+			return &it->second;
+		}
+		inline VzmScene* GetSceneByName(const std::string& name)
+		{
+			return GetScene(GetVidByName(name));
+		}
+		inline std::map<VID, VzmScene>& GetScenes()
+		{
+			return scenes;
+		}
+		inline VzmRenderer* GetRenderer(const VID camEntity)
+		{
+			auto it = renderers.find(camEntity);
+			if (it == renderers.end())
+			{
+				return nullptr;
+			}
+			return &it->second;
+		}
+		inline VzmRenderer* GetRendererByName(const std::string& name)
+		{
+			return GetRenderer(GetVidByName(name));
+		}
+
+		template <typename VMCOMP>
+		inline VMCOMP* CreateVmComp(const VID vid)
+		{
+			auto it = vmComponents.find(vid);
+			assert(it == vmComponents.end());
+
+			std::string typeName = typeid(VMCOMP).name();
+			VmCompType compType = vmcomptypes[typeName];
+			if (compType == VmCompType::INVALID)
+			{
+				return nullptr;
+			}
+
+			for (auto sit = scenes.begin(); sit != scenes.end(); sit++)
+			{
+				VzmScene* scene = &sit->second;
+				vz::unordered_set<Entity> entities;
+				scene->FindAllEntities(entities);
+				auto it = entities.find(vid);
+				if (it != entities.end())
+				{
+					VMCOMP vmComp;
+					vmComp.componentVID = vid;
+					vmComp.COMP_TYPE = typeName;
+					vmComponents.insert(std::make_pair(vid, std::make_unique<VMCOMP>(vmComp)));
+					nameMap[scene->names.GetComponent(vid)->name] = vid;
+					return (VMCOMP*)vmComponents[vid].get();
+				}
+			}
+			return nullptr;
+		}
+
+		template <typename VMCOMP>
+		inline VMCOMP* GetVmComp(const VID vid)
+		{
+			auto it = vmComponents.find(vid);
+			if (it == vmComponents.end())
+			{
+				return nullptr;
+			}
+			return (VMCOMP*)it->second.get();
+		}
+		template <typename COMP>
+		inline COMP* GetEngineComp(const VID vid)
+		{
+			std::string typeName = typeid(COMP).name();
+			CompType compType = comptypes[typeName];
+			COMP* comp = nullptr;
+			for (auto it = scenes.begin(); it != scenes.end(); it++)
+			{
+				VzmScene* scene = &it->second;
+				switch (compType)
+				{
+				case CompType::CameraComponent_:
+					comp = (COMP*)scene->cameras.GetComponent(vid); break;
+				case CompType::ObjectComponent_:
+					comp = (COMP*)scene->objects.GetComponent(vid); break;
+				case CompType::TransformComponent_:
+					comp = (COMP*)scene->transforms.GetComponent(vid); break;
+				case CompType::HierarchyComponent_:
+					comp = (COMP*)scene->hierarchy.GetComponent(vid); break;
+				case CompType::NameComponent_:
+					comp = (COMP*)scene->names.GetComponent(vid); break;
+				case CompType::LightComponent_:
+					comp = (COMP*)scene->lights.GetComponent(vid); break;
+				case CompType::AnimationComponent_:
+					comp = (COMP*)scene->animations.GetComponent(vid); break;
+				default: assert(0 && "Not allowed GetComponent");  return nullptr;
+				}
+				if (comp) break;
+			}
+
+			return comp;
+		}
+
+		inline void RemoveEntity(Entity entity)
+		{
+			auto removeName = [&](Entity entity)
+				{
+					for (auto it2 : nameMap)
+					{
+						if (entity == it2.second)
+						{
+							nameMap.erase(it2.first);
+							return;
+						}
+					}
+				};
+
+			VzmScene* scene = GetScene(entity);
+			if (scene)
+			{
+				vz::unordered_set<Entity> entities;
+				scene->FindAllEntities(entities);
+
+				for (auto it = entities.begin(); it != entities.end(); it++)
+				{
+					renderers.erase(*it);
+					vmComponents.erase(*it);
+					removeName(*it);
+				}
+				scenes.erase(entity);
+				removeName(entity);
+			};
 		}
 	};
+
+	SceneManager sceneManager;
 }
 
 namespace vzm
 {
-	SceneManager sceneManager;
+	// VmCamera
+	void VmCamera::SetPose(const float pos[3], const float view[3], const float up[3])
+	{
+		CameraComponent* camComponent = sceneManager.GetEngineComp<CameraComponent>(componentVID);
+		if (!camComponent || !renderer) return;
 
+		// up vector correction
+		XMVECTOR _eye = XMLoadFloat3((XMFLOAT3*)pos);
+		XMVECTOR _view = XMVector3Normalize(XMLoadFloat3((XMFLOAT3*)view));
+		XMVECTOR _up = XMLoadFloat3((XMFLOAT3*)up);
+		XMVECTOR _right = XMVector3Cross(_view, _up);
+		_up = XMVector3Normalize(XMVector3Cross(_right, _view));
+
+
+		TransformComponent* transform = ((VzmRenderer*)renderer)->scene->transforms.GetComponent(componentVID);
+		if (transform)
+		{
+			XMMATRIX _V = VZMatrixLookTo(_eye, _view, _up);
+			XMMATRIX _InvV = XMMatrixInverse(nullptr, _V);
+			transform->ClearTransform();
+			transform->MatrixTransform(_InvV);
+
+			//transform->UpdateTransform();
+			//camComponent->TransformCamera(*transform);
+			//camComponent->UpdateCamera();
+		}
+		else
+		{
+			// Note At is the view direction
+			camComponent->Eye = *(XMFLOAT3*)pos;
+			XMStoreFloat3(&camComponent->At, _view);
+			XMStoreFloat3(&camComponent->Up, _up);
+			//camComponent->UpdateCamera();
+		}
+
+		timeStamp = std::chrono::high_resolution_clock::now();
+	}
+	void VmCamera::SetPerspectiveProjection(const float zNearP, const float zFarP, const float fovY, const float aspectRatio)
+	{
+		CameraComponent* camComponent = sceneManager.GetEngineComp<CameraComponent>(componentVID);
+		if (!camComponent) return;
+		// aspectRatio is W / H
+		camComponent->CreatePerspective(aspectRatio, 1.f, zNearP, zFarP, fovY);
+		timeStamp = std::chrono::high_resolution_clock::now();
+	}
+	void VmCamera::SetCanvasSize(const float w, const float h, const float dpi)
+	{
+		CameraComponent* camComponent = sceneManager.GetEngineComp<CameraComponent>(componentVID);
+		if (!camComponent || !renderer) return;
+		camComponent->CreatePerspective(w, h, camComponent->zNearP, camComponent->zFarP, camComponent->fov);
+		((VzmRenderer*)renderer)->init(std::max((uint32_t)w, 16u), std::max((uint32_t)h, 16u), dpi);
+		timeStamp = std::chrono::high_resolution_clock::now();
+	}
+	void VmCamera::GetPose(float pos[3], float view[3], float up[3])
+	{
+		CameraComponent* camComponent = sceneManager.GetEngineComp<CameraComponent>(componentVID);
+		if (!camComponent) return;
+		if (pos) *(XMFLOAT3*)pos = camComponent->Eye;
+		if (view) *(XMFLOAT3*)view = camComponent->At;
+		if (up) *(XMFLOAT3*)up = camComponent->Up;
+	}
+	void VmCamera::GetPerspectiveProjection(float* zNearP, float* zFarP, float* fovY, float* aspectRatio)
+	{
+		CameraComponent* camComponent = sceneManager.GetEngineComp<CameraComponent>(componentVID);
+		if (!camComponent) return;
+		if (zNearP) *zNearP = camComponent->zNearP;
+		if (zFarP) *zFarP = camComponent->zFarP;
+		if (fovY) *fovY = camComponent->fov;
+		if (aspectRatio) *aspectRatio = camComponent->width / camComponent->height;
+	}
+	void VmCamera::GetCanvasSize(float* w, float* h, float* dpi)
+	{
+		if (!renderer) return;
+		if (w) *w = (float)((VzmRenderer*)renderer)->width;
+		if (h) *h = (float)((VzmRenderer*)renderer)->height;
+		if (dpi) *dpi = ((VzmRenderer*)renderer)->dpi;
+	}
+
+	// VmActor
+	// VmLight
+
+	// VmAnimation
+	void VmAnimation::Play()
+	{
+		AnimationComponent* aniComponent = sceneManager.GetEngineComp<AnimationComponent>(componentVID);
+		if (!aniComponent) return;
+		aniComponent->Play();
+	}
+	void VmAnimation::Pause()
+	{
+		AnimationComponent* aniComponent = sceneManager.GetEngineComp<AnimationComponent>(componentVID);
+		if (!aniComponent) return;
+		aniComponent->Pause();
+	}
+	void VmAnimation::Stop()
+	{
+		AnimationComponent* aniComponent = sceneManager.GetEngineComp<AnimationComponent>(componentVID);
+		if (!aniComponent) return;
+		aniComponent->Stop();
+	}
+	void VmAnimation::SetLooped(const bool value)
+	{
+		AnimationComponent* aniComponent = sceneManager.GetEngineComp<AnimationComponent>(componentVID);
+		if (!aniComponent) return;
+		aniComponent->SetLooped(value);
+	}
+}
+
+namespace vzm
+{
 	VZRESULT InitEngineLib(const std::string& coreName, const std::string& logFileName)
 	{
 		static bool initialized = false;
@@ -820,8 +1154,29 @@ namespace vzm
 			return VZ_OK;
 		}
 
+		auto ext_video = vz::resourcemanager::GetSupportedVideoExtensions();
+		for (auto& x : ext_video)
+		{
+			filetypes[x] = FileType::VIDEO;
+		}
+		auto ext_sound = vz::resourcemanager::GetSupportedSoundExtensions();
+		for (auto& x : ext_sound)
+		{
+			filetypes[x] = FileType::SOUND;
+		}
+		auto ext_image = vz::resourcemanager::GetSupportedImageExtensions();
+		for (auto& x : ext_image)
+		{
+			filetypes[x] = FileType::IMAGE;
+		}
+
 		ParamMap<std::string> arguments;
 		sceneManager.Initialize(arguments);
+
+		// With this mode, file data for resources will be kept around. This allows serializing embedded resource data inside scenes
+		vz::resourcemanager::SetMode(vz::resourcemanager::Mode::ALLOW_RETAIN_FILEDATA);
+
+		vz::backlog::setFontColor(vz::Color(130, 210, 220, 255));
 
 		return VZ_OK;
 	}
@@ -837,6 +1192,17 @@ namespace vzm
 		return sceneManager.GetVidByName(name);
 	}
 
+	bool GetNameById(const VID vid, std::string& name)
+	{
+		name = sceneManager.GetNameByVid(vid);
+		return name != "";
+	}
+
+	void RemoveEntity(const VID vid)
+	{
+		sceneManager.RemoveEntity(vid);
+	}
+
 	VID NewScene(const std::string& sceneName)
 	{
 		Scene* scene = sceneManager.GetSceneByName(sceneName);
@@ -844,6 +1210,7 @@ namespace vzm
 		{
 			return INVALID_ENTITY;
 		}
+
 		return sceneManager.CreateSceneEntity(sceneName);
 	}
 
@@ -863,7 +1230,7 @@ namespace vzm
 		}
 	}
 
-	VID NewActor(const VID sceneId, const std::string& actorName, const ActorParams& aParams, const VID parentId)
+	VID NewActor(const VID sceneId, const std::string& actorName, const VID parentId, VmActor** actor)
 	{
 		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
@@ -871,61 +1238,47 @@ namespace vzm
 			return INVALID_ENTITY;
 		}
 		Entity ett = scene->Entity_CreateObject(actorName);
-		// TO DO
 		{
-			ObjectComponent* objComponent = scene->objects.GetComponent(ett);
-			objComponent->meshID = aParams.GetResourceID(ActorParams::RES_USAGE::GEOMETRY);
+			VmActor* _actor = sceneManager.CreateVmComp<VmActor>(ett);
+			if (actor) *actor = _actor;
 		}
 		MoveToParent(ett, parentId, scene);
 		return ett;
 	}
 
-	// cameraComponent, renderer, ==> CameraParams
-	// objectComponent ==> ActorParams
-	// lightCompoenent ==> LightParams
-
-	VID NewCamera(const VID sceneId, const std::string& camName, const CameraParams& cParams, const VID parentId)
+	VID NewCamera(const VID sceneId, const std::string& camName, const VID parentId, VmCamera** camera)
 	{
 		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
 		{
 			return INVALID_ENTITY;
 		}
-		Entity ett = INVALID_ENTITY;
-		switch (cParams.projectionMode)
-		{
-		case CameraParams::ProjectionMode::CAMERA_FOV:
-			ett = scene->Entity_CreateCamera(camName, (float)cParams.w, (float)cParams.h, cParams.np, cParams.fp, cParams.fov_y);
-			break;
-		case CameraParams::ProjectionMode::CAMERA_INTRINSICS:
-		case CameraParams::ProjectionMode::IMAGEPLANE_SIZE:
-		case CameraParams::ProjectionMode::SLICER_PLANE:
-		case CameraParams::ProjectionMode::SLICER_CURVED:
-		default:
-			return INVALID_ENTITY;
-		}
+		Entity ett = scene->Entity_CreateCamera(camName, CANVAS_INIT_W, CANVAS_INIT_H);
 
 		CameraComponent* camComponent = scene->cameras.GetComponent(ett);
-		assert(camComponent);
-		//TransformComponent* transform = scene->transforms.GetComponent(ett);
-		
+
 		// camComponent's Eye, At and Up are basically updated when applying transform
 		// if it has no transform, then they are used for computing the transform
 		// Entity_CreateCamera provides a transform component by default
 		// So, here, we just use the lookAt interface (UpdateCamera) of the camComponent
 		VzmRenderer* renderer = sceneManager.CreateRenderer(ett);
-		renderer->camera = camComponent;
 		renderer->scene = scene;
-		renderer->cParam = std::make_unique<CameraParams>(cParams);
-		renderer->cParam->timeStamp = std::chrono::high_resolution_clock::now();
-		renderer->UpdateCParams();
-		renderer->Start(); // call ResizeBuffers();
-		renderer->Load();
+		assert(renderer->camera == camComponent);
+		VmCamera vmCam;
+		vmCam.COMP_TYPE = typeid(VmCamera).name();
+		vmCam.componentVID = ett;
+		vmCam.renderer = (VmRenderer*)renderer;
+		renderer->UpdateVmCamera(&vmCam);
+		renderer->init(CANVAS_INIT_W, CANVAS_INIT_H, CANVAS_INIT_DPI);
+		renderer->Load(); // Calls renderer->Start()
+
+		if (camera) *camera = renderer->GetVmCamera();
+
 		MoveToParent(ett, parentId, scene);
 		return ett;
 	}
 
-	VID NewLight(const VID sceneId, const std::string& lightName, const LightParams& lParams, const VID parentId)
+	VID NewLight(const VID sceneId, const std::string& lightName, const VID parentId, VmLight** light)
 	{
 		Scene* scene = sceneManager.GetScene(sceneId);
 		if (scene == nullptr)
@@ -933,19 +1286,49 @@ namespace vzm
 			return INVALID_ENTITY;
 		}
 		Entity ett = scene->Entity_CreateLight(lightName);
+		{
+			VmLight* _light = sceneManager.CreateVmComp<VmLight>(ett);
+			if (light) *light = _light;
+		}
 		MoveToParent(ett, parentId, scene);
 		return ett;
 	}
 
-	CameraParams* GetCamera(const VID camId)
+	VmCamera* GetCamera(const VID camId)
 	{
 		VzmRenderer* renderer = sceneManager.GetRenderer(camId);
 		if (renderer == nullptr)
 		{
 			return nullptr;
 		}
-		renderer->cParam->timeStamp = std::chrono::high_resolution_clock::now();
-		return renderer->cParam.get();
+		return renderer->GetVmCamera();
+	}
+
+	uint32_t GetSceneCameraIDs(const VID sceneId, std::vector<VID>& camIds)
+	{
+		Scene* scene = sceneManager.GetScene(sceneId);
+		if (scene == nullptr)
+		{
+			return 0u;
+		}
+		camIds = scene->cameras.GetEntityArray();
+		return (uint32_t)camIds.size();
+	}
+
+	VmAnimation* GetAnimation(const VID aniId)
+	{
+		return sceneManager.GetVmComp<VmAnimation>(aniId);
+	}
+
+	uint32_t GetSceneAnimations(const VID sceneId, std::vector<VID>& aniIds)
+	{
+		Scene* scene = sceneManager.GetScene(sceneId);
+		if (scene == nullptr)
+		{
+			return 0u;
+		}
+		aniIds = scene->animations.GetEntityArray();
+		return (uint32_t)aniIds.size();
 	}
 
 	VID LoadMeshModel(const VID sceneId, const std::string& file, const std::string& rootName)
@@ -969,19 +1352,58 @@ namespace vzm
 		if (type == FileType::INVALID)
 			return INVALID_ENTITY;
 
+		Scene sceneTmp;
+		vz::vector<Entity> camEntities;
+		vz::vector<Entity> aniEntities, objEntities, lightEntities;
 		if (type == FileType::OBJ) // wavefront-obj
 		{
-			Scene sceneTmp;
 			rootEntity = ImportModel_OBJ(file, sceneTmp);	// reassign transform components
-			sceneTmp.names.GetComponent(rootEntity)->name = rootName;
-			scene->Merge(sceneTmp);
 		}
 		else if (type == FileType::GLTF || type == FileType::GLB || type == FileType::VRM) // gltf, vrm
 		{
-			Scene scene;
-			ImportModel_GLTF(file, scene);
-			//GetCurrentScene().Merge(scene);
+			rootEntity = ImportModel_GLTF(file, sceneTmp);
+			camEntities = sceneTmp.cameras.GetEntityArray();
+
+			aniEntities = sceneTmp.animations.GetEntityArray();
+			objEntities = sceneTmp.lights.GetEntityArray();
+			lightEntities = sceneTmp.objects.GetEntityArray();
 		}
+		sceneTmp.names.GetComponent(rootEntity)->name = rootName;
+		scene->Merge(sceneTmp);
+
+
+		for (Entity& ett : camEntities)
+		{
+			VzmRenderer* renderer = sceneManager.CreateRenderer(ett);
+			CameraComponent* camComponent = scene->cameras.GetComponent(ett);
+			renderer->scene = scene;
+			assert(renderer->camera == camComponent);
+
+			VmCamera vmCam;
+			vmCam.COMP_TYPE = typeid(VmCamera).name();
+			vmCam.componentVID = ett;
+			vmCam.renderer = (VmRenderer*)renderer;
+
+			//scene->hierarchy.Remove(ett);
+
+			renderer->UpdateVmCamera(&vmCam);
+			renderer->init(CANVAS_INIT_W, CANVAS_INIT_H, CANVAS_INIT_DPI);
+			renderer->Load(); // Calls renderer->Start()
+		}
+
+		for (Entity& ett : aniEntities)
+		{
+			sceneManager.CreateVmComp<VmAnimation>(ett);
+		}
+		for (Entity& ett : objEntities)
+		{
+			sceneManager.CreateVmComp<VmActor>(ett);
+		}
+		for (Entity& ett : lightEntities)
+		{
+			sceneManager.CreateVmComp<VmLight>(ett);
+		}
+
 		return rootEntity;
 	}
 
@@ -992,13 +1414,10 @@ namespace vzm
 		{
 			return VZ_FAIL;
 		}
-		
+
 		vz::font::UpdateAtlas(renderer->GetDPIScaling());
 
-		vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
-
-		renderer->UpdateCParams();
-		renderer->ResizeRenderTargets();
+		renderer->UpdateVmCamera();
 
 		if (!vz::initializer::IsInitializeFinished())
 		{
@@ -1007,8 +1426,19 @@ namespace vzm
 			return VZ_JOB_WAIT;
 		}
 
-		// remove...
-		vz::renderer::SetToDrawGridHelper(true);
+
+		//{
+		//	//Entity ett= vz::scene::GetScene().Entity_FindByName("cam transform");
+		//	TransformComponent* transform = renderer->scene->transforms.GetComponent(renderer->camEntity);
+		//	XMMATRIX matT = XMMatrixTranslation(0, 0.5f, -4.5f);
+		//	static float ii = 0.f;
+		//	XMMATRIX matR = XMMatrixRotationY(XM_PI / 180.f * (ii++));
+		//	transform->ClearTransform();
+		//	transform->MatrixTransform(matT * matR);
+		//	transform->UpdateTransform();
+		//	//vz::scene::GetCamera().TransformCamera(*transform);
+		//}
+
 
 		vz::profiler::BeginFrame();
 		renderer->deltaTime = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
@@ -1019,9 +1449,11 @@ namespace vzm
 			vz::helper::QuickSleep((target_deltaTime - renderer->deltaTime) * 1000);
 			renderer->deltaTime += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
 		}
+		//vz::input::Update(nullptr, *renderer);
 		// Wake up the events that need to be executed on the main thread, in thread safe manner:
 		vz::eventhandler::FireEvent(vz::eventhandler::EVENT_THREAD_SAFE_POINT, 0);
 		renderer->fadeManager.Update(renderer->deltaTime);
+
 		renderer->PreUpdate(); // current to previous
 
 		// Fixed time update:
@@ -1073,7 +1505,7 @@ namespace vzm
 		return vz::graphics::GetDevice();
 	}
 
-	void* GetGraphicsSharedRenderTarget(const int camId, const void* graphicsDev2, uint32_t* w, uint32_t* h)
+	void* GetGraphicsSharedRenderTarget(const int camId, const void* graphicsDev2, const void* srv_desc_heap2, const int descriptor_index, uint32_t* w, uint32_t* h)
 	{
 		VzmRenderer* renderer = sceneManager.GetRenderer(camId);
 		if (renderer == nullptr)
@@ -1086,12 +1518,12 @@ namespace vzm
 
 		vz::graphics::GraphicsDevice* graphicsDevice = vz::graphics::GetDevice();
 		//return graphicsDevice->OpenSharedResource(graphicsDev2, const_cast<vz::graphics::Texture*>(&renderer->GetRenderResult()));
-		//return graphicsDevice->OpenSharedResource(graphicsDev2, &renderer->rtMain);
-		return graphicsDevice->OpenSharedResource(graphicsDev2, const_cast<vz::graphics::Texture*>(&renderer->renderResult));
+		//return graphicsDevice->OpenSharedResource(graphicsDev2, &renderer->rtPostprocess);
+		return graphicsDevice->OpenSharedResource(graphicsDev2, srv_desc_heap2, descriptor_index, const_cast<vz::graphics::Texture*>(&renderer->renderResult));
 	}
 }
 
-#include "vzArcBall.h"
+#include "../vzArcBall.h"
 
 namespace vzm
 {
@@ -1135,7 +1567,7 @@ namespace vzm
 		arcball::ArcBall& arc_ball = itr->second;
 		if (!arc_ball.__is_set_stage)
 			return fail_ret("NO INITIALIZATION IN THIS ARCBALL!");
-		
+
 		arcball::CameraState cam_pose_ac;
 		cam_pose_ac.isPerspective = true;
 		cam_pose_ac.np = np;
@@ -1150,7 +1582,7 @@ namespace vzm
 		XMStoreFloat3(&cam_pose_ac.vecUp, _up);
 
 		XMMATRIX ws2cs, cs2ps, ps2ss;
-		ws2cs = VZMatrixLookTo(XMLoadFloat3(&cam_pose_ac.posCamera), 
+		ws2cs = VZMatrixLookTo(XMLoadFloat3(&cam_pose_ac.posCamera),
 			XMLoadFloat3(&cam_pose_ac.vecView), XMLoadFloat3(&cam_pose_ac.vecUp));
 		cs2ps = VZMatrixPerspectiveFov(XM_PIDIV4, (float)screen_size[0] / (float)screen_size[1], np, fp);
 		compute_screen_matrix(ps2ss, screen_size[0], screen_size[1]);
