@@ -1029,9 +1029,9 @@ namespace vz::helper
 			return true;
 		}
 #else
-		using namespace vznrt::Windows::Storage;
-		using namespace vznrt::Windows::Storage::Streams;
-		using namespace vznrt::Windows::Foundation;
+		using namespace winrt::Windows::Storage;
+		using namespace winrt::Windows::Storage::Streams;
+		using namespace winrt::Windows::Foundation;
 		std::wstring wstr;
 		std::filesystem::path filepath = fileName;
 		filepath = std::filesystem::absolute(filepath);
@@ -1113,9 +1113,9 @@ namespace vz::helper
 		}
 #else
 
-		using namespace vznrt::Windows::Storage;
-		using namespace vznrt::Windows::Storage::Streams;
-		using namespace vznrt::Windows::Foundation;
+		using namespace winrt::Windows::Storage;
+		using namespace winrt::Windows::Storage::Streams;
+		using namespace winrt::Windows::Foundation;
 		std::wstring wstr;
 		std::filesystem::path filepath = fileName;
 		filepath = std::filesystem::absolute(filepath);
@@ -1175,9 +1175,9 @@ namespace vz::helper
 		bool exists = std::filesystem::exists(ToNativeString(fileName));
 		return exists;
 #else
-		using namespace vznrt::Windows::Storage;
-		using namespace vznrt::Windows::Storage::Streams;
-		using namespace vznrt::Windows::Foundation;
+		using namespace winrt::Windows::Storage;
+		using namespace winrt::Windows::Storage::Streams;
+		using namespace winrt::Windows::Foundation;
 		std::wstring wstr;
 		std::filesystem::path filepath = fileName;
 		filepath = std::filesystem::absolute(filepath);
@@ -1334,9 +1334,9 @@ namespace vz::helper
 #ifdef PLATFORM_UWP
 		auto filedialoghelper = [](FileDialogParams params, std::function<void(std::string fileName)> onSuccess) -> winrt::fire_and_forget {
 
-			using namespace vznrt::Windows::Storage;
-			using namespace vznrt::Windows::Storage::Pickers;
-			using namespace vznrt::Windows::Storage::AccessCache;
+			using namespace winrt::Windows::Storage;
+			using namespace winrt::Windows::Storage::Pickers;
+			using namespace winrt::Windows::Storage::AccessCache;
 
 			switch (params.type)
 			{

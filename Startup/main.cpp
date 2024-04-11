@@ -11,9 +11,9 @@
 #include "wrl/client.h"
 using namespace Microsoft::WRL;
 
-#include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx12.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx12.h"
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <tchar.h>
@@ -84,7 +84,7 @@ int main(int, char**)
 	//ImGui_ImplWin32_EnableDpiAwareness();
 	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
 	::RegisterClassExW(&wc);
-	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
+	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::InitEngineLib();
 
@@ -114,7 +114,7 @@ int main(int, char**)
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hwnd);
 	ImGui_ImplDX12_Init(g_pd3dDevice, NUM_FRAMES_IN_FLIGHT,
-		DXGI_FORMAT_R8G8B8A8_UNORM, g_pd3dSrvDescHeap,
+		DXGI_FORMAT_R11G11B10_FLOAT, g_pd3dSrvDescHeap,
 		g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
 		g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -160,124 +160,170 @@ int main(int, char**)
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-		
+
 		{
-			static VID sid = 0, cid = 0;
+			static VID sid = 0, cid = 0, cid_ani = 0;
 			static vzm::ArcBall arcball;
 			static ImVec2 wh(512, 512);
 			if (sid == 0)
 			{
 				sid = vzm::NewScene("my scene");
-				vzm::CameraParams cp;
-				cp.projectionMode = vzm::CameraParams::ProjectionMode::CAMERA_FOV;
 				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-				cp.w = wh.x;
-				cp.h = wh.y;
-				cp.fov_y = glm::pi<float>() * 0.5f;
-				cp.dpi = 96.f;
-				GLM_F3 cp.pos = glm::fvec3(0, 15, 15);
-				GLM_F3 cp.up = glm::fvec3(0, 1, 0);
-				GLM_F3 cp.view = glm::fvec3(0, 0, 0) - GLM_F3 cp.pos;
-				cid = vzm::NewCamera(sid, "my camera", cp);
+				vzm::VmCamera* vmCam;
+				cid = vzm::NewCamera(sid, "my camera", 0, &vmCam);
+				vmCam->SetCanvasSize(wh.x, wh.y, 96.f);
+				glm::fvec3 pos(0, 2, 2), up(0, 1, 0), at(0, 0, 0);
+				glm::fvec3 view = at - pos;
+				vmCam->SetPose(__FP pos, __FP view, __FP up);
+				vmCam->SetPerspectiveProjection(0.1f, 5000.f, glm::pi<float>() * 0.4f, 1.f);
 
-				glm::fvec3 center(0);
-				arcball.Intializer(__FP center, 10.f);
+				arcball.Intializer(__FP at, 2.f);
 
-				vzm::LoadMeshModel(sid, "D:\\VisMotive\\data\\obj files\\skull\\12140_Skull_v3_L2.obj", "my obj");
+				vzm::LoadMeshModel(sid, "D:\\data\\car_gltf\\ioniq.gltf", "my obj");
+				std::vector<VID> camIds;
+				vzm::GetSceneCameraIDs(sid, camIds);
+				for (VID id : camIds)
+				{
+					if (id != cid)
+					{
+						cid_ani = id;
+						vzm::VmCamera* vmCamNew = vzm::GetCamera(id);
+						vmCamNew->GetPose(__FP pos, __FP view, __FP up);
+						vmCam->SetPose(__FP pos, __FP view, __FP up);
+
+						vmCamNew->SetCanvasSize(wh.x, wh.y, 96.f);
+						break;
+					}
+				}
+				//vzm::LoadMeshModel(sid, "D:\\VisMotive\\data\\obj files\\skull\\12140_Skull_v3_L2.obj", "my obj");
 			}
 
-			ImGui::Begin("DirectX12 Texture Test");
-			// Note that we pass the GPU SRV handle here, *not* the CPU handle. We're passing the internal pointer value, cast to an ImTextureID
-
-			static ImVec2 prevWindowSize = ImVec2(0, 0);
-			ImVec2 curWindowSize = ImGui::GetWindowSize();
-
-			//if (prevWindowSize.x * prevWindowSize.y == 0)
-			//	ImGui::SetWindowSize(ImVec2(0, 0));
-
-			bool resized = prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y;
-			prevWindowSize = curWindowSize;
-
-			ImVec2 winPos = ImGui::GetWindowPos();
-			ImVec2 curItemPos = ImGui::GetCursorPos();
-			if (resized)
+			ImGui::Begin("Arcball Viewer");
 			{
-				vzm::CameraParams* cp = vzm::GetCamera(cid);
-				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-				cp->w = std::max(canvas_size.x, 1.f);
-				cp->h = std::max(canvas_size.y, 1.f);
-				wh = canvas_size;
+				// Note that we pass the GPU SRV handle here, *not* the CPU handle. We're passing the internal pointer value, cast to an ImTextureID
+
+				static ImVec2 prevWindowSize = ImVec2(0, 0);
+				ImVec2 curWindowSize = ImGui::GetWindowSize();
+
+				if (prevWindowSize.x * prevWindowSize.y == 0)
+					ImGui::SetWindowSize(ImVec2(0, 0));
+
+				bool resized = prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y;
+				prevWindowSize = curWindowSize;
+
+				ImVec2 winPos = ImGui::GetWindowPos();
+				ImVec2 curItemPos = ImGui::GetCursorPos();
+				if (resized)
+				{
+					vzm::VmCamera* vmCam = vzm::GetCamera(cid);
+					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+					canvas_size.y = std::max(canvas_size.y, 1.f);
+					vmCam->SetCanvasSize(canvas_size.x, canvas_size.y, 96.f);
+					wh = canvas_size;
+				}
+				ImGui::InvisibleButton("render window", wh, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+				ImGui::SetItemAllowOverlap();
+
+				const bool is_hovered = ImGui::IsItemHovered(); // Hovered
+				const bool is_active = ImGui::IsItemActive();   // Held
+
+				if (is_hovered && !resized)
+				{
+					static glm::fvec2 __prevMousePos(0);
+					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
+					glm::fvec2 s_pos = *(glm::fvec2*)&curItemPos;
+					glm::fvec2 w_pos = *(glm::fvec2*)&winPos;
+					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
+					glm::ivec2 pos_ss = m_pos;
+
+					vzm::VmCamera* vmCam = vzm::GetCamera(cid);
+					glm::fvec3 pos, view, up;
+					vmCam->GetPose(__FP pos, __FP view, __FP up);
+
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+					{
+						float np, fp;
+						vmCam->GetPerspectiveProjection(&np, &fp, NULL, NULL);
+						arcball.Start((int*)&pos_ss, __FP wh, __FP pos, __FP view, __FP up, np, fp);
+					}
+					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f))
+						&& glm::length2(__prevMousePos - m_pos) > 0)
+					{
+						if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+							arcball.PanMove((int*)&pos_ss, __FP pos, __FP view, __FP up);
+						else
+							arcball.Move((int*)&pos_ss, __FP pos, __FP view, __FP up);
+						vmCam->SetPose(__FP pos, __FP view, __FP up);
+					}
+					else if (io.MouseWheel != 0)
+					{
+						if (io.MouseWheel > 0)
+							pos += 0.2f * view;
+						else
+							pos -= 0.2f * view;
+						vmCam->SetPose(__FP pos, __FP view, __FP up);
+					}
+					__prevMousePos = pos_ss;
+				}
+				ImGui::SetCursorPos(curItemPos);
+
+				vzm::Render(cid);
+
+				uint32_t w, h;
+				ImTextureID texId = vzm::GetGraphicsSharedRenderTarget(cid, g_pd3dDevice, g_pd3dSrvDescHeap, 1, &w, &h);
+				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
+				ImGui::Image(texId, ImVec2((float)w, (float)h));
 			}
-			ImGui::InvisibleButton("render window", wh, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-			ImGui::SetItemAllowOverlap();
-
-			const bool is_hovered = ImGui::IsItemHovered(); // Hovered
-			const bool is_active = ImGui::IsItemActive();   // Held
-
-			{
-				static glm::fvec2 __prevMousePos(0);
-				glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
-				glm::fvec2 s_pos = *(glm::fvec2*)&curItemPos;
-				glm::fvec2 w_pos = *(glm::fvec2*)&winPos;
-				glm::fvec2 m_pos = ioPos - s_pos - w_pos;
-				glm::ivec2 pos_ss = m_pos;
-
-				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right)) 
-				{
-					vzm::CameraParams* cp = vzm::GetCamera(cid);
-					arcball.Start((int*)&pos_ss, __FP wh, cp->pos, cp->view, cp->up, cp->np, cp->fp);
-				}
-				else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f))
-					&& glm::length2(__prevMousePos - m_pos) > 0) 
-				{
-					vzm::CameraParams* cp = vzm::GetCamera(cid);
-					if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-						arcball.PanMove((int*)&pos_ss, cp->pos, cp->view, cp->up);
-					else 
-						arcball.Move((int*)&pos_ss, cp->pos, cp->view, cp->up);
-				}
-				else if (io.MouseWheel != 0) 
-				{
-					vzm::CameraParams* cp = vzm::GetCamera(cid);
-					if (io.MouseWheel > 0)
-						*(glm::fvec3*)cp->pos += 0.2f * (*(glm::fvec3*)cp->view);
-					else
-						*(glm::fvec3*)cp->pos -= 0.2f * (*(glm::fvec3*)cp->view);
-				}
-				__prevMousePos = pos_ss;
-			}
-			ImGui::SetCursorPos(curItemPos);
-
-			vzm::Render(cid);
-
-			uint32_t w, h;
-			ImTextureID texId = vzm::GetGraphicsSharedRenderTarget(cid, g_pd3dDevice, &w, &h);
-			// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
-			ImGui::Image(texId, ImVec2((float)w, (float)h));
 			ImGui::End();
-		}
-		/**/
 
-		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-		{
-			static float f = 0.0f;
-			static int counter = 0;
 
-			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+			ImGui::Begin("Animation");
+			if (cid_ani != INVALID_VID)
+			{
+				// Note that we pass the GPU SRV handle here, *not* the CPU handle. We're passing the internal pointer value, cast to an ImTextureID
 
-			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-			ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-			ImGui::Checkbox("Another Window", &show_another_window);
+				static ImVec2 prevWindowSize = ImVec2(0, 0);
+				ImVec2 curWindowSize = ImGui::GetWindowSize();
 
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+				//if (prevWindowSize.x * prevWindowSize.y == 0)
+				//	ImGui::SetWindowSize(ImVec2(0, 0));
 
-			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-				counter++;
-			ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
+				bool resized = prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y;
+				prevWindowSize = curWindowSize;
+				if (resized)
+				{
+					vzm::VmCamera* vmCam = vzm::GetCamera(cid_ani);
+					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+					vmCam->SetCanvasSize(canvas_size.x, std::max(canvas_size.y, 1.f), 96.f);
+					wh = canvas_size;
+				}
 
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+				vzm::Render(cid_ani);
+
+				uint32_t w, h;
+				ImTextureID texId = vzm::GetGraphicsSharedRenderTarget(cid_ani, g_pd3dDevice, g_pd3dSrvDescHeap, 2, &w, &h);
+				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
+				ImGui::Image(texId, ImVec2((float)w, (float)h));
+			}
+			ImGui::End();
+
+			ImGui::Begin("Hello, world!");
+			{
+				if (ImGui::Button("PLAY"))
+				{
+					std::vector<VID> aniComponentes;
+					if (vzm::GetSceneAnimations(sid, aniComponentes) > 0u)
+					{
+						for (size_t i = 0; i < aniComponentes.size(); i++)
+						{
+							vzm::VmAnimation* aniComp = vzm::GetAnimation(aniComponentes[i]);
+							aniComp->Play();
+						}
+					}
+
+				}
+				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+			}
 			ImGui::End();
 		}
 
@@ -406,7 +452,7 @@ bool CreateDeviceD3D(HWND hWnd)
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		desc.NumDescriptors = 1;
+		desc.NumDescriptors = 3;
 		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		if (g_pd3dDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&g_pd3dSrvDescHeap)) != S_OK)
 			return false;
