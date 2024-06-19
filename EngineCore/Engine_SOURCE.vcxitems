@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{D8D9BFE0-037D-43C2-A0E4-C5E88B21BFEA}</ItemsProjectGuid>
+    <ItemsProjectName>Engine_SOURCE</ItemsProjectName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\ResourceManager.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\SceneManager.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Version.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzEngineAPIs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\LibHelpers\MathHelper.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
+  </ItemGroup>
+</Project>
