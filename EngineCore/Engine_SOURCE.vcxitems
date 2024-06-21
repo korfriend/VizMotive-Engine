@@ -17,6 +17,7 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath.h" />
@@ -29,10 +30,16 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\LibHelpers\MathHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
   </ItemGroup>
 </Project>
