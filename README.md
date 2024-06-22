@@ -1,4 +1,4 @@
-"# New Vizualization Framework Engine"
+# New Vizualization Framework Engine
 - This project starts with the compact version of Wicked and Filament Engine (first milestone)
 - And adding my previous rendering engine features to this project while refactoring/compacting the underlying datastructures
 - Jobsystem as Thread manager will be modified for supporting MD project
