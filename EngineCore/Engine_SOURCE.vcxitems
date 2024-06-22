@@ -16,6 +16,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h" />
@@ -27,8 +29,14 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\SceneManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Version.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzEngineAPIs.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\LibHelpers\MathHelper.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXColors.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMath.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
@@ -38,8 +46,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathConvert.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathMatrix.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathMisc.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathVector.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.inl" />
   </ItemGroup>
 </Project>

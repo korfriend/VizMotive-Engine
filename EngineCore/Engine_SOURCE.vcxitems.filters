@@ -13,11 +13,11 @@
     <Filter Include="Common\Backend">
       <UniqueIdentifier>{c12d6c79-e70d-436e-8ea8-c35432313ec0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Libs\LibHelpers">
-      <UniqueIdentifier>{728623c7-530a-458a-88d2-48889f0d0737}</UniqueIdentifier>
-    </Filter>
     <Filter Include="HighlevelAPIs">
       <UniqueIdentifier>{5ff741b1-0d48-48b3-a433-ad3c209a02ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libs\DirectXMath">
+      <UniqueIdentifier>{10cde5e9-38d1-44a5-9174-73ab7ff9992d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -54,9 +54,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\LibHelpers\MathHelper.h">
-      <Filter>Libs\LibHelpers</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzEngineAPIs.h">
       <Filter>HighlevelAPIs</Filter>
     </ClInclude>
@@ -81,6 +78,33 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h">
+      <Filter>Libs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.h">
+      <Filter>Libs\DirectXMath</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXColors.h">
+      <Filter>Libs\DirectXMath</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMath.h">
+      <Filter>Libs\DirectXMath</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h">
+      <Filter>Libs\DirectXMath</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h">
+      <Filter>Libs\DirectXMath</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h">
+      <Filter>Common\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h">
+      <Filter>Common\Backend</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -95,5 +119,28 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp">
+      <Filter>Libs</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl">
+      <Filter>Libs\DirectXMath</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathConvert.inl">
+      <Filter>Libs\DirectXMath</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathMatrix.inl">
+      <Filter>Libs\DirectXMath</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathMisc.inl">
+      <Filter>Libs\DirectXMath</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathVector.inl">
+      <Filter>Libs\DirectXMath</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.inl">
+      <Filter>Libs\DirectXMath</Filter>
+    </None>
   </ItemGroup>
 </Project>
