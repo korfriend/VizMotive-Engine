@@ -322,7 +322,7 @@ namespace vz::jobsystem
 		res.wakeCondition.notify_one();
 	}
 
-	void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedmemory_size)
+	void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedMemorySize)
 	{
 		if (jobCount == 0 || groupSize == 0)
 		{
@@ -338,7 +338,7 @@ namespace vz::jobsystem
 		Job job;
 		job.ctx = &ctx;
 		job.task = task;
-		job.sharedmemory_size = (uint32_t)sharedmemory_size;
+		job.sharedmemory_size = (uint32_t)sharedMemorySize;
 
 		for (uint32_t groupID = 0; groupID < groupCount; ++groupID)
 		{
