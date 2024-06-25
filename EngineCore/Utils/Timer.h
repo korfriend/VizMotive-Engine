@@ -6,45 +6,45 @@ namespace vz
 {
 	struct Timer
 	{
-		std::chrono::high_resolution_clock::time_point timestamp = std::chrono::high_resolution_clock::now();
+		std::chrono::high_resolution_clock::time_point timeStamp = std::chrono::high_resolution_clock::now();
 
 		// Record a reference timestamp
-		inline void record()
+		inline void Record()
 		{
-			timestamp = std::chrono::high_resolution_clock::now();
+			timeStamp = std::chrono::high_resolution_clock::now();
 		}
 
-		// Elapsed time in seconds between the wi::Timer creation or last recording and "timestamp2"
-		inline double elapsed_seconds_since(std::chrono::high_resolution_clock::time_point timestamp2)
+		// Elapsed time in seconds between the vz::Timer creation or last recording and "timestamp2"
+		inline double ElapsedSecondsSince(std::chrono::high_resolution_clock::time_point timestamp2)
 		{
-			std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(timestamp2 - timestamp);
+			std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(timestamp2 - timeStamp);
 			return time_span.count();
 		}
 
-		// Elapsed time in seconds since the wi::Timer creation or last recording
-		inline double elapsed_seconds()
+		// Elapsed time in seconds since the vz::Timer creation or last recording
+		inline double ElapsedSeconds()
 		{
-			return elapsed_seconds_since(std::chrono::high_resolution_clock::now());
+			return ElapsedSecondsSince(std::chrono::high_resolution_clock::now());
 		}
 
-		// Elapsed time in milliseconds since the wi::Timer creation or last recording
-		inline double elapsed_milliseconds()
+		// Elapsed time in milliseconds since the vz::Timer creation or last recording
+		inline double ElapsedMilliseconds()
 		{
-			return elapsed_seconds() * 1000.0;
+			return ElapsedSeconds() * 1000.0;
 		}
 
-		// Elapsed time in milliseconds since the wi::Timer creation or last recording
-		inline double elapsed()
+		// Elapsed time in milliseconds since the vz::Timer creation or last recording
+		inline double Elapsed()
 		{
-			return elapsed_milliseconds();
+			return ElapsedMilliseconds();
 		}
 
-		// Record a reference timestamp and return elapsed time in seconds since the wi::Timer creation or last recording
-		inline double record_elapsed_seconds()
+		// Record a reference timestamp and return elapsed time in seconds since the vz::Timer creation or last recording
+		inline double RecordElapsedSeconds()
 		{
 			auto timestamp2 = std::chrono::high_resolution_clock::now();
-			auto elapsed = elapsed_seconds_since(timestamp2);
-			timestamp = timestamp2;
+			auto elapsed = ElapsedSecondsSince(timestamp2);
+			timeStamp = timestamp2;
 			return elapsed;
 		}
 	};
