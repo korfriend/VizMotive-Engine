@@ -220,7 +220,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_NORMAL);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"wi::job_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"vz::job_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -229,7 +229,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_LOWEST);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"wi::job_lo_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"vz::job_lo_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -238,7 +238,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_LOWEST);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"wi::job_st_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"vz::job_st_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -260,7 +260,7 @@ namespace vz::jobsystem
 
 				if (priority == Priority::High)
 				{
-					std::string thread_name = "wi::job_" + std::to_string(threadID);
+					std::string thread_name = "vz::job_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
@@ -269,7 +269,7 @@ namespace vz::jobsystem
 				{
 					// TODO: set lower priority
 
-					std::string thread_name = "wi::job_lo_" + std::to_string(threadID);
+					std::string thread_name = "vz::job_lo_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
@@ -278,7 +278,7 @@ namespace vz::jobsystem
 				{
 					// TODO: set lower priority
 
-					std::string thread_name = "wi::job_st_" + std::to_string(threadID);
+					std::string thread_name = "vz::job_st_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
@@ -290,7 +290,7 @@ namespace vz::jobsystem
 		}
 
 		char msg[256] = {};
-		snprintf(msg, arraysize(msg), "wi::jobsystem Initialized with %d cores in %.2f ms\n\tHigh priority threads: %d\n\tLow priority threads: %d\n\tStreaming threads: %d", internal_state.numCores, timer.elapsed(), GetThreadCount(Priority::High), GetThreadCount(Priority::Low), GetThreadCount(Priority::Streaming));
+		snprintf(msg, arraysize(msg), "vz::jobsystem Initialized with %d cores in %.2f ms\n\tHigh priority threads: %d\n\tLow priority threads: %d\n\tStreaming threads: %d", internal_state.numCores, timer.Elapsed(), GetThreadCount(Priority::High), GetThreadCount(Priority::Low), GetThreadCount(Priority::Streaming));
 		vz::backlog::Post(msg);
 	}
 
