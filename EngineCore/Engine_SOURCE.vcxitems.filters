@@ -25,7 +25,7 @@
     <Filter Include="Systems">
       <UniqueIdentifier>{edff9196-14fa-44ec-beaf-23bec2924873}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Systems\RenderPath">
+    <Filter Include="Systems\Renderer">
       <UniqueIdentifier>{c1038198-478b-4023-a2b1-5fd279caeb86}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -105,14 +105,44 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h">
       <Filter>Common\Backend</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Systems\RenderPath\RenderPath.h">
-      <Filter>Systems\RenderPath</Filter>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Systems\RenderPath\RenderPath2D.h">
-      <Filter>Systems\RenderPath</Filter>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Systems\RenderPath\RenderPath3D.h">
-      <Filter>Systems\RenderPath</Filter>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzComponents.h">
+      <Filter>HighlevelAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzActor.h">
+      <Filter>HighlevelAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzCamera.h">
+      <Filter>HighlevelAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzLight.h">
+      <Filter>HighlevelAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzMaterial.h">
+      <Filter>HighlevelAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzMI.h">
+      <Filter>HighlevelAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzTexture.h">
+      <Filter>HighlevelAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzGeometry.h">
+      <Filter>HighlevelAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzRenderer.h">
+      <Filter>HighlevelAPIs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
