@@ -3,7 +3,7 @@
 #include "../Utils/Platform.h"
 #include "../Libs/Math.h"
 
-namespace vz
+namespace vzm
 {
 	// The canvas specifies a DPI-aware drawing area
 	struct Canvas
