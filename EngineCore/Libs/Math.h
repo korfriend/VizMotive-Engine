@@ -27,7 +27,7 @@
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
-#define RENDERING_LHS
+//#define RENDERING_LHS
 #ifdef RENDERING_LHS
 #define VZMatrixLookTo XMMatrixLookToLH
 #define VZMatrixLookAt XMMatrixLookAtLH
