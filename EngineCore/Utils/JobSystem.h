@@ -29,7 +29,7 @@ namespace vz::jobsystem
 	// Defines a state of execution, can be waited on
 	struct context
 	{
-		std::atomic<uint32_t> counter{ 0 };
+		volatile long counter = 0;
 		Priority priority = Priority::High;
 	};
 
@@ -42,7 +42,7 @@ namespace vz::jobsystem
 	//	jobCount	: how many jobs to generate for this task.
 	//	groupSize	: how many jobs to execute per thread. Jobs inside a group execute serially. It might be worth to increase for small jobs
 	//	task		: receives a JobArgs as parameter
-	void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedMemorySize = 0);
+	void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedmemory_size = 0);
 
 	// Returns the amount of job groups that will be created for a set number of jobs and group size
 	uint32_t DispatchGroupCount(uint32_t jobCount, uint32_t groupSize);

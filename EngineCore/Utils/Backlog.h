@@ -5,7 +5,7 @@ namespace vz::backlog
 {
 	enum class LogLevel
 	{
-		Trace, // SPDLOG_LEVEL_TRACE
+		Trace = 0, // SPDLOG_LEVEL_TRACE
 		Debug, // SPDLOG_LEVEL_DEBUG
 		Info, // SPDLOG_LEVEL_INFO
 		Warn, // SPDLOG_LEVEL_WARN
@@ -14,11 +14,11 @@ namespace vz::backlog
 		None, // SPDLOG_LEVEL_OFF
 	};
 
-	void Clear();
+	void clear();
 
-	void Post(const std::string& input, LogLevel level = LogLevel::Trace);
+	void post(const std::string& input, LogLevel level = LogLevel::Trace);
 
-	void SetLogLevel(LogLevel newLevel);
+	void setLogLevel(LogLevel newLevel);
 
-	LogLevel GetUnseenLogLevelMax();
+	LogLevel getUnseenLogLevelMax();
 };

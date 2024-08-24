@@ -128,7 +128,7 @@ namespace vz::ecs
 		virtual size_t GetIndex(Entity entity) const = 0;
 		virtual size_t GetCount() const = 0;
 		virtual Entity GetEntity(size_t index) const = 0;
-		virtual const vz::vector<Entity>& GetEntityArray() const = 0;
+		virtual const std::vector<Entity>& GetEntityArray() const = 0;
 	};
 
 	// The ComponentManager is a container that stores components and matches them with entities

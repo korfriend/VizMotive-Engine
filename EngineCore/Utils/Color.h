@@ -50,17 +50,17 @@ namespace vz
 			}
 		}
 
-		constexpr uint8_t GetR() const { return (rgba >> 0) & 0xFF; }
-		constexpr uint8_t GetG() const { return (rgba >> 8) & 0xFF; }
-		constexpr uint8_t GetB() const { return (rgba >> 16) & 0xFF; }
-		constexpr uint8_t GetA() const { return (rgba >> 24) & 0xFF; }
+		constexpr uint8_t getR() const { return (rgba >> 0) & 0xFF; }
+		constexpr uint8_t getG() const { return (rgba >> 8) & 0xFF; }
+		constexpr uint8_t getB() const { return (rgba >> 16) & 0xFF; }
+		constexpr uint8_t getA() const { return (rgba >> 24) & 0xFF; }
 
-		constexpr void SetR(uint8_t value) { *this = Color(value, GetG(), GetB(), GetA()); }
-		constexpr void SetG(uint8_t value) { *this = Color(GetR(), value, GetB(), GetA()); }
-		constexpr void SetB(uint8_t value) { *this = Color(GetR(), GetG(), value, GetA()); }
-		constexpr void SetA(uint8_t value) { *this = Color(GetR(), GetG(), GetB(), value); }
+		constexpr void setR(uint8_t value) { *this = Color(value, getG(), getB(), getA()); }
+		constexpr void setG(uint8_t value) { *this = Color(getR(), value, getB(), getA()); }
+		constexpr void setB(uint8_t value) { *this = Color(getR(), getG(), value, getA()); }
+		constexpr void setA(uint8_t value) { *this = Color(getR(), getG(), getB(), value); }
 
-		constexpr XMFLOAT3 ToFloat3() const
+		constexpr XMFLOAT3 toFloat3() const
 		{
 			return XMFLOAT3(
 				((rgba >> 0) & 0xFF) / 255.0f,
@@ -68,7 +68,7 @@ namespace vz
 				((rgba >> 16) & 0xFF) / 255.0f
 			);
 		}
-		constexpr XMFLOAT4 ToFloat4() const
+		constexpr XMFLOAT4 toFloat4() const
 		{
 			return XMFLOAT4(
 				((rgba >> 0) & 0xFF) / 255.0f,
@@ -77,8 +77,8 @@ namespace vz
 				((rgba >> 24) & 0xFF) / 255.0f
 			);
 		}
-		constexpr operator XMFLOAT3() const { return ToFloat3(); }
-		constexpr operator XMFLOAT4() const { return ToFloat4(); }
+		constexpr operator XMFLOAT3() const { return toFloat3(); }
+		constexpr operator XMFLOAT4() const { return toFloat4(); }
 		constexpr operator uint32_t() const { return rgba; }
 
 		template<size_t capacity>
@@ -87,7 +87,7 @@ namespace vz
 			char text[capacity] = {};
 			constexpr operator const char* () const { return text; }
 		};
-		constexpr const char_return<9> ToHex() const
+		constexpr const char_return<9> to_hex() const
 		{
 			char_return<9> ret;
 			for (int i = 0; i < 8; ++i)
@@ -98,18 +98,18 @@ namespace vz
 			return ret;
 		}
 
-		static constexpr Color FromFloat4(const XMFLOAT4& value)
+		static constexpr Color fromFloat4(const XMFLOAT4& value)
 		{
 			return Color((uint8_t)(value.x * 255), (uint8_t)(value.y * 255), (uint8_t)(value.z * 255), (uint8_t)(value.w * 255));
 		}
-		static constexpr Color FromFloat3(const XMFLOAT3& value)
+		static constexpr Color fromFloat3(const XMFLOAT3& value)
 		{
 			return Color((uint8_t)(value.x * 255), (uint8_t)(value.y * 255), (uint8_t)(value.z * 255));
 		}
 
-		static constexpr Color Lerp(Color a, Color b, float i)
+		static constexpr Color lerp(Color a, Color b, float i)
 		{
-			return FromFloat4(vz::math::Lerp(a.ToFloat4(), b.ToFloat4(), i));
+			return fromFloat4(vz::math::Lerp(a.toFloat4(), b.toFloat4(), i));
 		}
 
 		static constexpr Color Red() { return Color(255, 0, 0, 255); }
@@ -136,19 +136,19 @@ namespace vz
 
 		constexpr Color16(uint64_t rgba) :rgba(rgba) {}
 		constexpr Color16(uint16_t r = 0, uint16_t g = 0, uint16_t b = 0, uint16_t a = 65535) : rgba(uint64_t(r) | (uint64_t(g) << 16) | (uint64_t(b) << 32) | (uint64_t(a) << 48)) {}
-		constexpr Color16(Color color) { *this = FromFloat4(color.ToFloat4()); }
+		constexpr Color16(Color color) { *this = fromFloat4(color.toFloat4()); }
 
-		constexpr uint16_t GetR() const { return (rgba >> 0) & 0xFFFF; }
-		constexpr uint16_t GetG() const { return (rgba >> 16) & 0xFFFF; }
-		constexpr uint16_t GetB() const { return (rgba >> 32) & 0xFFFF; }
-		constexpr uint16_t GetA() const { return (rgba >> 48) & 0xFFFF; }
+		constexpr uint16_t getR() const { return (rgba >> 0) & 0xFFFF; }
+		constexpr uint16_t getG() const { return (rgba >> 16) & 0xFFFF; }
+		constexpr uint16_t getB() const { return (rgba >> 32) & 0xFFFF; }
+		constexpr uint16_t getA() const { return (rgba >> 48) & 0xFFFF; }
 
-		constexpr void SetR(uint16_t value) { *this = Color16(value, GetG(), GetB(), GetA()); }
-		constexpr void SetG(uint16_t value) { *this = Color16(GetR(), value, GetB(), GetA()); }
-		constexpr void SetB(uint16_t value) { *this = Color16(GetR(), GetG(), value, GetA()); }
-		constexpr void SetA(uint16_t value) { *this = Color16(GetR(), GetG(), GetB(), value); }
+		constexpr void setR(uint16_t value) { *this = Color16(value, getG(), getB(), getA()); }
+		constexpr void setG(uint16_t value) { *this = Color16(getR(), value, getB(), getA()); }
+		constexpr void setB(uint16_t value) { *this = Color16(getR(), getG(), value, getA()); }
+		constexpr void setA(uint16_t value) { *this = Color16(getR(), getG(), getB(), value); }
 
-		constexpr XMFLOAT3 ToFloat3() const
+		constexpr XMFLOAT3 toFloat3() const
 		{
 			return XMFLOAT3(
 				((rgba >> 0) & 0xFFFF) / 65535.0f,
@@ -156,7 +156,7 @@ namespace vz
 				((rgba >> 32) & 0xFFFF) / 65535.0f
 			);
 		}
-		constexpr XMFLOAT4 ToFloat4() const
+		constexpr XMFLOAT4 toFloat4() const
 		{
 			return XMFLOAT4(
 				((rgba >> 0) & 0xFFFF) / 65535.0f,
@@ -165,11 +165,11 @@ namespace vz
 				((rgba >> 48) & 0xFFFF) / 65535.0f
 			);
 		}
-		constexpr operator XMFLOAT3() const { return ToFloat3(); }
-		constexpr operator XMFLOAT4() const { return ToFloat4(); }
+		constexpr operator XMFLOAT3() const { return toFloat3(); }
+		constexpr operator XMFLOAT4() const { return toFloat4(); }
 		constexpr operator uint64_t() const { return rgba; }
 
-		static constexpr Color16 FromFloat4(const XMFLOAT4& value)
+		static constexpr Color16 fromFloat4(const XMFLOAT4& value)
 		{
 			return Color16(uint16_t(value.x * 65535), uint16_t(value.y * 65535), uint16_t(value.z * 65535), uint16_t(value.w * 65535));
 		}
@@ -180,7 +180,7 @@ namespace vz
 
 		static constexpr Color16 lerp(Color16 a, Color16 b, float i)
 		{
-			return FromFloat4(vz::math::Lerp(a.ToFloat4(), b.ToFloat4(), i));
+			return fromFloat4(vz::math::Lerp(a.toFloat4(), b.toFloat4(), i));
 		}
 	};
 }

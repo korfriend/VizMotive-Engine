@@ -1,12 +1,10 @@
-#ifndef VZ_COMMONINCLUDE_H
-#define VZ_COMMONINCLUDE_H
+#pragma once
 
 // This is a helper include file pasted into all engine headers, try to keep it minimal!
 // Do not include engine features in this file!
 
 #include <cstdint>
 #include <type_traits>
-#include <assert.h>
 
 #define arraysize(a) (sizeof(a) / sizeof(a[0]))
 
@@ -17,42 +15,58 @@
 // Simple common math helpers:
 
 template <typename T>
-constexpr T Sqr(T x) { return x * x; }
+constexpr T sqr(T x) { return x * x; }
 
 template <typename T>
-constexpr T Clamp(T x, T a, T b)
+constexpr T clamp(T x, T a, T b)
 {
 	return x < a ? a : (x > b ? b : x);
 }
 
 template <typename T>
-constexpr T Saturate(T x)
+constexpr T saturate(T x)
 {
 	return clamp(x, T(0), T(1));
 }
 
 template <typename T>
-constexpr float Lerp(T x, T y, T a)
+constexpr T frac(T x)
+{
+	T f = x - T(int(x));
+	f = f < 0 ? (1 + f) : f;
+	return f;
+}
+
+template <typename T>
+constexpr float lerp(T x, T y, T a)
 {
 	return x * (1 - a) + y * a;
 }
 
 template <typename T>
-constexpr T InverseLerp(T value1, T value2, T pos)
+constexpr T inverse_lerp(T value1, T value2, T pos)
 {
 	return value2 == value1 ? T(0) : ((pos - value1) / (value2 - value1));
 }
 
 template <typename T>
-constexpr T SmoothStep(T edge0, T edge1, T x)
+constexpr T smoothstep(T edge0, T edge1, T x)
 {
 	const T t = saturate((x - edge0) / (edge1 - edge0));
 	return t * t * (T(3) - T(2) * t);
 }
 
+template <typename float4, typename float2>
+constexpr float bilinear(float4 gather, float2 pixel_frac)
+{
+	const float top_row = lerp(gather.w, gather.z, pixel_frac.x);
+	const float bottom_row = lerp(gather.x, gather.y, pixel_frac.x);
+	return lerp(top_row, bottom_row, pixel_frac.y);
+}
+
 // CPU intrinsics:
 #if defined(_WIN32)
-// Windows:
+// Windows
 #include <intrin.h>
 inline long AtomicAnd(volatile long* ptr, long mask)
 {
@@ -131,7 +145,7 @@ inline unsigned long firstbitlow(unsigned long long value)
 	return 0;
 }
 #else
-// Linux:
+// Linux, PlayStation:
 inline long AtomicAnd(volatile long* ptr, long mask)
 {
 	return __atomic_fetch_and(ptr, mask, __ATOMIC_SEQ_CST);
@@ -226,6 +240,15 @@ inline unsigned long firstbitlow(unsigned long long value)
 }
 #endif // _WIN32
 
+inline long AtomicLoad(const volatile long* ptr)
+{
+	return AtomicOr((volatile long*)ptr, 0);
+}
+inline long long AtomicLoad(const volatile long long* ptr)
+{
+	return AtomicOr((volatile long long*)ptr, 0);
+}
+
 // Enable enum flags:
 //	https://www.justsoftwaresolutions.co.uk/cplusplus/using-enum-classes-as-bitfields.html
 template<typename E>
@@ -275,5 +298,3 @@ constexpr bool has_flag(E lhs, E rhs)
 {
 	return (lhs & rhs) == rhs;
 }
-
-#endif //VZ_COMMONINCLUDE_H
