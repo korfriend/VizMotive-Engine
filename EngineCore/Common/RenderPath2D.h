@@ -6,9 +6,6 @@
 
 namespace vz
 {
-	class Sprite;
-	class SpriteFont;
-
 	class RenderPath2D :
 		public RenderPath
 	{
