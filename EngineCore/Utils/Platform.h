@@ -13,9 +13,15 @@
 #include <windows.h>
 #include <tchar.h>
 
+#if WINAPI_FAMILY == WINAPI_FAMILY_GAMES
+#define PLATFORM_XBOX
+#else
 #define PLATFORM_WINDOWS_DESKTOP
+#endif // WINAPI_FAMILY_GAMES
 #define vzLoadLibrary(name) LoadLibraryA(name)
 #define vzGetProcAddress(handle,name) GetProcAddress(handle, name)
+#elif defined(__SCE__)
+#define PLATFORM_PS5
 #else
 #define PLATFORM_LINUX
 #include <dlfcn.h>
@@ -65,7 +71,11 @@ namespace vz::platform
 		dest->dpi = (float)GetDpiForWindow(window);
 #endif // WINDOWS_DESKTOP
 
-#if defined(PLATFORM_WINDOWS_DESKTOP)
+#ifdef PLATFORM_XBOX
+		dest->dpi = 96.f;
+#endif // PLATFORM_XBOX
+
+#if defined(PLATFORM_WINDOWS_DESKTOP) || defined(PLATFORM_XBOX)
 		RECT rect;
 		GetClientRect(window, &rect);
 		dest->width = int(rect.right - rect.left);

@@ -1,8 +1,4 @@
 #pragma once
-// This backend namespace and structures are originated from the modern graphics SDKs
-// The entire shared-names have been completed by "WickedEngine"
-// I adopted their codes in this project
-
 #include "../CommonInclude.h"
 
 #include <vector>
@@ -18,7 +14,7 @@ namespace vz::graphics
 	struct GPUBuffer;
 	struct Texture;
 
-	enum class ValidationMode
+	enum class ValidationMode : uint8_t
 	{
 		Disabled,	// No validation is enabled
 		Enabled,	// CPU command validation
@@ -26,7 +22,7 @@ namespace vz::graphics
 		Verbose		// Print all warnings, errors and info messages
 	};
 
-	enum class AdapterType
+	enum class AdapterType : uint8_t
 	{
 		Other,
 		IntegratedGpu,
@@ -35,13 +31,13 @@ namespace vz::graphics
 		Cpu,
 	};
 
-	enum class GPUPreference
+	enum class GPUPreference : uint8_t
 	{
 		Discrete,
 		Integrated,
 	};
 
-	enum class ShaderStage
+	enum class ShaderStage : uint8_t
 	{
 		MS,		// Mesh Shader
 		AS,		// Amplification Shader
@@ -54,18 +50,19 @@ namespace vz::graphics
 		LIB,	// Shader Library
 		Count,
 	};
-	enum class ShaderFormat
+	enum class ShaderFormat : uint8_t
 	{
 		NONE,		// Not used
 		HLSL5,		// DXBC
 		HLSL6,		// DXIL
 		SPIRV,		// SPIR-V
+		HLSL6_XS,	// XBOX Series Native
+		PS5,		// Playstation 5
 	};
-	enum class ShaderModel
+	enum class ShaderModel : uint8_t
 	{
-		SM_4_0, // for DirectX 11 interfaces
-		SM_5_0, // for DirectX 11 and 12 interfaces
-		SM_6_0, 
+		SM_5_0,
+		SM_6_0,
 		SM_6_1,
 		SM_6_2,
 		SM_6_3,
@@ -74,7 +71,7 @@ namespace vz::graphics
 		SM_6_6,
 		SM_6_7,
 	};
-	enum class PrimitiveTopology
+	enum class PrimitiveTopology : uint8_t
 	{
 		UNDEFINED,
 		TRIANGLELIST,
@@ -84,7 +81,7 @@ namespace vz::graphics
 		LINESTRIP,
 		PATCHLIST,
 	};
-	enum class ComparisonFunc
+	enum class ComparisonFunc : uint8_t
 	{
 		NEVER,
 		LESS,
@@ -95,12 +92,12 @@ namespace vz::graphics
 		GREATER_EQUAL,
 		ALWAYS,
 	};
-	enum class DepthWriteMask
+	enum class DepthWriteMask : uint8_t
 	{
 		ZERO,	// Disables depth write
 		ALL,	// Enables depth write
 	};
-	enum class StencilOp
+	enum class StencilOp : uint8_t
 	{
 		KEEP,
 		ZERO,
@@ -111,7 +108,7 @@ namespace vz::graphics
 		INCR,
 		DECR,
 	};
-	enum class Blend
+	enum class Blend : uint8_t
 	{
 		ZERO,
 		ONE,
@@ -131,7 +128,7 @@ namespace vz::graphics
 		SRC1_ALPHA,
 		INV_SRC1_ALPHA,
 	};
-	enum class BlendOp
+	enum class BlendOp : uint8_t
 	{
 		ADD,
 		SUBTRACT,
@@ -139,29 +136,29 @@ namespace vz::graphics
 		MIN,
 		MAX,
 	};
-	enum class FillMode
+	enum class FillMode : uint8_t
 	{
 		WIREFRAME,
 		SOLID,
 	};
-	enum class CullMode
+	enum class CullMode : uint8_t
 	{
 		NONE,
 		FRONT,
 		BACK,
 	};
-	enum class InputClassification
+	enum class InputClassification : uint8_t
 	{
 		PER_VERTEX_DATA,
 		PER_INSTANCE_DATA,
 	};
-	enum class Usage
+	enum class Usage : uint8_t
 	{
 		DEFAULT,	// CPU no access, GPU read/write
 		UPLOAD,	    // CPU write, GPU read
 		READBACK,	// CPU read, GPU write
 	};
-	enum class TextureAddressMode
+	enum class TextureAddressMode : uint8_t
 	{
 		WRAP,
 		MIRROR,
@@ -169,7 +166,7 @@ namespace vz::graphics
 		BORDER,
 		MIRROR_ONCE,
 	};
-	enum class Filter
+	enum class Filter : uint8_t
 	{
 		MIN_MAG_MIP_POINT,
 		MIN_MAG_POINT_MIP_LINEAR,
@@ -208,13 +205,13 @@ namespace vz::graphics
 		MAXIMUM_MIN_MAG_MIP_LINEAR,
 		MAXIMUM_ANISOTROPIC,
 	};
-	enum class SamplerBorderColor
+	enum class SamplerBorderColor : uint8_t
 	{
 		TRANSPARENT_BLACK,
 		OPAQUE_BLACK,
 		OPAQUE_WHITE,
 	};
-	enum class Format
+	enum class Format : uint8_t
 	{
 		UNKNOWN,
 
@@ -294,18 +291,18 @@ namespace vz::graphics
 
 		NV12,				// video YUV420; SRV Luminance aspect: R8_UNORM, SRV Chrominance aspect: R8G8_UNORM
 	};
-	enum class GpuQueryType
+	enum class GpuQueryType : uint8_t
 	{
 		TIMESTAMP,			// retrieve time point of gpu execution
 		OCCLUSION,			// how many samples passed depth test?
 		OCCLUSION_BINARY,	// depth test passed or not?
 	};
-	enum class IndexBufferFormat
+	enum class IndexBufferFormat : uint8_t
 	{
 		UINT16,
 		UINT32,
 	};
-	enum class SubresourceType
+	enum class SubresourceType : uint8_t
 	{
 		SRV, // shader resource view
 		UAV, // unordered access view
@@ -313,7 +310,7 @@ namespace vz::graphics
 		DSV, // depth stencil view
 	};
 
-	enum class ShadingRate
+	enum class ShadingRate : uint8_t
 	{
 		RATE_1X1,	// Default/full shading rate
 		RATE_1X2,
@@ -326,13 +323,13 @@ namespace vz::graphics
 		RATE_INVALID
 	};
 
-	enum class PredicationOp
+	enum class PredicationOp : uint8_t
 	{
 		EQUAL_ZERO,
 		NOT_EQUAL_ZERO,
 	};
 
-	enum class ImageAspect
+	enum class ImageAspect : uint8_t
 	{
 		COLOR,
 		DEPTH,
@@ -341,18 +338,18 @@ namespace vz::graphics
 		CHROMINANCE,
 	};
 
-	enum class VideoFrameType
+	enum class VideoFrameType : uint8_t
 	{
 		Intra,
 		Predictive,
 	};
 
-	enum class VideoProfile
+	enum class VideoProfile : uint8_t
 	{
 		H264,	// AVC
 	};
 
-	enum class ComponentSwizzle
+	enum class ComponentSwizzle : uint8_t
 	{
 		R,
 		G,
@@ -360,6 +357,13 @@ namespace vz::graphics
 		A,
 		ZERO,
 		ONE,
+	};
+
+	enum class ColorSpace : uint8_t
+	{
+		SRGB,			// SDR color space (8 or 10 bits per channel)
+		HDR10_ST2084,	// HDR10 color space (10 bits per channel)
+		HDR_LINEAR,		// HDR color space (16 bits per channel)
 	};
 
 	// Flags ////////////////////////////////////////////
@@ -477,13 +481,6 @@ namespace vz::graphics
 		VIDEO_DECODE_DST = 1 << 16,			// video decode operation destination DPB texture
 	};
 
-	enum class ColorSpace
-	{
-		SRGB,			// SDR color space (8 or 10 bits per channel)
-		HDR10_ST2084,	// HDR10 color space (10 bits per channel)
-		HDR_LINEAR,		// HDR color space (16 bits per channel)
-	};
-
 	enum class RenderPassFlags
 	{
 		NONE = 0,
@@ -497,12 +494,12 @@ namespace vz::graphics
 
 	struct Viewport
 	{
-		float topLeftX = 0;
-		float topLeftY = 0;
+		float top_left_x = 0;
+		float top_left_y = 0;
 		float width = 0;
 		float height = 0;
-		float minDepth = 0;
-		float maxDepth = 1;
+		float min_depth = 0;
+		float max_depth = 1;
 	};
 
 	struct InputLayout
@@ -511,12 +508,12 @@ namespace vz::graphics
 
 		struct Element
 		{
-			std::string semanticName;
-			uint32_t semanticIndex = 0;
+			std::string semantic_name;
+			uint32_t semantic_index = 0;
 			Format format = Format::UNKNOWN;
-			uint32_t inputSlot = 0;
-			uint32_t alignedByteOffset = APPEND_ALIGNED_ELEMENT;
-			InputClassification inputSlotClass = InputClassification::PER_VERTEX_DATA;
+			uint32_t input_slot = 0;
+			uint32_t aligned_byte_offset = APPEND_ALIGNED_ELEMENT;
+			InputClassification input_slot_class = InputClassification::PER_VERTEX_DATA;
 		};
 		std::vector<Element> elements;
 	};
@@ -528,7 +525,7 @@ namespace vz::graphics
 		{
 			float depth;
 			uint32_t stencil;
-		} depthStencil;
+		} depth_stencil;
 	};
 
 	struct Swizzle
@@ -541,111 +538,111 @@ namespace vz::graphics
 
 	struct TextureDesc
 	{
-		enum class Type
+		enum class Type : uint8_t
 		{
 			TEXTURE_1D,
 			TEXTURE_2D,
 			TEXTURE_3D,
 		} type = Type::TEXTURE_2D;
+		Format format = Format::UNKNOWN;
 		uint32_t width = 1;
 		uint32_t height = 1;
 		uint32_t depth = 1;
-		uint32_t arraySize = 1;
-		uint32_t mipLevels = 1;
-		Format format = Format::UNKNOWN;
-		uint32_t sampleCount = 1;
-		Usage usage = Usage::DEFAULT;
-		BindFlag bindFlags = BindFlag::NONE;
-		ResourceMiscFlag miscFlags = ResourceMiscFlag::NONE;
+		uint32_t array_size = 1;
+		uint32_t mip_levels = 1;
+		uint32_t sample_count = 1;
 		ClearValue clear = {};
-		ResourceState layout = ResourceState::SHADER_RESOURCE;
 		Swizzle swizzle;
+		Usage usage = Usage::DEFAULT;
+		BindFlag bind_flags = BindFlag::NONE;
+		ResourceMiscFlag misc_flags = ResourceMiscFlag::NONE;
+		ResourceState layout = ResourceState::SHADER_RESOURCE;
 	};
 
 	struct SamplerDesc
 	{
 		Filter filter = Filter::MIN_MAG_MIP_POINT;
-		TextureAddressMode addressU = TextureAddressMode::CLAMP;
-		TextureAddressMode addressV = TextureAddressMode::CLAMP;
-		TextureAddressMode addressW = TextureAddressMode::CLAMP;
-		float mipLodBias = 0;
-		uint32_t maxAnisotropy = 0;
-		ComparisonFunc comparisonFunc = ComparisonFunc::NEVER;
-		SamplerBorderColor borderColor = SamplerBorderColor::TRANSPARENT_BLACK;
-		float minLod = 0;
-		float maxLod = std::numeric_limits<float>::max();
+		TextureAddressMode address_u = TextureAddressMode::CLAMP;
+		TextureAddressMode address_v = TextureAddressMode::CLAMP;
+		TextureAddressMode address_w = TextureAddressMode::CLAMP;
+		float mip_lod_bias = 0;
+		uint32_t max_anisotropy = 0;
+		ComparisonFunc comparison_func = ComparisonFunc::NEVER;
+		SamplerBorderColor border_color = SamplerBorderColor::TRANSPARENT_BLACK;
+		float min_lod = 0;
+		float max_lod = std::numeric_limits<float>::max();
 	};
 
 	struct RasterizerState
 	{
-		FillMode fillMode = FillMode::SOLID;
-		CullMode cullMode = CullMode::NONE;
-		bool frontCounterClockwise = false;
-		int32_t depthBias = 0;
-		float depthBiasClamp = 0;
-		float slopeScaledDepthBias = 0;
-		bool depthClipEnable = false;
-		bool multisampleEnable = false;
-		bool antialiasedLineEnable = false;
-		bool conservativeRasterizationEnable = false;
-		uint32_t forcedSampleCount = 0;
+		FillMode fill_mode = FillMode::SOLID;
+		CullMode cull_mode = CullMode::NONE;
+		bool front_counter_clockwise = false;
+		int32_t depth_bias = 0;
+		float depth_bias_clamp = 0;
+		float slope_scaled_depth_bias = 0;
+		bool depth_clip_enable = false;
+		bool multisample_enable = false;
+		bool antialiased_line_enable = false;
+		bool conservative_rasterization_enable = false;
+		uint32_t forced_sample_count = 0;
 	};
 
 	struct DepthStencilState
 	{
-		bool depthEnable = false;
-		DepthWriteMask depthWriteMask = DepthWriteMask::ZERO;
-		ComparisonFunc depthFunc = ComparisonFunc::NEVER;
-		bool stencilEnable = false;
-		uint8_t stencilReadMask = 0xff;
-		uint8_t stencilWriteMask = 0xff;
+		bool depth_enable = false;
+		DepthWriteMask depth_write_mask = DepthWriteMask::ZERO;
+		ComparisonFunc depth_func = ComparisonFunc::NEVER;
+		bool stencil_enable = false;
+		uint8_t stencil_read_mask = 0xff;
+		uint8_t stencil_write_mask = 0xff;
 
 		struct DepthStencilOp
 		{
-			StencilOp stencilFailOp = StencilOp::KEEP;
-			StencilOp stencilDepthFailOp = StencilOp::KEEP;
-			StencilOp stencilPassOp = StencilOp::KEEP;
-			ComparisonFunc stencilFunc = ComparisonFunc::NEVER;
+			StencilOp stencil_fail_op = StencilOp::KEEP;
+			StencilOp stencil_depth_fail_op = StencilOp::KEEP;
+			StencilOp stencil_pass_op = StencilOp::KEEP;
+			ComparisonFunc stencil_func = ComparisonFunc::NEVER;
 		};
-		DepthStencilOp frontFace;
-		DepthStencilOp backFace;
-		bool depthBoundsTestEnable = false;
+		DepthStencilOp front_face;
+		DepthStencilOp back_face;
+		bool depth_bounds_test_enable = false;
 	};
 
 	struct BlendState
 	{
-		bool alphaToCoverageEnable = false;
-		bool independentBlendEnable = false;
+		bool alpha_to_coverage_enable = false;
+		bool independent_blend_enable = false;
 
 		struct RenderTargetBlendState
 		{
-			bool blendEnable = false;
-			Blend srcBlend = Blend::SRC_ALPHA;
-			Blend destBlend = Blend::INV_SRC_ALPHA;
-			BlendOp blendOp = BlendOp::ADD;
-			Blend srcBlendAlpha = Blend::ONE;
-			Blend destBlendAlpha = Blend::ONE;
-			BlendOp blendOpAlpha = BlendOp::ADD;
-			ColorWrite renderTargetWriteMask = ColorWrite::ENABLE_ALL;
+			bool blend_enable = false;
+			Blend src_blend = Blend::SRC_ALPHA;
+			Blend dest_blend = Blend::INV_SRC_ALPHA;
+			BlendOp blend_op = BlendOp::ADD;
+			Blend src_blend_alpha = Blend::ONE;
+			Blend dest_blend_alpha = Blend::ONE;
+			BlendOp blend_op_alpha = BlendOp::ADD;
+			ColorWrite render_target_write_mask = ColorWrite::ENABLE_ALL;
 		};
-		RenderTargetBlendState renderTarget[8];
+		RenderTargetBlendState render_target[8];
 	};
 
 	struct GPUBufferDesc
 	{
 		uint64_t size = 0;
 		Usage usage = Usage::DEFAULT;
-		BindFlag bindFlags = BindFlag::NONE;
-		ResourceMiscFlag miscFlags = ResourceMiscFlag::NONE;
-		uint32_t stride = 0; // only needed for structured buffer types!
 		Format format = Format::UNKNOWN; // only needed for typed buffer!
+		uint32_t stride = 0; // only needed for structured buffer types!
 		uint64_t alignment = 0; // needed for tile pools
+		BindFlag bind_flags = BindFlag::NONE;
+		ResourceMiscFlag misc_flags = ResourceMiscFlag::NONE;
 	};
 
 	struct GPUQueryHeapDesc
 	{
 		GpuQueryType type = GpuQueryType::TIMESTAMP;
-		uint32_t queryCount = 0;
+		uint32_t query_count = 0;
 	};
 
 	struct PipelineStateDesc
@@ -662,8 +659,8 @@ namespace vz::graphics
 		const DepthStencilState* dss = nullptr;
 		const InputLayout* il = nullptr;
 		PrimitiveTopology		pt = PrimitiveTopology::TRIANGLELIST;
-		uint32_t                patchControlPoints = 3;
-		uint32_t				sampleMask = 0xFFFFFFFF;
+		uint32_t                patch_control_points = 3;
+		uint32_t				sample_mask = 0xFFFFFFFF;
 	};
 
 	struct GPUBarrier
@@ -683,8 +680,8 @@ namespace vz::graphics
 		struct Image
 		{
 			const Texture* texture;
-			ResourceState layoutBefore;
-			ResourceState layoutAfter;
+			ResourceState layout_before;
+			ResourceState layout_after;
 			int mip;
 			int slice;
 			const ImageAspect* aspect;
@@ -692,13 +689,13 @@ namespace vz::graphics
 		struct Buffer
 		{
 			const GPUBuffer* buffer;
-			ResourceState stateBefore;
-			ResourceState stateAfter;
+			ResourceState state_before;
+			ResourceState state_after;
 		};
 		struct Aliasing
 		{
-			const GPUResource* resourceBefore;
-			const GPUResource* resourceAfter;
+			const GPUResource* resource_before;
+			const GPUResource* resource_after;
 		};
 		union
 		{
@@ -721,8 +718,8 @@ namespace vz::graphics
 			GPUBarrier barrier;
 			barrier.type = Type::IMAGE;
 			barrier.image.texture = texture;
-			barrier.image.layoutBefore = before;
-			barrier.image.layoutAfter = after;
+			barrier.image.layout_before = before;
+			barrier.image.layout_after = after;
 			barrier.image.mip = mip;
 			barrier.image.slice = slice;
 			barrier.image.aspect = aspect;
@@ -733,16 +730,16 @@ namespace vz::graphics
 			GPUBarrier barrier;
 			barrier.type = Type::BUFFER;
 			barrier.buffer.buffer = buffer;
-			barrier.buffer.stateBefore = before;
-			barrier.buffer.stateAfter = after;
+			barrier.buffer.state_before = before;
+			barrier.buffer.state_after = after;
 			return barrier;
 		}
 		static GPUBarrier Aliasing(const GPUResource* before, const GPUResource* after)
 		{
 			GPUBarrier barrier;
 			barrier.type = Type::ALIASING;
-			barrier.aliasing.resourceBefore = before;
-			barrier.aliasing.resourceAfter = after;
+			barrier.aliasing.resource_before = before;
+			barrier.aliasing.resource_after = after;
 			return barrier;
 		}
 	};
@@ -751,19 +748,19 @@ namespace vz::graphics
 	{
 		uint32_t width = 0;
 		uint32_t height = 0;
-		uint32_t bufferCount = 2;
+		uint32_t buffer_count = 2;
 		Format format = Format::R10G10B10A2_UNORM;
 		bool fullscreen = false;
 		bool vsync = true;
-		float clearColor[4] = { 0,0,0,1 };
-		bool allowHdr = true;
+		float clear_color[4] = { 0,0,0,1 };
+		bool allow_hdr = true;
 	};
 
 	struct SubresourceData
 	{
-		const void* dataPtr = nullptr;	// pointer to the beginning of the subresource data (pointer to beginning of resource + subresource offset)
-		uint32_t rowPitch = 0;			// bytes between two rows of a texture (2D and 3D textures)
-		uint32_t slicePitch = 0;		// bytes between two depth slices of a texture (3D textures only)
+		const void* data_ptr = nullptr;	// pointer to the beginning of the subresource data (pointer to beginning of resource + subresource offset)
+		uint32_t row_pitch = 0;			// bytes between two rows of a texture (2D and 3D textures)
+		uint32_t slice_pitch = 0;		// bytes between two depth slices of a texture (3D textures only)
 	};
 
 	struct Rect
@@ -775,10 +772,10 @@ namespace vz::graphics
 
 		constexpr void from_viewport(const Viewport& vp)
 		{
-			left = int32_t(vp.topLeftX);
-			right = int32_t(vp.topLeftX + vp.width);
-			top = int32_t(vp.topLeftY);
-			bottom = int32_t(vp.topLeftY + vp.height);
+			left = int32_t(vp.top_left_x);
+			right = int32_t(vp.top_left_x + vp.width);
+			top = int32_t(vp.top_left_y);
+			bottom = int32_t(vp.top_left_y + vp.height);
 		}
 	};
 
@@ -791,25 +788,6 @@ namespace vz::graphics
 		uint32_t bottom = 0;
 		uint32_t back = 0;
 	};
-
-
-
-
-
-
-
-	// Continued...
-
-
-
-
-
-
-
-
-
-
-
 
 	struct SparseTextureProperties
 	{
@@ -862,7 +840,7 @@ namespace vz::graphics
 
 	struct GPUResource : public GraphicsDeviceChild
 	{
-		enum class Type
+		enum class Type : uint8_t
 		{
 			BUFFER,
 			TEXTURE,

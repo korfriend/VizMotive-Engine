@@ -18,6 +18,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h" />
@@ -28,6 +29,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ResourceManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\SceneManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Version.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\waterripple.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighlevelAPIs\VzCamera.h" />
@@ -45,21 +47,36 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image_write.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Noise.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Random.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl" />

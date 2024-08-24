@@ -37,10 +37,10 @@ namespace vz::backlog
 
 		apiLogger->set_level(spdlog::level::trace);
 
-		auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_file_path, true);
-		auto consoleSink = std::make_shared <spdlog::sinks::stdout_color_sink_mt>();
-		apiLogger->sinks().push_back(consoleSink);
-		apiLogger->sinks().push_back(fileSink);
+		auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_file_path, true);
+		auto console_sink = std::make_shared <spdlog::sinks::stdout_color_sink_mt>();
+		//apiLogger->sinks().push_back(consoleSink);
+		apiLogger->sinks().push_back(file_sink);
 		apiLogger->flush_on(spdlog::level::trace);
 
 		apiLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
@@ -49,12 +49,12 @@ namespace vz::backlog
 		isInitialized = true;
 	}
 
-	void Clear()
+	void clear()
 	{
 		intialize();
 	}
 
-	void Post(const std::string& input, LogLevel level)
+	void post(const std::string& input, LogLevel level)
 	{
 		if (!isInitialized)
 		{
@@ -80,13 +80,13 @@ namespace vz::backlog
 		}
 	}
 
-	void SetLogLevel(LogLevel newLevel)
+	void setLogLevel(LogLevel newLevel)
 	{
 		logLevel = newLevel;
 		apiLogger->set_level((spdlog::level::level_enum)newLevel);		
 	}
 
-	LogLevel GetUnseenLogLevelMax()
+	LogLevel getUnseenLogLevelMax()
 	{
 		return logLevel;
 	}

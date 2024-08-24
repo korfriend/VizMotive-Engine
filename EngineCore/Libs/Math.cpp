@@ -40,9 +40,9 @@ namespace vz::math
 	}
 	XMFLOAT3 GetQuadraticBezierPos(const XMFLOAT3& a, const XMFLOAT3& b, const XMFLOAT3& c, float t) {
 		float param0, param1, param2;
-		param0 = Sqr(1 - t);
+		param0 = sqr(1 - t);
 		param1 = 2 * (1 - t) * t;
-		param2 = Sqr(t);
+		param2 = sqr(t);
 		float x = param0 * a.x + param1 * b.x + param2 * c.x;
 		float y = param0 * a.y + param1 * b.y + param2 * c.y;
 		float z = param0 * a.z + param1 * b.z + param2 * c.z;
@@ -151,7 +151,7 @@ namespace vz::math
 			if (u < 0)
 			{
 				float t = XMVectorGetX(XMVector3Dot(p - b, c - b) / XMVector3Dot(c - b, c - b));
-				t = Saturate(t);
+				t = saturate(t);
 				u = 0.0f;
 				v = 1.0f - t;
 				w = t;
@@ -159,7 +159,7 @@ namespace vz::math
 			else if (v < 0)
 			{
 				float t = XMVectorGetX(XMVector3Dot(p - c, a - c) / XMVector3Dot(a - c, a - c));
-				t = Saturate(t);
+				t = saturate(t);
 				u = t;
 				v = 0.0f;
 				w = 1.0f - t;
@@ -167,7 +167,7 @@ namespace vz::math
 			else if (w < 0)
 			{
 				float t = XMVectorGetX(XMVector3Dot(p - a, b - a) / XMVector3Dot(b - a, b - a));
-				t = Saturate(t);
+				t = saturate(t);
 				u = 1.0f - t;
 				v = t;
 				w = 0.0f;

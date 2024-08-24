@@ -18,16 +18,18 @@
 //	as part of the engine utilities
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuninitialized"
-#include "DirectXMath/DirectXMath.h"
-#include "DirectXMath/DirectXPackedVector.h"
-#include "DirectXMath/DirectXCollision.h"
+#include "Utility/DirectXMath.h"
+#include "Utility/DirectXPackedVector.h"
+#include "Utility/DirectXCollision.h"
 #pragma GCC diagnostic pop
 #endif
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
-//#define RENDERING_LHS
+// DOJO adds for supporting RHS
+// DOJO TO DO...
+#define RENDERING_RHS
 #ifdef RENDERING_LHS
 #define VZMatrixLookTo XMMatrixLookToLH
 #define VZMatrixLookAt XMMatrixLookAtLH
@@ -45,11 +47,11 @@ namespace vz::math
 	inline constexpr XMFLOAT4X4 IDENTITY_MATRIX = XMFLOAT4X4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 	inline constexpr float PI = XM_PI;
 
-	inline bool FloatEqual(float f1, float f2) {
+	inline bool float_equal(float f1, float f2) {
 		return (std::abs(f1 - f2) <= std::numeric_limits<float>::epsilon() * std::max(std::abs(f1), std::abs(f2)));
 	}
 
-	constexpr float Saturate(float x)
+	constexpr float saturate(float x)
 	{
 		return ::saturate(x);
 	}
@@ -86,6 +88,18 @@ namespace vz::math
 		float Distance = 0.0f;
 		XMStoreFloat(&Distance, length);
 		return Distance;
+	}
+	inline float Dot(const XMFLOAT2& v1, const XMFLOAT2& v2)
+	{
+		XMVECTOR vector1 = XMLoadFloat2(&v1);
+		XMVECTOR vector2 = XMLoadFloat2(&v2);
+		return XMVectorGetX(XMVector2Dot(vector1, vector2));
+	}
+	inline float Dot(const XMFLOAT3& v1, const XMFLOAT3& v2)
+	{
+		XMVECTOR vector1 = XMLoadFloat3(&v1);
+		XMVECTOR vector2 = XMLoadFloat3(&v2);
+		return XMVectorGetX(XMVector3Dot(vector1, vector2));
 	}
 	inline float Distance(const XMFLOAT2& v1, const XMFLOAT2& v2)
 	{
@@ -165,7 +179,7 @@ namespace vz::math
 	}
 	constexpr float Lerp(float value1, float value2, float amount)
 	{
-		return ::Lerp(value1, value2, amount);
+		return ::lerp(value1, value2, amount);
 	}
 	constexpr XMFLOAT2 Lerp(const XMFLOAT2& a, const XMFLOAT2& b, float i)
 	{
@@ -364,9 +378,9 @@ namespace vz::math
 	inline XMVECTOR GetQuadraticBezierPos(const XMVECTOR& a, const XMVECTOR& b, const XMVECTOR& c, float t)
 	{
 		// XMVECTOR optimized version
-		const float param0 = Sqr(1 - t);
+		const float param0 = sqr(1 - t);
 		const float param1 = 2 * (1 - t) * t;
-		const float param2 = Sqr(t);
+		const float param2 = sqr(t);
 		const XMVECTOR param = XMVectorSet(param0, param1, param2, 1);
 		const XMMATRIX M = XMMATRIX(a, b, c, XMVectorSet(0, 0, 0, 1));
 		return XMVector3TransformNormal(param, M);
@@ -447,9 +461,9 @@ namespace vz::math
 	{
 		uint32_t retval = 0;
 
-		retval |= (uint32_t)((uint8_t)(Saturate(color.x) * 255.0f) << 0);
-		retval |= (uint32_t)((uint8_t)(Saturate(color.y) * 255.0f) << 8);
-		retval |= (uint32_t)((uint8_t)(Saturate(color.z) * 255.0f) << 16);
+		retval |= (uint32_t)((uint8_t)(saturate(color.x) * 255.0f) << 0);
+		retval |= (uint32_t)((uint8_t)(saturate(color.y) * 255.0f) << 8);
+		retval |= (uint32_t)((uint8_t)(saturate(color.z) * 255.0f) << 16);
 
 		return retval;
 	}
@@ -457,10 +471,10 @@ namespace vz::math
 	{
 		uint32_t retval = 0;
 
-		retval |= (uint32_t)((uint8_t)(Saturate(color.x) * 255.0f) << 0);
-		retval |= (uint32_t)((uint8_t)(Saturate(color.y) * 255.0f) << 8);
-		retval |= (uint32_t)((uint8_t)(Saturate(color.z) * 255.0f) << 16);
-		retval |= (uint32_t)((uint8_t)(Saturate(color.w) * 255.0f) << 24);
+		retval |= (uint32_t)((uint8_t)(saturate(color.x) * 255.0f) << 0);
+		retval |= (uint32_t)((uint8_t)(saturate(color.y) * 255.0f) << 8);
+		retval |= (uint32_t)((uint8_t)(saturate(color.z) * 255.0f) << 16);
+		retval |= (uint32_t)((uint8_t)(saturate(color.w) * 255.0f) << 24);
 
 		return retval;
 	}
@@ -493,6 +507,37 @@ namespace vz::math
 		XMFLOAT3SE se;
 		XMStoreFloat3SE(&se, XMLoadFloat3(&value));
 		return se;
+	}
+
+	inline uint32_t pack_half2(float x, float y)
+	{
+		return (uint32_t)XMConvertFloatToHalf(x) | ((uint32_t)XMConvertFloatToHalf(y) << 16u);
+	}
+	inline uint32_t pack_half2(const XMFLOAT2& value)
+	{
+		return pack_half2(value.x, value.y);
+	}
+	inline XMUINT2 pack_half3(float x, float y, float z)
+	{
+		return XMUINT2(
+			(uint32_t)XMConvertFloatToHalf(x) | ((uint32_t)XMConvertFloatToHalf(y) << 16u),
+			(uint32_t)XMConvertFloatToHalf(z)
+		);
+	}
+	inline XMUINT2 pack_half3(const XMFLOAT3& value)
+	{
+		return pack_half3(value.x, value.y, value.z);
+	}
+	inline XMUINT2 pack_half4(float x, float y, float z, float w)
+	{
+		return XMUINT2(
+			(uint32_t)XMConvertFloatToHalf(x) | ((uint32_t)XMConvertFloatToHalf(y) << 16u),
+			(uint32_t)XMConvertFloatToHalf(z) | ((uint32_t)XMConvertFloatToHalf(w) << 16u)
+		);
+	}
+	inline XMUINT2 pack_half4(const XMFLOAT4& value)
+	{
+		return pack_half4(value.x, value.y, value.z, value.w);
 	}
 
 

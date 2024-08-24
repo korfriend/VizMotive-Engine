@@ -28,6 +28,32 @@ namespace vz::jobsystem
 		uint32_t groupJobOffset;
 		uint32_t groupJobEnd;
 		uint32_t sharedmemory_size;
+		inline void execute()
+		{
+			JobArgs args;
+			args.groupID = groupID;
+			if (sharedmemory_size > 0)
+			{
+				thread_local static std::vector<uint8_t> shared_allocation_data;
+				shared_allocation_data.reserve(sharedmemory_size);
+				args.sharedmemory = shared_allocation_data.data();
+			}
+			else
+			{
+				args.sharedmemory = nullptr;
+			}
+
+			for (uint32_t j = groupJobOffset; j < groupJobEnd; ++j)
+			{
+				args.jobIndex = j;
+				args.groupIndex = j - groupJobOffset;
+				args.isFirstJobInGroup = (j == groupJobOffset);
+				args.isLastJobInGroup = (j == groupJobEnd - 1);
+				task(args);
+			}
+
+			AtomicAdd(&ctx->counter, -1);
+		}
 	};
 	struct JobQueue
 	{
@@ -70,29 +96,7 @@ namespace vz::jobsystem
 				JobQueue& job_queue = jobQueuePerThread[startingQueue % numThreads];
 				while (job_queue.pop_front(job))
 				{
-					JobArgs args;
-					args.groupID = job.groupID;
-					if (job.sharedmemory_size > 0)
-					{
-						thread_local static std::vector<uint8_t> shared_allocation_data;
-						shared_allocation_data.reserve(job.sharedmemory_size);
-						args.sharedmemory = shared_allocation_data.data();
-					}
-					else
-					{
-						args.sharedmemory = nullptr;
-					}
-
-					for (uint32_t j = job.groupJobOffset; j < job.groupJobEnd; ++j)
-					{
-						args.jobIndex = j;
-						args.groupIndex = j - job.groupJobOffset;
-						args.isFirstJobInGroup = (j == job.groupJobOffset);
-						args.isLastJobInGroup = (j == job.groupJobEnd - 1);
-						job.task(args);
-					}
-
-					job.ctx->counter.fetch_sub(1);
+					job.execute();
 				}
 				startingQueue++; // go to next queue
 			}
@@ -220,7 +224,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_NORMAL);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"vz::job_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"wi::job_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -229,7 +233,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_LOWEST);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"vz::job_lo_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"wi::job_lo_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -238,7 +242,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_LOWEST);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"vz::job_st_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"wi::job_st_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -260,7 +264,7 @@ namespace vz::jobsystem
 
 				if (priority == Priority::High)
 				{
-					std::string thread_name = "vz::job_" + std::to_string(threadID);
+					std::string thread_name = "wi::job_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
@@ -269,7 +273,7 @@ namespace vz::jobsystem
 				{
 					// TODO: set lower priority
 
-					std::string thread_name = "vz::job_lo_" + std::to_string(threadID);
+					std::string thread_name = "wi::job_lo_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
@@ -278,20 +282,22 @@ namespace vz::jobsystem
 				{
 					// TODO: set lower priority
 
-					std::string thread_name = "vz::job_st_" + std::to_string(threadID);
+					std::string thread_name = "wi::job_st_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
 				}
 
 #undef handle_error_en
+#elif defined(PLATFORM_PS5)
+				wi::jobsystem::ps5::SetupWorker(worker, threadID);
 #endif // _WIN32
 			}
 		}
 
 		char msg[256] = {};
-		snprintf(msg, arraysize(msg), "vz::jobsystem Initialized with %d cores in %.2f ms\n\tHigh priority threads: %d\n\tLow priority threads: %d\n\tStreaming threads: %d", internal_state.numCores, timer.Elapsed(), GetThreadCount(Priority::High), GetThreadCount(Priority::Low), GetThreadCount(Priority::Streaming));
-		vz::backlog::Post(msg);
+		snprintf(msg, arraysize(msg), "vz::jobsystem Initialized with %d cores in %.2f ms\n\tHigh priority threads: %d\n\tLow priority threads: %d\n\tStreaming threads: %d", internal_state.numCores, timer.elapsed(), GetThreadCount(Priority::High), GetThreadCount(Priority::Low), GetThreadCount(Priority::Streaming));
+		vz::backlog::post(msg);
 	}
 
 	void ShutDown()
@@ -306,8 +312,10 @@ namespace vz::jobsystem
 
 	void Execute(context& ctx, const std::function<void(JobArgs)>& task)
 	{
+		PriorityResources& res = internal_state.resources[int(ctx.priority)];
+
 		// Context state is updated:
-		ctx.counter.fetch_add(1);
+		AtomicAdd(&ctx.counter, 1);
 
 		Job job;
 		job.ctx = &ctx;
@@ -317,12 +325,18 @@ namespace vz::jobsystem
 		job.groupJobEnd = 1;
 		job.sharedmemory_size = 0;
 
-		PriorityResources& res = internal_state.resources[int(ctx.priority)];
+		if (res.numThreads <= 1)
+		{
+			// If job system is not yet initialized, or only has one threads, job will be executed immediately here instead of thread:
+			job.execute();
+			return;
+		}
+
 		res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
 		res.wakeCondition.notify_one();
 	}
 
-	void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedMemorySize)
+	void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedmemory_size)
 	{
 		if (jobCount == 0 || groupSize == 0)
 		{
@@ -333,12 +347,12 @@ namespace vz::jobsystem
 		const uint32_t groupCount = DispatchGroupCount(jobCount, groupSize);
 
 		// Context state is updated:
-		ctx.counter.fetch_add(groupCount);
+		AtomicAdd(&ctx.counter, groupCount);
 
 		Job job;
 		job.ctx = &ctx;
 		job.task = task;
-		job.sharedmemory_size = (uint32_t)sharedMemorySize;
+		job.sharedmemory_size = (uint32_t)sharedmemory_size;
 
 		for (uint32_t groupID = 0; groupID < groupCount; ++groupID)
 		{
@@ -347,10 +361,21 @@ namespace vz::jobsystem
 			job.groupJobOffset = groupID * groupSize;
 			job.groupJobEnd = std::min(job.groupJobOffset + groupSize, jobCount);
 
-			res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
+			if (res.numThreads <= 1)
+			{
+				// If job system is not yet initialized, or only has one threads, job will be executed immediately here instead of thread:
+				job.execute();
+			}
+			else
+			{
+				res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
+			}
 		}
 
-		res.wakeCondition.notify_all();
+		if (res.numThreads > 1)
+		{
+			res.wakeCondition.notify_all();
+		}
 	}
 
 	uint32_t DispatchGroupCount(uint32_t jobCount, uint32_t groupSize)
@@ -362,7 +387,7 @@ namespace vz::jobsystem
 	bool IsBusy(const context& ctx)
 	{
 		// Whenever the context label is greater than zero, it means that there is still work that needs to be done
-		return ctx.counter.load() > 0;
+		return AtomicLoad(&ctx.counter) > 0;
 	}
 
 	void Wait(const context& ctx)
