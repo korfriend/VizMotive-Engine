@@ -1,8 +1,19 @@
 #pragma once
 #include "../Common/CommonInclude.h"
+#include "../Common/Archive.h"
+#include "../Utils/ECS.h"
+
+#include "../HighAPIs/VzEnums.h"
+using namespace vzenum;
+
+#include <string>
 
 namespace vz::component
 {
+	// ECS components
+	// 
+	// node 
+
 	struct NameComponent
 	{
 		std::string name;
@@ -11,350 +22,99 @@ namespace vz::component
 		inline void operator=(std::string&& str) { name = std::move(str); }
 		inline bool operator==(const std::string& str) const { return name.compare(str) == 0; }
 
-		void Serialize(wi::Archive& archive, wi::ecs::EntitySerializer& seri);
-	};
-
-	struct LayerComponent
-	{
-		uint32_t layerMask = ~0u;
-
-		// Non-serialized attributes:
-		uint32_t propagationMask = ~0u; // This shouldn't be modified by user usually
-
-		inline uint32_t GetLayerMask() const { return layerMask & propagationMask; }
-
-		void Serialize(wi::Archive& archive, wi::ecs::EntitySerializer& seri);
+		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
 	struct TransformComponent
 	{
-		enum FLAGS
-		{
-			EMPTY = 0,
-			DIRTY = 1 << 0,
-		};
-		uint32_t _flags = DIRTY;
-
-		XMFLOAT3 scale_local = XMFLOAT3(1, 1, 1);
-		XMFLOAT4 rotation_local = XMFLOAT4(0, 0, 0, 1);	// this is a quaternion
-		XMFLOAT3 translation_local = XMFLOAT3(0, 0, 0);
+		bool isMatrixAutoUpdate = true;
+		XMFLOAT3 scale = XMFLOAT3(1, 1, 1);
+		XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);	// this is a quaternion
+		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
+		XMFLOAT4X4 local = vz::math::IDENTITY_MATRIX;
 
 		// Non-serialized attributes:
 
 		// The world matrix can be computed from local scale, rotation, translation
 		//	- by calling UpdateTransform()
 		//	- or by calling SetDirty() and letting the TransformUpdateSystem handle the updating
-		XMFLOAT4X4 world = wi::math::IDENTITY_MATRIX;
-
-		inline void SetDirty(bool value = true) { if (value) { _flags |= DIRTY; } else { _flags &= ~DIRTY; } }
-		inline bool IsDirty() const { return _flags & DIRTY; }
+		XMFLOAT4X4 world = vz::math::IDENTITY_MATRIX;
 
 		XMFLOAT3 GetPosition() const;
 		XMFLOAT4 GetRotation() const;
 		XMFLOAT3 GetScale() const;
-		XMVECTOR GetPositionV() const;
-		XMVECTOR GetRotationV() const;
-		XMVECTOR GetScaleV() const;
 		XMFLOAT3 GetForward() const;
 		XMFLOAT3 GetUp() const;
 		XMFLOAT3 GetRight() const;
-		XMVECTOR GetForwardV() const;
-		XMVECTOR GetUpV() const;
-		XMVECTOR GetRightV() const;
-		// Computes the local space matrix from scale, rotation, translation and returns it
-		XMMATRIX GetLocalMatrix() const;
-		// Applies the local space to the world space matrix. This overwrites world matrix
-		void UpdateTransform();
-		// Apply a parent transform relative to the local space. This overwrites world matrix
-		void UpdateTransform_Parented(const TransformComponent& parent);
-		// Apply the world matrix to the local space. This overwrites scale, rotation, translation
-		void ApplyTransform();
-		// Clears the local space. This overwrites scale, rotation, translation
-		void ClearTransform();
-		void Translate(const XMFLOAT3& value);
-		void Translate(const XMVECTOR& value);
-		void RotateRollPitchYaw(const XMFLOAT3& value);
-		void Rotate(const XMFLOAT4& quaternion);
-		void Rotate(const XMVECTOR& quaternion);
-		void Scale(const XMFLOAT3& value);
-		void Scale(const XMVECTOR& value);
-		void MatrixTransform(const XMFLOAT4X4& matrix);
-		void MatrixTransform(const XMMATRIX& matrix);
-		void Lerp(const TransformComponent& a, const TransformComponent& b, float t);
-		void CatmullRom(const TransformComponent& a, const TransformComponent& b, const TransformComponent& c, const TransformComponent& d, float t);
 
-		void Serialize(wi::Archive& archive, wi::ecs::EntitySerializer& seri);
+		void SetPosition();
+		void SetScale(const XMFLOAT3 scale);
+		void SetRotation(const XMFLOAT3 rotAngles, const EULER_ORDER order = EULER_ORDER::XYZ);
+		void SetQuaternion(const XMFLOAT4 q, const EULER_ORDER order = EULER_ORDER::XYZ);
+
+		void UpdateMatrix();
+
+		// Apply the world matrix to the local space. This overwrites scale, rotation, position
+		void ApplyTransform();
+
+		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
 	struct HierarchyComponent
 	{
-		wi::ecs::Entity parentID = wi::ecs::INVALID_ENTITY;
-		uint32_t layerMask_bind; // saved child layermask at the time of binding
+		vz::ecs::Entity parentID = vz::ecs::INVALID_ENTITY;
 
-		void Serialize(wi::Archive& archive, wi::ecs::EntitySerializer& seri);
+		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
+
+	// resources
 
 	struct MaterialComponent
 	{
-		enum FLAGS
-		{
-			EMPTY = 0,
-			DIRTY = 1 << 0,
-			CAST_SHADOW = 1 << 1,
-			_DEPRECATED_PLANAR_REFLECTION = 1 << 2,
-			_DEPRECATED_WATER = 1 << 3,
-			_DEPRECATED_FLIP_NORMALMAP = 1 << 4,
-			USE_VERTEXCOLORS = 1 << 5,
-			SPECULAR_GLOSSINESS_WORKFLOW = 1 << 6,
-			OCCLUSION_PRIMARY = 1 << 7,
-			OCCLUSION_SECONDARY = 1 << 8,
-			USE_WIND = 1 << 9,
-			DISABLE_RECEIVE_SHADOW = 1 << 10,
-			DOUBLE_SIDED = 1 << 11,
-			OUTLINE = 1 << 12,
-			PREFER_UNCOMPRESSED_TEXTURES = 1 << 13,
-			DISABLE_VERTEXAO = 1 << 14,
-			DISABLE_TEXTURE_STREAMING = 1 << 15,
-		};
-		uint32_t _flags = CAST_SHADOW;
+		
 
-		enum SHADERTYPE
-		{
-			SHADERTYPE_PBR,
-			SHADERTYPE_PBR_PLANARREFLECTION,
-			SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING,
-			SHADERTYPE_PBR_ANISOTROPIC,
-			SHADERTYPE_WATER,
-			SHADERTYPE_CARTOON,
-			SHADERTYPE_UNLIT,
-			SHADERTYPE_PBR_CLOTH,
-			SHADERTYPE_PBR_CLEARCOAT,
-			SHADERTYPE_PBR_CLOTH_CLEARCOAT,
-			SHADERTYPE_PBR_TERRAINBLENDED,
-			SHADERTYPE_COUNT
-		} shaderType = SHADERTYPE_PBR;
-		static_assert(SHADERTYPE_COUNT == SHADERTYPE_BIN_COUNT, "These values must match!");
-
-		inline static const wi::vector<std::string> shaderTypeDefines[] = {
-			{}, // SHADERTYPE_PBR,
-			{"PLANARREFLECTION"}, // SHADERTYPE_PBR_PLANARREFLECTION,
-			{"PARALLAXOCCLUSIONMAPPING"}, // SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING,
-			{"ANISOTROPIC"}, // SHADERTYPE_PBR_ANISOTROPIC,
-			{"WATER"}, // SHADERTYPE_WATER,
-			{"CARTOON"}, // SHADERTYPE_CARTOON,
-			{"UNLIT"}, // SHADERTYPE_UNLIT,
-			{"SHEEN"}, // SHADERTYPE_PBR_CLOTH,
-			{"CLEARCOAT"}, // SHADERTYPE_PBR_CLEARCOAT,
-			{"SHEEN", "CLEARCOAT"}, // SHADERTYPE_PBR_CLOTH_CLEARCOAT,
-			{"TERRAINBLENDED"}, //SHADERTYPE_PBR_TERRAINBLENDED
-		};
-		static_assert(SHADERTYPE_COUNT == arraysize(shaderTypeDefines), "These values must match!");
-
-		wi::enums::STENCILREF engineStencilRef = wi::enums::STENCILREF_DEFAULT;
-		uint8_t userStencilRef = 0;
-		wi::enums::BLENDMODE userBlendMode = wi::enums::BLENDMODE_OPAQUE;
-
-		XMFLOAT4 baseColor = XMFLOAT4(1, 1, 1, 1);
-		XMFLOAT4 specularColor = XMFLOAT4(1, 1, 1, 1);
-		XMFLOAT4 emissiveColor = XMFLOAT4(1, 1, 1, 0);
-		XMFLOAT4 subsurfaceScattering = XMFLOAT4(1, 1, 1, 0);
-		XMFLOAT4 texMulAdd = XMFLOAT4(1, 1, 0, 0);
-		float roughness = 0.2f;
-		float reflectance = 0.02f;
-		float metalness = 0.0f;
-		float normalMapStrength = 1.0f;
-		float parallaxOcclusionMapping = 0.0f;
-		float displacementMapping = 0.0f;
-		float refraction = 0.0f;
-		float transmission = 0.0f;
-		float alphaRef = 1.0f;
-		float anisotropy_strength = 0;
-		float anisotropy_rotation = 0; //radians, counter-clockwise
-		float blend_with_terrain_height = 0;
-
-		XMFLOAT4 sheenColor = XMFLOAT4(1, 1, 1, 1);
-		float sheenRoughness = 0;
-		float clearcoat = 0;
-		float clearcoatRoughness = 0;
-
-		wi::graphics::ShadingRate shadingRate = wi::graphics::ShadingRate::RATE_1X1;
-
-		XMFLOAT2 texAnimDirection = XMFLOAT2(0, 0);
-		float texAnimFrameRate = 0.0f;
-		float texAnimElapsedTime = 0.0f;
-
-		enum TEXTURESLOT
-		{
-			BASECOLORMAP,
-			NORMALMAP,
-			SURFACEMAP,
-			EMISSIVEMAP,
-			DISPLACEMENTMAP,
-			OCCLUSIONMAP,
-			TRANSMISSIONMAP,
-			SHEENCOLORMAP,
-			SHEENROUGHNESSMAP,
-			CLEARCOATMAP,
-			CLEARCOATROUGHNESSMAP,
-			CLEARCOATNORMALMAP,
-			SPECULARMAP,
-			ANISOTROPYMAP,
-			TRANSPARENCYMAP,
-
-			TEXTURESLOT_COUNT
-		};
-		struct TextureMap
-		{
-			std::string name;
-			wi::Resource resource;
-			uint32_t uvset = 0;
-			const wi::graphics::GPUResource* GetGPUResource() const
-			{
-				if (!resource.IsValid() || !resource.GetTexture().IsValid())
-					return nullptr;
-				return &resource.GetTexture();
-			}
-
-			// Non-serialized attributes:
-			float lod_clamp = 0;						// optional, can be used by texture streaming
-			int sparse_residencymap_descriptor = -1;	// optional, can be used by texture streaming
-			int sparse_feedbackmap_descriptor = -1;		// optional, can be used by texture streaming
-		};
-		TextureMap textures[TEXTURESLOT_COUNT];
-
-		int customShaderID = -1;
-		uint4 userdata = uint4(0, 0, 0, 0); // can be accessed by custom shader
-
-		// Non-serialized attributes:
-		uint32_t layerMask = ~0u;
-		int sampler_descriptor = -1; // optional
-
-		// User stencil value can be in range [0, 15]
-		inline void SetUserStencilRef(uint8_t value)
-		{
-			assert(value < 16);
-			userStencilRef = value & 0x0F;
-		}
-		uint32_t GetStencilRef() const;
-
-		inline float GetOpacity() const { return baseColor.w; }
-		inline float GetEmissiveStrength() const { return emissiveColor.w; }
-		inline int GetCustomShaderID() const { return customShaderID; }
-
-		inline bool HasPlanarReflection() const { return shaderType == SHADERTYPE_PBR_PLANARREFLECTION || shaderType == SHADERTYPE_WATER; }
-
-		inline void SetDirty(bool value = true) { if (value) { _flags |= DIRTY; } else { _flags &= ~DIRTY; } }
-		inline bool IsDirty() const { return _flags & DIRTY; }
-
-		inline void SetCastShadow(bool value) { SetDirty(); if (value) { _flags |= CAST_SHADOW; } else { _flags &= ~CAST_SHADOW; } }
-		inline void SetReceiveShadow(bool value) { SetDirty(); if (value) { _flags &= ~DISABLE_RECEIVE_SHADOW; } else { _flags |= DISABLE_RECEIVE_SHADOW; } }
-		inline void SetOcclusionEnabled_Primary(bool value) { SetDirty(); if (value) { _flags |= OCCLUSION_PRIMARY; } else { _flags &= ~OCCLUSION_PRIMARY; } }
-		inline void SetOcclusionEnabled_Secondary(bool value) { SetDirty(); if (value) { _flags |= OCCLUSION_SECONDARY; } else { _flags &= ~OCCLUSION_SECONDARY; } }
-
-		inline wi::enums::BLENDMODE GetBlendMode() const { if (userBlendMode == wi::enums::BLENDMODE_OPAQUE && (GetFilterMask() & wi::enums::FILTER_TRANSPARENT)) return wi::enums::BLENDMODE_ALPHA; else return userBlendMode; }
-		inline bool IsCastingShadow() const { return _flags & CAST_SHADOW; }
-		inline bool IsAlphaTestEnabled() const { return alphaRef <= 1.0f - 1.0f / 256.0f; }
-		inline bool IsUsingVertexColors() const { return _flags & USE_VERTEXCOLORS; }
-		inline bool IsUsingWind() const { return _flags & USE_WIND; }
-		inline bool IsReceiveShadow() const { return (_flags & DISABLE_RECEIVE_SHADOW) == 0; }
-		inline bool IsUsingSpecularGlossinessWorkflow() const { return _flags & SPECULAR_GLOSSINESS_WORKFLOW; }
-		inline bool IsOcclusionEnabled_Primary() const { return _flags & OCCLUSION_PRIMARY; }
-		inline bool IsOcclusionEnabled_Secondary() const { return _flags & OCCLUSION_SECONDARY; }
-		inline bool IsCustomShader() const { return customShaderID >= 0; }
-		inline bool IsDoubleSided() const { return _flags & DOUBLE_SIDED; }
-		inline bool IsOutlineEnabled() const { return _flags & OUTLINE; }
-		inline bool IsPreferUncompressedTexturesEnabled() const { return _flags & PREFER_UNCOMPRESSED_TEXTURES; }
-		inline bool IsVertexAODisabled() const { return _flags & DISABLE_VERTEXAO; }
-		inline bool IsTextureStreamingDisabled() const { return _flags & DISABLE_TEXTURE_STREAMING; }
-
-		inline void SetBaseColor(const XMFLOAT4& value) { SetDirty(); baseColor = value; }
-		inline void SetSpecularColor(const XMFLOAT4& value) { SetDirty(); specularColor = value; }
-		inline void SetEmissiveColor(const XMFLOAT4& value) { SetDirty(); emissiveColor = value; }
-		inline void SetRoughness(float value) { SetDirty(); roughness = value; }
-		inline void SetReflectance(float value) { SetDirty(); reflectance = value; }
-		inline void SetMetalness(float value) { SetDirty(); metalness = value; }
-		inline void SetEmissiveStrength(float value) { SetDirty(); emissiveColor.w = value; }
-		inline void SetTransmissionAmount(float value) { SetDirty(); transmission = value; }
-		inline void SetRefractionAmount(float value) { SetDirty(); refraction = value; }
-		inline void SetNormalMapStrength(float value) { SetDirty(); normalMapStrength = value; }
-		inline void SetParallaxOcclusionMapping(float value) { SetDirty(); parallaxOcclusionMapping = value; }
-		inline void SetDisplacementMapping(float value) { SetDirty(); displacementMapping = value; }
-		inline void SetSubsurfaceScatteringColor(XMFLOAT3 value)
-		{
-			SetDirty();
-			subsurfaceScattering.x = value.x;
-			subsurfaceScattering.y = value.y;
-			subsurfaceScattering.z = value.z;
-		}
-		inline void SetSubsurfaceScatteringAmount(float value) { SetDirty(); subsurfaceScattering.w = value; }
-		inline void SetOpacity(float value) { SetDirty(); baseColor.w = value; }
-		inline void SetAlphaRef(float value) { SetDirty();  alphaRef = value; }
-		inline void SetUseVertexColors(bool value) { SetDirty(); if (value) { _flags |= USE_VERTEXCOLORS; } else { _flags &= ~USE_VERTEXCOLORS; } }
-		inline void SetUseWind(bool value) { SetDirty(); if (value) { _flags |= USE_WIND; } else { _flags &= ~USE_WIND; } }
-		inline void SetUseSpecularGlossinessWorkflow(bool value) { SetDirty(); if (value) { _flags |= SPECULAR_GLOSSINESS_WORKFLOW; } else { _flags &= ~SPECULAR_GLOSSINESS_WORKFLOW; } }
-		inline void SetSheenColor(const XMFLOAT3& value)
-		{
-			sheenColor = XMFLOAT4(value.x, value.y, value.z, sheenColor.w);
-			SetDirty();
-		}
-		inline void SetSheenRoughness(float value) { sheenRoughness = value; SetDirty(); }
-		inline void SetClearcoatFactor(float value) { clearcoat = value; SetDirty(); }
-		inline void SetClearcoatRoughness(float value) { clearcoatRoughness = value; SetDirty(); }
-		inline void SetCustomShaderID(int id) { customShaderID = id; }
-		inline void DisableCustomShader() { customShaderID = -1; }
-		inline void SetDoubleSided(bool value = true) { if (value) { _flags |= DOUBLE_SIDED; } else { _flags &= ~DOUBLE_SIDED; } }
-		inline void SetOutlineEnabled(bool value = true) { if (value) { _flags |= OUTLINE; } else { _flags &= ~OUTLINE; } }
-		inline void SetPreferUncompressedTexturesEnabled(bool value = true) { if (value) { _flags |= PREFER_UNCOMPRESSED_TEXTURES; } else { _flags &= ~PREFER_UNCOMPRESSED_TEXTURES; } CreateRenderData(true); }
-		inline void SetVertexAODisabled(bool value = true) { if (value) { _flags |= DISABLE_VERTEXAO; } else { _flags &= ~DISABLE_VERTEXAO; } }
-		inline void SetTextureStreamingDisabled(bool value = true) { if (value) { _flags |= DISABLE_TEXTURE_STREAMING; } else { _flags &= ~DISABLE_TEXTURE_STREAMING; } }
-
-		// The MaterialComponent will be written to ShaderMaterial (a struct that is optimized for GPU use)
-		void WriteShaderMaterial(ShaderMaterial* dest) const;
-		void WriteShaderTextureSlot(ShaderMaterial* dest, int slot, int descriptor);
-
-		// Retrieve the array of textures from the material
-		void WriteTextures(const wi::graphics::GPUResource** dest, int count) const;
-
-		// Returns the bitwise OR of all the wi::enums::FILTER flags applicable to this material
-		uint32_t GetFilterMask() const;
-
-		wi::resourcemanager::Flags GetTextureSlotResourceFlags(TEXTURESLOT slot);
-
-		// Create texture resources for GPU
-		void CreateRenderData(bool force_recreate = false);
-
-		void Serialize(wi::Archive& archive, wi::ecs::EntitySerializer& seri);
+		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct MeshComponent
+	struct GeometryComponent
 	{
-		enum FLAGS
-		{
-			EMPTY = 0,
-			RENDERABLE = 1 << 0,
-			DOUBLE_SIDED = 1 << 1,
-			DYNAMIC = 1 << 2,
-			_DEPRECATED_TERRAIN = 1 << 3,
-			_DEPRECATED_DIRTY_MORPH = 1 << 4,
-			_DEPRECATED_DIRTY_BINDLESS = 1 << 5,
-			TLAS_FORCE_DOUBLE_SIDED = 1 << 6,
-			DOUBLE_SIDED_SHADOW = 1 << 7,
-			BVH_ENABLED = 1 << 8,
-			QUANTIZED_POSITIONS_DISABLED = 1 << 9,
-		};
-		uint32_t _flags = RENDERABLE;
+		struct Primitive {
+			VertexBuffer* vertices = nullptr;
+			IndexBuffer* indices = nullptr;
+			Aabb aabb; // object-space bounding box
+			UvMap uvmap; // mapping from each glTF UV set to either UV0 or UV1 (8 bytes)
+			MorphTargetBuffer* morphTargetBuffer = nullptr;
+			uint32_t morphTargetOffset;
+			std::vector<int> slotIndices;
 
-		wi::vector<XMFLOAT3> vertex_positions;
-		wi::vector<XMFLOAT3> vertex_normals;
-		wi::vector<XMFLOAT4> vertex_tangents;
-		wi::vector<XMFLOAT2> vertex_uvset_0;
-		wi::vector<XMFLOAT2> vertex_uvset_1;
-		wi::vector<XMUINT4> vertex_boneindices;
-		wi::vector<XMFLOAT4> vertex_boneweights;
-		wi::vector<XMFLOAT2> vertex_atlas;
-		wi::vector<uint32_t> vertex_colors;
-		wi::vector<uint8_t> vertex_windweights;
-		wi::vector<uint32_t> indices;
+			PrimitiveType ptype = PrimitiveType::TRIANGLES;
+		};
+
+		std::vector<VzPrimitive> primitives_;
+
+		std::vector<char> cacheVB;
+		std::vector<char> cacheIB;
+		std::vector<char> cacheMTB;
+	public:
+		bool isSystem = false;
+		gltfio::FilamentAsset* assetOwner = nullptr; // has ownership
+		filament::Aabb aabb;
+		void Set(const std::vector<VzPrimitive>& primitives);
+		std::vector<VzPrimitive>* Get();
+
+
+
+		vz::vector<XMFLOAT3> vertex_positions;
+		vz::vector<XMFLOAT3> vertex_normals;
+		vz::vector<XMFLOAT4> vertex_tangents;
+		vz::vector<XMFLOAT2> vertex_uvset_0;
+		vz::vector<XMFLOAT2> vertex_uvset_1;
+		vz::vector<XMUINT4> vertex_boneindices;
+		vz::vector<XMFLOAT4> vertex_boneweights;
+		vz::vector<XMFLOAT2> vertex_atlas;
+		vz::vector<uint32_t> vertex_colors;
+		vz::vector<uint8_t> vertex_windweights;
+		vz::vector<uint32_t> indices;
 
 		struct MeshSubset
 		{
@@ -387,9 +147,9 @@ namespace vz::component
 		uint32_t subsets_per_lod = 0; // this needs to be specified if there are multiple LOD levels
 
 		// Non-serialized attributes:
-		wi::primitive::AABB aabb;
-		wi::graphics::GPUBuffer generalBuffer; // index buffer + all static vertex buffers
-		wi::graphics::GPUBuffer streamoutBuffer; // all dynamic vertex buffers
+		vz::primitive::AABB aabb;
+		vz::graphics::GPUBuffer generalBuffer; // index buffer + all static vertex buffers
+		vz::graphics::GPUBuffer streamoutBuffer; // all dynamic vertex buffers
 		struct BufferView
 		{
 			uint64_t offset = ~0ull;
@@ -758,6 +518,13 @@ namespace vz::component
 		};
 
 	};
+
+	struct TextureComponent
+	{
+
+	};
+
+	// scene 
 
 	struct RenderableComponent
 	{
