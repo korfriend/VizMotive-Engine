@@ -180,6 +180,24 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image_write.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_truetype.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\h264.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\mikktspace.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\minimp4.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\qoi.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_rect_pack.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -217,6 +235,12 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp">
       <Filter>ThirdParty</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\basisu_common.cpp">
+      <Filter>ThirdParty</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp">
+      <Filter>Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

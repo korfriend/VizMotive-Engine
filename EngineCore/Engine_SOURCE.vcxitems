@@ -48,9 +48,15 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\h264.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\mikktspace.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\minimp4.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\qoi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image_write.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_rect_pack.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_truetype.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h" />
@@ -70,6 +76,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\basisu_common.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp" />
@@ -77,6 +84,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Random.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl" />
