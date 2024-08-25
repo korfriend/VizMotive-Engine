@@ -19,12 +19,6 @@
     <Filter Include="Components">
       <UniqueIdentifier>{1ef74076-5448-4106-bc13-a82f3500293f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Systems">
-      <UniqueIdentifier>{edff9196-14fa-44ec-beaf-23bec2924873}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Systems\Renderer">
-      <UniqueIdentifier>{c1038198-478b-4023-a2b1-5fd279caeb86}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ThirdParty">
       <UniqueIdentifier>{0c7ca975-abff-4991-8de0-a6383a28fdcc}</UniqueIdentifier>
     </Filter>
@@ -117,7 +111,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Components\EComponents.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.h">
@@ -168,9 +162,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_rect_pack.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\VzEnums.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h">
       <Filter>HighAPIs</Filter>
     </ClInclude>
@@ -192,9 +183,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.h">
       <Filter>HighAPIs</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEnums.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h">
       <Filter>HighAPIs</Filter>
     </ClInclude>
@@ -204,6 +192,10 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponents.h">
       <Filter>HighAPIs</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)components\ComponentFactory.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)VzEnums.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -273,6 +265,9 @@
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp">
       <Filter>Components</Filter>
     </ClCompile>
   </ItemGroup>

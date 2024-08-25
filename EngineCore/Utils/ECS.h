@@ -446,16 +446,16 @@ namespace vz::ecs
 		inline const Component& operator[](size_t index) const { return components[index]; }
 
 		// Returns the tightly packed [read only] entity array
-		inline const vz::vector<Entity>& GetEntityArray() const { return entities; }
+		inline const std::vector<Entity>& GetEntityArray() const { return entities; }
 
 		// Returns the tightly packed [read only] component array
-		inline const vz::vector<Component>& GetComponentArray() const { return components; }
+		inline const std::vector<Component>& GetComponentArray() const { return components; }
 
 	private:
 		// This is a linear array of alive components
-		vz::vector<Component> components;
+		std::vector<Component> components;
 		// This is a linear array of entities corresponding to each alive component
-		vz::vector<Entity> entities;
+		std::vector<Entity> entities;
 		// This is a lookup table for entities
 		std::unordered_map<Entity, size_t> lookup;
 
