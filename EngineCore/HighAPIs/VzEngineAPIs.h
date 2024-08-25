@@ -1,5 +1,5 @@
 #pragma once
-#include "VzComponents.h"
+#include "VzClasses.h"
 
 namespace vzm
 {
