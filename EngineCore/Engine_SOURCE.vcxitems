@@ -29,14 +29,13 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ResourceManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\SceneManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Version.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\VzEnums.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\waterripple.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Components\EComponents.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)components\ComponentFactory.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponents.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEnums.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.h" />
@@ -71,6 +70,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)VzEnums.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
@@ -78,6 +78,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\CameraComponent.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\LightComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MInstanceComponent.cpp" />
