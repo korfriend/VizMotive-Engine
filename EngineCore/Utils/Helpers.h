@@ -1,6 +1,6 @@
 #pragma once
 #include "CommonInclude.h"
-#include "../Common/Backend/GBackendDevice.h"
+#include "Common/Backend/GBackendDevice.h"
 
 #include <string>
 #include <functional>

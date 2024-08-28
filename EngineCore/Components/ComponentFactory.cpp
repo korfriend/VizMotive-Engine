@@ -1,99 +1,9 @@
 #include "ComponentFactory.h"
-#include "../Utils/ECS.h"
-#include "../Common/Archive.h"
+#include "Utils/ECS.h"
+#include "Common/Archive.h"
 
 namespace vz::ecs
 {
-	// The ORDER must NOT be CHANGED!!
-	enum class EcsComponentType : uint32_t
-	{
-		NAME = 0,
-		TANSFORM,
-		HIERARCHY,
-		RENDERABLE,
-		MATERIAL,
-		MATERIALINSTANCE,
-		GEOMETRY,
-		TEXTURE,
-		LIGHT,
-		CAMERA,
-		NUM_COMPONENTS
-	};
-
-	class ComponentLibrary;
-	struct EntitySerializer
-	{
-		vz::jobsystem::context ctx; // allow components to spawn serialization subtasks
-		std::unordered_map<uint64_t, Entity> remap;
-		bool allow_remap = true;
-		uint64_t version = 0; // The ComponentLibrary serialization will modify this by the registered component's version number
-		// register for resource manager serialization
-		std::vector<bool> resource_registration = std::vector<bool>((uint32_t)EcsComponentType::NUM_COMPONENTS, false);
-		ComponentLibrary* componentlibrary = nullptr;
-		std::vector<uint64_t> library_versions = std::vector<uint64_t>((uint32_t)EcsComponentType::NUM_COMPONENTS, 0);
-
-		~EntitySerializer()
-		{
-			vz::jobsystem::Wait(ctx); // automatically wait for all subtasks after serialization
-		}
-
-		// Returns the library version of the currently serializing Component
-		//	If not using ComponentLibrary, it returns version set by the user.
-		uint64_t GetVersion() const
-		{
-			return version;
-		}
-		uint64_t GetVersion(const EcsComponentType type) const
-		{
-			return library_versions[(uint32_t)type];
-		}
-
-		void RegisterResource(const EcsComponentType& resource_type)
-		{
-			resource_registration[(uint32_t)resource_type] = true;
-		}
-	};
-	// This is the safe way to serialize an entity
-	inline void SerializeEntity(vz::Archive& archive, Entity& entity, EntitySerializer& seri)
-	{
-		if (archive.IsReadMode())
-		{
-			// Entities are always serialized as uint64_t for back-compat
-			uint64_t mem;
-			archive >> mem;
-
-			if (mem != INVALID_ENTITY && seri.allow_remap)
-			{
-				auto it = seri.remap.find(mem);
-				if (it == seri.remap.end())
-				{
-					entity = CreateEntity();
-					seri.remap[mem] = entity;
-				}
-				else
-				{
-					entity = it->second;
-				}
-			}
-			else
-			{
-				entity = (Entity)mem;
-			}
-		}
-		else
-		{
-#if defined(__GNUC__) && !defined(__SCE__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif // __GNUC__ && !__SCE__
-
-			archive << entity;
-
-#if defined(__GNUC__) && !defined(__SCE__)
-#pragma GCC diagnostic pop
-#endif // __GNUC__ && !__SCE__
-		}
-	}
 	// This is an interface class to implement a ComponentManager,
 	// inherit this class if you want to work with ComponentLibrary
 	class ComponentManager_Interface
@@ -114,6 +24,7 @@ namespace vz::ecs
 		virtual Entity GetEntity(size_t index) const = 0;
 		virtual const std::vector<Entity>& GetEntityArray() const = 0;
 	};
+
 	// The ComponentManager is a container that stores components and matches them with entities
 	//	Note: final keyword is used to indicate this is a final implementation.
 	//	This allows function inlining and avoid calls, improves performance considerably
@@ -456,34 +367,43 @@ namespace vz::ecs
 			std::unique_ptr<ComponentManager_Interface> component_manager;
 			uint64_t version = 0;
 		};
-		std::vector<LibraryEntry> entries = std::vector<LibraryEntry>((uint32_t)EcsComponentType::NUM_COMPONENTS);
+		std::unordered_map<std::string, LibraryEntry> entries;
 
 		// Create an instance of ComponentManager of a certain data type
 		//	The name must be unique, it will be used in serialization
 		//	version is optional, it will be propagated to ComponentManager::Serialize() inside the EntitySerializer parameter
 		template<typename T>
-		inline ComponentManager<T>& Register(const EcsComponentType type, uint64_t version = 0)
+		inline ComponentManager<T>& Register(const std::string& name, uint64_t version = 0)
 		{
-			entries[(uint32_t)type].component_manager = std::make_unique<ComponentManager<T>>();
-			entries[(uint32_t)type].version = version;
-			return static_cast<ComponentManager<T>&>(*entries[(uint32_t)type].component_manager);
+			entries[name].component_manager = std::make_unique<ComponentManager<T>>();
+			entries[name].version = version;
+			return static_cast<ComponentManager<T>&>(*entries[name].component_manager);
 		}
 
 		template<typename T>
-		inline ComponentManager<T>* Get(const EcsComponentType type)
+		inline ComponentManager<T>* Get(const std::string& name)
 		{
-			return static_cast<ComponentManager<T>*>(entries[(uint32_t)type].component_manager.get());
+			auto it = entries.find(name);
+			if (it == entries.end())
+				return nullptr;
+			return static_cast<ComponentManager<T>*>(it->second.component_manager.get());
 		}
 
 		template<typename T>
-		inline const ComponentManager<T>* Get(const EcsComponentType type) const
+		inline const ComponentManager<T>* Get(const std::string& name) const
 		{
-			return static_cast<const ComponentManager<T>*>(entries[(uint32_t)type].component_manager.get());
+			auto it = entries.find(name);
+			if (it == entries.end())
+				return nullptr;
+			return static_cast<const ComponentManager<T>*>(it->second.component_manager.get());
 		}
 
-		inline uint64_t GetVersion(const EcsComponentType type) const
+		inline uint64_t GetVersion(std::string name) const
 		{
-			return entries[(uint32_t)type].version;
+			auto it = entries.find(name);
+			if (it == entries.end())
+				return 0;
+			return it->second.version;
 		}
 
 		// Serialize all registered component managers
@@ -502,12 +422,16 @@ namespace vz::ecs
 					archive >> has_next;
 					if (has_next)
 					{
-						uint32_t type;
-						archive >> type;
+						std::string name;
+						archive >> name;
 						uint64_t jump_pos = 0;
 						archive >> jump_pos;
-						archive >> seri.version;
-						seri.library_versions[type] = seri.version;
+						auto it = entries.find(name);
+						if (it != entries.end())
+						{
+							archive >> seri.version;
+							seri.library_versions[name] = seri.version;
+						}
 						archive.Jump(jump_pos);
 					}
 				} while (has_next);
@@ -522,34 +446,41 @@ namespace vz::ecs
 					archive >> has_next;
 					if (has_next)
 					{
-						uint32_t type;
-						archive >> type;
+						std::string name;
+						archive >> name;
 						uint64_t jump_pos = 0;
 						archive >> jump_pos;
-						archive >> seri.version;
-						entries[type].component_manager->Serialize(archive, seri);
+						auto it = entries.find(name);
+						if (it != entries.end())
+						{
+							archive >> seri.version;
+							it->second.component_manager->Serialize(archive, seri);
+						}
+						else
+						{
+							// component manager of this name was not registered, skip serialization by jumping over the data
+							archive.Jump(jump_pos);
+						}
 					}
 				} while (has_next);
 			}
 			else
 			{
 				// Save all component type versions:
-				for (size_t i = 0, n = entries.size(); i < n; ++i)
+				for (auto& it : entries)
 				{
-					ComponentLibrary::LibraryEntry& lib_entry = entries[i];
-					seri.library_versions[i] = lib_entry.version;
-
-					archive << true;
-					archive << (uint32_t)i; // type
-					size_t offset = archive.WriteUnknownJumpPosition(); // we will be able to jump from here...
-					archive << lib_entry.version;
-					seri.version = lib_entry.version;
-					lib_entry.component_manager->Serialize(archive, seri);
-					archive.PatchUnknownJumpPosition(offset); // ...to here, if this component manager was not registered
+					seri.library_versions[it.first] = it.second.version;
 				}
 				// Serialize all component data, at this point component type version lookup is also complete
 				for (auto& it : entries)
 				{
+					archive << true;
+					archive << it.first; // name
+					size_t offset = archive.WriteUnknownJumpPosition(); // we will be able to jump from here...
+					archive << it.second.version;
+					seri.version = it.second.version;
+					it.second.component_manager->Serialize(archive, seri);
+					archive.PatchUnknownJumpPosition(offset); // ...to here, if this component manager was not registered
 				}
 				archive << false;
 			}
@@ -567,28 +498,34 @@ namespace vz::ecs
 					archive >> has_next;
 					if (has_next)
 					{
-						uint32_t type;
-						archive >> type;
+						std::string name;
+						archive >> name;
 						uint64_t jump_size = 0;
 						archive >> jump_size;
-						archive >> seri.version;
-						entries[type].component_manager->Component_Serialize(entity, archive, seri);
+						auto it = entries.find(name);
+						if (it != entries.end())
+						{
+							archive >> seri.version;
+							it->second.component_manager->Component_Serialize(entity, archive, seri);
+						}
+						else
+						{
+							// component manager of this name was not registered, skip serialization by jumping over the data
+							archive.Jump(jump_size);
+						}
 					}
 				} while (has_next);
 			}
 			else
 			{
-				for (size_t i = 0, n = entries.size(); i < n; ++i)
+				for (auto& it : entries)
 				{
 					archive << true;
-					archive << (uint32_t)i; // name
+					archive << it.first; // name
 					size_t offset = archive.WriteUnknownJumpPosition(); // we will be able to jump from here...
-
-					LibraryEntry& lib_entry = entries[i];
-
-					archive << lib_entry.version;
-					seri.version = lib_entry.version;
-					lib_entry.component_manager->Component_Serialize(entity, archive, seri);
+					archive << it.second.version;
+					seri.version = it.second.version;
+					it.second.component_manager->Component_Serialize(entity, archive, seri);
 					archive.PatchUnknownJumpPosition(offset); // ...to here, if this component manager was not registered
 				}
 				archive << false;
@@ -602,13 +539,13 @@ namespace vz::component
 
 	ComponentLibrary componentLibrary;
 
-	ComponentManager<NameComponent>& nameManager = componentLibrary.Register<NameComponent>(EcsComponentType::NAME);
-	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>(EcsComponentType::TANSFORM);
-	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>(EcsComponentType::HIERARCHY);
-	ComponentManager<MaterialComponent>& materialManager = componentLibrary.Register<MaterialComponent>(EcsComponentType::MATERIAL);
-	ComponentManager<GeometryComponent>& geometryManager = componentLibrary.Register<GeometryComponent>(EcsComponentType::GEOMETRY);
-	ComponentManager<TextureComponent>& textureManager = componentLibrary.Register<TextureComponent>(EcsComponentType::TEXTURE);
-	ComponentManager<RenderableComponent>& renderableManager = componentLibrary.Register<RenderableComponent>(EcsComponentType::RENDERABLE);
-	ComponentManager<LightComponent>& lightManager = componentLibrary.Register<LightComponent>(EcsComponentType::LIGHT);
-	ComponentManager<CameraComponent>& cameraManager = componentLibrary.Register<CameraComponent>(EcsComponentType::CAMERA);
+	ComponentManager<NameComponent>& nameManager = componentLibrary.Register<NameComponent>("NAME");
+	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>("TANSFORM");
+	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>("HIERARCHY");
+	ComponentManager<MaterialComponent>& materialManager = componentLibrary.Register<MaterialComponent>("MATERIAL");
+	ComponentManager<GeometryComponent>& geometryManager = componentLibrary.Register<GeometryComponent>("GEOMETRY");
+	ComponentManager<TextureComponent>& textureManager = componentLibrary.Register<TextureComponent>("TEXTURE");
+	ComponentManager<RenderableComponent>& renderableManager = componentLibrary.Register<RenderableComponent>("RENDERABLE");
+	ComponentManager<LightComponent>& lightManager = componentLibrary.Register<LightComponent>("LIGHT");
+	ComponentManager<CameraComponent>& cameraManager = componentLibrary.Register<CameraComponent>("CAMERA");
 }

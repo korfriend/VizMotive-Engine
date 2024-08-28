@@ -1,6 +1,6 @@
 #include "VzEngineAPIs.h"
-#include "../Components/Components.h"
-#include "../Utils/Backlog.h"
+#include "Components/Components.h"
+#include "Utils/Backlog.h"
 
 using namespace vz;
 

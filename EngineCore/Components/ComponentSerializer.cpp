@@ -17,4 +17,8 @@ namespace vz::component
 			archive << name;
 		}
 	}
+
+	void TransformComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	{
+	}
 }

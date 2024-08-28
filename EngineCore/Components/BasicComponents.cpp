@@ -26,19 +26,19 @@ namespace vz::component
 	}
 	XMFLOAT3 TransformComponent::GetWorldForward() const
 	{
-
+		return vz::math::GetForward(world_);
 	}
 	XMFLOAT3 TransformComponent::GetWorldUp() const
 	{
-
+		return vz::math::GetUp(world_);
 	}
 	XMFLOAT3 TransformComponent::GetWorldRight() const
 	{
-
+		return vz::math::GetRight(world_);
 	}
 	void TransformComponent::SetRotation(const XMFLOAT3& rotAngles, const enums::EulerAngle euler)
 	{
-		
+		// to do
 	}
 	void TransformComponent::UpdateMatrix()
 	{
