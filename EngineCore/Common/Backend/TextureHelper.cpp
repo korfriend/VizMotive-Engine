@@ -1,12 +1,12 @@
 #include "TextureHelper.h"
-#include "../../Utils/Random.h"
-#include "../../Utils/Color.h"
-#include "../../Utils/Backlog.h"
-#include "../../Utils/SpinLock.h"
-#include "../../Utils/Timer.h"
-#include "../../Utils/Noise.h"
+#include "Utils/Random.h"
+#include "Utils/Color.h"
+#include "Utils/Backlog.h"
+#include "Utils/SpinLock.h"
+#include "Utils/Timer.h"
+#include "Utils/Noise.h"
 
-#include "../waterripple.h"
+#include "Common/waterripple.h"
 
 using namespace vz::graphics;
 

@@ -1,8 +1,8 @@
 #include "Archive.h"
-#include "../Utils/Helpers.h"
+#include "Utils/Helpers.h"
 #include "Backend/TextureHelper.h"
 
-#include "../ThirdParty/stb_image.h"
+#include "ThirdParty/stb_image.h"
 
 namespace vz
 {

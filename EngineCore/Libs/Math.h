@@ -441,7 +441,7 @@ namespace vz::math
 	}
 	inline XMFLOAT3 GetRight(const XMFLOAT4X4& _m)
 	{
-		return XMFLOAT3(_m.m[0][0], _m.m[0][1], _m.m[0][2]);
+		return XMFLOAT3(-_m.m[0][0], -_m.m[0][1], -_m.m[0][2]);
 	}
 
 	// Returns an element of a precomputed halton sequence. Specify which iteration to get with idx >= 0

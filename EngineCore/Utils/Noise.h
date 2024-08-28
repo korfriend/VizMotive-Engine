@@ -1,7 +1,7 @@
 #pragma once
 #include "CommonInclude.h"
-#include "../Libs/Math.h"
-#include "../Common/Archive.h"
+#include "Libs/Math.h"
+#include "Common/Archive.h"
 #include "Random.h"
 
 namespace vz::noise

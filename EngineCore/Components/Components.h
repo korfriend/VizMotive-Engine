@@ -120,11 +120,12 @@ namespace vz::component
 		//filament::Aabb aabb;
 		//void Set(const std::vector<VzPrimitive>& primitives);
 		//std::vector<VzPrimitive>* Get();
+		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
 	struct TextureComponent
 	{
-
+		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
 	// scene 
@@ -134,6 +135,7 @@ namespace vz::component
 		ecs::Entity geometryEntity = ecs::INVALID_ENTITY;
 		std::vector<ecs::Entity> miEntities;
 
+		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 		// internal geometry
 		// internal mi
 		// internal texture

@@ -3,13 +3,13 @@
 #include "Backlog.h"
 #include "EventHandler.h"
 #include "Color.h"
-#include "../Libs/Math.h"
+#include "Libs/Math.h"
 
-#include "../ThirdParty/lodepng.h"
-#include "../ThirdParty/dds.h"
-#include "../ThirdParty/stb_image_write.h"
-#include "../ThirdParty/basis_universal/encoder/basisu_comp.h"
-#include "../ThirdParty/basis_universal/encoder/basisu_gpu_texture.h"
+#include "ThirdParty/lodepng.h"
+#include "ThirdParty/dds.h"
+#include "ThirdParty/stb_image_write.h"
+#include "ThirdParty/basis_universal/encoder/basisu_comp.h"
+#include "ThirdParty/basis_universal/encoder/basisu_gpu_texture.h"
 
 #include <thread>
 #include <locale>
