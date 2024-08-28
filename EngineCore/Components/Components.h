@@ -1,15 +1,22 @@
 #pragma once
-#include "../Common/CommonInclude.h"
-#include "../Common/Archive.h"
-#include "../Utils/ECS.h"
-
-#include "../VzEnums.h"
+#include "CommonInclude.h"
+#include "VzEnums.h"
+#include "Libs/Math.h"
+#include "Utils/ECS.h"
 
 #include <string>
+namespace vz
+{
+	class Archive;
+}
+namespace vz::ecs
+{
+	struct EntitySerializer;
+}
 
-using namespace vz;
 namespace vz::component
 {
+	using namespace vz;
 	// ECS components
 
 	struct NameComponent
@@ -25,30 +32,43 @@ namespace vz::component
 
 	struct TransformComponent
 	{
-		bool isMatrixAutoUpdate = true;
-		XMFLOAT3 scale = XMFLOAT3(1, 1, 1);
-		XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);	// this is a quaternion
-		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
-		XMFLOAT4X4 local = vz::math::IDENTITY_MATRIX;
+	private:
+		bool isDirty_ = true;
+		bool isMatrixAutoUpdate_ = true;
+		XMFLOAT3 scale_ = XMFLOAT3(1, 1, 1);
+		XMFLOAT4 rotation_ = XMFLOAT4(0, 0, 0, 1);	// this is a quaternion
+		XMFLOAT3 position_ = XMFLOAT3(0, 0, 0);
+		XMFLOAT4X4 local_ = vz::math::IDENTITY_MATRIX;
 
 		// Non-serialized attributes:
 
 		// The world matrix can be computed from local scale, rotation, translation
 		//	- by calling UpdateTransform()
 		//	- or by calling SetDirty() and letting the TransformUpdateSystem handle the updating
-		XMFLOAT4X4 world = vz::math::IDENTITY_MATRIX;
+		XMFLOAT4X4 world_ = vz::math::IDENTITY_MATRIX;
 
-		XMFLOAT3 GetPosition() const;
-		XMFLOAT4 GetRotation() const;
-		XMFLOAT3 GetScale() const;
-		XMFLOAT3 GetForward() const;
-		XMFLOAT3 GetUp() const;
-		XMFLOAT3 GetRight() const;
+		void setDirty(const bool isDirty) { isDirty_ = isDirty; }
+	public:
 
-		void SetPosition();
-		void SetScale(const XMFLOAT3 scale);
-		void SetRotation(const XMFLOAT3 rotAngles, const enums::EulerAngle order = enums::EulerAngle::XYZ);
-		void SetQuaternion(const XMFLOAT4 q, const enums::EulerAngle order = enums::EulerAngle::XYZ);
+		bool IsDirty() const { return isDirty_; }
+		bool IsMatrixAutoUpdate() const { return isMatrixAutoUpdate_; }
+
+		XMFLOAT3 GetWorldPosition() const;
+		XMFLOAT4 GetWorldRotation() const;
+		XMFLOAT3 GetWorldScale() const;
+		XMFLOAT3 GetWorldForward() const;
+		XMFLOAT3 GetWorldUp() const;
+		XMFLOAT3 GetWorldRight() const;
+
+		// Local
+		XMFLOAT3 GetPosition() const { return position_; };
+		XMFLOAT4 GetRotation() const { return rotation_; };
+		XMFLOAT3 GetScale() const { return scale_; };
+
+		void SetPosition(const XMFLOAT3& p) { setDirty(true); position_ = p; }
+		void SetScale(const XMFLOAT3& s) { setDirty(true); scale_ = s; }
+		void SetRotation(const XMFLOAT3& rotAngles, const enums::EulerAngle order = enums::EulerAngle::XYZ);
+		void SetQuaternion(const XMFLOAT4& q) { setDirty(true); rotation_ = q; }
 
 		void UpdateMatrix();
 

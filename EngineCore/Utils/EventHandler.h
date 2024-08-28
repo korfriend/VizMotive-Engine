@@ -1,5 +1,5 @@
 #pragma once
-#include "../Common/CommonInclude.h"
+#include "CommonInclude.h"
 
 #include <memory>
 #include <functional>

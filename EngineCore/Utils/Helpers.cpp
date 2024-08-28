@@ -976,7 +976,7 @@ namespace vz::helper
 			std::filesystem::path relative = std::filesystem::relative(filepath, rootpath);
 			if (!relative.empty())
 			{
-				path = relative.generic_u8string();
+				path = relative.string();//.generic_u8string();
 			}
 		}
 
@@ -987,7 +987,7 @@ namespace vz::helper
 		std::filesystem::path absolute = std::filesystem::absolute(ToNativeString(path));
 		if (!absolute.empty())
 		{
-			path = absolute.generic_u8string();
+			path = absolute.string();// generic_u8string();
 		}
 	}
 
@@ -1076,7 +1076,7 @@ namespace vz::helper
 		return "";
 #else
 		auto path = std::filesystem::temp_directory_path();
-		return path.generic_u8string();
+		return path.string();// generic_u8string();
 #endif // PLATFORM_XBOX
 	}
 
@@ -1105,7 +1105,7 @@ namespace vz::helper
 	std::string GetCurrentPath()
 	{
 		auto path = std::filesystem::current_path();
-		return path.generic_u8string();
+		return path.string();// generic_u8string();
 	}
 
 	void FileDialog(const FileDialogParams& params, std::function<void(std::string fileName)> onSuccess)
@@ -1248,7 +1248,7 @@ namespace vz::helper
 		{
 			if (entry.is_directory())
 				continue;
-			std::string filename = entry.path().filename().generic_u8string();
+			std::string filename = entry.path().filename().string();// generic_u8string();
 			if (filter_extension.empty() || vz::helper::toUpper(vz::helper::GetExtensionFromFileName(filename)).compare(vz::helper::toUpper(filter_extension)) == 0)
 			{
 				onSuccess(directory + filename);
@@ -1266,7 +1266,7 @@ namespace vz::helper
 		{
 			if (!entry.is_directory())
 				continue;
-			std::string filename = entry.path().filename().generic_u8string();
+			std::string filename = entry.path().filename().string();// generic_u8string();
 			onSuccess(directory + filename);
 		}
 	}
