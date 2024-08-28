@@ -3,7 +3,7 @@
 #include "Platform.h"
 #include "Timer.h"
 
-#include "../Common/CommonInclude.h"
+#include "CommonInclude.h"
 
 #include <assert.h>
 #include <memory>

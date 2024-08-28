@@ -69,9 +69,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\CommonInclude.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h">
       <Filter>Utils</Filter>
     </ClInclude>
@@ -196,6 +193,10 @@
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)VzEnums.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -243,7 +244,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp">
       <Filter>HighAPIs</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\NameComponent.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp">
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MInstanceComponent.cpp">
@@ -268,6 +269,9 @@
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp">
       <Filter>Components</Filter>
     </ClCompile>
   </ItemGroup>
