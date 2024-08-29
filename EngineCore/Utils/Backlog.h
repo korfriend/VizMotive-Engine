@@ -1,6 +1,12 @@
 #pragma once
 #include <string>
 
+#ifdef _WIN32
+#define UTIL_EXPORT __declspec(dllexport)
+#else
+#define UTIL_EXPORT __attribute__((visibility("default")))
+#endif
+
 namespace vz::backlog
 {
 	enum class LogLevel
@@ -14,11 +20,11 @@ namespace vz::backlog
 		None, // SPDLOG_LEVEL_OFF
 	};
 
-	void clear();
+	void UTIL_EXPORT clear();
 
-	void post(const std::string& input, LogLevel level = LogLevel::Trace);
+	void UTIL_EXPORT post(const std::string& input, LogLevel level = LogLevel::Trace);
 
-	void setLogLevel(LogLevel newLevel);
+	void UTIL_EXPORT setLogLevel(LogLevel newLevel);
 
-	LogLevel getUnseenLogLevelMax();
+	LogLevel UTIL_EXPORT getLogLevel();
 };

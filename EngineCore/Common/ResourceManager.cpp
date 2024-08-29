@@ -11,6 +11,8 @@
 #include "ThirdParty/basis_universal/transcoder/basisu_transcoder.h"
 #include "ThirdParty/dds.h"
 
+#include "Archive.h"
+
 #include <algorithm>
 #include <mutex>
 #include <unordered_map>
