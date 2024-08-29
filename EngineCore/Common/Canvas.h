@@ -48,6 +48,11 @@ namespace vz
 		// Returns the height with DPI scaling applied (subpixel size):
 		//	Use this for logic and positioning drawable elements
 		inline float GetLogicalHeight() const { return PhysicalToLogical(GetPhysicalHeight()); }
-
+		// Returns projection matrix that maps logical to physical space
+		//	Use this to render to a graphics viewport
+		inline XMMATRIX GetProjection() const
+		{
+			return VZMatrixOrthographicOffCenter(0, (float)GetLogicalWidth(), (float)GetLogicalHeight(), 0, -1, 1);
+		}
 	};
 }

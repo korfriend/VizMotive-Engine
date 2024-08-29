@@ -28,6 +28,9 @@
     <Filter Include="HighAPIs">
       <UniqueIdentifier>{5ff741b1-0d48-48b3-a433-ad3c209a02ce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{b5637265-6ec9-4ad3-8c45-9583726f9fd4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h">
@@ -197,6 +200,30 @@
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.h">
+      <Filter>Common\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\FontHelper.h">
+      <Filter>Common\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h">
+      <Filter>Common\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop.h">
+      <Filter>Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop_Font.h">
+      <Filter>Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\RectPacker.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop_Renderer.h">
+      <Filter>Shader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -276,6 +303,15 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.cpp">
+      <Filter>Common\Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\FontHelper.cpp">
+      <Filter>Common\Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp">
+      <Filter>Common\Backend</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

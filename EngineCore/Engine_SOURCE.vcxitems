@@ -17,9 +17,12 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\FontHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
@@ -49,12 +52,17 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop_Font.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop_Renderer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\h264.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\mikktspace.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\minimp4.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\qoi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\RectPacker.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image_write.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_rect_pack.h" />
@@ -75,7 +83,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\FontHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp" />

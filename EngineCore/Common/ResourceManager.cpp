@@ -1,5 +1,6 @@
 #include "ResourceManager.h"
-//#include "Renderer.h" // deferred task for streaming
+#include "Backend/RenderInterface.h" // deferred task for streaming
+#include "Backend/FontHelper.h" 
 #include "Utils/Helpers.h"
 #include "Backend/TextureHelper.h"
 #include "Utils/Backlog.h"
@@ -1027,27 +1028,6 @@ namespace vz
 					}
 					free(rgba);
 				}
-			}
-			break;
-
-			case DataType::SOUND:
-			{
-				success = vz::audio::CreateSound(filedata, filesize, &resource->sound);
-			}
-			break;
-
-			case DataType::SCRIPT:
-			{
-				resource->script.resize(filesize);
-				std::memcpy(resource->script.data(), filedata, filesize);
-				resource->script_hash = vz::helper::string_hash(resource->script.c_str());
-				success = true;
-			}
-			break;
-
-			case DataType::VIDEO:
-			{
-				success = vz::video::CreateVideo(filedata, filesize, &resource->video);
 			}
 			break;
 
