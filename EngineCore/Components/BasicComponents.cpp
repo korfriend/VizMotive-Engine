@@ -93,8 +93,4 @@ namespace vz::component
 			XMMatrixRotationQuaternion(R_local) *
 			XMMatrixTranslationFromVector(T_local));
 	}
-	void TransformComponent::ApplyTransform()
-	{
-
-	}
 }

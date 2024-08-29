@@ -224,7 +224,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_NORMAL);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"wi::job_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"vz::job_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -233,7 +233,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_LOWEST);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"wi::job_lo_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"vz::job_lo_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -242,7 +242,7 @@ namespace vz::jobsystem
 					BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_LOWEST);
 					assert(priority_result != 0);
 
-					std::wstring wthreadname = L"wi::job_st_" + std::to_wstring(threadID);
+					std::wstring wthreadname = L"vz::job_st_" + std::to_wstring(threadID);
 					HRESULT hr = SetThreadDescription(handle, wthreadname.c_str());
 					assert(SUCCEEDED(hr));
 				}
@@ -264,7 +264,7 @@ namespace vz::jobsystem
 
 				if (priority == Priority::High)
 				{
-					std::string thread_name = "wi::job_" + std::to_string(threadID);
+					std::string thread_name = "vz::job_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
@@ -273,7 +273,7 @@ namespace vz::jobsystem
 				{
 					// TODO: set lower priority
 
-					std::string thread_name = "wi::job_lo_" + std::to_string(threadID);
+					std::string thread_name = "vz::job_lo_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
@@ -282,7 +282,7 @@ namespace vz::jobsystem
 				{
 					// TODO: set lower priority
 
-					std::string thread_name = "wi::job_st_" + std::to_string(threadID);
+					std::string thread_name = "vz::job_st_" + std::to_string(threadID);
 					ret = pthread_setname_np(handle, thread_name.c_str());
 					if (ret != 0)
 						handle_error_en(ret, std::string(" pthread_setname_np[" + std::to_string(threadID) + ']').c_str());
@@ -290,7 +290,7 @@ namespace vz::jobsystem
 
 #undef handle_error_en
 #elif defined(PLATFORM_PS5)
-				wi::jobsystem::ps5::SetupWorker(worker, threadID);
+				vz::jobsystem::ps5::SetupWorker(worker, threadID);
 #endif // _WIN32
 			}
 		}
