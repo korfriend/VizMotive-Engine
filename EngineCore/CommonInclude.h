@@ -8,6 +8,14 @@
 
 #define arraysize(a) (sizeof(a) / sizeof(a[0]))
 
+#if defined(__clang__)
+#define UTILS_NONNULL _Nonnull
+#define UTILS_NULLABLE _Nullable
+#else
+#define UTILS_NONNULL
+#define UTILS_NULLABLE
+#endif
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif // NOMINMAX

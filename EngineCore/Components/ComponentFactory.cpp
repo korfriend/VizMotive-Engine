@@ -548,4 +548,6 @@ namespace vz::component
 	ComponentManager<RenderableComponent>& renderableManager = componentLibrary.Register<RenderableComponent>("RENDERABLE");
 	ComponentManager<LightComponent>& lightManager = componentLibrary.Register<LightComponent>("LIGHT");
 	ComponentManager<CameraComponent>& cameraManager = componentLibrary.Register<CameraComponent>("CAMERA");
+
+	// component helpers //
 }

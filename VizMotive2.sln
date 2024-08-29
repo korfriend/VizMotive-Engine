@@ -15,6 +15,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginSample001", "Examples
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Systems", "Systems", "{C2134175-EEFE-47EA-BAE5-EC589D70946F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererDX11", "EnginePlugins\RendererDX11\RendererDX11.vcxproj", "{FDBCF2F5-2AEC-428B-A825-F248208DF02A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -39,6 +41,14 @@ Global
 		{E2D2C7BC-B88E-4340-B334-AC845CBAFCE8}.Release|x64.Build.0 = Release|x64
 		{E2D2C7BC-B88E-4340-B334-AC845CBAFCE8}.Release|x86.ActiveCfg = Release|Win32
 		{E2D2C7BC-B88E-4340-B334-AC845CBAFCE8}.Release|x86.Build.0 = Release|Win32
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A}.Debug|x64.ActiveCfg = Debug|x64
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A}.Debug|x64.Build.0 = Debug|x64
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A}.Debug|x86.ActiveCfg = Debug|Win32
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A}.Debug|x86.Build.0 = Debug|Win32
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A}.Release|x64.ActiveCfg = Release|x64
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A}.Release|x64.Build.0 = Release|x64
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A}.Release|x86.ActiveCfg = Release|Win32
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +56,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{D86799C4-9D93-4981-93B7-48C219D40915} = {72F7CF71-5EAA-4BC7-B937-6270571D9EDA}
 		{E2D2C7BC-B88E-4340-B334-AC845CBAFCE8} = {67975BED-EA57-4D56-8C1F-C06E6BF3ED09}
+		{FDBCF2F5-2AEC-428B-A825-F248208DF02A} = {C2134175-EEFE-47EA-BAE5-EC589D70946F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}
