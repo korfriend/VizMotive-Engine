@@ -48,22 +48,26 @@ namespace vz::component
 		SerializeEntity(archive, parentID, seri);
 	}
 
-
 	void MaterialComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
 	{
 	}
+
 	void GeometryComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
 	{
 	}
+
 	void TextureComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
 	{
 	}
+
 	void RenderableComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
 	{
 	}
+
 	void LightComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
 	{
 	}
+
 	void CameraComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
 	{
 	}
