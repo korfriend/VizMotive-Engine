@@ -1,9 +1,7 @@
 #include "Components.h"
 
-namespace vz::component
+namespace vz
 {
-	using namespace vz;
-
 	XMFLOAT3 TransformComponent::GetWorldPosition() const
 	{
 		return *((XMFLOAT3*)&world_._41);

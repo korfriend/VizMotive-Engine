@@ -1,6 +1,7 @@
 #include "ComponentFactory.h"
 #include "Utils/ECS.h"
 #include "Common/Archive.h"
+#include "Common/ResourceManager.h"
 
 namespace vz::ecs
 {

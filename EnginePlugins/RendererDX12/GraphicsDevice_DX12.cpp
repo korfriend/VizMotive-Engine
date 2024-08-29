@@ -1,8 +1,6 @@
-#include "wiGraphicsDevice_DX12.h"
+#include "GraphicsDevice_DX12.h"
 
 #include "Libs/Math.h"
-#include "Utils/Helpers.h"
-#include "Utils/Backlog.h"
 #include "Utils/Timer.h"
 #include <unordered_set>
 
@@ -30,6 +28,121 @@
 #include <intrin.h> // _BitScanReverse64
 
 using namespace Microsoft::WRL;
+
+namespace helpers {
+	void messageBox(const std::string& msg, const std::string& caption)
+	{
+#ifdef PLATFORM_WINDOWS_DESKTOP
+		MessageBoxA(GetActiveWindow(), msg.c_str(), caption.c_str(), 0);
+#endif // PLATFORM_WINDOWS_DESKTOP
+
+#ifdef SDL2
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, caption.c_str(), msg.c_str(), NULL);
+#endif // SDL2
+	}
+	void StringConvert(const std::wstring& from, std::string& to)
+	{
+#ifdef _WIN32
+		int num = WideCharToMultiByte(CP_UTF8, 0, from.c_str(), -1, NULL, 0, NULL, NULL);
+		if (num > 0)
+		{
+			to.resize(size_t(num) - 1);
+			WideCharToMultiByte(CP_UTF8, 0, from.c_str(), -1, &to[0], num, NULL, NULL);
+		}
+#else
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
+		to = cv.to_bytes(from);
+#endif // _WIN32
+	}
+
+	void StringConvert(const std::string& from, std::wstring& to)
+	{
+#ifdef _WIN32
+		int num = MultiByteToWideChar(CP_UTF8, 0, from.c_str(), -1, NULL, 0);
+		if (num > 0)
+		{
+			to.resize(size_t(num) - 1);
+			MultiByteToWideChar(CP_UTF8, 0, from.c_str(), -1, &to[0], num);
+		}
+#else
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
+		to = cv.from_bytes(from);
+#endif // _WIN32
+	}
+
+	int StringConvert(const char* from, wchar_t* to, int dest_size_in_characters = -1)
+	{
+#ifdef _WIN32
+		int num = MultiByteToWideChar(CP_UTF8, 0, from, -1, NULL, 0);
+		if (num > 0)
+		{
+			if (dest_size_in_characters >= 0)
+			{
+				num = std::min(num, dest_size_in_characters);
+			}
+			MultiByteToWideChar(CP_UTF8, 0, from, -1, &to[0], num);
+		}
+		return num;
+#else
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
+		auto result = cv.from_bytes(from).c_str();
+		int num = (int)cv.converted();
+		if (dest_size_in_characters >= 0)
+		{
+			num = std::min(num, dest_size_in_characters);
+		}
+		std::memcpy(to, result, num * sizeof(wchar_t));
+		return num;
+#endif // _WIN32
+	}
+
+	int StringConvert(const wchar_t* from, char* to, int dest_size_in_characters = -1)
+	{
+#ifdef _WIN32
+		int num = WideCharToMultiByte(CP_UTF8, 0, from, -1, NULL, 0, NULL, NULL);
+		if (num > 0)
+		{
+			if (dest_size_in_characters >= 0)
+			{
+				num = std::min(num, dest_size_in_characters);
+			}
+			WideCharToMultiByte(CP_UTF8, 0, from, -1, &to[0], num, NULL, NULL);
+		}
+		return num;
+#else
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
+		auto result = cv.to_bytes(from).c_str();
+		int num = (size_t)cv.converted();
+		if (dest_size_in_characters >= 0)
+		{
+			num = std::min(num, dest_size_in_characters);
+		}
+		std::memcpy(to, result, num * sizeof(char));
+		return num;
+#endif // _WIN32
+	}
+
+	template <class T>
+	constexpr void hash_combine(std::size_t& seed, const T& v)
+	{
+		std::hash<T> hasher;
+		seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+	}
+
+	enum class LogLevel
+	{
+		Trace = 0, // SPDLOG_LEVEL_TRACE
+		Debug, // SPDLOG_LEVEL_DEBUG
+		Info, // SPDLOG_LEVEL_INFO
+		Warn, // SPDLOG_LEVEL_WARN
+		Error, // SPDLOG_LEVEL_ERROR
+		Critical, // SPDLOG_LEVEL_CRITICAL
+		None, // SPDLOG_LEVEL_OFF
+	};
+	HMODULE logUtil = nullptr; 
+	typedef void(__stdcall* UtilPost)(const std::string&, LogLevel);
+	UtilPost utilPost = nullptr;
+}
 
 namespace vz::graphics
 {
@@ -1660,7 +1773,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "ID3D12Device::CreateCommandQueue[CopyAllocator] failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 		hr = queue->SetName(L"CopyAllocator");
@@ -2196,6 +2309,26 @@ std::mutex queue_locker;
 	// Engine functions
 	GraphicsDevice_DX12::GraphicsDevice_DX12(ValidationMode validationMode_, GPUPreference preference)
 	{
+#ifdef _WIN32
+#ifdef _DEBUG
+		const std::string library = "VizEngined.dll";
+#else
+		const std::string library = "VizEngine.dll";
+#endif
+		helpers::logUtil = vzLoadLibrary(library.c_str());
+#elif defined(PLATFORM_LINUX)
+#ifdef _DEBUG
+		const std::string library = "./VizEngined.so";
+#else
+		const std::string library = "./VizEngine.so";
+#endif
+		helpers::logUtil = vzLoadLibrary(library.c_str());
+#endif
+		if (helpers::logUtil)
+		{
+			helpers::utilPost = (helpers::UtilPost)vzGetProcAddress(helpers::logUtil, "post");
+		}
+
 		vz::Timer timer;
 
 		SHADER_IDENTIFIER_SIZE = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
@@ -2213,7 +2346,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "Failed to load dxgi.dll! ERROR: 0x" << std::hex << GetLastError();
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2222,7 +2355,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "Failed to load d3d12.dll! ERROR: 0x" << std::hex << GetLastError();
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2232,7 +2365,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "Failed to load CreateDXGIFactory2! ERROR: 0x" << std::hex << GetLastError();
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2250,7 +2383,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "Failed to load D3D12CreateDevice! ERROR: 0x" << std::hex << GetLastError();
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2260,7 +2393,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "Failed to load D3D12CreateVersionedRootSignatureDeserializer! ERROR: 0x" << std::hex << GetLastError();
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2330,7 +2463,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "CreateDXGIFactory2 failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2348,7 +2481,7 @@ std::mutex queue_locker;
 			if (FAILED(hr) || !allowTearing)
 			{
 				tearingSupported = false;
-				vz::helper::DebugOut("WARNING: Variable refresh rate displays not supported\n");
+				helpers::utilPost("WARNING: Variable refresh rate displays not supported!", helpers::LogLevel::Warn);
 			}
 			else
 			{
@@ -2403,14 +2536,14 @@ std::mutex queue_locker;
 		assert(dxgiAdapter != nullptr);
 		if (dxgiAdapter == nullptr)
 		{
-			vz::helper::messageBox("DXGI: No capable adapter found!", "Error!");
+			helpers::messageBox("DXGI: No capable adapter found!", "Error!");
 			vz::platform::Exit();
 		}
 
 		assert(device != nullptr);
 		if (device == nullptr)
 		{
-			vz::helper::messageBox("D3D12: Device couldn't be created!", "Error!");
+			helpers::messageBox("D3D12: Device couldn't be created!", "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2471,7 +2604,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "D3D12MA::CreateAllocator failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2486,7 +2619,7 @@ std::mutex queue_locker;
 			{
 				std::stringstream ss("");
 				ss << "ID3D12Device::CreateCommandQueue[QUEUE_GRAPHICS] failed! ERROR: 0x" << std::hex << hr;
-				vz::helper::messageBox(ss.str(), "Error!");
+				helpers::messageBox(ss.str(), "Error!");
 				vz::platform::Exit();
 			}
 			hr = queues[QUEUE_GRAPHICS].queue->SetName(L"QUEUE_GRAPHICS");
@@ -2504,7 +2637,7 @@ std::mutex queue_locker;
 			{
 				std::stringstream ss("");
 				ss << "ID3D12Device::CreateCommandQueue[QUEUE_COMPUTE] failed! ERROR: 0x" << std::hex << hr;
-				vz::helper::messageBox(ss.str(), "Error!");
+				helpers::messageBox(ss.str(), "Error!");
 				vz::platform::Exit();
 			}
 			hr = queues[QUEUE_COMPUTE].queue->SetName(L"QUEUE_COMPUTE");
@@ -2522,7 +2655,7 @@ std::mutex queue_locker;
 			{
 				std::stringstream ss("");
 				ss << "ID3D12Device::CreateCommandQueue[QUEUE_COPY] failed! ERROR: 0x" << std::hex << hr;
-				vz::helper::messageBox(ss.str(), "Error!");
+				helpers::messageBox(ss.str(), "Error!");
 				vz::platform::Exit();
 			}
 			hr = queues[QUEUE_COPY].queue->SetName(L"QUEUE_COPY");
@@ -2562,7 +2695,7 @@ std::mutex queue_locker;
 			{
 				std::stringstream ss("");
 				ss << "ID3D12Device::CreateDescriptorHeap[CBV_SRV_UAV] failed! ERROR: 0x" << std::hex << hr;
-				vz::helper::messageBox(ss.str(), "Error!");
+				helpers::messageBox(ss.str(), "Error!");
 				vz::platform::Exit();
 			}
 
@@ -2575,7 +2708,7 @@ std::mutex queue_locker;
 			{
 				std::stringstream ss("");
 				ss << "ID3D12Device::CreateFence[CBV_SRV_UAV] failed! ERROR: 0x" << std::hex << hr;
-				vz::helper::messageBox(ss.str(), "Error!");
+				helpers::messageBox(ss.str(), "Error!");
 				vz::platform::Exit();
 			}
 			descriptorheap_res.fenceValue = descriptorheap_res.fence->GetCompletedValue();
@@ -2598,7 +2731,7 @@ std::mutex queue_locker;
 			{
 				std::stringstream ss("");
 				ss << "ID3D12Device::CreateDescriptorHeap[SAMPLER] failed! ERROR: 0x" << std::hex << hr;
-				vz::helper::messageBox(ss.str(), "Error!");
+				helpers::messageBox(ss.str(), "Error!");
 				vz::platform::Exit();
 			}
 
@@ -2611,7 +2744,7 @@ std::mutex queue_locker;
 			{
 				std::stringstream ss("");
 				ss << "ID3D12Device::CreateFence[SAMPLER] failed! ERROR: 0x" << std::hex << hr;
-				vz::helper::messageBox(ss.str(), "Error!");
+				helpers::messageBox(ss.str(), "Error!");
 				vz::platform::Exit();
 			}
 			descriptorheap_sam.fenceValue = descriptorheap_sam.fence->GetCompletedValue();
@@ -2633,7 +2766,7 @@ std::mutex queue_locker;
 				{
 					std::stringstream ss("");
 					ss << "ID3D12Device::CreateFence[FRAME] failed! ERROR: 0x" << std::hex << hr;
-					vz::helper::messageBox(ss.str(), "Error!");
+					helpers::messageBox(ss.str(), "Error!");
 					vz::platform::Exit();
 				}
 			}
@@ -2686,7 +2819,7 @@ std::mutex queue_locker;
 
 			vendorId = adapterDesc.VendorId;
 			deviceId = adapterDesc.DeviceId;
-			vz::helper::StringConvert(adapterDesc.Description, adapterName);
+			helpers::StringConvert(adapterDesc.Description, adapterName);
 
 			// Convert the adapter's D3D12 driver version to a readable string like "24.21.13.9793".
 			LARGE_INTEGER umdVersion;
@@ -2740,8 +2873,8 @@ std::mutex queue_locker;
 				break;
 			}
 			error += "\nExiting.";
-			vz::helper::messageBox(error, "Error!");
-			vz::backlog::post(error, vz::backlog::LogLevel::Error);
+			helpers::messageBox(error, "Error!");
+			helpers::utilPost(error, helpers::LogLevel::Error);
 			vz::platform::Exit();
 		}
 
@@ -2821,7 +2954,7 @@ std::mutex queue_locker;
 		if (features.HighestRootSignatureVersion() < D3D_ROOT_SIGNATURE_VERSION_1_1)
 		{
 			assert(0);
-			vz::helper::messageBox("DX12: Root signature version 1.1 not supported!", "Error!");
+			helpers::messageBox("DX12: Root signature version 1.1 not supported!", "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2891,7 +3024,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "ID3D12Device::CreateCommandSignature[dispatchIndirect] failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2904,7 +3037,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "ID3D12Device::CreateCommandSignature[drawInstancedIndirect] failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2917,7 +3050,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "ID3D12Device::CreateCommandSignature[drawIndexedInstancedIndirect] failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 			vz::platform::Exit();
 		}
 
@@ -2938,7 +3071,7 @@ std::mutex queue_locker;
 			{
 				std::stringstream ss("");
 				ss << "ID3D12Device::CreateCommandSignature[dispatchMeshIndirect] failed! ERROR: 0x" << std::hex << hr;
-				vz::helper::messageBox(ss.str(), "Error!");
+				helpers::messageBox(ss.str(), "Error!");
 				vz::platform::Exit();
 			}
 		}
@@ -2957,7 +3090,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "ID3D12Device::CreateDescriptorHeap[nulldescriptorheap_cbv_srv_uav] failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 		}
 
 		nullHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
@@ -2968,7 +3101,7 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "ID3D12Device::CreateDescriptorHeap[nulldescriptorheap_sampler] failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Error!");
+			helpers::messageBox(ss.str(), "Error!");
 		}
 
 		nullCBV = nulldescriptorheap_cbv_srv_uav->GetCPUDescriptorHandleForHeapStart();
@@ -3025,10 +3158,10 @@ std::mutex queue_locker;
 		{
 			std::stringstream ss("");
 			ss << "ID3D12CommandQueue::GetTimestampFrequency[QUEUE_GRAPHICS] failed! ERROR: 0x" << std::hex << hr;
-			vz::helper::messageBox(ss.str(), "Warning!");
+			helpers::messageBox(ss.str(), "Warning!");
 		}
 
-		vz::backlog::post("Created GraphicsDevice_DX12 (" + std::to_string((int)std::round(timer.elapsed())) + " ms)\nAdapter: " + adapterName);
+		helpers::utilPost("Created GraphicsDevice_DX12 (" + std::to_string((int)std::round(timer.elapsed())) + " ms)\nAdapter: " + adapterName, helpers::LogLevel::Info);
 	}
 	GraphicsDevice_DX12::~GraphicsDevice_DX12()
 	{
@@ -4050,19 +4183,19 @@ std::mutex queue_locker;
 		pso->desc = *desc;
 
 		internal_state->hash = 0;
-		vz::helper::hash_combine(internal_state->hash, desc->ms);
-		vz::helper::hash_combine(internal_state->hash, desc->as);
-		vz::helper::hash_combine(internal_state->hash, desc->vs);
-		vz::helper::hash_combine(internal_state->hash, desc->ps);
-		vz::helper::hash_combine(internal_state->hash, desc->hs);
-		vz::helper::hash_combine(internal_state->hash, desc->ds);
-		vz::helper::hash_combine(internal_state->hash, desc->gs);
-		vz::helper::hash_combine(internal_state->hash, desc->il);
-		vz::helper::hash_combine(internal_state->hash, desc->rs);
-		vz::helper::hash_combine(internal_state->hash, desc->bs);
-		vz::helper::hash_combine(internal_state->hash, desc->dss);
-		vz::helper::hash_combine(internal_state->hash, desc->pt);
-		vz::helper::hash_combine(internal_state->hash, desc->sample_mask);
+		helpers::hash_combine(internal_state->hash, desc->ms);
+		helpers::hash_combine(internal_state->hash, desc->as);
+		helpers::hash_combine(internal_state->hash, desc->vs);
+		helpers::hash_combine(internal_state->hash, desc->ps);
+		helpers::hash_combine(internal_state->hash, desc->hs);
+		helpers::hash_combine(internal_state->hash, desc->ds);
+		helpers::hash_combine(internal_state->hash, desc->gs);
+		helpers::hash_combine(internal_state->hash, desc->il);
+		helpers::hash_combine(internal_state->hash, desc->rs);
+		helpers::hash_combine(internal_state->hash, desc->bs);
+		helpers::hash_combine(internal_state->hash, desc->dss);
+		helpers::hash_combine(internal_state->hash, desc->pt);
+		helpers::hash_combine(internal_state->hash, desc->sample_mask);
 
 		auto& stream = internal_state->stream;
 		if (pso->desc.vs != nullptr)
@@ -4260,7 +4393,7 @@ std::mutex queue_locker;
 
 		if (renderpass_info != nullptr)
 		{
-			vz::helper::hash_combine(internal_state->hash, renderpass_info->get_hash());
+			helpers::hash_combine(internal_state->hash, renderpass_info->get_hash());
 			DXGI_FORMAT DSFormat = _ConvertFormat(renderpass_info->ds_format);
 			D3D12_RT_FORMAT_ARRAY formats = {};
 			formats.NumRenderTargets = renderpass_info->rt_count;
@@ -4483,7 +4616,7 @@ std::mutex queue_locker;
 			library_desc.NumExports = 1;
 
 			D3D12_EXPORT_DESC& export_desc = internal_state->exports.emplace_back();
-			vz::helper::StringConvert(x.function_name, internal_state->export_strings.emplace_back());
+			helpers::StringConvert(x.function_name, internal_state->export_strings.emplace_back());
 			export_desc.Name = internal_state->export_strings.back().c_str();
 			library_desc.pExports = &export_desc;
 
@@ -4493,7 +4626,7 @@ std::mutex queue_locker;
 		internal_state->hitgroup_descs.reserve(desc->hit_groups.size());
 		for (auto& x : desc->hit_groups)
 		{
-			vz::helper::StringConvert(x.name, internal_state->group_strings.emplace_back());
+			helpers::StringConvert(x.name, internal_state->group_strings.emplace_back());
 
 			if (x.type == ShaderHitGroup::Type::GENERAL)
 				continue;
@@ -5291,7 +5424,7 @@ std::mutex queue_locker;
 	void GraphicsDevice_DX12::SetName(GPUResource* pResource, const char* name) const
 	{
 		wchar_t text[256];
-		if (vz::helper::StringConvert(name, text, arraysize(text)) > 0)
+		if (helpers::StringConvert(name, text, arraysize(text)) > 0)
 		{
 			auto internal_state = to_internal(pResource);
 			if (internal_state->resource != nullptr)
@@ -5757,7 +5890,7 @@ std::mutex queue_locker;
 						auto it = contextStrings.find(op);
 						if (it != contextStrings.end())
 						{
-							vz::helper::StringConvert(it->second, contextString);
+							helpers::StringConvert(it->second, contextString);
 						}
 
 						const char* opName = (breadcrumbOp < arraysize(OpNames)) ? OpNames[breadcrumbOp] : "Unknown Op";
@@ -5808,12 +5941,12 @@ std::mutex queue_locker;
 
 		if (!log.empty())
 		{
-			vz::backlog::post(log, vz::backlog::LogLevel::Error);
+			helpers::utilPost(log, helpers::LogLevel::Error);
 		}
 
 		std::string message = "D3D12: device removed, cause: ";
 		message += removedReasonString;
-		vz::helper::messageBox(message, "Error!");
+		helpers::messageBox(message, "Error!");
 		vz::platform::Exit();
 #endif // PLATFORM_WINDOWS_DESKTOP
 	}
@@ -6777,8 +6910,8 @@ std::mutex queue_locker;
 		else
 		{
 			size_t pipeline_hash = 0;
-			vz::helper::hash_combine(pipeline_hash, internal_state->hash);
-			vz::helper::hash_combine(pipeline_hash, commandlist.renderpass_info.get_hash());
+			helpers::hash_combine(pipeline_hash, internal_state->hash);
+			helpers::hash_combine(pipeline_hash, commandlist.renderpass_info.get_hash());
 			if (commandlist.prev_pipeline_hash == pipeline_hash)
 			{
 				return;
@@ -7920,7 +8053,7 @@ std::mutex queue_locker;
 		if (commandlist.queue == QUEUE_VIDEO_DECODE)
 			return;
 		wchar_t text[128];
-		if (vz::helper::StringConvert(name, text) > 0)
+		if (helpers::StringConvert(name, text) > 0)
 		{
 			PIXBeginEvent(commandlist.GetGraphicsCommandList(), 0xFF000000, text);
 		}
@@ -7938,7 +8071,7 @@ std::mutex queue_locker;
 		if (commandlist.queue == QUEUE_VIDEO_DECODE)
 			return;
 		wchar_t text[128];
-		if (vz::helper::StringConvert(name, text) > 0)
+		if (helpers::StringConvert(name, text) > 0)
 		{
 			PIXSetMarker(commandlist.GetGraphicsCommandList(), 0xFFFF0000, text);
 		}

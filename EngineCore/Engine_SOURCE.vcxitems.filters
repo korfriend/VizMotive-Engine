@@ -31,6 +31,9 @@
     <Filter Include="Shader">
       <UniqueIdentifier>{b5637265-6ec9-4ad3-8c45-9583726f9fd4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="System">
+      <UniqueIdentifier>{972f6ef2-b31d-4a78-8172-9a1391f10ec5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h">

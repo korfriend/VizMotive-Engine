@@ -86,7 +86,7 @@ namespace vz::backlog
 		apiLogger->set_level((spdlog::level::level_enum)newLevel);		
 	}
 
-	LogLevel getUnseenLogLevelMax()
+	LogLevel getLogLevel()
 	{
 		return logLevel;
 	}

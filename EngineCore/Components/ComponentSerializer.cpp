@@ -1,9 +1,9 @@
 #include "Components.h"
 #include "Common/Archive.h"
+#include "Utils/ECS.h"
 
-namespace vz::component
+namespace vz
 {
-	using namespace vz;
 	using namespace vz::ecs;
 
 	void NameComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)

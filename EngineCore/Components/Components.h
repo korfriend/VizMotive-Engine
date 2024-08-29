@@ -1,20 +1,55 @@
 #pragma once
 #include "CommonInclude.h"
+#include "Common/Backend/GBackendDevice.h"
 #include "VzEnums.h"
-#include "Common/ResourceManager.h"
 #include "Libs/Math.h"
-#include "Utils/ECS.h"
 
+#include <vector>
 #include <string>
-namespace vz { class Archive; namespace ecs { struct EntitySerializer; } }
+#include <memory>
 
-namespace vz::component
+#ifdef _WIN32
+#define COMP_EXPORT __declspec(dllexport)
+#else
+#define COMP_EXPORT __attribute__((visibility("default")))
+#endif
+
+namespace vz
 {
-	using namespace vz;
-	using namespace vz::ecs;
-	// ECS components
+	class Archive; 
+	namespace ecs { struct EntitySerializer; }
 
-	struct NameComponent
+	using Entity = uint32_t;
+	inline constexpr Entity INVALID_ENTITY = 0;
+
+	// This can hold an asset
+	//	It can be loaded from file or memory using vz::resourcemanager::Load()
+	struct COMP_EXPORT Resource
+	{
+		std::shared_ptr<void> internal_state;
+		inline bool IsValid() const { return internal_state.get() != nullptr; }
+
+		const std::vector<uint8_t>& GetFileData() const;
+		const vz::graphics::Texture& GetTexture() const;
+		const std::string& GetScript() const;
+		size_t GetScriptHash() const;
+		int GetTextureSRGBSubresource() const;
+		int GetFontStyle() const;
+
+		void SetFileData(const std::vector<uint8_t>& data);
+		void SetFileData(std::vector<uint8_t>&& data);
+		// Allows to set a Texture to the resource from outside
+		//	srgb_subresource: you can provide a subresource for SRGB view if the texture is going to be used as SRGB with the GetTextureSRGBSubresource() (optional)
+		void SetTexture(const vz::graphics::Texture& texture, int srgb_subresource = -1);
+
+		// Resource marked for recreate on resourcemanager::Load()
+		void SetOutdated();
+
+		// Let the streaming system know the required resolution of this resource
+		void StreamingRequestResolution(uint32_t resolution);
+	};
+
+	struct COMP_EXPORT NameComponent
 	{
 		std::string name;
 
@@ -25,7 +60,7 @@ namespace vz::component
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct TransformComponent
+	struct COMP_EXPORT TransformComponent
 	{
 	private:
 		bool isDirty_ = true;
@@ -72,7 +107,7 @@ namespace vz::component
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct HierarchyComponent
+	struct COMP_EXPORT HierarchyComponent
 	{
 		Entity parentID = INVALID_ENTITY;
 
@@ -81,7 +116,7 @@ namespace vz::component
 
 	// resources
 
-	struct MaterialComponent
+	struct COMP_EXPORT MaterialComponent
 	{
 	public:
 		enum class ROption
@@ -263,7 +298,7 @@ namespace vz::component
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct GeometryComponent
+	struct COMP_EXPORT GeometryComponent
 	{
 		struct Primitive {
 			//vertexbuffer gpu handle
@@ -292,17 +327,17 @@ namespace vz::component
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct TextureComponent
+	struct COMP_EXPORT TextureComponent
 	{
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
 	// scene 
 
-	struct RenderableComponent
+	struct COMP_EXPORT RenderableComponent
 	{
-		ecs::Entity geometryEntity = ecs::INVALID_ENTITY;
-		std::vector<ecs::Entity> miEntities;
+		Entity geometryEntity = INVALID_ENTITY;
+		std::vector<Entity> miEntities;
 
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 		// internal geometry
@@ -310,7 +345,7 @@ namespace vz::component
 		// internal texture
 	};
 
-	struct LightComponent
+	struct COMP_EXPORT LightComponent
 	{
 		enums::LightFlags flags = enums::LightFlags::EMPTY;
 
@@ -319,7 +354,7 @@ namespace vz::component
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct CameraComponent
+	struct COMP_EXPORT CameraComponent
 	{
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};

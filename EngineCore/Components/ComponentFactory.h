@@ -2,7 +2,5 @@
 
 namespace vz::component
 {
-	using namespace vz::ecs;
-
 	// component helpers //
 }
