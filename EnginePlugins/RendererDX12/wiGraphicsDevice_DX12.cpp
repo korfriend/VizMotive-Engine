@@ -1,15 +1,16 @@
 #include "wiGraphicsDevice_DX12.h"
 
+#include "Libs/Math.h"
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
 #include "Utils/Timer.h"
 #include <unordered_set>
 
-#include "dx12/dxgiformat.h"
-#include "dx12/d3dx12_default.h"
-#include "dx12/d3dx12_resource_helpers.h"
-#include "dx12/d3dx12_pipeline_state_stream.h"
-#include "dx12/d3dx12_check_feature_support.h"
+#include "Libs/dx12/dxgiformat.h"
+#include "Libs/dx12/d3dx12_default.h"
+#include "Libs/dx12/d3dx12_resource_helpers.h"
+#include "Libs/dx12/d3dx12_pipeline_state_stream.h"
+#include "Libs/dx12/d3dx12_check_feature_support.h"
 #ifdef _DEBUG
 #include <dxgidebug.h>
 #endif
@@ -2225,7 +2226,7 @@ std::mutex queue_locker;
 			vz::platform::Exit();
 		}
 
-		CreateDXGIFactory2 = (PFN_CREATE_DXGI_FACTORY_2)wiGetProcAddress(dxgi, "CreateDXGIFactory2");
+		CreateDXGIFactory2 = (PFN_CREATE_DXGI_FACTORY_2)vzGetProcAddress(dxgi, "CreateDXGIFactory2");
 		assert(CreateDXGIFactory2 != nullptr);
 		if (CreateDXGIFactory2 == nullptr)
 		{
@@ -2238,12 +2239,12 @@ std::mutex queue_locker;
 #ifdef _DEBUG
 		if (validationMode != ValidationMode::Disabled)
 		{
-			DXGIGetDebugInterface1 = (PFN_DXGI_GET_DEBUG_INTERFACE1)wiGetProcAddress(dxgi, "DXGIGetDebugInterface1");
+			DXGIGetDebugInterface1 = (PFN_DXGI_GET_DEBUG_INTERFACE1)vzGetProcAddress(dxgi, "DXGIGetDebugInterface1");
 			assert(DXGIGetDebugInterface1 != nullptr);
 		}
 #endif
 
-		D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)wiGetProcAddress(dx12, "D3D12CreateDevice");
+		D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)vzGetProcAddress(dx12, "D3D12CreateDevice");
 		assert(D3D12CreateDevice != nullptr);
 		if (D3D12CreateDevice == nullptr)
 		{
@@ -2253,7 +2254,7 @@ std::mutex queue_locker;
 			vz::platform::Exit();
 		}
 
-		D3D12CreateVersionedRootSignatureDeserializer = (PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER)wiGetProcAddress(dx12, "D3D12CreateVersionedRootSignatureDeserializer");
+		D3D12CreateVersionedRootSignatureDeserializer = (PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER)vzGetProcAddress(dx12, "D3D12CreateVersionedRootSignatureDeserializer");
 		assert(D3D12CreateVersionedRootSignatureDeserializer != nullptr);
 		if (D3D12CreateVersionedRootSignatureDeserializer == nullptr)
 		{
@@ -2266,7 +2267,7 @@ std::mutex queue_locker;
 		if (validationMode != ValidationMode::Disabled)
 		{
 			// Enable the debug layer.
-			auto D3D12GetDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)wiGetProcAddress(dx12, "D3D12GetDebugInterface");
+			auto D3D12GetDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)vzGetProcAddress(dx12, "D3D12GetDebugInterface");
 			if (D3D12GetDebugInterface)
 			{
 				ComPtr<ID3D12Debug> d3dDebug;
