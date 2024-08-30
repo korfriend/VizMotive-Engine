@@ -2,9 +2,13 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="GraphicsDevice_DX12.cpp" />
+    <ClCompile Include="GraphicsInterface.cpp" />
+    <ClCompile Include="Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraphicsDevice_DX12.h" />
     <ClInclude Include="D3D12MemAlloc.h" />
+    <ClInclude Include="GraphicsInterface.h" />
+    <ClInclude Include="Renderer.h" />
   </ItemGroup>
 </Project>

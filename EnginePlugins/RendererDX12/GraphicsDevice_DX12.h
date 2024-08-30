@@ -23,15 +23,9 @@
 #include <mutex>
 #include <vector>
 
-#ifdef _WIN32
-#define DX12_EXPORT __declspec(dllexport)
-#else
-#define DX12_EXPORT __attribute__((visibility("default")))
-#endif
-
 namespace vz::graphics
 {
-	class DX12_EXPORT GraphicsDevice_DX12 final : public GraphicsDevice
+	class GraphicsDevice_DX12 final : public GraphicsDevice
 	{
 	protected:
 #ifndef PLATFORM_XBOX

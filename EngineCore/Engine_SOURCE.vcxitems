@@ -38,7 +38,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzClasses.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponent.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.h" />

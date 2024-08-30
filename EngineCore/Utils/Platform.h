@@ -12,6 +12,8 @@
 #include <SDKDDKVer.h>
 #include <windows.h>
 #include <tchar.h>
+#include <unordered_map>
+#include <string>
 
 #if WINAPI_FAMILY == WINAPI_FAMILY_GAMES
 #define PLATFORM_XBOX
@@ -88,5 +90,29 @@ namespace vz::platform
 		SDL_Vulkan_GetDrawableSize(window, &dest->width, &dest->height);
 		dest->dpi = ((float)dest->width / (float)window_width) * 96.f;
 #endif // PLATFORM_LINUX
+	}
+
+	static std::unordered_map<std::string, HMODULE> importedModules;
+	template <typename T>
+	T LoadModule(std::string moduleName, std::string functionName)
+	{
+		HMODULE hMouleLib = NULL;
+		auto it = importedModules.find(moduleName);
+		if (it == importedModules.end())
+		{
+			hMouleLib = vzLoadLibrary(moduleName.c_str());
+			if (hMouleLib != NULL)
+				importedModules[moduleName] = hMouleLib;
+		}
+		else
+			hMouleLib = it->second;
+		if (hMouleLib == NULL)
+		{
+			return NULL;
+		}
+
+		T lpdll_function = NULL;
+		lpdll_function = (T)vzGetProcAddress(hMouleLib, functionName.c_str());
+		return lpdll_function;
 	}
 }
