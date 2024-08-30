@@ -128,7 +128,7 @@ namespace vzm
         const_iterator end() const { return __params.end(); }
     };
 
-    struct API_EXPORT VzBaseClass
+    struct API_EXPORT VzBaseComp
     {
     private:
         VID componentVID_ = INVALID_VID;
@@ -138,7 +138,7 @@ namespace vzm
     public:
         // User data
         ParamMap<std::string> attributes;
-        VzBaseClass(const VID vid, const std::string& originFrom, const std::string& typeName)
+        VzBaseComp(const VID vid, const std::string& originFrom, const std::string& typeName)
             : componentVID_(vid), originFrom_(originFrom), type_(typeName)
         {
             UpdateTimeStamp();
@@ -153,14 +153,14 @@ namespace vzm
         std::string GetName();
         void SetName(const std::string& name);
     };
-    struct API_EXPORT VzSceneNode : VzBaseClass
+    struct API_EXPORT VzSceneComponent : VzBaseComp
     {
     private:
-        enums::SceneNodeClassType scenecompType_ = enums::SceneNodeClassType::SCENEBASE;
+        enums::SceneCompType scenecompType_ = enums::SceneCompType::SCENEBASE;
     public:
-        VzSceneNode(const VID vid, const std::string& originFrom, const std::string& typeName, const enums::SceneNodeClassType scenecompType)
-            : VzBaseClass(vid, originFrom, typeName), scenecompType_(scenecompType) {}
-        enums::SceneNodeClassType GetSceneCompType() { return scenecompType_; };
+        VzSceneComponent(const VID vid, const std::string& originFrom, const std::string& typeName, const enums::SceneCompType scenecompType)
+            : VzBaseComp(vid, originFrom, typeName), scenecompType_(scenecompType) {}
+        enums::SceneCompType GetSceneCompType() { return scenecompType_; };
 
         void GetWorldPosition(float v[3]);
         void GetWorldForward(float v[3]);
@@ -195,13 +195,13 @@ namespace vzm
 
         void UpdateMatrix();
     };
-    struct API_EXPORT VzResClass : VzBaseClass
+    struct API_EXPORT VzResComponent : VzBaseComp
     {
     private:
         enums::ResClassType resType_ = enums::ResClassType::RESOURCE;
     public:
-        VzResClass(const VID vid, const std::string& originFrom, const std::string& typeName, const enums::ResClassType resType)
-            : VzBaseClass(vid, originFrom, typeName), resType_(resType) {}
+        VzResComponent(const VID vid, const std::string& originFrom, const std::string& typeName, const enums::ResClassType resType)
+            : VzBaseComp(vid, originFrom, typeName), resType_(resType) {}
         enums::ResClassType GetResType() { return resType_; }
     };
 }

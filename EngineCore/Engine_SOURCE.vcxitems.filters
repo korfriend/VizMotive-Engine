@@ -192,7 +192,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h">
       <Filter>HighAPIs</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzClasses.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponent.h">
       <Filter>HighAPIs</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)components\ComponentFactory.h">

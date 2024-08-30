@@ -3161,7 +3161,7 @@ std::mutex queue_locker;
 			helpers::messageBox(ss.str(), "Warning!");
 		}
 
-		helpers::utilPost("Created GraphicsDevice_DX12 (" + std::to_string((int)std::round(timer.elapsed())) + " ms)\nAdapter: " + adapterName, helpers::LogLevel::Info);
+		//helpers::utilPost("Created GraphicsDevice_DX12 (" + std::to_string((int)std::round(timer.elapsed())) + " ms)\nAdapter: " + adapterName, helpers::LogLevel::Info);
 	}
 	GraphicsDevice_DX12::~GraphicsDevice_DX12()
 	{

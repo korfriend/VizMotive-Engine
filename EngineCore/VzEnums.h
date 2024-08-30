@@ -2,7 +2,7 @@
 
 namespace vz::enums
 {
-	enum class SceneNodeClassType // every component involves a transform and a name
+	enum class SceneCompType // every component involves a transform and a name
 	{
 		SCENEBASE = 0,  // empty (only transform and name)
 		CAMERA,
