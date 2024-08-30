@@ -1,6 +1,6 @@
 #include "ResourceManager.h"
 #include "Backend/RenderInterface.h" // deferred task for streaming
-#include "Backend/FontHelper.h" 
+
 #include "Utils/Helpers.h"
 #include "Backend/TextureHelper.h"
 #include "Utils/Backlog.h"
@@ -1035,8 +1035,8 @@ namespace vz
 
 			case DataType::FONTSTYLE:
 			{
-				resource->font_style = vz::font::AddFontStyle(name, filedata, filesize, true);
-				success = resource->font_style >= 0;
+				//resource->font_style = vz::font::AddFontStyle(name, filedata, filesize, true);
+				//success = resource->font_style >= 0;
 			}
 			break;
 

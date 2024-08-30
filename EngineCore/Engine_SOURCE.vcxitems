@@ -17,10 +17,8 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\FontHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
@@ -36,6 +34,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)components\ComponentFactory.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)components\Scene.cpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponent.h" />
@@ -83,8 +82,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\FontHelper.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
