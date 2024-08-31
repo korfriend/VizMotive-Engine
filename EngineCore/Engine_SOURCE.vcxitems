@@ -19,6 +19,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
@@ -37,13 +38,14 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)components\Scene.cpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponent.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzScene.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXColors.h" />
@@ -82,6 +84,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />

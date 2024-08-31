@@ -128,39 +128,65 @@ namespace vzm
         const_iterator end() const { return __params.end(); }
     };
 
-    struct API_EXPORT VzBaseComp
+	enum class SCENE_COMPONENT_TYPE // every component involves a transform and a name
+	{
+		// camera, light, actor component can have renderable resources technically
+		SCENEBASE = 0,  // empty (only transform and name)
+
+		CAMERA,
+
+		// lights
+		LIGHT,
+
+		// actors
+		ACTOR,
+		SPRITE_ACTOR,
+		TEXT_SPRITE_ACTOR,
+	};
+
+	enum class RES_COMPONENT_TYPE
+	{
+		RESOURCE = 0,
+		GEOMATRY,
+		MATERIAL,
+		MATERIALINSTANCE,
+		TEXTURE,
+		FONT,
+	};
+
+	struct API_EXPORT VzBaseComp
+	{
+	private:
+		VID componentVID_ = INVALID_VID;
+		TimeStamp timeStamp_ = {}; // will be automatically set 
+		std::string originFrom_;
+		std::string type_;
+	public:
+		// User data
+		ParamMap<std::string> attributes;
+		VzBaseComp(const VID vid, const std::string& originFrom, const std::string& typeName)
+			: componentVID_(vid), originFrom_(originFrom), type_(typeName)
+		{
+			UpdateTimeStamp();
+		}
+		VID GetVID() const { return componentVID_; }
+		std::string GetType() { return type_; };
+		TimeStamp GetTimeStamp() { return timeStamp_; };
+		void UpdateTimeStamp()
+		{
+			timeStamp_ = std::chrono::high_resolution_clock::now();
+		}
+		std::string GetName();
+		void SetName(const std::string& name);
+	};
+    struct API_EXPORT VzSceneComp : VzBaseComp
     {
-    private:
-        VID componentVID_ = INVALID_VID;
-        TimeStamp timeStamp_ = {}; // will be automatically set 
-        std::string originFrom_;
-        std::string type_;
-    public:
-        // User data
-        ParamMap<std::string> attributes;
-        VzBaseComp(const VID vid, const std::string& originFrom, const std::string& typeName)
-            : componentVID_(vid), originFrom_(originFrom), type_(typeName)
-        {
-            UpdateTimeStamp();
-        }
-        VID GetVID() const { return componentVID_; }
-        std::string GetType() { return type_; };
-        TimeStamp GetTimeStamp() { return timeStamp_; };
-        void UpdateTimeStamp()
-        {
-            timeStamp_ = std::chrono::high_resolution_clock::now();
-        }
-        std::string GetName();
-        void SetName(const std::string& name);
-    };
-    struct API_EXPORT VzSceneComponent : VzBaseComp
-    {
-    private:
-        enums::SceneCompType scenecompType_ = enums::SceneCompType::SCENEBASE;
-    public:
-        VzSceneComponent(const VID vid, const std::string& originFrom, const std::string& typeName, const enums::SceneCompType scenecompType)
-            : VzBaseComp(vid, originFrom, typeName), scenecompType_(scenecompType) {}
-        enums::SceneCompType GetSceneCompType() { return scenecompType_; };
+	private:
+		SCENE_COMPONENT_TYPE scenecompType_ = SCENE_COMPONENT_TYPE::SCENEBASE;
+	public:
+		VzSceneComp(const VID vid, const std::string& originFrom, const std::string& typeName, const SCENE_COMPONENT_TYPE scenecompType)
+			: VzBaseComp(vid, originFrom, typeName), scenecompType_(scenecompType) {}
+		SCENE_COMPONENT_TYPE GetSceneCompType() { return scenecompType_; };
 
         void GetWorldPosition(float v[3]);
         void GetWorldForward(float v[3]);
@@ -195,15 +221,15 @@ namespace vzm
 
         void UpdateMatrix();
     };
-    struct API_EXPORT VzResComponent : VzBaseComp
-    {
-    private:
-        enums::ResClassType resType_ = enums::ResClassType::RESOURCE;
-    public:
-        VzResComponent(const VID vid, const std::string& originFrom, const std::string& typeName, const enums::ResClassType resType)
-            : VzBaseComp(vid, originFrom, typeName), resType_(resType) {}
-        enums::ResClassType GetResType() { return resType_; }
-    };
+	struct API_EXPORT VzResource : VzBaseComp
+	{
+	private:
+		RES_COMPONENT_TYPE resType_ = RES_COMPONENT_TYPE::RESOURCE;
+	public:
+		VzResource(const VID vid, const std::string& originFrom, const std::string& typeName, const RES_COMPONENT_TYPE resType)
+			: VzBaseComp(vid, originFrom, typeName), resType_(resType) {}
+		RES_COMPONENT_TYPE GetResType() { return resType_; }
+	};
 }
 
 #include "VzActor.h"
@@ -213,5 +239,6 @@ namespace vzm
 #include "VzMaterial.h"
 #include "VzMI.h"
 #include "VzTexture.h"
+#include "VzScene.h"
 #include "VzRenderer.h"
 #endif

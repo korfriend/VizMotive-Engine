@@ -192,7 +192,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h">
       <Filter>HighAPIs</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponent.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.h">
       <Filter>HighAPIs</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)components\ComponentFactory.h">
@@ -223,6 +223,12 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)components\Scene.cpp">
       <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzScene.h">
+      <Filter>HighAPIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h">
+      <Filter>Common\Backend</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -305,6 +311,9 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.cpp">
+      <Filter>Common\Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp">
       <Filter>Common\Backend</Filter>
     </ClCompile>
   </ItemGroup>
