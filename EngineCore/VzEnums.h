@@ -2,16 +2,6 @@
 
 namespace vz::enums
 {
-	enum class SceneCompType // every component involves a transform and a name
-	{
-		SCENEBASE = 0,  // empty (only transform and name)
-		CAMERA,
-		LIGHT,
-		ACTOR,
-		SPRITE_ACTOR,
-		TEXT_SPRITE_ACTOR,
-	};
-
 	enum class ResClassType
 	{
 		RESOURCE = 0,
