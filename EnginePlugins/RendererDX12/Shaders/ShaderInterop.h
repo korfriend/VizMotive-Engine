@@ -142,4 +142,4 @@ static const uint IndirectDispatchArgsAlignment = 4u;
 #define CBSLOT_TRAILRENDERER					4
 #endif // !__PSSL__ && !__SCE__
 
-#endif // WI_SHADERINTEROP_H
+#endif // SHADERINTEROP_H

@@ -28,11 +28,11 @@
     <Filter Include="HighAPIs">
       <UniqueIdentifier>{5ff741b1-0d48-48b3-a433-ad3c209a02ce}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader">
-      <UniqueIdentifier>{b5637265-6ec9-4ad3-8c45-9583726f9fd4}</UniqueIdentifier>
+    <Filter Include="Components\APIs">
+      <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
     </Filter>
-    <Filter Include="System">
-      <UniqueIdentifier>{972f6ef2-b31d-4a78-8172-9a1391f10ec5}</UniqueIdentifier>
+    <Filter Include="HighAPIs\APIs">
+      <UniqueIdentifier>{38103698-f842-44d4-9f97-60f80578e7c0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -114,9 +114,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
-      <Filter>Components</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
     </ClInclude>
@@ -165,70 +162,64 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_rect_pack.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMI.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)components\ComponentFactory.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)VzEnums.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h">
-      <Filter>Components</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.h">
-      <Filter>Common\Backend</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop.h">
-      <Filter>Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop_Font.h">
-      <Filter>Shader</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\RectPacker.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Shader\ShaderInterop_Renderer.h">
-      <Filter>Shader</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)components\Scene.cpp">
       <Filter>Components</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzScene.h">
-      <Filter>HighAPIs</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h">
       <Filter>Common\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
+      <Filter>Components\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h">
+      <Filter>Components\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMI.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzScene.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h">
+      <Filter>HighAPIs\APIs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -280,9 +271,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp">
       <Filter>Components</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\MInstanceComponent.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp">
       <Filter>Components</Filter>
     </ClCompile>
@@ -309,9 +297,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\wiGraphicsDevice_DX11.cpp">
-      <Filter>Common\Backend</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp">
       <Filter>Common\Backend</Filter>

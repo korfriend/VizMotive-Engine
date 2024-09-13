@@ -1,36 +1,39 @@
 #pragma once
 #include "CommonInclude.h"
-#include "Common/Backend/GBackendDevice.h"
-#include "VzEnums.h"
-#include "Libs/Math.h"
 
 #include <vector>
 #include <string>
 #include <memory>
 
 #ifdef _WIN32
-#define COMP_EXPORT __declspec(dllexport)
+#define CORE_EXPORT __declspec(dllexport)
 #else
-#define COMP_EXPORT __attribute__((visibility("default")))
+#define CORE_EXPORT __attribute__((visibility("default")))
 #endif
+
+using Entity = uint32_t;
+inline constexpr Entity INVALID_ENTITY = 0;
 
 namespace vz
 {
-	class Archive; 
-	namespace ecs { struct EntitySerializer; }
+	// core...
+	// create components...
+	// create scene...
+	// resource???!
+}
 
-	using Entity = uint32_t;
-	inline constexpr Entity INVALID_ENTITY = 0;
+namespace vz::resource
+{
 
 	// This can hold an asset
 	//	It can be loaded from file or memory using vz::resourcemanager::Load()
-	struct COMP_EXPORT Resource
+	struct CORE_EXPORT Resource
 	{
 		std::shared_ptr<void> internal_state;
+
 		inline bool IsValid() const { return internal_state.get() != nullptr; }
 
 		const std::vector<uint8_t>& GetFileData() const;
-		const vz::graphics::Texture& GetTexture() const;
 		const std::string& GetScript() const;
 		size_t GetScriptHash() const;
 		int GetTextureSRGBSubresource() const;
@@ -38,9 +41,6 @@ namespace vz
 
 		void SetFileData(const std::vector<uint8_t>& data);
 		void SetFileData(std::vector<uint8_t>&& data);
-		// Allows to set a Texture to the resource from outside
-		//	srgb_subresource: you can provide a subresource for SRGB view if the texture is going to be used as SRGB with the GetTextureSRGBSubresource() (optional)
-		void SetTexture(const vz::graphics::Texture& texture, int srgb_subresource = -1);
 
 		// Resource marked for recreate on resourcemanager::Load()
 		void SetOutdated();
@@ -48,8 +48,120 @@ namespace vz
 		// Let the streaming system know the required resolution of this resource
 		void StreamingRequestResolution(uint32_t resolution);
 	};
+}
 
-	struct COMP_EXPORT NameComponent
+namespace vz
+{
+	struct CORE_EXPORT Scene
+	{
+		// the directional light is always stored first in the LightSoA, so we need to account
+		// for that in a few places.
+		static constexpr size_t DIRECTIONAL_LIGHTS_COUNT = 1;
+		/**
+		 * Sets the Skybox.
+		 *
+		 * The Skybox is drawn last and covers all pixels not touched by geometry.
+		 *
+		 * @param skybox The Skybox to use to fill untouched pixels, or nullptr to unset the Skybox.
+		 */
+		 //void SetSkybox(Skybox* UTILS_NULLABLE skybox) noexcept;
+
+		 /**
+		  * Returns the Skybox associated with the Scene.
+		  *
+		  * @return The associated Skybox, or nullptr if there is none.
+		  */
+		  //Skybox* UTILS_NULLABLE GetSkybox() const noexcept;
+
+		  /**
+		   * Set the IndirectLight to use when rendering the Scene.
+		   *
+		   * Currently, a Scene may only have a single IndirectLight. This call replaces the current
+		   * IndirectLight.
+		   *
+		   * @param ibl The IndirectLight to use when rendering the Scene or nullptr to unset.
+		   * @see getIndirectLight
+		   */
+		   //void SetIndirectLight(IndirectLight* UTILS_NULLABLE ibl) noexcept;
+
+		   /**
+			* Get the IndirectLight or nullptr if none is set.
+			*
+			* @return the the IndirectLight or nullptr if none is set
+			* @see setIndirectLight
+			*/
+			//IndirectLight* UTILS_NULLABLE GetIndirectLight() const noexcept;
+
+			/**
+			 * Adds an Entity to the Scene.
+			 *
+			 * @param entity The entity is ignored if it doesn't have a Renderable or Light component.
+			 *
+			 * \attention
+			 *  A given Entity object can only be added once to a Scene.
+			 *
+			 */
+		void AddEntity(const Entity entity);
+
+		/**
+		 * Adds a list of entities to the Scene.
+		 *
+		 * @param entities Array containing entities to add to the scene.
+		 * @param count Size of the entity array.
+		 */
+		void AddEntities(const std::vector<Entity>& entities);
+
+		/**
+		 * Removes the Renderable from the Scene.
+		 *
+		 * @param entity The Entity to remove from the Scene. If the specified
+		 *                   \p entity doesn't exist, this call is ignored.
+		 */
+		void Remove(const Entity entity);
+
+		/**
+		 * Removes a list of entities to the Scene.
+		 *
+		 * This is equivalent to calling remove in a loop.
+		 * If any of the specified entities do not exist in the scene, they are skipped.
+		 *
+		 * @param entities Array containing entities to remove from the scene.
+		 * @param count Size of the entity array.
+		 */
+		void RemoveEntities(const std::vector<Entity>& entities);
+
+		/**
+		 * Returns the total number of Entities in the Scene, whether alive or not.
+		 * @return Total number of Entities in the Scene.
+		 */
+		size_t GetEntityCount() const noexcept;
+
+		/**
+		 * Returns the number of active (alive) Renderable objects in the Scene.
+		 *
+		 * @return The number of active (alive) Renderable objects in the Scene.
+		 */
+		size_t GetRenderableCount() const noexcept;
+
+		/**
+		 * Returns the number of active (alive) Light objects in the Scene.
+		 *
+		 * @return The number of active (alive) Light objects in the Scene.
+		 */
+		size_t GetLightCount() const noexcept;
+
+		/**
+		 * Returns true if the given entity is in the Scene.
+		 *
+		 * @return Whether the given entity is in the Scene.
+		 */
+		bool HasEntity(const Entity entity) const noexcept;
+	};
+
+	class Archive; 
+	namespace ecs { struct EntitySerializer; }
+
+	struct CORE_EXPORT NameComponent
 	{
 		std::string name;
 
@@ -60,7 +172,7 @@ namespace vz
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct COMP_EXPORT TransformComponent
+	struct CORE_EXPORT TransformComponent
 	{
 	private:
 		bool isDirty_ = true;
@@ -107,19 +219,19 @@ namespace vz
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct COMP_EXPORT HierarchyComponent
+	struct CORE_EXPORT HierarchyComponent
 	{
-		Entity parentID = INVALID_ENTITY;
+		Entity parentEntity = INVALID_ENTITY;
 
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
 	// resources
 
-	struct COMP_EXPORT MaterialComponent
+	struct CORE_EXPORT MaterialComponent
 	{
 	public:
-		enum class ROption
+		enum class RenderFlags
 		{
 			DAFAULT = 1 << 0,
 			CAST_SHADOW = 1 << 1,	// not yet
@@ -138,30 +250,9 @@ namespace vz
 			PBR,
 			COUNT
 		};
-
-	private:
-		bool isDirty_ = true;
-		uint32_t renderOptionFlags_ = (uint32_t)ROption::CAST_SHADOW;
-	public:
-		ShaderType shaderType = ShaderType::PHONG;
-
-		inline static const std::vector<std::string> shaderTypeDefines[] = {
-			{"PHONG"}, // SHADERTYPE_PBR,
-			{"PBR"}, // PBR,
-		};
-		static_assert((size_t)ShaderType::COUNT == arraysize(shaderTypeDefines), "These values must match!");
-
-		XMFLOAT4 baseColor = XMFLOAT4(1, 1, 1, 1);
-		XMFLOAT4 specularColor = XMFLOAT4(1, 1, 1, 1);
-		XMFLOAT4 emissiveColor = XMFLOAT4(1, 1, 1, 0);
-		XMFLOAT4 subsurfaceScattering = XMFLOAT4(1, 1, 1, 0);	// to do
-		XMFLOAT4 extinctionColor = XMFLOAT4(0, 0.9f, 1, 1);	// to do
-
-		XMFLOAT4 phongFactors = XMFLOAT4(0.2f, 1, 1, 1);
-
 		enum TEXTURESLOT
 		{
-			BASECOLORMAP,
+			BASECOLORMAP = 0,
 			NORMALMAP,
 			SURFACEMAP,
 			EMISSIVEMAP,
@@ -180,24 +271,28 @@ namespace vz
 
 			TEXTURESLOT_COUNT
 		};
-		struct TextureMap
-		{
-			std::string name;
-			vz::Resource resource;
-			uint32_t uvset = 0;
-			const vz::graphics::GPUResource* GetGPUResource() const
-			{
-				if (!resource.IsValid() || !resource.GetTexture().IsValid())
-					return nullptr;
-				return &resource.GetTexture();
-			}
 
-			// Non-serialized attributes:
-			float lod_clamp = 0;						// optional, can be used by texture streaming
-			int sparse_residencymap_descriptor = -1;	// optional, can be used by texture streaming
-			int sparse_feedbackmap_descriptor = -1;		// optional, can be used by texture streaming
+	private:
+		bool isDirty_ = true;
+		uint32_t renderOptionFlags_ = (uint32_t)RenderFlags::CAST_SHADOW;
+	public:
+		ShaderType shaderType = ShaderType::PHONG;
+
+		inline static const std::vector<std::string> shaderTypeDefines[] = {
+			{"PHONG"}, // SHADERTYPE_PBR,
+			{"PBR"}, // PBR,
 		};
-		TextureMap textures[TEXTURESLOT_COUNT];
+		static_assert((size_t)ShaderType::COUNT == arraysize(shaderTypeDefines), "These values must match!");
+
+		XMFLOAT4 baseColor = XMFLOAT4(1, 1, 1, 1);
+		XMFLOAT4 specularColor = XMFLOAT4(1, 1, 1, 1);
+		XMFLOAT4 emissiveColor = XMFLOAT4(1, 1, 1, 0);
+		XMFLOAT4 subsurfaceScattering = XMFLOAT4(1, 1, 1, 0);	// to do
+		XMFLOAT4 extinctionColor = XMFLOAT4(0, 0.9f, 1, 1);	// to do
+
+		XMFLOAT4 phongFactors = XMFLOAT4(0.2f, 1, 1, 1);
+
+		Entity textures[TEXTURESLOT_COUNT] = {}; // texture component map
 
 		int customShaderID = -1;
 
@@ -206,107 +301,27 @@ namespace vz
 
 		inline float GetOpacity() const { return baseColor.w; }
 		inline float GetEmissiveStrength() const { return emissiveColor.w; }
-		inline int GetCustomShaderID() const { return customShaderID; }
 
 		inline void SetDirty(bool value = true) { isDirty_ = value; }
 		inline bool IsDirty() const { return isDirty_; }
 
-		inline void SetCastShadow(bool value) { SetDirty(); if (value) { renderOptionFlags_ |= (uint32_t)ROption::CAST_SHADOW; } else { renderOptionFlags_ &= ~(uint32_t)ROption::CAST_SHADOW; } }
-		inline void SetReceiveShadow(bool value) { SetDirty(); if (value) { renderOptionFlags_ &= ~(uint32_t)ROption::DISABLE_RECEIVE_SHADOW; } else { renderOptionFlags_ |= (uint32_t)ROption::DISABLE_RECEIVE_SHADOW; } }
-		//inline void SetOcclusionEnabled_Primary(bool value) { SetDirty(); if (value) { _flags |= OCCLUSION_PRIMARY; } else { _flags &= ~OCCLUSION_PRIMARY; } }
-		//inline void SetOcclusionEnabled_Secondary(bool value) { SetDirty(); if (value) { _flags |= OCCLUSION_SECONDARY; } else { _flags &= ~OCCLUSION_SECONDARY; } }
-		//
-		//inline vz::enums::BLENDMODE GetBlendMode() const { if (userBlendMode == vz::enums::BLENDMODE_OPAQUE && (GetFilterMask() & vz::enums::FILTER_TRANSPARENT)) return vz::enums::BLENDMODE_ALPHA; else return userBlendMode; }
-		//inline bool IsCastingShadow() const { return _flags & CAST_SHADOW; }
-		//inline bool IsAlphaTestEnabled() const { return alphaRef <= 1.0f - 1.0f / 256.0f; }
-		//inline bool IsUsingVertexColors() const { return _flags & USE_VERTEXCOLORS; }
-		//inline bool IsUsingWind() const { return _flags & USE_WIND; }
-		//inline bool IsReceiveShadow() const { return (_flags & DISABLE_RECEIVE_SHADOW) == 0; }
-		//inline bool IsUsingSpecularGlossinessWorkflow() const { return _flags & SPECULAR_GLOSSINESS_WORKFLOW; }
-		//inline bool IsOcclusionEnabled_Primary() const { return _flags & OCCLUSION_PRIMARY; }
-		//inline bool IsOcclusionEnabled_Secondary() const { return _flags & OCCLUSION_SECONDARY; }
-		//inline bool IsCustomShader() const { return customShaderID >= 0; }
-		//inline bool IsDoubleSided() const { return _flags & DOUBLE_SIDED; }
-		//inline bool IsOutlineEnabled() const { return _flags & OUTLINE; }
-		//inline bool IsPreferUncompressedTexturesEnabled() const { return _flags & PREFER_UNCOMPRESSED_TEXTURES; }
-		//inline bool IsVertexAODisabled() const { return _flags & DISABLE_VERTEXAO; }
-		//inline bool IsTextureStreamingDisabled() const { return _flags & DISABLE_TEXTURE_STREAMING; }
-		//
-		//inline void SetBaseColor(const XMFLOAT4& value) { SetDirty(); baseColor = value; }
-		//inline void SetSpecularColor(const XMFLOAT4& value) { SetDirty(); specularColor = value; }
-		//inline void SetEmissiveColor(const XMFLOAT4& value) { SetDirty(); emissiveColor = value; }
-		//inline void SetRoughness(float value) { SetDirty(); roughness = value; }
-		//inline void SetReflectance(float value) { SetDirty(); reflectance = value; }
-		//inline void SetMetalness(float value) { SetDirty(); metalness = value; }
-		//inline void SetEmissiveStrength(float value) { SetDirty(); emissiveColor.w = value; }
-		//inline void SetTransmissionAmount(float value) { SetDirty(); transmission = value; }
-		//inline void SetCloakAmount(float value) { SetDirty(); cloak = value; }
-		//inline void SetChromaticAberrationAmount(float value) { SetDirty(); chromatic_aberration = value; }
-		//inline void SetRefractionAmount(float value) { SetDirty(); refraction = value; }
-		//inline void SetNormalMapStrength(float value) { SetDirty(); normalMapStrength = value; }
-		//inline void SetParallaxOcclusionMapping(float value) { SetDirty(); parallaxOcclusionMapping = value; }
-		//inline void SetDisplacementMapping(float value) { SetDirty(); displacementMapping = value; }
-		//inline void SetSubsurfaceScatteringColor(XMFLOAT3 value)
-		//{
-		//	SetDirty();
-		//	subsurfaceScattering.x = value.x;
-		//	subsurfaceScattering.y = value.y;
-		//	subsurfaceScattering.z = value.z;
-		//}
-		//inline void SetSubsurfaceScatteringAmount(float value) { SetDirty(); subsurfaceScattering.w = value; }
-		//inline void SetOpacity(float value) { SetDirty(); baseColor.w = value; }
-		//inline void SetAlphaRef(float value) { SetDirty();  alphaRef = value; }
-		//inline void SetUseVertexColors(bool value) { SetDirty(); if (value) { _flags |= USE_VERTEXCOLORS; } else { _flags &= ~USE_VERTEXCOLORS; } }
-		//inline void SetUseWind(bool value) { SetDirty(); if (value) { _flags |= USE_WIND; } else { _flags &= ~USE_WIND; } }
-		//inline void SetUseSpecularGlossinessWorkflow(bool value) { SetDirty(); if (value) { _flags |= SPECULAR_GLOSSINESS_WORKFLOW; } else { _flags &= ~SPECULAR_GLOSSINESS_WORKFLOW; } }
-		//inline void SetSheenColor(const XMFLOAT3& value)
-		//{
-		//	sheenColor = XMFLOAT4(value.x, value.y, value.z, sheenColor.w);
-		//	SetDirty();
-		//}
-		//inline void SetExtinctionColor(const XMFLOAT4& value)
-		//{
-		//	extinctionColor = XMFLOAT4(value.x, value.y, value.z, value.w);
-		//	SetDirty();
-		//}
-		//inline void SetSheenRoughness(float value) { sheenRoughness = value; SetDirty(); }
-		//inline void SetClearcoatFactor(float value) { clearcoat = value; SetDirty(); }
-		//inline void SetClearcoatRoughness(float value) { clearcoatRoughness = value; SetDirty(); }
-		//inline void SetCustomShaderID(int id) { customShaderID = id; }
-		//inline void DisableCustomShader() { customShaderID = -1; }
-		//inline void SetDoubleSided(bool value = true) { if (value) { _flags |= DOUBLE_SIDED; } else { _flags &= ~DOUBLE_SIDED; } }
-		//inline void SetOutlineEnabled(bool value = true) { if (value) { _flags |= OUTLINE; } else { _flags &= ~OUTLINE; } }
-		//inline void SetPreferUncompressedTexturesEnabled(bool value = true) { if (value) { _flags |= PREFER_UNCOMPRESSED_TEXTURES; } else { _flags &= ~PREFER_UNCOMPRESSED_TEXTURES; } CreateRenderData(true); }
-		//inline void SetVertexAODisabled(bool value = true) { if (value) { _flags |= DISABLE_VERTEXAO; } else { _flags &= ~DISABLE_VERTEXAO; } }
-		//inline void SetTextureStreamingDisabled(bool value = true) { if (value) { _flags |= DISABLE_TEXTURE_STREAMING; } else { _flags &= ~DISABLE_TEXTURE_STREAMING; } }
-		//
-		//// The MaterialComponent will be written to ShaderMaterial (a struct that is optimized for GPU use)
-		//void WriteShaderMaterial(ShaderMaterial* dest) const;
-		//void WriteShaderTextureSlot(ShaderMaterial* dest, int slot, int descriptor);
-		//
-		//// Retrieve the array of textures from the material
-		//void WriteTextures(const vz::graphics::GPUResource** dest, int count) const;
-		//
-		//// Returns the bitwise OR of all the vz::enums::FILTER flags applicable to this material
-		//uint32_t GetFilterMask() const;
-		//
-		//vz::resourcemanager::Flags GetTextureSlotResourceFlags(TEXTURESLOT slot);
+		inline void SetCastShadow(bool value) { SetDirty(); if (value) { renderOptionFlags_ |= (uint32_t)RenderFlags::CAST_SHADOW; } else { renderOptionFlags_ &= ~(uint32_t)RenderFlags::CAST_SHADOW; } }
+		inline void SetReceiveShadow(bool value) { SetDirty(); if (value) { renderOptionFlags_ &= ~(uint32_t)RenderFlags::DISABLE_RECEIVE_SHADOW; } else { renderOptionFlags_ |= (uint32_t)RenderFlags::DISABLE_RECEIVE_SHADOW; } }
 
 		// Create texture resources for GPU
-		void CreateRenderData(bool force_recreate = false);
+		void UpdateAssociatedTextures(bool force_recreate = false);
 
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct COMP_EXPORT GeometryComponent
+	struct CORE_EXPORT GeometryComponent
 	{
 		struct Primitive {
-			//vertexbuffer gpu handle
-			//indexbuffer gpu handle
-			//morphbuffer gpu handle
+			std::vector<char> vertexBuffer;
+			std::vector<char> indexBuffer;
 			
-			//Aabb aabb; // object-space bounding box
-			//UvMap uvmap; // mapping from each glTF UV set to either UV0 or UV1 (8 bytes)
+			Aabb aabb; // object-space bounding box
+			UvMap uvmap; // mapping from each glTF UV set to either UV0 or UV1 (8 bytes)
 			uint32_t morphTargetOffset;
 			std::vector<int> slotIndices;
 
@@ -315,9 +330,6 @@ namespace vz
 
 		std::vector<Primitive> parts;
 
-		std::vector<char> cacheVB;
-		std::vector<char> cacheIB;
-		std::vector<char> cacheMTB;
 	public:
 		bool isSystem = false;
 		//gltfio::FilamentAsset* assetOwner = nullptr; // has ownership
@@ -327,14 +339,14 @@ namespace vz
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct COMP_EXPORT TextureComponent
+	struct CORE_EXPORT TextureComponent
 	{
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
 	// scene 
 
-	struct COMP_EXPORT RenderableComponent
+	struct CORE_EXPORT RenderableComponent
 	{
 		Entity geometryEntity = INVALID_ENTITY;
 		std::vector<Entity> miEntities;
@@ -345,7 +357,7 @@ namespace vz
 		// internal texture
 	};
 
-	struct COMP_EXPORT LightComponent
+	struct CORE_EXPORT LightComponent
 	{
 		enums::LightFlags flags = enums::LightFlags::EMPTY;
 
@@ -354,7 +366,7 @@ namespace vz
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct COMP_EXPORT CameraComponent
+	struct CORE_EXPORT CameraComponent
 	{
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};

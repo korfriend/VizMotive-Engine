@@ -102,6 +102,12 @@ namespace vzm
 		void SetString(const ID& key, const std::string& param) {
 			__params[key] = param;
 		}
+		std::string GetString(const ID& key, const std::string& init_v) const {
+			auto it = __params.find(key);
+			if (it == __params.end()) return init_v;
+            if (it->second.type() != typeid(std::string)) return init_v;
+			return std::any_cast<const std::string&>(it->second);;
+		}
         void RemoveParam(const ID& key) {
             auto it = __params.find(key);
             if (it != __params.end()) {

@@ -19,7 +19,7 @@
 
 using namespace vz::graphics;
 
-namespace vz
+namespace vz::resource
 {
 	struct StreamingTexture
 	{
@@ -38,7 +38,7 @@ namespace vz
 
 	struct ResourceInternal
 	{
-		resourcemanager::Flags flags = resourcemanager::Flags::NONE;
+		vz::resource::resourcemanager::Flags flags = vz::resource::resourcemanager::Flags::NONE;
 		vz::graphics::Texture texture;
 		int srgb_subresource = -1;
 		std::vector<uint8_t> filedata;
@@ -64,11 +64,6 @@ namespace vz
 	{
 		const ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
 		return resourceinternal->filedata;
-	}
-	const vz::graphics::Texture& Resource::GetTexture() const
-	{
-		const ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
-		return resourceinternal->texture;
 	}
 	int Resource::GetTextureSRGBSubresource() const
 	{
@@ -99,16 +94,6 @@ namespace vz
 		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
 		resourceinternal->filedata = data;
 	}
-	void Resource::SetTexture(const vz::graphics::Texture& texture, int srgb_subresource)
-	{
-		if (internal_state == nullptr)
-		{
-			internal_state = std::make_shared<ResourceInternal>();
-		}
-		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
-		resourceinternal->texture = texture;
-		resourceinternal->srgb_subresource = srgb_subresource;
-	}
 
 	void Resource::SetOutdated()
 	{
@@ -128,6 +113,22 @@ namespace vz
 		}
 		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
 		resourceinternal->streaming_resolution.fetch_or(resolution);
+	}
+
+	const vz::graphics::Texture& GResource::GetTexture() const
+	{
+		const ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
+		return resourceinternal->texture;
+	}
+	void GResource::SetTexture(const vz::graphics::Texture& texture, int srgb_subresource)
+	{
+		if (internal_state == nullptr)
+		{
+			internal_state = std::make_shared<ResourceInternal>();
+		}
+		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
+		resourceinternal->texture = texture;
+		resourceinternal->srgb_subresource = srgb_subresource;
 	}
 
 	namespace resourcemanager
@@ -1052,7 +1053,7 @@ namespace vz
 			return success;
 		}
 
-		Resource Load(
+		GResource Load(
 			const std::string& name,
 			Flags flags,
 			const uint8_t* filedata,
@@ -1119,7 +1120,7 @@ namespace vz
 				}
 				else
 				{
-					Resource retVal;
+					GResource retVal;
 					retVal.internal_state = resource;
 					locker.unlock();
 					return retVal;

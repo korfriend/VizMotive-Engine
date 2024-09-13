@@ -10,5 +10,31 @@
     <ClInclude Include="D3D12MemAlloc.h" />
     <ClInclude Include="GraphicsInterface.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="Shaders\ShaderInterop.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_Renderer.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_Terrain.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_VoxelGrid.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_VXGI.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_Weather.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{e99cb271-8fde-4718-ac12-b01cc63fddf5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Interop">
+      <UniqueIdentifier>{2df084ac-20b5-4d9b-8276-c3c8dd9179a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
