@@ -543,12 +543,13 @@ namespace vz::component
 	ComponentManager<NameComponent>& nameManager = componentLibrary.Register<NameComponent>("NAME");
 	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>("TANSFORM");
 	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>("HIERARCHY");
-	ComponentManager<MaterialComponent>& materialManager = componentLibrary.Register<MaterialComponent>("MATERIAL");
-	ComponentManager<GeometryComponent>& geometryManager = componentLibrary.Register<GeometryComponent>("GEOMETRY");
-	ComponentManager<TextureComponent>& textureManager = componentLibrary.Register<TextureComponent>("TEXTURE");
 	ComponentManager<RenderableComponent>& renderableManager = componentLibrary.Register<RenderableComponent>("RENDERABLE");
 	ComponentManager<LightComponent>& lightManager = componentLibrary.Register<LightComponent>("LIGHT");
 	ComponentManager<CameraComponent>& cameraManager = componentLibrary.Register<CameraComponent>("CAMERA");
+
+	ComponentManager<GMaterialComponent>& materialManager = componentLibrary.Register<GMaterialComponent>("MATERIAL");
+	ComponentManager<GGeometryComponent>& geometryManager = componentLibrary.Register<GGeometryComponent>("GEOMETRY");
+	ComponentManager<GTextureComponent>& textureManager = componentLibrary.Register<GTextureComponent>("TEXTURE");
 
 	// component helpers //
 }

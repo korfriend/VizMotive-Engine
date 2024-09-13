@@ -1,14 +1,16 @@
 #pragma once
 #include "CommonInclude.h"
 #include "Backend/GBackendDevice.h"
-#include "Components/Components.h"
+#include "Components/GComponents.h"
 
 #include <memory>
 #include <string>
 #include <unordered_set>
 
-namespace vz::resourcemanager
+namespace vz::resource::resourcemanager
 {
+	//using namespace vz::resource;
+
 	enum class Mode
 	{
 		NO_EMBEDDING,		// default behaviour, serialization will not embed resource file datas
@@ -41,7 +43,7 @@ namespace vz::resourcemanager
 	//	filesize : size of file data, if file was loaded manually (optional)
 	//	container_filename : if name is not the name of source file, set the source file name here
 	//	container_fileoffset : if using container_filename, you can give the offset for the resource within the file here
-	Resource Load(
+	GResource Load(
 		const std::string& name,
 		Flags flags = Flags::NONE,
 		const uint8_t* filedata = nullptr,
@@ -72,7 +74,7 @@ namespace vz::resourcemanager
 
 	struct ResourceSerializer
 	{
-		std::vector<Resource> resources;
+		std::vector<GResource> resources;
 	};
 
 	void Serialize_READ(vz::Archive& archive, ResourceSerializer& resources);
@@ -81,6 +83,6 @@ namespace vz::resourcemanager
 }
 
 template<>
-struct enable_bitmask_operators<vz::resourcemanager::Flags> {
+struct enable_bitmask_operators<vz::resource::resourcemanager::Flags> {
 	static const bool enable = true;
 };
