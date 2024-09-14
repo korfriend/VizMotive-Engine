@@ -3,7 +3,7 @@
 
 namespace vz
 {
-	void MaterialComponent::UpdateAssociatedTextures(bool force_recreate)
+	void MaterialComponent::GpuUpdateAssociatedTextures()
 	{
 		// to do //
 	}

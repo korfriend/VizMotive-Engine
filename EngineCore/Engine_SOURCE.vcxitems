@@ -31,7 +31,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\SceneManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Version.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\waterripple.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)components\ComponentFactory.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)components\Scene.cpp" />
@@ -52,6 +51,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\h264.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h" />
@@ -94,9 +94,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\RenderableComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\TransformComponent.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\basisu_common.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp" />

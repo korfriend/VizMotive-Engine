@@ -309,6 +309,3 @@ constexpr bool has_flag(E lhs, E rhs)
 {
 	return (lhs & rhs) == rhs;
 }
-
-#include "VzEnums.h"
-#include "Libs/Math.h"
