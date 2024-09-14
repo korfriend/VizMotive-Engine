@@ -1,4 +1,5 @@
 #include "Components.h"
+#include "Utils/Backlog.h"
 
 namespace vz
 {
@@ -90,5 +91,28 @@ namespace vz
 			XMMatrixScalingFromVector(S_local) *
 			XMMatrixRotationQuaternion(R_local) *
 			XMMatrixTranslationFromVector(T_local));
+	}
+}
+
+namespace vz
+{
+	void RenderableComponent::SetGeometry(const Entity geometryEntity)
+	{
+		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(geometryEntity);
+		if (geo_comp == nullptr)
+		{
+			backlog::post("invalid entity", backlog::LogLevel::Error);
+			return;
+		}
+		geometryEntity_ = geometryEntity;
+		isValid_ = geo_comp->GetNumParts() == materialEntities_.size();
+	}
+	bool RenderableComponent::SetMaterial(const Entity materialEntity, const size_t slot)
+	{
+
+	}
+	void RenderableComponent::SetMaterials(const std::vector<Entity>& materials)
+	{
+
 	}
 }

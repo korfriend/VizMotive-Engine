@@ -1,5 +1,6 @@
 #pragma once
 
+// common numerations used for both high-level APIs and engine-level APIs
 namespace vz::enums
 {
 	enum class ResClassType

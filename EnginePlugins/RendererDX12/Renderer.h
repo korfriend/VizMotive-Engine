@@ -1,9 +1,7 @@
 #pragma once
 #include "CommonInclude.h"
-#include "vzEnums.h"
 #include "Common/Backend/GBackendDevice.h"
 #include "Components/Scene.h"
-#include "Utils/ECS.h"
 #include "ThirdParty/RectPacker.h"
 #include "wiPrimitive.h"
 #include "wiCanvas.h"

@@ -1,9 +1,9 @@
 #pragma once
-#include "CommonInclude.h"
-
 #include <cmath>
 #include <algorithm>
 #include <limits>
+
+#define SCU32(A) static_cast<uint32_t>(A)
 
 #if __has_include("DirectXMath.h")
 // In this case, DirectXMath is coming from Windows SDK.
