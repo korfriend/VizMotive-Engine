@@ -286,7 +286,7 @@ namespace vz::ecs
 			lookup[entity] = components.size();
 
 			// New components are always pushed to the end:
-			components.emplace_back();
+			components.emplace_back(entity);
 
 			// Also push corresponding entity:
 			entities.push_back(entity);
