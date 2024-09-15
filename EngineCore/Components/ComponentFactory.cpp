@@ -24,45 +24,73 @@ namespace vz::compfactory
 	ComponentManager<GTextureComponent>& textureManager = componentLibrary.Register<GTextureComponent>("TEXTURE");
 
 	// component helpers //
+	NameComponent* CreateNameComponent(const Entity entity, const std::string& name)
+	{
+		NameComponent* comp = &nameManager.Create(entity);
+		comp->name = name;
+		return comp;
+	}
+	TransformComponent* CreateTransformComponent(const Entity entity)
+	{
+		TransformComponent* comp = &transformManager.Create(entity);
+		return comp;
+	}
+	HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent)
+	{
+		HierarchyComponent* comp = &hierarchyManager.Create(entity);
+		comp->parentEntity = parent;
+		return comp;
+	}
+	MaterialComponent* CreateMaterialComponent(const Entity entity)
+	{
+		MaterialComponent* comp = &materialManager.Create(entity);
+		return comp;
+	}
+	GeometryComponent* CreateGeometryComponent(const Entity entity)
+	{
+		GeometryComponent* comp = &geometryManager.Create(entity);
+		return comp;
+	}
 
-	NameComponent* GetNameComponent(Entity entity)
+
+	NameComponent* GetNameComponent(const Entity entity)
 	{
 		return nameManager.GetComponent(entity);
 	}
-	TransformComponent* GetTransformComponent(Entity entity)
+	TransformComponent* GetTransformComponent(const Entity entity)
 	{
 		return transformManager.GetComponent(entity);
 	}
-	HierarchyComponent* GetHierarchyComponent(Entity entity)
+	HierarchyComponent* GetHierarchyComponent(const Entity entity)
 	{
 		return hierarchyManager.GetComponent(entity);
 	}
-	MaterialComponent* GetMaterialComponent(Entity entity)
+	MaterialComponent* GetMaterialComponent(const Entity entity)
 	{
 		return materialManager.GetComponent(entity);
 	}
-	GeometryComponent* GetGeometryComponent(Entity entity)
+	GeometryComponent* GetGeometryComponent(const Entity entity)
 	{
 		return geometryManager.GetComponent(entity);
 	}
 
-	bool ContainNameComponent(Entity entity)
+	bool ContainNameComponent(const Entity entity)
 	{
 		return nameManager.Contains(entity);
 	}
-	bool ContainTransformComponent(Entity entity)
+	bool ContainTransformComponent(const Entity entity)
 	{
 		return transformManager.Contains(entity);
 	}
-	bool ContainHierarchyComponent(Entity entity)
+	bool ContainHierarchyComponent(const Entity entity)
 	{
 		return hierarchyManager.Contains(entity);
 	}
-	bool ContainMaterialComponent(Entity entity)
+	bool ContainMaterialComponent(const Entity entity)
 	{
 		return materialManager.Contains(entity);
 	}
-	bool ContainGeometryComponent(Entity entity)
+	bool ContainGeometryComponent(const Entity entity)
 	{
 		return geometryManager.Contains(entity);
 	}

@@ -1,6 +1,4 @@
 #pragma once
-#include "CommonInclude.h"
-
 #include <chrono>
 
 namespace vz
