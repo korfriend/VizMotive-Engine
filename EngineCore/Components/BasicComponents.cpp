@@ -52,6 +52,8 @@ namespace vz
 		quat = XMQuaternionNormalize(quat);
 
 		XMStoreFloat4(&rotation_, quat);
+
+		timeStampSetter_ = TimerNow;
 	}
 	void TransformComponent::SetEulerAngleZXYInDegree(const XMFLOAT3& rotAngles)
 	{
@@ -76,6 +78,7 @@ namespace vz
 			local_ = local;
 		}
 		isDirty_ = false;
+		timeStampSetter_ = TimerNow;
 	}
 
 	void TransformComponent::UpdateMatrix()
@@ -94,6 +97,7 @@ namespace vz
 			XMMatrixTranslationFromVector(T_local));
 
 		isDirty_ = false;
+		timeStampSetter_ = TimerNow;
 	}
 }
 
@@ -137,22 +141,111 @@ namespace vz
 		}
 	}
 }
+/*
+void Scene::RunHierarchyUpdateSystem(wi::jobsystem::context& ctx)
+{
+	wi::jobsystem::Dispatch(ctx, (uint32_t)hierarchy.GetCount(), small_subtask_groupsize, [&](wi::jobsystem::JobArgs args) {
 
+		HierarchyComponent& hier = hierarchy[args.jobIndex];
+		Entity entity = hierarchy.GetEntity(args.jobIndex);
+
+		TransformComponent* transform_child = transforms.GetComponent(entity);
+		XMMATRIX worldmatrix;
+		if (transform_child != nullptr)
+		{
+			worldmatrix = transform_child->GetLocalMatrix();
+		}
+
+		LayerComponent* layer_child = layers.GetComponent(entity);
+		if (layer_child != nullptr)
+		{
+			layer_child->propagationMask = ~0u; // clear propagation mask to full
+		}
+
+		if (transform_child == nullptr && layer_child == nullptr)
+			return;
+
+		Entity parentID = hier.parentID;
+		while (parentID != INVALID_ENTITY)
+		{
+			TransformComponent* transform_parent = transforms.GetComponent(parentID);
+			if (transform_child != nullptr && transform_parent != nullptr)
+			{
+				worldmatrix *= transform_parent->GetLocalMatrix();
+			}
+
+			LayerComponent* layer_parent = layers.GetComponent(parentID);
+			if (layer_child != nullptr && layer_parent != nullptr)
+			{
+				layer_child->propagationMask &= layer_parent->layerMask;
+			}
+
+			const HierarchyComponent* hier_recursive = hierarchy.GetComponent(parentID);
+			if (hier_recursive != nullptr)
+			{
+				parentID = hier_recursive->parentID;
+			}
+			else
+			{
+				parentID = INVALID_ENTITY;
+			}
+		}
+
+		if (transform_child != nullptr)
+		{
+			XMStoreFloat4x4(&transform_child->world, worldmatrix);
+		}
+
+		});
+}
+/**/
 namespace vz
 {
-	void CameraComponent::SetPerspective(float width, float height, float nearP, float farP, float fovY)
+	bool CameraComponent::SetWorldLookAtFromHierarchyTransforms()
 	{
-		width_ = width;
-		height_ = height;
-		zNearP_ = nearP;
-		zFarP_ = farP;
-		fovY_ = fovY;
+		TransformComponent* tr_comp = compfactory::GetTransformComponent(entity_);
+		HierarchyComponent* parent = compfactory::GetHierarchyComponent(entity_);
+		XMMATRIX local;
+		if (tr_comp == nullptr)
+		{
+			if (parent == nullptr)
+			{
+				return false;
+			}
+			local = XMMatrixIdentity();
+		}
+		else
+		{
+			if (tr_comp->IsDirty()) 
+				tr_comp->UpdateMatrix();
+			local = XMLoadFloat4x4(&tr_comp->GetLocalMatrix());
+		}
+
+		XMMATRIX parent2ws = XMMatrixIdentity();
+		while (parent)
+		{
+			TransformComponent* transform_parent = compfactory::GetTransformComponent(parent->parentEntity);
+			if (transform_parent)
+			{
+				if (transform_parent->IsDirty()) 
+					transform_parent->UpdateMatrix();
+				parent2ws *= XMLoadFloat4x4(&transform_parent->GetLocalMatrix());
+			}
+			parent = compfactory::GetHierarchyComponent(parent->parentEntity);
+		}
+		XMFLOAT4X4 mat_world;
+		XMStoreFloat4x4(&mat_world, local * parent2ws);
+		tr_comp->UpdateWorldMatrix(mat_world);
+
+		eye_ = *((XMFLOAT3*)&mat_world._41);
+		up_ = vz::math::GetUp(mat_world);
+		XMFLOAT3 z_axis = vz::math::GetForward(mat_world);
+		XMVECTOR _At = XMLoadFloat3(&eye_) - XMLoadFloat3(&z_axis);
+		XMStoreFloat3(&at_, _At);
+
+		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
-		//isDirty_ = true;
-
-		UpdateMatrix();
 	}
-
 	void CameraComponent::UpdateMatrix()
 	{
 		if (projectionType_ != enums::Projection::CUSTOM_PROJECTION)

@@ -171,5 +171,25 @@ namespace vz
 
 	void CameraComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
 	{
+		if (archive.IsReadMode())
+		{
+			archive >> zNearP_;
+			archive >> zFarP_;
+			archive >> fovY_;
+			archive >> width_;
+			archive >> height_;
+			uint8_t u8_data;
+			archive >> u8_data;
+			projectionType_ = static_cast<enums::Projection>(u8_data);
+		}
+		else
+		{
+			archive << zNearP_;
+			archive << zFarP_;
+			archive << fovY_;
+			archive << width_;
+			archive << height_;
+			archive << static_cast<uint8_t>(projectionType_);
+		}
 	}
 }

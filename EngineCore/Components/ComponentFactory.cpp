@@ -23,7 +23,7 @@ namespace vz::compfactory
 	ComponentManager<GGeometryComponent>& geometryManager = componentLibrary.Register<GGeometryComponent>("GEOMETRY");
 	ComponentManager<GTextureComponent>& textureManager = componentLibrary.Register<GTextureComponent>("TEXTURE");
 
-	// component helpers //
+	// component factory interfaces //
 	NameComponent* CreateNameComponent(const Entity entity, const std::string& name)
 	{
 		NameComponent* comp = &nameManager.Create(entity);
@@ -51,7 +51,16 @@ namespace vz::compfactory
 		GeometryComponent* comp = &geometryManager.Create(entity);
 		return comp;
 	}
-
+	LightComponent* CreateLightComponent(const Entity entity)
+	{
+		LightComponent* comp = &lightManager.Create(entity);
+		return comp;
+	}
+	CameraComponent* CreateCameraComponent(const Entity entity)
+	{
+		CameraComponent* comp = &cameraManager.Create(entity);
+		return comp;
+	}
 
 	NameComponent* GetNameComponent(const Entity entity)
 	{
@@ -73,6 +82,14 @@ namespace vz::compfactory
 	{
 		return geometryManager.GetComponent(entity);
 	}
+	LightComponent* GetLightComponent(const Entity entity)
+	{
+		return lightManager.GetComponent(entity);
+	}
+	CameraComponent* GetCameraComponent(const Entity entity)
+	{
+		return cameraManager.GetComponent(entity);
+	}
 
 	bool ContainNameComponent(const Entity entity)
 	{
@@ -93,5 +110,13 @@ namespace vz::compfactory
 	bool ContainGeometryComponent(const Entity entity)
 	{
 		return geometryManager.Contains(entity);
+	}
+	bool ContainLightComponent(const Entity entity)
+	{
+		return lightManager.Contains(entity);
+	}
+	bool ContainCameraComponent(const Entity entity)
+	{
+		return cameraManager.Contains(entity);
 	}
 }

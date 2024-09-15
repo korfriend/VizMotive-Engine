@@ -4,10 +4,11 @@
 #include "Libs/PrimitiveHelper.h"
 
 #include <vector>
+#include <map>
+#include <unordered_set>
 #include <string>
 #include <memory>
 #include <chrono>
-#include <typeinfo>
 
 #ifdef _WIN32
 #define CORE_EXPORT __declspec(dllexport)
@@ -20,6 +21,7 @@ inline constexpr Entity INVALID_ENTITY = 0;
 using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimeDurationCount(A, B) std::chrono::duration_cast<std::chrono::duration<double>>(A - B).count()
 #define TimerNow std::chrono::high_resolution_clock::now()
+#define TimerMin std::chrono::high_resolution_clock::time_point::min();
 
 namespace vz
 {
@@ -59,55 +61,34 @@ namespace vz::resource
 
 namespace vz
 {
+	class Archive;
+	namespace ecs { struct EntitySerializer; }
+
 	struct CORE_EXPORT Scene
 	{
-		// the directional light is always stored first in the LightSoA, so we need to account
-		// for that in a few places.
-		static constexpr size_t DIRECTIONAL_LIGHTS_COUNT = 1;
-		/**
-		 * Sets the Skybox.
-		 *
-		 * The Skybox is drawn last and covers all pixels not touched by geometry.
-		 *
-		 * @param skybox The Skybox to use to fill untouched pixels, or nullptr to unset the Skybox.
-		 */
-		 //void SetSkybox(Skybox* UTILS_NULLABLE skybox) noexcept;
+	public:
+		inline static std::map<Entity, Scene*> scenes;
+		inline static Scene* GetScene(const Entity entity) { 
+			auto it = scenes.find(entity); 
+			return it != scenes.end() ? it->second : nullptr; 
+		}
+		inline static Scene* GetFirstSceneByName(const std::string& name) {
+			for (auto& it : scenes) {
+				if (it.second->sceneName == name) return it.second;
+			}
+			return nullptr;
+		}
 
-		 /**
-		  * Returns the Skybox associated with the Scene.
-		  *
-		  * @return The associated Skybox, or nullptr if there is none.
-		  */
-		  //Skybox* UTILS_NULLABLE GetSkybox() const noexcept;
+	private:
+		std::unordered_set<Entity> renderables_; // each entity has also TransformComponent and HierarchyComponent
+		std::unordered_set<Entity> lights_;
 
-		  /**
-		   * Set the IndirectLight to use when rendering the Scene.
-		   *
-		   * Currently, a Scene may only have a single IndirectLight. This call replaces the current
-		   * IndirectLight.
-		   *
-		   * @param ibl The IndirectLight to use when rendering the Scene or nullptr to unset.
-		   * @see getIndirectLight
-		   */
-		   //void SetIndirectLight(IndirectLight* UTILS_NULLABLE ibl) noexcept;
+		// Non-serialized attributes:
+		TimeStamp recentRenderTime_ = TimerMin;	// world update time
 
-		   /**
-			* Get the IndirectLight or nullptr if none is set.
-			*
-			* @return the the IndirectLight or nullptr if none is set
-			* @see setIndirectLight
-			*/
-			//IndirectLight* UTILS_NULLABLE GetIndirectLight() const noexcept;
+	public:
+		std::string sceneName = "";
 
-			/**
-			 * Adds an Entity to the Scene.
-			 *
-			 * @param entity The entity is ignored if it doesn't have a Renderable or Light component.
-			 *
-			 * \attention
-			 *  A given Entity object can only be added once to a Scene.
-			 *
-			 */
 		void AddEntity(const Entity entity);
 
 		/**
@@ -163,19 +144,19 @@ namespace vz
 		 * @return Whether the given entity is in the Scene.
 		 */
 		bool HasEntity(const Entity entity) const noexcept;
-	};
 
-	class Archive; 
-	namespace ecs { struct EntitySerializer; }
+		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
+	};
 
 	struct CORE_EXPORT ComponentBase
 	{
 	protected:
 		std::string componentType_ = "UNDEF";
-		TimeStamp timeStampSetter_;
+		TimeStamp timeStampSetter_ = TimerMin;
+		Entity entity_ = INVALID_ENTITY;
 	public:
-		ComponentBase(const std::string& typeName) : componentType_(typeName) {
-			timeStampSetter_ = std::chrono::high_resolution_clock::now();
+		ComponentBase(const std::string& typeName, const Entity entity) : componentType_(typeName), entity_(entity) {
+			timeStampSetter_ = TimerNow;
 		}
 		std::string GetComponentType() const { return componentType_; }
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
@@ -183,7 +164,7 @@ namespace vz
 
 	struct CORE_EXPORT NameComponent : ComponentBase
 	{
-		NameComponent(): ComponentBase(typeid(NameComponent).name()) {}
+		NameComponent(const Entity entity) : ComponentBase("NameComponent", entity) {}
 
 		std::string name;
 
@@ -210,36 +191,39 @@ namespace vz
 		XMFLOAT4X4 local_ = vz::math::IDENTITY_MATRIX;
 
 		// check timeStampWorldUpdate_ and global timeStamp
-		TimeStamp timeStampWorldUpdate_ = std::chrono::high_resolution_clock::time_point::min();
+		TimeStamp timeStampWorldUpdate_ = TimerMin;
 		XMFLOAT4X4 world_ = vz::math::IDENTITY_MATRIX;
 
 	public:
-		TransformComponent() : ComponentBase(typeid(TransformComponent).name()) {}
+		TransformComponent(const Entity entity) : ComponentBase("TransformComponent", entity) {}
 
 		bool IsDirty() const { return isDirty_; }
 		bool IsMatrixAutoUpdate() const { return isMatrixAutoUpdate_; }
 
+		// recommend checking IsDirtyWorldMatrix with scene's timeStampWorldUpdate
 		XMFLOAT3 GetWorldPosition() const;
 		XMFLOAT4 GetWorldRotation() const;
 		XMFLOAT3 GetWorldScale() const;
 		XMFLOAT3 GetWorldForward() const; // z-axis
 		XMFLOAT3 GetWorldUp() const;
 		XMFLOAT3 GetWorldRight() const;
+		XMFLOAT4X4 GetWorldMatrix() const { return world_; };
 
 		// Local
 		XMFLOAT3 GetPosition() const { return position_; };
 		XMFLOAT4 GetRotation() const { return rotation_; };
 		XMFLOAT3 GetScale() const { return scale_; };
+		XMFLOAT4X4 GetLocalMatrix() const { return local_; };
 
-		void SetPosition(const XMFLOAT3& p) { isDirty_ = true; position_ = p; }
-		void SetScale(const XMFLOAT3& s) { isDirty_ = true; scale_ = s; }
+		void SetPosition(const XMFLOAT3& p) { isDirty_ = true; position_ = p; timeStampSetter_ = TimerNow; }
+		void SetScale(const XMFLOAT3& s) { isDirty_ = true; scale_ = s; timeStampSetter_ = TimerNow; }
 		void SetEulerAngleZXY(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
 		void SetEulerAngleZXYInDegree(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
-		void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; }
+		void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; timeStampSetter_ = TimerNow; }
 		void SetMatrix(const XMFLOAT4X4& local);
 
 		void UpdateMatrix();	// local matrix
-		void UpdateWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = std::chrono::high_resolution_clock::now(); };
+		XMFLOAT4X4 UpdateWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = TimerNow; };
 		bool IsDirtyWorldMatrix(const TimeStamp timeStampRecentWorldUpdate) { return TimeDurationCount(timeStampRecentWorldUpdate, timeStampWorldUpdate_) <= 0; }
 
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
@@ -247,7 +231,7 @@ namespace vz
 
 	struct CORE_EXPORT HierarchyComponent : ComponentBase
 	{
-		HierarchyComponent() : ComponentBase(typeid(HierarchyComponent).name()) {}
+		HierarchyComponent(const Entity entity) : ComponentBase("HierarchyComponent", entity) {}
 
 		Entity parentEntity = INVALID_ENTITY;
 
@@ -255,7 +239,6 @@ namespace vz
 	};
 
 	// resources
-
 	struct CORE_EXPORT MaterialComponent : ComponentBase
 	{
 	public:
@@ -296,7 +279,7 @@ namespace vz
 
 		Entity textures_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 	public:
-		MaterialComponent() : ComponentBase(typeid(MaterialComponent).name()) {}
+		MaterialComponent(const Entity entity) : ComponentBase("MaterialComponent", entity) {}
 
 		XMFLOAT4 GetBaseColor() { return baseColor_; }	// w is opacity
 		XMFLOAT4 GetSpecularColor() { return specularColor_; }
@@ -386,7 +369,7 @@ namespace vz
 
 		void updateAABB();
 	public:
-		GeometryComponent() : ComponentBase(typeid(GeometryComponent).name()) {}
+		GeometryComponent(const Entity entity) : ComponentBase("GeometryComponent", entity) {}
 
 		bool IsDirty() { return isDirty_; }
 		geometry::AABB GetAABB() { return aabb_; }
@@ -402,7 +385,7 @@ namespace vz
 
 	struct CORE_EXPORT TextureComponent : ComponentBase
 	{
-		TextureComponent() : ComponentBase(typeid(TextureComponent).name()) {}
+		TextureComponent(const Entity entity) : ComponentBase("TextureComponent", entity) {}
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
@@ -414,11 +397,12 @@ namespace vz
 		Entity geometryEntity_ = INVALID_ENTITY;
 		std::vector<Entity> materialEntities_;
 
-		bool isValid_ = false; // not serialized
+		// Non-serialized attributes:
+		bool isValid_ = false;
 	public:
-		RenderableComponent() : ComponentBase(typeid(RenderableComponent).name()) {}
+		RenderableComponent(const Entity entity) : ComponentBase("RenderableComponent", entity) {}
 
-		// not serialized (those variables are supposed to be updated via transformers)
+		// Non-serialized attributes: (those variables are supposed to be updated via transformers)
 		XMFLOAT4X4 matWorld;
 
 		bool IsValid() { return isValid_; }
@@ -446,9 +430,9 @@ namespace vz
 		// note there will be added many attributes to describe the light properties with various lighting techniques
 		// refer to filament engine's lightManager and wicked engine's lightComponent
 	public:
-		LightComponent() : ComponentBase(typeid(LightComponent).name()) {}
+		LightComponent(const Entity entity) : ComponentBase("LightComponent", entity) {}
 
-		// not serialized (those variables are supposed to be updated via transformers)
+		// Non-serialized attributes:
 		XMFLOAT4X4 matWorld;
 		
 		void SetLightColor(XMFLOAT3 color) { color_ = color; }
@@ -482,11 +466,15 @@ namespace vz
 		vz::geometry::Frustum frustum_;
 
 	public:
-		CameraComponent() : ComponentBase(typeid(CameraComponent).name()) {}
+		CameraComponent(const Entity entity) : ComponentBase("CameraComponent", entity) {}
 
 		// Non-serialized attributes:
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);
 
+		bool IsDirty() const { return isDirty_; }
+
+		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
+		bool SetWorldLookAtFromHierarchyTransforms();
 		void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up) {
 			eye_ = eye; at_ = at; up_ = up; isDirty_ = true;
 			timeStampSetter_ = TimerNow;
@@ -495,8 +483,11 @@ namespace vz
 			eye_ = eye; XMStoreFloat3(&at_, XMLoadFloat3(&eye) + XMLoadFloat3(&view)); up_ = up; isDirty_ = true;
 			timeStampSetter_ = TimerNow;
 		}
+		void SetPerspective(float width, float height, float nearP, float farP, float fovY = XM_PI / 3.0f) {
+			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY; 
+			isDirty_ = true; timeStampSetter_ = TimerNow;
+		}
 
-		void SetPerspective(float width, float height, float nearP, float farP, float fovY = XM_PI / 3.0f);
 		void UpdateMatrix();
 
 		XMFLOAT3 GetWorldEye() const { return eye_; }
@@ -523,18 +514,24 @@ namespace vz::compfactory
 	HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
 	MaterialComponent* CreateMaterialComponent(const Entity entity);
 	GeometryComponent* CreateGeometryComponent(const Entity entity);
+	LightComponent* CreateLightComponent(const Entity entity);
+	CameraComponent* CreateCameraComponent(const Entity entity);
 
 	NameComponent* GetNameComponent(const Entity entity);
 	TransformComponent* GetTransformComponent(const Entity entity);
 	HierarchyComponent* GetHierarchyComponent(const Entity entity);
 	MaterialComponent* GetMaterialComponent(const Entity entity);
 	GeometryComponent* GetGeometryComponent(const Entity entity);
+	LightComponent* GetLightComponent(const Entity entity);
+	CameraComponent* GetCameraComponent(const Entity entity);
 
 	bool ContainNameComponent(const Entity entity);
 	bool ContainTransformComponent(const Entity entity);
 	bool ContainHierarchyComponent(const Entity entity);
 	bool ContainMaterialComponent(const Entity entity);
 	bool ContainGeometryComponent(const Entity entity);
+	bool ContainLightComponent(const Entity entity);
+	bool ContainCameraComponent(const Entity entity);
 
 	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	size_t GetComponentsByName(const std::string& name, std::vector<ComponentBase*>& components); // when there is a name component
