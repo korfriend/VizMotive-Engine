@@ -274,12 +274,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp">
       <Filter>Components</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\LightComponent.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\CameraComponent.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp">
       <Filter>Components</Filter>
     </ClCompile>
@@ -300,9 +294,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp">
       <Filter>Libs</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\RenderableComponent.cpp">
-      <Filter>Components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

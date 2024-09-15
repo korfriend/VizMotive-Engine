@@ -30,8 +30,6 @@ namespace vz::enums
 		CAST_SHADOW = 1 << 0,
 		VOLUMETRICS = 1 << 1,
 		VISUALIZER = 1 << 2,
-		LIGHTMAPONLY_STATIC = 1 << 3,
-		VOLUMETRICCLOUDS = 1 << 4,
 	};
 
 	enum LightType
@@ -41,6 +39,14 @@ namespace vz::enums
 		SPOT,
 		LIGHTTYPE_COUNT,
 		ENUM_FORCE_UINT32 = 0xFFFFFFFF,
+	};
+
+	//! Denotes the projection type used by this camera. \see setProjection
+	enum class Projection : uint8_t 
+	{
+		PERSPECTIVE,    //!< perspective projection, objects get smaller as they are farther
+		ORTHO,           //!< orthonormal projection, preserves distances
+		CUSTOM_PROJECTION
 	};
 
 	enum class UniformType : uint8_t {

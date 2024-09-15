@@ -37,7 +37,7 @@ namespace vz
 	}
 	void TransformComponent::SetEulerAngleZXY(const XMFLOAT3& rotAngles)
 	{
-		setDirty(true);
+		isDirty_ = true;
 
 		// This needs to be handled a bit differently
 		
@@ -60,7 +60,7 @@ namespace vz
 		));
 	}
 
-	void TransformComponent::SetMatrix(XMFLOAT4X4 local)
+	void TransformComponent::SetMatrix(const XMFLOAT4X4& local)
 	{
 		if (isMatrixAutoUpdate_)
 		{
@@ -75,6 +75,7 @@ namespace vz
 		{
 			local_ = local;
 		}
+		isDirty_ = false;
 	}
 
 	void TransformComponent::UpdateMatrix()
@@ -91,6 +92,8 @@ namespace vz
 			XMMatrixScalingFromVector(S_local) *
 			XMMatrixRotationQuaternion(R_local) *
 			XMMatrixTranslationFromVector(T_local));
+
+		isDirty_ = false;
 	}
 }
 
@@ -109,10 +112,77 @@ namespace vz
 	}
 	bool RenderableComponent::SetMaterial(const Entity materialEntity, const size_t slot)
 	{
-
+		if (slot >= materialEntities_.size())
+		{
+			backlog::post("slot is over current materials", backlog::LogLevel::Error);
+			return false;
+		}
+		MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materialEntity);
+		if (mat_comp == nullptr)
+		{
+			backlog::post("invalid entity", backlog::LogLevel::Error);
+			return false;
+		}
+		materialEntities_[slot] = materialEntity;
+		return true;
 	}
 	void RenderableComponent::SetMaterials(const std::vector<Entity>& materials)
 	{
+		materialEntities_ = materials;
+		isValid_ = false;
+		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(geometryEntity_);
+		if (geo_comp)
+		{
+			isValid_ = geo_comp->GetNumParts() == materialEntities_.size();
+		}
+	}
+}
 
+namespace vz
+{
+	void CameraComponent::SetPerspective(float width, float height, float nearP, float farP, float fovY)
+	{
+		width_ = width;
+		height_ = height;
+		zNearP_ = nearP;
+		zFarP_ = farP;
+		fovY_ = fovY;
+		timeStampSetter_ = TimerNow;
+		//isDirty_ = true;
+
+		UpdateMatrix();
+	}
+
+	void CameraComponent::UpdateMatrix()
+	{
+		if (projectionType_ != enums::Projection::CUSTOM_PROJECTION)
+		{
+			XMStoreFloat4x4(&projection_, VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_)); // reverse zbuffer!
+			projection_.m[2][0] = jitter.x;
+			projection_.m[2][1] = jitter.y;
+		}
+
+		XMVECTOR _Eye = XMLoadFloat3(&eye_);
+		XMVECTOR _At = XMLoadFloat3(&at_);
+		XMVECTOR _Up = XMLoadFloat3(&up_);
+
+		XMMATRIX _V = VZMatrixLookTo(_Eye, _At, _Up);
+		XMStoreFloat4x4(&view_, _V);
+
+		XMMATRIX _P = XMLoadFloat4x4(&projection_);
+		XMMATRIX _InvP = XMMatrixInverse(nullptr, _P);
+		XMStoreFloat4x4(&invProjection_, _InvP);
+
+		XMMATRIX _VP = XMMatrixMultiply(_V, _P);
+		XMStoreFloat4x4(&view_, _V);
+		XMStoreFloat4x4(&viewProjection_, _VP);
+		XMMATRIX _InvV = XMMatrixInverse(nullptr, _V);
+		XMStoreFloat4x4(&invView_, _InvV);
+		XMStoreFloat3x3(&rotationMatrix_, _InvV);
+		XMStoreFloat4x4(&invViewProjection_, XMMatrixInverse(nullptr, _VP));
+
+		frustum_.Create(_VP);
+
+		isDirty_ = false;
 	}
 }

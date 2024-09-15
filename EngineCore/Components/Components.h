@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <chrono>
+#include <typeinfo>
 
 #ifdef _WIN32
 #define CORE_EXPORT __declspec(dllexport)
@@ -15,6 +17,9 @@
 
 using Entity = uint32_t;
 inline constexpr Entity INVALID_ENTITY = 0;
+using TimeStamp = std::chrono::high_resolution_clock::time_point;
+#define TimeDurationCount(A, B) std::chrono::duration_cast<std::chrono::duration<double>>(A - B).count()
+#define TimerNow std::chrono::high_resolution_clock::now()
 
 namespace vz
 {
@@ -163,8 +168,23 @@ namespace vz
 	class Archive; 
 	namespace ecs { struct EntitySerializer; }
 
-	struct CORE_EXPORT NameComponent
+	struct CORE_EXPORT ComponentBase
 	{
+	protected:
+		std::string componentType_ = "UNDEF";
+		TimeStamp timeStampSetter_;
+	public:
+		ComponentBase(const std::string& typeName) : componentType_(typeName) {
+			timeStampSetter_ = std::chrono::high_resolution_clock::now();
+		}
+		std::string GetComponentType() const { return componentType_; }
+		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
+	};
+
+	struct CORE_EXPORT NameComponent : ComponentBase
+	{
+		NameComponent(): ComponentBase(typeid(NameComponent).name()) {}
+
 		std::string name;
 
 		inline void operator=(const std::string& str) { name = str; }
@@ -174,26 +194,27 @@ namespace vz
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct CORE_EXPORT TransformComponent
+	struct CORE_EXPORT TransformComponent : ComponentBase
 	{
 	private:
-		bool isDirty_ = true;
 		bool isMatrixAutoUpdate_ = true;
 		XMFLOAT3 scale_ = XMFLOAT3(1, 1, 1);
 		XMFLOAT4 rotation_ = XMFLOAT4(0, 0, 0, 1);	// this is a quaternion
 		XMFLOAT3 position_ = XMFLOAT3(0, 0, 0);
+		
+		// Non-serialized attributes:
+		bool isDirty_ = true; // local check
+		// The local matrix can be computed from local scale, rotation, translation 
+		//	- by calling UpdateMatrix()
+		//	- or by isDirty_ := false and letting the TransformUpdateSystem handle the updating
 		XMFLOAT4X4 local_ = vz::math::IDENTITY_MATRIX;
 
-		// Non-serialized attributes:
-
-		// The world matrix can be computed from local scale, rotation, translation
-		//	- by calling UpdateTransform()
-		//	- or by calling SetDirty() and letting the TransformUpdateSystem handle the updating
+		// check timeStampWorldUpdate_ and global timeStamp
+		TimeStamp timeStampWorldUpdate_ = std::chrono::high_resolution_clock::time_point::min();
 		XMFLOAT4X4 world_ = vz::math::IDENTITY_MATRIX;
 
 	public:
-
-		void SetDirty(const bool isDirty) { isDirty_ = isDirty; } // call when changing entity's hierarchy
+		TransformComponent() : ComponentBase(typeid(TransformComponent).name()) {}
 
 		bool IsDirty() const { return isDirty_; }
 		bool IsMatrixAutoUpdate() const { return isMatrixAutoUpdate_; }
@@ -201,7 +222,7 @@ namespace vz
 		XMFLOAT3 GetWorldPosition() const;
 		XMFLOAT4 GetWorldRotation() const;
 		XMFLOAT3 GetWorldScale() const;
-		XMFLOAT3 GetWorldForward() const;
+		XMFLOAT3 GetWorldForward() const; // z-axis
 		XMFLOAT3 GetWorldUp() const;
 		XMFLOAT3 GetWorldRight() const;
 
@@ -215,15 +236,19 @@ namespace vz
 		void SetEulerAngleZXY(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
 		void SetEulerAngleZXYInDegree(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
 		void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; }
-		void SetMatrix(XMFLOAT4X4 local);
+		void SetMatrix(const XMFLOAT4X4& local);
 
-		void UpdateMatrix();
+		void UpdateMatrix();	// local matrix
+		void UpdateWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = std::chrono::high_resolution_clock::now(); };
+		bool IsDirtyWorldMatrix(const TimeStamp timeStampRecentWorldUpdate) { return TimeDurationCount(timeStampRecentWorldUpdate, timeStampWorldUpdate_) <= 0; }
 
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct CORE_EXPORT HierarchyComponent
+	struct CORE_EXPORT HierarchyComponent : ComponentBase
 	{
+		HierarchyComponent() : ComponentBase(typeid(HierarchyComponent).name()) {}
+
 		Entity parentEntity = INVALID_ENTITY;
 
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
@@ -231,7 +256,7 @@ namespace vz
 
 	// resources
 
-	struct CORE_EXPORT MaterialComponent
+	struct CORE_EXPORT MaterialComponent : ComponentBase
 	{
 	public:
 		enum class RenderFlags : uint32_t
@@ -271,6 +296,8 @@ namespace vz
 
 		Entity textures_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 	public:
+		MaterialComponent() : ComponentBase(typeid(MaterialComponent).name()) {}
+
 		XMFLOAT4 GetBaseColor() { return baseColor_; }	// w is opacity
 		XMFLOAT4 GetSpecularColor() { return specularColor_; }
 		XMFLOAT4 GetEmissiveColor() { return emissiveColor_; }	// w is emissive strength
@@ -287,7 +314,7 @@ namespace vz
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct CORE_EXPORT GeometryComponent
+	struct CORE_EXPORT GeometryComponent : ComponentBase
 	{
 	private:
 		struct Primitive {
@@ -359,6 +386,8 @@ namespace vz
 
 		void updateAABB();
 	public:
+		GeometryComponent() : ComponentBase(typeid(GeometryComponent).name()) {}
+
 		bool IsDirty() { return isDirty_; }
 		geometry::AABB GetAABB() { return aabb_; }
 		void AssignParts(const size_t numParts) { parts_.assign(numParts, Primitive()); }
@@ -371,23 +400,34 @@ namespace vz
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct CORE_EXPORT TextureComponent
+	struct CORE_EXPORT TextureComponent : ComponentBase
 	{
+		TextureComponent() : ComponentBase(typeid(TextureComponent).name()) {}
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
 	// scene 
-	struct CORE_EXPORT RenderableComponent
+	struct CORE_EXPORT RenderableComponent : ComponentBase
 	{
 	private:
-		bool isValid_ = false;
+		uint8_t visibleLayerMask_ = 0x7;
 		Entity geometryEntity_ = INVALID_ENTITY;
 		std::vector<Entity> materialEntities_;
+
+		bool isValid_ = false; // not serialized
 	public:
+		RenderableComponent() : ComponentBase(typeid(RenderableComponent).name()) {}
+
+		// not serialized (those variables are supposed to be updated via transformers)
+		XMFLOAT4X4 matWorld;
+
 		bool IsValid() { return isValid_; }
 		void SetGeometry(const Entity geometryEntity);
 		bool SetMaterial(const Entity materialEntity, const size_t slot);
 		void SetMaterials(const std::vector<Entity>& materials);
+		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { visibleLayerMask_ = (layerBits & maskBits); }
+		bool IsVisibleWith(uint8_t visibleLayerMask) { return visibleLayerMask & visibleLayerMask_; }
+		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
 
 		Entity GetGeometry() { return geometryEntity_; }
 		Entity GetMaterial(const size_t slot) { return slot >= materialEntities_.size() ? INVALID_ENTITY : materialEntities_[slot]; }
@@ -395,17 +435,82 @@ namespace vz
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct CORE_EXPORT LightComponent
+	struct CORE_EXPORT LightComponent : ComponentBase
 	{
-		enums::LightFlags flags = enums::LightFlags::EMPTY;
+	private:
+		uint32_t lightFlag_ = SCU32(enums::LightFlags::EMPTY);
+		enums::LightType type_ = enums::LightType::DIRECTIONAL;
 
-		enums::LightType type = enums::LightType::POINT;
+		XMFLOAT3 color_ = XMFLOAT3(1, 1, 1);
+
+		// note there will be added many attributes to describe the light properties with various lighting techniques
+		// refer to filament engine's lightManager and wicked engine's lightComponent
+	public:
+		LightComponent() : ComponentBase(typeid(LightComponent).name()) {}
+
+		// not serialized (those variables are supposed to be updated via transformers)
+		XMFLOAT4X4 matWorld;
+		
+		void SetLightColor(XMFLOAT3 color) { color_ = color; }
 
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 
-	struct CORE_EXPORT CameraComponent
+	struct CORE_EXPORT CameraComponent : ComponentBase
 	{
+	private:
+		float zNearP_ = 0.1f;
+		float zFarP_ = 5000.0f;
+		float fovY_ = XM_PI / 3.0f;
+
+		// These parameters are used differently depending on the projection mode.
+		// 1. orthogonal : image plane's width and height
+		// 2. perspective : computing aspect (W / H) ratio, i.e., (width_, height_) := (aspectRatio, 1.f)
+		float width_ = 0.0f;
+		float height_ = 0.0f;
+
+		enums::Projection projectionType_ = enums::Projection::PERSPECTIVE;
+
+		// Non-serialized attributes:
+		bool isDirty_ = true;
+		XMFLOAT3 eye_ = XMFLOAT3(0, 0, 0);
+		XMFLOAT3 at_ = XMFLOAT3(0, 0, 1);
+		XMFLOAT3 up_ = XMFLOAT3(0, 1, 0);
+		XMFLOAT3X3 rotationMatrix_;
+		XMFLOAT4X4 view_, projection_, viewProjection_;
+		XMFLOAT4X4 invView_, invProjection_, invViewProjection_;
+		vz::geometry::Frustum frustum_;
+
+	public:
+		CameraComponent() : ComponentBase(typeid(CameraComponent).name()) {}
+
+		// Non-serialized attributes:
+		XMFLOAT2 jitter = XMFLOAT2(0, 0);
+
+		void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up) {
+			eye_ = eye; at_ = at; up_ = up; isDirty_ = true;
+			timeStampSetter_ = TimerNow;
+		}
+		void SetWorldLookTo(const XMFLOAT3& eye, const XMFLOAT3& view, const XMFLOAT3& up) {
+			eye_ = eye; XMStoreFloat3(&at_, XMLoadFloat3(&eye) + XMLoadFloat3(&view)); up_ = up; isDirty_ = true;
+			timeStampSetter_ = TimerNow;
+		}
+
+		void SetPerspective(float width, float height, float nearP, float farP, float fovY = XM_PI / 3.0f);
+		void UpdateMatrix();
+
+		XMFLOAT3 GetWorldEye() const { return eye_; }
+		XMFLOAT3 GetWorldAt() const { return at_; }
+		XMFLOAT3 GetWorldUp() const { return up_; }
+		XMFLOAT3X3 GetWorldRotation() const { return rotationMatrix_; }
+		XMFLOAT4X4 GetView() const { return view_; }
+		XMFLOAT4X4 GetProjection() const { return projection_; }
+		XMFLOAT4X4 GetViewProjection() const { return viewProjection_; }
+		XMFLOAT4X4 GetInvView() const { return invView_; }
+		XMFLOAT4X4 GetInvProjection() const { return invProjection_; }
+		XMFLOAT4X4 GetInvViewProjection() const { return invViewProjection_; }
+		vz::geometry::Frustum GetFrustum() const { return frustum_; }
+
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
 	};
 }
@@ -413,15 +518,24 @@ namespace vz
 // component factory
 namespace vz::compfactory
 {
-	NameComponent* GetNameComponent(Entity entity);
-	TransformComponent* GetTransformComponent(Entity entity);
-	HierarchyComponent* GetHierarchyComponent(Entity entity);
-	MaterialComponent* GetMaterialComponent(Entity entity);
-	GeometryComponent* GetGeometryComponent(Entity entity);
+	NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
+	TransformComponent* CreateTransformComponent(const Entity entity);
+	HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
+	MaterialComponent* CreateMaterialComponent(const Entity entity);
+	GeometryComponent* CreateGeometryComponent(const Entity entity);
 
-	bool ContainNameComponent(Entity entity);
-	bool ContainTransformComponent(Entity entity);
-	bool ContainHierarchyComponent(Entity entity);
-	bool ContainMaterialComponent(Entity entity);
-	bool ContainGeometryComponent(Entity entity);
+	NameComponent* GetNameComponent(const Entity entity);
+	TransformComponent* GetTransformComponent(const Entity entity);
+	HierarchyComponent* GetHierarchyComponent(const Entity entity);
+	MaterialComponent* GetMaterialComponent(const Entity entity);
+	GeometryComponent* GetGeometryComponent(const Entity entity);
+
+	bool ContainNameComponent(const Entity entity);
+	bool ContainTransformComponent(const Entity entity);
+	bool ContainHierarchyComponent(const Entity entity);
+	bool ContainMaterialComponent(const Entity entity);
+	bool ContainGeometryComponent(const Entity entity);
+
+	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
+	size_t GetComponentsByName(const std::string& name, std::vector<ComponentBase*>& components); // when there is a name component
 }
