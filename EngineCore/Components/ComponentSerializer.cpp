@@ -6,8 +6,25 @@ namespace vz
 {
 	using namespace vz::ecs;
 
-	void NameComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void ComponentBase::serializeBase(vz::Archive& archive, const uint64_t version)
 	{
+		if (archive.IsReadMode())
+		{
+			uint8_t u8_data;
+			archive >> u8_data;
+			cType_ = static_cast<ComponentType>(u8_data);
+			archive >> vuid_;
+		}
+		else
+		{
+			archive << static_cast<uint8_t>(cType_);
+			archive << vuid_;
+		}
+	}
+
+	void NameComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		serializeBase(archive, version);
 		if (archive.IsReadMode())
 		{
 			archive >> name;
@@ -18,8 +35,9 @@ namespace vz
 		}
 	}
 
-	void TransformComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void TransformComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
+		serializeBase(archive, version);
 		if (archive.IsReadMode())
 		{
 			archive >> isMatrixAutoUpdate_;
@@ -34,17 +52,26 @@ namespace vz
 			archive << isMatrixAutoUpdate_; // maybe not needed just for dirtiness, but later might come handy if we have more persistent flags
 			archive << scale_;
 			archive << rotation_;
-			//archive << local_;
+			archive << position_;
 		}
 	}
 
-	void HierarchyComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void HierarchyComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
-		SerializeEntity(archive, parentEntity, seri);
+		serializeBase(archive, version);
+		if (archive.IsReadMode())
+		{
+			archive >> vuidParentHierarchy;
+		}
+		else
+		{
+			archive << vuidParentHierarchy;
+		}
 	}
 
-	void MaterialComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void MaterialComponent::Serialize(vz::Archive& archive)
 	{
+		serializeBase(archive, seri);
 		if (archive.IsReadMode())
 		{
 			uint32_t u32_data;
@@ -60,7 +87,7 @@ namespace vz
 			assert(u32_data <= SCU32(TextureSlot::TEXTURESLOT_COUNT));
 			for (uint32_t i = 0, n = u32_data; i < n; ++i)
 			{
-				SerializeEntity(archive, textures_[i], seri);
+				SerializeEntity(archive, textureComponents_[i], seri);
 			}
 			isDirty_ = true;
 		}
@@ -76,13 +103,14 @@ namespace vz
 			archive << tex_slot_count;
 			for (uint32_t i = 0; i < tex_slot_count; ++i)
 			{
-				SerializeEntity(archive, textures_[i], seri);
+				SerializeEntity(archive, textureComponents_[i], seri);
 			}
 		}
 	}
 
-	void GeometryComponent::Primitive::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void GeometryComponent::Primitive::Serialize(vz::Archive& archive)
 	{
+		serializeBase(archive, seri);
 		if (archive.IsReadMode())
 		{
 			archive >> vertexPositions_;
@@ -103,8 +131,9 @@ namespace vz
 		}
 	}
 
-	void GeometryComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void GeometryComponent::Serialize(vz::Archive& archive)
 	{
+		serializeBase(archive, seri);
 		if (archive.IsReadMode())
 		{
 			uint32_t u32_data;
@@ -126,12 +155,14 @@ namespace vz
 		}
 	}
 
-	void TextureComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void TextureComponent::Serialize(vz::Archive& archive)
 	{
+		serializeBase(archive, seri);
 	}
 
-	void RenderableComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void RenderableComponent::Serialize(vz::Archive& archive)
 	{
+		serializeBase(archive, seri);
 		if (archive.IsReadMode())
 		{
 			archive >> visibleLayerMask_;
@@ -157,8 +188,9 @@ namespace vz
 		}
 	}
 
-	void LightComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void LightComponent::Serialize(vz::Archive& archive)
 	{
+		serializeBase(archive, seri);
 		if (archive.IsReadMode())
 		{
 			archive >> color_;
@@ -169,8 +201,9 @@ namespace vz
 		}
 	}
 
-	void CameraComponent::Serialize(vz::Archive& archive, EntitySerializer& seri)
+	void CameraComponent::Serialize(vz::Archive& archive)
 	{
+		serializeBase(archive, seri);
 		if (archive.IsReadMode())
 		{
 			archive >> zNearP_;

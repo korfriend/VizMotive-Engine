@@ -7,8 +7,6 @@
 namespace vz::compfactory
 {
 	using namespace vz::ecs;
-	using ENTIRY_INSTANCE = size_t;
-	static const ENTIRY_INSTANCE INVALID_INSTANCE = ~0ull;
 
 	ComponentLibrary componentLibrary;
 
@@ -22,6 +20,33 @@ namespace vz::compfactory
 	ComponentManager<GMaterialComponent>& materialManager = componentLibrary.Register<GMaterialComponent>("MATERIAL");
 	ComponentManager<GGeometryComponent>& geometryManager = componentLibrary.Register<GGeometryComponent>("GEOMETRY");
 	ComponentManager<GTextureComponent>& textureManager = componentLibrary.Register<GTextureComponent>("TEXTURE");
+
+	ComponentBase* GetComponentByVUID(const VUID vuid)
+	{
+		ComponentType comp_type = static_cast<ComponentType>(ComponentLibrary::GetComponentTypeByVUID(vuid));
+		switch (comp_type)
+		{
+		case ComponentType::UNDEFINED: return nullptr;
+		case ComponentType::NAME: return nameManager.GetComponent(vuid);
+		case ComponentType::TRANSFORM: return transformManager.GetComponent(vuid);
+		case ComponentType::HIERARCHY: return hierarchyManager.GetComponent(vuid);
+		case ComponentType::RENDERABLE: return renderableManager.GetComponent(vuid);
+		case ComponentType::MATERIAL: return materialManager.GetComponent(vuid);
+		case ComponentType::GEOMETRY: return geometryManager.GetComponent(vuid);
+		case ComponentType::TEXTURE: return textureManager.GetComponent(vuid);
+		case ComponentType::LIGHT: return lightManager.GetComponent(vuid);
+		case ComponentType::CAMERA: return cameraManager.GetComponent(vuid);
+		default: assert(0);
+		}
+		return nullptr;
+	}
+	Entity GetEntityByVUID(const VUID vuid)
+	{
+		ComponentBase* comp = GetComponentByVUID(vuid);
+		if (comp == nullptr)
+			return INVALID_ENTITY;
+		return comp->GetEntity();
+	}
 
 	// component factory interfaces //
 	NameComponent* CreateNameComponent(const Entity entity, const std::string& name)

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <random>
 #include <thread>
+#include <unordered_map>
 
 namespace vz::uuid
 {
@@ -46,7 +47,7 @@ namespace vz::uuid
 
 namespace vz
 {
-	ComponentBase::ComponentBase(const std::string& typeName, const Entity entity) : componentType_(typeName), entity_(entity) 
+	ComponentBase::ComponentBase(const ComponentType compType, const Entity entity) : cType_(compType), entity_(entity)
 	{
 		vuid_ = uuid::generateUUID();
 		timeStampSetter_ = TimerNow;
