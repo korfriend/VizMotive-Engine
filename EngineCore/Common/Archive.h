@@ -8,6 +8,9 @@
 
 namespace vz
 {
+	using VUID = uint64_t;
+	inline constexpr VUID INVALID_VUID = 0;
+
 	// This is a data container used for serialization purposes.
 	//	It can be used to READ or WRITE data, but not both at the same time.
 	//	An archive that was created in WRITE mode can be changed to read mode and vica-versa

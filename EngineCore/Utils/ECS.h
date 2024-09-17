@@ -29,88 +29,6 @@ namespace vz::ecs
 		return next.fetch_add(1);
 	}
 
-	class ComponentLibrary;
-	struct EntitySerializer
-	{
-		vz::jobsystem::context ctx; // allow components to spawn serialization subtasks
-		std::unordered_map<uint64_t, Entity> remap;
-		bool allow_remap = true;
-		uint64_t version = 0; // The ComponentLibrary serialization will modify this by the registered component's version number
-		std::unordered_set<std::string> resource_registration; // register for resource manager serialization
-		ComponentLibrary* componentlibrary = nullptr;
-		std::unordered_map<std::string, uint64_t> library_versions;
-
-		~EntitySerializer()
-		{
-			vz::jobsystem::Wait(ctx); // automatically wait for all subtasks after serialization
-		}
-
-		// Returns the library version of the currently serializing Component
-		//	If not using ComponentLibrary, it returns version set by the user.
-		uint64_t GetVersion() const
-		{
-			return version;
-		}
-		uint64_t GetVersion(const std::string& name) const
-		{
-			auto it = library_versions.find(name);
-			if (it != library_versions.end())
-			{
-				return it->second;
-			}
-			return 0;
-		}
-
-		void RegisterResource(const std::string& resource_name)
-		{
-			if (resource_name.empty())
-				return;
-			resource_registration.insert(resource_name);
-		}
-	};
-	// This is the safe way to serialize an entity
-	VUID 로.... map 만들기...
-	inline void SerializeEntity(vz::Archive& archive, Entity& entity, EntitySerializer& seri)
-	{
-		if (archive.IsReadMode())
-		{
-			// Entities are always serialized as uint64_t for back-compat
-			uint64_t mem;
-			archive >> mem;
-
-			if (mem != INVALID_ENTITY && seri.allow_remap)
-			{
-				auto it = seri.remap.find(mem);
-				if (it == seri.remap.end())
-				{
-					entity = CreateEntity();
-					seri.remap[mem] = entity;
-				}
-				else
-				{
-					entity = it->second;
-				}
-			}
-			else
-			{
-				entity = (Entity)mem;
-			}
-		}
-		else
-		{
-#if defined(__GNUC__) && !defined(__SCE__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif // __GNUC__ && !__SCE__
-
-			archive << entity;
-
-#if defined(__GNUC__) && !defined(__SCE__)
-#pragma GCC diagnostic pop
-#endif // __GNUC__ && !__SCE__
-		}
-	}
-
 	// This is an interface class to implement a ComponentManager,
 	// inherit this class if you want to work with ComponentLibrary
 	class ComponentManager_Interface
@@ -121,9 +39,9 @@ namespace vz::ecs
 		virtual void Merge(ComponentManager_Interface& other) = 0;
 		virtual void Clear() = 0;
 		virtual void Serialize(vz::Archive& archive, EntitySerializer& seri) = 0;
-		virtual void Component_Serialize(Entity entity, vz::Archive& archive, EntitySerializer& seri) = 0;
+		virtual void ComponentSerialize(Entity entity, vz::Archive& archive) = 0;
 		virtual void Remove(Entity entity) = 0;
-		virtual void Remove_KeepSorted(Entity entity) = 0;
+		virtual void RemoveKeepSorted(Entity entity) = 0;
 		virtual void MoveItem(size_t index_from, size_t index_to) = 0;
 		virtual bool Contains(Entity entity) const = 0;
 		virtual size_t GetIndex(Entity entity) const = 0;
@@ -131,6 +49,8 @@ namespace vz::ecs
 		virtual Entity GetEntity(size_t index) const = 0;
 		virtual const std::vector<Entity>& GetEntityArray() const = 0;
 	};
+
+	class ComponentLibrary;
 
 	// The ComponentManager is a container that stores components and matches them with entities
 	//	Note: final keyword is used to indicate this is a final implementation.
@@ -146,6 +66,7 @@ namespace vz::ecs
 			components.reserve(reservedCount);
 			entities.reserve(reservedCount);
 			lookup.reserve(reservedCount);
+			lookupVUID.reserve(reservedCount);
 		}
 
 		// Clear the whole container
@@ -154,6 +75,7 @@ namespace vz::ecs
 			components.clear();
 			entities.clear();
 			lookup.clear();
+			lookupVUID.clear();
 		}
 
 		// Perform deep copy of all the contents of "other" into this
@@ -162,12 +84,15 @@ namespace vz::ecs
 			components.reserve(GetCount() + other.GetCount());
 			entities.reserve(GetCount() + other.GetCount());
 			lookup.reserve(GetCount() + other.GetCount());
+			lookupVUID.reserve(GetCount() + other.GetCount());
 			for (size_t i = 0; i < other.GetCount(); ++i)
 			{
 				Entity entity = other.entities[i];
+				VUID vuid = other.components[i].GetVUID();
 				assert(!Contains(entity));
 				entities.push_back(entity);
 				lookup[entity] = components.size();
+				lookupVUID[vuid] = components.size();
 				components.push_back(other.components[i]);
 			}
 		}
@@ -180,13 +105,17 @@ namespace vz::ecs
 			components.reserve(GetCount() + other.GetCount());
 			entities.reserve(GetCount() + other.GetCount());
 			lookup.reserve(GetCount() + other.GetCount());
+			lookupVUID.reserve(GetCount() + other.GetCount());
 
 			for (size_t i = 0; i < other.GetCount(); ++i)
 			{
 				Entity entity = other.entities[i];
+				VUID vuid = other.components[i].GetVUID();
 				assert(!Contains(entity));
+				assert(!ContainsVUID(vuid));
 				entities.push_back(entity);
 				lookup[entity] = components.size();
+				lookupVUID[vuid] = components.size();
 				components.push_back(std::move(other.components[i]));
 			}
 
@@ -204,7 +133,7 @@ namespace vz::ecs
 		}
 
 		// Read/Write everything to an archive depending on the archive state
-		inline void Serialize(vz::Archive& archive, EntitySerializer& seri)
+		inline void Serialize(vz::Archive& archive, const uint64_t version)
 		{
 			if (archive.IsReadMode())
 			{
@@ -216,7 +145,7 @@ namespace vz::ecs
 				components.resize(prev_count + count);
 				for (size_t i = 0; i < count; ++i)
 				{
-					components[prev_count + i].Serialize(archive, seri);
+					components[prev_count + i].Serialize(archive, version);
 				}
 
 				entities.resize(prev_count + count);
@@ -233,7 +162,7 @@ namespace vz::ecs
 				archive << components.size();
 				for (Component& component : components)
 				{
-					component.Serialize(archive, seri);
+					component.Serialize(archive, version);
 				}
 				for (Entity entity : entities)
 				{
@@ -243,7 +172,7 @@ namespace vz::ecs
 		}
 
 		//Read one single component onto an archive, make sure entity are serialized first
-		inline void Component_Serialize(Entity entity, vz::Archive& archive, EntitySerializer& seri)
+		inline void ComponentSerialize(const Entity entity, const uint64_t version, vz::Archive& archive)
 		{
 			if (archive.IsReadMode())
 			{
@@ -252,7 +181,7 @@ namespace vz::ecs
 				if (component_exists)
 				{
 					auto& component = this->Create(entity);
-					component.Serialize(archive, seri);
+					component.Serialize(archive, version);
 				}
 			}
 			else
@@ -261,7 +190,7 @@ namespace vz::ecs
 				if (component != nullptr)
 				{
 					archive << true;
-					component->Serialize(archive, seri);
+					component->Serialize(archive, version);
 				}
 				else
 				{
@@ -289,10 +218,17 @@ namespace vz::ecs
 			// New components are always pushed to the end:
 			components.emplace_back(entity);
 
-			// Also push corresponding entity:
+			// Also push corresponding entity 
 			entities.push_back(entity);
 
-			return components.back();
+			// Update the VUID lookup table:
+			Component& new_component = components.back();
+			VUID new_vuid = new_component.GetVUID();
+			lookupVUID[new_vuid] = components.size();
+
+			ComponentLibrary::AddVUID(new_vuid, static_cast<uint8_t>(new_component.GetComponentType()));
+
+			return new_component;
 		}
 
 		// Remove a component of a certain entity if it exists
@@ -303,7 +239,9 @@ namespace vz::ecs
 			{
 				// Directly index into components and entities array:
 				const size_t index = it->second;
-				const Entity entity = entities[index];
+				assert(entities[index] == entity);
+
+				VUID vuid = components[index].GetVUID();
 
 				if (index < components.size() - 1)
 				{
@@ -311,26 +249,33 @@ namespace vz::ecs
 					components[index] = std::move(components.back()); // try to use move instead of copy
 					entities[index] = entities.back();
 
-					// Update the lookup table:
+					// Update the lookup tables:
 					lookup[entities[index]] = index;
+
+					VUID vuid_updated = components[index].GetVUID();
+					lookupVUID[vuid_updated] = index;
 				}
 
 				// Shrink the container:
 				components.pop_back();
 				entities.pop_back();
 				lookup.erase(entity);
+				lookupVUID.erase(vuid);
+				vuidCompTypeMap_.erase(vuid);
+				ComponentLibrary::EraseVUID(vuid);
 			}
 		}
 
 		// Remove a component of a certain entity if it exists while keeping the current ordering
-		inline void Remove_KeepSorted(Entity entity)
+		inline void RemoveKeepSorted(Entity entity)
 		{
 			auto it = lookup.find(entity);
 			if (it != lookup.end())
 			{
 				// Directly index into components and entities array:
 				const size_t index = it->second;
-				const Entity entity = entities[index];
+				assert(entities[index] == entity);
+				VUID vuid = components[index].GetVUID();
 
 				if (index < components.size() - 1)
 				{
@@ -344,6 +289,9 @@ namespace vz::ecs
 					{
 						entities[i - 1] = entities[i];
 						lookup[entities[i - 1]] = i - 1;
+
+						VUID vuid_updated = components[i - 1].GetVUID();
+						lookupVUID[vuid_updated] = i - 1;
 					}
 				}
 
@@ -351,6 +299,8 @@ namespace vz::ecs
 				components.pop_back();
 				entities.pop_back();
 				lookup.erase(entity);
+				lookupVUID.erase(vuid);
+				ComponentLibrary::EraseVUID(vuid);
 			}
 		}
 
@@ -367,6 +317,7 @@ namespace vz::ecs
 			// Save the moved component and entity:
 			Component component = std::move(components[index_from]);
 			Entity entity = entities[index_from];
+			VUID vuid_from = component.GetVUID();
 
 			// Every other entity-component that's in the way gets moved by one and lut is kept updated:
 			const int direction = index_from < index_to ? 1 : -1;
@@ -376,12 +327,16 @@ namespace vz::ecs
 				components[i] = std::move(components[next]);
 				entities[i] = entities[next];
 				lookup[entities[i]] = i;
+
+				VUID vuid = components[i].GetVUID();
+				lookupVUID[vuid] = i;
 			}
 
 			// Saved entity-component moved to the required position:
 			components[index_to] = std::move(component);
 			entities[index_to] = entity;
 			lookup[entity] = index_to;
+			lookupVUID[vuid_from] = index_to;
 		}
 
 		// Check if a component exists for a given entity or not
@@ -390,6 +345,13 @@ namespace vz::ecs
 			if (lookup.empty())
 				return false;
 			return lookup.find(entity) != lookup.end();
+		}
+		// Check if a component exists for a given VUID or not
+		inline bool ContainsVUID(VUID vuid) const
+		{
+			if (lookupVUID.empty())
+				return false;
+			return lookupVUID.find(vuid) != lookupVUID.end();
 		}
 
 		// Retrieve a [read/write] component specified by an entity (if it exists, otherwise nullptr)
@@ -408,14 +370,26 @@ namespace vz::ecs
 		// Retrieve a [read only] component specified by an entity (if it exists, otherwise nullptr)
 		inline const Component* GetComponent(Entity entity) const
 		{
-			if (lookup.empty())
+			return GetComponent(entity);
+		}
+
+		// Retrieve a [read/write] component specified by a VUID (if it exists, otherwise nullptr)
+		inline Component* GetComponent(VUID vuid)
+		{
+			if (lookupVUID.empty())
 				return nullptr;
-			const auto it = lookup.find(entity);
-			if (it != lookup.end())
+			auto it = lookupVUID.find(vuid);
+			if (it != lookupVUID.end())
 			{
 				return &components[it->second];
 			}
 			return nullptr;
+		}
+
+		// Retrieve a [read only] component specified by an entity (if it exists, otherwise nullptr)
+		inline const Component* GetComponent(VUID vuid) const
+		{
+			return GetComponent(vuid);
 		}
 
 		// Retrieve component index by entity handle (if not exists, returns ~0ull value)
@@ -425,6 +399,19 @@ namespace vz::ecs
 				return ~0ull;
 			const auto it = lookup.find(entity);
 			if (it != lookup.end())
+			{
+				return it->second;
+			}
+			return ~0ull;
+		}
+
+		// Retrieve component index by entity handle (if not exists, returns ~0ull value)
+		inline size_t GetIndex(VUID vuid) const
+		{
+			if (lookupVUID.empty())
+				return ~0ull;
+			const auto it = lookupVUID.find(vuid);
+			if (it != lookupVUID.end())
 			{
 				return it->second;
 			}
@@ -459,6 +446,8 @@ namespace vz::ecs
 		std::vector<Entity> entities;
 		// This is a lookup table for entities
 		std::unordered_map<Entity, size_t> lookup;
+		// This is a lookup table for component's vuid
+		std::unordered_map<VUID, size_t> lookupVUID;
 
 		// Disallow this to be copied by mistake
 		ComponentManager(const ComponentManager&) = delete;
@@ -474,7 +463,10 @@ namespace vz::ecs
 			std::unique_ptr<ComponentManager_Interface> component_manager;
 			uint64_t version = 0;
 		};
-		std::unordered_map<std::string, LibraryEntry> entries;
+	private:
+		std::unordered_map<std::string, LibraryEntry> entries_;
+		inline static std::unordered_map<VUID, uint8_t> vuidCompTypeMap_;
+	public:
 
 		// Create an instance of ComponentManager of a certain data type
 		//	The name must be unique, it will be used in serialization
@@ -482,16 +474,16 @@ namespace vz::ecs
 		template<typename T>
 		inline ComponentManager<T>& Register(const std::string& name, uint64_t version = 0)
 		{
-			entries[name].component_manager = std::make_unique<ComponentManager<T>>();
-			entries[name].version = version;
-			return static_cast<ComponentManager<T>&>(*entries[name].component_manager);
+			entries_[name].component_manager = std::make_unique<ComponentManager<T>>();
+			entries_[name].version = version;
+			return static_cast<ComponentManager<T>&>(*entries_[name].component_manager);
 		}
 
 		template<typename T>
 		inline ComponentManager<T>* Get(const std::string& name)
 		{
-			auto it = entries.find(name);
-			if (it == entries.end())
+			auto it = entries_.find(name);
+			if (it == entries_.end())
 				return nullptr;
 			return static_cast<ComponentManager<T>*>(it->second.component_manager.get());
 		}
@@ -499,24 +491,23 @@ namespace vz::ecs
 		template<typename T>
 		inline const ComponentManager<T>* Get(const std::string& name) const
 		{
-			auto it = entries.find(name);
-			if (it == entries.end())
+			auto it = entries_.find(name);
+			if (it == entries_.end())
 				return nullptr;
 			return static_cast<const ComponentManager<T>*>(it->second.component_manager.get());
 		}
 
 		inline uint64_t GetVersion(std::string name) const
 		{
-			auto it = entries.find(name);
-			if (it == entries.end())
+			auto it = entries_.find(name);
+			if (it == entries_.end())
 				return 0;
 			return it->second.version;
 		}
 
 		// Serialize all registered component managers
-		inline void Serialize(vz::Archive& archive, EntitySerializer& seri)
+		inline void Serialize(vz::Archive& archive)
 		{
-			seri.componentlibrary = this;
 			if (archive.IsReadMode())
 			{
 				bool has_next = false;
@@ -533,8 +524,8 @@ namespace vz::ecs
 						archive >> name;
 						uint64_t jump_pos = 0;
 						archive >> jump_pos;
-						auto it = entries.find(name);
-						if (it != entries.end())
+						auto it = entries_.find(name);
+						if (it != entries_.end())
 						{
 							archive >> seri.version;
 							seri.library_versions[name] = seri.version;
@@ -557,8 +548,8 @@ namespace vz::ecs
 						archive >> name;
 						uint64_t jump_pos = 0;
 						archive >> jump_pos;
-						auto it = entries.find(name);
-						if (it != entries.end())
+						auto it = entries_.find(name);
+						if (it != entries_.end())
 						{
 							archive >> seri.version;
 							it->second.component_manager->Serialize(archive, seri);
@@ -574,15 +565,15 @@ namespace vz::ecs
 			else
 			{
 				// Save all component type versions:
-				for (auto& it : entries)
+				for (auto& it : entries_)
 				{
 					seri.library_versions[it.first] = it.second.version;
 				}
 				// Serialize all component data, at this point component type version lookup is also complete
-				for (auto& it : entries)
+				for (auto& it : entries_)
 				{
-					archive << true;
-					archive << it.first; // name
+					archive << true;	// has next
+					archive << it.first; // name (component type as string)
 					size_t offset = archive.WriteUnknownJumpPosition(); // we will be able to jump from here...
 					archive << it.second.version;
 					seri.version = it.second.version;
@@ -594,9 +585,8 @@ namespace vz::ecs
 		}
 
 		// Serialize all components for one entity
-		inline void Entity_Serialize(Entity entity, vz::Archive& archive, EntitySerializer& seri)
+		inline void EntitySerialize(const Entity entity, vz::Archive& archive)
 		{
-			seri.componentlibrary = this;
 			if (archive.IsReadMode())
 			{
 				bool has_next = false;
@@ -609,8 +599,8 @@ namespace vz::ecs
 						archive >> name;
 						uint64_t jump_size = 0;
 						archive >> jump_size;
-						auto it = entries.find(name);
-						if (it != entries.end())
+						auto it = entries_.find(name);
+						if (it != entries_.end())
 						{
 							archive >> seri.version;
 							it->second.component_manager->Component_Serialize(entity, archive, seri);
@@ -625,7 +615,7 @@ namespace vz::ecs
 			}
 			else
 			{
-				for (auto& it : entries)
+				for (auto& it : entries_)
 				{
 					archive << true;
 					archive << it.first; // name
@@ -638,6 +628,14 @@ namespace vz::ecs
 				archive << false;
 			}
 		}
+
+		inline static uint8_t GetComponentTypeByVUID(VUID vuid) {
+			auto it = vuidCompTypeMap_.find(vuid);
+			if (it == vuidCompTypeMap_.end()) return 0;
+			return it->second;
+		}
+		inline static void EraseVUID(VUID vuid) { vuidCompTypeMap_.erase(vuid); }
+		inline static void AddVUID(VUID vuid, uint8_t compType) { vuidCompTypeMap_[vuid] = compType; }
 	};
 }
 
