@@ -69,6 +69,7 @@ namespace vz::ecs
 		}
 	};
 	// This is the safe way to serialize an entity
+	VUID 로.... map 만들기...
 	inline void SerializeEntity(vz::Archive& archive, Entity& entity, EntitySerializer& seri)
 	{
 		if (archive.IsReadMode())

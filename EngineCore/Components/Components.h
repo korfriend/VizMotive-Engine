@@ -17,7 +17,9 @@
 #endif
 
 using Entity = uint32_t;
+using VUID = uint64_t;
 inline constexpr Entity INVALID_ENTITY = 0;
+inline constexpr VUID INVALID_VUID = 0;
 using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimeDurationCount(A, B) std::chrono::duration_cast<std::chrono::duration<double>>(A - B).count()
 #define TimerNow std::chrono::high_resolution_clock::now()
@@ -66,28 +68,33 @@ namespace vz
 
 	struct CORE_EXPORT Scene
 	{
+	private:
+		inline static std::map<Entity, Scene*> scenes_;
 	public:
-		inline static std::map<Entity, Scene*> scenes;
-		inline static Scene* GetScene(const Entity entity) { 
-			auto it = scenes.find(entity); 
-			return it != scenes.end() ? it->second : nullptr; 
+		static Scene* GetScene(const Entity entity) {
+			auto it = scenes_.find(entity);
+			return it != scenes_.end() ? it->second : nullptr;
 		}
-		inline static Scene* GetFirstSceneByName(const std::string& name) {
-			for (auto& it : scenes) {
+		static Scene* GetFirstSceneByName(const std::string& name) {
+			for (auto& it : scenes_) {
 				if (it.second->sceneName == name) return it.second;
 			}
 			return nullptr;
 		}
+		static Scene* CreateScene(const std::string& name);
 
 	private:
-		std::unordered_set<Entity> renderables_; // each entity has also TransformComponent and HierarchyComponent
-		std::unordered_set<Entity> lights_;
+		Entity entity_ = INVALID_ENTITY;
+		std::string name_;
+		std::vector<Entity> renderables_;
+		std::vector<Entity> lights_;
+		std::unordered_map<size_t, Entity> renderableMap_; // each entity has also TransformComponent and HierarchyComponent
+		std::unordered_map<size_t, Entity> lightMap_;
 
 		// Non-serialized attributes:
 		TimeStamp recentRenderTime_ = TimerMin;	// world update time
 
 	public:
-		std::string sceneName = "";
 
 		void AddEntity(const Entity entity);
 
@@ -154,12 +161,15 @@ namespace vz
 		std::string componentType_ = "UNDEF";
 		TimeStamp timeStampSetter_ = TimerMin;
 		Entity entity_ = INVALID_ENTITY;
+		VUID vuid_ = INVALID_VUID;	 
 	public:
 		ComponentBase(const std::string& typeName, const Entity entity) : componentType_(typeName), entity_(entity) {
 			timeStampSetter_ = TimerNow;
 		}
 		std::string GetComponentType() const { return componentType_; }
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
+		Entity GetEntity() const { return entity_; }
+		VUID GetVUID() const { return vuid_; }
 	};
 
 	struct CORE_EXPORT NameComponent : ComponentBase
@@ -222,8 +232,10 @@ namespace vz
 		void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; timeStampSetter_ = TimerNow; }
 		void SetMatrix(const XMFLOAT4X4& local);
 
+		void SetWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = TimerNow; };
+
 		void UpdateMatrix();	// local matrix
-		XMFLOAT4X4 UpdateWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = TimerNow; };
+		void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
 		bool IsDirtyWorldMatrix(const TimeStamp timeStampRecentWorldUpdate) { return TimeDurationCount(timeStampRecentWorldUpdate, timeStampWorldUpdate_) <= 0; }
 
 		void Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri);
@@ -488,6 +500,9 @@ namespace vz
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}
 
+		// update view matrix using camera extrinsics such as eye_, at_, and up_ set by the above setters
+		// update proj matrix using camera intrinsics
+		// update view-proj and their inverse matrices using the updated view and proj matrices
 		void UpdateMatrix();
 
 		XMFLOAT3 GetWorldEye() const { return eye_; }

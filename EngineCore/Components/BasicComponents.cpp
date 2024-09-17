@@ -1,8 +1,57 @@
 #include "Components.h"
 #include "Utils/Backlog.h"
 
+#include <cstdint>
+#include <atomic>
+#include <chrono>
+#include <random>
+#include <thread>
+
+namespace vz::uuid
+{
+	// 1. milliseconds about for 8925 years timestamp uniqueness
+	// 2. randomness for additional entropy
+	// 3. 256 uniques IDs are allowed for the same timestamp
+	static std::atomic<uint16_t> sCounter;
+	static std::mt19937_64 sRandomEngine;
+	static bool isInitialized = false;
+	uint64_t generateUUID() 
+	{
+		if (!isInitialized)
+		{
+			std::random_device rd;
+			sRandomEngine.seed(rd());
+			isInitialized = true;
+		}
+		uint64_t uuid = 0;
+
+		// High precision timestamp (48 bits)
+		auto now = std::chrono::system_clock::now();
+		auto duration = now.time_since_epoch();
+		auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+		uint64_t timestamp = microseconds.count() & 0xFFFFFFFFFFFFull;
+		uuid |= timestamp << 16;
+
+		// Random component (8 bits)
+		uint8_t randomBits = static_cast<uint8_t>(sRandomEngine() & 0xFF);
+		uuid |= static_cast<uint64_t>(randomBits) << 8;
+
+		// Atomic counter (8 bits)
+		uint16_t count = sCounter.fetch_add(1, std::memory_order_relaxed);
+		uuid |= (count & 0xFF);
+
+		return uuid;
+	}
+}
+
 namespace vz
 {
+	ComponentBase::ComponentBase(const std::string& typeName, const Entity entity) : componentType_(typeName), entity_(entity) 
+	{
+		vuid_ = uuid::generateUUID();
+		timeStampSetter_ = TimerNow;
+	}
+
 	XMFLOAT3 TransformComponent::GetWorldPosition() const
 	{
 		return *((XMFLOAT3*)&world_._41);
@@ -98,6 +147,44 @@ namespace vz
 
 		isDirty_ = false;
 		timeStampSetter_ = TimerNow;
+	}
+	void TransformComponent::UpdateWorldMatrix()
+	{
+		std::vector<HierarchyComponent*> hierarchies;
+		HierarchyComponent* hierarchy = compfactory::GetHierarchyComponent(entity_);
+		while (hierarchy)
+		{
+			hierarchies.push_back(hierarchy);
+			HierarchyComponent* hierarchy_parent = compfactory::GetHierarchyComponent(hierarchy->parentEntity);
+			assert(hierarchy_parent != hierarchy);
+			hierarchy = hierarchy_parent;
+		}
+		size_t n = hierarchies.size();
+		if (n > 0)
+		{
+			XMMATRIX world = XMMatrixIdentity();
+			for (size_t i = n - 1; i >= 0u; --i)
+			{
+				HierarchyComponent* hierarchy = hierarchies[i];
+				TransformComponent* transform = compfactory::GetTransformComponent(hierarchy->GetEntity());
+				XMMATRIX local = XMMatrixIdentity();
+				if (transform)
+				{
+					if (transform->IsDirty())
+						transform->UpdateMatrix();
+					local = XMLoadFloat4x4(&transform->GetLocalMatrix());
+				}
+				world = local * world;
+				XMFLOAT4X4 mat_world;
+				XMStoreFloat4x4(&mat_world, world);
+				transform->SetWorldMatrix(mat_world);
+			}
+		}
+		else
+		{
+			if (isDirty_) UpdateMatrix();
+			SetWorldMatrix(local_);
+		}
 	}
 }
 
@@ -235,7 +322,7 @@ namespace vz
 		}
 		XMFLOAT4X4 mat_world;
 		XMStoreFloat4x4(&mat_world, local * parent2ws);
-		tr_comp->UpdateWorldMatrix(mat_world);
+		tr_comp->SetWorldMatrix(mat_world);
 
 		eye_ = *((XMFLOAT3*)&mat_world._41);
 		up_ = vz::math::GetUp(mat_world);
