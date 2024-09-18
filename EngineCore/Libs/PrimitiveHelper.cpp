@@ -205,37 +205,6 @@ namespace vz::geometry
 	{
 		return AABB(vz::math::Min(a.getMin(), b.getMin()), vz::math::Max(a.getMax(), b.getMax()));
 	}
-	//void AABB::Serialize(vz::Archive& archive, vz::ecs::EntitySerializer& seri)
-	//{
-	//	if (archive.IsReadMode())
-	//	{
-	//		archive >> _min;
-	//		archive >> _max;
-	//
-	//		if (archive.GetVersion() >= 69)
-	//		{
-	//			archive >> layerMask;
-	//			archive >> userdata;
-	//		}
-	//	}
-	//	else
-	//	{
-	//		archive << _min;
-	//		archive << _max;
-	//
-	//		if (archive.GetVersion() >= 69)
-	//		{
-	//			archive << layerMask;
-	//			archive << userdata;
-	//		}
-	//	}
-	//}
-
-
-
-
-
-
 	bool Sphere::intersects(const XMVECTOR& P) const
 	{
 		float distsq = vz::math::DistanceSquared(XMLoadFloat3(&center), P);

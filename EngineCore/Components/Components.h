@@ -180,9 +180,8 @@ namespace vz
 		TimeStamp timeStampSetter_ = TimerMin;
 		Entity entity_ = INVALID_ENTITY;
 
-		void serializeBase(vz::Archive& archive, const uint64_t version);
 	public:
-		ComponentBase(const ComponentType compType, const Entity entity);
+		ComponentBase(const ComponentType compType, const Entity entity, const VUID vuid);
 		ComponentType GetComponentType() const { return cType_; }
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
 		Entity GetEntity() const { return entity_; }
@@ -191,7 +190,7 @@ namespace vz
 
 	struct CORE_EXPORT NameComponent : ComponentBase
 	{
-		NameComponent(const Entity entity) : ComponentBase(ComponentType::NAME, entity) {}
+		NameComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::NAME, entity, vuid) {}
 
 		std::string name;
 
@@ -200,6 +199,8 @@ namespace vz
 		inline bool operator==(const std::string& str) const { return name.compare(str) == 0; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::NAME;
 	};
 
 	struct CORE_EXPORT TransformComponent : ComponentBase
@@ -222,7 +223,7 @@ namespace vz
 		XMFLOAT4X4 world_ = vz::math::IDENTITY_MATRIX;
 
 	public:
-		TransformComponent(const Entity entity) : ComponentBase(ComponentType::TRANSFORM, entity) {}
+		TransformComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TRANSFORM, entity, vuid) {}
 
 		bool IsDirty() const { return isDirty_; }
 		bool IsMatrixAutoUpdate() const { return isMatrixAutoUpdate_; }
@@ -256,15 +257,19 @@ namespace vz
 		bool IsDirtyWorldMatrix(const TimeStamp timeStampRecentWorldUpdate) { return TimeDurationCount(timeStampRecentWorldUpdate, timeStampWorldUpdate_) <= 0; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::TRANSFORM;
 	};
 
 	struct CORE_EXPORT HierarchyComponent : ComponentBase
 	{
-		HierarchyComponent(const Entity entity) : ComponentBase(ComponentType::HIERARCHY, entity) {}
+		HierarchyComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::HIERARCHY, entity, vuid) {}
 
 		VUID vuidParentHierarchy = INVALID_VUID;
 
 		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::HIERARCHY;
 	};
 
 	// resources
@@ -308,7 +313,7 @@ namespace vz
 
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 	public:
-		MaterialComponent(const Entity entity) : ComponentBase(ComponentType::MATERIAL, entity) {}
+		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
 
 		XMFLOAT4 GetBaseColor() { return baseColor_; }	// w is opacity
 		XMFLOAT4 GetSpecularColor() { return specularColor_; }
@@ -323,7 +328,9 @@ namespace vz
 		// Create texture resources for GPU
 		void GpuUpdateAssociatedTextures();
 
-		void Serialize(vz::Archive& archive);
+		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::MATERIAL;
 	};
 
 	struct CORE_EXPORT GeometryComponent : ComponentBase
@@ -388,7 +395,7 @@ namespace vz
 			void SetVtxColors(const std::vector<uint32_t>& vertexColors, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexColors, 4) }
 			void SetIdxPrimives(const std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, 5) }
 
-			void Serialize(vz::Archive& archive);
+			void Serialize(vz::Archive& archive, const uint64_t version);
 		};
 
 		std::vector<Primitive> parts_;
@@ -398,7 +405,7 @@ namespace vz
 
 		void updateAABB();
 	public:
-		GeometryComponent(const Entity entity) : ComponentBase(ComponentType::GEOMETRY, entity) {}
+		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
 
 		bool IsDirty() { return isDirty_; }
 		geometry::AABB GetAABB() { return aabb_; }
@@ -409,13 +416,17 @@ namespace vz
 		void CopyPrimitive(const Primitive& primitive, const size_t slot);
 		bool GetPrimitive(const size_t slot, Primitive& primitive);
 		size_t GetNumParts() { return parts_.size(); }
-		void Serialize(vz::Archive& archive);
+		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};
 
 	struct CORE_EXPORT TextureComponent : ComponentBase
 	{
-		TextureComponent(const Entity entity) : ComponentBase(ComponentType::TEXTURE, entity) {}
-		void Serialize(vz::Archive& archive);
+		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
+		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 	};
 
 	// scene 
@@ -423,13 +434,13 @@ namespace vz
 	{
 	private:
 		uint8_t visibleLayerMask_ = 0x7;
-		Entity geometryEntity_ = INVALID_ENTITY;
-		std::vector<Entity> materialEntities_;
+		VUID vuidGeometry_ = INVALID_ENTITY;
+		std::vector<VUID> vuidMaterials_;
 
 		// Non-serialized attributes:
 		bool isValid_ = false;
 	public:
-		RenderableComponent(const Entity entity) : ComponentBase(ComponentType::RENDERABLE, entity) {}
+		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
 		// Non-serialized attributes: (those variables are supposed to be updated via transformers)
 		XMFLOAT4X4 matWorld;
@@ -442,10 +453,12 @@ namespace vz
 		bool IsVisibleWith(uint8_t visibleLayerMask) { return visibleLayerMask & visibleLayerMask_; }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
 
-		Entity GetGeometry() { return geometryEntity_; }
-		Entity GetMaterial(const size_t slot) { return slot >= materialEntities_.size() ? INVALID_ENTITY : materialEntities_[slot]; }
-		std::vector<Entity> GetMaterials() { return materialEntities_; }
-		void Serialize(vz::Archive& archive);
+		Entity GetGeometry() { return compfactory::GetEntityByVUID(vuid_); }
+		Entity GetMaterial(const size_t slot) { return slot >= vuidMaterials_.size() ? INVALID_ENTITY : compfactory::GetEntityByVUID(vuidMaterials_[slot]); }
+		std::vector<Entity> GetMaterials();
+		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 	};
 
 	struct CORE_EXPORT LightComponent : ComponentBase
@@ -459,14 +472,16 @@ namespace vz
 		// note there will be added many attributes to describe the light properties with various lighting techniques
 		// refer to filament engine's lightManager and wicked engine's lightComponent
 	public:
-		LightComponent(const Entity entity) : ComponentBase(ComponentType::LIGHT, entity) {}
+		LightComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LIGHT, entity, vuid) {}
 
 		// Non-serialized attributes:
 		XMFLOAT4X4 matWorld;
 		
 		void SetLightColor(XMFLOAT3 color) { color_ = color; }
 
-		void Serialize(vz::Archive& archive);
+		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::LIGHT;
 	};
 
 	struct CORE_EXPORT CameraComponent : ComponentBase
@@ -495,7 +510,7 @@ namespace vz
 		vz::geometry::Frustum frustum_;
 
 	public:
-		CameraComponent(const Entity entity) : ComponentBase(ComponentType::CAMERA, entity) {}
+		CameraComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::CAMERA, entity, vuid) {}
 
 		// Non-serialized attributes:
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);
@@ -534,16 +549,21 @@ namespace vz
 		XMFLOAT4X4 GetInvViewProjection() const { return invViewProjection_; }
 		vz::geometry::Frustum GetFrustum() const { return frustum_; }
 
-		void Serialize(vz::Archive& archive);
+		void Serialize(vz::Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::CAMERA;
 	};
 }
 
 // component factory
 namespace vz::compfactory
 {
+	// here, inlining is actually applied only when building the same object file
+	// calling in other built object files ignores the inlining
+	
 	// VUID Manager
-	extern "C" CORE_EXPORT ComponentBase* GetComponentByVUID(const VUID vuid);
-	extern "C" CORE_EXPORT Entity GetEntityByVUID(const VUID vuid);
+	extern "C" CORE_EXPORT inline ComponentBase* GetComponentByVUID(const VUID vuid);
+	extern "C" CORE_EXPORT inline Entity GetEntityByVUID(const VUID vuid);
 
 	// Component Manager
 	extern "C" CORE_EXPORT NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
