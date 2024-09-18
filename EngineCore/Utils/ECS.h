@@ -258,7 +258,7 @@ namespace vz::ecs
 			}
 		}
 
-		//Read/write one single component onto an archive, make sure entity are serialized first
+		// Read/write one single component onto an archive, make sure entity are serialized first
 		inline void EntitySerialize(const Entity entity, const uint64_t version, vz::Archive& archive, EntityMapper& entityMapper)
 		{
 			if (archive.IsReadMode())

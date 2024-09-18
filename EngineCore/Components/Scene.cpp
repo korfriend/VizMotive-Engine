@@ -13,19 +13,19 @@
 
 namespace vz
 {
-	static std::unordered_map<Entity, std::unique_ptr<Scene>> scenes_;
+	static std::unordered_map<Entity, std::unique_ptr<Scene>> scenes;
 
-	Scene* GetScene(const Entity entity) {
-		auto it = scenes_.find(entity);
-		return it != scenes_.end() ? it->second.get() : nullptr;
+	Scene* Scene::GetScene(const Entity entity) {
+		auto it = scenes.find(entity);
+		return it != scenes.end() ? it->second.get() : nullptr;
 	}
-	Scene* GetFirstSceneByName(const std::string& name) {
-		for (auto& it : scenes_) {
+	Scene* Scene::GetFirstSceneByName(const std::string& name) {
+		for (auto& it : scenes) {
 			if (it.second->GetName() == name) return it.second.get();
 		}
 		return nullptr;
 	}
-	Scene* CreateScene(const std::string& name, const Entity entity)
+	Scene* Scene::CreateScene(const std::string& name, const Entity entity)
 	{
 		Entity ett = entity;
 		if (entity == 0)
@@ -33,38 +33,149 @@ namespace vz
 			ett = ecs::CreateEntity();
 		}
 
-		scenes_[ett] = std::make_unique<Scene>(ett, name);
-		return scenes_[ett].get();
+		scenes[ett] = std::make_unique<Scene>(ett, name);
+		return scenes[ett].get();
 	}
-
+	void Scene::RemoveEntityForScenes(const Entity entity)
+	{
+		for (size_t i = 0, n = scenes.size(); i < n; ++i)
+		{
+			scenes[i]->Remove(entity);
+		}
+	}
+}
+namespace vz
+{
 
 	void Scene::AddEntity(const Entity entity)
 	{
 		if (compfactory::ContainRenderableComponent(entity))
 		{
-			lookupRenderables_[entity] = renderables_.size();
-			renderables_.push_back(entity);
+			if (!lookupRenderables_.contains(entity))
+			{
+				lookupRenderables_[entity] = renderables_.size();
+				renderables_.push_back(entity);
+			}
 		}
 		if (compfactory::ContainLightComponent(entity))
 		{
-			lookupLights_[entity] = renderables_.size();
-			lights_.push_back(entity);
+			if (!lookupLights_.contains(entity))
+			{
+				lookupLights_[entity] = renderables_.size();
+				lights_.push_back(entity);
+			}
 		}
 	}
 	
-	void AddEntities(const std::vector<Entity>& entities);
+	void Scene::AddEntities(const std::vector<Entity>& entities)
+	{
+		for (Entity ett : entities)
+		{
+			AddEntity(ett);
+		}
+	}
 
-	void Remove(const Entity entity);
+	void Scene::Remove(const Entity entity)
+	{
+		auto remove_entity = [](std::unordered_map<Entity, size_t>& lookup, std::vector<Entity>& linearArray, Entity entity)
+			{
+				auto it = lookup.find(entity);
+				if (it != lookup.end())
+				{
+					size_t index = it->second;
+					lookup.erase(it);
 
-	void RemoveEntities(const std::vector<Entity>& entities);
+					if (index != linearArray.size() - 1)
+					{
+						linearArray[index] = linearArray.back();
+					}
+					linearArray.pop_back();
+				}
+			};
 
-	size_t GetEntityCount() const noexcept;
+		remove_entity(lookupRenderables_, renderables_, entity);
+		remove_entity(lookupLights_, lights_, entity);
+	}
 
-	size_t GetRenderableCount() const noexcept;
+	void Scene::RemoveEntities(const std::vector<Entity>& entities)
+	{
+		for (Entity ett : entities)
+		{
+			Remove(ett);
+		}
+	}
 
-	size_t GetLightCount() const noexcept;
+	size_t Scene::GetEntityCount() const noexcept
+	{
+		return renderables_.size() + lights_.size();
+	}
 
-	bool HasEntity(const Entity entity) const noexcept;
+	size_t Scene::GetRenderableCount() const noexcept
+	{
+		return renderables_.size();
+	}
 
-	void Serialize(vz::Archive& archive);
+	size_t Scene::GetLightCount() const noexcept
+	{
+		return lights_.size();
+	}
+
+	bool Scene::HasEntity(const Entity entity) const noexcept
+	{
+		return lookupLights_.contains(entity) || lookupRenderables_.contains(entity);
+	}
+
+	void Scene::Serialize(vz::Archive& archive)
+	{
+		// renderables and lights only
+		if (archive.IsReadMode())
+		{
+			std::string seri_name;
+			archive >> seri_name;
+			assert(seri_name == "Scene");
+			archive >> name_;
+
+			size_t num_renderables;
+			archive >> num_renderables;
+			for (size_t i = 0; i < num_renderables; ++i)
+			{
+				VUID vuid;
+				archive >> vuid;
+				Entity entity = compfactory::GetEntityByVUID(vuid);
+				assert(compfactory::ContainRenderableComponent(entity));
+				AddEntity(entity);
+			}
+
+			size_t num_lights;
+			archive >> num_lights;
+			for (size_t i = 0; i < num_lights; ++i)
+			{
+				VUID vuid;
+				archive >> vuid;
+				Entity entity = compfactory::GetEntityByVUID(vuid);
+				assert(compfactory::ContainLightComponent(entity));
+				AddEntity(entity);
+			}
+		}
+		else
+		{
+			archive << "Scene";
+			archive << name_;
+
+			archive << renderables_.size();
+			for (Entity entity : renderables_)
+			{
+				RenderableComponent* comp = compfactory::GetRenderableComponent(entity);
+				assert(comp);
+				archive << comp->GetVUID();
+			}
+			archive << lights_.size();
+			for (Entity entity : lights_)
+			{
+				LightComponent* comp = compfactory::GetLightComponent(entity);
+				assert(comp);
+				archive << comp->GetVUID();
+			}
+		}
+	}
 }
