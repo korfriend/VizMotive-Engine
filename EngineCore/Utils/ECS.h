@@ -38,8 +38,8 @@ namespace vz::ecs
 		virtual void Copy(const ComponentManager_Interface& other) = 0;
 		virtual void Merge(ComponentManager_Interface& other) = 0;
 		virtual void Clear() = 0;
-		virtual void Serialize(vz::Archive& archive, EntitySerializer& seri) = 0;
-		virtual void ComponentSerialize(Entity entity, vz::Archive& archive) = 0;
+		virtual void Serialize(vz::Archive& archive, EntityMapper& entityMapper, uint64_t& version) = 0;
+		virtual void EntitySerialize(Entity entity, vz::Archive& archive, EntityMapper& entityMapper) = 0;
 		virtual void Remove(Entity entity) = 0;
 		virtual void RemoveKeepSorted(Entity entity) = 0;
 		virtual void MoveItem(size_t index_from, size_t index_to) = 0;
@@ -51,6 +51,71 @@ namespace vz::ecs
 	};
 
 	class ComponentLibrary;
+	struct EntityMapper
+	{
+	private:
+		std::unordered_map<VUID, Entity> vuidEntityMap_;
+
+		// non-serialized attribute
+		std::unordered_map<Entity, std::vector<VUID>> entityVuidsMap_;
+		std::unordered_map<Entity, Entity> remap_;
+
+	public:
+		inline void Clear() { entityVuidsMap_.clear(); vuidEntityMap_.clear(); }
+		inline Entity GetEntity(VUID vuid)
+		{
+			auto it = vuidEntityMap_.find(vuid);
+			return it == vuidEntityMap_.end() ? INVALID_ENTITY : it->second;
+		}
+		inline Entity RemapEntity(Entity entityArchived)
+		{
+			auto it = remap_.find(entityArchived);
+			if (it == remap_.end())
+			{
+				Entity entity_new = CreateEntity();
+				remap_[entityArchived] = entity_new;
+				return entity_new;
+			}
+			return it->second;
+		}
+		inline void Add(VUID vuid, Entity entity)
+		{
+			assert(!vuidEntityMap_.contains(vuid));
+			vuidEntityMap_[vuid] = entity;
+			std::vector<VUID>& vuids = entityVuidsMap_[entity];
+			vuids.push_back(vuid);
+		}
+		inline void Serialize(vz::Archive& archive)
+		{
+			if (archive.IsReadMode())
+			{
+				Clear();
+				size_t element_count;
+				archive >> element_count;
+				std::vector<uint64_t> data;
+				archive >> data;
+				vuidEntityMap_.reserve(element_count);
+				for (size_t i = 0; i < element_count; ++i)
+				{
+					Add(data[2 * i + 0], static_cast<Entity>(data[2 * i + 1]));
+				}
+			}
+			else
+			{
+				size_t element_count = vuidEntityMap_.size();
+				archive << element_count;
+
+				std::vector<uint64_t> data(element_count * 2);
+				size_t count = 0;
+				for (auto& it : vuidEntityMap_)
+				{
+					data[2 * count + 0] = it.first;
+					data[2 * count + 1] = it.second;
+				}
+				archive << data;
+			}
+		}
+	};
 
 	// The ComponentManager is a container that stores components and matches them with entities
 	//	Note: final keyword is used to indicate this is a final implementation.
@@ -133,46 +198,64 @@ namespace vz::ecs
 		}
 
 		// Read/Write everything to an archive depending on the archive state
-		inline void Serialize(vz::Archive& archive, const uint64_t version)
+		inline void Serialize(vz::Archive& archive, EntityMapper& entityMapper, const uint64_t version)
 		{
 			if (archive.IsReadMode())
 			{
-				const size_t prev_count = components.size();
+				// component meta info
+				std::string origin_serializer;
+				archive >> origin_serializer;
+				assert(origin_serializer == "ComponentManager");
+				uint8_t u8_data;
+				archive >> u8_data;
+				assert(Component::IntrinsicType == static_cast<ComponentType>(u8_data));
 
-				size_t count;
+				size_t count; // # of component managers
 				archive >> count;
-
-				components.resize(prev_count + count);
+				// for each component manager
 				for (size_t i = 0; i < count; ++i)
 				{
-					components[prev_count + i].Serialize(archive, version);
-				}
-
-				entities.resize(prev_count + count);
-				for (size_t i = 0; i < count; ++i)
-				{
-					Entity entity;
-					SerializeEntity(archive, entity, seri);
-					entities[prev_count + i] = entity;
-					lookup[entity] = prev_count + i;
+					VUID vuid;
+					archive >> vuid;
+					auto it = lookupVUID.find(vuid);
+					if (it != lookupVUID.end())
+					{
+						// replace the previous component with the archive one (that has the same VUID).
+						// important note: in this case, we use the component entity as is.
+						size_t index_comp = it->second;
+						components[index_comp].Serialize(archive, version);
+					}
+					else
+					{
+						// add new component that does not belong to the current component manager
+						assert(!ComponentLibrary::ContainsVUID(vuid));
+						Entity entity_archived = entityMapper.GetEntity(vuid);
+						Entity entity = entityMapper.RemapEntity(entity_archived);
+						Create(entity, vuid);
+						components[lookup[entity]].Serialize(archive, version);
+					}
 				}
 			}
 			else
 			{
+				// component meta info
+				archive << "ComponentManager";
+				archive << static_cast<uint8_t>(Component::IntrinsicType);
+
 				archive << components.size();
 				for (Component& component : components)
 				{
+					VUID vuid = component.GetVUID();
+					archive << vuid;
 					component.Serialize(archive, version);
-				}
-				for (Entity entity : entities)
-				{
-					SerializeEntity(archive, entity, seri);
+
+					entityMapper.Add(vuid, component.GetEntity())
 				}
 			}
 		}
 
-		//Read one single component onto an archive, make sure entity are serialized first
-		inline void ComponentSerialize(const Entity entity, const uint64_t version, vz::Archive& archive)
+		//Read/write one single component onto an archive, make sure entity are serialized first
+		inline void EntitySerialize(const Entity entity, const uint64_t version, vz::Archive& archive, EntityMapper& entityMapper)
 		{
 			if (archive.IsReadMode())
 			{
@@ -180,8 +263,25 @@ namespace vz::ecs
 				archive >> component_exists;
 				if (component_exists)
 				{
-					auto& component = this->Create(entity);
-					component.Serialize(archive, version);
+					VUID vuid;
+					archive >> vuid;
+					auto it = lookupVUID.find(vuid);
+					if (it != lookupVUID.end())
+					{
+						// replace the previous component with the archive one (that has the same VUID).
+						// important note: in this case, we use the component entity as is.
+						size_t index_comp = it->second;
+						components[index_comp].Serialize(archive, version);
+					}
+					else
+					{
+						// add new component that does not belong to the current component manager
+						assert(!ComponentLibrary::ContainsVUID(vuid));
+						Entity entity_archived = entityMapper.GetEntity(vuid);
+						Entity entity = entityMapper.RemapEntity(entity_archived);
+						Create(entity, vuid);
+						components[lookup[entity]].Serialize(archive, version);
+					}
 				}
 			}
 			else
@@ -190,7 +290,12 @@ namespace vz::ecs
 				if (component != nullptr)
 				{
 					archive << true;
-					component->Serialize(archive, version);
+
+					VUID vuid = component.GetVUID();
+					archive << vuid;
+					component.Serialize(archive, version);
+
+					entityMapper.Add(vuid, component.GetEntity())
 				}
 				else
 				{
@@ -200,7 +305,7 @@ namespace vz::ecs
 		}
 
 		// Create a new component and retrieve a reference to it
-		inline Component& Create(Entity entity)
+		inline Component& Create(Entity entity, VUID vuid = 0)
 		{
 			// INVALID_ENTITY is not allowed!
 			assert(entity != INVALID_ENTITY);
@@ -216,7 +321,7 @@ namespace vz::ecs
 			lookup[entity] = components.size();
 
 			// New components are always pushed to the end:
-			components.emplace_back(entity);
+			components.emplace_back(entity, vuid);
 
 			// Also push corresponding entity 
 			entities.push_back(entity);
@@ -465,12 +570,14 @@ namespace vz::ecs
 		};
 	private:
 		std::unordered_map<std::string, LibraryEntry> entries_;
+
 		inline static std::unordered_map<VUID, uint8_t> vuidCompTypeMap_;
+
 	public:
 
 		// Create an instance of ComponentManager of a certain data type
 		//	The name must be unique, it will be used in serialization
-		//	version is optional, it will be propagated to ComponentManager::Serialize() inside the EntitySerializer parameter
+		//	version is optional, it will be propagated to ComponentManager::Serialize() 
 		template<typename T>
 		inline ComponentManager<T>& Register(const std::string& name, uint64_t version = 0)
 		{
@@ -506,38 +613,12 @@ namespace vz::ecs
 		}
 
 		// Serialize all registered component managers
-		inline void Serialize(vz::Archive& archive)
+		inline void Serialize(vz::Archive& archive, EntityMapper& entityMapper)
 		{
 			if (archive.IsReadMode())
 			{
 				bool has_next = false;
-				size_t begin = archive.GetPos();
-
-				// First pass, gather component type versions and jump over all data:
-				//	This is so that we can look up other component versions within component serialization if needed
-				do
-				{
-					archive >> has_next;
-					if (has_next)
-					{
-						std::string name;
-						archive >> name;
-						uint64_t jump_pos = 0;
-						archive >> jump_pos;
-						auto it = entries_.find(name);
-						if (it != entries_.end())
-						{
-							archive >> seri.version;
-							seri.library_versions[name] = seri.version;
-						}
-						archive.Jump(jump_pos);
-					}
-				} while (has_next);
-
-				// Jump back to beginning of component library data
-				archive.Jump(begin);
-
-				// Second pass, read all component data:
+				// Read all component data:
 				//	At this point, all existing component type versions are available
 				do
 				{
@@ -551,8 +632,9 @@ namespace vz::ecs
 						auto it = entries_.find(name);
 						if (it != entries_.end())
 						{
-							archive >> seri.version;
-							it->second.component_manager->Serialize(archive, seri);
+							uint64_t version;
+							archive >> version;
+							it->second.component_manager->Serialize(archive, entityMapper, version);
 						}
 						else
 						{
@@ -564,11 +646,6 @@ namespace vz::ecs
 			}
 			else
 			{
-				// Save all component type versions:
-				for (auto& it : entries_)
-				{
-					seri.library_versions[it.first] = it.second.version;
-				}
 				// Serialize all component data, at this point component type version lookup is also complete
 				for (auto& it : entries_)
 				{
@@ -576,8 +653,7 @@ namespace vz::ecs
 					archive << it.first; // name (component type as string)
 					size_t offset = archive.WriteUnknownJumpPosition(); // we will be able to jump from here...
 					archive << it.second.version;
-					seri.version = it.second.version;
-					it.second.component_manager->Serialize(archive, seri);
+					it.second.component_manager->Serialize(archive, entityMapper, it.second.version);
 					archive.PatchUnknownJumpPosition(offset); // ...to here, if this component manager was not registered
 				}
 				archive << false;
@@ -634,8 +710,9 @@ namespace vz::ecs
 			if (it == vuidCompTypeMap_.end()) return 0;
 			return it->second;
 		}
+		inline static bool ContainsVUID(VUID vuid) { return vuidCompTypeMap_.contains(vuid); }
 		inline static void EraseVUID(VUID vuid) { vuidCompTypeMap_.erase(vuid); }
-		inline static void AddVUID(VUID vuid, uint8_t compType) { vuidCompTypeMap_[vuid] = compType; }
+		inline static void AddVUID(VUID vuid, uint8_t compType) { assert(!vuidCompTypeMap_.contains(vuid));  vuidCompTypeMap_[vuid] = compType; }
 	};
 }
 
