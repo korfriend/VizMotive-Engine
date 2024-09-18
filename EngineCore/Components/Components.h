@@ -5,7 +5,7 @@
 
 #include <vector>
 #include <map>
-#include <unordered_set>
+#include <unordered_map>
 #include <string>
 #include <memory>
 #include <chrono>
@@ -215,38 +215,38 @@ namespace vz
 	public:
 		TransformComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TRANSFORM, entity, vuid) {}
 
-		bool IsDirty() const { return isDirty_; }
-		bool IsMatrixAutoUpdate() const { return isMatrixAutoUpdate_; }
+		inline bool IsDirty() const { return isDirty_; }
+		inline bool IsMatrixAutoUpdate() const { return isMatrixAutoUpdate_; }
 
 		// recommend checking IsDirtyWorldMatrix with scene's timeStampWorldUpdate
-		XMFLOAT3 GetWorldPosition() const;
-		XMFLOAT4 GetWorldRotation() const;
-		XMFLOAT3 GetWorldScale() const;
-		XMFLOAT3 GetWorldForward() const; // z-axis
-		XMFLOAT3 GetWorldUp() const;
-		XMFLOAT3 GetWorldRight() const;
-		XMFLOAT4X4 GetWorldMatrix() const { return world_; };
+		inline const XMFLOAT3 GetWorldPosition() const;
+		inline const XMFLOAT4 GetWorldRotation() const;
+		inline const XMFLOAT3 GetWorldScale() const;
+		inline const XMFLOAT3 GetWorldForward() const; // z-axis
+		inline const XMFLOAT3 GetWorldUp() const;
+		inline const XMFLOAT3 GetWorldRight() const;
+		inline const XMFLOAT4X4 GetWorldMatrix() const { return world_; };
 
 		// Local
-		XMFLOAT3 GetPosition() const { return position_; };
-		XMFLOAT4 GetRotation() const { return rotation_; };
-		XMFLOAT3 GetScale() const { return scale_; };
-		XMFLOAT4X4 GetLocalMatrix() const { return local_; };
+		inline const XMFLOAT3 GetPosition() const { return position_; };
+		inline const XMFLOAT4 GetRotation() const { return rotation_; };
+		inline const XMFLOAT3 GetScale() const { return scale_; };
+		inline const XMFLOAT4X4 GetLocalMatrix() const { return local_; };
 
-		void SetPosition(const XMFLOAT3& p) { isDirty_ = true; position_ = p; timeStampSetter_ = TimerNow; }
-		void SetScale(const XMFLOAT3& s) { isDirty_ = true; scale_ = s; timeStampSetter_ = TimerNow; }
-		void SetEulerAngleZXY(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
-		void SetEulerAngleZXYInDegree(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
-		void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; timeStampSetter_ = TimerNow; }
-		void SetMatrix(const XMFLOAT4X4& local);
+		inline void SetPosition(const XMFLOAT3& p) { isDirty_ = true; position_ = p; timeStampSetter_ = TimerNow; }
+		inline void SetScale(const XMFLOAT3& s) { isDirty_ = true; scale_ = s; timeStampSetter_ = TimerNow; }
+		inline void SetEulerAngleZXY(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
+		inline void SetEulerAngleZXYInDegree(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
+		inline void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; timeStampSetter_ = TimerNow; }
+		inline void SetMatrix(const XMFLOAT4X4& local);
 
-		void SetWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = TimerNow; };
+		inline void SetWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = TimerNow; };
 
-		void UpdateMatrix();	// local matrix
-		void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
-		bool IsDirtyWorldMatrix(const TimeStamp timeStampRecentWorldUpdate) { return TimeDurationCount(timeStampRecentWorldUpdate, timeStampWorldUpdate_) <= 0; }
+		inline void UpdateMatrix();	// local matrix
+		inline void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
+		inline bool IsDirtyWorldMatrix(const TimeStamp timeStampRecentWorldUpdate) { return TimeDurationCount(timeStampRecentWorldUpdate, timeStampWorldUpdate_) <= 0; }
 
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		inline void Serialize(vz::Archive& archive, const uint64_t version);
 
 		inline static const ComponentType IntrinsicType = ComponentType::TRANSFORM;
 	};
@@ -305,13 +305,13 @@ namespace vz
 	public:
 		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
 
-		XMFLOAT4 GetBaseColor() { return baseColor_; }	// w is opacity
-		XMFLOAT4 GetSpecularColor() { return specularColor_; }
-		XMFLOAT4 GetEmissiveColor() { return emissiveColor_; }	// w is emissive strength
+		inline const XMFLOAT4 GetBaseColor() const { return baseColor_; }	// w is opacity
+		inline const XMFLOAT4 GetSpecularColor() const { return specularColor_; }
+		inline const XMFLOAT4 GetEmissiveColor() const { return emissiveColor_; }	// w is emissive strength
 
-		XMFLOAT4 SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; }	
-		XMFLOAT4 SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
-		XMFLOAT4 SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }	
+		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; }
+		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
+		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
 
 		bool IsDirty() const { return isDirty_; }
 
@@ -442,9 +442,8 @@ namespace vz
 		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { visibleLayerMask_ = (layerBits & maskBits); }
 		bool IsVisibleWith(uint8_t visibleLayerMask) { return visibleLayerMask & visibleLayerMask_; }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
-
-		Entity GetGeometry() { return compfactory::GetEntityByVUID(vuid_); }
-		Entity GetMaterial(const size_t slot) { return slot >= vuidMaterials_.size() ? INVALID_ENTITY : compfactory::GetEntityByVUID(vuidMaterials_[slot]); }
+		Entity GetGeometry();
+		Entity GetMaterial(const size_t slot);
 		std::vector<Entity> GetMaterials();
 		void Serialize(vz::Archive& archive, const uint64_t version);
 

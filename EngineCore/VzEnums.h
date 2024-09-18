@@ -1,5 +1,5 @@
 #pragma once
-
+#include <stdint.h>
 // common numerations used for both high-level APIs and engine-level APIs
 namespace vz::enums
 {
@@ -19,9 +19,9 @@ namespace vz::enums
 		// don't change the enums values (made to match GL)
 		POINTS = 0,    //!< points
 		LINES = 1,    //!< lines
-		LINE_STRIP = 3,    //!< line strip
-		TRIANGLES = 4,    //!< triangles
-		TRIANGLE_STRIP = 5     //!< triangle strip
+		LINE_STRIP = 2,    //!< line strip
+		TRIANGLES = 3,    //!< triangles
+		TRIANGLE_STRIP = 4     //!< triangle strip
 	};
 
 	enum LightFlags

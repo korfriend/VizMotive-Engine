@@ -76,7 +76,7 @@ namespace vz
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 
-			uint32_t u32_data, u64_data;
+			uint32_t u32_data;
 			archive >> u32_data;
 			shaderType = static_cast<ShaderType>(u32_data);
 			archive >> renderOptionFlags_;
@@ -242,7 +242,7 @@ namespace vz
 			archive >> fovY_;
 			archive >> width_;
 			archive >> height_;
-			uint8_t u8_data;
+
 			archive >> u8_data;
 			projectionType_ = static_cast<enums::Projection>(u8_data);
 		}

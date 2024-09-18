@@ -23,7 +23,7 @@ namespace vz::compfactory
 
 	ComponentBase* GetComponentByVUID(const VUID vuid)
 	{
-		ComponentType comp_type = static_cast<ComponentType>(ComponentLibrary::GetComponentTypeByVUID(vuid));
+		ComponentType comp_type = static_cast<ComponentType>(vuid & 0xFF); // using magic bits
 		switch (comp_type)
 		{
 		case ComponentType::UNDEFINED: return nullptr;
@@ -63,7 +63,8 @@ namespace vz::compfactory
 	HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent)
 	{
 		HierarchyComponent* comp = &hierarchyManager.Create(entity);
-		comp->parentEntity = parent;
+		HierarchyComponent* comp_parent = compfactory::GetHierarchyComponent(parent);
+		comp->vuidParentHierarchy = comp_parent ? comp_parent->GetVUID() : INVALID_VUID;
 		return comp;
 	}
 	MaterialComponent* CreateMaterialComponent(const Entity entity)
@@ -156,7 +157,7 @@ namespace vz::compfactory
 	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components)
 	{
 		components.clear();
-#define GET_COMP_BY_ENTITY(CM) ComponentBase* comp = CM.GetComponent(entity); if (comp) components.push_back(comp);
+#define GET_COMP_BY_ENTITY(CM) { ComponentBase* comp = CM.GetComponent(entity); if (comp) components.push_back(comp); }
 
 		GET_COMP_BY_ENTITY(nameManager);
 		GET_COMP_BY_ENTITY(transformManager);

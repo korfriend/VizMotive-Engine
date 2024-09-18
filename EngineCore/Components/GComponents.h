@@ -24,23 +24,25 @@ namespace vz
 
 	struct GMaterialComponent : MaterialComponent
 	{
-
+		GMaterialComponent(const Entity entity, const VUID vuid = 0) : MaterialComponent(entity, vuid) {}
 		// to do //
 	};
 
 	struct GGeometryComponent : GeometryComponent
 	{
+		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
 	};
 
 	struct GTextureComponent : TextureComponent
 	{
-
+		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid) {}
 	};
 
 	// scene 
 
 	struct GRenderableComponent : RenderableComponent
 	{
+		GRenderableComponent(const Entity entity, const VUID vuid = 0) : RenderableComponent(entity, vuid) {}
 		// internal geometry
 		// internal mi
 		// internal texture
