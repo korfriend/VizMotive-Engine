@@ -63,24 +63,27 @@ namespace vz
 		inline static Scene* GetScene(const Entity entity);
 		inline static Scene* GetFirstSceneByName(const std::string& name);
 		inline static Scene* CreateScene(const std::string& name, const Entity entity = 0);
+		inline static void RemoveEntityForScenes(const Entity entity);
 
 	private:
-		Entity entity_ = INVALID_ENTITY;
 		std::string name_;
+
+		// Non-serialized attributes:
+		Entity entity_ = INVALID_ENTITY;
+		TimeStamp recentRenderTime_ = TimerMin;	// world update time
+
+		// Instead of Entity, VUID is stored by serialization
 		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
 		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
 		std::unordered_map<Entity, size_t> lookupLights_;
-
-		// Non-serialized attributes:
-		TimeStamp recentRenderTime_ = TimerMin;	// world update time
 
 	public:
 		Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name) {}
 
 		std::string GetName() { return name_; }
 
-		void AddEntity(const Entity entity);
+		inline void AddEntity(const Entity entity);
 
 		/**
 		 * Adds a list of entities to the Scene.
@@ -88,7 +91,7 @@ namespace vz
 		 * @param entities Array containing entities to add to the scene.
 		 * @param count Size of the entity array.
 		 */
-		void AddEntities(const std::vector<Entity>& entities);
+		inline void AddEntities(const std::vector<Entity>& entities);
 
 		/**
 		 * Removes the Renderable from the Scene.
@@ -96,7 +99,7 @@ namespace vz
 		 * @param entity The Entity to remove from the Scene. If the specified
 		 *                   \p entity doesn't exist, this call is ignored.
 		 */
-		void Remove(const Entity entity);
+		inline void Remove(const Entity entity);
 
 		/**
 		 * Removes a list of entities to the Scene.
@@ -107,36 +110,39 @@ namespace vz
 		 * @param entities Array containing entities to remove from the scene.
 		 * @param count Size of the entity array.
 		 */
-		void RemoveEntities(const std::vector<Entity>& entities);
+		inline void RemoveEntities(const std::vector<Entity>& entities);
 
 		/**
 		 * Returns the total number of Entities in the Scene, whether alive or not.
 		 * @return Total number of Entities in the Scene.
 		 */
-		size_t GetEntityCount() const noexcept;
+		inline size_t GetEntityCount() const noexcept;
 
 		/**
 		 * Returns the number of active (alive) Renderable objects in the Scene.
 		 *
 		 * @return The number of active (alive) Renderable objects in the Scene.
 		 */
-		size_t GetRenderableCount() const noexcept;
+		inline size_t GetRenderableCount() const noexcept;
 
 		/**
 		 * Returns the number of active (alive) Light objects in the Scene.
 		 *
 		 * @return The number of active (alive) Light objects in the Scene.
 		 */
-		size_t GetLightCount() const noexcept;
+		inline size_t GetLightCount() const noexcept;
 
 		/**
 		 * Returns true if the given entity is in the Scene.
 		 *
 		 * @return Whether the given entity is in the Scene.
 		 */
-		bool HasEntity(const Entity entity) const noexcept;
+		inline bool HasEntity(const Entity entity) const noexcept;
 
-		void Serialize(vz::Archive& archive);
+		/**
+		 * Read/write scene components (renderbles and lights), make sure their VUID-based components are serialized first
+		 */
+		inline void Serialize(vz::Archive& archive);
 	};
 
 	enum class ComponentType : uint8_t
