@@ -89,6 +89,9 @@ namespace vz::ecs
 		{
 			if (archive.IsReadMode())
 			{
+				std::string seri_name;
+				archive >> seri_name;
+				assert(seri_name == "EntityMapper");
 				Clear();
 				size_t element_count;
 				archive >> element_count;
@@ -102,6 +105,7 @@ namespace vz::ecs
 			}
 			else
 			{
+				archive << "EntityMapper";
 				size_t element_count = vuidEntityMap_.size();
 				archive << element_count;
 

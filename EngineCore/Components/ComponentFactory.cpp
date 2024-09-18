@@ -107,6 +107,10 @@ namespace vz::compfactory
 	{
 		return geometryManager.GetComponent(entity);
 	}
+	RenderableComponent* GetRenderableComponent(const Entity entity)
+	{
+		return renderableManager.GetComponent(entity);
+	}
 	LightComponent* GetLightComponent(const Entity entity)
 	{
 		return lightManager.GetComponent(entity);
@@ -136,6 +140,10 @@ namespace vz::compfactory
 	{
 		return geometryManager.Contains(entity);
 	}
+	bool ContainRenderableComponent(const Entity entity)
+	{
+		return renderableManager.Contains(entity);
+	}
 	bool ContainLightComponent(const Entity entity)
 	{
 		return lightManager.Contains(entity);
@@ -143,5 +151,36 @@ namespace vz::compfactory
 	bool ContainCameraComponent(const Entity entity)
 	{
 		return cameraManager.Contains(entity);
+	}
+
+	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components)
+	{
+		components.clear();
+#define GET_COMP_BY_ENTITY(CM) ComponentBase* comp = CM.GetComponent(entity); if (comp) components.push_back(comp);
+
+		GET_COMP_BY_ENTITY(nameManager);
+		GET_COMP_BY_ENTITY(transformManager);
+		GET_COMP_BY_ENTITY(hierarchyManager);
+		GET_COMP_BY_ENTITY(renderableManager);
+		GET_COMP_BY_ENTITY(lightManager);
+		GET_COMP_BY_ENTITY(cameraManager);
+		GET_COMP_BY_ENTITY(materialManager);
+		GET_COMP_BY_ENTITY(geometryManager);
+		GET_COMP_BY_ENTITY(textureManager);
+		
+		return components.size();
+	}
+	size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities)
+	{
+		const std::vector<NameComponent>& names = nameManager.GetComponentArray();
+		entities.clear();
+		for (auto& it : names)
+		{
+			if (it.name == name)
+			{
+				entities.push_back(it.GetEntity());
+			}
+		}
+		return entities.size();
 	}
 }

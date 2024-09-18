@@ -25,14 +25,6 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimerNow std::chrono::high_resolution_clock::now()
 #define TimerMin std::chrono::high_resolution_clock::time_point::min();
 
-namespace vz
-{
-	// core...
-	// create components...
-	// create scene...
-	// resource???!
-}
-
 namespace vz::resource
 {
 
@@ -64,37 +56,29 @@ namespace vz::resource
 namespace vz
 {
 	class Archive;
-	namespace ecs { struct EntitySerializer; }
 
 	struct CORE_EXPORT Scene
 	{
-	private:
-		inline static std::map<Entity, Scene*> scenes_;
 	public:
-		static Scene* GetScene(const Entity entity) {
-			auto it = scenes_.find(entity);
-			return it != scenes_.end() ? it->second : nullptr;
-		}
-		static Scene* GetFirstSceneByName(const std::string& name) {
-			for (auto& it : scenes_) {
-				if (it.second->sceneName == name) return it.second;
-			}
-			return nullptr;
-		}
-		static Scene* CreateScene(const std::string& name);
+		inline static Scene* GetScene(const Entity entity);
+		inline static Scene* GetFirstSceneByName(const std::string& name);
+		inline static Scene* CreateScene(const std::string& name, const Entity entity = 0);
 
 	private:
 		Entity entity_ = INVALID_ENTITY;
 		std::string name_;
 		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
-		std::unordered_map<size_t, Entity> renderableMap_; // each entity has also TransformComponent and HierarchyComponent
-		std::unordered_map<size_t, Entity> lightMap_;
+		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
+		std::unordered_map<Entity, size_t> lookupLights_;
 
 		// Non-serialized attributes:
 		TimeStamp recentRenderTime_ = TimerMin;	// world update time
 
 	public:
+		Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name) {}
+
+		std::string GetName() { return name_; }
 
 		void AddEntity(const Entity entity);
 
@@ -579,6 +563,7 @@ namespace vz::compfactory
 	extern "C" CORE_EXPORT HierarchyComponent* GetHierarchyComponent(const Entity entity);
 	extern "C" CORE_EXPORT MaterialComponent* GetMaterialComponent(const Entity entity);
 	extern "C" CORE_EXPORT GeometryComponent* GetGeometryComponent(const Entity entity);
+	extern "C" CORE_EXPORT RenderableComponent* GetRenderableComponent(const Entity entity);
 	extern "C" CORE_EXPORT LightComponent* GetLightComponent(const Entity entity);
 	extern "C" CORE_EXPORT CameraComponent* GetCameraComponent(const Entity entity);
 
@@ -587,9 +572,10 @@ namespace vz::compfactory
 	extern "C" CORE_EXPORT bool ContainHierarchyComponent(const Entity entity);
 	extern "C" CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
 	extern "C" CORE_EXPORT bool ContainGeometryComponent(const Entity entity);
+	extern "C" CORE_EXPORT bool ContainRenderableComponent(const Entity entity);
 	extern "C" CORE_EXPORT bool ContainLightComponent(const Entity entity);
 	extern "C" CORE_EXPORT bool ContainCameraComponent(const Entity entity);
 
 	extern "C" CORE_EXPORT size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
-	extern "C" CORE_EXPORT size_t GetComponentsByName(const std::string& name, std::vector<ComponentBase*>& components); // when there is a name component
+	extern "C" CORE_EXPORT size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
 }
