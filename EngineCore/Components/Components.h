@@ -62,6 +62,7 @@ namespace vz
 	public:
 		inline static Scene* GetScene(const Entity entity);
 		inline static Scene* GetFirstSceneByName(const std::string& name);
+		inline static Scene* GetSceneIncludingEntity(const Entity entity);
 		inline static Scene* CreateScene(const std::string& name, const Entity entity = 0);
 		inline static void RemoveEntityForScenes(const Entity entity);
 
