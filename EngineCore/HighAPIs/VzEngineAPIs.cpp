@@ -1,5 +1,5 @@
 #include "VzEngineAPIs.h"
-#include "Components/Components.h"
+#include "Components/GComponents.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Common/Backend/GBackendDevice.h"
@@ -8,12 +8,12 @@ using namespace vz;
 
 namespace vzm
 {
-	typedef bool(*GraphicsInitializer)();
-	typedef vz::graphics::GraphicsDevice* (*GetGraphicsDevice)();
-	typedef bool(*GraphicsDeinitializer)();
-	GraphicsInitializer graphicsInitializer = nullptr;
-	GraphicsDeinitializer graphicsDeinitializer = nullptr;
-	GetGraphicsDevice graphicsGetDev = nullptr;
+	typedef bool(*PI_GraphicsInitializer)();
+	typedef vz::graphics::GraphicsDevice* (*PI_GetGraphicsDevice)();
+	typedef bool(*PI_GraphicsDeinitializer)();
+	PI_GraphicsInitializer graphicsInitializer = nullptr;
+	PI_GraphicsDeinitializer graphicsDeinitializer = nullptr;
+	PI_GetGraphicsDevice graphicsGetDev = nullptr;
 
 #define CHECK_API_VALIDITY(RET) if (!initialized) { backlog::post("High-level API is not initialized!!", backlog::LogLevel::Error); return RET; }
 
@@ -34,9 +34,9 @@ namespace vzm
 		if (api == "DX12")
 		{
 			//wi::renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
-			graphicsInitializer = vz::platform::LoadModule<GraphicsInitializer>("RendererDX12", "Initialize");
-			graphicsDeinitializer = vz::platform::LoadModule<GraphicsDeinitializer>("RendererDX12", "Deinitialize");
-			graphicsGetDev = vz::platform::LoadModule<GetGraphicsDevice>("RendererDX12", "GetGraphicsDevice");
+			graphicsInitializer = vz::platform::LoadModule<PI_GraphicsInitializer>("RendererDX12", "Initialize");
+			graphicsDeinitializer = vz::platform::LoadModule<PI_GraphicsDeinitializer>("RendererDX12", "Deinitialize");
+			graphicsGetDev = vz::platform::LoadModule<PI_GetGraphicsDevice>("RendererDX12", "GetGraphicsDevice");
 
 		}
 

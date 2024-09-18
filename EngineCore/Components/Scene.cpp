@@ -25,6 +25,18 @@ namespace vz
 		}
 		return nullptr;
 	}
+	Scene* Scene::GetSceneIncludingEntity(const Entity entity)
+	{
+		for (size_t i = 0, n = scenes.size(); i < n; ++i)
+		{
+			Scene* scene = scenes[i].get();
+			if (scene->HasEntity(entity))
+			{
+				return scene;
+			}
+		}
+		return nullptr;
+	}
 	Scene* Scene::CreateScene(const std::string& name, const Entity entity)
 	{
 		Entity ett = entity;
