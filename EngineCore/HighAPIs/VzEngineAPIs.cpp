@@ -2,6 +2,7 @@
 #include "Components/Components.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
+#include "Common/Backend/GBackendDevice.h"
 
 using namespace vz;
 

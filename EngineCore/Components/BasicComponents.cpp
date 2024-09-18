@@ -16,7 +16,7 @@ namespace vz::uuid
 	static std::atomic<uint16_t> sCounter;
 	static std::mt19937_64 sRandomEngine;
 	static bool isInitialized = false;
-	uint64_t generateUUID() 
+	uint64_t generateUUID(uint8_t cType) 
 	{
 		if (!isInitialized)
 		{
@@ -33,13 +33,14 @@ namespace vz::uuid
 		uint64_t timestamp = microseconds.count() & 0xFFFFFFFFFFFFull;
 		uuid |= timestamp << 16;
 
-		// Random component (8 bits)
-		uint8_t randomBits = static_cast<uint8_t>(sRandomEngine() & 0xFF);
-		uuid |= static_cast<uint64_t>(randomBits) << 8;
-
 		// Atomic counter (8 bits)
 		uint16_t count = sCounter.fetch_add(1, std::memory_order_relaxed);
-		uuid |= (count & 0xFF);
+		uuid |= (count & 0xFF) << 8;
+
+		// Random component (8 bits)
+		//uint8_t randomBits = static_cast<uint8_t>(sRandomEngine() & 0xFF);
+		//uuid |= static_cast<uint64_t>(randomBits);
+		uuid |= cType;
 
 		return uuid;
 	}
@@ -49,16 +50,16 @@ namespace vz
 {
 	ComponentBase::ComponentBase(const ComponentType compType, const Entity entity, const VUID vuid) : cType_(compType), entity_(entity)
 	{
-		if (vuid == 0) vuid_ = uuid::generateUUID();
+		if (vuid == 0) vuid_ = uuid::generateUUID(static_cast<uint8_t>(compType));
 		else vuid_ = vuid;
 		timeStampSetter_ = TimerNow;
 	}
 
-	XMFLOAT3 TransformComponent::GetWorldPosition() const
+	const XMFLOAT3 TransformComponent::GetWorldPosition() const
 	{
 		return *((XMFLOAT3*)&world_._41);
 	}
-	XMFLOAT4 TransformComponent::GetWorldRotation() const
+	const XMFLOAT4 TransformComponent::GetWorldRotation() const
 	{
 		XMVECTOR S, R, T;
 		XMMatrixDecompose(&S, &R, &T, XMLoadFloat4x4(&world_));
@@ -66,7 +67,7 @@ namespace vz
 		XMStoreFloat4(&rotation, R);
 		return rotation;
 	}
-	XMFLOAT3 TransformComponent::GetWorldScale() const
+	const XMFLOAT3 TransformComponent::GetWorldScale() const
 	{
 		XMVECTOR S, R, T;
 		XMMatrixDecompose(&S, &R, &T, XMLoadFloat4x4(&world_));
@@ -74,15 +75,15 @@ namespace vz
 		XMStoreFloat3(&scale, S);
 		return scale;
 	}
-	XMFLOAT3 TransformComponent::GetWorldForward() const
+	const XMFLOAT3 TransformComponent::GetWorldForward() const
 	{
 		return vz::math::GetForward(world_);
 	}
-	XMFLOAT3 TransformComponent::GetWorldUp() const
+	const XMFLOAT3 TransformComponent::GetWorldUp() const
 	{
 		return vz::math::GetUp(world_);
 	}
-	XMFLOAT3 TransformComponent::GetWorldRight() const
+	const XMFLOAT3 TransformComponent::GetWorldRight() const
 	{
 		return vz::math::GetRight(world_);
 	}
@@ -175,7 +176,8 @@ namespace vz
 				{
 					if (transform->IsDirty())
 						transform->UpdateMatrix();
-					local = XMLoadFloat4x4(&transform->GetLocalMatrix());
+					XMFLOAT4X4 local_f44 = transform->GetLocalMatrix();
+					local = XMLoadFloat4x4(&local_f44);
 				}
 				world = local * world;
 				XMFLOAT4X4 mat_world;
@@ -238,6 +240,9 @@ namespace vz
 			isValid_ = geo_comp->GetNumParts() == vuidMaterials_.size();
 		}
 	}
+
+	Entity RenderableComponent::GetGeometry() { return compfactory::GetEntityByVUID(vuid_); }
+	Entity RenderableComponent::GetMaterial(const size_t slot) { return slot >= vuidMaterials_.size() ? INVALID_ENTITY : compfactory::GetEntityByVUID(vuidMaterials_[slot]); }
 	std::vector<Entity> RenderableComponent::GetMaterials()
 	{
 		size_t n = vuidMaterials_.size();
@@ -326,20 +331,22 @@ namespace vz
 		{
 			if (tr_comp->IsDirty()) 
 				tr_comp->UpdateMatrix();
-			local = XMLoadFloat4x4(&tr_comp->GetLocalMatrix());
+			XMFLOAT4X4 local_f44 = tr_comp->GetLocalMatrix();
+			local = XMLoadFloat4x4(&local_f44);
 		}
 
 		XMMATRIX parent2ws = XMMatrixIdentity();
 		while (parent)
 		{
-			TransformComponent* transform_parent = compfactory::GetTransformComponent(parent->parentEntity);
+			TransformComponent* transform_parent = compfactory::GetTransformComponent(compfactory::GetEntityByVUID(parent->vuidParentHierarchy));
 			if (transform_parent)
 			{
 				if (transform_parent->IsDirty()) 
 					transform_parent->UpdateMatrix();
-				parent2ws *= XMLoadFloat4x4(&transform_parent->GetLocalMatrix());
+				XMFLOAT4X4 local_f44 = transform_parent->GetLocalMatrix();
+				parent2ws *= XMLoadFloat4x4(&local_f44);
 			}
-			parent = compfactory::GetHierarchyComponent(parent->parentEntity);
+			parent = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(parent->vuidParentHierarchy));
 		}
 		XMFLOAT4X4 mat_world;
 		XMStoreFloat4x4(&mat_world, local * parent2ws);

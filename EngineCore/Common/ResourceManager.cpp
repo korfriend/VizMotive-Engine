@@ -1135,7 +1135,7 @@ namespace vz::resource
 					if (!vz::helper::FileRead(resource->container_filename, resource->filedata, resource->container_filesize, resource->container_fileoffset))
 					{
 						resource.reset();
-						return Resource();
+						return GResource();
 					}
 				}
 				filedata = resource->filedata.data();
@@ -1160,12 +1160,12 @@ namespace vz::resource
 				resource->flags = flags;
 				resource->timestamp = timestamp;
 
-				Resource retVal;
+				GResource retVal;
 				retVal.internal_state = resource;
 				return retVal;
 			}
 
-			return Resource();
+			return GResource();
 		}
 
 		bool Contains(const std::string& name)
