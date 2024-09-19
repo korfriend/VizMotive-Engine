@@ -4,17 +4,20 @@
 
 namespace vz
 {
+	using Entity = uint32_t;
 	// The canvas specifies a DPI-aware drawing area
 	struct Canvas
 	{
-	private:
+	protected:
 		uint32_t width_ = 0;
 		uint32_t height_ = 0;
 		float dpi_ = 96;
 		float scaling_ = 1; // custom DPI scaling factor (optional)
 		void* window_ = nullptr;
+		Entity entity_ = 0;
 
 	public:
+		Canvas(const Entity entity) : entity_(entity) {};
 		virtual ~Canvas() = default;
 
 		// Create a canvas from physical measurements

@@ -360,6 +360,7 @@ namespace vz
 
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
+		return true;
 	}
 	void CameraComponent::UpdateMatrix()
 	{
