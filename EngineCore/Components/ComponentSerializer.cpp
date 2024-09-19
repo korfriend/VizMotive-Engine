@@ -6,7 +6,7 @@ namespace vz
 {
 	using namespace vz::ecs;
 
-	void NameComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	void NameComponent::Serialize(vz::Archive& archive, const uint64_t version) 
 	{
 		if (archive.IsReadMode())
 		{

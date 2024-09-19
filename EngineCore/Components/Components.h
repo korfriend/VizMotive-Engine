@@ -177,6 +177,8 @@ namespace vz
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
 		Entity GetEntity() const { return entity_; }
 		VUID GetVUID() const { return vuid_; }
+
+		virtual void Serialize(vz::Archive& archive, const uint64_t version) = 0;
 	};
 
 	struct CORE_EXPORT NameComponent : ComponentBase
@@ -189,7 +191,7 @@ namespace vz
 		inline void operator=(std::string&& str) { name = std::move(str); }
 		inline bool operator==(const std::string& str) const { return name.compare(str) == 0; }
 
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::NAME;
 	};
@@ -247,7 +249,7 @@ namespace vz
 		inline void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
 		inline bool IsDirtyWorldMatrix(const TimeStamp timeStampRecentWorldUpdate) { return TimeDurationCount(timeStampRecentWorldUpdate, timeStampWorldUpdate_) <= 0; }
 
-		inline void Serialize(vz::Archive& archive, const uint64_t version);
+		inline void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TRANSFORM;
 	};
@@ -258,7 +260,7 @@ namespace vz
 
 		VUID vuidParentHierarchy = INVALID_VUID;
 
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::HIERARCHY;
 	};
@@ -319,7 +321,7 @@ namespace vz
 		// Create texture resources for GPU
 		void GpuUpdateAssociatedTextures();
 
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::MATERIAL;
 	};
@@ -407,7 +409,7 @@ namespace vz
 		void CopyPrimitive(const Primitive& primitive, const size_t slot);
 		bool GetPrimitive(const size_t slot, Primitive& primitive);
 		size_t GetNumParts() { return parts_.size(); }
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};
@@ -415,7 +417,7 @@ namespace vz
 	struct CORE_EXPORT TextureComponent : ComponentBase
 	{
 		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 	};
@@ -446,7 +448,7 @@ namespace vz
 		Entity GetGeometry();
 		Entity GetMaterial(const size_t slot);
 		std::vector<Entity> GetMaterials();
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 	};
@@ -469,7 +471,7 @@ namespace vz
 		
 		void SetLightColor(XMFLOAT3 color) { color_ = color; }
 
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::LIGHT;
 	};
@@ -539,7 +541,7 @@ namespace vz
 		XMFLOAT4X4 GetInvViewProjection() const { return invViewProjection_; }
 		vz::geometry::Frustum GetFrustum() const { return frustum_; }
 
-		void Serialize(vz::Archive& archive, const uint64_t version);
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::CAMERA;
 	};

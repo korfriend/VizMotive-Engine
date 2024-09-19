@@ -8,6 +8,14 @@ namespace vzm
 	extern "C" API_EXPORT VZRESULT InitEngineLib(const vzm::ParamMap<std::string>& arguments = vzm::ParamMap<std::string>());
 	extern "C" API_EXPORT VZRESULT DeinitEngineLib();
 
+	// here... 
+	// 1. Engine (De)Initialization
+	// 2. System (ecS) functions
+	// 3. Component (eCs) factory interfaces
+	//   - Component-dependent interfaces are defined in each component (as static interfaces)
+	// 4. VID is used instead of Entity (but they are same)
+	// 
+
 	// Get Entity ID 
 	//  - return zero in case of failure 
 	extern "C" API_EXPORT VID GetFirstVidByName(const std::string& name);
