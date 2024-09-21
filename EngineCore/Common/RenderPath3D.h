@@ -3,14 +3,18 @@
 
 namespace vz
 {
-	constexpr graphics::Format formatDepthbufferMain = graphics::Format::D32_FLOAT_S8X24_UINT;
-	constexpr graphics::Format formatRendertargetMain = graphics::Format::R11G11B10_FLOAT;
-	constexpr graphics::Format formatIdbuffer = graphics::Format::R32_UINT;
-	constexpr graphics::Format formatRendertargetShadowmap = graphics::Format::R16G16B16A16_FLOAT;
-	constexpr graphics::Format formatDepthbufferShadowmap = graphics::Format::D16_UNORM;
-	constexpr graphics::Format formatRendertargetEnvprobe = graphics::Format::R11G11B10_FLOAT;
-	constexpr graphics::Format formatDepthbufferEnvprobe = graphics::Format::D16_UNORM;
+	namespace graphics
+	{
+		constexpr Format formatDepthbufferMain = graphics::Format::D32_FLOAT_S8X24_UINT;
+		constexpr Format formatRendertargetMain = graphics::Format::R11G11B10_FLOAT;
+		constexpr Format formatIdbuffer = graphics::Format::R32_UINT;
+		constexpr Format formatRendertargetShadowmap = graphics::Format::R16G16B16A16_FLOAT;
+		constexpr Format formatDepthbufferShadowmap = graphics::Format::D16_UNORM;
+		constexpr Format formatRendertargetEnvprobe = graphics::Format::R11G11B10_FLOAT;
+		constexpr Format formatDepthbufferEnvprobe = graphics::Format::D16_UNORM;
 
+		struct GRenderPath3D;
+	}
 	// this renderer imports renderer-built binary (e.g., RendererDX11 or RendererDX12)
 	class RenderPath3D : public RenderPath2D
 	{
@@ -18,7 +22,7 @@ namespace vz
 		graphics::Texture rtRender3D_;	// main rt
 		graphics::Texture rtRenderInterResult_;
 
-		void* pluginHandler_ = nullptr;
+		graphics::GRenderPath3D* handlerRenderPath3D_ = nullptr;
 
 	public:
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
@@ -26,9 +30,6 @@ namespace vz
 
 		CameraComponent* camera = nullptr;
 		Scene* scene = nullptr;
-
-		inline void SetPluginHandler(void* pluginHandler) { pluginHandler_ = pluginHandler; }
-		inline void* GetPluginHandler() { return pluginHandler_; }
 
 		void DeleteGPUResources() override;
 		void ResizeResources() override;

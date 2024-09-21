@@ -6,6 +6,8 @@
 
 using namespace vz;
 
+GEngineConfig gEngine;
+
 namespace vzm
 {
 	typedef bool(*PI_GraphicsInitializer)();
@@ -28,10 +30,8 @@ namespace vzm
 		}
 
 		// assume DX12 rendering engine
-
-
-		std::string api = arguments.GetString("API", "DX12");
-		if (api == "DX12")
+		gEngine.api = arguments.GetString("API", "DX12");
+		if (gEngine.api == "DX12")
 		{
 			//wi::renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
 			graphicsInitializer = vz::platform::LoadModule<PI_GraphicsInitializer>("RendererDX12", "Initialize");

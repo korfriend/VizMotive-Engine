@@ -167,9 +167,9 @@ namespace vz
 		if (n > 0)
 		{
 			XMMATRIX world = XMMatrixIdentity();
-			for (size_t i = n - 1; i >= 0u; --i)
+			for (size_t i = n; i > 0u; --i)
 			{
-				HierarchyComponent* hierarchy = hierarchies[i];
+				HierarchyComponent* hierarchy = hierarchies[i - 1];
 				TransformComponent* transform = compfactory::GetTransformComponent(hierarchy->GetEntity());
 				XMMATRIX local = XMMatrixIdentity();
 				if (transform)
@@ -254,64 +254,7 @@ namespace vz
 		return entities;
 	}
 }
-/*
-void Scene::RunHierarchyUpdateSystem(wi::jobsystem::context& ctx)
-{
-	wi::jobsystem::Dispatch(ctx, (uint32_t)hierarchy.GetCount(), small_subtask_groupsize, [&](wi::jobsystem::JobArgs args) {
 
-		HierarchyComponent& hier = hierarchy[args.jobIndex];
-		Entity entity = hierarchy.GetEntity(args.jobIndex);
-
-		TransformComponent* transform_child = transforms.GetComponent(entity);
-		XMMATRIX worldmatrix;
-		if (transform_child != nullptr)
-		{
-			worldmatrix = transform_child->GetLocalMatrix();
-		}
-
-		LayerComponent* layer_child = layers.GetComponent(entity);
-		if (layer_child != nullptr)
-		{
-			layer_child->propagationMask = ~0u; // clear propagation mask to full
-		}
-
-		if (transform_child == nullptr && layer_child == nullptr)
-			return;
-
-		Entity parentID = hier.parentID;
-		while (parentID != INVALID_ENTITY)
-		{
-			TransformComponent* transform_parent = transforms.GetComponent(parentID);
-			if (transform_child != nullptr && transform_parent != nullptr)
-			{
-				worldmatrix *= transform_parent->GetLocalMatrix();
-			}
-
-			LayerComponent* layer_parent = layers.GetComponent(parentID);
-			if (layer_child != nullptr && layer_parent != nullptr)
-			{
-				layer_child->propagationMask &= layer_parent->layerMask;
-			}
-
-			const HierarchyComponent* hier_recursive = hierarchy.GetComponent(parentID);
-			if (hier_recursive != nullptr)
-			{
-				parentID = hier_recursive->parentID;
-			}
-			else
-			{
-				parentID = INVALID_ENTITY;
-			}
-		}
-
-		if (transform_child != nullptr)
-		{
-			XMStoreFloat4x4(&transform_child->world, worldmatrix);
-		}
-
-		});
-}
-/**/
 namespace vz
 {
 	bool CameraComponent::SetWorldLookAtFromHierarchyTransforms()

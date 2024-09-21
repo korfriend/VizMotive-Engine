@@ -4,6 +4,7 @@
 #else
 #define DX12_EXPORT __attribute__((visibility("default")))
 #endif
+#include <string>
 
 namespace vz
 {
@@ -12,32 +13,34 @@ namespace vz
 
 	namespace graphics
 	{
-		class DX12_EXPORT GScene
+		struct GScene
 		{
-			inline static const std::string GScene_INTERFACE_VERSION = "20240921";
+			inline static const std::string GScene_INTERFACE_VERSION = "GScene::20240921";
 			// this will be a component of vz::Scene
 		protected:
 			Scene* scene_ = nullptr;
 		public:
+			std::string version = GScene_INTERFACE_VERSION;
+
 			GScene(Scene* scene) : scene_(scene) {}
-			~GScene() { Destory(); }
 
 			virtual bool Update(const float dt) = 0;
 			virtual bool Destory() = 0;
 		};
 
-		class DX12_EXPORT GRenderPath3D
+		struct GRenderPath3D
 		{
-			inline static const std::string GRenderPath3D_INTERFACE_VERSION = "20240921";
+			inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20240921";
 			// this will be a component of vz::RenderPath3D
 		protected:
 			RenderPath3D* renderPath3D_ = nullptr;
 		public:
+			std::string version = GRenderPath3D_INTERFACE_VERSION;
+
 			GRenderPath3D(RenderPath3D* renderPath) : renderPath3D_(renderPath) {}
-			~GRenderPath3D() { Destory(); }
 
 			virtual bool ResizeCanvas() = 0; // must delete all canvas-related resources and re-create
-			virtual bool Render(const float dt) = 0;
+			virtual bool Render() = 0;
 			virtual bool Destory() = 0;
 		};
 	}
@@ -52,6 +55,6 @@ namespace vz::graphics
 	extern "C" DX12_EXPORT void Deinitialize();
 
 
-	DX12_EXPORT GScene* NewGScene(Scene* scene);
-	DX12_EXPORT GRenderPath3D* NewGRenderPath(RenderPath3D* renderPath);
+	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene);
+	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(RenderPath3D* renderPath);
 }

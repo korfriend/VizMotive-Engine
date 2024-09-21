@@ -9,7 +9,6 @@ namespace vz
 	class RenderPath2D :
 		public RenderPath
 	{
-		using SlicerComponent = CameraComponent;
 	protected:
 		graphics::Texture rtRender2D_;
 
@@ -20,6 +19,7 @@ namespace vz
 		~RenderPath2D() { DeleteGPUResources(); }
 		// to do ... slicer component...
 
+		using SlicerComponent = CameraComponent;
 		SlicerComponent* slicer = nullptr;
 
 		void DeleteGPUResources() override;
