@@ -1,23 +1,26 @@
 #include "GraphicsInterface.h"
 #include "Renderer.h"
+#include "Components/GComponents.h"
+#include "Utils/JobSystem.h"
 
 namespace vz::graphics
 {
 	struct GSceneDetails : GScene
 	{
+		GSceneDetails(Scene* scene) : GScene(scene) {}
+
 		graphics::GPUBuffer instanceUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		ShaderMeshInstance* instanceArrayMapped = nullptr;
+		//ShaderMeshInstance* instanceArrayMapped = nullptr;
 		size_t instanceArraySize = 0;
 
 		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
 
 		bool Update(const float dt) override;
+		bool Destory() override;
 	};
 
-	bool GScene::Update(const float dt)
+	bool GSceneDetails::Update(const float dt)
 	{
-		dt_ += dt;
-
 		// 1. transform component updates
 		// 2. animation updates
 		// 3. dynamic rendering (such as particles and terrain, cloud...) kickoff
@@ -25,7 +28,8 @@ namespace vz::graphics
 
 		jobsystem::context ctx;
 
-		instanceArraySize = renderables_.size();
+		/*
+		instanceArraySize = scene_->GetRenderableCount();
 		if (instanceUploadBuffer[0].desc.size < (instanceArraySize * sizeof(ShaderMeshInstance)))
 		{
 			GPUBufferDesc desc;
@@ -108,5 +112,54 @@ namespace vz::graphics
 		wi::jobsystem::Wait(ctx); // dependencies
 
 		RunHierarchyUpdateSystem(ctx);
+		/**/
+		return true;
+	}
+
+	bool GSceneDetails::Destory()
+	{
+		return true;
+	}
+
+}
+
+namespace vz::graphics
+{
+	struct GRenderPath3DDetails : GRenderPath3D
+	{
+		GRenderPath3DDetails(RenderPath3D* renderPath) : GRenderPath3D(renderPath) {}
+
+		bool ResizeCanvas() override; // must delete all canvas-related resources and re-create
+		bool Render() override;
+		bool Destory() override;
+	};
+
+	bool GRenderPath3DDetails::ResizeCanvas()
+	{
+		return true;
+	}
+
+	bool GRenderPath3DDetails::Render()
+	{
+		return true;
+	}
+
+	bool GRenderPath3DDetails::Destory()
+	{
+		return true;
+	}
+
+}
+
+namespace vz::graphics
+{
+	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene)
+	{
+		return new GSceneDetails(scene);
+	}
+
+	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(RenderPath3D* renderPath)
+	{
+		return new GRenderPath3DDetails(renderPath);
 	}
 }

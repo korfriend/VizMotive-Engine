@@ -33,7 +33,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\waterripple.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)components\Scene.cpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.h" />
@@ -90,6 +89,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp" />

@@ -2,9 +2,8 @@
 #include "Utils/Backlog.h"
 #include "Utils/ECS.h"
 #include "Utils/JobSystem.h"
+#include "Utils/Platform.h"
 #include "Common/Archive.h"
-#include "Common/Backend/GBackend.h"
-#include "Common/Backend/GBackendDevice.h"
 
 #include <cstdint>
 #include <atomic>
@@ -13,6 +12,8 @@
 #include <thread>
 #include <memory>
 #include <unordered_map>
+
+extern GEngineConfig gEngine;
 
 namespace vz
 {
@@ -62,30 +63,50 @@ namespace vz
 
 namespace vz
 {
-	class GScene
+	namespace graphics
 	{
-		inline static const std::string GScene_INTERFACE_VERSION = "20240921";
-		// this will be a component of vz::Scene
-	protected:
-		Scene* scene_ = nullptr;
-	public:
-		GScene(Scene* scene) : scene_(scene) {}
-		~GScene() { Destory(); }
+		struct GScene
+		{
+			inline static const std::string GScene_INTERFACE_VERSION = "GScene::20240921";
+			// this will be a component of vz::Scene
+		protected:
+			Scene* scene_ = nullptr;
+		public:
+			std::string version = GScene_INTERFACE_VERSION;
 
-		virtual bool Update(const float dt) = 0;
-		virtual bool Destory() = 0;
-	};
+			GScene(Scene* scene) : scene_(scene) {}
+
+			virtual bool Update(const float dt) = 0;
+			virtual bool Destory() = 0;
+		};
+	}
+
+	using namespace graphics;
+
+	typedef GScene* (*PI_NewGScene)(Scene* scene);
+	PI_NewGScene graphicsNewGScene = nullptr;
 
 	Scene::Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name)
 	{
-
+		if (graphicsNewGScene == nullptr)
+		{
+			if (gEngine.api == "DX12")
+			{
+				graphicsNewGScene = platform::LoadModule<PI_NewGScene>("RendererDX12", "NewGScene");
+			}
+		}
+		assert(graphicsNewGScene);
+		handlerScene_ = graphicsNewGScene(this);
+		assert(handlerScene_->version == GScene::GScene_INTERFACE_VERSION);
 	}
 
 	void Scene::Update(const float dt)
 	{
 		dt_ += dt;
-
 		// to do .. if required for Scene-alone process wo/ GPU processing
+
+		// GPU updates
+		handlerScene_->Update(dt);
 	}
 
 	void Scene::AddEntity(const Entity entity)

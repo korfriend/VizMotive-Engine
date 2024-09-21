@@ -170,9 +170,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)components\Scene.cpp">
-      <Filter>Components</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h">
       <Filter>Common\Backend</Filter>
     </ClInclude>
@@ -294,6 +291,9 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp">
       <Filter>Libs</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
+      <Filter>Components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

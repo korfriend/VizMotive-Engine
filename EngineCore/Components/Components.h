@@ -26,6 +26,11 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimerNow std::chrono::high_resolution_clock::now()
 #define TimerMin std::chrono::high_resolution_clock::time_point::min();
 
+struct GEngineConfig
+{
+	std::string api = "UNDEF";
+};
+
 namespace vz::resource
 {
 
@@ -56,6 +61,11 @@ namespace vz::resource
 
 namespace vz
 {
+	namespace graphics
+	{
+		struct GScene;
+	}
+
 	class Archive;
 
 	struct CORE_EXPORT Scene
@@ -83,18 +93,14 @@ namespace vz
 		// instant parameters during render-process
 		float dt_ = 0.f;
 
-		void* pluginHandler_ = nullptr;
+		graphics::GScene* handlerScene_ = nullptr;
 
 	public:
 		Scene(const Entity entity, const std::string& name);
 
 		std::string GetName() { return name_; }
-		
-		inline void SetPluginHandler(void* pluginHandler) { pluginHandler_ = pluginHandler; }
 
-		inline void* GetPluginHandler() { return pluginHandler_; }
-
-		inline void Update(const float dt);
+		void Update(const float dt);
 
 		inline void AddEntity(const Entity entity);
 
