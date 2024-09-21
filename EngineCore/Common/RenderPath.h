@@ -41,7 +41,7 @@ namespace vz
 
 		virtual void DeleteGPUResources() = 0;
 		virtual void ResizeResources() = 0;
-		virtual void Update() const = 0;
-		virtual void Render() const = 0;
+		virtual void Update(const float dt) = 0;
+		virtual void Render() = 0;
 	};
 }

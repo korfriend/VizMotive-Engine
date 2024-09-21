@@ -1,7 +1,10 @@
 #include "Components.h"
 #include "Utils/Backlog.h"
 #include "Utils/ECS.h"
+#include "Utils/JobSystem.h"
 #include "Common/Archive.h"
+#include "Common/Backend/GBackend.h"
+#include "Common/Backend/GBackendDevice.h"
 
 #include <cstdint>
 #include <atomic>
@@ -56,8 +59,34 @@ namespace vz
 		}
 	}
 }
+
 namespace vz
 {
+	class GScene
+	{
+		inline static const std::string GScene_INTERFACE_VERSION = "20240921";
+		// this will be a component of vz::Scene
+	protected:
+		Scene* scene_ = nullptr;
+	public:
+		GScene(Scene* scene) : scene_(scene) {}
+		~GScene() { Destory(); }
+
+		virtual bool Update(const float dt) = 0;
+		virtual bool Destory() = 0;
+	};
+
+	Scene::Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name)
+	{
+
+	}
+
+	void Scene::Update(const float dt)
+	{
+		dt_ += dt;
+
+		// to do .. if required for Scene-alone process wo/ GPU processing
+	}
 
 	void Scene::AddEntity(const Entity entity)
 	{
