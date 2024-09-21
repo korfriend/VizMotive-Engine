@@ -15,15 +15,11 @@
 #include <unordered_map>
 #include <string>
 
-#if WINAPI_FAMILY == WINAPI_FAMILY_GAMES
-#define PLATFORM_XBOX
-#else
+#if WINAPI_FAMILY
 #define PLATFORM_WINDOWS_DESKTOP
 #endif // WINAPI_FAMILY_GAMES
 #define vzLoadLibrary(name) LoadLibraryA(name)
 #define vzGetProcAddress(handle,name) GetProcAddress(handle, name)
-#elif defined(__SCE__)
-#define PLATFORM_PS5
 #else
 #define PLATFORM_LINUX
 #include <dlfcn.h>
