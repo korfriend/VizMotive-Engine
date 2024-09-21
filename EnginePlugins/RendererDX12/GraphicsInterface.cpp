@@ -16,7 +16,7 @@ namespace vz::graphics
 		return graphicsDevice.get() != nullptr;
 	}
 
-	bool Deinitialize()
+	void Deinitialize()
 	{
 		graphicsDevice.reset();
 	}

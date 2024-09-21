@@ -11,6 +11,463 @@
 #include <memory>
 #include <limits>
 
+// ... 
+		// 1. legacy-style raster graphics via VS, GS, PS, ...
+		// 2. mesh-shader... replace...
+
+RenderPath2D::Update(dt);
+
+float update_speed = 0;
+
+scene->Update(update_speed);
+
+// Frustum culling for main camera:
+visibility_main.layerMask = getLayerMask();
+visibility_main.scene = scene;
+visibility_main.camera = camera;
+visibility_main.flags = wi::renderer::Visibility::ALLOW_EVERYTHING;
+if (!getOcclusionCullingEnabled())
+{
+	visibility_main.flags &= ~wi::renderer::Visibility::ALLOW_OCCLUSION_CULLING;
+}
+wi::renderer::UpdateVisibility(visibility_main);
+
+if (visibility_main.planar_reflection_visible)
+{
+	// Frustum culling for planar reflections:
+	camera_reflection = *camera;
+	camera_reflection.jitter = XMFLOAT2(0, 0);
+	camera_reflection.Reflect(visibility_main.reflectionPlane);
+	visibility_reflection.layerMask = getLayerMask();
+	visibility_reflection.scene = scene;
+	visibility_reflection.camera = &camera_reflection;
+	visibility_reflection.flags =
+		wi::renderer::Visibility::ALLOW_OBJECTS |
+		wi::renderer::Visibility::ALLOW_EMITTERS |
+		wi::renderer::Visibility::ALLOW_HAIRS |
+		wi::renderer::Visibility::ALLOW_LIGHTS
+		;
+	wi::renderer::UpdateVisibility(visibility_reflection);
+}
+
+XMUINT2 internalResolution = GetInternalResolution();
+
+wi::renderer::UpdatePerFrameData(
+	*scene,
+	visibility_main,
+	frameCB,
+	getSceneUpdateEnabled() ? dt : 0
+);
+
+if (getFSR2Enabled())
+{
+	camera->jitter = fsr2Resources.GetJitter();
+	camera_reflection.jitter.x = camera->jitter.x * 2;
+	camera_reflection.jitter.y = camera->jitter.x * 2;
+}
+else if (wi::renderer::GetTemporalAAEnabled())
+{
+	const XMFLOAT4& halton = wi::math::GetHaltonSequence(wi::graphics::GetDevice()->GetFrameCount() % 256);
+	camera->jitter.x = (halton.x * 2 - 1) / (float)internalResolution.x;
+	camera->jitter.y = (halton.y * 2 - 1) / (float)internalResolution.y;
+	camera_reflection.jitter.x = camera->jitter.x * 2;
+	camera_reflection.jitter.y = camera->jitter.x * 2;
+	if (!temporalAAResources.IsValid())
+	{
+		wi::renderer::CreateTemporalAAResources(temporalAAResources, internalResolution);
+	}
+}
+else
+{
+	camera->jitter = XMFLOAT2(0, 0);
+	camera_reflection.jitter = XMFLOAT2(0, 0);
+	temporalAAResources = {};
+}
+
+camera->UpdateCamera();
+if (visibility_main.planar_reflection_visible)
+{
+	camera_reflection.UpdateCamera();
+}
+
+if (getAO() != AO_RTAO)
+{
+	rtaoResources.frame = 0;
+}
+if (!wi::renderer::GetRaytracedShadowsEnabled())
+{
+	rtshadowResources.frame = 0;
+}
+if (!getSSREnabled() && !getRaytracedReflectionEnabled())
+{
+	rtSSR = {};
+}
+if (!getSSGIEnabled())
+{
+	rtSSGI = {};
+}
+if (!getRaytracedDiffuseEnabled())
+{
+	rtRaytracedDiffuse = {};
+}
+if (getAO() == AO_DISABLED)
+{
+	rtAO = {};
+}
+
+if (wi::renderer::GetRaytracedShadowsEnabled() && device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+{
+	if (!rtshadowResources.denoised.IsValid())
+	{
+		wi::renderer::CreateRTShadowResources(rtshadowResources, internalResolution);
+	}
+}
+else
+{
+	rtshadowResources = {};
+}
+
+if (scene->weather.IsRealisticSky() && scene->weather.IsRealisticSkyAerialPerspective())
+{
+	if (!aerialperspectiveResources.texture_output.IsValid())
+	{
+		wi::renderer::CreateAerialPerspectiveResources(aerialperspectiveResources, internalResolution);
+	}
+	if (getReflectionsEnabled() && depthBuffer_Reflection.IsValid())
+	{
+		if (!aerialperspectiveResources_reflection.texture_output.IsValid())
+		{
+			wi::renderer::CreateAerialPerspectiveResources(aerialperspectiveResources_reflection, XMUINT2(depthBuffer_Reflection.desc.width, depthBuffer_Reflection.desc.height));
+		}
+	}
+	else
+	{
+		aerialperspectiveResources_reflection = {};
+	}
+}
+else
+{
+	aerialperspectiveResources = {};
+}
+
+if (scene->weather.IsVolumetricClouds())
+{
+	if (!volumetriccloudResources.texture_cloudRender.IsValid())
+	{
+		wi::renderer::CreateVolumetricCloudResources(volumetriccloudResources, internalResolution);
+	}
+	if (getReflectionsEnabled() && depthBuffer_Reflection.IsValid())
+	{
+		if (!volumetriccloudResources_reflection.texture_cloudRender.IsValid())
+		{
+			wi::renderer::CreateVolumetricCloudResources(volumetriccloudResources_reflection, XMUINT2(depthBuffer_Reflection.desc.width, depthBuffer_Reflection.desc.height));
+		}
+	}
+	else
+	{
+		volumetriccloudResources_reflection = {};
+	}
+}
+else
+{
+	volumetriccloudResources = {};
+}
+
+if (!scene->waterRipples.empty())
+{
+	if (!rtWaterRipple.IsValid())
+	{
+		TextureDesc desc;
+		desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
+		desc.format = Format::R16G16_FLOAT;
+		desc.width = internalResolution.x / 8;
+		desc.height = internalResolution.y / 8;
+		assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtParticleDistortion.desc)); // aliasing check
+		device->CreateTexture(&desc, nullptr, &rtWaterRipple, &rtParticleDistortion); // aliased!
+		device->SetName(&rtWaterRipple, "rtWaterRipple");
+	}
+}
+else
+{
+	rtWaterRipple = {};
+}
+
+if (wi::renderer::GetSurfelGIEnabled())
+{
+	if (!surfelGIResources.result.IsValid())
+	{
+		wi::renderer::CreateSurfelGIResources(surfelGIResources, internalResolution);
+	}
+}
+
+if (wi::renderer::GetVXGIEnabled())
+{
+	if (!vxgiResources.IsValid())
+	{
+		wi::renderer::CreateVXGIResources(vxgiResources, internalResolution);
+	}
+}
+else
+{
+	vxgiResources = {};
+}
+
+// Check whether reprojected depth is required:
+if (!first_frame && wi::renderer::IsMeshShaderAllowed() && wi::renderer::IsMeshletOcclusionCullingEnabled())
+{
+	TextureDesc desc;
+	desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+	desc.format = Format::R16_UNORM;
+	desc.width = internalResolution.x;
+	desc.height = internalResolution.y;
+	desc.mip_levels = GetMipCount(desc.width, desc.height, 1, 4);
+	desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+	device->CreateTexture(&desc, nullptr, &reprojectedDepth);
+	device->SetName(&reprojectedDepth, "reprojectedDepth");
+
+	for (uint32_t i = 0; i < reprojectedDepth.desc.mip_levels; ++i)
+	{
+		int subresource_index;
+		subresource_index = device->CreateSubresource(&reprojectedDepth, SubresourceType::SRV, 0, 1, i, 1);
+		assert(subresource_index == i);
+		subresource_index = device->CreateSubresource(&reprojectedDepth, SubresourceType::UAV, 0, 1, i, 1);
+		assert(subresource_index == i);
+	}
+}
+else
+{
+	reprojectedDepth = {};
+}
+
+// Check whether velocity buffer is required:
+if (
+	getMotionBlurEnabled() ||
+	wi::renderer::GetTemporalAAEnabled() ||
+	getSSREnabled() ||
+	getSSGIEnabled() ||
+	getRaytracedReflectionEnabled() ||
+	getRaytracedDiffuseEnabled() ||
+	wi::renderer::GetRaytracedShadowsEnabled() ||
+	getAO() == AO::AO_RTAO ||
+	wi::renderer::GetVariableRateShadingClassification() ||
+	getFSR2Enabled() ||
+	reprojectedDepth.IsValid()
+	)
+{
+	if (!rtVelocity.IsValid())
+	{
+		TextureDesc desc;
+		desc.format = Format::R16G16_FLOAT;
+		desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS | BindFlag::RENDER_TARGET;
+		desc.width = internalResolution.x;
+		desc.height = internalResolution.y;
+		desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+		device->CreateTexture(&desc, nullptr, &rtVelocity);
+		device->SetName(&rtVelocity, "rtVelocity");
+	}
+}
+else
+{
+	rtVelocity = {};
+}
+
+// Check whether shadow mask is required:
+if (wi::renderer::GetScreenSpaceShadowsEnabled() || wi::renderer::GetRaytracedShadowsEnabled())
+{
+	if (!rtShadow.IsValid())
+	{
+		TextureDesc desc;
+		desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+		desc.format = Format::R8_UNORM;
+		desc.array_size = 16;
+		desc.width = internalResolution.x;
+		desc.height = internalResolution.y;
+		desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+		device->CreateTexture(&desc, nullptr, &rtShadow);
+		device->SetName(&rtShadow, "rtShadow");
+	}
+}
+else
+{
+	rtShadow = {};
+}
+
+if (getFSR2Enabled())
+{
+	// FSR2 also acts as a temporal AA, so we inform the shaders about it here
+	//	This will allow improved stochastic alpha test transparency
+	frameCB.options |= OPTION_BIT_TEMPORALAA_ENABLED;
+	uint x = frameCB.frame_count % 4;
+	uint y = frameCB.frame_count / 4;
+	frameCB.temporalaa_samplerotation = (x & 0x000000FF) | ((y & 0x000000FF) << 8);
+}
+
+// Check whether visibility resources are required:
+if (
+	visibility_shading_in_compute ||
+	getSSREnabled() ||
+	getSSGIEnabled() ||
+	getRaytracedReflectionEnabled() ||
+	getRaytracedDiffuseEnabled() ||
+	wi::renderer::GetScreenSpaceShadowsEnabled() ||
+	wi::renderer::GetRaytracedShadowsEnabled() ||
+	wi::renderer::GetVXGIEnabled()
+	)
+{
+	if (!visibilityResources.IsValid())
+	{
+		wi::renderer::CreateVisibilityResources(visibilityResources, internalResolution);
+	}
+}
+else
+{
+	visibilityResources = {};
+}
+
+// Check for depth of field allocation:
+if (getDepthOfFieldEnabled() &&
+	getDepthOfFieldStrength() > 0 &&
+	camera->aperture_size > 0
+	)
+{
+	if (!depthoffieldResources.IsValid())
+	{
+		XMUINT2 resolution = GetInternalResolution();
+		if (getFSR2Enabled())
+		{
+			resolution = XMUINT2(GetPhysicalWidth(), GetPhysicalHeight());
+		}
+		wi::renderer::CreateDepthOfFieldResources(depthoffieldResources, resolution);
+	}
+}
+else
+{
+	depthoffieldResources = {};
+}
+
+// Check for motion blur allocation:
+if (getMotionBlurEnabled() && getMotionBlurStrength() > 0)
+{
+	if (!motionblurResources.IsValid())
+	{
+		XMUINT2 resolution = GetInternalResolution();
+		if (getFSR2Enabled())
+		{
+			resolution = XMUINT2(GetPhysicalWidth(), GetPhysicalHeight());
+		}
+		wi::renderer::CreateMotionBlurResources(motionblurResources, resolution);
+	}
+}
+else
+{
+	motionblurResources = {};
+}
+
+// Keep a copy of last frame's depth buffer for temporal disocclusion checks, so swap with current one every frame:
+std::swap(depthBuffer_Copy, depthBuffer_Copy1);
+
+visibilityResources.depthbuffer = &depthBuffer_Copy;
+visibilityResources.lineardepth = &rtLinearDepth;
+if (getMSAASampleCount() > 1)
+{
+	visibilityResources.primitiveID_resolved = &rtPrimitiveID;
+}
+else
+{
+	visibilityResources.primitiveID_resolved = nullptr;
+}
+
+camera->canvas.init(*this);
+camera->width = (float)internalResolution.x;
+camera->height = (float)internalResolution.y;
+camera->scissor = GetScissorInternalResolution();
+camera->sample_count = depthBuffer_Main.desc.sample_count;
+camera->shadercamera_options = SHADERCAMERA_OPTION_NONE;
+camera->texture_primitiveID_index = device->GetDescriptorIndex(&rtPrimitiveID, SubresourceType::SRV);
+camera->texture_depth_index = device->GetDescriptorIndex(&depthBuffer_Copy, SubresourceType::SRV);
+camera->texture_lineardepth_index = device->GetDescriptorIndex(&rtLinearDepth, SubresourceType::SRV);
+camera->texture_velocity_index = device->GetDescriptorIndex(&rtVelocity, SubresourceType::SRV);
+camera->texture_normal_index = device->GetDescriptorIndex(&visibilityResources.texture_normals, SubresourceType::SRV);
+camera->texture_roughness_index = device->GetDescriptorIndex(&visibilityResources.texture_roughness, SubresourceType::SRV);
+camera->buffer_entitytiles_index = device->GetDescriptorIndex(&tiledLightResources.entityTiles, SubresourceType::SRV);
+camera->texture_reflection_index = device->GetDescriptorIndex(&rtReflection, SubresourceType::SRV);
+camera->texture_reflection_depth_index = device->GetDescriptorIndex(&depthBuffer_Reflection, SubresourceType::SRV);
+camera->texture_refraction_index = device->GetDescriptorIndex(&rtSceneCopy, SubresourceType::SRV);
+camera->texture_waterriples_index = device->GetDescriptorIndex(&rtWaterRipple, SubresourceType::SRV);
+camera->texture_ao_index = device->GetDescriptorIndex(&rtAO, SubresourceType::SRV);
+camera->texture_ssr_index = device->GetDescriptorIndex(&rtSSR, SubresourceType::SRV);
+camera->texture_ssgi_index = device->GetDescriptorIndex(&rtSSGI, SubresourceType::SRV);
+if (rtShadow.IsValid())
+{
+	camera->shadercamera_options |= SHADERCAMERA_OPTION_USE_SHADOW_MASK;
+	camera->texture_rtshadow_index = device->GetDescriptorIndex(&rtShadow, SubresourceType::SRV);
+}
+else
+{
+	camera->texture_rtshadow_index = device->GetDescriptorIndex(wi::texturehelper::getWhite(), SubresourceType::SRV); // AMD descriptor branching fix
+}
+camera->texture_rtdiffuse_index = device->GetDescriptorIndex(&rtRaytracedDiffuse, SubresourceType::SRV);
+camera->texture_surfelgi_index = device->GetDescriptorIndex(&surfelGIResources.result, SubresourceType::SRV);
+camera->texture_vxgi_diffuse_index = device->GetDescriptorIndex(&vxgiResources.diffuse, SubresourceType::SRV);
+if (wi::renderer::GetVXGIReflectionsEnabled())
+{
+	camera->texture_vxgi_specular_index = device->GetDescriptorIndex(&vxgiResources.specular, SubresourceType::SRV);
+}
+else
+{
+	camera->texture_vxgi_specular_index = -1;
+}
+camera->texture_reprojected_depth_index = device->GetDescriptorIndex(&reprojectedDepth, SubresourceType::SRV);
+
+camera_reflection.canvas.init(*this);
+camera_reflection.width = (float)depthBuffer_Reflection.desc.width;
+camera_reflection.height = (float)depthBuffer_Reflection.desc.height;
+camera_reflection.scissor.left = 0;
+camera_reflection.scissor.top = 0;
+camera_reflection.scissor.right = (int)depthBuffer_Reflection.desc.width;
+camera_reflection.scissor.bottom = (int)depthBuffer_Reflection.desc.height;
+camera_reflection.sample_count = depthBuffer_Reflection.desc.sample_count;
+camera_reflection.shadercamera_options = SHADERCAMERA_OPTION_NONE;
+camera_reflection.texture_primitiveID_index = -1;
+camera_reflection.texture_depth_index = device->GetDescriptorIndex(&depthBuffer_Reflection, SubresourceType::SRV);
+camera_reflection.texture_lineardepth_index = -1;
+camera_reflection.texture_velocity_index = -1;
+camera_reflection.texture_normal_index = -1;
+camera_reflection.texture_roughness_index = -1;
+camera_reflection.buffer_entitytiles_index = device->GetDescriptorIndex(&tiledLightResources_planarReflection.entityTiles, SubresourceType::SRV);
+camera_reflection.texture_reflection_index = -1;
+camera_reflection.texture_reflection_depth_index = -1;
+camera_reflection.texture_refraction_index = -1;
+camera_reflection.texture_waterriples_index = -1;
+camera_reflection.texture_ao_index = -1;
+camera_reflection.texture_ssr_index = -1;
+camera_reflection.texture_ssgi_index = -1;
+camera_reflection.texture_rtshadow_index = device->GetDescriptorIndex(wi::texturehelper::getWhite(), SubresourceType::SRV); // AMD descriptor branching fix
+camera_reflection.texture_rtdiffuse_index = -1;
+camera_reflection.texture_surfelgi_index = -1;
+camera_reflection.texture_vxgi_diffuse_index = -1;
+camera_reflection.texture_vxgi_specular_index = -1;
+camera_reflection.texture_reprojected_depth_index = -1;
+
+video_cmd = {};
+if (getSceneUpdateEnabled() && scene->videos.GetCount() > 0)
+{
+	for (size_t i = 0; i < scene->videos.GetCount(); ++i)
+	{
+		const wi::scene::VideoComponent& video = scene->videos[i];
+		if (wi::video::IsDecodingRequired(&video.videoinstance, dt))
+		{
+			video_cmd = device->BeginCommandList(QUEUE_VIDEO_DECODE);
+			break;
+		}
+	}
+	for (size_t i = 0; i < scene->videos.GetCount(); ++i)
+	{
+		wi::scene::VideoComponent& video = scene->videos[i];
+		wi::video::UpdateVideo(&video.videoinstance, dt, video_cmd);
+	}
+}
+
 namespace vz::enums {
 	// engine stencil reference values. These can be in range of [0, 15].
 	// Do not alter order or value because it is bound to lua manually!

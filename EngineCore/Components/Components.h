@@ -16,6 +16,7 @@
 #define CORE_EXPORT __attribute__((visibility("default")))
 #endif
 
+using GpuHandler = uint32_t;
 using Entity = uint32_t;
 using VUID = uint64_t;
 inline constexpr Entity INVALID_ENTITY = 0;
@@ -64,14 +65,10 @@ namespace vz
 		inline static Scene* GetFirstSceneByName(const std::string& name);
 		inline static Scene* GetSceneIncludingEntity(const Entity entity);
 		inline static Scene* CreateScene(const std::string& name, const Entity entity = 0);
-		inline static void RemoveEntityForScenes(const Entity entity);
+		inline static void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
 
-	private:
+	protected:
 		std::string name_;
-
-		// Non-serialized attributes:
-		Entity entity_ = INVALID_ENTITY;
-		TimeStamp recentRenderTime_ = TimerMin;	// world update time
 
 		// Instead of Entity, VUID is stored by serialization
 		std::vector<Entity> renderables_;
@@ -79,10 +76,25 @@ namespace vz
 		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
 		std::unordered_map<Entity, size_t> lookupLights_;
 
+		// Non-serialized attributes:
+		Entity entity_ = INVALID_ENTITY;
+		TimeStamp recentRenderTime_ = TimerMin;	// world update time
+
+		// instant parameters during render-process
+		float dt_ = 0.f;
+
+		void* pluginHandler_ = nullptr;
+
 	public:
-		Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name) {}
+		Scene(const Entity entity, const std::string& name);
 
 		std::string GetName() { return name_; }
+		
+		inline void SetPluginHandler(void* pluginHandler) { pluginHandler_ = pluginHandler; }
+
+		inline void* GetPluginHandler() { return pluginHandler_; }
+
+		inline void Update(const float dt);
 
 		inline void AddEntity(const Entity entity);
 
@@ -345,7 +357,7 @@ namespace vz
 			enums::PrimitiveType ptype_ = enums::PrimitiveType::TRIANGLES;
 		public:
 			bool IsValid() const { for (size_t i = 0; i < numBuffers_; ++i) { if (!isValid_[i]) return false; } return true; }
-			void MoveFrom(const Primitive& primitive)
+			void MoveFrom(Primitive& primitive)
 			{
 				vertexPositions_ = std::move(primitive.vertexPositions_);
 				vertexNormals_ = std::move(primitive.vertexNormals_);
@@ -403,9 +415,9 @@ namespace vz
 		bool IsDirty() { return isDirty_; }
 		geometry::AABB GetAABB() { return aabb_; }
 		void AssignParts(const size_t numParts) { parts_.assign(numParts, Primitive()); }
-		void MovePrimitives(const std::vector<Primitive>& primitives);
+		void MovePrimitives(std::vector<Primitive>& primitives);
 		void CopyPrimitives(const std::vector<Primitive>& primitives);
-		void MovePrimitive(const Primitive& primitive, const size_t slot);
+		void MovePrimitive(Primitive& primitive, const size_t slot);
 		void CopyPrimitive(const Primitive& primitive, const size_t slot);
 		bool GetPrimitive(const size_t slot, Primitive& primitive);
 		size_t GetNumParts() { return parts_.size(); }
@@ -547,12 +559,17 @@ namespace vz
 	};
 }
 
+namespace vz::vuid
+{
+
+}
+
 // component factory
 namespace vz::compfactory
 {
 	// here, inlining is actually applied only when building the same object file
 	// calling in other built object files ignores the inlining
-	
+
 	// VUID Manager
 	extern "C" CORE_EXPORT inline ComponentBase* GetComponentByVUID(const VUID vuid);
 	extern "C" CORE_EXPORT inline Entity GetEntityByVUID(const VUID vuid);

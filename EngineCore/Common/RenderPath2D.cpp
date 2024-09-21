@@ -34,11 +34,11 @@ namespace vz
 		}
 	}
 
-	void RenderPath2D::Update() const
+	void RenderPath2D::Update(const float dt)
 	{
 		// to do
 	}
-	void RenderPath2D::Render() const
+	void RenderPath2D::Render()
 	{
 		// to do
 	}

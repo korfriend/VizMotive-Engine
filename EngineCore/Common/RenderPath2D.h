@@ -13,6 +13,7 @@ namespace vz
 	protected:
 		graphics::Texture rtRender2D_;
 
+		uint32_t msaaSampleCount_ = 1;
 	public:
 		RenderPath2D(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
 			: RenderPath(entity, graphicsDevice) {}
@@ -23,8 +24,8 @@ namespace vz
 
 		void DeleteGPUResources() override;
 		void ResizeResources() override;
-		void Update() const override;
-		void Render() const override;
+		void Update(const float dt) override;
+		void Render() override;
 	};
 
 }

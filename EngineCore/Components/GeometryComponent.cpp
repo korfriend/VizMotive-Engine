@@ -3,7 +3,7 @@
 
 namespace vz
 {
-	void GeometryComponent::MovePrimitives(const std::vector<Primitive>& primitives)
+	void GeometryComponent::MovePrimitives(std::vector<Primitive>& primitives)
 	{
 		parts_.assign(primitives.size(), Primitive());
 		for (size_t i = 0, n = primitives.size(); i < n; ++i)
@@ -20,7 +20,7 @@ namespace vz
 		updateAABB();
 		isDirty_ = true;
 	}
-	void GeometryComponent::MovePrimitive(const Primitive& primitive, const size_t slot)
+	void GeometryComponent::MovePrimitive(Primitive& primitive, const size_t slot)
 	{
 		if (slot >= parts_.size()) {
 			backlog::post("slot is over # of parts!", backlog::LogLevel::Error);
