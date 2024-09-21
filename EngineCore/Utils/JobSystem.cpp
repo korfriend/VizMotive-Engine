@@ -289,8 +289,6 @@ namespace vz::jobsystem
 				}
 
 #undef handle_error_en
-#elif defined(PLATFORM_PS5)
-				vz::jobsystem::ps5::SetupWorker(worker, threadID);
 #endif // _WIN32
 			}
 		}
