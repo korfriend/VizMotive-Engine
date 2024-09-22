@@ -121,6 +121,23 @@ namespace vz::compfactory
 		return cameraManager.GetComponent(entity);
 	}
 
+#define GET_COMPONENTS(T, TM) comps.clear(); size_t n = entities.size(); comps.reserve(n); \
+	for (size_t i = 0; i < n; ++i) { T* comp = TM.GetComponent(entities[i]); assert(comp); comps.push_back(comp); } \
+	return comps.size();
+
+	size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps)
+	{
+		GET_COMPONENTS(TransformComponent, transformManager);
+	}
+	size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps)
+	{
+		GET_COMPONENTS(HierarchyComponent, hierarchyManager);
+	}
+	size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps)
+	{
+		GET_COMPONENTS(LightComponent, lightManager);
+	}
+
 	bool ContainNameComponent(const Entity entity)
 	{
 		return nameManager.Contains(entity);
