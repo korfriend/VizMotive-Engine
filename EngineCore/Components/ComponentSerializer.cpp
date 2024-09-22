@@ -220,12 +220,14 @@ namespace vz
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 
 			archive >> color_;
+			archive >> range_;
 		}
 		else
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
 			archive << color_;
+			archive << range_;
 		}
 	}
 

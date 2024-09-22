@@ -98,9 +98,9 @@ namespace vz
 	public:
 		Scene(const Entity entity, const std::string& name);
 
-		std::string GetName() { return name_; }
+		inline std::string GetName() { return name_; }
 
-		void Update(const float dt);
+		inline void Update(const float dt);
 
 		inline void AddEntity(const Entity entity);
 
@@ -227,11 +227,11 @@ namespace vz
 		// The local matrix can be computed from local scale, rotation, translation 
 		//	- by calling UpdateMatrix()
 		//	- or by isDirty_ := false and letting the TransformUpdateSystem handle the updating
-		XMFLOAT4X4 local_ = vz::math::IDENTITY_MATRIX;
+		XMFLOAT4X4 local_ = math::IDENTITY_MATRIX;
 
 		// check timeStampWorldUpdate_ and global timeStamp
 		TimeStamp timeStampWorldUpdate_ = TimerMin;
-		XMFLOAT4X4 world_ = vz::math::IDENTITY_MATRIX;
+		XMFLOAT4X4 world_ = math::IDENTITY_MATRIX;
 
 	public:
 		TransformComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TRANSFORM, entity, vuid) {}
@@ -478,6 +478,7 @@ namespace vz
 		enums::LightType type_ = enums::LightType::DIRECTIONAL;
 
 		XMFLOAT3 color_ = XMFLOAT3(1, 1, 1);
+		float range_ = 10.0f;
 
 		// note there will be added many attributes to describe the light properties with various lighting techniques
 		// refer to filament engine's lightManager and wicked engine's lightComponent
@@ -485,9 +486,24 @@ namespace vz
 		LightComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LIGHT, entity, vuid) {}
 
 		// Non-serialized attributes:
-		XMFLOAT4X4 matWorld;
+		// if there is no transformComponent, then use these attributes directly
+		// unless, these attributes will be automatically updated during the scene update
+		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
+		XMFLOAT3 direction = XMFLOAT3(0, 1, 0);
+		XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);
+		XMFLOAT3 scale = XMFLOAT3(1, 1, 1);
+		mutable int occlusionquery = -1;
 		
-		void SetLightColor(XMFLOAT3 color) { color_ = color; }
+		inline void SetLightColor(XMFLOAT3 color) { color_ = color; }
+		inline void SetRange(const float range) { range_ = range; }
+		inline float GetRange() const
+		{
+			float retval = range_;
+			retval = std::max(0.001f, retval);
+			retval = std::min(retval, 65504.0f); // clamp to 16-bit float max value
+			return retval;
+		}
+		inline enums::LightType GetLightType() { return type_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -581,32 +597,36 @@ namespace vz::compfactory
 	extern "C" CORE_EXPORT inline Entity GetEntityByVUID(const VUID vuid);
 
 	// Component Manager
-	extern "C" CORE_EXPORT NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
-	extern "C" CORE_EXPORT TransformComponent* CreateTransformComponent(const Entity entity);
-	extern "C" CORE_EXPORT HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
-	extern "C" CORE_EXPORT MaterialComponent* CreateMaterialComponent(const Entity entity);
-	extern "C" CORE_EXPORT GeometryComponent* CreateGeometryComponent(const Entity entity);
-	extern "C" CORE_EXPORT LightComponent* CreateLightComponent(const Entity entity);
-	extern "C" CORE_EXPORT CameraComponent* CreateCameraComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
+	extern "C" CORE_EXPORT inline TransformComponent* CreateTransformComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
+	extern "C" CORE_EXPORT inline MaterialComponent* CreateMaterialComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline GeometryComponent* CreateGeometryComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline LightComponent* CreateLightComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline CameraComponent* CreateCameraComponent(const Entity entity);
 
-	extern "C" CORE_EXPORT NameComponent* GetNameComponent(const Entity entity);
-	extern "C" CORE_EXPORT TransformComponent* GetTransformComponent(const Entity entity);
-	extern "C" CORE_EXPORT HierarchyComponent* GetHierarchyComponent(const Entity entity);
-	extern "C" CORE_EXPORT MaterialComponent* GetMaterialComponent(const Entity entity);
-	extern "C" CORE_EXPORT GeometryComponent* GetGeometryComponent(const Entity entity);
-	extern "C" CORE_EXPORT RenderableComponent* GetRenderableComponent(const Entity entity);
-	extern "C" CORE_EXPORT LightComponent* GetLightComponent(const Entity entity);
-	extern "C" CORE_EXPORT CameraComponent* GetCameraComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline NameComponent* GetNameComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline TransformComponent* GetTransformComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline HierarchyComponent* GetHierarchyComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline MaterialComponent* GetMaterialComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline GeometryComponent* GetGeometryComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline RenderableComponent* GetRenderableComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline LightComponent* GetLightComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline CameraComponent* GetCameraComponent(const Entity entity);
 
-	extern "C" CORE_EXPORT bool ContainNameComponent(const Entity entity);
-	extern "C" CORE_EXPORT bool ContainTransformComponent(const Entity entity);
-	extern "C" CORE_EXPORT bool ContainHierarchyComponent(const Entity entity);
-	extern "C" CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
-	extern "C" CORE_EXPORT bool ContainGeometryComponent(const Entity entity);
-	extern "C" CORE_EXPORT bool ContainRenderableComponent(const Entity entity);
-	extern "C" CORE_EXPORT bool ContainLightComponent(const Entity entity);
-	extern "C" CORE_EXPORT bool ContainCameraComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
+	extern "C" CORE_EXPORT inline size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
+	extern "C" CORE_EXPORT inline size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps);
 
-	extern "C" CORE_EXPORT size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
-	extern "C" CORE_EXPORT size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
+	extern "C" CORE_EXPORT inline bool ContainNameComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline bool ContainTransformComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline bool ContainHierarchyComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline bool ContainMaterialComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline bool ContainGeometryComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline bool ContainRenderableComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline bool ContainLightComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline bool ContainCameraComponent(const Entity entity);
+
+	extern "C" CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
+	extern "C" CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
 }
