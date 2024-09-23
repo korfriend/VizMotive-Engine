@@ -453,8 +453,8 @@ namespace vz
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
-		// Non-serialized attributes: (those variables are supposed to be updated via transformers)
-		XMFLOAT4X4 matWorld;
+		// Non-serialized attributes: (these variables are supposed to be updated via transformers)
+		XMFLOAT4X4 matWorld = math::IDENTITY_MATRIX;;
 
 		bool IsValid() { return isValid_; }
 		void SetGeometry(const Entity geometryEntity);
@@ -480,6 +480,11 @@ namespace vz
 		XMFLOAT3 color_ = XMFLOAT3(1, 1, 1);
 		float range_ = 10.0f;
 
+		// Non-serialized attributes:
+		bool isDirty_ = true;
+
+		geometry::AABB aabb_;
+
 		// note there will be added many attributes to describe the light properties with various lighting techniques
 		// refer to filament engine's lightManager and wicked engine's lightComponent
 	public:
@@ -488,14 +493,17 @@ namespace vz
 		// Non-serialized attributes:
 		// if there is no transformComponent, then use these attributes directly
 		// unless, these attributes will be automatically updated during the scene update
+		mutable int occlusionquery = -1;
+
+		// Non-serialized attributes: (these variables are supposed to be updated via transformers)
 		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
 		XMFLOAT3 direction = XMFLOAT3(0, 1, 0);
 		XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);
 		XMFLOAT3 scale = XMFLOAT3(1, 1, 1);
-		mutable int occlusionquery = -1;
 		
-		inline void SetLightColor(XMFLOAT3 color) { color_ = color; }
-		inline void SetRange(const float range) { range_ = range; }
+		inline bool IsDirty() const { return isDirty_; }
+		inline void SetLightColor(XMFLOAT3 color) { color_ = color; timeStampSetter_ = TimerNow; }
+		inline void SetRange(const float range) { range_ = range; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline float GetRange() const
 		{
 			float retval = range_;
@@ -503,9 +511,13 @@ namespace vz
 			retval = std::min(retval, 65504.0f); // clamp to 16-bit float max value
 			return retval;
 		}
-		inline enums::LightType GetLightType() { return type_; }
+		geometry::AABB GetAABB() const { return aabb_; }
+		inline enums::LightType GetLightType() const { return type_; }
+		inline void SetLightType(enums::LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
 
-		void Serialize(vz::Archive& archive, const uint64_t version) override;
+		inline void Update();	// if there is a transform entity, make sure the transform is updated!
+
+		inline void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::LIGHT;
 	};
