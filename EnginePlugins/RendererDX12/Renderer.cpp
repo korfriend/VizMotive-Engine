@@ -15,6 +15,10 @@ namespace vz::graphics
 
 		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
 
+
+		//graphics::GPUBuffer....
+		//graphics::Texture....
+
 		bool Update(const float dt) override;
 		bool Destory() override;
 	};

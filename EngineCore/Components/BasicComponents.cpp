@@ -257,6 +257,53 @@ namespace vz
 
 namespace vz
 {
+	inline void LightComponent::Update()
+	{
+		TransformComponent* transform = compfactory::GetTransformComponent(entity_);
+		XMMATRIX W;
+		if (transform != nullptr)
+		{
+			// note the transform must be updated!!
+			XMFLOAT4X4 mat44 = transform->GetWorldMatrix();
+			W = XMLoadFloat4x4(&mat44);
+		}
+		else
+		{
+			W = XMLoadFloat4x4(&vz::math::IDENTITY_MATRIX);
+		}
+		XMVECTOR S, R, T;
+		XMMatrixDecompose(&S, &R, &T, W);
+		XMStoreFloat3(&position, T);
+		XMStoreFloat4(&rotation, R);
+		XMStoreFloat3(&scale, S);
+		XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W)));
+
+		occlusionquery = -1;	// TODO
+
+		switch (type_)
+		{
+		default:
+		case enums::LightType::DIRECTIONAL:
+			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W)));
+			aabb_.createFromHalfWidth(XMFLOAT3(0, 0, 0), XMFLOAT3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()));
+			break;
+		case enums::LightType::SPOT:
+			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W)));
+			aabb_.createFromHalfWidth(position, XMFLOAT3(range_, range_, range_));
+			break;
+		case enums::LightType::POINT:
+			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(1, 0, 0, 0), W)));
+			aabb_.createFromHalfWidth(position, XMFLOAT3(range_, range_, range_));
+			break;
+		}
+
+		isDirty_ = false;
+		timeStampSetter_ = TimerNow;
+	}
+}
+
+namespace vz
+{
 	bool CameraComponent::SetWorldLookAtFromHierarchyTransforms()
 	{
 		TransformComponent* tr_comp = compfactory::GetTransformComponent(entity_);
