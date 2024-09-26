@@ -145,13 +145,13 @@
     <ClInclude Include="D3D12MemAlloc.h" />
     <ClInclude Include="GraphicsInterface.h" />
     <ClInclude Include="GraphicsDevice_DX12.h" />
-    <ClInclude Include="Renderer.h" />
     <ClInclude Include="Shaders\ShaderInterop.h" />
-    <ClInclude Include="Shaders\ShaderInterop_Renderer.h" />
-    <ClInclude Include="Shaders\ShaderInterop_Terrain.h" />
-    <ClInclude Include="Shaders\ShaderInterop_VoxelGrid.h" />
-    <ClInclude Include="Shaders\ShaderInterop_VXGI.h" />
-    <ClInclude Include="Shaders\ShaderInterop_Weather.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\ColorSpaceUtility.hlsli" />
+    <None Include="Shaders\Globals.hlsli" />
+    <None Include="Shaders\PixelPacking_R11G11B10.hlsli" />
+    <None Include="Shaders\PixelPacking_RGBE.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

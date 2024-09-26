@@ -54,7 +54,6 @@ namespace vz::graphics
 	extern "C" DX12_EXPORT GraphicsDevice* GetGraphicsDevice();
 	extern "C" DX12_EXPORT void Deinitialize();
 
-
 	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene);
 	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(RenderPath3D* renderPath);
 }

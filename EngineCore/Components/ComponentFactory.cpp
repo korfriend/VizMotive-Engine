@@ -133,6 +133,10 @@ namespace vz::compfactory
 	{
 		GET_COMPONENTS(HierarchyComponent, hierarchyManager);
 	}
+	size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps)
+	{
+		GET_COMPONENTS(MaterialComponent, materialManager);
+	}
 	size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps)
 	{
 		GET_COMPONENTS(LightComponent, lightManager);
