@@ -140,6 +140,8 @@ namespace vz
 		scene_details->RunSceneComponentUpdateSystem(ctx);
 		jobsystem::Wait(ctx); // dependencies
 
+		// TODO: animation updates
+
 		// GPU updates
 		// note: since tasks in ctx has been completed
 		//		there is no need to pass ctx as an argument.

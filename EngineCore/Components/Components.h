@@ -601,6 +601,18 @@ namespace vz::vuid
 // component factory
 namespace vz::compfactory
 {
+	// EngineFactory class (API)
+	// 1. singleton (when initializing engine APIs)
+	// 2. getter
+	// 3. destroy all (or leaking message)
+	// 
+	// TODO: Destory Group 
+	// 1. Entity
+	// 2. VUID
+	// 3. ComponentBase
+	// 4. Scene
+	// 5. ??
+
 	// here, inlining is actually applied only when building the same object file
 	// calling in other built object files ignores the inlining
 
@@ -628,6 +640,7 @@ namespace vz::compfactory
 
 	extern "C" CORE_EXPORT inline size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
 	extern "C" CORE_EXPORT inline size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
+	extern "C" CORE_EXPORT inline size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps);
 	extern "C" CORE_EXPORT inline size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps);
 
 	extern "C" CORE_EXPORT inline bool ContainNameComponent(const Entity entity);

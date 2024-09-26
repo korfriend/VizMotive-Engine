@@ -9,23 +9,7 @@
     <ClInclude Include="GraphicsDevice_DX12.h" />
     <ClInclude Include="D3D12MemAlloc.h" />
     <ClInclude Include="GraphicsInterface.h" />
-    <ClInclude Include="Renderer.h" />
     <ClInclude Include="Shaders\ShaderInterop.h">
-      <Filter>Shaders\Interop</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\ShaderInterop_Renderer.h">
-      <Filter>Shaders\Interop</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\ShaderInterop_Terrain.h">
-      <Filter>Shaders\Interop</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\ShaderInterop_VoxelGrid.h">
-      <Filter>Shaders\Interop</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\ShaderInterop_VXGI.h">
-      <Filter>Shaders\Interop</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\ShaderInterop_Weather.h">
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
   </ItemGroup>
@@ -36,5 +20,22 @@
     <Filter Include="Shaders\Interop">
       <UniqueIdentifier>{2df084ac-20b5-4d9b-8276-c3c8dd9179a6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Common">
+      <UniqueIdentifier>{f5da2235-9254-4069-a4a5-cbe96fabd781}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Globals.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="Shaders\ColorSpaceUtility.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="Shaders\PixelPacking_RGBE.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="Shaders\PixelPacking_R11G11B10.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
   </ItemGroup>
 </Project>

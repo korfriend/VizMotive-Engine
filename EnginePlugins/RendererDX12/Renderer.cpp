@@ -1,5 +1,5 @@
 #include "GraphicsInterface.h"
-#include "Renderer.h"
+#include "Shaders/ShaderInterop.h"
 #include "Components/GComponents.h"
 #include "Utils/JobSystem.h"
 
@@ -9,13 +9,39 @@ namespace vz::graphics
 	{
 		GSceneDetails(Scene* scene) : GScene(scene) {}
 
-		graphics::GPUBuffer instanceUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		//ShaderMeshInstance* instanceArrayMapped = nullptr;
+
+		// * note:: resources... 개별 할당된 상태...
+		// * srv, uav... slot 이 bindless 한가...
+		// * 여기선 scene 단위로 bindless resources
+		// * - texture2D and texture 3D
+		// * - constant buffers (instances)
+		// * - vertex buffers ... , index buffer 만 IA 로 pipeline 에 적용
+
+		// Instances for bindless renderables:
+		//	contains in order:
+		//		1) renderables (normal meshes)
 		size_t instanceArraySize = 0;
+		graphics::GPUBuffer instanceUploadBuffer[graphics::GraphicsDevice::GetBufferCount()]; // dynamic GPU-usage
+		graphics::GPUBuffer instanceBuffer;	// default GPU-usage
+		ShaderMeshInstance* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
 
-		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
 
 
+		// Materials for bindless visibility indexing:
+		size_t materialArraySize = 0;
+		graphics::GPUBuffer materialUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
+		graphics::GPUBuffer materialBuffer;
+		graphics::GPUBuffer textureStreamingFeedbackBuffer;
+		graphics::GPUBuffer textureStreamingFeedbackBuffer_readback[graphics::GraphicsDevice::GetBufferCount()];
+		const uint32_t* textureStreamingFeedbackMapped = nullptr;
+		ShaderMaterial* materialArrayMapped = nullptr;
+
+
+
+		// 2. advanced version (based on WickedEngine)
+		//ShaderMeshInstance* instanceArrayMapped = nullptr;
+		//size_t instanceArraySize = 0;
+		//graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
 		//graphics::GPUBuffer....
 		//graphics::Texture....
 
@@ -25,14 +51,15 @@ namespace vz::graphics
 
 	bool GSceneDetails::Update(const float dt)
 	{
-		// 1. transform component updates
-		// 2. animation updates
-		// 3. dynamic rendering (such as particles and terrain, cloud...) kickoff
-		// 
 
 		jobsystem::context ctx;
 
-		/*
+		GraphicsDevice* device = GetGraphicsDevice();
+
+		// 1. dynamic rendering (such as particles and terrain, cloud...) kickoff
+		// TODO
+
+		// 2. constant buffers for renderables
 		instanceArraySize = scene_->GetRenderableCount();
 		if (instanceUploadBuffer[0].desc.size < (instanceArraySize * sizeof(ShaderMeshInstance)))
 		{
@@ -45,7 +72,7 @@ namespace vz::graphics
 			{
 				// Non-UMA: separate Default usage buffer
 				device->CreateBuffer(&desc, nullptr, &instanceBuffer);
-				device->SetName(&instanceBuffer, "Scene::instanceBuffer");
+				device->SetName(&instanceBuffer, "GSceneDetails::instanceBuffer");
 
 				// Upload buffer shouldn't be used by shaders with Non-UMA:
 				desc.bind_flags = BindFlag::NONE;
@@ -56,12 +83,15 @@ namespace vz::graphics
 			for (int i = 0; i < arraysize(instanceUploadBuffer); ++i)
 			{
 				device->CreateBuffer(&desc, nullptr, &instanceUploadBuffer[i]);
-				device->SetName(&instanceUploadBuffer[i], "Scene::instanceUploadBuffer");
+				device->SetName(&instanceUploadBuffer[i], "GSceneDetails::instanceUploadBuffer");
 			}
 		}
 		instanceArrayMapped = (ShaderMeshInstance*)instanceUploadBuffer[device->GetBufferIndex()].mapped_data;
 
-		materialArraySize = materials.GetCount();
+		// 3. material buffers for shaders
+		std::vector<Entity> mat_entities;
+		std::vector<MaterialComponent*> mat_components;
+		materialArraySize = compfactory::GetMaterialComponents(mat_entities, mat_components);
 		if (materialUploadBuffer[0].desc.size < (materialArraySize * sizeof(ShaderMaterial)))
 		{
 			GPUBufferDesc desc;
@@ -111,12 +141,6 @@ namespace vz::graphics
 		}
 		textureStreamingFeedbackMapped = (const uint32_t*)textureStreamingFeedbackBuffer_readback[device->GetBufferIndex()].mapped_data;
 
-		RunTransformUpdateSystem(ctx);
-
-		wi::jobsystem::Wait(ctx); // dependencies
-
-		RunHierarchyUpdateSystem(ctx);
-		/**/
 		return true;
 	}
 
