@@ -9,6 +9,9 @@ namespace vz::graphics
 	{
 		GSceneDetails(Scene* scene) : GScene(scene) {}
 
+		// note all GPU resources (their pointers) are managed by
+		//  ComPtr or 
+		//  RAII (Resource Acquisition Is Initialization) patterns
 
 		// * note:: resources... 개별 할당된 상태...
 		// * srv, uav... slot 이 bindless 한가...
@@ -25,18 +28,14 @@ namespace vz::graphics
 		graphics::GPUBuffer instanceBuffer;	// default GPU-usage
 		ShaderMeshInstance* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
 
-
-
 		// Materials for bindless visibility indexing:
 		size_t materialArraySize = 0;
 		graphics::GPUBuffer materialUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
 		graphics::GPUBuffer materialBuffer;
-		graphics::GPUBuffer textureStreamingFeedbackBuffer;
+		graphics::GPUBuffer textureStreamingFeedbackBuffer;	// a sinlge UINT
 		graphics::GPUBuffer textureStreamingFeedbackBuffer_readback[graphics::GraphicsDevice::GetBufferCount()];
 		const uint32_t* textureStreamingFeedbackMapped = nullptr;
 		ShaderMaterial* materialArrayMapped = nullptr;
-
-
 
 		// 2. advanced version (based on WickedEngine)
 		//ShaderMeshInstance* instanceArrayMapped = nullptr;
@@ -68,6 +67,8 @@ namespace vz::graphics
 			desc.size = desc.stride * instanceArraySize * 2; // *2 to grow fast
 			desc.bind_flags = BindFlag::SHADER_RESOURCE;
 			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+			// if CACHE_COHERENT_UMA is allowed, then use instanceUploadBuffer directly.
+			// otherwise, use instanceBuffer.
 			if (!device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
 			{
 				// Non-UMA: separate Default usage buffer
@@ -103,7 +104,7 @@ namespace vz::graphics
 			{
 				// Non-UMA: separate Default usage buffer
 				device->CreateBuffer(&desc, nullptr, &materialBuffer);
-				device->SetName(&materialBuffer, "Scene::materialBuffer");
+				device->SetName(&materialBuffer, "GSceneDetails::materialBuffer");
 
 				// Upload buffer shouldn't be used by shaders with Non-UMA:
 				desc.bind_flags = BindFlag::NONE;
@@ -114,7 +115,7 @@ namespace vz::graphics
 			for (int i = 0; i < arraysize(materialUploadBuffer); ++i)
 			{
 				device->CreateBuffer(&desc, nullptr, &materialUploadBuffer[i]);
-				device->SetName(&materialUploadBuffer[i], "Scene::materialUploadBuffer");
+				device->SetName(&materialUploadBuffer[i], "GSceneDetails::materialUploadBuffer");
 			}
 		}
 		materialArrayMapped = (ShaderMaterial*)materialUploadBuffer[device->GetBufferIndex()].mapped_data;
@@ -127,7 +128,7 @@ namespace vz::graphics
 			desc.bind_flags = BindFlag::UNORDERED_ACCESS;
 			desc.format = Format::R32_UINT;
 			device->CreateBuffer(&desc, nullptr, &textureStreamingFeedbackBuffer);
-			device->SetName(&textureStreamingFeedbackBuffer, "Scene::textureStreamingFeedbackBuffer");
+			device->SetName(&textureStreamingFeedbackBuffer, "GSceneDetails::textureStreamingFeedbackBuffer");
 
 			// Readback buffer shouldn't be used by shaders:
 			desc.usage = Usage::READBACK;
@@ -136,7 +137,7 @@ namespace vz::graphics
 			for (int i = 0; i < arraysize(materialUploadBuffer); ++i)
 			{
 				device->CreateBuffer(&desc, nullptr, &textureStreamingFeedbackBuffer_readback[i]);
-				device->SetName(&textureStreamingFeedbackBuffer_readback[i], "Scene::textureStreamingFeedbackBuffer_readback");
+				device->SetName(&textureStreamingFeedbackBuffer_readback[i], "GSceneDetails::textureStreamingFeedbackBuffer_readback");
 			}
 		}
 		textureStreamingFeedbackMapped = (const uint32_t*)textureStreamingFeedbackBuffer_readback[device->GetBufferIndex()].mapped_data;
@@ -156,6 +157,8 @@ namespace vz::graphics
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
 		GRenderPath3DDetails(RenderPath3D* renderPath) : GRenderPath3D(renderPath) {}
+
+		// resources associated with render target buffers and textures
 
 		bool ResizeCanvas() override; // must delete all canvas-related resources and re-create
 		bool Render() override;

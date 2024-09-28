@@ -3,6 +3,7 @@
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Common/Backend/GBackendDevice.h"
+#include "Common/RenderPath3D.h"
 
 using namespace vz;
 
@@ -19,8 +20,18 @@ namespace vzm
 
 #define CHECK_API_VALIDITY(RET) if (!initialized) { backlog::post("High-level API is not initialized!!", backlog::LogLevel::Error); return RET; }
 
+	std::unordered_map<SceneVID, std::unique_ptr<VzScene>> vzScenes;
+	std::unordered_map<RendererVID, std::unique_ptr<VzRenderer>> vzRenderers;
+	std::unordered_map<CamVID, std::unique_ptr<VzCamera>> vzCameras;
+	std::unordered_map<VID, std::unique_ptr<VzSceneComp>> vzSceneComponents;
+	std::unordered_map<VID, std::unique_ptr<VzResource>> vzResources;
+
 	bool initialized = false;
 	vz::graphics::GraphicsDevice* graphicsDevice = nullptr;
+}
+
+namespace vzm
+{
 	VZRESULT InitEngineLib(const vzm::ParamMap<std::string>& arguments)
 	{
 		if (initialized)
@@ -46,6 +57,15 @@ namespace vzm
 		graphicsDevice = graphicsGetDev();
 
 		return VZ_OK;
+	}
+
+	VzRenderer* NewRenderer(const std::string& rendererName)
+	{
+		RenderPath3D* renderer = Canvas::CreateRenderPath3D(graphicsDevice, rendererName);
+		RendererVID vid = renderer->GetEntity();
+		auto it = vzRenderers.emplace(vid, std::make_unique<VzRenderer>(vid, "CreateRenderPath"));
+		compfactory::CreateNameComponent(vid, rendererName);
+		return (VzRenderer*)it.first->second.get();
 	}
 
 	VZRESULT DeinitEngineLib()

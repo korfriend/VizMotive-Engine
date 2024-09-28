@@ -61,6 +61,8 @@ namespace vz::resource
 
 namespace vz
 {
+	std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
+
 	namespace graphics
 	{
 		struct GScene;
@@ -76,6 +78,7 @@ namespace vz
 		inline static Scene* GetSceneIncludingEntity(const Entity entity);
 		inline static Scene* CreateScene(const std::string& name, const Entity entity = 0);
 		inline static void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
+		inline static bool DestoryScene(const Entity entity);
 
 	protected:
 		std::string name_;
@@ -97,6 +100,7 @@ namespace vz
 
 	public:
 		Scene(const Entity entity, const std::string& name);
+		~Scene();
 
 		inline std::string GetName() { return name_; }
 
@@ -593,11 +597,6 @@ namespace vz
 	};
 }
 
-namespace vz::vuid
-{
-
-}
-
 // component factory
 namespace vz::compfactory
 {
@@ -605,7 +604,7 @@ namespace vz::compfactory
 	// 1. singleton (when initializing engine APIs)
 	// 2. getter
 	// 3. destroy all (or leaking message)
-	// 
+	
 	// TODO: Destory Group 
 	// 1. Entity
 	// 2. VUID

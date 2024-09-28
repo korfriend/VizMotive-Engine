@@ -2,12 +2,20 @@
 #include "CommonInclude.h"
 #include "Libs/Math.h"
 
+#include <string>
+
 namespace vz
 {
 	using Entity = uint32_t;
 	// The canvas specifies a DPI-aware drawing area
 	struct Canvas
 	{
+	public:
+		inline static Canvas* GetCanvas(const Entity entity);
+		inline static Canvas* GetFirstSceneByName(const std::string& name);
+		inline static RenderPath3D* CreateRenderPath3D(graphics::GraphicsDevice* graphicsDevice, const std::string& name, const Entity entity = 0);
+		inline static bool DestoryCanvas(const Entity entity);
+
 	protected:
 		uint32_t width_ = 0;
 		uint32_t height_ = 0;
@@ -20,6 +28,8 @@ namespace vz
 		Canvas(const Entity entity) : entity_(entity) {};
 		virtual ~Canvas() = default;
 
+		std::string name = "";
+
 		// Create a canvas from physical measurements
 		inline void SetCanvas(uint32_t width, uint32_t height, float dpi = 96, void* window = nullptr)
 		{
@@ -28,7 +38,7 @@ namespace vz
 			dpi_ = dpi;
 			window_ = window;
 		}
-
+		inline Entity GetEntity() const { return entity_; }
 		// How many pixels there are per inch
 		inline float GetDPI() const { return dpi_; }
 		// The scaling factor between logical and physical coordinates

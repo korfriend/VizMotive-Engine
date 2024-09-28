@@ -81,6 +81,13 @@ namespace vz
 		assert(handlerScene_->version == GScene::GScene_INTERFACE_VERSION);
 	}
 
+	Scene::~Scene()
+	{
+		handlerScene_->Destory();
+		delete handlerScene_;
+		handlerScene_ = nullptr;
+	}
+
 	void SceneDetails::RunTransformUpdateSystem(jobsystem::context& ctx)
 	{
 		std::vector<TransformComponent*> transforms;
@@ -324,5 +331,18 @@ namespace vz
 		{
 			scenes[i]->Remove(entity);
 		}
+	}
+
+	bool Scene::DestoryScene(const Entity entity)
+	{
+		auto it = scenes.find(entity);
+		if (it == scenes.end())
+		{
+			backlog::post("Scene::DestoryScene >> Invalid Entity! " + stringEntity(entity), backlog::LogLevel::Error);
+			return false;
+		}
+		it->second.reset();
+		scenes.erase(it);
+		return true;
 	}
 }
