@@ -295,6 +295,15 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp">
+      <Filter>HighAPIs</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp">
+      <Filter>HighAPIs</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Canvas.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl">

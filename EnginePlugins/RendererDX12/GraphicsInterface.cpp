@@ -11,7 +11,7 @@ namespace vz::graphics
 	{
 		ValidationMode validationMode = ValidationMode::Disabled;
 		GPUPreference preference = GPUPreference::Discrete;
-		//wi::renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
+		//renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
 		graphicsDevice = std::make_unique<GraphicsDevice_DX12>(validationMode, preference);
 		return graphicsDevice.get() != nullptr;
 	}

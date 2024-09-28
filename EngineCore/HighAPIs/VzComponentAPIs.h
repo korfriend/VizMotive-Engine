@@ -43,6 +43,15 @@
 #include <functional>
 
 using VID = uint32_t;
+using SceneVID = VID;
+using RendererVID = VID;
+using CamVID = VID;
+using ActorVID = VID;
+using LightVID = VID;
+using GeometryVID = VID;
+using MaterialVID = VID;
+using TextureVID = VID;
+
 inline constexpr VID INVALID_VID = 0;
 using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
