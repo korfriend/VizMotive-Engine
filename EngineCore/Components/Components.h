@@ -61,7 +61,7 @@ namespace vz::resource
 
 namespace vz
 {
-	std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
+	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 
 	namespace graphics
 	{

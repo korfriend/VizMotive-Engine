@@ -8,16 +8,32 @@ using namespace backlog;
 
 namespace vzm
 {
-	void SetCanvas(const uint32_t w, const uint32_t h, const float dpi, void* window)
+	void VzRenderer::SetCanvas(const uint32_t w, const uint32_t h, const float dpi, void* window)
 	{
 
 	}
-	void GetCanvas(uint32_t* w, uint32_t* h, float* dpi, void** window = nullptr);
+	void VzRenderer::GetCanvas(uint32_t* w, uint32_t* h, float* dpi, void** window)
+	{
 
-	void SetViewport(const uint32_t x, const uint32_t y, const uint32_t w, const uint32_t h);
-	void GetViewport(uint32_t* x, uint32_t* y, uint32_t* w, uint32_t* h);
+	}
 
-	void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits);
+	void VzRenderer::SetViewport(const uint32_t x, const uint32_t y, const uint32_t w, const uint32_t h)
+	{
 
-	VZRESULT Render(const VID vidScene, const VID vidCam);
+	}
+
+	void VzRenderer::GetViewport(uint32_t* x, uint32_t* y, uint32_t* w, uint32_t* h)
+	{
+
+	}
+
+	void VzRenderer::SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits)
+	{
+
+	}
+
+	bool VzRenderer::Render(const VID vidScene, const VID vidCam)
+	{
+		return true;
+	}
 }
