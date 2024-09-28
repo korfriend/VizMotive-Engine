@@ -15,7 +15,7 @@ namespace vzm
 
 		void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits);
 
-		VZRESULT Render(const VID vidScene, const VID vidCam);
-		VZRESULT Render(const VzBaseComp* scene, const VzBaseComp* camera) { return Render(scene->GetVID(), camera->GetVID()); };
+		bool Render(const VID vidScene, const VID vidCam);
+		bool Render(const VzBaseComp* scene, const VzBaseComp* camera) { return Render(scene->GetVID(), camera->GetVID()); };
 	};
 }

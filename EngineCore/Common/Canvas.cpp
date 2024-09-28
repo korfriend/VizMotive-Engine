@@ -2,25 +2,25 @@
 #include "Utils/ECS.h"
 #include "Utils/Backlog.h"
 
-namespace vz
+namespace vz::canvas
 {
 	static std::unordered_map<Entity, std::unique_ptr<RenderPath3D>> renderPaths;
 
-	Canvas* Canvas::GetCanvas(const Entity entity)
+	Canvas* GetCanvas(const Entity entity)
 	{
 		auto it = renderPaths.find(entity);
 		return it != renderPaths.end() ? it->second.get() : nullptr;
 	}
 
-	Canvas* Canvas::GetFirstSceneByName(const std::string& name)
+	Canvas* GetFirstCanvasByName(const std::string& name)
 	{
 		for (auto& it : renderPaths) {
-			if (it.second->name == name) return it.second.get();
+			if (it.second.get()->name == name) return it.second.get();
 		}
 		return nullptr;
 	}
 
-	RenderPath3D* Canvas::CreateRenderPath3D(graphics::GraphicsDevice* graphicsDevice, const std::string& name, const Entity entity)
+	RenderPath3D* CreateRenderPath3D(graphics::GraphicsDevice* graphicsDevice, const std::string& name, const Entity entity)
 	{
 		Entity ett = entity;
 		if (entity == 0)
@@ -34,7 +34,7 @@ namespace vz
 		return render_path;
 	}
 
-	bool Canvas::DestoryCanvas(const Entity entity)
+	bool DestoryCanvas(const Entity entity)
 	{
 		auto it = renderPaths.find(entity);
 		if (it == renderPaths.end())

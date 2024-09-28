@@ -61,7 +61,7 @@ namespace vzm
 
 	VzRenderer* NewRenderer(const std::string& rendererName)
 	{
-		RenderPath3D* renderer = Canvas::CreateRenderPath3D(graphicsDevice, rendererName);
+		RenderPath3D* renderer = canvas::CreateRenderPath3D(graphicsDevice, rendererName);
 		RendererVID vid = renderer->GetEntity();
 		auto it = vzRenderers.emplace(vid, std::make_unique<VzRenderer>(vid, "CreateRenderPath"));
 		compfactory::CreateNameComponent(vid, rendererName);

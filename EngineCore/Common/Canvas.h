@@ -1,21 +1,28 @@
 #pragma once
 #include "CommonInclude.h"
 #include "Libs/Math.h"
+#include "Common/Backend/GBackendDevice.h"
+
 
 #include <string>
 
 namespace vz
 {
 	using Entity = uint32_t;
+	struct Canvas;
+	class RenderPath3D;
+
+	namespace canvas
+	{
+		Canvas* GetCanvas(const Entity entity);
+		Canvas* GetFirstCanvasByName(const std::string& name);
+		RenderPath3D* CreateRenderPath3D(graphics::GraphicsDevice* graphicsDevice, const std::string& name, const Entity entity = 0);
+		bool DestoryCanvas(const Entity entity);
+	}
+
 	// The canvas specifies a DPI-aware drawing area
 	struct Canvas
 	{
-	public:
-		inline static Canvas* GetCanvas(const Entity entity);
-		inline static Canvas* GetFirstSceneByName(const std::string& name);
-		inline static RenderPath3D* CreateRenderPath3D(graphics::GraphicsDevice* graphicsDevice, const std::string& name, const Entity entity = 0);
-		inline static bool DestoryCanvas(const Entity entity);
-
 	protected:
 		uint32_t width_ = 0;
 		uint32_t height_ = 0;

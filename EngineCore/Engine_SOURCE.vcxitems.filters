@@ -218,6 +218,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.h">
       <Filter>Libs</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h">
+      <Filter>HighAPIs\APIs</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
