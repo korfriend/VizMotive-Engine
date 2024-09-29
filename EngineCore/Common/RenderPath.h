@@ -23,7 +23,7 @@ namespace vz
 		
 	public:
 		RenderPath(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
-			: Canvas(entity), graphicsDevice_(graphicsDevice_) {}
+			: Canvas(entity), graphicsDevice_(graphicsDevice_) { type_ = "RenderPath"; }
 		virtual ~RenderPath() = default;
 
 		bool IsCanvasResized() {

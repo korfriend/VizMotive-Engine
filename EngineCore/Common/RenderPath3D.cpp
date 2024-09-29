@@ -41,6 +41,8 @@ namespace vz
 		assert(graphicsNewGRenderPath3D);
 		handlerRenderPath3D_ = graphicsNewGRenderPath3D(this);
 		assert(handlerRenderPath3D_->version == GRenderPath3D::GRenderPath3D_INTERFACE_VERSION);
+
+		type_ = "RenderPath3D";
 	}
 
 	void RenderPath3D::DeleteGPUResources()
@@ -83,6 +85,12 @@ namespace vz
 
 	void RenderPath3D::Render()
 	{
+		if (camera == nullptr || scene == nullptr)
+		{
+			backlog::post("RenderPath3D::Render >> No Scene or No Camera in RenderPath3D!", backlog::LogLevel::Warn);
+			return;
+		}
+
 		if (IsCanvasResized() || 
 			rtRender3D_.desc.sample_count != msaaSampleCount_)
 		{
@@ -91,12 +99,6 @@ namespace vz
 			//	resizing sources does not happen redundantly 
 		}
 		RenderPath2D::Render();
-
-		if (camera == nullptr || scene == nullptr)
-		{
-			backlog::post("RenderPath3D::Render >> No Scene or No Camera in RenderPath3D!", backlog::LogLevel::Warn);
-			return;
-		}
 
 		// RenderPath3D code //
 		if (camera->IsDirty())
