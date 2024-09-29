@@ -70,7 +70,7 @@ using namespace vz;
 namespace vzm
 {
     template <typename ID> struct ParamMap {
-    private:
+    protected:
         std::string __PM_VERSION = "LIBI_2.0";
         std::unordered_map<ID, std::any> __params;
     public:
@@ -171,7 +171,7 @@ namespace vzm
 
 	struct API_EXPORT VzBaseComp
 	{
-	private:
+	protected:
 		VID componentVID_ = INVALID_VID;
 		TimeStamp timeStamp_ = {}; // will be automatically set 
 		std::string originFrom_;
@@ -196,49 +196,53 @@ namespace vzm
 	};
     struct API_EXPORT VzSceneComp : VzBaseComp
     {
-	private:
+	protected:
 		SCENE_COMPONENT_TYPE scenecompType_ = SCENE_COMPONENT_TYPE::SCENEBASE;
 	public:
 		VzSceneComp(const VID vid, const std::string& originFrom, const std::string& typeName, const SCENE_COMPONENT_TYPE scenecompType)
 			: VzBaseComp(vid, originFrom, typeName), scenecompType_(scenecompType) {}
 		SCENE_COMPONENT_TYPE GetSceneCompType() { return scenecompType_; };
 
-        void GetWorldPosition(float v[3]);
+		bool IsDirtyTransform();
+		bool IsMatrixAutoUpdate();
+		void SetMatrixAutoUpdate(const bool enable);
+
+		void GetWorldPosition(float v[3]);
+		void GetWorldRotation(float v[4]);
+		void GetWorldScale(float v[3]);
         void GetWorldForward(float v[3]);
         void GetWorldRight(float v[3]);
         void GetWorldUp(float v[3]);
-        void GetWorldTransform(float mat[16], const bool rowMajor = false);
-        void GetWorldInvTransform(float mat[16], const bool rowMajor = false);
+        void GetWorldMatrix(float mat[16], const bool rowMajor = false);
 
-        void GetLocalTransform(float mat[16], const bool rowMajor = false);
-        void GetLocalInvTransform(float mat[16], const bool rowMajor = false);
+        // local
+		void GetPosition(float v[3]);
+		void GetRotation(float v[4]);
+		void GetScale(float v[3]);
+        void GetLocalMatrix(float mat[16], const bool rowMajor = false);
 
-        // local transforms
-        void SetTransform(const float s[3] = nullptr, const float q[4] = nullptr, const float t[3] = nullptr, const bool additiveTransform = false);
-        void SetMatrix(const float value[16], const bool additiveTransform = false, const bool rowMajor = false);
+		// local transforms
+		void SetPosition(const float v[3]);
+		void SetScale(const float v[3]);
+		void SetEulerAngleZXY(const float v[3]); // ROLL->PITCH->YAW (mainly used CG-convention) 
+		void SetEulerAngleZXYInDegree(const float v[3]); // ROLL->PITCH->YAW (mainly used CG-convention) 
+		void SetQuaternion(const float v[4]);
+        void SetMatrix(const float value[16], const bool rowMajor = false);
 
-        VID GetParent();
-        std::vector<VID> GetChildren();
-        VID GetScene();
+		void UpdateMatrix();	// local matrix
+		void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
 
-        void GetPosition(float position[3]) const;
-        void GetRotation(float rotation[3], enums::EulerAngle* euler = nullptr) const;
-        void GetQuaternion(float quaternion[4]) const;
-        void GetScale(float scale[3]) const;
+        ActorVID GetParent();
+        std::vector<ActorVID> GetChildren();
 
-        void SetPosition(const float position[3]);
-        void SetRotation(const float rotation[3], const enums::EulerAngle euler = enums::EulerAngle::XYZ);
-        void SetQuaternion(const float quaternion[4]);
-        void SetScale(const float scale[3]);
-
-        bool IsMatrixAutoUpdate() const;
-        void SetMatrixAutoUpdate(const bool matrixAutoUpdate);
-
-        void UpdateMatrix();
+		// note:
+		//	engine-level renderable components can belong to multiple scenes
+		//	high-level scene components can belong to a single scene
+		SceneVID sceneVid = INVALID_VID;
     };
 	struct API_EXPORT VzResource : VzBaseComp
 	{
-	private:
+	protected:
 		RES_COMPONENT_TYPE resType_ = RES_COMPONENT_TYPE::RESOURCE;
 	public:
 		VzResource(const VID vid, const std::string& originFrom, const std::string& typeName, const RES_COMPONENT_TYPE resType)
@@ -252,7 +256,6 @@ namespace vzm
 #include "VzLight.h"
 #include "VzGeometry.h"
 #include "VzMaterial.h"
-#include "VzMI.h"
 #include "VzTexture.h"
 #include "VzScene.h"
 #include "VzRenderer.h"

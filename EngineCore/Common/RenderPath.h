@@ -1,6 +1,7 @@
 #pragma once
 #include "Canvas.h"
 #include "Components/Components.h"
+#include "Utils/Backlog.h"
 #include "Backend/GBackendDevice.h"
 
 namespace vz

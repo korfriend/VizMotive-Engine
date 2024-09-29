@@ -54,7 +54,59 @@ namespace vz
 		else vuid_ = vuid;
 		timeStampSetter_ = TimerNow;
 	}
+}
 
+namespace vz
+{
+	void HierarchyComponent::updateChildren() 
+	{
+		childrenCache_.clear(); 
+		size_t n = children_.size();
+		if (n > 0)
+		{
+			childrenCache_.reserve(children_.size());
+			for (auto it : children_)
+			{
+				childrenCache_.push_back(it);
+			}
+		}
+	}
+
+	void HierarchyComponent::SetParent(const VUID vuidParent)
+	{
+		HierarchyComponent* parent_hierarchy = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(vuidParent));
+		assert(parent_hierarchy);
+		HierarchyComponent* old_parent_hierarchy = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(vuidParentHierarchy_));
+		if (old_parent_hierarchy)
+		{
+			old_parent_hierarchy->RemoveChild(vuid_);
+		}
+		vuidParentHierarchy_ = vuidParent;
+		parent_hierarchy->AddChild(vuid_);
+		timeStampSetter_ = TimerNow;
+	}
+	VUID HierarchyComponent::GetParent() const
+	{
+		return vuidParentHierarchy_;
+	}
+
+	void HierarchyComponent::AddChild(const VUID vuidChild)
+	{
+		children_.insert(vuidChild);
+		updateChildren();
+		timeStampSetter_ = TimerNow;
+	}
+
+	void HierarchyComponent::RemoveChild(const VUID vuidChild)
+	{
+		children_.erase(vuidChild);
+		updateChildren();
+		timeStampSetter_ = TimerNow;
+	}
+}
+
+namespace vz
+{
 	const XMFLOAT3 TransformComponent::GetWorldPosition() const
 	{
 		return *((XMFLOAT3*)&world_._41);
@@ -158,7 +210,7 @@ namespace vz
 		while (hierarchy)
 		{
 			hierarchies.push_back(hierarchy);
-			Entity entity = compfactory::GetEntityByVUID(hierarchy->vuidParentHierarchy);
+			Entity entity = compfactory::GetEntityByVUID(hierarchy->GetParent());
 			HierarchyComponent* hierarchy_parent = compfactory::GetHierarchyComponent(entity);
 			assert(hierarchy_parent != hierarchy);
 			hierarchy = hierarchy_parent;
@@ -328,7 +380,7 @@ namespace vz
 		XMMATRIX parent2ws = XMMatrixIdentity();
 		while (parent)
 		{
-			TransformComponent* transform_parent = compfactory::GetTransformComponent(compfactory::GetEntityByVUID(parent->vuidParentHierarchy));
+			TransformComponent* transform_parent = compfactory::GetTransformComponent(compfactory::GetEntityByVUID(parent->GetParent()));
 			if (transform_parent)
 			{
 				if (transform_parent->IsDirty()) 
@@ -336,7 +388,7 @@ namespace vz
 				XMFLOAT4X4 local_f44 = transform_parent->GetLocalMatrix();
 				parent2ws *= XMLoadFloat4x4(&local_f44);
 			}
-			parent = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(parent->vuidParentHierarchy));
+			parent = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(parent->GetParent()));
 		}
 		XMFLOAT4X4 mat_world;
 		XMStoreFloat4x4(&mat_world, local * parent2ws);

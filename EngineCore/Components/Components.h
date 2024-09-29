@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <memory>
 #include <chrono>
@@ -73,12 +74,12 @@ namespace vz
 	struct CORE_EXPORT Scene
 	{
 	public:
-		inline static Scene* GetScene(const Entity entity);
-		inline static Scene* GetFirstSceneByName(const std::string& name);
-		inline static Scene* GetSceneIncludingEntity(const Entity entity);
-		inline static Scene* CreateScene(const std::string& name, const Entity entity = 0);
-		inline static void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
-		inline static bool DestoryScene(const Entity entity);
+		static Scene* GetScene(const Entity entity);
+		static Scene* GetFirstSceneByName(const std::string& name);
+		static Scene* GetSceneIncludingEntity(const Entity entity);
+		static Scene* CreateScene(const std::string& name, const Entity entity = 0);
+		static void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
+		static bool DestoryScene(const Entity entity);
 
 	protected:
 		std::string name_;
@@ -103,6 +104,7 @@ namespace vz
 		~Scene();
 
 		inline std::string GetName() { return name_; }
+		inline Entity GetEntity() { return entity_; }
 
 		inline void Update(const float dt);
 
@@ -242,6 +244,7 @@ namespace vz
 
 		inline bool IsDirty() const { return isDirty_; }
 		inline bool IsMatrixAutoUpdate() const { return isMatrixAutoUpdate_; }
+		inline void SetMatrixAutoUpdate(const bool enable) { isMatrixAutoUpdate_ = enable; timeStampSetter_ = TimerNow; }
 
 		// recommend checking IsDirtyWorldMatrix with scene's timeStampWorldUpdate
 		inline const XMFLOAT3 GetWorldPosition() const;
@@ -278,9 +281,23 @@ namespace vz
 
 	struct CORE_EXPORT HierarchyComponent : ComponentBase
 	{
+	protected:
+		VUID vuidParentHierarchy_ = INVALID_VUID;
+		std::unordered_set<VUID> children_;
+
+		// Non-serialized attributes
+		std::vector<VUID> childrenCache_;
+		inline void updateChildren();
+
+	public:
 		HierarchyComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::HIERARCHY, entity, vuid) {}
 
-		VUID vuidParentHierarchy = INVALID_VUID;
+		inline void SetParent(const VUID vuidParent);
+		inline VUID GetParent() const;
+
+		inline void AddChild(const VUID vuidChild);
+		inline void RemoveChild(const VUID vuidChild);
+		inline std::vector<VUID> GetChildren() { if (children_.size() != childrenCache_.size()) updateChildren(); return childrenCache_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -590,6 +607,11 @@ namespace vz
 		XMFLOAT4X4 GetInvProjection() const { return invProjection_; }
 		XMFLOAT4X4 GetInvViewProjection() const { return invViewProjection_; }
 		vz::geometry::Frustum GetFrustum() const { return frustum_; }
+
+		enums::Projection GetProjectionType() const { return projectionType_; }
+		float GetFovVertical() const { return fovY_; }
+		void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
+		void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
