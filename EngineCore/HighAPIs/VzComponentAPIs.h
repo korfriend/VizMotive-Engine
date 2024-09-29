@@ -152,14 +152,10 @@ namespace vzm
 		SCENEBASE = 0,  // empty (only transform and name)
 
 		CAMERA,
-
-		// lights
 		LIGHT,
 
 		// actors
 		ACTOR,
-		SPRITE_ACTOR,
-		TEXT_SPRITE_ACTOR,
 	};
 
 	enum class RES_COMPONENT_TYPE

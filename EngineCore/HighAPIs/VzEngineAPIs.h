@@ -44,8 +44,9 @@ namespace vzm
 	extern "C" API_EXPORT size_t GetVzComponentsByName(const std::string& name, std::vector<VzBaseComp*>& components);
 	extern "C" API_EXPORT size_t GetVzComponentsByType(const std::string& type, std::vector<VzBaseComp*>& components);
 	// Append Component to the parent component
+	//  - in : VzSceneComp or VzScene
 	//  - return sceneId containing the parent component 
-	extern "C" API_EXPORT VID AppendSceneCompVidTo(const VID vid, const VID parentVid);
+	extern "C" API_EXPORT SceneVID AppendSceneCompVidTo(const VID vid, const VID parentVid);
 	extern "C" API_EXPORT VzScene* AppendSceneCompTo(const VZ_NONNULL VzBaseComp* comp, const VZ_NONNULL VzBaseComp* parentComp);
 	// Get Component IDs in a scene
 	//  - return # of scene Components 

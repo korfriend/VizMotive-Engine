@@ -90,6 +90,11 @@ namespace vz::compfactory
 		CameraComponent* comp = &cameraManager.Create(entity);
 		return comp;
 	}
+	RenderableComponent* CreateRenderableComponent(const Entity entity)
+	{
+		RenderableComponent* comp = &renderableManager.Create(entity);
+		return comp;
+	}
 
 	NameComponent* GetNameComponent(const Entity entity)
 	{

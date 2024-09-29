@@ -103,8 +103,8 @@ namespace vz
 		Scene(const Entity entity, const std::string& name);
 		~Scene();
 
-		inline std::string GetName() { return name_; }
-		inline Entity GetEntity() { return entity_; }
+		inline std::string GetSceneName() { return name_; }
+		inline Entity GetSceneEntity() { return entity_; }
 
 		inline void Update(const float dt);
 
@@ -163,6 +163,13 @@ namespace vz
 		 * @return Whether the given entity is in the Scene.
 		 */
 		inline bool HasEntity(const Entity entity) const noexcept;
+
+		size_t GetEntities(std::vector<Entity>& entities)
+		{
+			entities = renderables_;
+			entities.insert(entities.end(), lights_.begin(), lights_.end());
+			return entities.size();
+		}
 
 		/**
 		 * Read/write scene components (renderbles and lights), make sure their VUID-based components are serialized first
@@ -649,6 +656,7 @@ namespace vz::compfactory
 	extern "C" CORE_EXPORT inline GeometryComponent* CreateGeometryComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline LightComponent* CreateLightComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline CameraComponent* CreateCameraComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline RenderableComponent* CreateRenderableComponent(const Entity entity);
 
 	extern "C" CORE_EXPORT inline NameComponent* GetNameComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline TransformComponent* GetTransformComponent(const Entity entity);
