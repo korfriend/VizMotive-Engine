@@ -298,7 +298,7 @@ namespace vz
 	}
 	Scene* Scene::GetFirstSceneByName(const std::string& name) {
 		for (auto& it : scenes) {
-			if (it.second->GetName() == name) return it.second.get();
+			if (it.second->GetSceneName() == name) return it.second.get();
 		}
 		return nullptr;
 	}
