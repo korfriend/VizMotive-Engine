@@ -41,7 +41,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzScene.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.h" />

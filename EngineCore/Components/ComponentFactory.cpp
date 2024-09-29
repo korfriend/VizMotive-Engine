@@ -64,7 +64,10 @@ namespace vz::compfactory
 	{
 		HierarchyComponent* comp = &hierarchyManager.Create(entity);
 		HierarchyComponent* comp_parent = compfactory::GetHierarchyComponent(parent);
-		comp->vuidParentHierarchy = comp_parent ? comp_parent->GetVUID() : INVALID_VUID;
+		if (comp_parent)
+		{
+			comp->SetParent(comp_parent->GetVUID());
+		}
 		return comp;
 	}
 	MaterialComponent* CreateMaterialComponent(const Entity entity)

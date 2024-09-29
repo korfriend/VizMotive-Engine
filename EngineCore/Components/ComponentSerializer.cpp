@@ -58,13 +58,21 @@ namespace vz
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 
-			archive >> vuidParentHierarchy;
+			archive >> vuidParentHierarchy_;
+			archive >> childrenCache_;
+
+			children_.clear();
+			for (auto it : childrenCache_)
+			{
+				children_.insert(it);
+			}
 		}
 		else
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
-			archive << vuidParentHierarchy;
+			archive << vuidParentHierarchy_;
+			archive << childrenCache_;
 		}
 	}
 

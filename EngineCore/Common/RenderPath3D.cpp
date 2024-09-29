@@ -76,16 +76,35 @@ namespace vz
 	void RenderPath3D::Update(const float dt)
 	{
 		RenderPath2D::Update(dt);
-		if (rtRender3D_.desc.sample_count != msaaSampleCount_)
-		{
-			ResizeResources();
-		}
+
+		if (camera == nullptr || scene == nullptr) return;
 		scene->Update(dt);
 	}
 
 	void RenderPath3D::Render()
 	{
+		if (IsCanvasResized() || 
+			rtRender3D_.desc.sample_count != msaaSampleCount_)
+		{
+			ResizeResources(); // call RenderPath2D::ResizeResources();
+			// since IsCanvasResized() updates the canvas size,
+			//	resizing sources does not happen redundantly 
+		}
 		RenderPath2D::Render();
+
+		if (camera == nullptr || scene == nullptr)
+		{
+			backlog::post("RenderPath3D::Render >> No Scene or No Camera in RenderPath3D!", backlog::LogLevel::Warn);
+			return;
+		}
+
+		// RenderPath3D code //
+		if (camera->IsDirty())
+		{
+			camera->UpdateMatrix();
+		}
+
 		handlerRenderPath3D_->Render();
+
 	}
 }
