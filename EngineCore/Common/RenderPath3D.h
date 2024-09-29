@@ -30,6 +30,7 @@ namespace vz
 
 		CameraComponent* camera = nullptr;
 		Scene* scene = nullptr;
+		graphics::Viewport viewport;
 
 		void DeleteGPUResources() override;
 		void ResizeResources() override;

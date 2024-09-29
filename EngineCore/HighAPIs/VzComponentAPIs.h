@@ -42,6 +42,9 @@
 #include <chrono>
 #include <functional>
 
+#define VZ_NONNULL
+#define VZ_NULLABLE
+
 using VID = uint32_t;
 using SceneVID = VID;
 using RendererVID = VID;

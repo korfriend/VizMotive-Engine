@@ -30,12 +30,14 @@ namespace vz
 		float scaling_ = 1; // custom DPI scaling factor (optional)
 		void* window_ = nullptr;
 		Entity entity_ = 0;
+		std::string type_ = "CANVAS";
 
 	public:
 		Canvas(const Entity entity) : entity_(entity) {};
 		virtual ~Canvas() = default;
 
 		std::string name = "";
+		std::string GetType() const { return type_; }
 
 		// Create a canvas from physical measurements
 		inline void SetCanvas(uint32_t width, uint32_t height, float dpi = 96, void* window = nullptr)
@@ -48,6 +50,7 @@ namespace vz
 		inline Entity GetEntity() const { return entity_; }
 		// How many pixels there are per inch
 		inline float GetDPI() const { return dpi_; }
+		inline void* GetWindow() const { return window_; }
 		// The scaling factor between logical and physical coordinates
 		inline float GetDPIScaling() const { return GetDPI() / 96.f; }
 		// Convert from logical to physical coordinates

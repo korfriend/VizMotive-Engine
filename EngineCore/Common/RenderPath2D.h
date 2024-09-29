@@ -15,7 +15,7 @@ namespace vz
 		uint32_t msaaSampleCount_ = 1;
 	public:
 		RenderPath2D(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
-			: RenderPath(entity, graphicsDevice) {}
+			: RenderPath(entity, graphicsDevice) {  type_ = "RenderPath2D"; }
 		~RenderPath2D() { DeleteGPUResources(); }
 		// to do ... slicer component...
 
