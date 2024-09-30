@@ -12,7 +12,9 @@ namespace vz
 		graphics::ColorSpace colorSpace_ = graphics::ColorSpace::SRGB;
 
 		graphics::GraphicsDevice* graphicsDevice_ = nullptr;
+		// swapChain_ and rtRenderFinal_ are exclusive!
 		graphics::SwapChain swapChain_;	// handled in RenderPath2D
+		graphics::Texture rtRenderFinal_; // handled in RenderPath2D
 
 		// resize check variables
 		uint32_t prevWidth_ = 0;
@@ -23,8 +25,10 @@ namespace vz
 		
 	public:
 		RenderPath(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
-			: Canvas(entity), graphicsDevice_(graphicsDevice_) { type_ = "RenderPath"; }
+			: Canvas(entity), graphicsDevice_(graphicsDevice) { type_ = "RenderPath"; }
 		virtual ~RenderPath() = default;
+
+		float clearColor[4] = {};
 
 		bool IsCanvasResized() {
 			if (swapChain_.IsValid())
@@ -40,7 +44,7 @@ namespace vz
 			return false;
 		};
 
-		virtual void DeleteGPUResources() = 0;
+		virtual void DeleteGPUResources(const bool resizableOnly) = 0;
 		virtual void ResizeResources() = 0;
 		virtual void Update(const float dt) = 0;
 		virtual void Render() = 0;

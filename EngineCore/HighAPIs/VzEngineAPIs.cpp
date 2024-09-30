@@ -12,12 +12,6 @@ GEngineConfig gEngine;
 
 namespace vzm
 {
-	typedef bool(*PI_GraphicsInitializer)();
-	typedef vz::graphics::GraphicsDevice* (*PI_GetGraphicsDevice)();
-	typedef bool(*PI_GraphicsDeinitializer)();
-	PI_GraphicsInitializer graphicsInitializer = nullptr;
-	PI_GraphicsDeinitializer graphicsDeinitializer = nullptr;
-	PI_GetGraphicsDevice graphicsGetDev = nullptr;
 
 #define CHECK_API_VALIDITY(RET) if (!initialized) { backlog::post("High-level API is not initialized!!", backlog::LogLevel::Error); return RET; }
 
@@ -33,10 +27,27 @@ namespace vzm
 		std::unordered_map<VID, std::unique_ptr<VzLight>> lights;
 		std::unordered_map<VID, std::unique_ptr<VzResource>> resources;
 	}
-}
 
-namespace vzm
-{
+	struct GraphicsPackage
+	{
+		typedef bool(*PI_GraphicsInitializer)();
+		typedef vz::graphics::GraphicsDevice* (*PI_GetGraphicsDevice)();
+		typedef bool(*PI_GraphicsDeinitializer)();
+		PI_GraphicsInitializer graphicsInitializer = nullptr;
+		PI_GraphicsDeinitializer graphicsDeinitializer = nullptr;
+		PI_GetGraphicsDevice graphicsGetDev = nullptr;
+
+		void Init(const std::string& api)
+		{
+			if (gEngine.api == "DX12") {
+				//vz::renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
+				graphicsInitializer = vz::platform::LoadModule<PI_GraphicsInitializer>("RendererDX12", "Initialize");
+				graphicsDeinitializer = vz::platform::LoadModule<PI_GraphicsDeinitializer>("RendererDX12", "Deinitialize");
+				graphicsGetDev = vz::platform::LoadModule<PI_GetGraphicsDevice>("RendererDX12", "GetGraphicsDevice");
+			}
+		}
+	} graphicsPackage;
+
 	VZRESULT InitEngineLib(const vzm::ParamMap<std::string>& arguments)
 	{
 		if (initialized)
@@ -47,20 +58,15 @@ namespace vzm
 
 		// assume DX12 rendering engine
 		gEngine.api = arguments.GetString("API", "DX12");
-		if (gEngine.api == "DX12")
-		{
-			//wi::renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
-			graphicsInitializer = vz::platform::LoadModule<PI_GraphicsInitializer>("RendererDX12", "Initialize");
-			graphicsDeinitializer = vz::platform::LoadModule<PI_GraphicsDeinitializer>("RendererDX12", "Deinitialize");
-			graphicsGetDev = vz::platform::LoadModule<PI_GetGraphicsDevice>("RendererDX12", "GetGraphicsDevice");
-		}
+		graphicsPackage.Init(gEngine.api);
 
 		// initialize the graphics backend
-		graphicsInitializer();
+		graphicsPackage.graphicsInitializer();
 
 		// graphics device
-		graphicsDevice = graphicsGetDev();
-
+		graphicsDevice = graphicsPackage.graphicsGetDev();
+		
+		initialized = true;
 		return VZ_OK;
 	}
 
@@ -96,12 +102,7 @@ namespace vzm
 
 		compfactory::CreateNameComponent(entity, compName);
 		compfactory::CreateTransformComponent(entity);
-		HierarchyComponent* hierarchy = compfactory::CreateHierarchyComponent(entity);
-		HierarchyComponent* hierarchy_parent = compfactory::CreateHierarchyComponent(parentVid);
-		if (hierarchy_parent)
-		{
-			hierarchy->SetParent(hierarchy_parent->GetVUID());
-		}
+		compfactory::CreateHierarchyComponent(entity);
 
 		VID vid = entity;
 		VzSceneComp* hlcomp = nullptr;
@@ -148,8 +149,9 @@ namespace vzm
 		HierarchyComponent* hier = compfactory::GetHierarchyComponent(ett);
 		for (auto it : hier->GetChildren())
 		{
-			decendants.push_back(it);
-			getDescendants(it, decendants);
+			Entity ett = compfactory::GetEntityByVUID(it);
+			decendants.push_back(ett);
+			getDescendants(ett, decendants);
 		}
 	};
 
@@ -354,8 +356,8 @@ namespace vzm
 	VZRESULT DeinitEngineLib()
 	{
 		CHECK_API_VALIDITY(VZ_FAIL);
-
-		graphicsDeinitializer();
+		jobsystem::ShutDown();
+		graphicsPackage.graphicsDeinitializer();
 		return VZ_OK;
 	}
 }

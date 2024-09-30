@@ -29,7 +29,7 @@ namespace vz
 	PI_NewGRenderPath3D graphicsNewGRenderPath3D = nullptr;
 
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
-		: RenderPath2D(entity, graphicsDevice_) 
+		: RenderPath2D(entity, graphicsDevice) 
 	{
 		if (graphicsNewGRenderPath3D == nullptr)
 		{
@@ -45,11 +45,10 @@ namespace vz
 		type_ = "RenderPath3D";
 	}
 
-	void RenderPath3D::DeleteGPUResources()
-	{
-		RenderPath2D::DeleteGPUResources();
-		rtRenderInterResult_ = {};
-		rtRender3D_ = {};
+	RenderPath3D::~RenderPath3D() 
+	{ 
+		DeleteGPUResources(false); 
+
 		if (handlerRenderPath3D_)
 		{
 			handlerRenderPath3D_->Destory();
@@ -58,18 +57,29 @@ namespace vz
 		}
 	}
 
+	void RenderPath3D::DeleteGPUResources(const bool resizableOnly)
+	{
+		RenderPath2D::DeleteGPUResources(resizableOnly);
+		rtRenderInterResult_ = {};
+		rtRender3D_ = {};
+		if (!resizableOnly)
+		{
+			//
+		}
+	}
+
 	void RenderPath3D::ResizeResources()
 	{
-		DeleteGPUResources();
+		DeleteGPUResources(true);
 		if (!rtRender3D_.IsValid())
 		{
-			TextureDesc desc;
-			desc.width = width_;
-			desc.height = height_;
-			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			desc.format = formatRendertargetMain;
-			assert(graphicsDevice_->CreateTexture(&desc, nullptr, &rtRender3D_));
-			graphicsDevice_->SetName(&rtRender3D_, std::string("rtRender3D_" + std::to_string(entity_)).c_str());
+			//TextureDesc desc;
+			//desc.width = width_;
+			//desc.height = height_;
+			//desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			//desc.format = formatRendertargetMain;
+			//assert(graphicsDevice_->CreateTexture(&desc, nullptr, &rtRender3D_));
+			//graphicsDevice_->SetName(&rtRender3D_, ("rtRender3D_" + std::to_string(entity_)).c_str());
 		}
 		handlerRenderPath3D_->ResizeCanvas();
 		RenderPath2D::ResizeResources();
@@ -106,6 +116,27 @@ namespace vz
 			camera->UpdateMatrix();
 		}
 
+		// Clear Option //
+		if (swapChain_.IsValid())
+		{
+			memcpy(swapChain_.desc.clear_color, clearColor, sizeof(float) * 4);
+		}
+		else
+		{
+			assert(rtRenderFinal_.IsValid());
+			memcpy(rtRenderFinal_.desc.clear.color, clearColor, sizeof(float) * 4);
+		}
+		
+		CommandList cmd = graphicsDevice_->BeginCommandList();
+		//RenderPassImage rp[] = {
+		//	RenderPassImage::RenderTarget(&rtOut, RenderPassImage::LoadOp::CLEAR),
+		//
+		//};
+		//graphicsDevice_->RenderPassBegin(rp, arraysize(rp), cmd);
+		graphicsDevice_->RenderPassBegin(&swapChain_, cmd);
+		graphicsDevice_->RenderPassEnd(cmd);
+		graphicsDevice_->SubmitCommandLists();
+		
 		handlerRenderPath3D_->Render();
 
 	}

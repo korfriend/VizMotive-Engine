@@ -127,6 +127,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //
     vzm::VzRenderer* renderer = vzm::NewRenderer("my renderer");
     renderer->SetCanvas(w, h, dpi, hwnd);
+    float clear_color[4] = { 1.f, 1.f, 0.f, 1.f };
+    renderer->SetClearColor(clear_color);
     //renderer->SetVisibleLayerMask(0x4, 0x4);
     //
     vzm::VzCamera* cam = (vzm::VzCamera*)vzm::NewSceneComponent(vzm::SCENE_COMPONENT_TYPE::CAMERA, "my camera", 0);

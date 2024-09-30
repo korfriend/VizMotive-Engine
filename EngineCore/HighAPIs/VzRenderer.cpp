@@ -53,6 +53,30 @@ namespace vzm
 		// add visibleMask(uint8_t) to RenderPath3D
 	}
 
+	void VzRenderer::SetClearColor(const float color[4])
+	{
+		GET_RENDERPATH(renderer, );
+		memcpy(renderer->clearColor, color, sizeof(float) * 4);
+		UpdateTimeStamp();
+	}
+
+	void VzRenderer::GetClearColor(float color[4]) const
+	{
+		GET_RENDERPATH(renderer, );
+		memcpy(color, renderer->clearColor, sizeof(float) * 4);
+	}
+
+	void VzRenderer::SetAllowHDR(const bool enable)
+	{
+		GET_RENDERPATH(renderer, );
+		renderer->allowHDR = enable;
+	}
+	bool VzRenderer::GetAllowHDR() const
+	{
+		GET_RENDERPATH(renderer, false);
+		return renderer->allowHDR;
+	}
+
 	bool VzRenderer::Render(const VID vidScene, const VID vidCam)
 	{
 		GET_RENDERPATH(renderer, false);
