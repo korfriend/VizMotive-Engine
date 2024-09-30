@@ -111,9 +111,18 @@ namespace vz
 		RenderPath2D::Render();
 
 		// RenderPath3D code //
-		if (camera->IsDirty())
+
+		// Camera Updates
 		{
-			camera->UpdateMatrix();
+			HierarchyComponent* hier = compfactory::GetHierarchyComponent(camera->GetEntity());
+			if (hier->GetParentEntity() != INVALID_ENTITY)
+			{
+				camera->SetWorldLookAtFromHierarchyTransforms();
+			}
+			if (camera->IsDirty())
+			{
+				camera->UpdateMatrix();
+			}
 		}
 
 		// Clear Option //

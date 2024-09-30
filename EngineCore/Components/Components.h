@@ -301,6 +301,7 @@ namespace vz
 
 		inline void SetParent(const VUID vuidParent);
 		inline VUID GetParent() const;
+		inline Entity GetParentEntity() const;
 
 		inline void AddChild(const VUID vuidChild);
 		inline void RemoveChild(const VUID vuidChild);
@@ -374,7 +375,7 @@ namespace vz
 
 	struct CORE_EXPORT GeometryComponent : ComponentBase
 	{
-	private:
+	public:
 		struct Primitive {
 		private:
 			inline static const size_t numBuffers_ = 6;
@@ -390,7 +391,6 @@ namespace vz
 			geometry::AABB aabb_;
 			enums::PrimitiveType ptype_ = enums::PrimitiveType::TRIANGLES;
 		public:
-			bool IsValid() const { for (size_t i = 0; i < numBuffers_; ++i) { if (!isValid_[i]) return false; } return true; }
 			void MoveFrom(Primitive& primitive)
 			{
 				vertexPositions_ = std::move(primitive.vertexPositions_);
@@ -419,24 +419,28 @@ namespace vz
 			enums::PrimitiveType GetPrimitiveType() { return ptype_; }
 			void SetAABB(const geometry::AABB& aabb) { aabb_ = aabb; }
 			void SetPrimitiveType(const enums::PrimitiveType ptype) { ptype_ = ptype; }
-#define PRIM_GETTER(A)  if (data) { data = A.data(); } return A.size();
-			size_t GetVtxPositions(XMFLOAT3* data) { assert(isValid_[0]); PRIM_GETTER(vertexPositions_) }
-			size_t GetVtxNormals(XMFLOAT3* data) { assert(isValid_[1]); PRIM_GETTER(vertexNormals_) }
-			size_t GetVtxUVSet0(XMFLOAT2* data) { assert(isValid_[2]); PRIM_GETTER(vertexUVset0_) }
-			size_t GetVtxUVSet1(XMFLOAT2* data) { assert(isValid_[3]); PRIM_GETTER(vertexUVset1_) }
-			size_t GetVtxColors(uint32_t* data) { assert(isValid_[4]); PRIM_GETTER(vertexColors_) }
-			size_t GetIdxPrimives(uint32_t* data) { assert(isValid_[5]); PRIM_GETTER(indexPrimitives_) }
+#define PRIM_GETTER(A)  if (data) { *data = A.data(); } return A.size();
+			size_t GetVtxPositions(XMFLOAT3** data) { assert(isValid_[0]); PRIM_GETTER(vertexPositions_) }
+			size_t GetVtxNormals(XMFLOAT3** data) { assert(isValid_[1]); PRIM_GETTER(vertexNormals_) }
+			size_t GetVtxUVSet0(XMFLOAT2** data) { assert(isValid_[2]); PRIM_GETTER(vertexUVset0_) }
+			size_t GetVtxUVSet1(XMFLOAT2** data) { assert(isValid_[3]); PRIM_GETTER(vertexUVset1_) }
+			size_t GetVtxColors(uint32_t** data) { assert(isValid_[4]); PRIM_GETTER(vertexColors_) }
+			size_t GetIdxPrimives(uint32_t** data) { assert(isValid_[5]); PRIM_GETTER(indexPrimitives_) }
+
 #define PRIM_SETTER(A, B) A##_ = onlyMoveOwnership ? std::move(A) : A; isValid_[B] = true;
-			void SetVtxPositions(const std::vector<XMFLOAT3>& vertexPositions, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexPositions, 0) }
-			void SetVtxNormals(const std::vector<XMFLOAT3>& vertexNormals, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexNormals, 1) }
-			void SetVtxUVSet0(const std::vector<XMFLOAT2>& vertexUVset0, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexUVset0, 2) }
-			void SetVtxUVSet1(const std::vector<XMFLOAT2>& vertexUVset1, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexUVset1, 3) }
-			void SetVtxColors(const std::vector<uint32_t>& vertexColors, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexColors, 4) }
-			void SetIdxPrimives(const std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, 5) }
+			// move or copy
+			// note: if onlyMoveOwnership is true, input std::vector will be invalid!
+			//	carefully use onlyMoveOwnership(true) to avoid the ABI issue
+			void SetVtxPositions(std::vector<XMFLOAT3>& vertexPositions, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexPositions, 0) }
+			void SetVtxNormals(std::vector<XMFLOAT3>& vertexNormals, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexNormals, 1) }
+			void SetVtxUVSet0(std::vector<XMFLOAT2>& vertexUVset0, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexUVset0, 2) }
+			void SetVtxUVSet1(std::vector<XMFLOAT2>& vertexUVset1, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexUVset1, 3) }
+			void SetVtxColors(std::vector<uint32_t>& vertexColors, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexColors, 4) }
+			void SetIdxPrimives(std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, 5) }
 
 			void Serialize(vz::Archive& archive, const uint64_t version);
 		};
-
+	private:
 		std::vector<Primitive> parts_;
 
 		bool isDirty_ = true;
@@ -448,7 +452,6 @@ namespace vz
 
 		bool IsDirty() { return isDirty_; }
 		geometry::AABB GetAABB() { return aabb_; }
-		void AssignParts(const size_t numParts) { parts_.assign(numParts, Primitive()); }
 		void MovePrimitives(std::vector<Primitive>& primitives);
 		void CopyPrimitives(const std::vector<Primitive>& primitives);
 		void MovePrimitive(Primitive& primitive, const size_t slot);
@@ -486,9 +489,9 @@ namespace vz
 
 		bool IsValid() { return isValid_; }
 		void SetGeometry(const Entity geometryEntity);
-		bool SetMaterial(const Entity materialEntity, const size_t slot);
+		void SetMaterial(const Entity materialEntity, const size_t slot);
 		void SetMaterials(const std::vector<Entity>& materials);
-		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { visibleLayerMask_ = (layerBits & maskBits); }
+		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { visibleLayerMask_ = (layerBits & maskBits); timeStampSetter_ = TimerNow; }
 		bool IsVisibleWith(uint8_t visibleLayerMask) { return visibleLayerMask & visibleLayerMask_; }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
 		Entity GetGeometry();
@@ -570,13 +573,15 @@ namespace vz
 		XMFLOAT3 eye_ = XMFLOAT3(0, 0, 0);
 		XMFLOAT3 at_ = XMFLOAT3(0, 0, 1);
 		XMFLOAT3 up_ = XMFLOAT3(0, 1, 0);
-		XMFLOAT3X3 rotationMatrix_;
+		XMFLOAT3X3 rotationMatrix_ = math::IDENTITY_MATRIX33;
 		XMFLOAT4X4 view_, projection_, viewProjection_;
 		XMFLOAT4X4 invView_, invProjection_, invViewProjection_;
-		vz::geometry::Frustum frustum_;
+		vz::geometry::Frustum frustum_ = {};
 
 	public:
-		CameraComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::CAMERA, entity, vuid) {}
+		CameraComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::CAMERA, entity, vuid) {
+			view_ = projection_ = viewProjection_ = invView_ = invProjection_ = invViewProjection_ = math::IDENTITY_MATRIX;
+		}
 
 		// Non-serialized attributes:
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);

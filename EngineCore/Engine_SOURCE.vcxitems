@@ -93,8 +93,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp" />

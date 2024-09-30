@@ -46,6 +46,7 @@ using namespace DirectX::PackedVector;
 namespace vz::math
 {
 	inline constexpr XMFLOAT4X4 IDENTITY_MATRIX = XMFLOAT4X4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+	inline constexpr XMFLOAT3X3 IDENTITY_MATRIX33 = XMFLOAT3X3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 	inline constexpr float PI = XM_PI;
 
 	inline bool float_equal(float f1, float f2) {

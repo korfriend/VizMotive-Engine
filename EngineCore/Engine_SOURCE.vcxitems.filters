@@ -304,13 +304,19 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
       <Filter>Components</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp">
-      <Filter>HighAPIs</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Canvas.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp">
+      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.cpp">
+      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp">
+      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp">
       <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
     </ClCompile>
   </ItemGroup>
