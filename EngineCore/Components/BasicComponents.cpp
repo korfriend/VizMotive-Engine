@@ -89,6 +89,10 @@ namespace vz
 	{
 		return vuidParentHierarchy_;
 	}
+	Entity HierarchyComponent::GetParentEntity() const
+	{
+		return compfactory::GetEntityByVUID(vuidParentHierarchy_);
+	}
 
 	void HierarchyComponent::AddChild(const VUID vuidChild)
 	{
@@ -247,6 +251,14 @@ namespace vz
 
 namespace vz
 {
+#define MAX_MATERIAL_SLOT 10000
+
+	bool checkValidity(const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
+	{
+		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(compfactory::GetEntityByVUID(vuidGeo));
+		if (geo_comp == nullptr) return false;
+		return geo_comp->GetNumParts() == vuidMaterials.size();
+	}
 	void RenderableComponent::SetGeometry(const Entity geometryEntity)
 	{
 		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(geometryEntity);
@@ -257,22 +269,26 @@ namespace vz
 		}
 		vuidGeometry_ = geo_comp->GetVUID();
 		isValid_ = geo_comp->GetNumParts() == vuidMaterials_.size();
+		timeStampSetter_ = TimerNow;
 	}
-	bool RenderableComponent::SetMaterial(const Entity materialEntity, const size_t slot)
+	void RenderableComponent::SetMaterial(const Entity materialEntity, const size_t slot)
 	{
-		if (slot >= vuidMaterials_.size())
-		{
-			backlog::post("slot is over current materials", backlog::LogLevel::Error);
-			return false;
-		}
+		assert(slot <= MAX_MATERIAL_SLOT);
 		MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materialEntity);
 		if (mat_comp == nullptr)
 		{
 			backlog::post("invalid entity", backlog::LogLevel::Error);
-			return false;
+			return;
+		}
+		if (slot >= vuidMaterials_.size())
+		{
+			std::vector<VUID> vuidMaterials_temp = vuidMaterials_;
+			vuidMaterials_.assign((slot + 1) * 2, INVALID_VUID); // * 2 for fast grow-up
+			memcpy(&vuidMaterials_[0], &vuidMaterials_temp[0], sizeof(VUID) * vuidMaterials_temp.size());
 		}
 		vuidMaterials_[slot] = mat_comp->GetVUID();
-		return true;
+		checkValidity(vuidGeometry_, vuidMaterials_);
+		timeStampSetter_ = TimerNow;
 	}
 	void RenderableComponent::SetMaterials(const std::vector<Entity>& materials)
 	{
@@ -284,13 +300,8 @@ namespace vz
 			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materials[i]);
 			vuidMaterials_.push_back(mat_comp->GetVUID());
 		}
-		isValid_ = false;
-		Entity ett_geometry = compfactory::GetEntityByVUID(vuidGeometry_);
-		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(ett_geometry);
-		if (geo_comp)
-		{
-			isValid_ = geo_comp->GetNumParts() == vuidMaterials_.size();
-		}
+		checkValidity(vuidGeometry_, vuidMaterials_);
+		timeStampSetter_ = TimerNow;
 	}
 
 	Entity RenderableComponent::GetGeometry() { return compfactory::GetEntityByVUID(vuid_); }

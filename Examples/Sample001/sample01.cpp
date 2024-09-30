@@ -132,11 +132,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //renderer->SetVisibleLayerMask(0x4, 0x4);
     //
     vzm::VzCamera* cam = (vzm::VzCamera*)vzm::NewSceneComponent(vzm::SCENE_COMPONENT_TYPE::CAMERA, "my camera", 0);
-    //glm::fvec3 p(0, 0, 10);
-    //glm::fvec3 at(0, 0, -4);
-    //glm::fvec3 u(0, 1, 0);
-    //cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
-    //cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
+    glm::fvec3 p(0, 0, 10);
+    glm::fvec3 at(0, 0, -4);
+	glm::fvec3 u(0, 1, 0);
+    cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
+    cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
+
+
+    // Actor New
+    // Geometry New
+    // Actor to Scene
+    // Scene Update (Geometry to GPU)
+    // Graphics Pipeline
+    // Material ...
+    // Draw it
+
+
     //cam->SetMatrixAutoUpdate(false);
     //vzm::VzCamera::Controller* cc = cam->GetController();
     //*(glm::fvec3*)cc->orbitHomePosition = p;

@@ -3,6 +3,7 @@
 
 namespace vz
 {
+#define MAX_GEOMETRY_PARTS 10000
 	void GeometryComponent::MovePrimitives(std::vector<Primitive>& primitives)
 	{
 		parts_.assign(primitives.size(), Primitive());
@@ -13,33 +14,50 @@ namespace vz
 		}
 		updateAABB();
 		isDirty_ = true;
+		timeStampSetter_ = TimerNow;
 	}
 	void GeometryComponent::CopyPrimitives(const std::vector<Primitive>& primitives)
 	{
 		parts_ = primitives;
 		updateAABB();
 		isDirty_ = true;
+		timeStampSetter_ = TimerNow;
+	}
+
+	using Primitive = GeometryComponent::Primitive;
+	void tryAssignParts(const size_t slot, std::vector<Primitive>& parts)
+	{
+		assert(slot < MAX_GEOMETRY_PARTS);
+		if (slot >= parts.size()) {
+			size_t n = parts.size();
+			std::vector<Primitive> parts_tmp(n);
+			for (size_t i = 0; i < n; ++i)
+			{
+				parts_tmp[i].MoveFrom(parts[i]);
+			}
+			parts.assign((slot + 1) * 2, Primitive()); // * 2 for fast grow-up
+			for (size_t i = 0; i < n; ++i)
+			{
+				parts_tmp[i].MoveTo(parts[i]);
+			}
+		}
 	}
 	void GeometryComponent::MovePrimitive(Primitive& primitive, const size_t slot)
 	{
-		if (slot >= parts_.size()) {
-			backlog::post("slot is over # of parts!", backlog::LogLevel::Error);
-			return;
-		}
+		tryAssignParts(slot, parts_);
 		Primitive& prim = parts_[slot];
 		prim.MoveFrom(primitive);
 		updateAABB();
 		isDirty_ = true;
+		timeStampSetter_ = TimerNow;
 	}
 	void GeometryComponent::CopyPrimitive(const Primitive& primitive, const size_t slot)
 	{
-		if (slot >= parts_.size()) {
-			backlog::post("slot is over # of parts!", backlog::LogLevel::Error);
-			return;
-		}
+		tryAssignParts(slot, parts_);
 		parts_[slot] = primitive;
 		updateAABB();
 		isDirty_ = true;
+		timeStampSetter_ = TimerNow;
 	}
 	bool GeometryComponent::GetPrimitive(const size_t slot, Primitive& primitive)	
 	{

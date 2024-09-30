@@ -143,7 +143,6 @@ namespace vzm
 		return hlcomp;
 	}
 
-
 	void getDescendants(const Entity ett, std::vector<Entity>& decendants)
 	{
 		HierarchyComponent* hier = compfactory::GetHierarchyComponent(ett);
