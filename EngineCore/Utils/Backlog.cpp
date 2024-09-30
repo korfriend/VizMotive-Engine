@@ -63,17 +63,17 @@ namespace vz::backlog
 		switch (logLevel)
 		{
 		case LogLevel::Trace:
-			apiLogger->trace(input);
+			apiLogger->trace(input); break;
 		case LogLevel::Debug:
-			apiLogger->debug(input);
+			apiLogger->debug(input); break;
 		case LogLevel::Info:
-			apiLogger->info(input);
+			apiLogger->info(input); break;
 		case LogLevel::Warn:
-			apiLogger->warn(input);
+			apiLogger->warn(input); break;
 		case LogLevel::Error:
-			apiLogger->error(input);
+			apiLogger->error(input); break;
 		case LogLevel::Critical:
-			apiLogger->critical(input);
+			apiLogger->critical(input); break;
 		case LogLevel::None:
 		default:
 				return;

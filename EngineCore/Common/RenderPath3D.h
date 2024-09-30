@@ -26,13 +26,13 @@ namespace vz
 
 	public:
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
-		~RenderPath3D() { DeleteGPUResources(); }
+		~RenderPath3D();
 
 		CameraComponent* camera = nullptr;
 		Scene* scene = nullptr;
 		graphics::Viewport viewport;
 
-		void DeleteGPUResources() override;
+		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;
 		// cpu side... in scene
 		void Update(const float dt) override;

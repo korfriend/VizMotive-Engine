@@ -36,7 +36,9 @@ namespace vz
 		Canvas(const Entity entity) : entity_(entity) {};
 		virtual ~Canvas() = default;
 
+		bool allowHDR = true;
 		std::string name = "";
+
 		std::string GetType() const { return type_; }
 
 		// Create a canvas from physical measurements

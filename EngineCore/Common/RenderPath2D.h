@@ -16,13 +16,13 @@ namespace vz
 	public:
 		RenderPath2D(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
 			: RenderPath(entity, graphicsDevice) {  type_ = "RenderPath2D"; }
-		~RenderPath2D() { DeleteGPUResources(); }
+		~RenderPath2D() { DeleteGPUResources(false); }
 		// to do ... slicer component...
 
 		using SlicerComponent = CameraComponent;
 		SlicerComponent* slicer = nullptr;
 
-		void DeleteGPUResources() override;
+		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;
 		void Update(const float dt) override;
 		void Render() override;
