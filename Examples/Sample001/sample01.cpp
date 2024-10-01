@@ -113,8 +113,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         std::cerr << "Failed to initialize engine library." << std::endl;
         return -1;
     }
-    
-    vzm::VzScene* scene = vzm::NewScene("my scene");
+
+	vzm::VzScene* scene = vzm::NewScene("my scene");
     //scene->LoadIBL("../../../VisualStudio/samples/assets/ibl/lightroom_14b");
     //
     //vzm::VzActor* actor = vzm::LoadTestModelIntoActor("my test model");
@@ -131,12 +131,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     renderer->SetClearColor(clear_color);
     //renderer->SetVisibleLayerMask(0x4, 0x4);
     //
-    vzm::VzCamera* cam = (vzm::VzCamera*)vzm::NewSceneComponent(vzm::SCENE_COMPONENT_TYPE::CAMERA, "my camera", 0);
+    vzm::VzCamera* cam = vzm::NewCamera("my camera");
     glm::fvec3 p(0, 0, 10);
     glm::fvec3 at(0, 0, -4);
 	glm::fvec3 u(0, 1, 0);
     cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
+
+	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
+	geometry_test->MaskTestTriangle();
+	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
+
+	vzm::VzActor* actor_test = vzm::NewActor("my actor");
+	actor_test->SetGeometry(geometry_test);
+    actor_test->SetMaterial(material_test, 0);
 
 
     // Actor New
@@ -147,29 +155,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // Material ...
     // Draw it
 
+	vzm::AppendSceneCompTo(actor_test, scene);
 
-    //cam->SetMatrixAutoUpdate(false);
-    //vzm::VzCamera::Controller* cc = cam->GetController();
-    //*(glm::fvec3*)cc->orbitHomePosition = p;
-    //cc->UpdateControllerSettings();
-    //cc->SetViewport(w, h);
-	//
-	//vzm::VzSunLight* light = (vzm::VzSunLight*)vzm::NewSceneComponent(vzm::SCENE_COMPONENT_TYPE::LIGHT_SUN, "my light");
-	//
-	//vzm::VzSpriteActor* sprite = (vzm::VzSpriteActor*)vzm::NewSceneComponent(vzm::SCENE_COMPONENT_TYPE::SPRITE_ACTOR, "my sprite");
-	//{
-	//    vzm::VzTexture* texture = (vzm::VzTexture*)vzm::NewResComponent(vzm::RES_COMPONENT_TYPE::TEXTURE, "my image");
-	//    texture->ReadImage("../assets/testimage.png");
-	//    sprite->SetSpriteWidth(3)
-	//        .SetSpriteHeight(3)
-	//        .SetAnchorU(0.5)
-	//        .SetAnchorV(0.5)
-	//        .Build();
-	//    sprite->SetTexture(texture->GetVID());
-	//}
-	//
-	//vzm::AppendSceneCompTo(sprite, scene);
-	//vzm::AppendSceneCompTo(actor, scene);
 	//vzm::AppendSceneCompTo(actor_axis, actor);
 	//vzm::AppendSceneCompTo(light, scene);
 	//vzm::AppendSceneCompTo(cam, scene);

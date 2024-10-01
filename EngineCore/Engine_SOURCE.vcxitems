@@ -97,6 +97,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp" />

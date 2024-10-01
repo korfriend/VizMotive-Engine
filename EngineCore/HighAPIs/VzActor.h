@@ -19,7 +19,9 @@ namespace vzm
 		bool IsRenderable();
 
 		void SetGeometry(const GeometryVID vid);
+		void SetGeometry(const VzBaseComp* geometry) { SetGeometry(geometry->GetVID()); }
 		void SetMaterial(const MaterialVID vid, const int slot = 0);
+		void SetMaterial(const VzBaseComp* material, const int slot = 0) { SetMaterial(material->GetVID(), slot); }
 
 		void SetMaterials(const std::vector<MaterialVID> vids);
 

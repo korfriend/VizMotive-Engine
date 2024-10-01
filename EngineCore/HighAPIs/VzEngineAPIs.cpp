@@ -20,12 +20,19 @@ namespace vzm
 
 	namespace vzcomp
 	{
+		std::unordered_map<VID, VzBaseComp*> lookup;
+
 		std::unordered_map<SceneVID, std::unique_ptr<VzScene>> scenes;
+		
 		std::unordered_map<RendererVID, std::unique_ptr<VzRenderer>> renderers;
+
 		std::unordered_map<CamVID, std::unique_ptr<VzCamera>> cameras;
-		std::unordered_map<VID, std::unique_ptr<VzActor>> actors;
-		std::unordered_map<VID, std::unique_ptr<VzLight>> lights;
-		std::unordered_map<VID, std::unique_ptr<VzResource>> resources;
+		std::unordered_map<ActorVID, std::unique_ptr<VzActor>> actors;
+		std::unordered_map<LightVID, std::unique_ptr<VzLight>> lights;
+
+		std::unordered_map<GeometryVID, std::unique_ptr<VzGeometry>> geometries;
+		std::unordered_map<MaterialVID, std::unique_ptr<VzMaterial>> materials;
+		std::unordered_map<TextureVID, std::unique_ptr<VzTexture>> textures;
 	}
 
 	struct GraphicsPackage
@@ -70,27 +77,29 @@ namespace vzm
 		return VZ_OK;
 	}
 
-	VzScene* NewScene(const std::string& sceneName)
+	VzScene* NewScene(const std::string& name)
 	{
 		CHECK_API_VALIDITY(nullptr);
-		Scene* scene = Scene::CreateScene(sceneName);
+		Scene* scene = Scene::CreateScene(name);
 		SceneVID vid = scene->GetSceneEntity();
 		auto it = vzcomp::scenes.emplace(vid, std::make_unique<VzScene>(vid, "vzm::NewScene"));
-		compfactory::CreateNameComponent(vid, sceneName);
+		compfactory::CreateNameComponent(vid, name);
+		vzcomp::lookup[vid] = it.first->second.get();
 		return it.first->second.get();
 	}
 
-	VzRenderer* NewRenderer(const std::string& rendererName)
+	VzRenderer* NewRenderer(const std::string& name)
 	{
 		CHECK_API_VALIDITY(nullptr);
-		RenderPath3D* renderer = canvas::CreateRenderPath3D(graphicsDevice, rendererName);
+		RenderPath3D* renderer = canvas::CreateRenderPath3D(graphicsDevice, name);
 		RendererVID vid = renderer->GetEntity();
 		auto it = vzcomp::renderers.emplace(vid, std::make_unique<VzRenderer>(vid, "vzm::NewRenderer"));
-		compfactory::CreateNameComponent(vid, rendererName);
+		compfactory::CreateNameComponent(vid, name);
+		vzcomp::lookup[vid] = it.first->second.get();
 		return it.first->second.get();
 	}
 
-	VzSceneComp* NewSceneComponent(const SCENE_COMPONENT_TYPE compType, const std::string& compName, const VID parentVid)
+	VzSceneComp* newSceneComponent(const SCENE_COMPONENT_TYPE compType, const std::string& compName, const VID parentVid)
 	{
 		CHECK_API_VALIDITY(nullptr);
 		if (compType == SCENE_COMPONENT_TYPE::SCENEBASE)
@@ -140,7 +149,80 @@ namespace vzm
 			AppendSceneCompVidTo(vid, parentVid);
 		}
 
+		vzcomp::lookup[vid] = hlcomp;
 		return hlcomp;
+	}
+
+	VzCamera* NewCamera(const std::string& name, const VID parentVid)
+	{
+		return (VzCamera*)newSceneComponent(SCENE_COMPONENT_TYPE::CAMERA, name, parentVid);
+	}
+	VzActor* NewActor(const std::string& name, const VID parentVid)
+	{
+		return (VzActor*)newSceneComponent(SCENE_COMPONENT_TYPE::ACTOR, name, parentVid);
+	}
+	VzLight* NewLight(const std::string& name, const VID parentVid)
+	{
+		return (VzLight*)newSceneComponent(SCENE_COMPONENT_TYPE::LIGHT, name, parentVid);
+	}
+
+	VzResource* newResComponent(const RES_COMPONENT_TYPE compType, const std::string& compName)
+	{
+		CHECK_API_VALIDITY(nullptr);
+		if (compType == RES_COMPONENT_TYPE::RESOURCE)
+		{
+			return nullptr;
+		}
+
+		Entity entity = ecs::CreateEntity();
+
+		compfactory::CreateNameComponent(entity, compName);
+
+		VID vid = entity;
+		VzResource* hlcomp = nullptr;
+
+		switch (compType)
+		{
+		case RES_COMPONENT_TYPE::GEOMETRY:
+			compfactory::CreateGeometryComponent(entity);
+			{
+				auto it = vzcomp::geometries.emplace(vid, std::make_unique<VzGeometry>(vid, "vzm::NewResComponent"));
+				hlcomp = (VzGeometry*)it.first->second.get();
+			}
+			break;
+		case RES_COMPONENT_TYPE::MATERIAL:
+			compfactory::CreateMaterialComponent(entity);
+			{
+				auto it = vzcomp::materials.emplace(vid, std::make_unique<VzMaterial>(vid, "vzm::NewResComponent"));
+				hlcomp = (VzMaterial*)it.first->second.get();
+			}
+			break;
+		case RES_COMPONENT_TYPE::TEXTURE:
+			compfactory::CreateTextureComponent(entity);
+			{
+				auto it = vzcomp::textures.emplace(vid, std::make_unique<VzTexture>(vid, "vzm::NewResComponent"));
+				hlcomp = (VzTexture*)it.first->second.get();
+			}
+			break;
+		default:
+			backlog::post("vzm::NewResComponent >> Invalid RES_COMPONENT_TYPE", backlog::LogLevel::Error);
+			return nullptr;
+		}
+		vzcomp::lookup[vid] = hlcomp;
+		return hlcomp;
+	}
+
+	VzGeometry* NewGeometry(const std::string& name)
+	{
+		return (VzGeometry*)newResComponent(RES_COMPONENT_TYPE::GEOMETRY, name);
+	}
+	VzMaterial* NewMaterial(const std::string& name)
+	{
+		return (VzMaterial*)newResComponent(RES_COMPONENT_TYPE::MATERIAL, name);
+	}
+	VzTexture* NewTexture(const std::string& name)
+	{
+		return (VzTexture*)newResComponent(RES_COMPONENT_TYPE::TEXTURE, name);
 	}
 
 	void getDescendants(const Entity ett, std::vector<Entity>& decendants)

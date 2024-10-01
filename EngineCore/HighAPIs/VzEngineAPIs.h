@@ -29,14 +29,19 @@ namespace vzm
 	extern "C" API_EXPORT void RemoveComponent(const VID vid);
 	// Create new scene and return scene (NOT a scene item) ID, a scene 
 	//  - return zero in case of failure (the name is already registered or overflow VID)
-	extern "C" API_EXPORT VzScene* NewScene(const std::string& sceneName);
-	extern "C" API_EXPORT VzRenderer* NewRenderer(const std::string& rendererName);
+	extern "C" API_EXPORT VzScene* NewScene(const std::string& name);
+	extern "C" API_EXPORT VzRenderer* NewRenderer(const std::string& name);
 	// Create new scene component (SCENE_COMPONENT_TYPE::CAMERA, ACTOR, LIGHT) NOT SCENE_COMPONENT_TYPE::SCENEBASE
 	//  - Must belong to a scene
 	//  - parentVid cannot be a scene (renderable or 0)
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
-	extern "C" API_EXPORT VzSceneComp* NewSceneComponent(const SCENE_COMPONENT_TYPE compType, const std::string& compName, const VID parentVid = 0u);
-	extern "C" API_EXPORT VzResource* NewResComponent(const RES_COMPONENT_TYPE compType, const std::string& compName);
+	extern "C" API_EXPORT VzCamera* NewCamera(const std::string& name, const VID parentVid = 0u);
+	extern "C" API_EXPORT VzActor* NewActor(const std::string& name, const VID parentVid = 0u);
+	extern "C" API_EXPORT VzLight* NewLight(const std::string& name, const VID parentVid = 0u);
+
+	extern "C" API_EXPORT VzGeometry* NewGeometry(const std::string& name);
+	extern "C" API_EXPORT VzMaterial* NewMaterial(const std::string& name);
+	extern "C" API_EXPORT VzTexture* NewTexture(const std::string& name);
 	// Get Component and return its pointer registered in renderer
 	//  - return nullptr in case of failure
 	extern "C" API_EXPORT VzBaseComp* GetVzComponent(const VID vid);
