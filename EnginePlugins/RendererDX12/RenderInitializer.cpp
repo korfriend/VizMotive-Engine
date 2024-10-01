@@ -1,16 +1,31 @@
-#include "RenderInitializer.h"
+#include "Renderer.h"
 #include "Shaders/ShaderInterop.h"
 
-namespace vz::graphics
+namespace vz::graphics::common
 {
+	extern InputLayout			inputLayouts[ILTYPE_COUNT];
+	extern RasterizerState		rasterizers[RSTYPE_COUNT];
+	extern DepthStencilState	depthStencils[DSSTYPE_COUNT];
+	extern BlendState			blendStates[BSTYPE_COUNT];
+	extern Shader				shaders[SHADERTYPE_COUNT];
+	extern GPUBuffer			buffers[BUFFERTYPE_COUNT];
+	extern Sampler				samplers[SAMPLER_COUNT];
+}
+
+namespace vz::graphics::initializer
+{
+	using namespace vz::graphics;
+
+	GraphicsDevice*& device = GetDevice();
+
 	void LoadBuffers()
 	{
 		GPUBufferDesc bd;
 		bd.usage = Usage::DEFAULT;
 		bd.size = sizeof(FrameCB);
 		bd.bind_flags = BindFlag::CONSTANT_BUFFER;
-		device->CreateBuffer(&bd, nullptr, &buffers[BUFFERTYPE_FRAMECB]);
-		device->SetName(&buffers[BUFFERTYPE_FRAMECB], "buffers[BUFFERTYPE_FRAMECB]");
+		device->CreateBuffer(&bd, nullptr, &common::buffers[BUFFERTYPE_FRAMECB]);
+		device->SetName(&common::buffers[BUFFERTYPE_FRAMECB], "buffers[BUFFERTYPE_FRAMECB]");
 
 		// to do (future features)
 	}
@@ -27,8 +42,7 @@ namespace vz::graphics
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;
-		rasterizers[RSTYPE_FRONT] = rs;
-
+		common::rasterizers[RSTYPE_FRONT] = rs;
 
 		rs.fill_mode = FillMode::SOLID;
 		rs.cull_mode = CullMode::BACK;
@@ -40,9 +54,9 @@ namespace vz::graphics
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;
-		rasterizers[RSTYPE_SHADOW] = rs;
+		common::rasterizers[RSTYPE_SHADOW] = rs;
 		rs.cull_mode = CullMode::NONE;
-		rasterizers[RSTYPE_SHADOW_DOUBLESIDED] = rs;
+		common::rasterizers[RSTYPE_SHADOW_DOUBLESIDED] = rs;
 
 		rs.fill_mode = FillMode::WIREFRAME;
 		rs.cull_mode = CullMode::BACK;
@@ -54,9 +68,9 @@ namespace vz::graphics
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;
-		rasterizers[RSTYPE_WIRE] = rs;
+		common::rasterizers[RSTYPE_WIRE] = rs;
 		rs.antialiased_line_enable = true;
-		rasterizers[RSTYPE_WIRE_SMOOTH] = rs;
+		common::rasterizers[RSTYPE_WIRE_SMOOTH] = rs;
 
 		rs.fill_mode = FillMode::SOLID;
 		rs.cull_mode = CullMode::NONE;
@@ -68,7 +82,7 @@ namespace vz::graphics
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;
-		rasterizers[RSTYPE_DOUBLESIDED] = rs;
+		common::rasterizers[RSTYPE_DOUBLESIDED] = rs;
 
 		rs.fill_mode = FillMode::WIREFRAME;
 		rs.cull_mode = CullMode::NONE;
@@ -80,9 +94,9 @@ namespace vz::graphics
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;
-		rasterizers[RSTYPE_WIRE_DOUBLESIDED] = rs;
+		common::rasterizers[RSTYPE_WIRE_DOUBLESIDED] = rs;
 		rs.antialiased_line_enable = true;
-		rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH] = rs;
+		common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH] = rs;
 
 		rs.fill_mode = FillMode::SOLID;
 		rs.cull_mode = CullMode::FRONT;
@@ -94,7 +108,7 @@ namespace vz::graphics
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;
-		rasterizers[RSTYPE_BACK] = rs;
+		common::rasterizers[RSTYPE_BACK] = rs;
 
 		rs.fill_mode = FillMode::SOLID;
 		rs.cull_mode = CullMode::NONE;
@@ -106,7 +120,7 @@ namespace vz::graphics
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;
-		rasterizers[RSTYPE_OCCLUDEE] = rs;
+		common::rasterizers[RSTYPE_OCCLUDEE] = rs;
 
 		rs.fill_mode = FillMode::SOLID;
 		rs.cull_mode = CullMode::FRONT;
@@ -118,7 +132,7 @@ namespace vz::graphics
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;
-		rasterizers[RSTYPE_SKY] = rs;
+		common::rasterizers[RSTYPE_SKY] = rs;
 
 		rs.fill_mode = FillMode::SOLID;
 		rs.cull_mode = CullMode::NONE;
@@ -139,7 +153,7 @@ namespace vz::graphics
 		{
 			rs.forced_sample_count = 8;
 		}
-		rasterizers[RSTYPE_VOXELIZE] = rs;
+		common::rasterizers[RSTYPE_VOXELIZE] = rs;
 
 
 		DepthStencilState dsd;
@@ -158,55 +172,55 @@ namespace vz::graphics
 		dsd.back_face.stencil_pass_op = StencilOp::REPLACE;
 		dsd.back_face.stencil_fail_op = StencilOp::KEEP;
 		dsd.back_face.stencil_depth_fail_op = StencilOp::KEEP;
-		depthStencils[DSSTYPE_DEFAULT] = dsd;
+		common::depthStencils[DSSTYPE_DEFAULT] = dsd;
 
 		dsd.depth_func = ComparisonFunc::GREATER_EQUAL;
-		depthStencils[DSSTYPE_TRANSPARENT] = dsd;
+		common::depthStencils[DSSTYPE_TRANSPARENT] = dsd;
 		dsd.depth_func = ComparisonFunc::GREATER;
 
 		dsd.depth_write_mask = DepthWriteMask::ZERO;
-		depthStencils[DSSTYPE_HOLOGRAM] = dsd;
+		common::depthStencils[DSSTYPE_HOLOGRAM] = dsd;
 
 		dsd.depth_enable = true;
 		dsd.depth_write_mask = DepthWriteMask::ALL;
 		dsd.depth_func = ComparisonFunc::GREATER;
 		dsd.stencil_enable = false;
-		depthStencils[DSSTYPE_SHADOW] = dsd;
+		common::depthStencils[DSSTYPE_SHADOW] = dsd;
 
 		dsd.depth_enable = true;
 		dsd.depth_write_mask = DepthWriteMask::ALL;
 		dsd.depth_func = ComparisonFunc::GREATER;
 		dsd.stencil_enable = false;
-		depthStencils[DSSTYPE_CAPTUREIMPOSTOR] = dsd;
+		common::depthStencils[DSSTYPE_CAPTUREIMPOSTOR] = dsd;
 
 
 		dsd.depth_enable = true;
 		dsd.stencil_enable = false;
 		dsd.depth_write_mask = DepthWriteMask::ZERO;
 		dsd.depth_func = ComparisonFunc::GREATER_EQUAL;
-		depthStencils[DSSTYPE_DEPTHREAD] = dsd;
+		common::depthStencils[DSSTYPE_DEPTHREAD] = dsd;
 
 		dsd.depth_enable = false;
 		dsd.stencil_enable = false;
-		depthStencils[DSSTYPE_DEPTHDISABLED] = dsd;
+		common::depthStencils[DSSTYPE_DEPTHDISABLED] = dsd;
 
 
 		dsd.depth_enable = true;
 		dsd.depth_write_mask = DepthWriteMask::ZERO;
 		dsd.depth_func = ComparisonFunc::EQUAL;
-		depthStencils[DSSTYPE_DEPTHREADEQUAL] = dsd;
+		common::depthStencils[DSSTYPE_DEPTHREADEQUAL] = dsd;
 
 
 		dsd.depth_enable = true;
 		dsd.depth_write_mask = DepthWriteMask::ALL;
 		dsd.depth_func = ComparisonFunc::GREATER;
-		depthStencils[DSSTYPE_ENVMAP] = dsd;
+		common::depthStencils[DSSTYPE_ENVMAP] = dsd;
 
 		dsd.depth_enable = true;
 		dsd.depth_write_mask = DepthWriteMask::ALL;
 		dsd.depth_func = ComparisonFunc::ALWAYS;
 		dsd.stencil_enable = false;
-		depthStencils[DSSTYPE_WRITEONLY] = dsd;
+		common::depthStencils[DSSTYPE_WRITEONLY] = dsd;
 
 		dsd.depth_enable = false;
 		dsd.depth_write_mask = DepthWriteMask::ZERO;
@@ -218,7 +232,7 @@ namespace vz::graphics
 		for (int i = 0; i < 8; ++i)
 		{
 			dsd.stencil_write_mask = uint8_t(1 << i);
-			depthStencils[DSSTYPE_COPY_STENCIL_BIT_0 + i] = dsd;
+			common::depthStencils[DSSTYPE_COPY_STENCIL_BIT_0 + i] = dsd;
 		}
 
 
@@ -227,7 +241,7 @@ namespace vz::graphics
 		bd.render_target[0].render_target_write_mask = ColorWrite::ENABLE_ALL;
 		bd.alpha_to_coverage_enable = false;
 		bd.independent_blend_enable = false;
-		blendStates[BSTYPE_OPAQUE] = bd;
+		common::blendStates[BSTYPE_OPAQUE] = bd;
 
 		bd.render_target[0].src_blend = Blend::SRC_ALPHA;
 		bd.render_target[0].dest_blend = Blend::INV_SRC_ALPHA;
@@ -239,7 +253,7 @@ namespace vz::graphics
 		bd.render_target[0].render_target_write_mask = ColorWrite::ENABLE_ALL;
 		bd.alpha_to_coverage_enable = false;
 		bd.independent_blend_enable = false;
-		blendStates[BSTYPE_TRANSPARENT] = bd;
+		common::blendStates[BSTYPE_TRANSPARENT] = bd;
 
 		bd.render_target[0].blend_enable = true;
 		bd.render_target[0].src_blend = Blend::ONE;
@@ -251,7 +265,7 @@ namespace vz::graphics
 		bd.render_target[0].render_target_write_mask = ColorWrite::ENABLE_ALL;
 		bd.independent_blend_enable = false;
 		bd.alpha_to_coverage_enable = false;
-		blendStates[BSTYPE_PREMULTIPLIED] = bd;
+		common::blendStates[BSTYPE_PREMULTIPLIED] = bd;
 
 
 		bd.render_target[0].blend_enable = true;
@@ -264,14 +278,14 @@ namespace vz::graphics
 		bd.render_target[0].render_target_write_mask = ColorWrite::ENABLE_ALL;
 		bd.independent_blend_enable = false,
 			bd.alpha_to_coverage_enable = false;
-		blendStates[BSTYPE_ADDITIVE] = bd;
+		common::blendStates[BSTYPE_ADDITIVE] = bd;
 
 
 		bd.render_target[0].blend_enable = false;
 		bd.render_target[0].render_target_write_mask = ColorWrite::DISABLE;
 		bd.independent_blend_enable = false,
 			bd.alpha_to_coverage_enable = false;
-		blendStates[BSTYPE_COLORWRITEDISABLE] = bd;
+		common::blendStates[BSTYPE_COLORWRITEDISABLE] = bd;
 
 		bd.render_target[0].src_blend = Blend::DEST_COLOR;
 		bd.render_target[0].dest_blend = Blend::ZERO;
@@ -283,7 +297,7 @@ namespace vz::graphics
 		bd.render_target[0].render_target_write_mask = ColorWrite::ENABLE_ALL;
 		bd.alpha_to_coverage_enable = false;
 		bd.independent_blend_enable = false;
-		blendStates[BSTYPE_MULTIPLY] = bd;
+		common::blendStates[BSTYPE_MULTIPLY] = bd;
 
 		bd.render_target[0].src_blend = Blend::ZERO;
 		bd.render_target[0].dest_blend = Blend::SRC_COLOR;
@@ -295,7 +309,7 @@ namespace vz::graphics
 		bd.render_target[0].render_target_write_mask = ColorWrite::ENABLE_ALL;
 		bd.alpha_to_coverage_enable = false;
 		bd.independent_blend_enable = false;
-		blendStates[BSTYPE_TRANSPARENTSHADOW] = bd;
+		common::blendStates[BSTYPE_TRANSPARENTSHADOW] = bd;
 
 
 
@@ -312,66 +326,66 @@ namespace vz::graphics
 		samplerDesc.border_color = SamplerBorderColor::TRANSPARENT_BLACK;
 		samplerDesc.min_lod = 0;
 		samplerDesc.max_lod = std::numeric_limits<float>::max();
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_LINEAR_MIRROR]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_LINEAR_MIRROR]);
 
 		samplerDesc.filter = Filter::MIN_MAG_MIP_LINEAR;
 		samplerDesc.address_u = TextureAddressMode::CLAMP;
 		samplerDesc.address_v = TextureAddressMode::CLAMP;
 		samplerDesc.address_w = TextureAddressMode::CLAMP;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_LINEAR_CLAMP]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_LINEAR_CLAMP]);
 
 		samplerDesc.filter = Filter::MIN_MAG_MIP_LINEAR;
 		samplerDesc.address_u = TextureAddressMode::WRAP;
 		samplerDesc.address_v = TextureAddressMode::WRAP;
 		samplerDesc.address_w = TextureAddressMode::WRAP;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_LINEAR_WRAP]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_LINEAR_WRAP]);
 
 		samplerDesc.filter = Filter::MIN_MAG_MIP_POINT;
 		samplerDesc.address_u = TextureAddressMode::MIRROR;
 		samplerDesc.address_v = TextureAddressMode::MIRROR;
 		samplerDesc.address_w = TextureAddressMode::MIRROR;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_POINT_MIRROR]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_POINT_MIRROR]);
 
 		samplerDesc.filter = Filter::MIN_MAG_MIP_POINT;
 		samplerDesc.address_u = TextureAddressMode::WRAP;
 		samplerDesc.address_v = TextureAddressMode::WRAP;
 		samplerDesc.address_w = TextureAddressMode::WRAP;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_POINT_WRAP]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_POINT_WRAP]);
 
 
 		samplerDesc.filter = Filter::MIN_MAG_MIP_POINT;
 		samplerDesc.address_u = TextureAddressMode::CLAMP;
 		samplerDesc.address_v = TextureAddressMode::CLAMP;
 		samplerDesc.address_w = TextureAddressMode::CLAMP;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_POINT_CLAMP]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_POINT_CLAMP]);
 
 		samplerDesc.filter = Filter::ANISOTROPIC;
 		samplerDesc.address_u = TextureAddressMode::CLAMP;
 		samplerDesc.address_v = TextureAddressMode::CLAMP;
 		samplerDesc.address_w = TextureAddressMode::CLAMP;
 		samplerDesc.max_anisotropy = 16;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_ANISO_CLAMP]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_ANISO_CLAMP]);
 
 		samplerDesc.filter = Filter::ANISOTROPIC;
 		samplerDesc.address_u = TextureAddressMode::WRAP;
 		samplerDesc.address_v = TextureAddressMode::WRAP;
 		samplerDesc.address_w = TextureAddressMode::WRAP;
 		samplerDesc.max_anisotropy = 16;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_ANISO_WRAP]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_ANISO_WRAP]);
 
 		samplerDesc.filter = Filter::ANISOTROPIC;
 		samplerDesc.address_u = TextureAddressMode::MIRROR;
 		samplerDesc.address_v = TextureAddressMode::MIRROR;
 		samplerDesc.address_w = TextureAddressMode::MIRROR;
 		samplerDesc.max_anisotropy = 16;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_ANISO_MIRROR]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_ANISO_MIRROR]);
 
 		samplerDesc.filter = Filter::ANISOTROPIC;
 		samplerDesc.address_u = TextureAddressMode::WRAP;
 		samplerDesc.address_v = TextureAddressMode::WRAP;
 		samplerDesc.address_w = TextureAddressMode::WRAP;
 		samplerDesc.max_anisotropy = 16;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_OBJECTSHADER]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_OBJECTSHADER]);
 
 		samplerDesc.filter = Filter::COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 		samplerDesc.address_u = TextureAddressMode::CLAMP;
@@ -380,6 +394,6 @@ namespace vz::graphics
 		samplerDesc.mip_lod_bias = 0.0f;
 		samplerDesc.max_anisotropy = 0;
 		samplerDesc.comparison_func = ComparisonFunc::GREATER_EQUAL;
-		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_CMP_DEPTH]);
+		device->CreateSampler(&samplerDesc, &common::samplers[SAMPLER_CMP_DEPTH]);
 	}
 }

@@ -1,7 +1,20 @@
-#include "ShaderLoader.h"
+#include "Renderer.h"
+#include "Utils/JobSystem.h"
 
-namespace vz::graphics
+#include <filesystem>
+
+namespace helpers
 {
+
+}
+
+namespace vz::graphics::shaders
+{
+	GraphicsDevice*& device = GetDevice();
+	
+
+	
+
 	bool LoadShader(
 		ShaderStage stage,
 		Shader& shader,
@@ -10,8 +23,8 @@ namespace vz::graphics
 		const std::vector<std::string>& permutation_defines
 	)
 	{
-		std::string shaderbinaryfilename = SHADERPATH + filename;
-
+		std::string shaderbinaryfilename = std::filesystem::current_path().string() + filename;
+		/*
 		if (!permutation_defines.empty())
 		{
 			std::string ext = wi::helper::GetExtensionFromFileName(shaderbinaryfilename);
@@ -93,22 +106,21 @@ namespace vz::graphics
 				SHADER_MISSING.fetch_add(1);
 			}
 		}
-
+		/**/
 		return false;
 	}
 
+	// this is for the case when retry LoadShaders() 
+	jobsystem::context objectps_ctx;
 
 	void LoadShaders()
 	{
-		wi::jobsystem::Wait(raytracing_ctx);
-		raytracing_ctx.priority = wi::jobsystem::Priority::Low;
+		jobsystem::Wait(objectps_ctx);
+		objectps_ctx.priority = jobsystem::Priority::Low;
 
-		wi::jobsystem::Wait(objectps_ctx);
-		objectps_ctx.priority = wi::jobsystem::Priority::Low;
-
-		wi::jobsystem::context ctx;
-
-		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) {
+		jobsystem::context ctx;
+		/*
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			LoadShader(ShaderStage::VS, shaders[VSTYPE_OBJECT_DEBUG], "objectVS_debug.cso");
 			});
 
@@ -386,23 +398,6 @@ namespace vz::graphics
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTDIFFUSE_TEMPORAL], "rtdiffuse_temporalCS.cso"); });
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTDIFFUSE_UPSAMPLE], "rtdiffuse_upsampleCS.cso"); });
 
-		if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-		{
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTDIFFUSE], "rtdiffuseCS.cso", ShaderModel::SM_6_5); });
-
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTREFLECTION], "rtreflectionCS.cso", ShaderModel::SM_6_5); });
-
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTSHADOW], "rtshadowCS.cso", ShaderModel::SM_6_5); });
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTSHADOW_DENOISE_TILECLASSIFICATION], "rtshadow_denoise_tileclassificationCS.cso"); });
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTSHADOW_DENOISE_FILTER], "rtshadow_denoise_filterCS.cso"); });
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTSHADOW_DENOISE_TEMPORAL], "rtshadow_denoise_temporalCS.cso"); });
-
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTAO], "rtaoCS.cso", ShaderModel::SM_6_5); });
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTAO_DENOISE_TILECLASSIFICATION], "rtao_denoise_tileclassificationCS.cso"); });
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTAO_DENOISE_FILTER], "rtao_denoise_filterCS.cso"); });
-
-		}
-
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_RTSHADOW_UPSAMPLE], "rtshadow_upsampleCS.cso"); });
 
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SURFEL_COVERAGE], "surfel_coverageCS.cso"); });
@@ -411,37 +406,12 @@ namespace vz::graphics
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SURFEL_GRIDOFFSETS], "surfel_gridoffsetsCS.cso"); });
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SURFEL_BINNING], "surfel_binningCS.cso"); });
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SURFEL_INTEGRATE], "surfel_integrateCS.cso"); });
-		if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-		{
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SURFEL_RAYTRACE], "surfel_raytraceCS_rtapi.cso", ShaderModel::SM_6_5); });
-		}
-		else
-		{
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SURFEL_RAYTRACE], "surfel_raytraceCS.cso"); });
-		}
-
-		if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-		{
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_RAYTRACE], "raytraceCS_rtapi.cso", ShaderModel::SM_6_5); });
-		}
-		else
-		{
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_RAYTRACE], "raytraceCS.cso"); });
-		}
 
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_VISIBILITY_RESOLVE], "visibility_resolveCS.cso"); });
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_VISIBILITY_RESOLVE_MSAA], "visibility_resolveCS_MSAA.cso"); });
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_VISIBILITY_SKY], "visibility_skyCS.cso"); });
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_VISIBILITY_VELOCITY], "visibility_velocityCS.cso"); });
 
-		if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-		{
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DDGI_RAYTRACE], "ddgi_raytraceCS_rtapi.cso", ShaderModel::SM_6_5); });
-		}
-		else
-		{
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DDGI_RAYTRACE], "ddgi_raytraceCS.cso"); });
-		}
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DDGI_RAYALLOCATION], "ddgi_rayallocationCS.cso"); });
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DDGI_INDIRECTPREPARE], "ddgi_indirectprepareCS.cso"); });
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DDGI_UPDATE], "ddgi_updateCS.cso"); });
@@ -718,29 +688,6 @@ namespace vz::graphics
 
 
 			});
-		wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, shaders[VSTYPE_RENDERLIGHTMAP], "renderlightmapVS.cso");
-			if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-			{
-				LoadShader(ShaderStage::PS, shaders[PSTYPE_RENDERLIGHTMAP], "renderlightmapPS_rtapi.cso", ShaderModel::SM_6_5);
-			}
-			else
-			{
-				LoadShader(ShaderStage::PS, shaders[PSTYPE_RENDERLIGHTMAP], "renderlightmapPS.cso");
-			}
-			PipelineStateDesc desc;
-			desc.vs = &shaders[VSTYPE_RENDERLIGHTMAP];
-			desc.ps = &shaders[PSTYPE_RENDERLIGHTMAP];
-			desc.rs = &rasterizers[RSTYPE_DOUBLESIDED];
-			desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-			desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
-
-			RenderPassInfo renderpass_info;
-			renderpass_info.rt_count = 1;
-			renderpass_info.rt_formats[0] = Format::R32G32B32A32_FLOAT;
-
-			device->CreatePipelineState(&desc, &PSO_renderlightmap, &renderpass_info);
-			});
 		wi::jobsystem::Execute(ctx, [](wi::jobsystem::JobArgs args) {
 			PipelineStateDesc desc;
 			desc.vs = &shaders[VSTYPE_POSTPROCESS];
@@ -1008,61 +955,6 @@ namespace vz::graphics
 
 			device->CreatePipelineState(&desc, &PSO_debug[args.jobIndex]);
 			});
-
-#ifdef RTREFLECTION_WITH_RAYTRACING_PIPELINE
-		if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-		{
-			wi::jobsystem::Execute(raytracing_ctx, [](wi::jobsystem::JobArgs args) {
-
-				bool success = LoadShader(ShaderStage::LIB, shaders[RTTYPE_RTREFLECTION], "rtreflectionLIB.cso");
-				assert(success);
-
-				RaytracingPipelineStateDesc rtdesc;
-				rtdesc.shader_libraries.emplace_back();
-				rtdesc.shader_libraries.back().shader = &shaders[RTTYPE_RTREFLECTION];
-				rtdesc.shader_libraries.back().function_name = "RTReflection_Raygen";
-				rtdesc.shader_libraries.back().type = ShaderLibrary::Type::RAYGENERATION;
-
-				rtdesc.shader_libraries.emplace_back();
-				rtdesc.shader_libraries.back().shader = &shaders[RTTYPE_RTREFLECTION];
-				rtdesc.shader_libraries.back().function_name = "RTReflection_ClosestHit";
-				rtdesc.shader_libraries.back().type = ShaderLibrary::Type::CLOSESTHIT;
-
-				rtdesc.shader_libraries.emplace_back();
-				rtdesc.shader_libraries.back().shader = &shaders[RTTYPE_RTREFLECTION];
-				rtdesc.shader_libraries.back().function_name = "RTReflection_AnyHit";
-				rtdesc.shader_libraries.back().type = ShaderLibrary::Type::ANYHIT;
-
-				rtdesc.shader_libraries.emplace_back();
-				rtdesc.shader_libraries.back().shader = &shaders[RTTYPE_RTREFLECTION];
-				rtdesc.shader_libraries.back().function_name = "RTReflection_Miss";
-				rtdesc.shader_libraries.back().type = ShaderLibrary::Type::MISS;
-
-				rtdesc.hit_groups.emplace_back();
-				rtdesc.hit_groups.back().type = ShaderHitGroup::Type::GENERAL;
-				rtdesc.hit_groups.back().name = "RTReflection_Raygen";
-				rtdesc.hit_groups.back().general_shader = 0;
-
-				rtdesc.hit_groups.emplace_back();
-				rtdesc.hit_groups.back().type = ShaderHitGroup::Type::GENERAL;
-				rtdesc.hit_groups.back().name = "RTReflection_Miss";
-				rtdesc.hit_groups.back().general_shader = 3;
-
-				rtdesc.hit_groups.emplace_back();
-				rtdesc.hit_groups.back().type = ShaderHitGroup::Type::TRIANGLES;
-				rtdesc.hit_groups.back().name = "RTReflection_Hitgroup";
-				rtdesc.hit_groups.back().closest_hit_shader = 1;
-				rtdesc.hit_groups.back().any_hit_shader = 2;
-
-				rtdesc.max_trace_recursion_depth = 1;
-				rtdesc.max_payload_size_in_bytes = sizeof(float4);
-				rtdesc.max_attribute_size_in_bytes = sizeof(float2); // bary
-				success = device->CreateRaytracingPipelineState(&rtdesc, &RTPSO_reflection);
-
-
-				});
-		};
-#endif // RTREFLECTION_WITH_RAYTRACING_PIPELINE
 
 		// Clear custom shaders (Custom shaders coming from user will need to be handled by the user in case of shader reload):
 		customShaders.clear();
@@ -1352,6 +1244,6 @@ namespace vz::graphics
 				}
 			}
 		}
-
+		/**/
 	}
 }

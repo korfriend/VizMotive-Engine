@@ -3,10 +3,10 @@
 #include "Components/GComponents.h"
 #include "Utils/JobSystem.h"
 #include "Utils/Timer.h"
+#include "Utils/Backlog.h"
 #include "Utils/EventHandler.h"
 #include "Libs/Math.h"
-#include "RenderInitializer.h"
-#include "ShaderLoader.h"
+#include "Renderer.h"
 
 namespace vz::graphics
 {
@@ -177,6 +177,7 @@ namespace vz::graphics
 
 	bool GRenderPath3DDetails::Render()
 	{
+		GraphicsDevice*& device = GetDevice();
 		CommandList cmd = device->BeginCommandList();
 		//RenderPassImage rp[] = {
 		//	RenderPassImage::RenderTarget(&rtOut, RenderPassImage::LoadOp::CLEAR),
@@ -209,18 +210,30 @@ namespace vz::graphics
 		return new GRenderPath3DDetails(swapChain, rtRenderFinal);
 	}
 
+	namespace common
+	{
+		InputLayout			inputLayouts[ILTYPE_COUNT];
+		RasterizerState		rasterizers[RSTYPE_COUNT];
+		DepthStencilState	depthStencils[DSSTYPE_COUNT];
+		BlendState			blendStates[BSTYPE_COUNT];
+		Shader				shaders[SHADERTYPE_COUNT];
+		GPUBuffer			buffers[BUFFERTYPE_COUNT];
+		Sampler				samplers[SAMPLER_COUNT];
+	}
+
 	bool InitRendererShaders()
 	{
 		Timer timer;
 
-		SetUpStates();
-		LoadBuffers();
+		initializer::SetUpStates();
+		initializer::LoadBuffers();
 
-		static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
-		LoadShaders();
+		//static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
+		//LoadShaders();
 
 		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
-		initialized.store(true);
+		//initialized.store(true);
+		return true;
 	}
 }
 

@@ -73,6 +73,7 @@ namespace vzm
 
 		// graphics device
 		graphicsDevice = graphicsPackage.graphicsGetDev();
+		graphics::GetDevice() = graphicsDevice;
 
 		// engine core initializer
 		initializer::InitializeComponentsAsync();

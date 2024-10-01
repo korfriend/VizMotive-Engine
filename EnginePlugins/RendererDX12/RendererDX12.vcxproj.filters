@@ -14,8 +14,7 @@
     <ClInclude Include="Shaders\ShaderInterop.h">
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
-    <ClInclude Include="RenderInitializer.h" />
-    <ClInclude Include="ShaderLoader.h" />
+    <ClInclude Include="Renderer.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
