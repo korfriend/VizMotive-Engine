@@ -19,9 +19,6 @@ namespace vz
 	class RenderPath3D : public RenderPath2D
 	{
 	protected:
-		graphics::Texture rtRender3D_;	// main rt
-		graphics::Texture rtRenderInterResult_;
-
 		graphics::GRenderPath3D* handlerRenderPath3D_ = nullptr;
 
 	public:

@@ -28,16 +28,19 @@ namespace vz
 			virtual bool Destory() = 0;
 		};
 
+		struct SwapChain;
+		struct Texture;
 		struct GRenderPath3D
 		{
-			inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20240921";
+			inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241001";
 			// this will be a component of vz::RenderPath3D
 		protected:
-			RenderPath3D* renderPath3D_ = nullptr;
+			SwapChain& swapChain_;
+			Texture& rtRenderFinal_;
 		public:
 			std::string version = GRenderPath3D_INTERFACE_VERSION;
 
-			GRenderPath3D(RenderPath3D* renderPath) : renderPath3D_(renderPath) {}
+			GRenderPath3D(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal) : swapChain_(swapChain), rtRenderFinal_(rtRenderFinal) {}
 
 			virtual bool ResizeCanvas() = 0; // must delete all canvas-related resources and re-create
 			virtual bool Render() = 0;
@@ -55,5 +58,5 @@ namespace vz::graphics
 	extern "C" DX12_EXPORT void Deinitialize();
 
 	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene);
-	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(RenderPath3D* renderPath);
+	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
 }

@@ -1,10 +1,12 @@
 #pragma once
 #include <string>
 
+#ifndef UTIL_EXPORT
 #ifdef _WIN32
 #define UTIL_EXPORT __declspec(dllexport)
 #else
 #define UTIL_EXPORT __attribute__((visibility("default")))
+#endif
 #endif
 
 namespace vz::backlog
@@ -20,11 +22,11 @@ namespace vz::backlog
 		None, // SPDLOG_LEVEL_OFF
 	};
 
-	void UTIL_EXPORT clear();
+	extern "C" UTIL_EXPORT void clear();
 
-	void UTIL_EXPORT post(const std::string& input, LogLevel level = LogLevel::Trace);
+	extern "C" UTIL_EXPORT void post(const std::string& input, LogLevel level = LogLevel::Trace);
 
-	void UTIL_EXPORT setLogLevel(LogLevel newLevel);
+	extern "C" UTIL_EXPORT void setLogLevel(LogLevel newLevel);
 
-	LogLevel UTIL_EXPORT getLogLevel();
+	extern "C" UTIL_EXPORT LogLevel getLogLevel();
 };

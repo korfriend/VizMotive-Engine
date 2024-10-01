@@ -24,6 +24,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.h" />
@@ -83,9 +84,11 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Canvas.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Version.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp" />
@@ -99,7 +102,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\basisu_common.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp" />

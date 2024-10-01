@@ -1,8 +1,14 @@
 #pragma once
-#include "CommonInclude.h"
-
 #include <memory>
 #include <functional>
+
+#ifndef UTIL_EXPORT
+#ifdef _WIN32
+#define UTIL_EXPORT __declspec(dllexport)
+#else
+#define UTIL_EXPORT __attribute__((visibility("default")))
+#endif
+#endif
 
 namespace vz::eventhandler
 {
@@ -16,13 +22,13 @@ namespace vz::eventhandler
 		inline bool IsValid() const { return internal_state.get() != nullptr; }
 	};
 
-	Handle Subscribe(int id, std::function<void(uint64_t)> callback);
-	void Subscribe_Once(int id, std::function<void(uint64_t)> callback);
-	void FireEvent(int id, uint64_t userdata);
+	UTIL_EXPORT Handle Subscribe(int id, std::function<void(uint64_t)> callback);
+	UTIL_EXPORT void Subscribe_Once(int id, std::function<void(uint64_t)> callback);
+	UTIL_EXPORT void FireEvent(int id, uint64_t userdata);
 
 
 	// helper event wrappers can be placed below:
-	inline void SetVSync(bool enabled)
+	inline UTIL_EXPORT void SetVSync(bool enabled)
 	{
 		FireEvent(EVENT_SET_VSYNC, enabled ? 1ull : 0ull);
 	}

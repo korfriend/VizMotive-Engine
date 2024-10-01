@@ -10,9 +10,6 @@ namespace vz
 		public RenderPath
 	{
 	protected:
-		graphics::Texture rtRender2D_;
-
-		uint32_t msaaSampleCount_ = 1;
 	public:
 		RenderPath2D(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
 			: RenderPath(entity, graphicsDevice) {  type_ = "RenderPath2D"; }

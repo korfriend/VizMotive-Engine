@@ -6,7 +6,6 @@ namespace vz
 
 	void RenderPath2D::DeleteGPUResources(const bool resizableOnly)
 	{
-		rtRender2D_ = {};
 		if (!resizableOnly)
 		{
 			swapChain_ = {};

@@ -3,10 +3,18 @@
 #include <functional>
 #include <atomic>
 
+#ifndef UTIL_EXPORT
+#ifdef _WIN32
+#define UTIL_EXPORT __declspec(dllexport)
+#else
+#define UTIL_EXPORT __attribute__((visibility("default")))
+#endif
+#endif
+
 namespace vz::jobsystem
 {
-	void Initialize(uint32_t maxThreadCount = ~0u);
-	void ShutDown();
+	UTIL_EXPORT void Initialize(uint32_t maxThreadCount = ~0u);
+	UTIL_EXPORT void ShutDown();
 
 	struct JobArgs
 	{
@@ -33,24 +41,24 @@ namespace vz::jobsystem
 		Priority priority = Priority::High;
 	};
 
-	uint32_t GetThreadCount(Priority priority = Priority::High);
+	UTIL_EXPORT uint32_t GetThreadCount(Priority priority = Priority::High);
 
 	// Add a task to execute asynchronously. Any idle thread will execute this.
-	void Execute(context& ctx, const std::function<void(JobArgs)>& task);
+	UTIL_EXPORT void Execute(context& ctx, const std::function<void(JobArgs)>& task);
 
 	// Divide a task onto multiple jobs and execute in parallel.
 	//	jobCount	: how many jobs to generate for this task.
 	//	groupSize	: how many jobs to execute per thread. Jobs inside a group execute serially. It might be worth to increase for small jobs
 	//	task		: receives a JobArgs as parameter
-	void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedmemory_size = 0);
+	UTIL_EXPORT void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedmemory_size = 0);
 
 	// Returns the amount of job groups that will be created for a set number of jobs and group size
-	uint32_t DispatchGroupCount(uint32_t jobCount, uint32_t groupSize);
+	UTIL_EXPORT uint32_t DispatchGroupCount(uint32_t jobCount, uint32_t groupSize);
 
 	// Check if any threads are working currently or not
-	bool IsBusy(const context& ctx);
+	UTIL_EXPORT bool IsBusy(const context& ctx);
 
 	// Wait until all threads become idle
 	//	Current thread will become a worker thread, executing jobs
-	void Wait(const context& ctx);
+	UTIL_EXPORT void Wait(const context& ctx);
 }

@@ -227,6 +227,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h">
       <Filter>HighAPIs\APIs\Common</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -240,9 +243,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers.cpp">
       <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Libs\Math.cpp">
-      <Filter>Libs</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp">
       <Filter>Common</Filter>
@@ -321,6 +321,12 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp">
       <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Version.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

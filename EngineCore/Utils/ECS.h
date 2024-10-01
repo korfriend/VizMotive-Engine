@@ -334,7 +334,7 @@ namespace vz::ecs
 			// Update the VUID lookup table:
 			Component& new_component = components.back();
 			VUID new_vuid = new_component.GetVUID();
-			lookupVUID[new_vuid] = components.size();
+			lookupVUID[new_vuid] = components.size() - 1; // note new_component is from the new-counted components
 
 			return new_component;
 		}

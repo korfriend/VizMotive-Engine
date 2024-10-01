@@ -5,6 +5,7 @@
 #include "Utils/ECS.h"
 #include "Common/Backend/GBackendDevice.h"
 #include "Common/RenderPath3D.h"
+#include "Common/Initializer.h"
 
 using namespace vz;
 
@@ -72,6 +73,10 @@ namespace vzm
 
 		// graphics device
 		graphicsDevice = graphicsPackage.graphicsGetDev();
+
+		// engine core initializer
+		initializer::InitializeComponentsAsync();
+		//initializer::InitializeComponentsImmediate();
 		
 		initialized = true;
 		return VZ_OK;
@@ -257,9 +262,9 @@ namespace vzm
 					}
 					else
 					{
-						vid_scene = std::max(std::max(itl != vzcomp::lights.end() ? itl->second.get()->GetVID() : INVALID_VID,
-							itr != vzcomp::actors.end() ? itr->second.get()->GetVID() : INVALID_VID),
-							itc != vzcomp::cameras.end() ? itc->second.get()->GetVID() : INVALID_VID);
+						vid_scene = std::max(std::max(itl != vzcomp::lights.end() ? itl->second.get()->sceneVid : INVALID_VID,
+							itr != vzcomp::actors.end() ? itr->second.get()->sceneVid : INVALID_VID),
+							itc != vzcomp::cameras.end() ? itc->second.get()->sceneVid : INVALID_VID);
 						//assert(vid_scene != INVALID_VID); can be INVALID_VID
 						*scene = Scene::GetScene(vid_scene);
 					}
@@ -360,11 +365,11 @@ namespace vzm
 			auto itl = vzcomp::lights.find(it);
 			auto itc = vzcomp::cameras.find(it);
 			if (itr != vzcomp::actors.end())
-				itr->second = 0;
+				itr->second.get()->sceneVid = 0;
 			else if (itl != vzcomp::lights.end())
-				itl->second = 0;
+				itl->second.get()->sceneVid = 0;
 			else if (itc != vzcomp::cameras.end())
-				itc->second = 0;
+				itc->second.get()->sceneVid = 0;
 			if (scene_src)
 			{
 				scene_src->Remove(it);
