@@ -4,6 +4,8 @@
     <ClCompile Include="GraphicsDevice_DX12.cpp" />
     <ClCompile Include="GraphicsInterface.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="RenderInitializer.cpp" />
+    <ClCompile Include="ShaderLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraphicsDevice_DX12.h" />
@@ -12,6 +14,8 @@
     <ClInclude Include="Shaders\ShaderInterop.h">
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
+    <ClInclude Include="RenderInitializer.h" />
+    <ClInclude Include="ShaderLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">

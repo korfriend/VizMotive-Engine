@@ -8,14 +8,15 @@ namespace vz
 	{
 		struct GRenderPath3D
 		{
-			inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20240921";
+			inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241001";
 			// this will be a component of vz::RenderPath3D
 		protected:
-			RenderPath3D* renderPath3D_ = nullptr;
+			graphics::SwapChain& swapChain_;
+			graphics::Texture& rtRenderFinal_;
 		public:
 			std::string version = GRenderPath3D_INTERFACE_VERSION;
 
-			GRenderPath3D(RenderPath3D* renderPath) : renderPath3D_(renderPath) {}
+			GRenderPath3D(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal) : swapChain_(swapChain), rtRenderFinal_(rtRenderFinal) {}
 
 			virtual bool ResizeCanvas() = 0; // must delete all canvas-related resources and re-create
 			virtual bool Render() = 0;
@@ -60,8 +61,6 @@ namespace vz
 	void RenderPath3D::DeleteGPUResources(const bool resizableOnly)
 	{
 		RenderPath2D::DeleteGPUResources(resizableOnly);
-		rtRenderInterResult_ = {};
-		rtRender3D_ = {};
 		if (!resizableOnly)
 		{
 			//
@@ -71,16 +70,6 @@ namespace vz
 	void RenderPath3D::ResizeResources()
 	{
 		DeleteGPUResources(true);
-		if (!rtRender3D_.IsValid())
-		{
-			//TextureDesc desc;
-			//desc.width = width_;
-			//desc.height = height_;
-			//desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			//desc.format = formatRendertargetMain;
-			//assert(graphicsDevice_->CreateTexture(&desc, nullptr, &rtRender3D_));
-			//graphicsDevice_->SetName(&rtRender3D_, ("rtRender3D_" + std::to_string(entity_)).c_str());
-		}
 		handlerRenderPath3D_->ResizeCanvas();
 		RenderPath2D::ResizeResources();
 	}
@@ -92,7 +81,7 @@ namespace vz
 		if (camera == nullptr || scene == nullptr) return;
 		scene->Update(dt);
 	}
-
+	
 	void RenderPath3D::Render()
 	{
 		if (camera == nullptr || scene == nullptr)
@@ -101,8 +90,7 @@ namespace vz
 			return;
 		}
 
-		if (IsCanvasResized() || 
-			rtRender3D_.desc.sample_count != msaaSampleCount_)
+		if (UpdateResizedCanvas())
 		{
 			ResizeResources(); // call RenderPath2D::ResizeResources();
 			// since IsCanvasResized() updates the canvas size,
@@ -111,7 +99,6 @@ namespace vz
 		RenderPath2D::Render();
 
 		// RenderPath3D code //
-
 		// Camera Updates
 		{
 			HierarchyComponent* hier = compfactory::GetHierarchyComponent(camera->GetEntity());
@@ -136,17 +123,6 @@ namespace vz
 			memcpy(rtRenderFinal_.desc.clear.color, clearColor, sizeof(float) * 4);
 		}
 		
-		CommandList cmd = graphicsDevice_->BeginCommandList();
-		//RenderPassImage rp[] = {
-		//	RenderPassImage::RenderTarget(&rtOut, RenderPassImage::LoadOp::CLEAR),
-		//
-		//};
-		//graphicsDevice_->RenderPassBegin(rp, arraysize(rp), cmd);
-		graphicsDevice_->RenderPassBegin(&swapChain_, cmd);
-		graphicsDevice_->RenderPassEnd(cmd);
-		graphicsDevice_->SubmitCommandLists();
-		
 		handlerRenderPath3D_->Render();
-
 	}
 }

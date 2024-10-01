@@ -462,5 +462,93 @@ struct alignas(16) ShaderMaterial
 	inline bool IsDoubleSided() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED; }
 };
 
+struct alignas(16) ShaderScene
+{
+	int instancebuffer;
+	int geometrybuffer;
+	int materialbuffer;
+	int meshletbuffer;
+
+	int texturestreamingbuffer;
+	int globalenvmap; // static sky, not guaranteed to be cubemap, mipmaps or format, just whatever is imported
+	int globalprobe; // rendered probe with guaranteed mipmaps, hdr, etc.
+	int impostorInstanceOffset;
+
+	int TLAS;
+	int BVH_counter;
+	int BVH_nodes;
+	int BVH_primitives;
+
+	float3 aabb_min;
+	float padding3;
+	float3 aabb_max;
+	float padding4;
+	float3 aabb_extents;		// enclosing AABB abs(max - min)
+	float padding5;
+	float3 aabb_extents_rcp;	// enclosing AABB 1.0f / abs(max - min)
+	float padding6;
+
+	struct alignas(16) DDGI
+	{
+		uint3 grid_dimensions;
+		uint probe_count;
+
+		uint2 color_texture_resolution;
+		float2 color_texture_resolution_rcp;
+
+		uint2 depth_texture_resolution;
+		float2 depth_texture_resolution_rcp;
+
+		float3 grid_min;
+		int color_texture;
+
+		float3 grid_extents;
+		int depth_texture;
+
+		float3 cell_size;
+		float max_distance;
+
+		float3 grid_extents_rcp;
+		int offset_texture;
+
+		float3 cell_size_rcp;
+		float smooth_backface;
+	};
+	DDGI ddgi;
+};
+
+// ---------- Common Constant buffers: -----------------
+
+struct alignas(16) FrameCB
+{
+	uint		options;					// renderer bool options packed into bitmask (OPTION_BIT_ values)
+	float		time;
+	float		time_previous;
+	float		delta_time;
+
+	uint		frame_count;
+	uint		temporalaa_samplerotation;
+	uint padding0;
+	uint padding1;
+	
+	float		blue_noise_phase;
+	int			texture_random64x64_index;
+	int			texture_bluenoise_index;
+	int			texture_sheenlut_index;
+
+	ShaderScene scene;
+
+	uint probes;
+	uint directional_lights;
+	uint spotlights;
+	uint pointlights;
+
+	uint lights;
+	uint decals;
+	uint forces;
+	uint padding;
+};
+
+
 
 #endif

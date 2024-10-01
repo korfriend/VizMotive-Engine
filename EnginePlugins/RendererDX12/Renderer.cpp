@@ -2,6 +2,11 @@
 #include "Shaders/ShaderInterop.h"
 #include "Components/GComponents.h"
 #include "Utils/JobSystem.h"
+#include "Utils/Timer.h"
+#include "Utils/EventHandler.h"
+#include "Libs/Math.h"
+#include "RenderInitializer.h"
+#include "ShaderLoader.h"
 
 namespace vz::graphics
 {
@@ -156,7 +161,7 @@ namespace vz::graphics
 {
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
-		GRenderPath3DDetails(RenderPath3D* renderPath) : GRenderPath3D(renderPath) {}
+		GRenderPath3DDetails(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal) : GRenderPath3D(swapChain, rtRenderFinal) {}
 
 		// resources associated with render target buffers and textures
 
@@ -172,6 +177,16 @@ namespace vz::graphics
 
 	bool GRenderPath3DDetails::Render()
 	{
+		CommandList cmd = device->BeginCommandList();
+		//RenderPassImage rp[] = {
+		//	RenderPassImage::RenderTarget(&rtOut, RenderPassImage::LoadOp::CLEAR),
+		//
+		//};
+		//graphicsDevice_->RenderPassBegin(rp, arraysize(rp), cmd);
+		device->RenderPassBegin(&swapChain_, cmd);
+		device->RenderPassEnd(cmd);
+		device->SubmitCommandLists();
+
 		return true;
 	}
 
@@ -184,13 +199,28 @@ namespace vz::graphics
 
 namespace vz::graphics
 {
-	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene)
+	GScene* NewGScene(Scene* scene)
 	{
 		return new GSceneDetails(scene);
 	}
 
-	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(RenderPath3D* renderPath)
+	GRenderPath3D* NewGRenderPath(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
 	{
-		return new GRenderPath3DDetails(renderPath);
+		return new GRenderPath3DDetails(swapChain, rtRenderFinal);
+	}
+
+	bool InitRendererShaders()
+	{
+		Timer timer;
+
+		SetUpStates();
+		LoadBuffers();
+
+		static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
+		LoadShaders();
+
+		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
+		initialized.store(true);
 	}
 }
+

@@ -122,7 +122,7 @@ namespace vz
 			}
 
 			LightComponent* light_child = compfactory::GetLightComponent(entity);
-			if (renderable_child)
+			if (light_child)
 			{
 				light_child->Update();
 			}
@@ -139,8 +139,10 @@ namespace vz
 		jobsystem::context ctx;
 
 		// TODO:
-		// need to consider the scene update time (timestamp)
-		//	to avoid unnecessary execution of update systems
+		// * need to consider the scene update time (timestamp)
+		//		to avoid unnecessary execution of update systems
+		// * if the following ctx per dependency has just one job,
+		//		it would be better use a single thread code without jobsystem
 
 		scene_details->RunTransformUpdateSystem(ctx);
 		jobsystem::Wait(ctx); // dependencies

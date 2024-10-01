@@ -74,16 +74,21 @@ namespace vz
 
 	void HierarchyComponent::SetParent(const VUID vuidParent)
 	{
-		HierarchyComponent* parent_hierarchy = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(vuidParent));
-		assert(parent_hierarchy);
 		HierarchyComponent* old_parent_hierarchy = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(vuidParentHierarchy_));
 		if (old_parent_hierarchy)
 		{
 			old_parent_hierarchy->RemoveChild(vuid_);
 		}
+		timeStampSetter_ = TimerNow;
+		if (vuidParent == 0u)
+		{
+			vuidParentHierarchy_ = 0u;
+			return;
+		}
+		HierarchyComponent* parent_hierarchy = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(vuidParent));
+		assert(parent_hierarchy);
 		vuidParentHierarchy_ = vuidParent;
 		parent_hierarchy->AddChild(vuid_);
-		timeStampSetter_ = TimerNow;
 	}
 	VUID HierarchyComponent::GetParent() const
 	{
