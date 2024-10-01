@@ -659,6 +659,7 @@ namespace vz::compfactory
 	extern "C" CORE_EXPORT inline HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
 	extern "C" CORE_EXPORT inline MaterialComponent* CreateMaterialComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline GeometryComponent* CreateGeometryComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline TextureComponent* CreateTextureComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline LightComponent* CreateLightComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline CameraComponent* CreateCameraComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline RenderableComponent* CreateRenderableComponent(const Entity entity);

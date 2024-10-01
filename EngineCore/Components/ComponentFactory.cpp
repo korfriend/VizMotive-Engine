@@ -80,6 +80,11 @@ namespace vz::compfactory
 		GeometryComponent* comp = &geometryManager.Create(entity);
 		return comp;
 	}
+	TextureComponent* CreateTextureComponent(const Entity entity)
+	{
+		TextureComponent* comp = &textureManager.Create(entity);
+		return comp;
+	}
 	LightComponent* CreateLightComponent(const Entity entity)
 	{
 		LightComponent* comp = &lightManager.Create(entity);

@@ -319,6 +319,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp">
       <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp">
+      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl">

@@ -161,11 +161,9 @@ namespace vzm
 	enum class RES_COMPONENT_TYPE
 	{
 		RESOURCE = 0,
-		GEOMATRY,
+		GEOMETRY,
 		MATERIAL,
-		MATERIALINSTANCE,
 		TEXTURE,
-		FONT,
 	};
 
 	struct API_EXPORT VzBaseComp

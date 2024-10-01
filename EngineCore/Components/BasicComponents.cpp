@@ -284,7 +284,10 @@ namespace vz
 		{
 			std::vector<VUID> vuidMaterials_temp = vuidMaterials_;
 			vuidMaterials_.assign((slot + 1) * 2, INVALID_VUID); // * 2 for fast grow-up
-			memcpy(&vuidMaterials_[0], &vuidMaterials_temp[0], sizeof(VUID) * vuidMaterials_temp.size());
+			if (vuidMaterials_temp.size() > 0)
+			{
+				memcpy(&vuidMaterials_[0], &vuidMaterials_temp[0], sizeof(VUID) * vuidMaterials_temp.size());
+			}
 		}
 		vuidMaterials_[slot] = mat_comp->GetVUID();
 		checkValidity(vuidGeometry_, vuidMaterials_);
