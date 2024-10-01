@@ -34,6 +34,9 @@ namespace vz
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
 
+		std::vector<TransformComponent*> transforms;
+		std::vector<HierarchyComponent*> hierarchies;
+
 		inline void RunTransformUpdateSystem(jobsystem::context& ctx);
 		inline void RunSceneComponentUpdateSystem(jobsystem::context& ctx);
 	};
@@ -90,7 +93,6 @@ namespace vz
 
 	void SceneDetails::RunTransformUpdateSystem(jobsystem::context& ctx)
 	{
-		std::vector<TransformComponent*> transforms;
 		size_t num_transforms = compfactory::GetTransformComponents(renderables_, transforms);
 		assert(num_transforms == GetRenderableCount());
 		jobsystem::Dispatch(ctx, (uint32_t)num_transforms, small_subtask_groupsize, [&](jobsystem::JobArgs args) {
@@ -101,13 +103,12 @@ namespace vz
 	}
 	void SceneDetails::RunSceneComponentUpdateSystem(jobsystem::context& ctx)
 	{
-		std::vector<HierarchyComponent*> hierarchy;
-		size_t num_hierarchies = compfactory::GetHierarchyComponents(renderables_, hierarchy);
+		size_t num_hierarchies = compfactory::GetHierarchyComponents(renderables_, hierarchies);
 		assert(num_hierarchies == GetRenderableCount());
 		
 		jobsystem::Dispatch(ctx, (uint32_t)num_hierarchies, small_subtask_groupsize, [&](jobsystem::JobArgs args) {
 
-			HierarchyComponent& hier = *hierarchy[args.jobIndex];
+			HierarchyComponent& hier = *hierarchies[args.jobIndex];
 			Entity entity = hier.GetEntity();
 
 			TransformComponent* transform_child = compfactory::GetTransformComponent(entity);

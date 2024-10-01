@@ -13,6 +13,7 @@ namespace vz::graphics
 		GPUPreference preference = GPUPreference::Discrete;
 		//renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
 		graphicsDevice = std::make_unique<GraphicsDevice_DX12>(validationMode, preference);
+		GetDevice() = graphicsDevice.get();
 		return graphicsDevice.get() != nullptr;
 	}
 

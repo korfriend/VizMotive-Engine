@@ -112,16 +112,22 @@ namespace vz::graphics
 		SAMPLER_COUNT,
 	};
 
-	GraphicsDevice*& device = GetDevice();
+	namespace initializer
+	{
+		void SetUpStates();
+		void LoadBuffers();
+	}
 
-	Shader				shaders[SHADERTYPE_COUNT];
-	InputLayout			inputLayouts[ILTYPE_COUNT];
-	RasterizerState		rasterizers[RSTYPE_COUNT];
-	DepthStencilState	depthStencils[DSSTYPE_COUNT];
-	BlendState			blendStates[BSTYPE_COUNT];
-	GPUBuffer			buffers[BUFFERTYPE_COUNT];
-	Sampler				samplers[SAMPLER_COUNT];
+	namespace shader
+	{
+		bool LoadShader(
+			ShaderStage stage,
+			Shader& shader,
+			const std::string& filename,
+			ShaderModel minshadermodel,
+			const std::vector<std::string>& permutation_defines
+		);
 
-	void SetUpStates();
-	void LoadBuffers();
+		void LoadShaders();
+	}
 }

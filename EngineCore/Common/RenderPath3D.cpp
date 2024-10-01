@@ -26,7 +26,7 @@ namespace vz
 
 	using namespace graphics;
 
-	typedef GRenderPath3D* (*PI_NewGRenderPath3D)(RenderPath3D* renderPath);
+	typedef GRenderPath3D* (*PI_NewGRenderPath3D)(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
 	PI_NewGRenderPath3D graphicsNewGRenderPath3D = nullptr;
 
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
@@ -40,7 +40,7 @@ namespace vz
 			}
 		}
 		assert(graphicsNewGRenderPath3D);
-		handlerRenderPath3D_ = graphicsNewGRenderPath3D(this);
+		handlerRenderPath3D_ = graphicsNewGRenderPath3D(swapChain_, rtRenderFinal_);
 		assert(handlerRenderPath3D_->version == GRenderPath3D::GRenderPath3D_INTERFACE_VERSION);
 
 		type_ = "RenderPath3D";
