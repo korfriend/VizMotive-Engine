@@ -425,7 +425,7 @@ namespace vz
 	}
 	void CameraComponent::UpdateMatrix()
 	{
-		if (projectionType_ != enums::Projection::CUSTOM_PROJECTION)
+		if (projectionType_ != Projection::CUSTOM_PROJECTION)
 		{
 			XMStoreFloat4x4(&projection_, VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_)); // reverse zbuffer!
 			projection_.m[2][0] = jitter.x;

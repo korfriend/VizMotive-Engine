@@ -77,7 +77,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)VzEnums.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />

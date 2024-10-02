@@ -1,5 +1,4 @@
 #pragma once
-#include "VzEnums.h"
 #include "Libs/Math.h"
 #include "Libs/PrimitiveHelper.h"
 
@@ -57,6 +56,35 @@ namespace vz::resource
 
 		// Let the streaming system know the required resolution of this resource
 		void StreamingRequestResolution(uint32_t resolution);
+	};
+}
+
+namespace vz::enums 
+{
+	enum class PrimitiveType : uint8_t {
+		// don't change the enums values (made to match GL)
+		POINTS = 0,    //!< points
+		LINES = 1,    //!< lines
+		LINE_STRIP = 2,    //!< line strip
+		TRIANGLES = 3,    //!< triangles
+		TRIANGLE_STRIP = 4     //!< triangle strip
+	};
+
+	enum LightFlags
+	{
+		EMPTY = 0,
+		CAST_SHADOW = 1 << 0,
+		VOLUMETRICS = 1 << 1,
+		VISUALIZER = 1 << 2,
+	};
+
+	enum LightType
+	{
+		DIRECTIONAL = 0,
+		POINT,
+		SPOT,
+		LIGHTTYPE_COUNT,
+		ENUM_FORCE_UINT32 = 0xFFFFFFFF,
 	};
 }
 
@@ -318,17 +346,18 @@ namespace vz
 	public:
 		enum class RenderFlags : uint32_t
 		{
-			DAFAULT = 1 << 0,
-			USE_VERTEXCOLORS = 1 << 1,
-			SPECULAR_GLOSSINESS_WORKFLOW = 1 << 2,
-			DOUBLE_SIDED = 1 << 3,
-			OUTLINE = 1 << 4,
-			FORWARD = 1 << 5 // "not forward" refers to "deferred"
+			DAFAULT = 1 << 0, // same as FORWARD PHONG
+			USE_VERTEXCOLORS = 1 << 1, // Forced OPAQUENESS 
+			DOUBLE_SIDED = 1 << 2,
+			OUTLINE = 1 << 3,
+			FORWARD = 1 << 4, // "not forward" refers to "deferred"
+			TRANSPARENCY = 1 << 5
 		};
 		enum class ShaderType : uint32_t
 		{
 			PHONG = 0,
 			PBR,
+
 			COUNT
 		};
 		enum class TextureSlot : uint32_t
@@ -555,6 +584,13 @@ namespace vz
 
 	struct CORE_EXPORT CameraComponent : ComponentBase
 	{
+	public:
+		enum class Projection : uint8_t
+		{
+			PERSPECTIVE,    //!< perspective projection, objects get smaller as they are farther
+			ORTHO,           //!< orthonormal projection, preserves distances
+			CUSTOM_PROJECTION
+		};
 	private:
 		float zNearP_ = 0.1f;
 		float zFarP_ = 5000.0f;
@@ -566,7 +602,7 @@ namespace vz
 		float width_ = 0.0f;
 		float height_ = 0.0f;
 
-		enums::Projection projectionType_ = enums::Projection::PERSPECTIVE;
+		Projection projectionType_ = Projection::PERSPECTIVE;
 
 		// Non-serialized attributes:
 		bool isDirty_ = true;
@@ -620,7 +656,7 @@ namespace vz
 		XMFLOAT4X4 GetInvViewProjection() const { return invViewProjection_; }
 		vz::geometry::Frustum GetFrustum() const { return frustum_; }
 
-		enums::Projection GetProjectionType() const { return projectionType_; }
+		Projection GetProjectionType() const { return projectionType_; }
 		float GetFovVertical() const { return fovY_; }
 		void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
 		void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }

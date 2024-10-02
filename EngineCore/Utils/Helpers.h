@@ -1,9 +1,13 @@
 #pragma once
-#include "CommonInclude.h"
 #include "Common/Backend/GBackendDevice.h"
 
 #include <string>
 #include <functional>
+
+// TODO
+//	* divide two version of helpers
+//		1. inline header only version (namespace vz::helper)
+//		2. cpp-based version (namespace vz::helper2) using "Common/Backend/GBackendDevice.h"
 
 namespace vz::helper
 {

@@ -1,5 +1,4 @@
 #pragma once
-#include "CommonInclude.h"
 #include "Libs/Math.h"
 #include "Common/Backend/GBackendDevice.h"
 

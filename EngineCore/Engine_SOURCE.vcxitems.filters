@@ -171,7 +171,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_rect_pack.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)VzEnums.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\RectPacker.h">
       <Filter>ThirdParty</Filter>

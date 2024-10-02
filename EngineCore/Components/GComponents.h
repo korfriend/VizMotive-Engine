@@ -36,6 +36,20 @@ namespace vz
 	struct GTextureComponent : TextureComponent
 	{
 		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid) {}
+
+		inline static const std::vector<std::string> shaderTypeDefines[] = {
+			{}, // SHADERTYPE_PHONG,
+			{"PBR"}, // SHADERTYPE_PBR_PLANARREFLECTION,
+			{"PARALLAXOCCLUSIONMAPPING"}, // SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING,
+			{"ANISOTROPIC"}, // SHADERTYPE_PBR_ANISOTROPIC,
+			{"WATER"}, // SHADERTYPE_WATER,
+			{"CARTOON"}, // SHADERTYPE_CARTOON,
+			{"UNLIT"}, // SHADERTYPE_UNLIT,
+			{"SHEEN"}, // SHADERTYPE_PBR_CLOTH,
+			{"CLEARCOAT"}, // SHADERTYPE_PBR_CLEARCOAT,
+			{"SHEEN", "CLEARCOAT"}, // SHADERTYPE_PBR_CLOTH_CLEARCOAT,
+			{"TERRAINBLENDED"}, //SHADERTYPE_PBR_TERRAINBLENDED
+		};
 	};
 
 	// scene 
