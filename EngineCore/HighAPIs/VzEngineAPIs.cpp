@@ -56,12 +56,12 @@ namespace vzm
 		}
 	} graphicsPackage;
 
-	VZRESULT InitEngineLib(const vzm::ParamMap<std::string>& arguments)
+	bool InitEngineLib(const vzm::ParamMap<std::string>& arguments)
 	{
 		if (initialized)
 		{
 			backlog::post("Already initialized!", backlog::LogLevel::Warn);
-			return VZ_WARNNING;
+			return false;
 		}
 
 		// assume DX12 rendering engine
@@ -80,7 +80,7 @@ namespace vzm
 		//initializer::InitializeComponentsImmediate();
 		
 		initialized = true;
-		return VZ_OK;
+		return true;
 	}
 
 	VzScene* NewScene(const std::string& name)
@@ -440,11 +440,11 @@ namespace vzm
 		return it->second.get();
 	}
 
-	VZRESULT DeinitEngineLib()
+	bool DeinitEngineLib()
 	{
-		CHECK_API_VALIDITY(VZ_FAIL);
+		CHECK_API_VALIDITY(false);
 		jobsystem::ShutDown();
 		graphicsPackage.graphicsDeinitializer();
-		return VZ_OK;
+		return true;
 	}
 }
