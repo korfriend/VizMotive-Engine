@@ -78,6 +78,10 @@ namespace vz
 			{
 				graphicsNewGScene = platform::LoadModule<PI_NewGScene>("RendererDX12", "NewGScene");
 			}
+			else if (gEngine.api == "DX11")
+			{
+				graphicsNewGScene = platform::LoadModule<PI_NewGScene>("RendererDX11", "NewGScene");
+			}
 		}
 		assert(graphicsNewGScene);
 		handlerScene_ = graphicsNewGScene(this);

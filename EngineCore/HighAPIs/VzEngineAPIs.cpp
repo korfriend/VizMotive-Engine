@@ -45,7 +45,7 @@ namespace vzm
 		PI_GraphicsDeinitializer graphicsDeinitializer = nullptr;
 		PI_GetGraphicsDevice graphicsGetDev = nullptr;
 
-		void Init(const std::string& api)
+		bool Init(const std::string& api)
 		{
 			if (gEngine.api == "DX12") {
 				//vz::renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
@@ -53,6 +53,17 @@ namespace vzm
 				graphicsDeinitializer = vz::platform::LoadModule<PI_GraphicsDeinitializer>("RendererDX12", "Deinitialize");
 				graphicsGetDev = vz::platform::LoadModule<PI_GetGraphicsDevice>("RendererDX12", "GetGraphicsDevice");
 			}
+			else if (gEngine.api == "DX11")
+			{
+				graphicsInitializer = vz::platform::LoadModule<PI_GraphicsInitializer>("RendererDX11", "Initialize");
+				graphicsDeinitializer = vz::platform::LoadModule<PI_GraphicsDeinitializer>("RendererDX11", "Deinitialize");
+				graphicsGetDev = vz::platform::LoadModule<PI_GetGraphicsDevice>("RendererDX11", "GetGraphicsDevice");
+			}
+			else
+			{
+				return false;
+			}
+			return true;
 		}
 	} graphicsPackage;
 
@@ -66,7 +77,11 @@ namespace vzm
 
 		// assume DX12 rendering engine
 		gEngine.api = arguments.GetString("API", "DX12");
-		graphicsPackage.Init(gEngine.api);
+		if (!graphicsPackage.Init(gEngine.api))
+		{
+			backlog::post("Invalid Graphics API : " + gEngine.api, backlog::LogLevel::Error);
+			return false;
+		}
 
 		// initialize the graphics backend
 		graphicsPackage.graphicsInitializer();
