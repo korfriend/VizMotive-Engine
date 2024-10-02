@@ -38,6 +38,10 @@ namespace vz
 			{
 				graphicsNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>("RendererDX12", "NewGRenderPath");
 			}
+			else if (gEngine.api == "DX11")
+			{
+				graphicsNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>("RendererDX11", "NewGRenderPath");
+			}
 		}
 		assert(graphicsNewGRenderPath3D);
 		handlerRenderPath3D_ = graphicsNewGRenderPath3D(swapChain_, rtRenderFinal_);
