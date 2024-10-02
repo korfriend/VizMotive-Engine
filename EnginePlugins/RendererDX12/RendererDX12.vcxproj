@@ -139,6 +139,7 @@
   <ItemGroup>
     <ClCompile Include="GraphicsInterface.cpp" />
     <ClCompile Include="GraphicsDevice_DX12.cpp" />
+    <ClCompile Include="ShaderCompiler.cpp" />
     <ClCompile Include="ShaderLoader.cpp" />
     <ClCompile Include="RenderInitializer.cpp" />
     <ClCompile Include="Renderer.cpp" />
@@ -147,8 +148,11 @@
     <ClInclude Include="D3D12MemAlloc.h" />
     <ClInclude Include="GraphicsInterface.h" />
     <ClInclude Include="GraphicsDevice_DX12.h" />
+    <ClInclude Include="Helpers.hpp" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="ShaderCompiler.h" />
     <ClInclude Include="Shaders\ShaderInterop.h" />
+    <ClInclude Include="Utility\dxcapi.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\ColorSpaceUtility.hlsli" />

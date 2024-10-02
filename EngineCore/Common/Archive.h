@@ -416,11 +416,6 @@ namespace vz
 			{
 				(*this) >> data[i];
 			}
-			if (!data.empty() && GetVersion() < 73)
-			{
-				// earlier versions of archive saved the strings with 0 terminator
-				data.pop_back();
-			}
 			return *this;
 		}
 		template<typename T>

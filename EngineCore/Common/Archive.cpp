@@ -7,9 +7,9 @@
 namespace vz
 {
 	// this should always be only INCREMENTED and only if a new serialization is implemeted somewhere!
-	static constexpr uint64_t __archiveVersion = 91;
+	static constexpr uint64_t __archiveVersion = 0;
 	// this is the version number of which below the archive is not compatible with the current version
-	static constexpr uint64_t __archiveVersionBarrier = 22;
+	static constexpr uint64_t __archiveVersionBarrier = 1;
 
 	// version history is logged in ArchiveVersionHistory.txt file!
 
@@ -75,12 +75,10 @@ namespace vz
 				Close();
 				return;
 			}
-			if (GetVersion() >= 91)
-			{
-				(*this) >> thumbnail_data_size;
-				thumbnail_data_ptr = data_ptr + pos;
-				pos += thumbnail_data_size;
-			}
+
+			(*this) >> thumbnail_data_size;
+			thumbnail_data_ptr = data_ptr + pos;
+			pos += thumbnail_data_size;
 		}
 		else
 		{
