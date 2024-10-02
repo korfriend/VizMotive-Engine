@@ -8,6 +8,20 @@
 #include "Libs/Math.h"
 #include "Renderer.h"
 
+namespace vz::graphics::common
+{
+	InputLayout			inputLayouts[ILTYPE_COUNT];
+	RasterizerState		rasterizers[RSTYPE_COUNT];
+	DepthStencilState	depthStencils[DSSTYPE_COUNT];
+	BlendState			blendStates[BSTYPE_COUNT];
+	Shader				shaders[SHADERTYPE_COUNT];
+	GPUBuffer			buffers[BUFFERTYPE_COUNT];
+	Sampler				samplers[SAMPLER_COUNT];
+
+	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
+	PipelineState		PSO_mesh[RENDERPASS_COUNT];
+}
+
 namespace vz::graphics
 {
 	struct GSceneDetails : GScene
@@ -208,17 +222,6 @@ namespace vz::graphics
 	GRenderPath3D* NewGRenderPath(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
 	{
 		return new GRenderPath3DDetails(swapChain, rtRenderFinal);
-	}
-
-	namespace common
-	{
-		InputLayout			inputLayouts[ILTYPE_COUNT];
-		RasterizerState		rasterizers[RSTYPE_COUNT];
-		DepthStencilState	depthStencils[DSSTYPE_COUNT];
-		BlendState			blendStates[BSTYPE_COUNT];
-		Shader				shaders[SHADERTYPE_COUNT];
-		GPUBuffer			buffers[BUFFERTYPE_COUNT];
-		Sampler				samplers[SAMPLER_COUNT];
 	}
 
 	bool InitRendererShaders()

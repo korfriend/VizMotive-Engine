@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Libs/Math.h"
+
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -10,7 +12,7 @@ namespace helpers
 	inline void StringConvert(const std::wstring& from, std::string& to);
 }
 
-namespace helpers
+namespace helpers // simple version of Helpers.cpp
 {
 #ifdef _WIN32
 	// On windows we need to expand UTF8 strings to UTF16 when passing it to WinAPI:
@@ -196,7 +198,7 @@ namespace helpers
 		return std::chrono::duration_cast<std::chrono::duration<uint64_t>>(tim.time_since_epoch()).count();
 	}
 
-	class FileWrapper
+	class FileWrapper	// simple version of Archive
 	{
 	private:
 		bool readMode = false; // archive can be either read or write mode, but not both
