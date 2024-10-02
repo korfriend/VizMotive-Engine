@@ -6,6 +6,7 @@
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="RenderInitializer.cpp" />
     <ClCompile Include="ShaderLoader.cpp" />
+    <ClCompile Include="ShaderCompiler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraphicsDevice_DX12.h" />
@@ -15,6 +16,11 @@
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="ShaderCompiler.h" />
+    <ClInclude Include="Utility\dxcapi.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -25,6 +31,9 @@
     </Filter>
     <Filter Include="Shaders\Common">
       <UniqueIdentifier>{f5da2235-9254-4069-a4a5-cbe96fabd781}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility">
+      <UniqueIdentifier>{bf283072-045c-4e50-aa3b-198bb0c8af69}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

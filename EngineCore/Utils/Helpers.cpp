@@ -1025,12 +1025,6 @@ namespace vz::helper
 	{
 		return FileRead_Impl(fileName, data, max_read, offset);
 	}
-#if WI_VECTOR_TYPE
-	bool FileRead(const std::string& fileName, std::vector<uint8_t>& data, size_t max_read, size_t offset)
-	{
-		return FileRead_Impl(fileName, data, max_read, offset);
-	}
-#endif // WI_VECTOR_TYPE
 
 	bool FileWrite(const std::string& fileName, const uint8_t* data, size_t size)
 	{
