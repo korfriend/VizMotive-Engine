@@ -1,3 +1,4 @@
+#pragma once
 #include "Components.h"
 #include "Common/Backend/GBackendDevice.h"
 

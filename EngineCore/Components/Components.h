@@ -70,21 +70,11 @@ namespace vz::enums
 		TRIANGLE_STRIP = 4     //!< triangle strip
 	};
 
-	enum LightFlags
-	{
-		EMPTY = 0,
-		CAST_SHADOW = 1 << 0,
-		VOLUMETRICS = 1 << 1,
-		VISUALIZER = 1 << 2,
-	};
-
-	enum LightType
-	{
+	enum class LightType : uint32_t	{
 		DIRECTIONAL = 0,
 		POINT,
 		SPOT,
-		LIGHTTYPE_COUNT,
-		ENUM_FORCE_UINT32 = 0xFFFFFFFF,
+		COUNT
 	};
 }
 
@@ -534,7 +524,15 @@ namespace vz
 	struct CORE_EXPORT LightComponent : ComponentBase
 	{
 	private:
-		uint32_t lightFlag_ = SCU32(enums::LightFlags::EMPTY);
+		enum Flags : uint32_t
+		{
+			EMPTY = 0,
+			CAST_SHADOW = 1 << 0,
+			VOLUMETRICS = 1 << 1,
+			VISUALIZER = 1 << 2,
+		};
+
+		uint32_t lightFlag_ = Flags::EMPTY;
 		enums::LightType type_ = enums::LightType::DIRECTIONAL;
 
 		XMFLOAT3 color_ = XMFLOAT3(1, 1, 1);

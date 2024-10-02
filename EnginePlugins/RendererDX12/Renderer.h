@@ -1,5 +1,8 @@
 #pragma once
 #include "Common/Backend/GBackendDevice.h"
+#include "Components/GComponents.h"
+
+static const uint32_t SHADERTYPE_BIN_COUNT = (uint32_t)vz::MaterialComponent::ShaderType::COUNT;
 
 namespace vz::graphics
 {
@@ -10,13 +13,24 @@ namespace vz::graphics
 	enum SHADERTYPE
 	{
 		// vertex shaders
-		VSTYPE_OBJECT_DEBUG,
-		VSTYPE_OBJECT_COMMON,
-		VSTYPE_OBJECT_SIMPLE,
+		VSTYPE_DEBUG,
+		VSTYPE_COMMON,
+		VSTYPE_SIMPLE,
+		VSTYPE_VERTEXCOLOR,
 
 		// pixel shaders
-		PSTYPE_OBJECT_DEBUG,
-		PSTYPE_OBJECT_SIMPLE,
+		PSTYPE_DEBUG,	// debug output (to final render target)
+		PSTYPE_SIMPLE,	// no shading (to final render target)
+		PSTYPE_VERTEXCOLOR,
+
+		PS_PHONG_FORWARD_BEGIN,
+		PS_PHONG_FORWARD_END = PS_PHONG_FORWARD_BEGIN + SHADERTYPE_BIN_COUNT,
+		//PS_PHONG_FORWARD_TRANSPARENT_BEGIN,
+		//PS_PHONG_FORWARD_TRANSPARENT_END = PS_PHONG_FORWARD_TRANSPARENT_BEGIN + SHADERTYPE_BIN_COUNT,
+		//PS_PHONG_TRANSPARENT_BEGIN,
+		//PS_PHONG_TRANSPARENT_END = PS_PHONG_TRANSPARENT_BEGIN + SHADERTYPE_BIN_COUNT,
+		//PS_PHONG_TRANSPARENT_TRANSPARENT_BEGIN,
+		//PS_PHONG_TRANSPARENT_TRANSPARENT_END = PS_PHONG_TRANSPARENT_TRANSPARENT_BEGIN + SHADERTYPE_BIN_COUNT,
 
 		SHADERTYPE_COUNT,
 	};
@@ -112,6 +126,31 @@ namespace vz::graphics
 		SAMPLER_COUNT,
 	};
 
+	enum RENDERPASS
+	{
+		RENDERPASS_FORWARD,
+		RENDERPASS_FORWARD_WIRE,
+		//RENDERPASS_FORWARD_WIRE_THICK,
+		//RENDERPASS_FRAGCOUNT, // used for transparency
+		//RENDERPASS_DEFERRED,
+		RENDERPASS_COUNT
+	};
+
+	enum DEBUGRENDERING
+	{
+		DEBUGRENDERING_GRID,
+		DEBUGRENDERING_CUBE,
+		DEBUGRENDERING_CUBE_DEPTH,
+		DEBUGRENDERING_LINES,
+		DEBUGRENDERING_LINES_DEPTH,
+		DEBUGRENDERING_TRIANGLE_SOLID,
+		DEBUGRENDERING_TRIANGLE_WIREFRAME,
+		DEBUGRENDERING_TRIANGLE_SOLID_DEPTH,
+		DEBUGRENDERING_TRIANGLE_WIREFRAME_DEPTH,
+		DEBUGRENDERING_EMITTER,
+		DEBUGRENDERING_COUNT
+	};
+
 	namespace initializer
 	{
 		void SetUpStates();
@@ -124,8 +163,8 @@ namespace vz::graphics
 			ShaderStage stage,
 			Shader& shader,
 			const std::string& filename,
-			ShaderModel minshadermodel,
-			const std::vector<std::string>& permutation_defines
+			ShaderModel minshadermodel = graphics::ShaderModel::SM_6_0,
+			const std::vector<std::string>& permutation_defines = {}
 		);
 
 		void LoadShaders();
