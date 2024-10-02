@@ -82,12 +82,8 @@ namespace vz
 {
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 
-	namespace graphics
-	{
-		struct GScene;
-	}
-
 	class Archive;
+	struct GScene;
 
 	struct CORE_EXPORT Scene
 	{
@@ -115,7 +111,7 @@ namespace vz
 		// instant parameters during render-process
 		float dt_ = 0.f;
 
-		graphics::GScene* handlerScene_ = nullptr;
+		GScene* handlerScene_ = nullptr;
 
 	public:
 		Scene(const Entity entity, const std::string& name);

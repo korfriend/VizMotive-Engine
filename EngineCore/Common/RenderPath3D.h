@@ -12,14 +12,13 @@ namespace vz
 		constexpr Format formatDepthbufferShadowmap = graphics::Format::D16_UNORM;
 		constexpr Format formatRendertargetEnvprobe = graphics::Format::R11G11B10_FLOAT;
 		constexpr Format formatDepthbufferEnvprobe = graphics::Format::D16_UNORM;
-
-		struct GRenderPath3D;
 	}
+	struct GRenderPath3D;
 	// this renderer imports renderer-built binary (e.g., RendererDX11 or RendererDX12)
 	class RenderPath3D : public RenderPath2D
 	{
 	protected:
-		graphics::GRenderPath3D* handlerRenderPath3D_ = nullptr;
+		GRenderPath3D* handlerRenderPath3D_ = nullptr;
 
 	public:
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);

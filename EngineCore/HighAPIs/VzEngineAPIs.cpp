@@ -6,13 +6,16 @@
 #include "Common/Backend/GBackendDevice.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
+#include "Common/Backend/RenderInterface.h"
 
-using namespace vz;
-
-GEngineConfig gEngine;
+namespace vz
+{
+	GraphicsPackage graphicsPackage;
+}
 
 namespace vzm
 {
+	using namespace vz;
 
 #define CHECK_API_VALIDITY(RET) if (!initialized) { backlog::post("High-level API is not initialized!!", backlog::LogLevel::Error); return RET; }
 
@@ -36,37 +39,6 @@ namespace vzm
 		std::unordered_map<TextureVID, std::unique_ptr<VzTexture>> textures;
 	}
 
-	struct GraphicsPackage
-	{
-		typedef bool(*PI_GraphicsInitializer)();
-		typedef vz::graphics::GraphicsDevice* (*PI_GetGraphicsDevice)();
-		typedef bool(*PI_GraphicsDeinitializer)();
-		PI_GraphicsInitializer graphicsInitializer = nullptr;
-		PI_GraphicsDeinitializer graphicsDeinitializer = nullptr;
-		PI_GetGraphicsDevice graphicsGetDev = nullptr;
-
-		bool Init(const std::string& api)
-		{
-			if (gEngine.api == "DX12") {
-				//vz::renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
-				graphicsInitializer = vz::platform::LoadModule<PI_GraphicsInitializer>("RendererDX12", "Initialize");
-				graphicsDeinitializer = vz::platform::LoadModule<PI_GraphicsDeinitializer>("RendererDX12", "Deinitialize");
-				graphicsGetDev = vz::platform::LoadModule<PI_GetGraphicsDevice>("RendererDX12", "GetGraphicsDevice");
-			}
-			else if (gEngine.api == "DX11")
-			{
-				graphicsInitializer = vz::platform::LoadModule<PI_GraphicsInitializer>("RendererDX11", "Initialize");
-				graphicsDeinitializer = vz::platform::LoadModule<PI_GraphicsDeinitializer>("RendererDX11", "Deinitialize");
-				graphicsGetDev = vz::platform::LoadModule<PI_GetGraphicsDevice>("RendererDX11", "GetGraphicsDevice");
-			}
-			else
-			{
-				return false;
-			}
-			return true;
-		}
-	} graphicsPackage;
-
 	bool InitEngineLib(const vzm::ParamMap<std::string>& arguments)
 	{
 		if (initialized)
@@ -76,10 +48,10 @@ namespace vzm
 		}
 
 		// assume DX12 rendering engine
-		gEngine.api = arguments.GetString("API", "DX12");
-		if (!graphicsPackage.Init(gEngine.api))
+		std::string api = arguments.GetString("API", "DX12");
+		if (!graphicsPackage.Init(api))
 		{
-			backlog::post("Invalid Graphics API : " + gEngine.api, backlog::LogLevel::Error);
+			backlog::post("Invalid Graphics API : " + api, backlog::LogLevel::Error);
 			return false;
 		}
 

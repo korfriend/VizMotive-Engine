@@ -1,50 +1,14 @@
 #include "RenderPath3D.h"
-
-extern GEngineConfig gEngine;
+#include "Common/Backend/RenderInterface.h"
 
 namespace vz
 {
-	namespace graphics
-	{
-		struct GRenderPath3D
-		{
-			inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241001";
-			// this will be a component of vz::RenderPath3D
-		protected:
-			graphics::SwapChain& swapChain_;
-			graphics::Texture& rtRenderFinal_;
-		public:
-			std::string version = GRenderPath3D_INTERFACE_VERSION;
-
-			GRenderPath3D(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal) : swapChain_(swapChain), rtRenderFinal_(rtRenderFinal) {}
-
-			virtual bool ResizeCanvas() = 0; // must delete all canvas-related resources and re-create
-			virtual bool Render() = 0;
-			virtual bool Destory() = 0;
-		};
-	}
-
-	using namespace graphics;
-
-	typedef GRenderPath3D* (*PI_NewGRenderPath3D)(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
-	PI_NewGRenderPath3D graphicsNewGRenderPath3D = nullptr;
+	extern GraphicsPackage graphicsPackage;
 
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
 		: RenderPath2D(entity, graphicsDevice) 
 	{
-		if (graphicsNewGRenderPath3D == nullptr)
-		{
-			if (gEngine.api == "DX12")
-			{
-				graphicsNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>("RendererDX12", "NewGRenderPath");
-			}
-			else if (gEngine.api == "DX11")
-			{
-				graphicsNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>("RendererDX11", "NewGRenderPath");
-			}
-		}
-		assert(graphicsNewGRenderPath3D);
-		handlerRenderPath3D_ = graphicsNewGRenderPath3D(swapChain_, rtRenderFinal_);
+		handlerRenderPath3D_ = graphicsPackage.graphicsNewGRenderPath3D(swapChain_, rtRenderFinal_);
 		assert(handlerRenderPath3D_->version == GRenderPath3D::GRenderPath3D_INTERFACE_VERSION);
 
 		type_ = "RenderPath3D";
