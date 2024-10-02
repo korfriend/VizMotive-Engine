@@ -252,7 +252,7 @@ namespace vzm
 	void VzCamera::GetPerspectiveProjection(float* zNearP, float* zFarP, float* fovInDegree, float* aspectRatio, bool isVertical)
 	{
 		GET_CAM_COMP(camera, );
-		if (camera->GetProjectionType() != enums::Projection::PERSPECTIVE)
+		if (camera->GetProjectionType() != CameraComponent::Projection::PERSPECTIVE)
 		{
 			return;
 		}

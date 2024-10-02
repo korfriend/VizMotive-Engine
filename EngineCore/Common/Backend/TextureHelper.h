@@ -1,5 +1,4 @@
 #pragma once
-#include "CommonInclude.h"
 #include "GBackendDevice.h"
 #include "Utils/Color.h"
 

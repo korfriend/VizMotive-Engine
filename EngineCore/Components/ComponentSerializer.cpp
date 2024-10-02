@@ -254,7 +254,7 @@ namespace vz
 			archive >> height_;
 
 			archive >> u8_data;
-			projectionType_ = static_cast<enums::Projection>(u8_data);
+			projectionType_ = static_cast<Projection>(u8_data);
 		}
 		else
 		{

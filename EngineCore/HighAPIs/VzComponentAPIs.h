@@ -67,9 +67,6 @@ constexpr float VZ_PIDIV4 = 0.785398163f;
 
 using uint = uint32_t;
 
-#include "VzEnums.h"
-using namespace vz;
-
 namespace vzm
 {
     template <typename ID> struct ParamMap {
