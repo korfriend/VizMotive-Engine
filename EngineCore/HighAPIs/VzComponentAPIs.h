@@ -17,11 +17,7 @@
 #endif
 
 #define __FP (float*)&
-#define VZRESULT int
-#define VZ_OK 0
-#define VZ_FAIL 1
-#define VZ_JOB_WAIT 2
-#define VZ_WARNNING 3
+
 #if defined(__clang__)
 #define VZ_NONNULL _Nonnull
 #define VZ_NULLABLE _Nullable
