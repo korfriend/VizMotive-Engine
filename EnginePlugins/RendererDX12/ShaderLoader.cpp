@@ -5,7 +5,7 @@
 #include "Utils/Backlog.h"
 #include "Helpers.hpp"
 
-#include <filesystem>
+#include <unordered_map>
 
 #ifdef SHADERDUMP_ENABLED
 // Note: when using Shader Dump, use relative directory, because the dump will contain relative names too
@@ -32,13 +32,298 @@ namespace vz::graphics::common
 
 	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	extern PipelineState		PSO_mesh[RENDERPASS_COUNT];
+	extern PipelineState		PSO_wireframe;
 }
 
 namespace vz::graphics::shader
 {
 	using namespace vz::graphics;
 
+	enum MESH_SHADER_PSO
+	{
+		MESH_SHADER_PSO_DISABLED,
+		MESH_SHADER_PSO_ENABLED,
+		MESH_SHADER_PSO_COUNT
+	};
+
 	GraphicsDevice*& device = GetDevice();
+	// this is for the case when retry LoadShaders() 
+	jobsystem::context CTX_meshPS;
+	jobsystem::context CTX_meshPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
+	jobsystem::context CTX_meshMS;
+
+	SHADERTYPE GetASTYPE(RENDERPASS renderPass, bool tessellation, bool alphatest, bool transparent, bool mesh_shader)
+	{
+		if (!mesh_shader)
+			return SHADERTYPE_COUNT;
+
+		return ASTYPE_MESH;
+	}
+	SHADERTYPE GetMSTYPE(RENDERPASS renderPass, bool tessellation, bool alphatest, bool transparent, bool mesh_shader)
+	{
+		if (!mesh_shader)
+			return SHADERTYPE_COUNT;
+
+		SHADERTYPE realMS = SHADERTYPE_COUNT;
+
+		switch (renderPass)
+		{
+		case RENDERPASS_MAIN:
+			realMS = MSTYPE_MESH;
+			break;
+		case RENDERPASS_PREPASS:
+		case RENDERPASS_PREPASS_DEPTHONLY:
+			if (alphatest)
+			{
+				realMS = MSTYPE_MESH_PREPASS_ALPHATEST;
+			}
+			else
+			{
+				realMS = MSTYPE_MESH_PREPASS;
+			}
+			break;
+		case RENDERPASS_SHADOW:
+			if (transparent)
+			{
+				realMS = MSTYPE_SHADOW_TRANSPARENT;
+			}
+			else
+			{
+				if (alphatest)
+				{
+					realMS = MSTYPE_SHADOW_ALPHATEST;
+				}
+				else
+				{
+					realMS = MSTYPE_SHADOW;
+				}
+			}
+			break;
+		}
+
+		return realMS;
+	}
+	SHADERTYPE GetVSTYPE(RENDERPASS renderPass, bool tessellation, bool alphatest, bool transparent)
+	{
+		SHADERTYPE realVS = VSTYPE_MESH_SIMPLE;
+
+		switch (renderPass)
+		{
+		case RENDERPASS_MAIN:
+			if (tessellation)
+			{
+				realVS = VSTYPE_MESH_COMMON_TESSELLATION;
+			}
+			else
+			{
+				realVS = VSTYPE_MESH_COMMON;
+			}
+			break;
+		case RENDERPASS_PREPASS:
+		case RENDERPASS_PREPASS_DEPTHONLY:
+			if (tessellation)
+			{
+				if (alphatest)
+				{
+					realVS = VSTYPE_MESH_PREPASS_ALPHATEST_TESSELLATION;
+				}
+				else
+				{
+					realVS = VSTYPE_MESH_PREPASS_TESSELLATION;
+				}
+			}
+			else
+			{
+				if (alphatest)
+				{
+					realVS = VSTYPE_MESH_PREPASS_ALPHATEST;
+				}
+				else
+				{
+					realVS = VSTYPE_MESH_PREPASS;
+				}
+			}
+			break;
+		case RENDERPASS_ENVMAPCAPTURE:
+			realVS = VSTYPE_ENVMAP;
+			break;
+		case RENDERPASS_SHADOW:
+			if (transparent)
+			{
+				realVS = VSTYPE_SHADOW_TRANSPARENT;
+			}
+			else
+			{
+				if (alphatest)
+				{
+					realVS = VSTYPE_SHADOW_ALPHATEST;
+				}
+				else
+				{
+					realVS = VSTYPE_SHADOW;
+				}
+			}
+			break;
+		case RENDERPASS_VOXELIZE:
+			realVS = VSTYPE_VOXELIZER;
+			break;
+		}
+
+		return realVS;
+	}
+	SHADERTYPE GetGSTYPE(RENDERPASS renderPass, bool alphatest, bool transparent)
+	{
+		SHADERTYPE realGS = SHADERTYPE_COUNT;
+
+		switch (renderPass)
+		{
+#ifdef VOXELIZATION_GEOMETRY_SHADER_ENABLED
+		case RENDERPASS_VOXELIZE:
+			realGS = GSTYPE_VOXELIZER;
+			break;
+#endif // VOXELIZATION_GEOMETRY_SHADER_ENABLED
+		case RENDERPASS_ENVMAPCAPTURE:
+			if (device->CheckCapability(GraphicsDeviceCapability::RENDERTARGET_AND_VIEWPORT_ARRAYINDEX_WITHOUT_GS))
+				break;
+			realGS = GSTYPE_ENVMAP_EMULATION;
+			break;
+		case RENDERPASS_SHADOW:
+			if (device->CheckCapability(GraphicsDeviceCapability::RENDERTARGET_AND_VIEWPORT_ARRAYINDEX_WITHOUT_GS))
+				break;
+			if (transparent)
+			{
+				realGS = GSTYPE_SHADOW_TRANSPARENT_EMULATION;
+			}
+			else
+			{
+				if (alphatest)
+				{
+					realGS = GSTYPE_SHADOW_ALPHATEST_EMULATION;
+				}
+				else
+				{
+					realGS = GSTYPE_SHADOW_EMULATION;
+				}
+			}
+			break;
+		}
+
+		return realGS;
+	}
+	SHADERTYPE GetHSTYPE(RENDERPASS renderPass, bool tessellation, bool alphatest)
+	{
+		if (tessellation)
+		{
+			switch (renderPass)
+			{
+			case RENDERPASS_PREPASS:
+			case RENDERPASS_PREPASS_DEPTHONLY:
+				if (alphatest)
+				{
+					return HSTYPE_MESH_PREPASS_ALPHATEST;
+				}
+				else
+				{
+					return HSTYPE_MESH_PREPASS;
+				}
+				break;
+			case RENDERPASS_MAIN:
+				return HSTYPE_MESH;
+				break;
+			}
+		}
+
+		return SHADERTYPE_COUNT;
+	}
+	SHADERTYPE GetDSTYPE(RENDERPASS renderPass, bool tessellation, bool alphatest)
+	{
+		if (tessellation)
+		{
+			switch (renderPass)
+			{
+			case RENDERPASS_PREPASS:
+			case RENDERPASS_PREPASS_DEPTHONLY:
+				if (alphatest)
+				{
+					return DSTYPE_MESH_PREPASS_ALPHATEST;
+				}
+				else
+				{
+					return DSTYPE_MESH_PREPASS;
+				}
+			case RENDERPASS_MAIN:
+				return DSTYPE_MESH;
+			}
+		}
+
+		return SHADERTYPE_COUNT;
+	}
+	SHADERTYPE GetPSTYPE(RENDERPASS renderPass, bool deferred, bool alphatest, bool transparent, MaterialComponent::ShaderType shaderType)
+	{
+		SHADERTYPE realPS = SHADERTYPE_COUNT;
+
+		uint32_t index_material_shadertype = SCU32(shaderType);
+		switch (renderPass)
+		{
+		case RENDERPASS_MAIN:
+			if (deferred)
+			{
+				realPS = SHADERTYPE((transparent ? PS_MATERIAL_DEFERRED_TRANSPARENT__BEGIN : PS_MATERIAL_DEFERRED__BEGIN) + index_material_shadertype);
+			}
+			else
+			{
+				realPS = SHADERTYPE((transparent ? PS_MATERIAL_FORWARD_TRANSPARENT__BEGIN : PS_MATERIAL_FORWARD__BEGIN) + index_material_shadertype);
+			}
+			break;
+		case RENDERPASS_PREPASS:
+			if (alphatest)
+			{
+				realPS = PSTYPE_MESH_PREPASS_ALPHATEST;
+			}
+			else
+			{
+				realPS = PSTYPE_MESH_PREPASS;
+			}
+			break;
+		case RENDERPASS_PREPASS_DEPTHONLY:
+			if (alphatest)
+			{
+				realPS = PSTYPE_MESH_PREPASS_DEPTHONLY_ALPHATEST;
+			}
+			else
+			{
+				realPS = PSTYPE_MESH_PREPASS_DEPTHONLY;
+			}
+			break;
+		case RENDERPASS_ENVMAPCAPTURE:
+			realPS = PSTYPE_ENVMAP;
+			break;
+		case RENDERPASS_SHADOW:
+			if (transparent)
+			{
+				realPS = PSTYPE_SHADOW_TRANSPARENT;
+			}
+			else
+			{
+				if (alphatest)
+				{
+					realPS = PSTYPE_SHADOW_ALPHATEST;
+				}
+				else
+				{
+					realPS = SHADERTYPE_COUNT;
+				}
+			}
+			break;
+		case RENDERPASS_VOXELIZE:
+			realPS = PSTYPE_VOXELIZER;
+			break;
+		default:
+			break;
+		}
+
+		return realPS;
+	}
 
 	bool LoadShader(
 		ShaderStage stage,
@@ -141,26 +426,30 @@ namespace vz::graphics::shader
 		return false;
 	}
 
-	// this is for the case when retry LoadShaders() 
-	jobsystem::context objectps_ctx;
+
+	std::unordered_map<uint32_t, PipelineState> PSO_object[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
+	PipelineState* GetObjectPSO(MeshRenderingVariant variant)
+	{
+		return &PSO_object[variant.bits.renderpass][variant.bits.shadertype][variant.value];
+	}
 
 	void LoadShaders()
 	{
-		jobsystem::Wait(objectps_ctx);
-		objectps_ctx.priority = jobsystem::Priority::Low;
+		jobsystem::Wait(CTX_meshPS);
+		CTX_meshPS.priority = jobsystem::Priority::Low;
 
 		jobsystem::context ctx;
 		
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_DEBUG], "meshVS_debug.cso");
+			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso");
 			});
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_COMMON], "meshVS_common.cso");
+			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso");
 			});
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_SIMPLE], "meshVS_simple.cso");
+			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso");
 			});
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
@@ -186,11 +475,11 @@ namespace vz::graphics::shader
 		};
 		static_assert(SHADERTYPE_BIN_COUNT == arraysize(shaderTypeDefines), "These values must match!");
 
-		jobsystem::Dispatch(objectps_ctx, SHADERTYPE_BIN_COUNT, 1, [](jobsystem::JobArgs args) {
+		jobsystem::Dispatch(CTX_meshPS, SHADERTYPE_BIN_COUNT, 1, [](jobsystem::JobArgs args) {
 
 			LoadShader(
 				ShaderStage::PS,
-				common::shaders[PS_PHONG_FORWARD_BEGIN + args.jobIndex],
+				common::shaders[PS_MATERIAL_FORWARD__BEGIN + args.jobIndex],
 				"meshPS_FW.cso",
 				ShaderModel::SM_6_0,
 				shaderTypeDefines[args.jobIndex] // permutation defines
@@ -219,18 +508,18 @@ namespace vz::graphics::shader
 		// create graphics pipelines
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			PipelineStateDesc desc;
-			desc.vs = &common::shaders[VSTYPE_SIMPLE];
+			desc.vs = &common::shaders[VSTYPE_MESH_SIMPLE];
 			desc.ps = &common::shaders[PSTYPE_SIMPLE];
 			desc.rs = &common::rasterizers[RSTYPE_WIRE];
 			desc.bs = &common::blendStates[BSTYPE_OPAQUE];
 			desc.dss = &common::depthStencils[DSSTYPE_DEFAULT];
 
-			device->CreatePipelineState(&desc, &common::PSO_mesh[RENDERPASS_FORWARD_WIRE]);
+			device->CreatePipelineState(&desc, &common::PSO_wireframe);
 
 			//desc.pt = PrimitiveTopology::PATCHLIST;
 			//desc.vs = &common::shaders[VSTYPE_OBJECT_SIMPLE_TESSELLATION];
-			//desc.hs = &common::shaders[HSTYPE_OBJECT_SIMPLE];
-			//desc.ds = &common::shaders[DSTYPE_OBJECT_SIMPLE];
+			//desc.hs = &common::shaders[HSTYPE_MESH_SIMPLE];
+			//desc.ds = &common::shaders[DSTYPE_MESH_SIMPLE];
 			//device->CreatePipelineState(&desc, &PSO_object_wire_tessellation);
 			});
 
@@ -332,7 +621,7 @@ namespace vz::graphics::shader
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_EMITTER:
-				desc.vs = &common::shaders[VSTYPE_DEBUG];
+				desc.vs = &common::shaders[VSTYPE_MESH_DEBUG];
 				desc.ps = &common::shaders[PSTYPE_DEBUG];
 				desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
 				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
@@ -350,61 +639,30 @@ namespace vz::graphics::shader
 			}
 
 			device->CreatePipelineState(&desc, &common::PSO_debug[args.jobIndex]);
-			});
-			/*
-
-		// Clear custom shaders (Custom shaders coming from user will need to be handled by the user in case of shader reload):
-		customShaders.clear();
-
-		// Hologram sample shader will be registered as custom shader:
-		//	It's best to register all custom shaders from the same thread, so under here
-		//	or after engine has been completely initialized
-		//	This is because RegisterCustomShader() will give out IDs in increasing order
-		//	and you can keep the order stable by ensuring they are registered in order.
-		{
-			SHADERTYPE realVS = GetVSTYPE(RENDERPASS_MAIN, false, false, true);
-
-			PipelineStateDesc desc;
-			desc.vs = &common::shaders[realVS];
-			desc.ps = &common::shaders[PSTYPE_OBJECT_HOLOGRAM];
-
-			desc.bs = &common::blendStates[BSTYPE_ADDITIVE];
-			desc.rs = &common::rasterizers[RSTYPE_FRONT];
-			desc.dss = &common::depthStencils[DSSTYPE_HOLOGRAM];
-			desc.pt = PrimitiveTopology::TRIANGLELIST;
-
-			PipelineState pso;
-			device->CreatePipelineState(&desc, &pso);
-
-			CustomShader customShader;
-			customShader.name = "Hologram";
-			customShader.filterMask = FILTER_TRANSPARENT;
-			customShader.pso[RENDERPASS_MAIN] = pso;
-			RegisterCustomShader(customShader);
-		}
-
-
+		});
+		
 		jobsystem::Wait(ctx);
 
-
-
-		for (uint32_t renderPass = 0; renderPass < RENDERPASS_COUNT; ++renderPass)
+		const uint32_t renderPass = 0;
+		//for (uint32_t renderPass = 0; renderPass < RENDERPASS_COUNT; ++renderPass)
 		{
-			for (uint32_t mesh_shader = 0; mesh_shader <= (device->CheckCapability(GraphicsDeviceCapability::MESH_SHADER) ? 1u : 0u); ++mesh_shader)
+			const uint32_t mesh_shader = 0;
+			//for (uint32_t mesh_shader = 0; mesh_shader <= (device->CheckCapability(GraphicsDeviceCapability::MESH_SHADER) ? 1u : 0u); ++mesh_shader)
 			{
 				// default objectshaders:
 				//	We don't wait for these here, because then it can slow down the init time a lot
 				//	We will wait for these to complete in RenderMeshes() just before they will be first used
-				jobsystem::Wait(object_pso_job_ctx[renderPass][mesh_shader]);
-				object_pso_job_ctx[renderPass][mesh_shader].priority = jobsystem::Priority::Low;
-				for (uint32_t shaderType = 0; shaderType < MaterialComponent::SHADERTYPE_COUNT; ++shaderType)
+				jobsystem::Wait(CTX_meshPSO[renderPass][mesh_shader]);
+				CTX_meshPSO[renderPass][mesh_shader].priority = jobsystem::Priority::Low;
+				for (uint32_t shaderType = 0; shaderType < SHADERTYPE_BIN_COUNT; ++shaderType)
 				{
-					jobsystem::Execute(object_pso_job_ctx[renderPass][mesh_shader], [=](jobsystem::JobArgs args) {
+					jobsystem::Execute(CTX_meshPSO[renderPass][mesh_shader], [=](jobsystem::JobArgs args) {
 						for (uint32_t blendMode = 0; blendMode < BLENDMODE_COUNT; ++blendMode)
 						{
-							for (uint32_t cullMode = 0; cullMode <= 3; ++cullMode)
+							for (uint32_t cullMode = 0; cullMode <= 3; ++cullMode) // graphics::CullMode (NONE, FRONT, BACK)
 							{
-								for (uint32_t tessellation = 0; tessellation <= 1; ++tessellation)
+								const uint32_t tesselation_enabled = 0; // (TODO) 1
+								for (uint32_t tessellation = 0; tessellation <= tesselation_enabled; ++tessellation)
 								{
 									if (tessellation && renderPass > RENDERPASS_PREPASS_DEPTHONLY)
 										continue;
@@ -443,7 +701,9 @@ namespace vz::graphics::shader
 											desc.gs = realGS < SHADERTYPE_COUNT ? &common::shaders[realGS] : nullptr;
 										}
 
-										SHADERTYPE realPS = GetPSTYPE((RENDERPASS)renderPass, alphatest, transparency, (MaterialComponent::SHADERTYPE)shaderType);
+										const uint32_t deferred_enabled = 0; // (TODO) 1
+
+										SHADERTYPE realPS = GetPSTYPE((RENDERPASS)renderPass, deferred_enabled, alphatest, transparency, static_cast<MaterialComponent::ShaderType>(shaderType));
 										desc.ps = realPS < SHADERTYPE_COUNT ? &common::shaders[realPS] : nullptr;
 
 										switch (blendMode)
@@ -473,9 +733,6 @@ namespace vz::graphics::shader
 										case RENDERPASS_SHADOW:
 											desc.bs = &common::blendStates[transparency ? BSTYPE_TRANSPARENTSHADOW : BSTYPE_COLORWRITEDISABLE];
 											break;
-										case RENDERPASS_RAINBLOCKER:
-											desc.bs = &common::blendStates[BSTYPE_COLORWRITEDISABLE];
-											break;
 										default:
 											break;
 										}
@@ -500,9 +757,6 @@ namespace vz::graphics::shader
 											break;
 										case RENDERPASS_VOXELIZE:
 											desc.dss = &common::depthStencils[DSSTYPE_DEPTHDISABLED];
-											break;
-										case RENDERPASS_RAINBLOCKER:
-											desc.dss = &common::depthStencils[DSSTYPE_DEFAULT];
 											break;
 										default:
 											if (blendMode == BLENDMODE_ADDITIVE)
@@ -550,13 +804,13 @@ namespace vz::graphics::shader
 											desc.pt = PrimitiveTopology::TRIANGLELIST;
 										}
 
-										jobsystem::Wait(objectps_ctx);
+										jobsystem::Wait(CTX_meshPS);
 										if (mesh_shader)
 										{
-											jobsystem::Wait(mesh_shader_ctx);
+											jobsystem::Wait(CTX_meshMS);
 										}
 
-										ObjectRenderingVariant variant = {};
+										MeshRenderingVariant variant = {};
 										variant.bits.renderpass = renderPass;
 										variant.bits.shadertype = shaderType;
 										variant.bits.blendmode = blendMode;
@@ -581,9 +835,9 @@ namespace vz::graphics::shader
 											else
 											{
 												renderpass_info.rt_count = 1;
-												renderpass_info.rt_formats[0] = renderPass == RENDERPASS_MAIN ? format_rendertarget_main : format_idbuffer;
+												renderpass_info.rt_formats[0] = renderPass == RENDERPASS_MAIN ? FORMAT_rendertargetMain : FORMAT_idbuffer;
 											}
-											renderpass_info.ds_format = format_depthbuffer_main;
+											renderpass_info.ds_format = FORMAT_depthbufferMain;
 											const uint32_t msaa_support[] = { 1,2,4,8 };
 											for (uint32_t msaa : msaa_support)
 											{
@@ -598,8 +852,8 @@ namespace vz::graphics::shader
 										{
 											RenderPassInfo renderpass_info;
 											renderpass_info.rt_count = 1;
-											renderpass_info.rt_formats[0] = format_rendertarget_envprobe;
-											renderpass_info.ds_format = format_depthbuffer_envprobe;
+											renderpass_info.rt_formats[0] = FORMAT_rendertargetEnvprobe;
+											renderpass_info.ds_format = FORMAT_depthbufferEnvprobe;
 											const uint32_t msaa_support[] = { 1,8 };
 											for (uint32_t msaa : msaa_support)
 											{
@@ -614,17 +868,8 @@ namespace vz::graphics::shader
 										{
 											RenderPassInfo renderpass_info;
 											renderpass_info.rt_count = 1;
-											renderpass_info.rt_formats[0] = format_rendertarget_shadowmap;
-											renderpass_info.ds_format = format_depthbuffer_shadowmap;
-											device->CreatePipelineState(&desc, GetObjectPSO(variant), &renderpass_info);
-										}
-										break;
-
-										case RENDERPASS_RAINBLOCKER:
-										{
-											RenderPassInfo renderpass_info;
-											renderpass_info.rt_count = 0;
-											renderpass_info.ds_format = format_depthbuffer_shadowmap;
+											renderpass_info.rt_formats[0] = FORMAT_rendertargetShadowmap;
+											renderpass_info.ds_format = FORMAT_depthbufferShadowmap;
 											device->CreatePipelineState(&desc, GetObjectPSO(variant), &renderpass_info);
 										}
 										break;
@@ -641,6 +886,5 @@ namespace vz::graphics::shader
 				}
 			}
 		}
-		/**/
 	}
 }

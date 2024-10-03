@@ -1,7 +1,8 @@
 #include "GraphicsDevice_DX12.h"
 
-#include "Libs/Math.h"
+#include "Helpers.hpp"
 #include "Utils/Timer.h"
+#include "Utils/Backlog.h"
 #include <unordered_set>
 
 #include "Libs/dx12/dxgiformat.h"
@@ -28,121 +29,6 @@
 #include <intrin.h> // _BitScanReverse64
 
 using namespace Microsoft::WRL;
-
-namespace helpers {
-	void messageBox(const std::string& msg, const std::string& caption)
-	{
-#ifdef PLATFORM_WINDOWS_DESKTOP
-		MessageBoxA(GetActiveWindow(), msg.c_str(), caption.c_str(), 0);
-#endif // PLATFORM_WINDOWS_DESKTOP
-
-#ifdef SDL2
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, caption.c_str(), msg.c_str(), NULL);
-#endif // SDL2
-	}
-	void StringConvert(const std::wstring& from, std::string& to)
-	{
-#ifdef _WIN32
-		int num = WideCharToMultiByte(CP_UTF8, 0, from.c_str(), -1, NULL, 0, NULL, NULL);
-		if (num > 0)
-		{
-			to.resize(size_t(num) - 1);
-			WideCharToMultiByte(CP_UTF8, 0, from.c_str(), -1, &to[0], num, NULL, NULL);
-		}
-#else
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
-		to = cv.to_bytes(from);
-#endif // _WIN32
-	}
-
-	void StringConvert(const std::string& from, std::wstring& to)
-	{
-#ifdef _WIN32
-		int num = MultiByteToWideChar(CP_UTF8, 0, from.c_str(), -1, NULL, 0);
-		if (num > 0)
-		{
-			to.resize(size_t(num) - 1);
-			MultiByteToWideChar(CP_UTF8, 0, from.c_str(), -1, &to[0], num);
-		}
-#else
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
-		to = cv.from_bytes(from);
-#endif // _WIN32
-	}
-
-	int StringConvert(const char* from, wchar_t* to, int dest_size_in_characters = -1)
-	{
-#ifdef _WIN32
-		int num = MultiByteToWideChar(CP_UTF8, 0, from, -1, NULL, 0);
-		if (num > 0)
-		{
-			if (dest_size_in_characters >= 0)
-			{
-				num = std::min(num, dest_size_in_characters);
-			}
-			MultiByteToWideChar(CP_UTF8, 0, from, -1, &to[0], num);
-		}
-		return num;
-#else
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
-		auto result = cv.from_bytes(from).c_str();
-		int num = (int)cv.converted();
-		if (dest_size_in_characters >= 0)
-		{
-			num = std::min(num, dest_size_in_characters);
-		}
-		std::memcpy(to, result, num * sizeof(wchar_t));
-		return num;
-#endif // _WIN32
-	}
-
-	int StringConvert(const wchar_t* from, char* to, int dest_size_in_characters = -1)
-	{
-#ifdef _WIN32
-		int num = WideCharToMultiByte(CP_UTF8, 0, from, -1, NULL, 0, NULL, NULL);
-		if (num > 0)
-		{
-			if (dest_size_in_characters >= 0)
-			{
-				num = std::min(num, dest_size_in_characters);
-			}
-			WideCharToMultiByte(CP_UTF8, 0, from, -1, &to[0], num, NULL, NULL);
-		}
-		return num;
-#else
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
-		auto result = cv.to_bytes(from).c_str();
-		int num = (size_t)cv.converted();
-		if (dest_size_in_characters >= 0)
-		{
-			num = std::min(num, dest_size_in_characters);
-		}
-		std::memcpy(to, result, num * sizeof(char));
-		return num;
-#endif // _WIN32
-	}
-
-	template <class T>
-	constexpr void hash_combine(std::size_t& seed, const T& v)
-	{
-		std::hash<T> hasher;
-		seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-	}
-
-	enum class LogLevel
-	{
-		Trace = 0, // SPDLOG_LEVEL_TRACE
-		Debug, // SPDLOG_LEVEL_DEBUG
-		Info, // SPDLOG_LEVEL_INFO
-		Warn, // SPDLOG_LEVEL_WARN
-		Error, // SPDLOG_LEVEL_ERROR
-		Critical, // SPDLOG_LEVEL_CRITICAL
-		None, // SPDLOG_LEVEL_OFF
-	};
-	HMODULE logUtil = nullptr; 
-	typedef void(__stdcall* UtilPost)(const std::string&, LogLevel);
-	UtilPost utilPost = nullptr;
-}
 
 namespace vz::graphics
 {
@@ -2309,26 +2195,6 @@ std::mutex queue_locker;
 	// Engine functions
 	GraphicsDevice_DX12::GraphicsDevice_DX12(ValidationMode validationMode_, GPUPreference preference)
 	{
-#ifdef _WIN32
-#ifdef _DEBUG
-		const std::string library = "VizEngined.dll";
-#else
-		const std::string library = "VizEngine.dll";
-#endif
-		helpers::logUtil = vzLoadLibrary(library.c_str());
-#elif defined(PLATFORM_LINUX)
-#ifdef _DEBUG
-		const std::string library = "./VizEngined.so";
-#else
-		const std::string library = "./VizEngine.so";
-#endif
-		helpers::logUtil = vzLoadLibrary(library.c_str());
-#endif
-		if (helpers::logUtil)
-		{
-			helpers::utilPost = (helpers::UtilPost)vzGetProcAddress(helpers::logUtil, "post");
-		}
-
 		vz::Timer timer;
 
 		SHADER_IDENTIFIER_SIZE = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
@@ -2481,7 +2347,7 @@ std::mutex queue_locker;
 			if (FAILED(hr) || !allowTearing)
 			{
 				tearingSupported = false;
-				helpers::utilPost("WARNING: Variable refresh rate displays not supported!", helpers::LogLevel::Warn);
+				backlog::post("WARNING: Variable refresh rate displays not supported!", backlog::LogLevel::Warn);
 			}
 			else
 			{
@@ -2874,7 +2740,7 @@ std::mutex queue_locker;
 			}
 			error += "\nExiting.";
 			helpers::messageBox(error, "Error!");
-			helpers::utilPost(error, helpers::LogLevel::Error);
+			backlog::post(error, backlog::LogLevel::Error);
 			vz::platform::Exit();
 		}
 
@@ -3161,7 +3027,7 @@ std::mutex queue_locker;
 			helpers::messageBox(ss.str(), "Warning!");
 		}
 
-		//helpers::utilPost("Created GraphicsDevice_DX12 (" + std::to_string((int)std::round(timer.elapsed())) + " ms)\nAdapter: " + adapterName, helpers::LogLevel::Info);
+		//backlog::post("Created GraphicsDevice_DX12 (" + std::to_string((int)std::round(timer.elapsed())) + " ms)\nAdapter: " + adapterName, backlog::LogLevel::Info);
 	}
 	GraphicsDevice_DX12::~GraphicsDevice_DX12()
 	{
@@ -5941,7 +5807,7 @@ std::mutex queue_locker;
 
 		if (!log.empty())
 		{
-			helpers::utilPost(log, helpers::LogLevel::Error);
+			backlog::post(log, backlog::LogLevel::Error);
 		}
 
 		std::string message = "D3D12: device removed, cause: ";

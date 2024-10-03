@@ -1,9 +1,9 @@
 #pragma once
-#include "Components.h" // engine-level components
-#include "ComponentManager.h" // engine-level components Manager
+
+#include "HighAPIs/VzEngineAPIs.h" // engine-level components
 
 using namespace std;
-using namespace vzm;
+using namespace vz;
 
 __vmstatic bool GeneratePanoVolume(
 	ParamMap<string>& ioComponents, // value is entity
