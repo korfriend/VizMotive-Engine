@@ -148,7 +148,6 @@
     <ClInclude Include="D3D12MemAlloc.h" />
     <ClInclude Include="GraphicsInterface.h" />
     <ClInclude Include="GraphicsDevice_DX12.h" />
-    <ClInclude Include="Helpers.hpp" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderCompiler.h" />
     <ClInclude Include="Shaders\ShaderInterop.h" />

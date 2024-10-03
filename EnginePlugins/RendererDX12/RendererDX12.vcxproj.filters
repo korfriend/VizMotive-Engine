@@ -20,7 +20,6 @@
     <ClInclude Include="Utility\dxcapi.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="Helpers.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">

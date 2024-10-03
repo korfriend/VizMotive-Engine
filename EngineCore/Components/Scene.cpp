@@ -5,7 +5,7 @@
 #include "Utils/Platform.h"
 #include "Common/Archive.h"
 #include "Libs/PrimitiveHelper.h"
-#include "Common/Backend/RenderInterface.h"
+#include "Common/Backend/GRendererInterface.h"
 
 #include <cstdint>
 #include <atomic>
@@ -52,7 +52,7 @@ namespace vz
 
 	Scene::Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name)
 	{
-		handlerScene_ = graphicsPackage.graphicsNewGScene(this);
+		handlerScene_ = graphicsPackage.pluginNewGScene(this);
 		assert(handlerScene_->version == GScene::GScene_INTERFACE_VERSION);
 	}
 

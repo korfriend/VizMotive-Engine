@@ -1,5 +1,5 @@
 #include "RenderPath3D.h"
-#include "Common/Backend/RenderInterface.h"
+#include "Common/Backend/GRendererInterface.h"
 
 namespace vz
 {
@@ -8,7 +8,7 @@ namespace vz
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
 		: RenderPath2D(entity, graphicsDevice) 
 	{
-		handlerRenderPath3D_ = graphicsPackage.graphicsNewGRenderPath3D(swapChain_, rtRenderFinal_);
+		handlerRenderPath3D_ = graphicsPackage.pluginNewGRenderPath3D(swapChain_, rtRenderFinal_);
 		assert(handlerRenderPath3D_->version == GRenderPath3D::GRenderPath3D_INTERFACE_VERSION);
 
 		type_ = "RenderPath3D";

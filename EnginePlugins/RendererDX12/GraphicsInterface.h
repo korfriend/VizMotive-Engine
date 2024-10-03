@@ -5,6 +5,7 @@
 #define DX12_EXPORT __attribute__((visibility("default")))
 #endif
 #include <string>
+#include <vector>
 
 namespace vz
 {
@@ -13,6 +14,12 @@ namespace vz
 
 	namespace graphics
 	{
+		struct SwapChain;
+		struct Texture;
+		struct Shader;
+		enum class ShaderStage : uint8_t;
+		enum class ShaderModel : uint8_t;
+
 		struct GScene
 		{
 			inline static const std::string GScene_INTERFACE_VERSION = "GScene::20240921";
@@ -28,8 +35,6 @@ namespace vz
 			virtual bool Destory() = 0;
 		};
 
-		struct SwapChain;
-		struct Texture;
 		struct GRenderPath3D
 		{
 			inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241001";
@@ -59,4 +64,11 @@ namespace vz::graphics
 
 	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene);
 	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
+
+	extern "C" DX12_EXPORT bool LoadShader(
+		graphics::ShaderStage stage,
+		graphics::Shader& shader,
+		const std::string& filename,
+		graphics::ShaderModel minshadermodel,
+		const std::vector<std::string>& permutation_defines);
 }

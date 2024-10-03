@@ -19,7 +19,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GRendererInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h" />
@@ -69,6 +69,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Noise.h" />
@@ -80,7 +81,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Canvas.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp" />
@@ -107,7 +107,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Random.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />

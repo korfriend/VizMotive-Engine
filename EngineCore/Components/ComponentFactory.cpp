@@ -13,7 +13,7 @@ namespace vz::compfactory
 	ComponentManager<NameComponent>& nameManager = componentLibrary.Register<NameComponent>("NAME");
 	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>("TANSFORM");
 	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>("HIERARCHY");
-	ComponentManager<RenderableComponent>& renderableManager = componentLibrary.Register<RenderableComponent>("RENDERABLE");
+	ComponentManager<GRenderableComponent>& renderableManager = componentLibrary.Register<GRenderableComponent>("RENDERABLE");
 	ComponentManager<LightComponent>& lightManager = componentLibrary.Register<LightComponent>("LIGHT");
 	ComponentManager<CameraComponent>& cameraManager = componentLibrary.Register<CameraComponent>("CAMERA");
 

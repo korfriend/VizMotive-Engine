@@ -3,8 +3,7 @@
 #include "Utils/Platform.h"
 
 #include "Libs/Math.h"
-
-#include "Helpers.hpp"
+#include "Utils/Helpers.h"
 
 #include <mutex>
 #include <unordered_set>
@@ -110,7 +109,7 @@ namespace vz::graphics::shadercompiler
 		}
 
 		std::vector<uint8_t> shadersourcedata;
-		if (!helpers::FileRead(input.shadersourcefilename, shadersourcedata))
+		if (!vz::helper::FileRead(input.shadersourcefilename, shadersourcedata))
 		{
 			return;
 		}
@@ -394,13 +393,13 @@ namespace vz::graphics::shadercompiler
 		for (auto& x : input.defines)
 		{
 			args.push_back(L"-D");
-			helpers::StringConvert(x, args.emplace_back());
+			vz::helper::StringConvert(x, args.emplace_back());
 		}
 
 		for (auto& x : input.include_directories)
 		{
 			args.push_back(L"-I");
-			helpers::StringConvert(x, args.emplace_back());
+			vz::helper::StringConvert(x, args.emplace_back());
 		}
 
 #ifdef SHADERCOMPILER_XBOX_INCLUDED
@@ -412,13 +411,13 @@ namespace vz::graphics::shadercompiler
 
 		// Entry point parameter:
 		std::wstring wentry;
-		helpers::StringConvert(input.entrypoint, wentry);
+		vz::helper::StringConvert(input.entrypoint, wentry);
 		args.push_back(L"-E");
 		args.push_back(wentry.c_str());
 
 		// Add source file name as last parameter. This will be displayed in error messages
 		std::wstring wsource;
-		helpers::StringConvert(helpers::GetFileNameFromPath(input.shadersourcefilename), wsource);
+		vz::helper::StringConvert(vz::helper::GetFileNameFromPath(input.shadersourcefilename), wsource);
 		args.push_back(wsource.c_str());
 
 		DxcBuffer Source;
@@ -441,7 +440,7 @@ namespace vz::graphics::shadercompiler
 				if (SUCCEEDED(hr))
 				{
 					std::string& filename = output->dependencies.emplace_back();
-					helpers::StringConvert(pFilename, filename);
+					vz::helper::StringConvert(pFilename, filename);
 				}
 				return hr;
 			}
@@ -576,7 +575,7 @@ namespace vz::graphics::shadercompiler
 		}
 
 		std::vector<uint8_t> shadersourcedata;
-		if (!helpers::FileRead(input.shadersourcefilename, shadersourcedata))
+		if (!vz::helper::FileRead(input.shadersourcefilename, shadersourcedata))
 		{
 			return;
 		}
@@ -627,10 +626,10 @@ namespace vz::graphics::shadercompiler
 				for (auto& x : input->include_directories)
 				{
 					std::string filename = x + pFileName;
-					if (!helpers::FileExists(filename))
+					if (!vz::helper::FileExists(filename))
 						continue;
 					std::vector<uint8_t>& filedata = filedatas.emplace_back();
-					if (helpers::FileRead(filename, filedata))
+					if (vz::helper::FileRead(filename, filedata))
 					{
 						output->dependencies.push_back(filename);
 						*ppData = filedata.data();
@@ -730,21 +729,21 @@ namespace vz::graphics::shadercompiler
 	bool SaveShaderAndMetadata(const std::string& shaderfilename, const CompilerOutput& output)
 	{
 #ifdef SHADERCOMPILER_ENABLED
-		helpers::DirectoryCreate(helpers::GetDirectoryFromPath(shaderfilename));
+		vz::helper::DirectoryCreate(vz::helper::GetDirectoryFromPath(shaderfilename));
 
-		helpers::FileWrapper dependencyLibrary(helpers::ReplaceExtension(shaderfilename, shadermetaextension), false);
+		vz::helper::FileWrapper dependencyLibrary(vz::helper::ReplaceExtension(shaderfilename, shadermetaextension), false);
 		if (dependencyLibrary.IsOpen())
 		{
 			std::string rootdir = dependencyLibrary.GetSourceDirectory();
 			std::vector<std::string> dependencies = output.dependencies;
 			for (auto& x : dependencies)
 			{
-				helpers::MakePathRelative(rootdir, x);
+				vz::helper::MakePathRelative(rootdir, x);
 			}
 			dependencyLibrary << dependencies;
 		}
 
-		if (helpers::FileWrite(shaderfilename, output.shaderdata, output.shadersize))
+		if (vz::helper::FileWrite(shaderfilename, output.shaderdata, output.shadersize))
 		{
 			return true;
 		}
@@ -756,20 +755,20 @@ namespace vz::graphics::shadercompiler
 	{
 #ifdef SHADERCOMPILER_ENABLED
 		std::string filepath = shaderfilename;
-		helpers::MakePathAbsolute(filepath);
-		if (!helpers::FileExists(filepath))
+		vz::helper::MakePathAbsolute(filepath);
+		if (!vz::helper::FileExists(filepath))
 		{
 			return true; // no shader file = outdated shader, apps can attempt to rebuild it
 		}
-		std::string dependencylibrarypath = helpers::ReplaceExtension(shaderfilename, shadermetaextension);
-		if (!helpers::FileExists(dependencylibrarypath))
+		std::string dependencylibrarypath = vz::helper::ReplaceExtension(shaderfilename, shadermetaextension);
+		if (!vz::helper::FileExists(dependencylibrarypath))
 		{
 			return false; // no metadata file = no dependency, up to date (for example packaged builds)
 		}
 
-		const uint64_t tim = helpers::FileTimestamp(filepath);
+		const uint64_t tim = vz::helper::FileTimestamp(filepath);
 
-		helpers::FileWrapper dependencyLibrary(dependencylibrarypath);
+		vz::helper::FileWrapper dependencyLibrary(dependencylibrarypath);
 		if (dependencyLibrary.IsOpen())
 		{
 			std::string rootdir = dependencyLibrary.GetSourceDirectory();
@@ -779,10 +778,10 @@ namespace vz::graphics::shadercompiler
 			for (auto& x : dependencies)
 			{
 				std::string dependencypath = rootdir + x;
-				helpers::MakePathAbsolute(dependencypath);
-				if (helpers::FileExists(dependencypath))
+				vz::helper::MakePathAbsolute(dependencypath);
+				if (vz::helper::FileExists(dependencypath))
 				{
-					const uint64_t dep_tim = helpers::FileTimestamp(dependencypath);
+					const uint64_t dep_tim = vz::helper::FileTimestamp(dependencypath);
 
 					if (tim < dep_tim)
 					{

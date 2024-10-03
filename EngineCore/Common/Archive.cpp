@@ -1,5 +1,6 @@
 #include "Archive.h"
 #include "Utils/Helpers.h"
+#include "Utils/Helpers2.h"
 #include "Backend/TextureHelper.h"
 
 #include "ThirdParty/stb_image.h"
@@ -141,7 +142,7 @@ namespace vz
 	void Archive::SetThumbnailAndResetPos(const vz::graphics::Texture& texture)
 	{
 		std::vector<uint8_t> thumbnail_data;
-		vz::helper::saveTextureToMemoryFile(texture, "JPG", thumbnail_data);
+		vz::helper2::saveTextureToMemoryFile(texture, "JPG", thumbnail_data);
 		thumbnail_data_size = thumbnail_data.size();
 		thumbnail_data_ptr = thumbnail_data.data();
 		SetReadModeAndResetPos(false); // start over in write mode with thumbnail image data

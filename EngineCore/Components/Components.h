@@ -26,39 +26,6 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimerNow std::chrono::high_resolution_clock::now()
 #define TimerMin std::chrono::high_resolution_clock::time_point::min();
 
-struct GEngineConfig
-{
-	std::string api = "UNDEF";
-};
-
-namespace vz::resource
-{
-
-	// This can hold an asset
-	//	It can be loaded from file or memory using vz::resourcemanager::Load()
-	struct CORE_EXPORT Resource
-	{
-		std::shared_ptr<void> internal_state;
-
-		inline bool IsValid() const { return internal_state.get() != nullptr; }
-
-		const std::vector<uint8_t>& GetFileData() const;
-		const std::string& GetScript() const;
-		size_t GetScriptHash() const;
-		int GetTextureSRGBSubresource() const;
-		int GetFontStyle() const;
-
-		void SetFileData(const std::vector<uint8_t>& data);
-		void SetFileData(std::vector<uint8_t>&& data);
-
-		// Resource marked for recreate on resourcemanager::Load()
-		void SetOutdated();
-
-		// Let the streaming system know the required resolution of this resource
-		void StreamingRequestResolution(uint32_t resolution);
-	};
-}
-
 namespace vz::enums 
 {
 	enum class PrimitiveType : uint8_t {
@@ -380,9 +347,6 @@ namespace vz
 
 		bool IsDirty() const { return isDirty_; }
 
-		// Create texture resources for GPU
-		void GpuUpdateAssociatedTextures();
-
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::MATERIAL;
@@ -478,9 +442,33 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};
 
+	struct Resource;
 	struct CORE_EXPORT TextureComponent : ComponentBase
 	{
+	public:
+		enum class TextureType : uint8_t
+		{
+			Undefined,
+			Texture1D,	// can be used for lookup table (for OTF)
+			Texture2D,
+			Texture3D,
+			TextureEnv, // TODO
+		};
+	protected:
+		TextureType textureType_ = TextureType::Undefined;
+		std::shared_ptr<Resource> internalResource_;
+	public:
 		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
+		
+		TextureType GetTextureType() const { return textureType_; }
+		bool IsValid() const;
+
+		const std::vector<uint8_t>& GetData() const;
+		int GetFontStyle() const;
+		void CopyFromData(const std::vector<uint8_t>& data);
+		void MoveFromData(std::vector<uint8_t>&& data);
+		void SetOutdated();
+		
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
