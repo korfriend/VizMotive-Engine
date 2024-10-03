@@ -66,9 +66,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\SceneManager.h">
       <Filter>Common</Filter>
     </ClInclude>

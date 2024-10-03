@@ -64,7 +64,7 @@ namespace vz::initializer
 		// take a new thread and wait the above jobs (asynchronously)
 		std::thread([] {
 			jobsystem::Wait(ctx);
-			backlog::post("\n[initializer] Wicked Engine Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)");
+			backlog::post("\n[initializer] Engine Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)");
 			}).detach();
 	}
 
