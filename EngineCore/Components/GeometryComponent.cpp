@@ -74,7 +74,7 @@ namespace vz
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& prim = parts_[i];
-			geometry::AABB part_aabb = prim.GetAABB();
+			primitive::AABB part_aabb = prim.GetAABB();
 			aabb_._max = math::Max(aabb_._max, part_aabb._max);
 			aabb_._min = math::Min(aabb_._min, part_aabb._min);
 		}

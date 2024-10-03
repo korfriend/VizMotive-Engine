@@ -1,7 +1,7 @@
 #include "Renderer.h"
 #include "Shaders/ShaderInterop.h"
 
-namespace vz::graphics::common
+namespace vz::common
 {
 	extern InputLayout			inputLayouts[ILTYPE_COUNT];
 	extern RasterizerState		rasterizers[RSTYPE_COUNT];
@@ -12,7 +12,7 @@ namespace vz::graphics::common
 	extern Sampler				samplers[SAMPLER_COUNT];
 }
 
-namespace vz::graphics::initializer
+namespace vz::initializer
 {
 	using namespace vz::graphics;
 

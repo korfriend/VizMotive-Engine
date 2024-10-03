@@ -1,3 +1,4 @@
+#include "PluginInterface.h"
 #include "Renderer.h"
 #include "ShaderCompiler.h"
 
@@ -20,7 +21,7 @@ std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "Shaders/";
 std::atomic<size_t> SHADER_ERRORS{ 0 };
 std::atomic<size_t> SHADER_MISSING{ 0 };
 
-namespace vz::graphics::common
+namespace vz::common
 {
 	extern InputLayout			inputLayouts[ILTYPE_COUNT];
 	extern RasterizerState		rasterizers[RSTYPE_COUNT];
@@ -35,7 +36,21 @@ namespace vz::graphics::common
 	extern PipelineState		PSO_wireframe;
 }
 
-namespace vz::graphics::shader
+
+namespace vz
+{
+	bool LoadShader(
+		graphics::ShaderStage stage,
+		graphics::Shader& shader,
+		const std::string& filename,
+		graphics::ShaderModel minshadermodel,
+		const std::vector<std::string>& permutation_defines)
+	{
+		return shader::LoadShader(stage, shader, filename, minshadermodel, permutation_defines);
+	}
+}
+
+namespace vz::shader
 {
 	using namespace vz::graphics;
 

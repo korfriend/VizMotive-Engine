@@ -28,8 +28,8 @@ namespace vz
 		// the process is 1. gathering, 2. streaming up (sync/async)
 
 		// AABB culling streams:
-		std::vector<geometry::AABB> aabbObjects;
-		std::vector<geometry::AABB> aabbLights;
+		std::vector<primitive::AABB> aabbObjects;
+		std::vector<primitive::AABB> aabbLights;
 
 		// Separate stream of world matrices:
 		std::vector<XMFLOAT4X4> matrixRenderables;
@@ -48,7 +48,7 @@ namespace vz
 	const uint32_t small_subtask_groupsize = 64u;
 
 	using namespace graphics;
-	using namespace geometry;
+	using namespace primitive;
 
 	Scene::Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name)
 	{

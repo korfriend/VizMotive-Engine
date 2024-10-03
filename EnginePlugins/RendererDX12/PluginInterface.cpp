@@ -1,10 +1,14 @@
-#include "GraphicsInterface.h"
+#include "PluginInterface.h"
 #include "GraphicsDevice_DX12.h"
+
+#include "Renderer.h"
 
 #include <memory>
 
-namespace vz::graphics
+namespace vz
 {
+	using namespace graphics;
+
 	std::unique_ptr<GraphicsDevice> graphicsDevice;
 
 	bool Initialize()
