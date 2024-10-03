@@ -20,6 +20,7 @@ namespace vz::graphics::common
 
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	PipelineState		PSO_mesh[RENDERPASS_COUNT];
+	PipelineState		PSO_wireframe;
 }
 
 namespace vz::graphics

@@ -1,19 +1,109 @@
 #pragma once
-
 #include "Libs/Math.h"
 
 #include <iostream>
 #include <fstream>
 #include <filesystem>
 
-namespace helpers
-{
-	inline void StringConvert(const std::string& from, std::wstring& to);
-	inline void StringConvert(const std::wstring& from, std::string& to);
-}
-
 namespace helpers // simple version of Helpers.cpp
 {
+	inline void StringConvert(const std::string& from, std::wstring& to)
+	{
+#ifdef _WIN32
+		int num = MultiByteToWideChar(CP_UTF8, 0, from.c_str(), -1, NULL, 0);
+		if (num > 0)
+		{
+			to.resize(size_t(num) - 1);
+			MultiByteToWideChar(CP_UTF8, 0, from.c_str(), -1, &to[0], num);
+		}
+#else
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
+		to = cv.from_bytes(from);
+#endif // _WIN32
+	}
+	inline void StringConvert(const std::wstring& from, std::string& to)
+	{
+#ifdef _WIN32
+		int num = WideCharToMultiByte(CP_UTF8, 0, from.c_str(), -1, NULL, 0, NULL, NULL);
+		if (num > 0)
+		{
+			to.resize(size_t(num) - 1);
+			WideCharToMultiByte(CP_UTF8, 0, from.c_str(), -1, &to[0], num, NULL, NULL);
+		}
+#else
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
+		to = cv.to_bytes(from);
+#endif // _WIN32
+	}
+	inline int StringConvert(const char* from, wchar_t* to, int dest_size_in_characters = -1)
+	{
+#ifdef _WIN32
+		int num = MultiByteToWideChar(CP_UTF8, 0, from, -1, NULL, 0);
+		if (num > 0)
+		{
+			if (dest_size_in_characters >= 0)
+			{
+				num = std::min(num, dest_size_in_characters);
+			}
+			MultiByteToWideChar(CP_UTF8, 0, from, -1, &to[0], num);
+		}
+		return num;
+#else
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
+		auto result = cv.from_bytes(from).c_str();
+		int num = (int)cv.converted();
+		if (dest_size_in_characters >= 0)
+		{
+			num = std::min(num, dest_size_in_characters);
+		}
+		std::memcpy(to, result, num * sizeof(wchar_t));
+		return num;
+#endif // _WIN32
+	}
+	inline int StringConvert(const wchar_t* from, char* to, int dest_size_in_characters = -1)
+	{
+#ifdef _WIN32
+		int num = WideCharToMultiByte(CP_UTF8, 0, from, -1, NULL, 0, NULL, NULL);
+		if (num > 0)
+		{
+			if (dest_size_in_characters >= 0)
+			{
+				num = std::min(num, dest_size_in_characters);
+			}
+			WideCharToMultiByte(CP_UTF8, 0, from, -1, &to[0], num, NULL, NULL);
+		}
+		return num;
+#else
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> cv;
+		auto result = cv.to_bytes(from).c_str();
+		int num = (size_t)cv.converted();
+		if (dest_size_in_characters >= 0)
+		{
+			num = std::min(num, dest_size_in_characters);
+		}
+		std::memcpy(to, result, num * sizeof(char));
+		return num;
+#endif // _WIN32
+	}
+
+	template <class T>
+	constexpr void hash_combine(std::size_t& seed, const T& v)
+	{
+		std::hash<T> hasher;
+		seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+	}
+
+	inline void messageBox(const std::string& msg, const std::string& caption)
+	{
+#ifdef PLATFORM_WINDOWS_DESKTOP
+		MessageBoxA(GetActiveWindow(), msg.c_str(), caption.c_str(), 0);
+#endif // PLATFORM_WINDOWS_DESKTOP
+
+#ifdef SDL2
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, caption.c_str(), msg.c_str(), NULL);
+#endif // SDL2
+	}
+
 #ifdef _WIN32
 	// On windows we need to expand UTF8 strings to UTF16 when passing it to WinAPI:
 	inline std::wstring ToNativeString(const std::string& fileName)
@@ -48,7 +138,7 @@ namespace helpers // simple version of Helpers.cpp
 			return true;
 		}
 
-		vz::backlog::post("File not found: " + fileName, vz::backlog::LogLevel::Warn);
+		messageBox("File not found: " + fileName, "ERROR0");
 		return false;
 	}
 
