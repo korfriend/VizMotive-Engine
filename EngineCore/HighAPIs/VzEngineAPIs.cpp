@@ -6,7 +6,7 @@
 #include "Common/Backend/GBackendDevice.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
-#include "Common/Backend/RenderInterface.h"
+#include "Common/Backend/GRendererInterface.h"
 
 namespace vz
 {
@@ -56,10 +56,10 @@ namespace vzm
 		}
 
 		// initialize the graphics backend
-		graphicsPackage.graphicsInitializer();
+		graphicsPackage.pluginInitializer();
 
 		// graphics device
-		graphicsDevice = graphicsPackage.graphicsGetDev();
+		graphicsDevice = graphicsPackage.pluginGetDev();
 		graphics::GetDevice() = graphicsDevice;
 
 		// engine core initializer
@@ -438,7 +438,7 @@ namespace vzm
 	{
 		CHECK_API_VALIDITY(false);
 		jobsystem::ShutDown();
-		graphicsPackage.graphicsDeinitializer();
+		graphicsPackage.pluginDeinitializer();
 		return true;
 	}
 }

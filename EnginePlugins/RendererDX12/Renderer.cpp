@@ -239,5 +239,15 @@ namespace vz::graphics
 		//initialized.store(true);
 		return true;
 	}
+
+	bool LoadShader(
+		graphics::ShaderStage stage,
+		graphics::Shader& shader,
+		const std::string& filename,
+		graphics::ShaderModel minshadermodel,
+		const std::vector<std::string>& permutation_defines)
+	{
+		return shader::LoadShader(stage, shader, filename, minshadermodel, permutation_defines);
+	}
 }
 

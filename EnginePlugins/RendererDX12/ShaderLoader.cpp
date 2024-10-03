@@ -3,7 +3,7 @@
 
 #include "Utils/JobSystem.h"
 #include "Utils/Backlog.h"
-#include "Helpers.hpp"
+#include "Utils/Helpers.h"
 
 #include <unordered_map>
 
@@ -13,8 +13,8 @@ std::string SHADERPATH = "Shaders/";
 std::string SHADERSOURCEPATH = "Shaders/";
 #else
 // Note: when NOT using Shader Dump, use absolute directory, to avoid the case when something (eg. file dialog) overrides working directory
-std::string SHADERPATH = helpers::GetCurrentPath() + "Shaders/";
-std::string SHADERSOURCEPATH = helpers::GetCurrentPath() + "Shaders/";
+std::string SHADERPATH = vz::helper::GetCurrentPath() + "Shaders/";
+std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "Shaders/";
 #endif // SHADERDUMP_ENABLED
 
 std::atomic<size_t> SHADER_ERRORS{ 0 };
@@ -343,8 +343,8 @@ namespace vz::graphics::shader
 			//std::string ext = file_path.extension().string();
 			//shaderbinaryfilename = shaderbinaryfilename.substr(0, shaderbinaryfilename.length() - ext.size());
 
-			std::string ext = helpers::GetExtensionFromFileName(shaderbinaryfilename);
-			shaderbinaryfilename = helpers::RemoveExtension(shaderbinaryfilename);
+			std::string ext = vz::helper::GetExtensionFromFileName(shaderbinaryfilename);
+			shaderbinaryfilename = vz::helper::RemoveExtension(shaderbinaryfilename);
 
 			for (auto& def : permutation_defines)
 			{
@@ -380,10 +380,10 @@ namespace vz::graphics::shader
 			input.defines = permutation_defines;
 
 			std::string sourcedir = SHADERSOURCEPATH;
-			helpers::MakePathAbsolute(sourcedir);
+			vz::helper::MakePathAbsolute(sourcedir);
 			input.include_directories.push_back(sourcedir);
-			input.include_directories.push_back(sourcedir + helpers::GetDirectoryFromPath(filename));
-			input.shadersourcefilename = helpers::ReplaceExtension(sourcedir + filename, "hlsl");
+			input.include_directories.push_back(sourcedir + vz::helper::GetDirectoryFromPath(filename));
+			input.shadersourcefilename = vz::helper::ReplaceExtension(sourcedir + filename, "hlsl");
 
 			shadercompiler::CompilerOutput output;
 			shadercompiler::Compile(input, output);
@@ -409,7 +409,7 @@ namespace vz::graphics::shader
 		if (device != nullptr)
 		{
 			std::vector<uint8_t> buffer;
-			if (helpers::FileRead(shaderbinaryfilename, buffer))
+			if (vz::helper::FileRead(shaderbinaryfilename, buffer))
 			{
 				bool success = device->CreateShader(stage, buffer.data(), buffer.size(), &shader);
 				if (success)

@@ -1,5 +1,5 @@
 #include "ResourceManager.h"
-#include "Backend/RenderInterface.h" // deferred task for streaming
+#include "Backend/GRendererInterface.h" // deferred task for streaming
 
 #include "Utils/Helpers.h"
 #include "Backend/TextureHelper.h"
@@ -19,8 +19,10 @@
 
 using namespace vz::graphics;
 
-namespace vz::resource
+namespace vz
 {
+	extern GraphicsPackage graphicsPackage;
+
 	struct StreamingTexture
 	{
 		struct StreamingSubresourceData
@@ -38,9 +40,12 @@ namespace vz::resource
 
 	struct ResourceInternal
 	{
-		vz::resource::resourcemanager::Flags flags = vz::resource::resourcemanager::Flags::NONE;
+		vz::resourcemanager::Flags flags = vz::resourcemanager::Flags::NONE;
 		vz::graphics::Texture texture;
-		int srgb_subresource = -1;
+		// subresource refers to SRV, RTV, DSV, UAV, ... and indicates # of those, 
+		//		-1 means not yet allocated, 
+		//		0 means no subresource
+		int srgb_subresource = -1;	
 		std::vector<uint8_t> filedata;
 		int font_style = -1;
 
@@ -65,36 +70,29 @@ namespace vz::resource
 		const ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
 		return resourceinternal->filedata;
 	}
-	int Resource::GetTextureSRGBSubresource() const
-	{
-		const ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
-		return resourceinternal->srgb_subresource;
-	}
 	int Resource::GetFontStyle() const
 	{
 		const ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
 		return resourceinternal->font_style;
 	}
-
-	void Resource::SetFileData(const std::vector<uint8_t>& data)
+	void Resource::CopyFromData(const std::vector<uint8_t>& data)
 	{
 		if (internal_state == nullptr)
 		{
 			internal_state = std::make_shared<ResourceInternal>();
 		}
 		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
-		resourceinternal->filedata = data;
+		resourceinternal->filedata = data;	
 	}
-	void Resource::SetFileData(std::vector<uint8_t>&& data)
+	void Resource::MoveFromData(std::vector<uint8_t>&& data)
 	{
 		if (internal_state == nullptr)
 		{
 			internal_state = std::make_shared<ResourceInternal>();
 		}
 		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
-		resourceinternal->filedata = data;
+		resourceinternal->filedata = std::move(data);
 	}
-
 	void Resource::SetOutdated()
 	{
 		if (internal_state == nullptr)
@@ -105,6 +103,12 @@ namespace vz::resource
 		resourceinternal->timestamp = 0;
 	}
 
+	// graphics //
+	int Resource::GetTextureSRGBSubresource() const
+	{
+		const ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
+		return resourceinternal->srgb_subresource;
+	}
 	void Resource::StreamingRequestResolution(uint32_t resolution)
 	{
 		if (internal_state == nullptr)
@@ -114,13 +118,12 @@ namespace vz::resource
 		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
 		resourceinternal->streaming_resolution.fetch_or(resolution);
 	}
-
-	const vz::graphics::Texture& GResource::GetTexture() const
+	const vz::graphics::Texture& Resource::GetTexture() const
 	{
 		const ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
 		return resourceinternal->texture;
 	}
-	void GResource::SetTexture(const vz::graphics::Texture& texture, int srgb_subresource)
+	void Resource::SetTexture(const vz::graphics::Texture& texture, int srgb_subresource)
 	{
 		if (internal_state == nullptr)
 		{
@@ -190,7 +193,7 @@ namespace vz::resource
 			return ret;
 		}
 
-		bool LoadResourceDirectly(
+		bool loadResourceDirectly(
 			const std::string& name,
 			Flags flags,
 			const uint8_t* filedata,
@@ -198,7 +201,7 @@ namespace vz::resource
 			ResourceInternal* resource
 		)
 		{
-			std::string ext = vz::helper::toUpper(vz::helper::GetExtensionFromFileName(name));
+			std::string ext = helper::toUpper(helper::GetExtensionFromFileName(name));
 			DataType type;
 
 			// dynamic type selection:
@@ -913,11 +916,13 @@ namespace vz::resource
 								desc.height != 16 ||
 								format != Format::R8G8B8A8_UNORM)
 							{
-								vz::helper::messageBox("The Dimensions must be 256 x 16 for color grading LUT and format must be RGB or RGBA!", "Error");
+								helper::messageBox("The Dimensions must be 256 x 16 for color grading LUT and format must be RGB or RGBA!", "Error");
 							}
 							else
 							{
-								uint32_t data[16 * 16 * 16];
+								//uint32_t data[16 * 16 * 16];
+								std::vector<uint32_t> data_v(16 * 16 * 16);
+								uint32_t* data = data_v.data();
 								int pixel = 0;
 								for (int z = 0; z < 16; ++z)
 								{
@@ -986,7 +991,10 @@ namespace vz::resource
 								);
 							}
 
-							vz::renderer::AddDeferredMIPGen(resource->texture, true);
+							if (graphicsPackage.pluginAddDeferredMIPGen)
+							{
+								graphicsPackage.pluginAddDeferredMIPGen(resource->texture, true);
+							}
 
 							if (has_flag(flags, Flags::IMPORT_BLOCK_COMPRESSED))
 							{
@@ -1025,7 +1033,10 @@ namespace vz::resource
 									);
 								}
 
-								vz::renderer::AddDeferredBlockCompression(uncompressed_src, resource->texture);
+								if (graphicsPackage.pluginAddDeferredBlockCompression)
+								{
+									graphicsPackage.pluginAddDeferredBlockCompression(uncompressed_src, resource->texture);
+								}
 							}
 						}
 					}
@@ -1053,7 +1064,7 @@ namespace vz::resource
 			return success;
 		}
 
-		GResource Load(
+		Resource Load(
 			const std::string& name,
 			Flags flags,
 			const uint8_t* filedata,
@@ -1076,11 +1087,11 @@ namespace vz::resource
 			uint64_t timestamp = 0;
 			if (!container_filename.empty())
 			{
-				timestamp = vz::helper::FileTimestamp(container_filename);
+				timestamp = helper::FileTimestamp(container_filename);
 			}
 			else
 			{
-				timestamp = vz::helper::FileTimestamp(name);
+				timestamp = helper::FileTimestamp(name);
 			}
 
 			if (resource == nullptr || resource->timestamp < timestamp)
@@ -1120,7 +1131,7 @@ namespace vz::resource
 				}
 				else
 				{
-					GResource retVal;
+					Resource retVal;
 					retVal.internal_state = resource;
 					locker.unlock();
 					return retVal;
@@ -1132,10 +1143,10 @@ namespace vz::resource
 			{
 				if (resource->filedata.empty())
 				{
-					if (!vz::helper::FileRead(resource->container_filename, resource->filedata, resource->container_filesize, resource->container_fileoffset))
+					if (!helper::FileRead(resource->container_filename, resource->filedata, resource->container_filesize, resource->container_fileoffset))
 					{
 						resource.reset();
-						return GResource();
+						return Resource();
 					}
 				}
 				filedata = resource->filedata.data();
@@ -1152,7 +1163,7 @@ namespace vz::resource
 			}
 			else
 			{
-				success = LoadResourceDirectly(name, flags, filedata, filesize, resource.get());
+				success = loadResourceDirectly(name, flags, filedata, filesize, resource.get());
 			}
 
 			if (success)
@@ -1160,12 +1171,12 @@ namespace vz::resource
 				resource->flags = flags;
 				resource->timestamp = timestamp;
 
-				GResource retVal;
+				Resource retVal;
 				retVal.internal_state = resource;
 				return retVal;
 			}
 
-			return GResource();
+			return Resource();
 		}
 
 		bool Contains(const std::string& name)
@@ -1355,7 +1366,7 @@ namespace vz::resource
 							// If file data is not available, then open the file partially with the streaming file parameters:
 							size_t filesize = resource->container_filesize - mip_data_offset;
 							size_t fileoffset = resource->container_fileoffset + mip_data_offset;
-							if (!vz::helper::FileRead(
+							if (!helper::FileRead(
 								resource->container_filename,
 								streaming_file,
 								filesize,
@@ -1421,7 +1432,7 @@ namespace vz::resource
 				if (resourceinternal == nullptr)
 					continue;
 
-				uint64_t timestamp = vz::helper::FileTimestamp(resourceinternal->filename);
+				uint64_t timestamp = helper::FileTimestamp(resourceinternal->filename);
 				if (resourceinternal->timestamp < timestamp)
 					return true;
 			}
@@ -1438,15 +1449,15 @@ namespace vz::resource
 				if (resourceinternal == nullptr)
 					continue;
 
-				uint64_t timestamp = vz::helper::FileTimestamp(resourceinternal->filename);
+				uint64_t timestamp = helper::FileTimestamp(resourceinternal->filename);
 				if (resourceinternal->timestamp < timestamp)
 				{
 					std::vector<uint8_t> filedata;
-					if (vz::helper::FileRead(resourceinternal->filename, filedata))
+					if (helper::FileRead(resourceinternal->filename, filedata))
 					{
 						if (resourceinternal->streaming_texture.mip_count > 1)
 							vz::jobsystem::Wait(streaming_ctx); // reloading a resource that is potentially streaming needs to wait for current streaming job to end
-						if (LoadResourceDirectly(resourceinternal->filename, resourceinternal->flags, filedata.data(), filedata.size(), resourceinternal.get()))
+						if (loadResourceDirectly(resourceinternal->filename, resourceinternal->flags, filedata.data(), filedata.size(), resourceinternal.get()))
 						{
 							resourceinternal->timestamp = timestamp;
 							resourceinternal->container_filename = resourceinternal->filename;
@@ -1456,7 +1467,7 @@ namespace vz::resource
 						}
 						else
 						{
-							vz::backlog::post("[resourcemanager] reload failure - LoadResourceDirectly returned false: " + resourceinternal->filename, vz::backlog::LogLevel::Error);
+							vz::backlog::post("[resourcemanager] reload failure - loadResourceDirectly returned false: " + resourceinternal->filename, vz::backlog::LogLevel::Error);
 						}
 					}
 					else
@@ -1566,11 +1577,11 @@ namespace vz::resource
 					if (resource != nullptr)
 					{
 						std::string name = it->first;
-						vz::helper::MakePathRelative(archive.GetSourceDirectory(), name);
+						helper::MakePathRelative(archive.GetSourceDirectory(), name);
 
 						if (resource->filedata.empty())
 						{
-							vz::helper::FileRead(
+							helper::FileRead(
 								resource->container_filename,
 								resource->filedata,
 								resource->container_filesize,

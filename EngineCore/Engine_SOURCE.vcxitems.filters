@@ -84,7 +84,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h">
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h">
@@ -178,7 +178,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GRendererInterface.h">
       <Filter>Common\Backend</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
@@ -229,6 +229,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -240,7 +243,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp">
@@ -293,9 +296,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\RenderInterface.cpp">
-      <Filter>Common\Backend</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp">
       <Filter>Libs</Filter>
