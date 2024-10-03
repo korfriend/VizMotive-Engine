@@ -2,9 +2,11 @@
 #include "Common/Backend/GBackendDevice.h"
 #include "Components/GComponents.h"
 
+using namespace vz::graphics;
+
 static const uint32_t SHADERTYPE_BIN_COUNT = (uint32_t)vz::MaterialComponent::ShaderType::COUNT;
 
-namespace vz::graphics
+namespace vz
 {
 	// global resources //
 	//	will be used across different combinations of scenes and cameras
@@ -268,5 +270,10 @@ namespace vz::graphics
 		};
 		static_assert(sizeof(MeshRenderingVariant) == sizeof(uint32_t));
 		inline PipelineState* GetObjectPSO(MeshRenderingVariant variant);
+	}
+
+	namespace renderer
+	{
+
 	}
 }

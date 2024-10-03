@@ -1,4 +1,4 @@
-#include "GraphicsInterface.h"
+#include "PluginInterface.h"
 #include "Shaders/ShaderInterop.h"
 #include "Components/GComponents.h"
 #include "Utils/JobSystem.h"
@@ -8,7 +8,7 @@
 #include "Libs/Math.h"
 #include "Renderer.h"
 
-namespace vz::graphics::common
+namespace vz::common
 {
 	InputLayout			inputLayouts[ILTYPE_COUNT];
 	RasterizerState		rasterizers[RSTYPE_COUNT];
@@ -23,7 +23,81 @@ namespace vz::graphics::common
 	PipelineState		PSO_wireframe;
 }
 
-namespace vz::graphics
+namespace vz::renderer
+{
+	/*
+	struct View
+	{
+		// User fills these:
+		uint32_t layerMask = ~0u;
+		const Scene* scene = nullptr;
+		const CameraComponent* camera = nullptr;
+		enum FLAGS
+		{
+			EMPTY = 0,
+			ALLOW_OBJECTS = 1 << 0,
+			ALLOW_LIGHTS = 1 << 1,
+			ALLOW_DECALS = 1 << 2,
+			ALLOW_ENVPROBES = 1 << 3,
+			ALLOW_EMITTERS = 1 << 4,
+			ALLOW_OCCLUSION_CULLING = 1 << 5,
+			ALLOW_SHADOW_ATLAS_PACKING = 1 << 6,
+
+			ALLOW_EVERYTHING = ~0u
+		};
+		uint32_t flags = EMPTY;
+
+		// wi::renderer::UpdateVisibility() fills these:
+		wi::primitive::Frustum frustum;
+		wi::vector<uint32_t> visibleObjects;
+		wi::vector<uint32_t> visibleDecals;
+		wi::vector<uint32_t> visibleEnvProbes;
+		wi::vector<uint32_t> visibleEmitters;
+		wi::vector<uint32_t> visibleHairs;
+		wi::vector<uint32_t> visibleLights;
+		wi::rectpacker::State shadow_packer;
+		wi::rectpacker::Rect rain_blocker_shadow_rect;
+		wi::vector<wi::rectpacker::Rect> visibleLightShadowRects;
+
+		std::atomic<uint32_t> object_counter;
+		std::atomic<uint32_t> light_counter;
+
+		wi::SpinLock locker;
+		bool planar_reflection_visible = false;
+		float closestRefPlane = std::numeric_limits<float>::max();
+		XMFLOAT4 reflectionPlane = XMFLOAT4(0, 1, 0, 0);
+		std::atomic_bool volumetriclight_request{ false };
+
+		void Clear()
+		{
+			visibleObjects.clear();
+			visibleLights.clear();
+			visibleDecals.clear();
+			visibleEnvProbes.clear();
+			visibleEmitters.clear();
+			visibleHairs.clear();
+
+			object_counter.store(0);
+			light_counter.store(0);
+
+			closestRefPlane = std::numeric_limits<float>::max();
+			planar_reflection_visible = false;
+			volumetriclight_request.store(false);
+		}
+
+		bool IsRequestedPlanarReflections() const
+		{
+			return planar_reflection_visible;
+		}
+		bool IsRequestedVolumetricLights() const
+		{
+			return volumetriclight_request.load();
+		}
+	};
+	/**/
+}
+
+namespace vz
 {
 	struct GSceneDetails : GScene
 	{
@@ -172,7 +246,7 @@ namespace vz::graphics
 
 }
 
-namespace vz::graphics
+namespace vz
 {
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
@@ -213,7 +287,7 @@ namespace vz::graphics
 
 }
 
-namespace vz::graphics
+namespace vz
 {
 	GScene* NewGScene(Scene* scene)
 	{
@@ -240,14 +314,5 @@ namespace vz::graphics
 		return true;
 	}
 
-	bool LoadShader(
-		graphics::ShaderStage stage,
-		graphics::Shader& shader,
-		const std::string& filename,
-		graphics::ShaderModel minshadermodel,
-		const std::vector<std::string>& permutation_defines)
-	{
-		return shader::LoadShader(stage, shader, filename, minshadermodel, permutation_defines);
-	}
 }
 

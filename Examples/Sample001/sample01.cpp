@@ -107,8 +107,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     float dpi = 96.f;
 
     vzm::ParamMap<std::string> arguments;
-	//arguments.SetString("api", "opengl");
-	//arguments.SetString("vulkan-gpu-hint", "0");
+	//arguments.SetString("api", "DX11");
     if (!vzm::InitEngineLib(arguments)) {
         std::cerr << "Failed to initialize engine library." << std::endl;
         return -1;

@@ -367,7 +367,7 @@ namespace vz
 			std::vector<uint32_t> vertexColors_;
 			std::vector<uint32_t> indexPrimitives_;
 
-			geometry::AABB aabb_;
+			primitive::AABB aabb_;
 			enums::PrimitiveType ptype_ = enums::PrimitiveType::TRIANGLES;
 		public:
 			void MoveFrom(Primitive& primitive)
@@ -394,9 +394,9 @@ namespace vz
 				primitive.ptype_ = ptype_;
 				for (size_t i = 0; i < numBuffers_; ++i) isValid_[i] = false;
 			}
-			geometry::AABB GetAABB() { return aabb_; }
+			primitive::AABB GetAABB() { return aabb_; }
 			enums::PrimitiveType GetPrimitiveType() { return ptype_; }
-			void SetAABB(const geometry::AABB& aabb) { aabb_ = aabb; }
+			void SetAABB(const primitive::AABB& aabb) { aabb_ = aabb; }
 			void SetPrimitiveType(const enums::PrimitiveType ptype) { ptype_ = ptype; }
 #define PRIM_GETTER(A)  if (data) { *data = A.data(); } return A.size();
 			size_t GetVtxPositions(XMFLOAT3** data) { assert(isValid_[0]); PRIM_GETTER(vertexPositions_) }
@@ -423,14 +423,14 @@ namespace vz
 		std::vector<Primitive> parts_;
 
 		bool isDirty_ = true;
-		geometry::AABB aabb_; // not serialized (automatically updated)
+		primitive::AABB aabb_; // not serialized (automatically updated)
 
 		void updateAABB();
 	public:
 		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
 
 		bool IsDirty() { return isDirty_; }
-		geometry::AABB GetAABB() { return aabb_; }
+		primitive::AABB GetAABB() { return aabb_; }
 		void MovePrimitives(std::vector<Primitive>& primitives);
 		void CopyPrimitives(const std::vector<Primitive>& primitives);
 		void MovePrimitive(Primitive& primitive, const size_t slot);
@@ -525,7 +525,7 @@ namespace vz
 		// Non-serialized attributes:
 		bool isDirty_ = true;
 
-		geometry::AABB aabb_;
+		primitive::AABB aabb_;
 
 		// note there will be added many attributes to describe the light properties with various lighting techniques
 		// refer to filament engine's lightManager and wicked engine's lightComponent
@@ -553,7 +553,7 @@ namespace vz
 			retval = std::min(retval, 65504.0f); // clamp to 16-bit float max value
 			return retval;
 		}
-		geometry::AABB GetAABB() const { return aabb_; }
+		primitive::AABB GetAABB() const { return aabb_; }
 		inline enums::LightType GetLightType() const { return type_; }
 		inline void SetLightType(enums::LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
 
@@ -594,7 +594,7 @@ namespace vz
 		XMFLOAT3X3 rotationMatrix_ = math::IDENTITY_MATRIX33;
 		XMFLOAT4X4 view_, projection_, viewProjection_;
 		XMFLOAT4X4 invView_, invProjection_, invViewProjection_;
-		vz::geometry::Frustum frustum_ = {};
+		vz::primitive::Frustum frustum_ = {};
 
 	public:
 		CameraComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::CAMERA, entity, vuid) {
@@ -636,7 +636,7 @@ namespace vz
 		XMFLOAT4X4 GetInvView() const { return invView_; }
 		XMFLOAT4X4 GetInvProjection() const { return invProjection_; }
 		XMFLOAT4X4 GetInvViewProjection() const { return invViewProjection_; }
-		vz::geometry::Frustum GetFrustum() const { return frustum_; }
+		vz::primitive::Frustum GetFrustum() const { return frustum_; }
 
 		Projection GetProjectionType() const { return projectionType_; }
 		float GetFovVertical() const { return fovY_; }

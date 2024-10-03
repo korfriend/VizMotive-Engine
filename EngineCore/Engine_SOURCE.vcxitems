@@ -101,7 +101,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\basisu_common.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp" />

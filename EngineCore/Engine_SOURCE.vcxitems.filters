@@ -4,17 +4,11 @@
     <Filter Include="Common">
       <UniqueIdentifier>{7aa9d8b6-827d-496a-9916-ce1df652ad78}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Libs">
-      <UniqueIdentifier>{d2d8b131-06df-4f3c-9cec-aca14abc464d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Utils">
       <UniqueIdentifier>{2d378dfe-7ac5-43ba-838f-a29987f71127}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common\Backend">
       <UniqueIdentifier>{c12d6c79-e70d-436e-8ea8-c35432313ec0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Libs\DirectXMath">
-      <UniqueIdentifier>{10cde5e9-38d1-44a5-9174-73ab7ff9992d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Components">
       <UniqueIdentifier>{1ef74076-5448-4106-bc13-a82f3500293f}</UniqueIdentifier>
@@ -43,6 +37,21 @@
     <Filter Include="HighAPIs\APIs\ComponentsSrc">
       <UniqueIdentifier>{d6b212d0-c61d-4fdc-9bef-6a692fc64042}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libs %28header only%29">
+      <UniqueIdentifier>{d2d8b131-06df-4f3c-9cec-aca14abc464d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libs %28header only%29\DirectXMath">
+      <UniqueIdentifier>{10cde5e9-38d1-44a5-9174-73ab7ff9992d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\UTIL_EXPORT">
+      <UniqueIdentifier>{0e18ec7f-8058-4218-9048-ec0f4ca4800e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\Header Only">
+      <UniqueIdentifier>{e3c597f1-dc00-4e24-ad2d-cf5dbaebabd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\Src">
+      <UniqueIdentifier>{f4b528db-3157-44f7-9b2f-3df59fcac99b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h">
@@ -57,18 +66,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -78,35 +75,23 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ResourceManager.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h">
-      <Filter>Libs</Filter>
+      <Filter>Libs %28header only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.h">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXColors.h">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMath.h">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h">
-      <Filter>Libs\DirectXMath</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h">
-      <Filter>Utils</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h">
       <Filter>Common\Backend</Filter>
@@ -129,20 +114,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h">
       <Filter>Common\Backend</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Noise.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\waterripple.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h">
-      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h">
       <Filter>ThirdParty</Filter>
@@ -181,9 +154,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GRendererInterface.h">
       <Filter>Common\Backend</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
       <Filter>Components\APIs</Filter>
     </ClInclude>
@@ -191,7 +161,7 @@
       <Filter>Components\APIs</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.h">
-      <Filter>Libs</Filter>
+      <Filter>Libs %28header only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h">
       <Filter>HighAPIs\APIs\Common</Filter>
@@ -229,22 +199,52 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h">
+      <Filter>Utils\Header Only</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h">
+      <Filter>Utils\Header Only</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h">
+      <Filter>Utils\Header Only</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h">
+      <Filter>Utils\UTIL_EXPORT</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h">
+      <Filter>Utils\UTIL_EXPORT</Filter>
+    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h">
-      <Filter>Utils</Filter>
+      <Filter>Utils\Header Only</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h">
+      <Filter>Utils\UTIL_EXPORT</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
+      <Filter>Utils\UTIL_EXPORT</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h">
+      <Filter>Utils\UTIL_EXPORT</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h">
+      <Filter>Utils\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h">
+      <Filter>Utils\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
+      <Filter>Utils\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Noise.h">
+      <Filter>Utils\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h">
+      <Filter>Utils\Src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp">
-      <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp">
       <Filter>Common</Filter>
@@ -258,20 +258,11 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp">
       <Filter>Common\Backend</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Random.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp">
       <Filter>ThirdParty</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\basisu_common.cpp">
       <Filter>ThirdParty</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp">
-      <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp">
       <Filter>HighAPIs</Filter>
@@ -296,9 +287,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.cpp">
-      <Filter>Libs</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
       <Filter>Components</Filter>
@@ -327,25 +315,43 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Version.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp">
+      <Filter>Utils\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp">
+      <Filter>Utils\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp">
+      <Filter>Utils\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp">
+      <Filter>Utils\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Random.cpp">
+      <Filter>Utils\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp">
+      <Filter>Utils\Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathConvert.inl">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathMatrix.inl">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathMisc.inl">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathVector.inl">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.inl">
-      <Filter>Libs\DirectXMath</Filter>
+      <Filter>Libs %28header only%29\DirectXMath</Filter>
     </None>
   </ItemGroup>
 </Project>
