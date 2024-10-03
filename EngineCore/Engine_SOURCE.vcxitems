@@ -22,7 +22,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GRendererInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\ComponentManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath.h" />
