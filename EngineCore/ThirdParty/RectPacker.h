@@ -1,5 +1,4 @@
 #pragma once
-#include "CommonInclude.h"
 #include <vector>
 #include "stb_rect_pack.h"
 
