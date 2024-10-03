@@ -107,6 +107,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Random.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
   </ItemGroup>
