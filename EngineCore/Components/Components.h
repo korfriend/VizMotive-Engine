@@ -9,6 +9,7 @@
 #include <string>
 #include <memory>
 #include <chrono>
+#include <mutex>
 
 #ifdef _WIN32
 #define CORE_EXPORT __declspec(dllexport)
@@ -68,12 +69,18 @@ namespace vz
 		// Instead of Entity, VUID is stored by serialization
 		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
+
+		// Non-serialized attributes:
 		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
 		std::unordered_map<Entity, size_t> lookupLights_;
 
-		// Non-serialized attributes:
+		std::vector<Entity> materialsCached_;
+
 		Entity entity_ = INVALID_ENTITY;
-		TimeStamp recentRenderTime_ = TimerMin;	// world update time
+		TimeStamp recentUpdateTime_ = TimerMin;	// world update time
+		TimeStamp timeStampSetter_ = TimerMin; 
+		
+		bool isDirty_ = true;
 
 		// instant parameters during render-process
 		float dt_ = 0.f;
@@ -84,10 +91,14 @@ namespace vz
 		Scene(const Entity entity, const std::string& name);
 		~Scene();
 
+		bool IsDirty() const { return isDirty_; }
+
 		inline std::string GetSceneName() { return name_; }
 		inline Entity GetSceneEntity() { return entity_; }
 
 		inline void Update(const float dt);
+
+		inline void Clear();
 
 		inline void AddEntity(const Entity entity);
 
@@ -122,21 +133,26 @@ namespace vz
 		 * Returns the total number of Entities in the Scene, whether alive or not.
 		 * @return Total number of Entities in the Scene.
 		 */
-		inline size_t GetEntityCount() const noexcept;
+		inline size_t GetEntityCount() const noexcept { return renderables_.size() + lights_.size(); }
 
 		/**
 		 * Returns the number of active (alive) Renderable objects in the Scene.
 		 *
 		 * @return The number of active (alive) Renderable objects in the Scene.
 		 */
-		inline size_t GetRenderableCount() const noexcept;
+		inline size_t GetRenderableCount() const noexcept { return renderables_.size(); }
 
 		/**
 		 * Returns the number of active (alive) Light objects in the Scene.
 		 *
 		 * @return The number of active (alive) Light objects in the Scene.
 		 */
-		inline size_t GetLightCount() const noexcept;
+		inline size_t GetLightCount() const noexcept { return lights_.size(); }
+
+		inline std::vector<Entity> GetRenderableEntities() const noexcept { return renderables_; }
+		inline std::vector<Entity> GetLightEntities() const noexcept { return lights_; }
+		inline std::vector<Entity> GetGeometryEntities() const noexcept;
+		inline std::vector<Entity> GetMaterialEntities() const noexcept;
 
 		/**
 		 * Returns true if the given entity is in the Scene.
@@ -145,7 +161,7 @@ namespace vz
 		 */
 		inline bool HasEntity(const Entity entity) const noexcept;
 
-		size_t GetEntities(std::vector<Entity>& entities)
+		inline size_t GetEntities(std::vector<Entity>& entities)
 		{
 			entities = renderables_;
 			entities.insert(entities.end(), lights_.begin(), lights_.end());
@@ -182,6 +198,7 @@ namespace vz
 		// non-serialized attributes
 		TimeStamp timeStampSetter_ = TimerMin;
 		Entity entity_ = INVALID_ENTITY;
+		//std::atomic_bool isLocked_ = {};
 
 	public:
 		ComponentBase(const ComponentType compType, const Entity entity, const VUID vuid);
@@ -189,6 +206,8 @@ namespace vz
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
 		Entity GetEntity() const { return entity_; }
 		VUID GetVUID() const { return vuid_; }
+		//bool IsLocked() const { return isLocked_; }
+		//void TryLock() { isLocked_ = { true }; }
 
 		virtual void Serialize(vz::Archive& archive, const uint64_t version) = 0;
 	};
@@ -325,7 +344,7 @@ namespace vz
 		bool isDirty_ = true;
 		uint32_t renderOptionFlags_ = (uint32_t)RenderFlags::FORWARD;
 
-		ShaderType shaderType = ShaderType::PHONG;
+		ShaderType shaderType_ = ShaderType::PHONG;
 
 		XMFLOAT4 baseColor_ = XMFLOAT4(1, 1, 1, 1);
 		XMFLOAT4 specularColor_ = XMFLOAT4(1, 1, 1, 1);
@@ -334,6 +353,8 @@ namespace vz
 		XMFLOAT4 phongFactors_ = XMFLOAT4(0.2f, 1, 1, 1);	// only used for ShaderType::PHONG
 
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
+
+		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 	public:
 		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
 
@@ -345,7 +366,14 @@ namespace vz
 		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
 
-		bool IsDirty() const { return isDirty_; }
+		inline bool IsDirty() const { return isDirty_; }
+		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
+		inline bool IsOutlineEnabled() const { return renderOptionFlags_ & SCU32(RenderFlags::OUTLINE); }
+		inline VUID GetTextureVUID(const size_t slot) const { 
+			if (slot >= SCU32(TextureSlot::TEXTURESLOT_COUNT)) return INVALID_VUID; return textureComponents_[slot];
+		}
+		inline const XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
+		inline ShaderType GetShaderType() const { return shaderType_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -405,6 +433,8 @@ namespace vz
 			size_t GetVtxUVSet1(XMFLOAT2** data) { assert(isValid_[3]); PRIM_GETTER(vertexUVset1_) }
 			size_t GetVtxColors(uint32_t** data) { assert(isValid_[4]); PRIM_GETTER(vertexColors_) }
 			size_t GetIdxPrimives(uint32_t** data) { assert(isValid_[5]); PRIM_GETTER(indexPrimitives_) }
+			size_t GetNumVertices() const { return vertexPositions_.size(); }
+			size_t GetNumIndices() const { return indexPrimitives_.size(); }
 
 #define PRIM_SETTER(A, B) A##_ = onlyMoveOwnership ? std::move(A) : A; isValid_[B] = true;
 			// move or copy
@@ -422,8 +452,10 @@ namespace vz
 	private:
 		std::vector<Primitive> parts_;
 
+		// Non-serialized attributes
 		bool isDirty_ = true;
 		primitive::AABB aabb_; // not serialized (automatically updated)
+		bool hasBVH_ = false;
 
 		void updateAABB();
 	public:
@@ -435,7 +467,8 @@ namespace vz
 		void CopyPrimitives(const std::vector<Primitive>& primitives);
 		void MovePrimitive(Primitive& primitive, const size_t slot);
 		void CopyPrimitive(const Primitive& primitive, const size_t slot);
-		bool GetPrimitive(const size_t slot, Primitive& primitive);
+		const Primitive* GetPrimitive(const size_t slot) const;
+		const std::vector<Primitive>& GetPrimitives() const { return parts_; }
 		size_t GetNumParts() { return parts_.size(); }
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -443,13 +476,19 @@ namespace vz
 	};
 
 	struct Resource;
+	constexpr size_t TEXTURE_MAX_RESOLUTION = 4096;
 	struct CORE_EXPORT TextureComponent : ComponentBase
 	{
 	public:
 		enum class TextureType : uint8_t
 		{
 			Undefined,
-			Texture1D,	// can be used for lookup table (for OTF)
+			// this is a buffer (not texture) so no sampler is not used, the case of large-size elements (more than TEXTURE_MAX_RESOLUTION)
+			// can be used for high-resolution lookup table (for OTF)
+			Buffer,		
+
+			// all textures are allowed for sampler
+			Texture1D,	// can be used for low-resolution lookup table (for OTF)
 			Texture2D,
 			Texture3D,
 			TextureEnv, // TODO
@@ -481,14 +520,17 @@ namespace vz
 		uint8_t visibleLayerMask_ = 0x7;
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
+		bool isLightmapRenderRequested_ = false;
 
 		// Non-serialized attributes:
+		//	dirty check can be considered by the following components
+		//		- transformComponent, geometryComponent, and material components (with their referencing textureComponents)
 		bool isValid_ = false;
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
 		// Non-serialized attributes: (these variables are supposed to be updated via transformers)
-		XMFLOAT4X4 matWorld = math::IDENTITY_MATRIX;;
+		XMFLOAT4X4 matWorld = math::IDENTITY_MATRIX;	// this is just for gathering world matrices of renderables in rendering process
 
 		bool IsValid() { return isValid_; }
 		void SetGeometry(const Entity geometryEntity);
@@ -496,6 +538,7 @@ namespace vz
 		void SetMaterials(const std::vector<Entity>& materials);
 		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { visibleLayerMask_ = (layerBits & maskBits); timeStampSetter_ = TimerNow; }
 		bool IsVisibleWith(uint8_t visibleLayerMask) { return visibleLayerMask & visibleLayerMask_; }
+		bool IsLightmapRenderRequested() const { return isLightmapRenderRequested_; }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
 		Entity GetGeometry();
 		Entity GetMaterial(const size_t slot);
@@ -687,6 +730,7 @@ namespace vz::compfactory
 	extern "C" CORE_EXPORT inline HierarchyComponent* GetHierarchyComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline MaterialComponent* GetMaterialComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline GeometryComponent* GetGeometryComponent(const Entity entity);
+	extern "C" CORE_EXPORT inline TextureComponent* GetTextureComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline RenderableComponent* GetRenderableComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline LightComponent* GetLightComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline CameraComponent* GetCameraComponent(const Entity entity);

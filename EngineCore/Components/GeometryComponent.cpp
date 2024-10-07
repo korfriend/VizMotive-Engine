@@ -59,15 +59,13 @@ namespace vz
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
-	bool GeometryComponent::GetPrimitive(const size_t slot, Primitive& primitive)	
+	const Primitive* GeometryComponent::GetPrimitive(const size_t slot) const
 	{
 		if (slot >= parts_.size()) {
 			backlog::post("slot is over # of parts!", backlog::LogLevel::Error);
-			return false;
+			return nullptr;
 		}
-		primitive = parts_[slot];
-		updateAABB();
-		return true; 
+		return &parts_[slot];	
 	}
 	void GeometryComponent::updateAABB()
 	{

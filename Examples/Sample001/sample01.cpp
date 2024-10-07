@@ -141,9 +141,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	geometry_test->MaskTestTriangle();
 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
 
-	vzm::VzActor* actor_test = vzm::NewActor("my actor");
-	actor_test->SetGeometry(geometry_test);
-    actor_test->SetMaterial(material_test, 0);
+	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
+	//actor_test->SetGeometry(geometry_test);
+    //actor_test->SetMaterial(material_test, 0);
 
 
     // Actor New

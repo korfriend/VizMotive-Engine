@@ -13,7 +13,6 @@ namespace vz
 		Resource& resource = *internalResource_.get();
 		return resource.IsValid();
 	}
-
 	const std::vector<uint8_t>& TextureComponent::GetData() const
 	{
 		Resource& resource = *internalResource_.get();
@@ -43,6 +42,27 @@ namespace vz
 
 namespace vz
 {
+	uint32_t GTextureComponent::GetUVSet() const
+	{
+		Resource& resource = *internalResource_.get();
+		return resource.uvset;
+	}
+	float GTextureComponent::GetLodClamp() const
+	{
+		Resource& resource = *internalResource_.get();
+		return resource.lod_clamp;
+	}
+	int GTextureComponent::GetSparseResidencymapDescriptor() const
+	{
+		Resource& resource = *internalResource_.get();
+		return resource.sparse_residencymap_descriptor;
+	}
+	int GTextureComponent::GetSparseFeedbackmapDescriptor() const
+	{
+		Resource& resource = *internalResource_.get();
+		return resource.sparse_feedbackmap_descriptor;
+	}
+
 	int GTextureComponent::GetTextureSRGBSubresource() const
 	{
 		Resource& resource = *internalResource_.get();
