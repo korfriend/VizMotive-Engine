@@ -121,6 +121,10 @@ namespace vz::compfactory
 	{
 		return geometryManager.GetComponent(entity);
 	}
+	TextureComponent* GetTextureComponent(const Entity entity)
+	{
+		return textureManager.GetComponent(entity);
+	}
 	RenderableComponent* GetRenderableComponent(const Entity entity)
 	{
 		return renderableManager.GetComponent(entity);

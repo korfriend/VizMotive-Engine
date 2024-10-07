@@ -86,7 +86,7 @@ namespace vz
 
 			uint32_t u32_data;
 			archive >> u32_data;
-			shaderType = static_cast<ShaderType>(u32_data);
+			shaderType_ = static_cast<ShaderType>(u32_data);
 			archive >> renderOptionFlags_;
 			archive >> baseColor_;
 			archive >> specularColor_;
@@ -100,13 +100,14 @@ namespace vz
 			{
 				archive >> textureComponents_[i];
 			}
+			archive >> texMulAdd_;
 			isDirty_ = true;
 		}
 		else
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
-			archive << SCU32(shaderType);
+			archive << SCU32(shaderType_);
 			archive << renderOptionFlags_;
 			archive << baseColor_;
 			archive << specularColor_;
@@ -118,6 +119,7 @@ namespace vz
 			{
 				archive << textureComponents_[i];
 			}
+			archive << texMulAdd_;
 		}
 	}
 

@@ -157,9 +157,9 @@ namespace vzm
 		if (vidMat) actor->SetMaterial(vidMat);
 		return (VzActor*)newSceneComponent(SCENE_COMPONENT_TYPE::ACTOR, name, parentVid);
 	}
-	VzActor* NewActor(const std::string& name, const VzGeometry& geometry, const VzMaterial& material, const VID parentVid)
+	VzActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
 	{
-		return NewActor(name, geometry.GetVID(), material.GetVID(), parentVid);
+		return NewActor(name, geometry->GetVID(), material->GetVID(), parentVid);
 	}
 	VzLight* NewLight(const std::string& name, const VID parentVid)
 	{

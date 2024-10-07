@@ -19,38 +19,38 @@
     <Filter Include="ThirdParty\stb">
       <UniqueIdentifier>{688a54fb-4423-47fd-a9a0-bc7636f15743}</UniqueIdentifier>
     </Filter>
-    <Filter Include="HighAPIs">
-      <UniqueIdentifier>{5ff741b1-0d48-48b3-a433-ad3c209a02ce}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Components\APIs">
-      <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="HighAPIs\APIs">
-      <UniqueIdentifier>{38103698-f842-44d4-9f97-60f80578e7c0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="HighAPIs\APIs\Common">
-      <UniqueIdentifier>{8edbdea1-b3f3-4d9d-ab0e-dd8c6dcefb8a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="HighAPIs\APIs\Components">
-      <UniqueIdentifier>{3dec64ff-fb3f-42f3-ae98-269b75258a1d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="HighAPIs\APIs\ComponentsSrc">
-      <UniqueIdentifier>{d6b212d0-c61d-4fdc-9bef-6a692fc64042}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Libs %28header only%29">
       <UniqueIdentifier>{d2d8b131-06df-4f3c-9cec-aca14abc464d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Libs %28header only%29\DirectXMath">
       <UniqueIdentifier>{10cde5e9-38d1-44a5-9174-73ab7ff9992d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utils\UTIL_EXPORT">
-      <UniqueIdentifier>{0e18ec7f-8058-4218-9048-ec0f4ca4800e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Utils\Header Only">
       <UniqueIdentifier>{e3c597f1-dc00-4e24-ad2d-cf5dbaebabd3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Utils\Src">
       <UniqueIdentifier>{f4b528db-3157-44f7-9b2f-3df59fcac99b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\UTIL_EXPORT %28managed by core%29">
+      <UniqueIdentifier>{0e18ec7f-8058-4218-9048-ec0f4ca4800e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HighAPIs %28API_EXPORT%29">
+      <UniqueIdentifier>{5ff741b1-0d48-48b3-a433-ad3c209a02ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HighAPIs %28API_EXPORT%29\APIs">
+      <UniqueIdentifier>{38103698-f842-44d4-9f97-60f80578e7c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HighAPIs %28API_EXPORT%29\APIs\Common">
+      <UniqueIdentifier>{8edbdea1-b3f3-4d9d-ab0e-dd8c6dcefb8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HighAPIs %28API_EXPORT%29\APIs\Components">
+      <UniqueIdentifier>{3dec64ff-fb3f-42f3-ae98-269b75258a1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc">
+      <UniqueIdentifier>{d6b212d0-c61d-4fdc-9bef-6a692fc64042}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components\APIs %28CORE_EXPORT%29">
+      <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -152,46 +152,46 @@
       <Filter>Common\Backend</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
-      <Filter>Components\APIs</Filter>
+      <Filter>Components\APIs %28CORE_EXPORT%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h">
-      <Filter>Components\APIs</Filter>
+      <Filter>Components\APIs %28CORE_EXPORT%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.h">
       <Filter>Libs %28header only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h">
-      <Filter>HighAPIs\APIs\Common</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Common</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.h">
-      <Filter>HighAPIs\APIs\Common</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Common</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h">
-      <Filter>HighAPIs\APIs\Components</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h">
-      <Filter>HighAPIs\APIs\Components</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.h">
-      <Filter>HighAPIs\APIs\Components</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.h">
-      <Filter>HighAPIs\APIs\Components</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.h">
-      <Filter>HighAPIs\APIs\Components</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.h">
-      <Filter>HighAPIs\APIs\Components</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzScene.h">
-      <Filter>HighAPIs\APIs\Components</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.h">
-      <Filter>HighAPIs\APIs\Components</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h">
-      <Filter>HighAPIs\APIs\Common</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\Common</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h">
       <Filter>Common</Filter>
@@ -206,22 +206,22 @@
       <Filter>Utils\Header Only</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h">
-      <Filter>Utils\UTIL_EXPORT</Filter>
+      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h">
-      <Filter>Utils\UTIL_EXPORT</Filter>
+      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h">
       <Filter>Utils\Header Only</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h">
-      <Filter>Utils\UTIL_EXPORT</Filter>
+      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
-      <Filter>Utils\UTIL_EXPORT</Filter>
+      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h">
-      <Filter>Utils\UTIL_EXPORT</Filter>
+      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h">
       <Filter>Utils\Src</Filter>
@@ -262,7 +262,7 @@
       <Filter>ThirdParty</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp">
-      <Filter>HighAPIs</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp">
       <Filter>Components</Filter>
@@ -292,19 +292,19 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp">
-      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.cpp">
-      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp">
-      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp">
-      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp">
-      <Filter>HighAPIs\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp">
       <Filter>Common</Filter>

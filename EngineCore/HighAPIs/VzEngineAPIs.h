@@ -37,7 +37,7 @@ namespace vzm
 	//  - return zero in case of failure (invalid sceneID, the name is already registered, or overflow VID)
 	API_EXPORT VzCamera* NewCamera(const std::string& name, const VID parentVid = 0u);
 	API_EXPORT VzActor* NewActor(const std::string& name, const GeometryVID vidGeo = 0u, const MaterialVID vidMat = 0u, const VID parentVid = 0u);
-	API_EXPORT VzActor* NewActor(const std::string& name, const VzGeometry& geometry, const VzMaterial& material, const VID parentVid = 0u);
+	API_EXPORT VzActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid = 0u);
 	API_EXPORT VzLight* NewLight(const std::string& name, const VID parentVid = 0u);
 
 	API_EXPORT VzGeometry* NewGeometry(const std::string& name);

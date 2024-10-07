@@ -6,24 +6,62 @@ namespace vz
 {
 	// resources
 
-	struct GMaterialComponent : MaterialComponent
+	struct CORE_EXPORT GMaterialComponent : MaterialComponent
 	{
 		GMaterialComponent(const Entity entity, const VUID vuid = 0) : MaterialComponent(entity, vuid) {}
+
+		// Non-serialized attributes:
+		int samplerDescriptor = -1; // optional
 
 		// Create texture resources for GPU
 		void UpdateAssociatedTextures();
 	};
 
-	struct GGeometryComponent : GeometryComponent
+	struct CORE_EXPORT GGeometryComponent : GeometryComponent
 	{
 		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
+
+		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
+		uint32_t geometryOffset = 0; // used for bindless graphics 
+
+		struct BufferView
+		{
+			uint64_t offset = ~0ull;
+			uint64_t size = 0ull;
+			int subresource_srv = -1;
+			int descriptor_srv = -1;
+			int subresource_uav = -1;
+			int descriptor_uav = -1;
+
+			constexpr bool IsValid() const
+			{
+				return offset != ~0ull;
+			}
+		};
+
+		BufferView ib;
+		BufferView vbPosition;
+		BufferView vbNormal;
+		BufferView vbUVs;
+		BufferView vbColor;
+
+		// so refers to Shader Output
+		BufferView soPosition; 
+		BufferView soNormal;
+		BufferView soPrev;
 	};
 
-	struct GTextureComponent : TextureComponent
+	struct CORE_EXPORT GTextureComponent : TextureComponent
 	{
 	private:
 	public:
 		GTextureComponent(const Entity entity, const VUID vuid = 0);
+
+		uint32_t GetUVSet() const;
+		float GetLodClamp() const;
+		int GetSparseResidencymapDescriptor() const;
+		int GetSparseFeedbackmapDescriptor() const;
+
 		int GetTextureSRGBSubresource() const;
 		const graphics::Texture& GetTexture() const;
 		// Allows to set a Texture to the resource from outside
@@ -41,7 +79,7 @@ namespace vz
 
 	// scene 
 
-	struct GRenderableComponent : RenderableComponent
+	struct CORE_EXPORT GRenderableComponent : RenderableComponent
 	{
 		GRenderableComponent(const Entity entity, const VUID vuid = 0) : RenderableComponent(entity, vuid) {}
 		// internal geometry

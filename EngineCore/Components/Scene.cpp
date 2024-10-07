@@ -28,15 +28,13 @@ namespace vz
 		// the process is 1. gathering, 2. streaming up (sync/async)
 
 		// AABB culling streams:
-		std::vector<primitive::AABB> aabbObjects;
+		std::vector<primitive::AABB> aabbRenderables;
 		std::vector<primitive::AABB> aabbLights;
+		std::vector<primitive::AABB> aabbDecals;
 
 		// Separate stream of world matrices:
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
-
-		std::vector<TransformComponent*> transforms;
-		std::vector<HierarchyComponent*> hierarchies;
 
 		inline void RunTransformUpdateSystem(jobsystem::context& ctx);
 		inline void RunSceneComponentUpdateSystem(jobsystem::context& ctx);
@@ -45,7 +43,7 @@ namespace vz
 
 namespace vz
 {
-	const uint32_t small_subtask_groupsize = 64u;
+	const uint32_t SMALL_SUBTASK_GROUPSIZE = 64u;
 
 	using namespace graphics;
 	using namespace primitive;
@@ -65,22 +63,25 @@ namespace vz
 
 	void SceneDetails::RunTransformUpdateSystem(jobsystem::context& ctx)
 	{
-		size_t num_transforms = compfactory::GetTransformComponents(renderables_, transforms);
-		assert(num_transforms == GetRenderableCount());
-		jobsystem::Dispatch(ctx, (uint32_t)num_transforms, small_subtask_groupsize, [&](jobsystem::JobArgs args) {
+		//size_t num_transforms = compfactory::GetTransformComponents(renderables_, transforms);
+		//assert(num_transforms == GetRenderableCount());
 
-			TransformComponent* transform = transforms[args.jobIndex];
+		jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+			//TransformComponent* transform = transforms[args.jobIndex];
+			TransformComponent* transform = compfactory::GetTransformComponent(renderables_[args.jobIndex]);
 			transform->UpdateMatrix();
 			});
 	}
 	void SceneDetails::RunSceneComponentUpdateSystem(jobsystem::context& ctx)
 	{
-		size_t num_hierarchies = compfactory::GetHierarchyComponents(renderables_, hierarchies);
-		assert(num_hierarchies == GetRenderableCount());
+		//size_t num_hierarchies = compfactory::GetHierarchyComponents(renderables_, hierarchies);
+		//assert(num_hierarchies == GetRenderableCount());
 		
-		jobsystem::Dispatch(ctx, (uint32_t)num_hierarchies, small_subtask_groupsize, [&](jobsystem::JobArgs args) {
+		jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-			HierarchyComponent& hier = *hierarchies[args.jobIndex];
+			//HierarchyComponent& hier = *hierarchies[args.jobIndex];
+			HierarchyComponent& hier = *compfactory::GetHierarchyComponent(renderables_[args.jobIndex]);
 			Entity entity = hier.GetEntity();
 
 			TransformComponent* transform_child = compfactory::GetTransformComponent(entity);
@@ -114,6 +115,18 @@ namespace vz
 		// TODO:
 		// * need to consider the scene update time (timestamp)
 		//		to avoid unnecessary execution of update systems
+		
+		{
+			// CHECK if skipping is available
+			// check all renderables update time (and their components) //
+			// check all lights update time 
+			// check scene's update time
+			//		compared to
+			//		recentUpdateTime_
+			// if no changes, then skip this update process
+		}
+		
+		// TODO:
 		// * if the following ctx per dependency has just one job,
 		//		it would be better use a single thread code without jobsystem
 
@@ -128,6 +141,28 @@ namespace vz
 		// note: since tasks in ctx has been completed
 		//		there is no need to pass ctx as an argument.
 		handlerScene_->Update(dt);
+
+		isDirty_ = false;
+		recentUpdateTime_ = TimerNow;
+	}
+
+	void Scene::Clear()
+	{
+		SceneDetails* scene_details = static_cast<SceneDetails*>(this);
+
+		renderables_.clear();
+		lights_.clear();
+		lookupRenderables_.clear();
+		lookupLights_.clear();
+
+		scene_details->aabbRenderables.clear();
+		scene_details->aabbLights.clear();
+		scene_details->aabbDecals.clear();
+
+		scene_details->matrixRenderables.clear();
+		scene_details->matrixRenderablesPrev.clear();
+
+		isDirty_ = true;
 	}
 
 	void Scene::AddEntity(const Entity entity)
@@ -138,6 +173,8 @@ namespace vz
 			{
 				lookupRenderables_[entity] = renderables_.size();
 				renderables_.push_back(entity);
+				isDirty_ = true;
+				timeStampSetter_ = TimerNow;
 			}
 		}
 		if (compfactory::ContainLightComponent(entity))
@@ -146,6 +183,8 @@ namespace vz
 			{
 				lookupLights_[entity] = renderables_.size();
 				lights_.push_back(entity);
+				isDirty_ = true;
+				timeStampSetter_ = TimerNow;
 			}
 		}
 	}
@@ -154,7 +193,7 @@ namespace vz
 	{
 		for (Entity ett : entities)
 		{
-			AddEntity(ett);
+			AddEntity(ett); // isDirty_ = true;
 		}
 	}
 
@@ -178,29 +217,50 @@ namespace vz
 
 		remove_entity(lookupRenderables_, renderables_, entity);
 		remove_entity(lookupLights_, lights_, entity);
+		isDirty_ = true;
+		timeStampSetter_ = TimerNow;
 	}
 
 	void Scene::RemoveEntities(const std::vector<Entity>& entities)
 	{
 		for (Entity ett : entities)
 		{
-			Remove(ett);
+			Remove(ett); // isDirty_ = true;
 		}
 	}
 
-	size_t Scene::GetEntityCount() const noexcept
+	std::vector<Entity> Scene::GetGeometryEntities() const noexcept
 	{
-		return renderables_.size() + lights_.size();
+		std::vector<Entity> geometries;
+		for (auto& ett : renderables_)
+		{
+			RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
+			if (renderable)
+			{
+				Entity entity = renderable->GetGeometry();
+				GeometryComponent* geometry = compfactory::GetGeometryComponent(entity);
+				if (geometry)
+				{
+					geometries.push_back(entity);
+				}	
+			}
+		}
+		return geometries;
 	}
 
-	size_t Scene::GetRenderableCount() const noexcept
+	std::vector<Entity> Scene::GetMaterialEntities() const noexcept
 	{
-		return renderables_.size();
-	}
-
-	size_t Scene::GetLightCount() const noexcept
-	{
-		return lights_.size();
+		std::vector<Entity> materials;
+		for (auto& ett : renderables_)
+		{
+			RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
+			if (renderable)
+			{
+				std::vector<Entity> renderable_materials = renderable->GetMaterials();
+				materials.insert(materials.end(), renderable_materials.begin(), renderable_materials.end());
+			}
+		}
+		return materials;
 	}
 
 	bool Scene::HasEntity(const Entity entity) const noexcept

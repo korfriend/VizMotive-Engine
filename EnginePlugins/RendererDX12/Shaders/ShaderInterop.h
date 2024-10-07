@@ -462,6 +462,68 @@ struct alignas(16) ShaderMaterial
 	inline bool IsDoubleSided() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED; }
 };
 
+// This is equivalent to a Mesh + MeshSubset
+//	But because these are always loaded together by shaders, they are unrolled into one to reduce individual buffer loads
+struct alignas(16) ShaderGeometry
+{
+	int ib;
+	int vb_pos;
+	int vb_uvs;
+	int vb_nor;
+
+	int vb_tan;
+	int vb_col;
+	int vb_atl;
+	int vb_pre;
+
+	uint materialIndex; // will be removed
+	uint meshletOffset; // offset of this subset in meshlets (locally within the mesh)
+	uint meshletCount;
+	int impostorSliceOffset;
+
+	float3 aabb_min;
+	uint flags;
+	float3 aabb_max;
+	float tessellation_factor;	
+
+	float2 uv_range_min;
+	float2 uv_range_max;
+
+	uint indexOffset;
+	uint indexCount;
+	int vb_clu;	// for mesh shader
+	int vb_bou; // for mesh shader
+
+	void Init()
+	{
+		ib = -1;
+		vb_pos = -1;
+		vb_uvs = -1;
+		vb_nor = -1;
+		vb_tan = -1;
+		vb_col = -1;
+		vb_atl = -1;
+		vb_pre = -1;
+		vb_clu = -1;
+		vb_bou = -1;
+		materialIndex = 0;
+		meshletOffset = 0;
+		meshletCount = 0;
+
+		aabb_min = float3(0, 0, 0);
+		flags = 0;
+		aabb_max = float3(0, 0, 0);
+		tessellation_factor = 0;
+
+		uv_range_min = float2(0, 0);
+		uv_range_max = float2(1, 1);
+
+		impostorSliceOffset = -1;
+		indexOffset = 0;
+		indexCount = 0;
+	}
+};
+
 struct alignas(16) ShaderScene
 {
 	int instancebuffer;
