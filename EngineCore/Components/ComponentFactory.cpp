@@ -49,6 +49,27 @@ namespace vz::compfactory
 	}
 
 	// component factory interfaces //
+	size_t SetSceneComponentsDirty(const Entity entity)
+	{
+		size_t num_changed = 0;
+		RenderableComponent* renderable = renderableManager.GetComponent(entity);
+		if (renderable) {
+			renderable->SetDirty();
+			num_changed++;
+		}
+		LightComponent* lights = lightManager.GetComponent(entity);
+		if (lights) {
+			lights->SetDirty();
+			num_changed++;
+		}
+		CameraComponent* camera = cameraManager.GetComponent(entity);
+		if (camera) {
+			camera->SetDirty();
+			num_changed++;
+		}
+		return num_changed;
+	}
+
 	NameComponent* CreateNameComponent(const Entity entity, const std::string& name)
 	{
 		NameComponent* comp = &nameManager.Create(entity);

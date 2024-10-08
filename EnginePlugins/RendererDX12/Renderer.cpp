@@ -30,22 +30,24 @@ namespace vz::common
 
 namespace vz::renderer
 {
+	using namespace primitive;
+
 	struct View
 	{
 		// User fills these:
-		uint32_t layerMask = ~0u;
+		uint8_t layerMask = ~0;
 		const Scene* scene = nullptr;
 		const CameraComponent* camera = nullptr;
 		enum FLAGS
 		{
 			EMPTY = 0,
-			ALLOW_OBJECTS = 1 << 0,
+			ALLOW_RENDERABLES = 1 << 0,
 			ALLOW_LIGHTS = 1 << 1,
-			ALLOW_DECALS = 1 << 2,
-			ALLOW_ENVPROBES = 1 << 3,
-			ALLOW_EMITTERS = 1 << 4,
-			ALLOW_OCCLUSION_CULLING = 1 << 5,
-			ALLOW_SHADOW_ATLAS_PACKING = 1 << 6,
+			//ALLOW_DECALS = 1 << 2,
+			//ALLOW_ENVPROBES = 1 << 3,
+			//ALLOW_EMITTERS = 1 << 4,
+			//ALLOW_OCCLUSION_CULLING = 1 << 5,
+			//ALLOW_SHADOW_ATLAS_PACKING = 1 << 6,
 
 			ALLOW_EVERYTHING = ~0u
 		};
@@ -53,51 +55,42 @@ namespace vz::renderer
 
 		// vz::renderer::UpdateVisibility() fills these:
 		primitive::Frustum frustum;
-		std::vector<uint32_t> visibleObjects;
-		std::vector<uint32_t> visibleDecals;
-		std::vector<uint32_t> visibleEnvProbes;
-		std::vector<uint32_t> visibleEmitters;
+		std::vector<uint32_t> visibleRenderables;
+		//std::vector<uint32_t> visibleDecals;
+		//std::vector<uint32_t> visibleEnvProbes;
+		//std::vector<uint32_t> visibleEmitters;
 		std::vector<uint32_t> visibleLights;
-		rectpacker::State shadow_packer;
-		rectpacker::Rect rain_blocker_shadow_rect;
-		std::vector<rectpacker::Rect> visibleLightShadowRects;
+		//rectpacker::State shadowPacker;
+		//std::vector<rectpacker::Rect> visibleLightShadowRects;
 
-		std::atomic<uint32_t> object_counter;
-		std::atomic<uint32_t> light_counter;
+		std::atomic<uint32_t> renderableCounter;
+		std::atomic<uint32_t> lightCounter;
 
 		vz::SpinLock locker;
-		bool planar_reflection_visible = false;
 		float closestRefPlane = std::numeric_limits<float>::max();
-		XMFLOAT4 reflectionPlane = XMFLOAT4(0, 1, 0, 0);
-		std::atomic_bool volumetriclight_request{ false };
+		std::atomic_bool volumetricLightRequest{ false };
 
 		void Clear()
 		{
-			visibleObjects.clear();
+			visibleRenderables.clear();
 			visibleLights.clear();
-			visibleDecals.clear();
-			visibleEnvProbes.clear();
-			visibleEmitters.clear();
+			//visibleDecals.clear();
+			//visibleEnvProbes.clear();
+			//visibleEmitters.clear();
 
-			object_counter.store(0);
-			light_counter.store(0);
+			renderableCounter.store(0);
+			lightCounter.store(0);
 
 			closestRefPlane = std::numeric_limits<float>::max();
-			planar_reflection_visible = false;
-			volumetriclight_request.store(false);
-		}
-
-		bool IsRequestedPlanarReflections() const
-		{
-			return planar_reflection_visible;
+			volumetricLightRequest.store(false);
 		}
 		bool IsRequestedVolumetricLights() const
 		{
-			return volumetriclight_request.load();
+			return volumetricLightRequest.load();
 		}
 	};
 
-
+	// must be called after scene->update()
 	void UpdateView(View& vis)
 	{
 		// Perform parallel frustum culling and obtain closest reflector:
@@ -117,25 +110,30 @@ namespace vz::renderer
 		// Initialize visible indices:
 		vis.Clear();
 
+		// TODO : add frustum culling processs
 		//if (!GetFreezeCullingCameraEnabled()) // just for debug
 		//{
-		//	vis.frustum = vis.camera->frustum;
+			vis.frustum = vis.camera->GetFrustum();
 		//}
-
 		//if (!GetOcclusionCullingEnabled() || GetFreezeCullingCameraEnabled())
 		//{
 		//	vis.flags &= ~View::ALLOW_OCCLUSION_CULLING;
 		//}
 
-		/*
+		
 		if (vis.flags & View::ALLOW_LIGHTS)
 		{
 			// Cull lights:
-			const uint32_t light_loop = (uint32_t)std::min(vis.scene->aabb_lights.size(), vis.scene->lights.GetCount());
+			const uint32_t light_loop = (uint32_t)vis.scene->GetLightCount();
 			vis.visibleLights.resize(light_loop);
-			vis.visibleLightShadowRects.clear();
-			vis.visibleLightShadowRects.resize(light_loop);
+			//vis.visibleLightShadowRects.clear();
+			//vis.visibleLightShadowRects.resize(light_loop);
 			jobsystem::Dispatch(ctx, light_loop, groupSize, [&](jobsystem::JobArgs args) {
+
+				const std::vector<Entity>& light_entities = vis.scene->GetLightEntities();
+				Entity entity = light_entities[args.jobIndex];
+				const LightComponent& light = *compfactory::GetLightComponent(entity);
+				assert(!light.IsDirty());
 
 				// Setup stream compaction:
 				uint32_t& group_count = *(uint32_t*)args.sharedmemory;
@@ -145,39 +143,38 @@ namespace vz::renderer
 					group_count = 0; // first thread initializes local counter
 				}
 
-				const AABB& aabb = vis.scene->aabb_lights[args.jobIndex];
+				const AABB& aabb = light.GetAABB();
 
 				if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
 				{
-					const LightComponent& light = vis.scene->lights[args.jobIndex];
 					if (!light.IsInactive())
 					{
 						// Local stream compaction:
 						//	(also compute light distance for shadow priority sorting)
 						group_list[group_count] = args.jobIndex;
 						group_count++;
-						if (light.IsVolumetricsEnabled())
-						{
-							vis.volumetriclight_request.store(true);
-						}
+						//if (light.IsVolumetricsEnabled())
+						//{
+						//	vis.volumetricLightRequest.store(true);
+						//}
 
-						if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
-						{
-							if (!light.IsStatic() && light.GetType() != LightComponent::DIRECTIONAL || light.occlusionquery < 0)
-							{
-								if (!aabb.intersects(vis.camera->Eye))
-								{
-									light.occlusionquery = vis.scene->queryAllocator.fetch_add(1); // allocate new occlusion query from heap
-								}
-							}
-						}
+						//if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
+						//{
+						//	if (!light.IsStatic() && light.GetType() != LightComponent::DIRECTIONAL || light.occlusionquery < 0)
+						//	{
+						//		if (!aabb.intersects(vis.camera->Eye))
+						//		{
+						//			light.occlusionquery = vis.scene->queryAllocator.fetch_add(1); // allocate new occlusion query from heap
+						//		}
+						//	}
+						//}
 					}
 				}
 
 				// Global stream compaction:
 				if (args.isLastJobInGroup && group_count > 0)
 				{
-					uint32_t prev_count = vis.light_counter.fetch_add(group_count);
+					uint32_t prev_count = vis.lightCounter.fetch_add(group_count);
 					for (uint32_t i = 0; i < group_count; ++i)
 					{
 						vis.visibleLights[prev_count + i] = group_list[i];
@@ -187,12 +184,17 @@ namespace vz::renderer
 				}, sharedmemory_size);
 		}
 
-		if (vis.flags & View::ALLOW_OBJECTS)
+		if (vis.flags & View::ALLOW_RENDERABLES)
 		{
 			// Cull objects:
-			const uint32_t object_loop = (uint32_t)std::min(vis.scene->aabb_objects.size(), vis.scene->objects.GetCount());
-			vis.visibleObjects.resize(object_loop);
-			jobsystem::Dispatch(ctx, object_loop, groupSize, [&](jobsystem::JobArgs args) {
+			const uint32_t renderable_loop = (uint32_t)vis.scene->GetRenderableCount();
+			vis.visibleRenderables.resize(renderable_loop);
+			jobsystem::Dispatch(ctx, renderable_loop, groupSize, [&](jobsystem::JobArgs args) {
+
+				const std::vector<Entity>& renderable_entities = vis.scene->GetRenderableEntities();
+				Entity entity = renderable_entities[args.jobIndex];
+				const RenderableComponent& renderable = *compfactory::GetRenderableComponent(entity);
+				assert(!renderable.IsDirty());
 
 				// Setup stream compaction:
 				uint32_t& group_count = *(uint32_t*)args.sharedmemory;
@@ -202,282 +204,58 @@ namespace vz::renderer
 					group_count = 0; // first thread initializes local counter
 				}
 
-				const AABB& aabb = vis.scene->aabb_objects[args.jobIndex];
+				const AABB& aabb = renderable.GetAABB();
 
 				if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
 				{
 					// Local stream compaction:
 					group_list[group_count++] = args.jobIndex;
 
-					const ObjectComponent& object = vis.scene->objects[args.jobIndex];
-					Scene::OcclusionResult& occlusion_result = vis.scene->occlusion_results_objects[args.jobIndex];
-					bool occluded = false;
-					if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
-					{
-						occluded = occlusion_result.IsOccluded();
-					}
-
-					if ((vis.flags & View::ALLOW_REQUEST_REFLECTION) && object.IsRequestPlanarReflection() && !occluded)
-					{
-						// Planar reflection priority request:
-						float dist = math::DistanceEstimated(vis.camera->Eye, object.center);
-						vis.locker.lock();
-						if (dist < vis.closestRefPlane)
-						{
-							vis.closestRefPlane = dist;
-							XMVECTOR P = XMLoadFloat3(&object.center);
-							XMVECTOR N = XMVectorSet(0, 1, 0, 0);
-							N = XMVector3TransformNormal(N, XMLoadFloat4x4(&vis.scene->matrix_objects[args.jobIndex]));
-							N = XMVector3Normalize(N);
-							XMVECTOR _refPlane = XMPlaneFromPointNormal(P, N);
-							XMStoreFloat4(&vis.reflectionPlane, _refPlane);
-
-							vis.planar_reflection_visible = true;
-						}
-						vis.locker.unlock();
-					}
-
-					if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
-					{
-						if (object.IsRenderable() && occlusion_result.occlusionQueries[vis.scene->queryheap_idx] < 0)
-						{
-							if (aabb.intersects(vis.camera->Eye))
-							{
-								// camera is inside the instance, mark it as visible in this frame:
-								occlusion_result.occlusionHistory |= 1;
-							}
-							else
-							{
-								occlusion_result.occlusionQueries[vis.scene->queryheap_idx] = vis.scene->queryAllocator.fetch_add(1); // allocate new occlusion query from heap
-							}
-						}
-					}
+					//Scene::OcclusionResult& occlusion_result = vis.scene->occlusion_results_objects[args.jobIndex];
+					//bool occluded = false;
+					//if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
+					//{
+					//	occluded = occlusion_result.IsOccluded();
+					//}
+					//
+					//if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
+					//{
+					//	if (renderable.IsRenderable() && occlusion_result.occlusionQueries[vis.scene->queryheap_idx] < 0)
+					//	{
+					//		if (aabb.intersects(vis.camera->Eye))
+					//		{
+					//			// camera is inside the instance, mark it as visible in this frame:
+					//			occlusion_result.occlusionHistory |= 1;
+					//		}
+					//		else
+					//		{
+					//			occlusion_result.occlusionQueries[vis.scene->queryheap_idx] = vis.scene->queryAllocator.fetch_add(1); // allocate new occlusion query from heap
+					//		}
+					//	}
+					//}
 				}
 
 				// Global stream compaction:
 				if (args.isLastJobInGroup && group_count > 0)
 				{
-					uint32_t prev_count = vis.object_counter.fetch_add(group_count);
+					uint32_t prev_count = vis.renderableCounter.fetch_add(group_count);
 					for (uint32_t i = 0; i < group_count; ++i)
 					{
-						vis.visibleObjects[prev_count + i] = group_list[i];
+						vis.visibleRenderables[prev_count + i] = group_list[i];
 					}
 				}
 
 				}, sharedmemory_size);
 		}
 
-		if (vis.flags & View::ALLOW_DECALS)
-		{
-			// Note: decals must be appended in order for correct blending, must not use parallelization!
-			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
-				for (size_t i = 0; i < vis.scene->aabb_decals.size(); ++i)
-				{
-					const AABB& aabb = vis.scene->aabb_decals[i];
-
-					if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
-					{
-						vis.visibleDecals.push_back(uint32_t(i));
-					}
-				}
-				});
-		}
-
-		if (vis.flags & View::ALLOW_ENVPROBES)
-		{
-			// Note: probes must be appended in order for correct blending, must not use parallelization!
-			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
-				for (size_t i = 0; i < vis.scene->aabb_probes.size(); ++i)
-				{
-					const AABB& aabb = vis.scene->aabb_probes[i];
-
-					if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
-					{
-						vis.visibleEnvProbes.push_back((uint32_t)i);
-					}
-				}
-				});
-		}
-
-		//if (vis.flags & View::ALLOW_EMITTERS)
-		//{
-		//	jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
-		//		// Cull emitters:
-		//		for (size_t i = 0; i < vis.scene->emitters.GetCount(); ++i)
-		//		{
-		//			const EmittedParticleSystem& emitter = vis.scene->emitters[i];
-		//			if (!(emitter.layerMask & vis.layerMask))
-		//			{
-		//				continue;
-		//			}
-		//			vis.visibleEmitters.push_back((uint32_t)i);
-		//		}
-		//		});
-		//}
-
 		jobsystem::Wait(ctx);
 
-		// finalize stream compaction:
-		vis.visibleObjects.resize((size_t)vis.object_counter.load());
-		vis.visibleLights.resize((size_t)vis.light_counter.load());
-
-		// Shadow atlas packing:
-		if (IsShadowsEnabled() && (vis.flags & View::ALLOW_SHADOW_ATLAS_PACKING) && !vis.visibleLights.empty())
-		{
-			auto range = profiler::BeginRangeCPU("Shadowmap packing");
-			float iterative_scaling = 1;
-
-			while (iterative_scaling > 0.03f)
-			{
-				vis.shadow_packer.clear();
-				if (vis.scene->weather.rain_amount > 0)
-				{
-					// Rain blocker:
-					rectpacker::Rect rect = {};
-					rect.id = -1;
-					rect.w = rect.h = 128;
-					vis.shadow_packer.add_rect(rect);
-				}
-				for (uint32_t lightIndex : vis.visibleLights)
-				{
-					const LightComponent& light = vis.scene->lights[lightIndex];
-					if (light.IsInactive())
-						continue;
-					if (!light.IsCastingShadow() || light.IsStatic())
-						continue;
-
-					const float dist = math::Distance(vis.camera->Eye, light.position);
-					const float range = light.GetRange();
-					const float amount = std::min(1.0f, range / std::max(0.001f, dist)) * iterative_scaling;
-
-					rectpacker::Rect rect = {};
-					rect.id = int(lightIndex);
-					switch (light.GetType())
-					{
-					case LightComponent::DIRECTIONAL:
-						if (light.forced_shadow_resolution >= 0)
-						{
-							rect.w = light.forced_shadow_resolution * int(light.cascade_distances.size());
-							rect.h = light.forced_shadow_resolution;
-						}
-						else
-						{
-							rect.w = int(max_shadow_resolution_2D * iterative_scaling) * int(light.cascade_distances.size());
-							rect.h = int(max_shadow_resolution_2D * iterative_scaling);
-						}
-						break;
-					case LightComponent::SPOT:
-						if (light.forced_shadow_resolution >= 0)
-						{
-							rect.w = int(light.forced_shadow_resolution);
-							rect.h = int(light.forced_shadow_resolution);
-						}
-						else
-						{
-							rect.w = int(max_shadow_resolution_2D * amount);
-							rect.h = int(max_shadow_resolution_2D * amount);
-						}
-						break;
-					case LightComponent::POINT:
-						if (light.forced_shadow_resolution >= 0)
-						{
-							rect.w = int(light.forced_shadow_resolution) * 6;
-							rect.h = int(light.forced_shadow_resolution);
-						}
-						else
-						{
-							rect.w = int(max_shadow_resolution_cube * amount) * 6;
-							rect.h = int(max_shadow_resolution_cube * amount);
-						}
-						break;
-					}
-					if (rect.w > 8 && rect.h > 8)
-					{
-						vis.shadow_packer.add_rect(rect);
-					}
-				}
-				if (!vis.shadow_packer.rects.empty())
-				{
-					if (vis.shadow_packer.pack(8192))
-					{
-						for (auto& rect : vis.shadow_packer.rects)
-						{
-							if (rect.id == -1)
-							{
-								// Rain blocker:
-								if (rect.was_packed)
-								{
-									vis.rain_blocker_shadow_rect = rect;
-								}
-								else
-								{
-									vis.rain_blocker_shadow_rect = {};
-								}
-								continue;
-							}
-							uint32_t lightIndex = uint32_t(rect.id);
-							rectpacker::Rect& lightrect = vis.visibleLightShadowRects[lightIndex];
-							const LightComponent& light = vis.scene->lights[lightIndex];
-							if (rect.was_packed)
-							{
-								lightrect = rect;
-
-								// Remove slice multipliers from rect:
-								switch (light.GetType())
-								{
-								case LightComponent::DIRECTIONAL:
-									lightrect.w /= int(light.cascade_distances.size());
-									break;
-								case LightComponent::POINT:
-									lightrect.w /= 6;
-									break;
-								}
-							}
-						}
-
-						if ((int)shadowMapAtlas.desc.width < vis.shadow_packer.width || (int)shadowMapAtlas.desc.height < vis.shadow_packer.height)
-						{
-							TextureDesc desc;
-							desc.width = uint32_t(vis.shadow_packer.width);
-							desc.height = uint32_t(vis.shadow_packer.height);
-							desc.format = format_depthbuffer_shadowmap;
-							desc.bind_flags = BindFlag::DEPTH_STENCIL | BindFlag::SHADER_RESOURCE;
-							desc.layout = ResourceState::SHADER_RESOURCE;
-							desc.misc_flags = ResourceMiscFlag::TEXTURE_COMPATIBLE_COMPRESSION;
-							device->CreateTexture(&desc, nullptr, &shadowMapAtlas);
-							device->SetName(&shadowMapAtlas, "shadowMapAtlas");
-
-							desc.format = format_rendertarget_shadowmap;
-							desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
-							desc.layout = ResourceState::SHADER_RESOURCE;
-							desc.clear.color[0] = 1;
-							desc.clear.color[1] = 1;
-							desc.clear.color[2] = 1;
-							desc.clear.color[3] = 0;
-							device->CreateTexture(&desc, nullptr, &shadowMapAtlas_Transparent);
-							device->SetName(&shadowMapAtlas_Transparent, "shadowMapAtlas_Transparent");
-
-						}
-
-						break;
-					}
-					else
-					{
-						iterative_scaling *= 0.5f;
-					}
-				}
-				else
-				{
-					iterative_scaling = 0.0; //PE: fix - endless loop if some lights do not have shadows.
-				}
-			}
-			profiler::EndRange(range);
-		}
+		// finalize stream compaction: (memory safe)
+		vis.visibleRenderables.resize((size_t)vis.renderableCounter.load());
+		vis.visibleLights.resize((size_t)vis.lightCounter.load());
 		
 		profiler::EndRange(range); // Frustum Culling
-		/**/
 	}
-
 
 	const Sampler* GetSampler(SAMPLERTYPES id)
 	{
@@ -597,7 +375,7 @@ namespace vz
 		void RunMeshUpdateSystem(jobsystem::context& ctx);
 		void RunMaterialUpdateSystem(jobsystem::context& ctx);
 		void RunLightUpdateSystem(jobsystem::context& ctx);
-		void RunObjectUpdateSystem(jobsystem::context& ctx);
+		void RunRenderableUpdateSystem(jobsystem::context& ctx);
 	};
 
 	void GSceneDetails::RunMeshUpdateSystem(jobsystem::context& ctx)
@@ -736,59 +514,9 @@ namespace vz
 					//}
 					shader_material.aniso_anisosin_anisocos_terrainblend = pack_half4(_anisotropy_strength, _anisotropy_rotation_sin, _anisotropy_rotation_cos, _blend_with_terrain_height_rcp);
 					shader_material.shaderType = (uint)material.GetShaderType();
-					shader_material.userdata = uint4(0);
+					shader_material.userdata = uint4(0, 0, 0, 0);
 
 					shader_material.options_stencilref = 0;
-					//if (IsUsingVertexColors())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_USE_VERTEXCOLORS;
-					//}
-					//if (IsUsingSpecularGlossinessWorkflow())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_SPECULARGLOSSINESS_WORKFLOW;
-					//}
-					//if (IsOcclusionEnabled_Primary())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_OCCLUSION_PRIMARY;
-					//}
-					//if (IsOcclusionEnabled_Secondary())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_OCCLUSION_SECONDARY;
-					//}
-					//if (IsUsingWind())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_USE_WIND;
-					//}
-					//if (IsReceiveShadow())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_RECEIVE_SHADOW;
-					//}
-					//if (IsCastingShadow())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_CAST_SHADOW;
-					//}
-					//if (IsDoubleSided())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED;
-					//}
-					//if (GetFilterMask() & FILTER_TRANSPARENT)
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_TRANSPARENT;
-					//}
-					//if (userBlendMode == BLENDMODE_ADDITIVE)
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_ADDITIVE;
-					//}
-					//if (shaderType == SHADERTYPE_UNLIT)
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_UNLIT;
-					//}
-					//if (!IsVertexAODisabled())
-					//{
-					//	shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_USE_VERTEXAO;
-					//}
-
-					//shader_material.options_stencilref |= wi::renderer::CombineStencilrefs(engineStencilRef, userStencilRef) << 24u;
 
 					GraphicsDevice* device = graphics::GetDevice();
 					for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
@@ -799,30 +527,30 @@ namespace vz
 						{
 							Entity material_entity = compfactory::GetEntityByVUID(texture_vuid);
 							texture_comp = (GTextureComponent*)compfactory::GetTextureComponent(material_entity);
-						}
-						shader_material.textures[i].uvset_lodclamp = (texture_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(texture_comp->GetLodClamp()) << 1u);
-						if (texture_comp->IsValid())
-						{
-							int subresource = -1;
-							switch (i)
+							shader_material.textures[i].uvset_lodclamp = (texture_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(texture_comp->GetLodClamp()) << 1u);
+							if (texture_comp->IsValid())
 							{
-							case BASECOLORMAP:
-							//case EMISSIVEMAP:
-							//case SPECULARMAP:
-							//case SHEENCOLORMAP:
-								subresource = texture_comp->GetTextureSRGBSubresource();
-								break;
-							default:
-								break;
+								int subresource = -1;
+								switch (i)
+								{
+								case BASECOLORMAP:
+									//case EMISSIVEMAP:
+									//case SPECULARMAP:
+									//case SHEENCOLORMAP:
+									subresource = texture_comp->GetTextureSRGBSubresource();
+									break;
+								default:
+									break;
+								}
+								shader_material.textures[i].texture_descriptor = device->GetDescriptorIndex(texture_comp->GetGPUResource(), SubresourceType::SRV, subresource);
 							}
-							shader_material.textures[i].texture_descriptor = device->GetDescriptorIndex(texture_comp->GetGPUResource(), SubresourceType::SRV, subresource);
+							else
+							{
+								shader_material.textures[i].texture_descriptor = -1;
+							}
+							shader_material.textures[i].sparse_residencymap_descriptor = texture_comp->GetSparseResidencymapDescriptor();
+							shader_material.textures[i].sparse_feedbackmap_descriptor = texture_comp->GetSparseFeedbackmapDescriptor();
 						}
-						else
-						{
-							shader_material.textures[i].texture_descriptor = -1;
-						}
-						shader_material.textures[i].sparse_residencymap_descriptor = texture_comp->GetSparseResidencymapDescriptor();
-						shader_material.textures[i].sparse_feedbackmap_descriptor = texture_comp->GetSparseFeedbackmapDescriptor();
 					}
 
 					if (material.samplerDescriptor < 0)
@@ -868,12 +596,13 @@ namespace vz
 			}
 		});
 	}
+	void GSceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
+	{
+		// GPUs
+	}
 	void GSceneDetails::RunLightUpdateSystem(jobsystem::context& ctx)
 	{
-	}
-	void GSceneDetails::RunObjectUpdateSystem(jobsystem::context& ctx)
-	{
-
+		// GPUs
 	}
 
 	bool GSceneDetails::Update(const float dt)
@@ -1102,7 +831,7 @@ namespace vz
 
 		jobsystem::Wait(ctx); // dependencies
 
-		RunObjectUpdateSystem(ctx);
+		RunRenderableUpdateSystem(ctx);
 		//RunCameraUpdateSystem(ctx); .. in render function
 		//RunProbeUpdateSystem(ctx); .. future feature
 		RunLightUpdateSystem(ctx);

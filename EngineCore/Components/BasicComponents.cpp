@@ -74,6 +74,10 @@ namespace vz
 
 	void HierarchyComponent::SetParent(const VUID vuidParent)
 	{
+		if (vuidParent == vuidParentHierarchy_)
+		{
+			return;
+		}
 		HierarchyComponent* old_parent_hierarchy = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(vuidParentHierarchy_));
 		if (old_parent_hierarchy)
 		{
@@ -89,6 +93,8 @@ namespace vz
 		assert(parent_hierarchy);
 		vuidParentHierarchy_ = vuidParent;
 		parent_hierarchy->AddChild(vuid_);
+
+		compfactory::SetSceneComponentsDirty(entity_);
 	}
 	VUID HierarchyComponent::GetParent() const
 	{
@@ -211,6 +217,8 @@ namespace vz
 
 		isDirty_ = false;
 		timeStampSetter_ = TimerNow;
+
+		compfactory::SetSceneComponentsDirty(entity_);
 	}
 	void TransformComponent::UpdateWorldMatrix()
 	{
@@ -323,6 +331,27 @@ namespace vz
 			entities[i] = compfactory::GetEntityByVUID(vuidMaterials_[i]);
 		}
 		return entities;
+	}
+
+	void RenderableComponent::UpdateAABB()
+	{
+		// compute AABB
+		Entity entity = compfactory::GetEntityByVUID(vuidGeometry_);
+		GeometryComponent* geometry = compfactory::GetGeometryComponent(entity);
+		TransformComponent* transform = compfactory::GetTransformComponent(entity);
+		if (geometry == nullptr || transform == nullptr)
+		{
+			return;
+		}
+		if (geometry->GetNumParts() == 0)
+		{
+			return;
+		}
+
+		XMFLOAT4X4 world = transform->GetWorldMatrix();
+		XMMATRIX W = XMLoadFloat4x4(&world);
+		aabb_ = geometry->GetAABB().transform(W);
+		isDirty_ = false;
 	}
 }
 

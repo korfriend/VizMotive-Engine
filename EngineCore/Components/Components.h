@@ -67,6 +67,7 @@ namespace vz
 		std::string name_;
 
 		// Instead of Entity, VUID is stored by serialization
+		//	the index is same to the streaming index
 		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
 
@@ -74,11 +75,11 @@ namespace vz
 		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
 		std::unordered_map<Entity, size_t> lookupLights_;
 
-		std::vector<Entity> materialsCached_;
+		primitive::AABB aabb_;
 
 		Entity entity_ = INVALID_ENTITY;
 		TimeStamp recentUpdateTime_ = TimerMin;	// world update time
-		TimeStamp timeStampSetter_ = TimerMin; 
+		TimeStamp timeStampSetter_ = TimerMin;
 		
 		bool isDirty_ = true;
 
@@ -91,6 +92,7 @@ namespace vz
 		Scene(const Entity entity, const std::string& name);
 		~Scene();
 
+		void SetDirty() { isDirty_ = true; }
 		bool IsDirty() const { return isDirty_; }
 
 		inline std::string GetSceneName() { return name_; }
@@ -149,8 +151,10 @@ namespace vz
 		 */
 		inline size_t GetLightCount() const noexcept { return lights_.size(); }
 
-		inline std::vector<Entity> GetRenderableEntities() const noexcept { return renderables_; }
-		inline std::vector<Entity> GetLightEntities() const noexcept { return lights_; }
+		inline const std::vector<Entity>& GetRenderableEntities() const noexcept { return renderables_; }
+		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
+
+		// requires scanning process
 		inline std::vector<Entity> GetGeometryEntities() const noexcept;
 		inline std::vector<Entity> GetMaterialEntities() const noexcept;
 
@@ -260,13 +264,13 @@ namespace vz
 		inline const XMFLOAT3 GetWorldForward() const; // z-axis
 		inline const XMFLOAT3 GetWorldUp() const;
 		inline const XMFLOAT3 GetWorldRight() const;
-		inline const XMFLOAT4X4 GetWorldMatrix() const { return world_; };
+		inline const XMFLOAT4X4& GetWorldMatrix() const { return world_; };
 
 		// Local
-		inline const XMFLOAT3 GetPosition() const { return position_; };
-		inline const XMFLOAT4 GetRotation() const { return rotation_; };
-		inline const XMFLOAT3 GetScale() const { return scale_; };
-		inline const XMFLOAT4X4 GetLocalMatrix() const { return local_; };
+		inline const XMFLOAT3& GetPosition() const { return position_; };
+		inline const XMFLOAT4& GetRotation() const { return rotation_; };
+		inline const XMFLOAT3& GetScale() const { return scale_; };
+		inline const XMFLOAT4X4& GetLocalMatrix() const { return local_; };
 
 		inline void SetPosition(const XMFLOAT3& p) { isDirty_ = true; position_ = p; timeStampSetter_ = TimerNow; }
 		inline void SetScale(const XMFLOAT3& s) { isDirty_ = true; scale_ = s; timeStampSetter_ = TimerNow; }
@@ -274,7 +278,7 @@ namespace vz
 		inline void SetEulerAngleZXYInDegree(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
 		inline void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; timeStampSetter_ = TimerNow; }
 		inline void SetMatrix(const XMFLOAT4X4& local);
-
+			
 		inline void SetWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = TimerNow; };
 
 		inline void UpdateMatrix();	// local matrix
@@ -526,12 +530,13 @@ namespace vz
 		//	dirty check can be considered by the following components
 		//		- transformComponent, geometryComponent, and material components (with their referencing textureComponents)
 		bool isValid_ = false;
+		bool isDirty_ = true;
+		primitive::AABB aabb_; // world AABB
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
-		// Non-serialized attributes: (these variables are supposed to be updated via transformers)
-		XMFLOAT4X4 matWorld = math::IDENTITY_MATRIX;	// this is just for gathering world matrices of renderables in rendering process
-
+		void SetDirty() { isDirty_ = true; }
+		bool IsDirty() const { return isDirty_; }
 		bool IsValid() { return isValid_; }
 		void SetGeometry(const Entity geometryEntity);
 		void SetMaterial(const Entity materialEntity, const size_t slot);
@@ -543,6 +548,8 @@ namespace vz
 		Entity GetGeometry();
 		Entity GetMaterial(const size_t slot);
 		std::vector<Entity> GetMaterials();
+		void UpdateAABB();
+		primitive::AABB GetAABB() const { return aabb_; }
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
@@ -564,6 +571,7 @@ namespace vz
 
 		XMFLOAT3 color_ = XMFLOAT3(1, 1, 1);
 		float range_ = 10.0f;
+		float intensity_ = 1.0f; // Brightness of light in. The units that this is defined in depend on the type of light. Point and spot lights use luminous intensity in candela (lm/sr) while directional lights use illuminance in lux (lm/m2). https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual
 
 		// Non-serialized attributes:
 		bool isDirty_ = true;
@@ -586,6 +594,7 @@ namespace vz
 		XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);
 		XMFLOAT3 scale = XMFLOAT3(1, 1, 1);
 		
+		inline void SetDirty() { isDirty_ = true; }
 		inline bool IsDirty() const { return isDirty_; }
 		inline void SetLightColor(XMFLOAT3 color) { color_ = color; timeStampSetter_ = TimerNow; }
 		inline void SetRange(const float range) { range_ = range; isDirty_ = true; timeStampSetter_ = TimerNow; }
@@ -599,6 +608,7 @@ namespace vz
 		primitive::AABB GetAABB() const { return aabb_; }
 		inline enums::LightType GetLightType() const { return type_; }
 		inline void SetLightType(enums::LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
+		inline bool IsInactive() const { return intensity_ == 0 || range_ == 0; }
 
 		inline void Update();	// if there is a transform entity, make sure the transform is updated!
 
@@ -647,6 +657,7 @@ namespace vz
 		// Non-serialized attributes:
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);
 
+		void SetDirty() { isDirty_ = true; }
 		bool IsDirty() const { return isDirty_; }
 
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
@@ -715,6 +726,8 @@ namespace vz::compfactory
 	extern "C" CORE_EXPORT inline Entity GetEntityByVUID(const VUID vuid);
 
 	// Component Manager
+	extern "C" CORE_EXPORT inline size_t SetSceneComponentsDirty(const Entity entity);
+
 	extern "C" CORE_EXPORT inline NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
 	extern "C" CORE_EXPORT inline TransformComponent* CreateTransformComponent(const Entity entity);
 	extern "C" CORE_EXPORT inline HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
