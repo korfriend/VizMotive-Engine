@@ -28,13 +28,13 @@ namespace vz
 		// the process is 1. gathering, 2. streaming up (sync/async)
 
 		// AABB culling streams:
-		std::vector<primitive::AABB> aabbRenderables;
-		std::vector<primitive::AABB> aabbLights;
-		std::vector<primitive::AABB> aabbDecals;
+		//std::vector<primitive::AABB> aabbRenderables;
+		//std::vector<primitive::AABB> aabbLights;
+		//std::vector<primitive::AABB> aabbDecals;
 
 		// Separate stream of world matrices:
-		std::vector<XMFLOAT4X4> matrixRenderables;
-		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
+		//std::vector<XMFLOAT4X4> matrixRenderables;
+		//std::vector<XMFLOAT4X4> matrixRenderablesPrev;
 
 		inline void RunTransformUpdateSystem(jobsystem::context& ctx);
 		inline void RunSceneComponentUpdateSystem(jobsystem::context& ctx);
@@ -80,25 +80,23 @@ namespace vz
 		
 		jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-			//HierarchyComponent& hier = *hierarchies[args.jobIndex];
-			HierarchyComponent& hier = *compfactory::GetHierarchyComponent(renderables_[args.jobIndex]);
-			Entity entity = hier.GetEntity();
+			Entity entity = renderables_[args.jobIndex];
 
-			TransformComponent* transform_child = compfactory::GetTransformComponent(entity);
-			if (transform_child == nullptr)
+			TransformComponent* transform = compfactory::GetTransformComponent(entity);
+			if (transform == nullptr)
 				return;
-			transform_child->UpdateWorldMatrix();
+			transform->UpdateWorldMatrix();
 
-			RenderableComponent* renderable_child = compfactory::GetRenderableComponent(entity);
-			if (renderable_child)
+			RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
+			if (renderable)
 			{
-				renderable_child->matWorld = transform_child->GetWorldMatrix();
+				renderable->UpdateAABB();
 			}
 
-			LightComponent* light_child = compfactory::GetLightComponent(entity);
-			if (light_child)
+			LightComponent* light = compfactory::GetLightComponent(entity);
+			if (light)
 			{
-				light_child->Update();
+				light->Update();	// AABB
 			}
 		});
 	}
@@ -148,19 +146,18 @@ namespace vz
 
 	void Scene::Clear()
 	{
-		SceneDetails* scene_details = static_cast<SceneDetails*>(this);
-
 		renderables_.clear();
 		lights_.clear();
 		lookupRenderables_.clear();
 		lookupLights_.clear();
 
-		scene_details->aabbRenderables.clear();
-		scene_details->aabbLights.clear();
-		scene_details->aabbDecals.clear();
-
-		scene_details->matrixRenderables.clear();
-		scene_details->matrixRenderablesPrev.clear();
+		SceneDetails* scene_details = static_cast<SceneDetails*>(this);
+		//scene_details->aabbRenderables.clear();
+		//scene_details->aabbLights.clear();
+		//scene_details->aabbDecals.clear();
+		//
+		//scene_details->matrixRenderables.clear();
+		//scene_details->matrixRenderablesPrev.clear();
 
 		isDirty_ = true;
 	}
