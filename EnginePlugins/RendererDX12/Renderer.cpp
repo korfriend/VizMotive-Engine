@@ -112,9 +112,9 @@ namespace vz::renderer
 
 		// TODO : add frustum culling processs
 		//if (!GetFreezeCullingCameraEnabled()) // just for debug
-		//{
+		{
 			vis.frustum = vis.camera->GetFrustum();
-		//}
+		}
 		//if (!GetOcclusionCullingEnabled() || GetFreezeCullingCameraEnabled())
 		//{
 		//	vis.flags &= ~View::ALLOW_OCCLUSION_CULLING;
@@ -302,11 +302,20 @@ namespace vz
 		// * This renderer plugin is based on Bindless Graphics 
 		//	(https://developer.download.nvidia.com/opengl/tutorials/bindless_graphics.pdf)
 		
+		float deltaTime = 0.f;
 		std::vector<Entity> renderableEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> lightEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> geometryEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> materialEntities; // cached (non enclosing for jobsystem)
 
+		// Separate stream of world matrices:
+		std::vector<XMFLOAT4X4> matrixRenderables;
+		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
+
+		const bool occlusionQueryEnabled = false;
+		const bool cameraFreezeCullingEnabled = false;
+
+		graphics::GraphicsDevice* device;
 		// Instances for bindless renderables:
 		//	contains in order:
 		//		1) renderables (normal meshes)
@@ -356,18 +365,6 @@ namespace vz
 		graphics::GPUBuffer queryPredicationBuffer;
 		uint32_t queryheapIdx = 0;
 		mutable std::atomic<uint32_t> queryAllocator{ 0 };
-
-		// Lightmap asyn-allocation task
-		std::atomic<uint32_t> lightmapRequestAllocator{ 0 };
-		std::vector<uint32_t> lightmapRequests;
-		mutable bool accelerationStructureUpdateRequested = false;
-		// 2. advanced version (based on WickedEngine)
-		//ShaderMeshInstance* instanceArrayMapped = nullptr;
-		//size_t instanceArraySize = 0;
-		//graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		//graphics::GPUBuffer....
-		//graphics::Texture....
-
 
 		bool Update(const float dt) override;
 		bool Destory() override;
@@ -454,7 +451,7 @@ namespace vz
 				material.SetDirty(false);
 			}
 
-			auto writeShaderMaterial = [&material](ShaderMaterial* dest)
+			auto writeShaderMaterial = [&](ShaderMaterial* dest)
 				{
 					using namespace vz::math;
 
@@ -518,7 +515,6 @@ namespace vz
 
 					shader_material.options_stencilref = 0;
 
-					GraphicsDevice* device = graphics::GetDevice();
 					for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
 					{
 						VUID texture_vuid = material.GetTextureVUID(i);
@@ -599,6 +595,141 @@ namespace vz
 	void GSceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
 	{
 		// GPUs
+		jobsystem::Dispatch(ctx, (uint32_t)renderableEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+			Entity entity = renderableEntities[args.jobIndex];
+			GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(entity);
+			TransformComponent* transform = compfactory::GetTransformComponent(entity);
+
+			// Update occlusion culling status:
+			OcclusionResult& occlusion_result = occlusionResultsObjects[args.jobIndex];
+			if (!cameraFreezeCullingEnabled)
+			{
+				occlusion_result.occlusionHistory <<= 1u; // advance history by 1 frame
+				int query_id = occlusion_result.occlusionQueries[queryheapIdx];
+				if (queryResultBuffer[queryheapIdx].mapped_data != nullptr && query_id >= 0)
+				{
+					uint64_t visible = ((uint64_t*)queryResultBuffer[queryheapIdx].mapped_data)[query_id];
+					if (visible)
+					{
+						occlusion_result.occlusionHistory |= 1; // visible
+					}
+				}
+				else
+				{
+					occlusion_result.occlusionHistory |= 1; // visible
+				}
+			}
+			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
+
+			uint32_t layerMask = ~0;
+
+			if (renderable.IsValid())
+			{
+				// These will only be valid for a single frame:
+				const GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(renderable.GetGeometry());
+
+				// TODO:
+				//	* wetmap looks useful in our rendering purposes
+				//	* To allow this, the logic neeeds to be modified
+				//		1. wetmap option must be checked in the materials
+				//		2. graphics::GPUBuffer GSceneDetails::wetmap
+				//if (renderable.IsWetmapEnabled() && !renderable.wetmap.IsValid())
+				//{
+				//	GPUBufferDesc desc;
+				//	desc.size = geometry.vertex_positions.size() * sizeof(uint16_t);
+				//	desc.format = Format::R16_UNORM;
+				//	desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				//	device->CreateBuffer(&desc, nullptr, &renderable.wetmap);
+				//	device->SetName(&renderable.wetmap, "wetmap");
+				//	renderable.wetmap_cleared = false;
+				//}
+				//else if (!renderable.IsWetmapEnabled() && renderable.wetmap.IsValid())
+				//{
+				//	renderable.wetmap = {};
+				//}
+
+				union SortBits
+				{
+					struct
+					{
+						uint32_t shadertype : SCU32(MaterialComponent::ShaderType::COUNT);
+						uint32_t blendmode : BLENDMODE_COUNT;
+						uint32_t doublesided : 1;	// bool
+						uint32_t tessellation : 1;	// bool
+						uint32_t alphatest : 1;		// bool
+						uint32_t customshader : 8;
+						uint32_t sort_priority : 4;
+					} bits;
+					uint32_t value;
+				};
+				static_assert(sizeof(SortBits) == sizeof(uint32_t));
+
+				SortBits sort_bits;
+				sort_bits.bits.sort_priority = renderable.sortPriority;
+
+				uint32_t first_part = 0;
+				uint32_t last_part = 0;
+				for (uint32_t subsetIndex = first_part; subsetIndex < last_part; ++subsetIndex)
+				{
+					const GeometryComponent::Primitive* part = geometry.GetPrimitive(subsetIndex);
+					Entity material_entity = renderable.GetMaterial(subsetIndex);
+					const MaterialComponent* material = compfactory::GetMaterialComponent(material_entity);
+					assert(part && material);
+
+					sort_bits.bits.tessellation |= material->IsTesellated();
+					sort_bits.bits.doublesided |= material->IsDoubleSided();
+
+					sort_bits.bits.shadertype |= 1 << SCU32(material->GetShaderType());
+					sort_bits.bits.blendmode |= 1 << SCU32(material->GetBlendMode());
+					sort_bits.bits.alphatest |= material->IsAlphaTestEnabled();
+
+					//int customshader = material->GetCustomShaderID();
+					//if (customshader >= 0)
+					//{
+					//	sort_bits.bits.customshader |= 1 << customshader;
+					//}
+				}
+
+				renderable.sortBits = sort_bits.value;
+
+				// Create GPU instance data:
+				ShaderMeshInstance inst;
+				inst.Init();
+				XMFLOAT4X4 world_matrix_prev = matrixRenderables[args.jobIndex];
+				XMFLOAT4X4 world_matrix = transform->GetWorldMatrix();
+				matrixRenderablesPrev[args.jobIndex] = world_matrix_prev;
+				matrixRenderables[args.jobIndex] = world_matrix;
+
+				inst.transformRaw.Create(world_matrix);
+				inst.transform.Create(world_matrix);
+				inst.transformPrev.Create(world_matrix_prev);
+
+				// Get the quaternion from W because that reflects changes by other components (eg. softbody)
+				XMMATRIX W = XMLoadFloat4x4(&world_matrix);
+				XMVECTOR S, R, T;
+				XMMatrixDecompose(&S, &R, &T, W);
+				XMStoreFloat4(&inst.quaternion, R);
+				float size = std::max(XMVectorGetX(S), std::max(XMVectorGetY(S), XMVectorGetZ(S)));
+
+				primitive::AABB aabb = renderable.GetAABB();
+
+				inst.uid = entity;
+				inst.baseGeometryOffset = geometry.geometryOffset;
+				inst.baseGeometryCount = (uint)geometry.GetNumParts();
+				inst.geometryOffset = inst.baseGeometryOffset + first_part;
+				inst.geometryCount = last_part - first_part;
+				inst.aabbCenter = aabb.getCenter();
+				inst.aabbRadius = aabb.getRadius();
+				//inst.vb_ao = renderable.vb_ao_srv;
+				//inst.vb_wetmap = device->GetDescriptorIndex(&renderable.wetmap, SubresourceType::SRV);
+				inst.alphaTest_size = math::pack_half2(XMFLOAT2(0, size));
+				//inst.SetUserStencilRef(renderable.userStencilRef);
+
+				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
+			}
+
+		});
 	}
 	void GSceneDetails::RunLightUpdateSystem(jobsystem::context& ctx)
 	{
@@ -607,9 +738,10 @@ namespace vz
 
 	bool GSceneDetails::Update(const float dt)
 	{
+		deltaTime = dt;
 		jobsystem::context ctx;
 
-		GraphicsDevice* device = GetGraphicsDevice();
+		device = GetGraphicsDevice();
 
 		renderableEntities = scene_->GetRenderableEntities();
 		size_t num_renderables = renderableEntities.size();
@@ -713,8 +845,6 @@ namespace vz
 			textureStreamingFeedbackMapped = (const uint32_t*)textureStreamingFeedbackBuffer_readback[pingpong_buffer_index].mapped_data;
 
 			// 4. Occlusion culling read: (Non Thread Task)
-			const bool occlusionQueryEnabled = false;
-			const bool cameraFreezeCullingEnabled = false;
 			if (occlusionQueryEnabled && !cameraFreezeCullingEnabled)
 			{
 				uint32_t min_query_count = instanceArraySize + num_lights;
@@ -757,20 +887,6 @@ namespace vz
 
 		if (dt > 0)
 		{
-			// Scan objects to check if lightmap rendering is requested:
-			lightmapRequestAllocator.store(0);
-			lightmapRequests.reserve(lightEntities.size());
-			jobsystem::Dispatch(ctx, (uint32_t)instanceArraySize, SMALL_SUBTASK_GROUPSIZE, [this](jobsystem::JobArgs args) {
-				
-				Entity entity = renderableEntities[args.jobIndex];
-				RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
-				if (renderable->IsLightmapRenderRequested())
-				{
-					uint32_t request_index = lightmapRequestAllocator.fetch_add(1);
-					*(lightmapRequests.data() + request_index) = args.jobIndex;
-				}
-				});
-
 			// Scan mesh subset counts and skinning data sizes to allocate GPU geometry data:
 			geometryAllocator.store(0u);
 			jobsystem::Dispatch(ctx, (uint32_t)num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
@@ -790,12 +906,6 @@ namespace vz
 		}
 
 		jobsystem::Wait(ctx); // dependencies
-
-		// Lightmap requests are determined at this point, so we know if we need TLAS or not:
-		if (lightmapRequestAllocator.load() > 0)
-		{
-			accelerationStructureUpdateRequested = true;
-		}
 
 		// GPU subset count allocation is ready at this point:
 		geometryArraySize = geometryAllocator.load();

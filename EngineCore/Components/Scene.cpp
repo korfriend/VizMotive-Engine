@@ -30,11 +30,6 @@ namespace vz
 		// AABB culling streams:
 		//std::vector<primitive::AABB> aabbRenderables;
 		//std::vector<primitive::AABB> aabbLights;
-		//std::vector<primitive::AABB> aabbDecals;
-
-		// Separate stream of world matrices:
-		//std::vector<XMFLOAT4X4> matrixRenderables;
-		//std::vector<XMFLOAT4X4> matrixRenderablesPrev;
 
 		inline void RunTransformUpdateSystem(jobsystem::context& ctx);
 		inline void RunSceneComponentUpdateSystem(jobsystem::context& ctx);
@@ -75,9 +70,6 @@ namespace vz
 	}
 	void SceneDetails::RunSceneComponentUpdateSystem(jobsystem::context& ctx)
 	{
-		//size_t num_hierarchies = compfactory::GetHierarchyComponents(renderables_, hierarchies);
-		//assert(num_hierarchies == GetRenderableCount());
-		
 		jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			Entity entity = renderables_[args.jobIndex];
@@ -90,7 +82,7 @@ namespace vz
 			RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
 			if (renderable)
 			{
-				renderable->UpdateAABB();
+				renderable->Update();	// AABB
 			}
 
 			LightComponent* light = compfactory::GetLightComponent(entity);

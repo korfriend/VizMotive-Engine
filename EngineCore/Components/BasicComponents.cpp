@@ -281,7 +281,7 @@ namespace vz
 			return;
 		}
 		vuidGeometry_ = geo_comp->GetVUID();
-		isValid_ = geo_comp->GetNumParts() == vuidMaterials_.size();
+		isValid_ = geo_comp->GetNumParts() == vuidMaterials_.size() && compfactory::GetTransformComponent(entity_);
 		timeStampSetter_ = TimerNow;
 	}
 	void RenderableComponent::SetMaterial(const Entity materialEntity, const size_t slot)
@@ -320,9 +320,9 @@ namespace vz
 		timeStampSetter_ = TimerNow;
 	}
 
-	Entity RenderableComponent::GetGeometry() { return compfactory::GetEntityByVUID(vuid_); }
+	Entity RenderableComponent::GetGeometry() const { return compfactory::GetEntityByVUID(vuidGeometry_); }
 	Entity RenderableComponent::GetMaterial(const size_t slot) { return slot >= vuidMaterials_.size() ? INVALID_ENTITY : compfactory::GetEntityByVUID(vuidMaterials_[slot]); }
-	std::vector<Entity> RenderableComponent::GetMaterials()
+	std::vector<Entity> RenderableComponent::GetMaterials() const
 	{
 		size_t n = vuidMaterials_.size();
 		std::vector<Entity> entities(n);
@@ -333,12 +333,12 @@ namespace vz
 		return entities;
 	}
 
-	void RenderableComponent::UpdateAABB()
+	void RenderableComponent::Update()
 	{
 		// compute AABB
-		Entity entity = compfactory::GetEntityByVUID(vuidGeometry_);
-		GeometryComponent* geometry = compfactory::GetGeometryComponent(entity);
-		TransformComponent* transform = compfactory::GetTransformComponent(entity);
+		Entity geometry_entity = compfactory::GetEntityByVUID(vuidGeometry_);
+		GeometryComponent* geometry = compfactory::GetGeometryComponent(geometry_entity);
+		TransformComponent* transform = compfactory::GetTransformComponent(entity_);
 		if (geometry == nullptr || transform == nullptr)
 		{
 			return;

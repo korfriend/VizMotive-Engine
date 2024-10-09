@@ -4,6 +4,10 @@
 
 namespace vz
 {
+	// Note:
+	//	The parameters inside 'G'-components are used by Graphics pipeline and GPGPUs
+	//	So, all attributes here are Non-serialized attributes
+	
 	// resources
 
 	struct CORE_EXPORT GMaterialComponent : MaterialComponent
@@ -82,8 +86,10 @@ namespace vz
 	struct CORE_EXPORT GRenderableComponent : RenderableComponent
 	{
 		GRenderableComponent(const Entity entity, const VUID vuid = 0) : RenderableComponent(entity, vuid) {}
-		// internal geometry
-		// internal mi
-		// internal texture
+
+		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
+		uint32_t sortBits = 0;
+
+		mutable uint32_t lightmapIterationCount = 0;
 	};
 }
