@@ -327,7 +327,9 @@ namespace vz
 			DOUBLE_SIDED = 1 << 2,
 			OUTLINE = 1 << 3,
 			FORWARD = 1 << 4, // "not forward" refers to "deferred"
-			TRANSPARENCY = 1 << 5
+			TRANSPARENCY = 1 << 5,
+			TESSELATION = 1 << 6,
+			ALPHA_TEST = 1 << 7,
 		};
 		enum class ShaderType : uint32_t
 		{
@@ -343,12 +345,20 @@ namespace vz
 
 			TEXTURESLOT_COUNT
 		};
+		enum class BlendMode : uint32_t
+		{
+			BLENDMODE_OPAQUE = 0,
+			BLENDMODE_ALPHA,
+			BLENDMODE_PREMULTIPLIED,
+			BLENDMODE_ADDITIVE,
+			BLENDMODE_MULTIPLY,
+			BLENDMODE_COUNT
+		};
 
 	private:
-		bool isDirty_ = true;
 		uint32_t renderOptionFlags_ = (uint32_t)RenderFlags::FORWARD;
-
 		ShaderType shaderType_ = ShaderType::PHONG;
+		BlendMode blendMode_ = BlendMode::BLENDMODE_OPAQUE;
 
 		XMFLOAT4 baseColor_ = XMFLOAT4(1, 1, 1, 1);
 		XMFLOAT4 specularColor_ = XMFLOAT4(1, 1, 1, 1);
@@ -359,6 +369,9 @@ namespace vz
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
+
+		// Non-serialized Attributes:
+		bool isDirty_ = true;
 	public:
 		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
 
@@ -373,6 +386,10 @@ namespace vz
 		inline bool IsDirty() const { return isDirty_; }
 		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
 		inline bool IsOutlineEnabled() const { return renderOptionFlags_ & SCU32(RenderFlags::OUTLINE); }
+		inline bool IsDoubleSided() const { return renderOptionFlags_ & SCU32(RenderFlags::DOUBLE_SIDED); }
+		inline bool IsTesellated() const { return renderOptionFlags_ & SCU32(RenderFlags::TESSELATION); }
+		inline bool IsAlphaTestEnabled() const { return renderOptionFlags_ & SCU32(RenderFlags::ALPHA_TEST); }
+		inline BlendMode GetBlendMode() const { return blendMode_; }
 		inline VUID GetTextureVUID(const size_t slot) const { 
 			if (slot >= SCU32(TextureSlot::TEXTURESLOT_COUNT)) return INVALID_VUID; return textureComponents_[slot];
 		}
@@ -454,7 +471,7 @@ namespace vz
 			void Serialize(vz::Archive& archive, const uint64_t version);
 		};
 	private:
-		std::vector<Primitive> parts_;
+		std::vector<Primitive> parts_;	
 
 		// Non-serialized attributes
 		bool isDirty_ = true;
@@ -473,7 +490,7 @@ namespace vz
 		void CopyPrimitive(const Primitive& primitive, const size_t slot);
 		const Primitive* GetPrimitive(const size_t slot) const;
 		const std::vector<Primitive>& GetPrimitives() const { return parts_; }
-		size_t GetNumParts() { return parts_.size(); }
+		size_t GetNumParts() const { return parts_.size(); }
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
@@ -500,6 +517,15 @@ namespace vz
 	protected:
 		TextureType textureType_ = TextureType::Undefined;
 		std::shared_ptr<Resource> internalResource_;
+		uint32_t width_ = 1;
+		uint32_t height_ = 1;
+		uint32_t depth_ = 1;
+		uint32_t arraySize_ = 1;
+
+		// dicom info : using geometry or not
+		VUID vuidBindingGeometry_ = INVALID_VUID;
+
+		// sampler 
 	public:
 		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
 		
@@ -511,6 +537,14 @@ namespace vz
 		void CopyFromData(const std::vector<uint8_t>& data);
 		void MoveFromData(std::vector<uint8_t>&& data);
 		void SetOutdated();
+
+		inline uint32_t GetWidth() const { return width_; }
+		inline uint32_t GetHeight() const { return height_; }
+		inline uint32_t GetDepth() const { return depth_; }
+		inline uint32_t GetArraySize() const { return arraySize_; }
+		inline void SetTextureDimension(const uint32_t w, const uint32_t h, const uint32_t d, const uint32_t array) {
+			width_ = w, height_ = h, depth_ = d, arraySize_ = array;
+		}
 		
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -524,7 +558,7 @@ namespace vz
 		uint8_t visibleLayerMask_ = 0x7;
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
-		bool isLightmapRenderRequested_ = false;
+		//VUID vuidWetmapTexture_ = INVALID_VUID;
 
 		// Non-serialized attributes:
 		//	dirty check can be considered by the following components
@@ -537,18 +571,17 @@ namespace vz
 
 		void SetDirty() { isDirty_ = true; }
 		bool IsDirty() const { return isDirty_; }
-		bool IsValid() { return isValid_; }
+		bool IsValid() const { return isValid_; }
 		void SetGeometry(const Entity geometryEntity);
 		void SetMaterial(const Entity materialEntity, const size_t slot);
 		void SetMaterials(const std::vector<Entity>& materials);
 		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { visibleLayerMask_ = (layerBits & maskBits); timeStampSetter_ = TimerNow; }
-		bool IsVisibleWith(uint8_t visibleLayerMask) { return visibleLayerMask & visibleLayerMask_; }
-		bool IsLightmapRenderRequested() const { return isLightmapRenderRequested_; }
+		bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
-		Entity GetGeometry();
+		Entity GetGeometry() const;
 		Entity GetMaterial(const size_t slot);
-		std::vector<Entity> GetMaterials();
-		void UpdateAABB();
+		std::vector<Entity> GetMaterials() const;
+		void Update();
 		primitive::AABB GetAABB() const { return aabb_; }
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 

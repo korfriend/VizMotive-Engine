@@ -95,12 +95,13 @@ struct alignas(16) ShaderMeshInstance
 	uint uid;	// using entity
 	uint flags;	// high 8 bits: user stencilRef (same as visibility-layered mask)
 	uint indexGeometryBuffers;	// index of bindless array of VBs 
-	uint color;
-
-	uint countGeometries;		// number of all geometry parts
-	int indexLightmap;			// lightmap index
-	int indexAOBuffers;			// index of bindless array of AO VBs 
 	uint alphaTest_size;
+
+
+	uint geometryOffset; // offset of all geometry parts
+	uint geometryCount; // number of all geometry parts 
+	uint baseGeometryOffset;	// offset of all geometry parts of the instance (if no LODs, then it is equal to geometryOffset)
+	uint baseGeometryCount;		// number of all geometry parts of the instance (if no LODs, then it is equal to geometryCount)
 
 	float3 aabbCenter;
 	float aabbRadius;
@@ -114,14 +115,15 @@ struct alignas(16) ShaderMeshInstance
 	{
 		uid = 0;
 		flags = 0;
-		color = ~0u;
-		indexLightmap = -1;
 		indexGeometryBuffers = 0;
-		countGeometries = 0;
+		alphaTest_size = 0;
+
+		baseGeometryOffset = geometryOffset = 0;
+		baseGeometryOffset = geometryCount = 0;
+
 		aabbCenter = float3(0, 0, 0);
 		aabbRadius = 0;
-		indexAOBuffers = -1;
-		alphaTest_size = 0;
+
 		quaternion = float4(0, 0, 0, 1);
 		transform.Init();
 		transformPrev.Init();

@@ -19,15 +19,12 @@ namespace vz
 	constexpr Format FORMAT_depthbufferEnvprobe = Format::D16_UNORM;
 
 	// Common blendmodes used across multiple systems
-	enum BLENDMODE
-	{
-		BLENDMODE_OPAQUE,
-		BLENDMODE_ALPHA,
-		BLENDMODE_PREMULTIPLIED,
-		BLENDMODE_ADDITIVE,
-		BLENDMODE_MULTIPLY,
-		BLENDMODE_COUNT
-	};
+	constexpr uint32_t BLENDMODE_OPAQUE = SCU32(MaterialComponent::BlendMode::BLENDMODE_OPAQUE);
+	constexpr uint32_t BLENDMODE_ALPHA = SCU32(MaterialComponent::BlendMode::BLENDMODE_ALPHA);
+	constexpr uint32_t BLENDMODE_PREMULTIPLIED = SCU32(MaterialComponent::BlendMode::BLENDMODE_PREMULTIPLIED);
+	constexpr uint32_t BLENDMODE_ADDITIVE = SCU32(MaterialComponent::BlendMode::BLENDMODE_ADDITIVE);
+	constexpr uint32_t BLENDMODE_MULTIPLY = SCU32(MaterialComponent::BlendMode::BLENDMODE_MULTIPLY);
+	constexpr uint32_t BLENDMODE_COUNT = SCU32(MaterialComponent::BlendMode::BLENDMODE_COUNT);
 
 	// shaders
 	enum SHADERTYPE : uint32_t

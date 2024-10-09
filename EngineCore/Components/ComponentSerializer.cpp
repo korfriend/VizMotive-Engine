@@ -88,6 +88,8 @@ namespace vz
 			archive >> u32_data;
 			shaderType_ = static_cast<ShaderType>(u32_data);
 			archive >> renderOptionFlags_;
+			archive >> u32_data;
+			blendMode_ = static_cast<BlendMode>(u32_data);
 			archive >> baseColor_;
 			archive >> specularColor_;
 			archive >> emissiveColor_;
@@ -109,6 +111,7 @@ namespace vz
 
 			archive << SCU32(shaderType_);
 			archive << renderOptionFlags_;
+			archive << SCU32(blendMode_);
 			archive << baseColor_;
 			archive << specularColor_;
 			archive << emissiveColor_;
@@ -181,10 +184,22 @@ namespace vz
 			uint8_t u8_data;
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
+
+			archive >> width_;
+			archive >> height_;
+			archive >> depth_;
+			archive >> arraySize_;
+			archive >> vuidBindingGeometry_;
 		}
 		else
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
+
+			archive << width_;
+			archive << height_;
+			archive << depth_;
+			archive << arraySize_;
+			archive << vuidBindingGeometry_;	
 		}
 	}
 
