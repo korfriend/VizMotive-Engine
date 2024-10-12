@@ -86,7 +86,7 @@ namespace vzm
 
 		// todo DeltaTime...
 		renderer->Update(0.f);
-		renderer->Render();
+		renderer->Render(0.f);
 
 		return true;
 	}

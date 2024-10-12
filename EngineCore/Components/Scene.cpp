@@ -28,6 +28,7 @@ namespace vz
 		// the process is 1. gathering, 2. streaming up (sync/async)
 
 		// AABB culling streams:
+		std::vector<primitive::AABB> parallelBounds;
 		//std::vector<primitive::AABB> aabbRenderables;
 		//std::vector<primitive::AABB> aabbLights;
 
@@ -70,6 +71,9 @@ namespace vz
 	}
 	void SceneDetails::RunSceneComponentUpdateSystem(jobsystem::context& ctx)
 	{
+		parallelBounds.clear();
+		parallelBounds.resize((size_t)jobsystem::DispatchGroupCount((uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE));
+
 		jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			Entity entity = renderables_[args.jobIndex];
@@ -83,6 +87,25 @@ namespace vz
 			if (renderable)
 			{
 				renderable->Update();	// AABB
+
+				if (renderable->IsValid())
+				{
+					AABB aabb = renderable->GetAABB();
+
+					AABB* shared_bounds = (AABB*)args.sharedmemory;
+					if (args.isFirstJobInGroup)
+					{
+						*shared_bounds = aabb;
+					}
+					else
+					{
+						*shared_bounds = AABB::Merge(*shared_bounds, aabb);
+					}
+					if (args.isLastJobInGroup)
+					{
+						parallelBounds[args.groupID] = *shared_bounds;
+					}
+				}
 			}
 
 			LightComponent* light = compfactory::GetLightComponent(entity);
@@ -90,7 +113,7 @@ namespace vz
 			{
 				light->Update();	// AABB
 			}
-		});
+		}, sizeof(primitive::AABB));
 	}
 
 	void Scene::Update(const float dt)
@@ -124,6 +147,13 @@ namespace vz
 		jobsystem::Wait(ctx); // dependencies
 		scene_details->RunSceneComponentUpdateSystem(ctx);
 		jobsystem::Wait(ctx); // dependencies
+
+		// Merge parallel bounds computation (depends on object update system):
+		aabb_ = AABB();
+		for (auto& group_bound : scene_details->parallelBounds)
+		{
+			aabb_ = AABB::Merge(aabb_, group_bound);
+		}
 
 		// TODO: animation updates
 

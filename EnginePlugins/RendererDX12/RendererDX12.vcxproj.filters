@@ -7,6 +7,10 @@
     <ClCompile Include="RenderInitializer.cpp" />
     <ClCompile Include="ShaderLoader.cpp" />
     <ClCompile Include="ShaderCompiler.cpp" />
+    <ClCompile Include="SceneResUpdate.cpp" />
+    <ClCompile Include="TextureHelper.cpp" />
+    <ClCompile Include="samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
+    <ClCompile Include="Random.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraphicsDevice_DX12.h" />
@@ -20,6 +24,10 @@
     <ClInclude Include="Utility\dxcapi.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="TextureHelper.h" />
+    <ClInclude Include="waterripple.h" />
+    <ClInclude Include="Noise.h" />
+    <ClInclude Include="Random.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">

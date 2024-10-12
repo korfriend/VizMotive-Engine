@@ -26,6 +26,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimeDurationCount(A, B) std::chrono::duration_cast<std::chrono::duration<double>>(A - B).count()
 #define TimerNow std::chrono::high_resolution_clock::now()
 #define TimerMin std::chrono::high_resolution_clock::time_point::min();
+#define SETVISIBLEMASK(MASK, LAYERBITS, MASKBITS) MASK = (MASK & ~LAYERBITS) | (MASKBITS & LAYERBITS);
 
 namespace vz::enums 
 {
@@ -70,6 +71,9 @@ namespace vz
 		//	the index is same to the streaming index
 		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
+
+		// TODO
+		// camera for reflection 
 
 		// Non-serialized attributes:
 		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
@@ -158,6 +162,8 @@ namespace vz
 		inline std::vector<Entity> GetGeometryEntities() const noexcept;
 		inline std::vector<Entity> GetMaterialEntities() const noexcept;
 
+		inline const primitive::AABB& GetAABB() const { return aabb_; }
+
 		/**
 		 * Returns true if the given entity is in the Scene.
 		 *
@@ -165,7 +171,7 @@ namespace vz
 		 */
 		inline bool HasEntity(const Entity entity) const noexcept;
 
-		inline size_t GetEntities(std::vector<Entity>& entities)
+		inline size_t GetEntities(std::vector<Entity>& entities) const
 		{
 			entities = renderables_;
 			entities.insert(entities.end(), lights_.begin(), lights_.end());
@@ -575,7 +581,7 @@ namespace vz
 		void SetGeometry(const Entity geometryEntity);
 		void SetMaterial(const Entity materialEntity, const size_t slot);
 		void SetMaterials(const std::vector<Entity>& materials);
-		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { visibleLayerMask_ = (layerBits & maskBits); timeStampSetter_ = TimerNow; }
+		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); timeStampSetter_ = TimerNow; }
 		bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
 		Entity GetGeometry() const;
@@ -667,9 +673,11 @@ namespace vz
 		// These parameters are used differently depending on the projection mode.
 		// 1. orthogonal : image plane's width and height
 		// 2. perspective : computing aspect (W / H) ratio, i.e., (width_, height_) := (aspectRatio, 1.f)
+		// NOTE: these are NOT buffer or texture resolution!
 		float width_ = 0.0f;
 		float height_ = 0.0f;
 
+		uint8_t visibleLayerMask_ = ~0;
 		Projection projectionType_ = Projection::PERSPECTIVE;
 
 		// Non-serialized attributes:
@@ -692,6 +700,8 @@ namespace vz
 
 		void SetDirty() { isDirty_ = true; }
 		bool IsDirty() const { return isDirty_; }
+		uint8_t GetVisibleLayerMask() const { return visibleLayerMask_; }
+		void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); }
 
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
 		bool SetWorldLookAtFromHierarchyTransforms();

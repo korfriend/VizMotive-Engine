@@ -83,7 +83,7 @@ namespace vz
 	{
 		// to do
 	}
-	void RenderPath2D::Render()
+	void RenderPath2D::Render(const float dt)
 	{
 		// to do
 	}

@@ -66,9 +66,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\SceneManager.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ResourceManager.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -107,12 +104,6 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h">
-      <Filter>Common\Backend</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\waterripple.h">
-      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h">
       <Filter>ThirdParty</Filter>
@@ -232,12 +223,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
       <Filter>Utils\Src</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Noise.h">
-      <Filter>Utils\Src</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h">
-      <Filter>Utils\Src</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -251,9 +236,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp">
       <Filter>ThirdParty\stb</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp">
-      <Filter>Common\Backend</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp">
       <Filter>ThirdParty</Filter>
@@ -322,12 +304,6 @@
       <Filter>Utils\Src</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp">
-      <Filter>Utils\Src</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Random.cpp">
-      <Filter>Utils\Src</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp">
       <Filter>Utils\Src</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp">

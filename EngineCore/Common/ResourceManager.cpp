@@ -2,7 +2,6 @@
 #include "Backend/GRendererInterface.h" // deferred task for streaming
 
 #include "Utils/Helpers.h"
-#include "Backend/TextureHelper.h"
 #include "Utils/Backlog.h"
 #include "Utils/JobSystem.h"
 

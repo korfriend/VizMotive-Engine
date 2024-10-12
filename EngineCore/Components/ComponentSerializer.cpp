@@ -272,6 +272,8 @@ namespace vz
 
 			archive >> u8_data;
 			projectionType_ = static_cast<Projection>(u8_data);
+
+			archive >> visibleLayerMask_;
 		}
 		else
 		{
@@ -283,6 +285,7 @@ namespace vz
 			archive << width_;
 			archive << height_;
 			archive << static_cast<uint8_t>(projectionType_);
+			archive << visibleLayerMask_;
 		}
 	}
 }
