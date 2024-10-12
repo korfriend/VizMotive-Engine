@@ -271,6 +271,6 @@ namespace vz
 
 	namespace renderer
 	{
-
+		const Sampler* GetSampler(SAMPLERTYPES id);
 	}
 }

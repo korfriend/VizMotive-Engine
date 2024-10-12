@@ -1,7 +1,6 @@
 #include "Archive.h"
 #include "Utils/Helpers.h"
 #include "Utils/Helpers2.h"
-#include "Backend/TextureHelper.h"
 
 #include "ThirdParty/stb_image.h"
 
@@ -123,6 +122,38 @@ namespace vz
 		return fileName;
 	}
 
+	bool createTexture(
+		graphics::Texture& texture,
+		const void* data,
+		uint32_t width,
+		uint32_t height,
+		graphics::Format format = vz::graphics::Format::R8G8B8A8_UNORM,
+		graphics::Swizzle swizzle = {}
+	)
+	{
+		if (data == nullptr)
+		{
+			return false;
+		}
+		graphics::GraphicsDevice* device = vz::graphics::GetDevice();
+
+		graphics::TextureDesc desc;
+		desc.width = width;
+		desc.height = height;
+		desc.mip_levels = 1;
+		desc.array_size = 1;
+		desc.format = format;
+		desc.sample_count = 1;
+		desc.bind_flags = graphics::BindFlag::SHADER_RESOURCE;
+		desc.swizzle = swizzle;
+
+		graphics::SubresourceData InitData;
+		InitData.data_ptr = data;
+		InitData.row_pitch = width * GetFormatStride(format) / GetFormatBlockSize(format);
+
+		return device->CreateTexture(&desc, &InitData, &texture);
+	}
+
 	vz::graphics::Texture Archive::CreateThumbnailTexture() const
 	{
 		if (thumbnail_data_size == 0)
@@ -134,7 +165,7 @@ namespace vz
 		if (rgba == nullptr)
 			return {};
 		vz::graphics::Texture texture;
-		vz::texturehelper::CreateTexture(texture, rgba, (uint32_t)width, (uint32_t)height);
+		createTexture(texture, rgba, (uint32_t)width, (uint32_t)height);
 		stbi_image_free(rgba);
 		return texture;
 	}

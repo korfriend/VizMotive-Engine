@@ -32,6 +32,6 @@ namespace vz
 		void ResizeResources() override;
 		// cpu side... in scene
 		void Update(const float dt) override;
-		void Render() override;
+		void Render(const float dt) override;
 	};
 }

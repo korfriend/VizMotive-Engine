@@ -22,7 +22,7 @@ namespace vz
 		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;
 		void Update(const float dt) override;
-		void Render() override;
+		void Render(const float dt) override;
 	};
 
 }

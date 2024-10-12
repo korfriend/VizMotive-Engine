@@ -20,7 +20,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GRendererInterface.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h" />
@@ -28,9 +27,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ResourceManager.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\SceneManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Version.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\waterripple.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
@@ -71,16 +68,13 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Noise.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Backend\TextureHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Canvas.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
@@ -108,8 +102,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Random.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl" />

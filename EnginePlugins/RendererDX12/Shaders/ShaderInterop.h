@@ -147,6 +147,28 @@ struct alignas(16) ShaderMeshInstance
 #endif // __cplusplus
 };
 
+enum FRAME_OPTIONS
+{
+	OPTION_BIT_TEMPORALAA_ENABLED = 1 << 0,
+	//OPTION_BIT_TRANSPARENTSHADOWS_ENABLED = 1 << 1,
+	//OPTION_BIT_VXGI_ENABLED = 1 << 2,
+	//OPTION_BIT_VXGI_REFLECTIONS_ENABLED = 1 << 3,
+	//OPTION_BIT_REALISTIC_SKY = 1 << 6,
+	//OPTION_BIT_HEIGHT_FOG = 1 << 7,
+	//OPTION_BIT_RAYTRACED_SHADOWS = 1 << 8,
+	//OPTION_BIT_SHADOW_MASK = 1 << 9,
+	//OPTION_BIT_SURFELGI_ENABLED = 1 << 10,
+	//OPTION_BIT_DISABLE_ALBEDO_MAPS = 1 << 11,
+	//OPTION_BIT_FORCE_DIFFUSE_LIGHTING = 1 << 12,
+	//OPTION_BIT_VOLUMETRICCLOUDS_CAST_SHADOW = 1 << 13,
+	//OPTION_BIT_OVERRIDE_FOG_COLOR = 1 << 14,
+	//OPTION_BIT_STATIC_SKY_SPHEREMAP = 1 << 15,
+	//OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE = 1 << 16,
+	//OPTION_BIT_REALISTIC_SKY_HIGH_QUALITY = 1 << 17,
+	//OPTION_BIT_REALISTIC_SKY_RECEIVE_SHADOW = 1 << 18,
+	//OPTION_BIT_VOLUMETRICCLOUDS_RECEIVE_SHADOW = 1 << 19,
+};
+
 enum SHADERMATERIAL_OPTIONS
 {
 	SHADERMATERIAL_OPTION_BIT_USE_VERTEXCOLORS = 1 << 0,
@@ -531,27 +553,24 @@ struct alignas(16) ShaderScene
 	int instancebuffer;
 	int geometrybuffer;
 	int materialbuffer;
-	int meshletbuffer;
-
 	int texturestreamingbuffer;
-	int globalenvmap; // static sky, not guaranteed to be cubemap, mipmaps or format, just whatever is imported
-	int globalprobe; // rendered probe with guaranteed mipmaps, hdr, etc.
-	int impostorInstanceOffset;
-
+	
+	// TODO
 	int TLAS;
 	int BVH_counter;
 	int BVH_nodes;
 	int BVH_primitives;
 
 	float3 aabb_min;
-	float padding3;
+	int globalenvmap; // static sky, not guaranteed to be cubemap, mipmaps or format, just whatever is imported
 	float3 aabb_max;
-	float padding4;
+	int globalprobe; // rendered probe with guaranteed mipmaps, hdr, etc.
 	float3 aabb_extents;		// enclosing AABB abs(max - min)
 	float padding5;
 	float3 aabb_extents_rcp;	// enclosing AABB 1.0f / abs(max - min)
 	float padding6;
 
+	// TODO
 	struct alignas(16) DDGI
 	{
 		uint3 grid_dimensions;
@@ -592,8 +611,8 @@ struct alignas(16) FrameCB
 
 	uint		frame_count;
 	uint		temporalaa_samplerotation;
-	uint padding0;
-	uint padding1;
+	uint		padding0;
+	uint		padding1;
 	
 	float		blue_noise_phase;
 	int			texture_random64x64_index;
@@ -602,15 +621,15 @@ struct alignas(16) FrameCB
 
 	ShaderScene scene;
 
-	uint probes;
+	uint probes;	// NOTE YET SUPPORTED
 	uint directional_lights;
-	uint spotlights;
-	uint pointlights;
+	uint spot_lights; // NOTE YET SUPPORTED
+	uint point_lights; // NOTE YET SUPPORTED
 
 	uint lights;
-	uint decals;
-	uint forces;
-	uint padding;
+	uint decals; // NOTE YET SUPPORTED
+	uint padding2; // NOTE YET SUPPORTED
+	uint padding3; 
 };
 
 
