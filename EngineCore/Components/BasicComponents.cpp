@@ -383,15 +383,15 @@ namespace vz
 		switch (type_)
 		{
 		default:
-		case enums::LightType::DIRECTIONAL:
+		case LightType::DIRECTIONAL:
 			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W)));
 			aabb_.createFromHalfWidth(XMFLOAT3(0, 0, 0), XMFLOAT3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()));
 			break;
-		case enums::LightType::SPOT:
+		case LightType::SPOT:
 			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W)));
 			aabb_.createFromHalfWidth(position, XMFLOAT3(range_, range_, range_));
 			break;
-		case enums::LightType::POINT:
+		case LightType::POINT:
 			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(1, 0, 0, 0), W)));
 			aabb_.createFromHalfWidth(position, XMFLOAT3(range_, range_, range_));
 			break;

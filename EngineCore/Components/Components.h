@@ -28,25 +28,6 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimerMin std::chrono::high_resolution_clock::time_point::min();
 #define SETVISIBLEMASK(MASK, LAYERBITS, MASKBITS) MASK = (MASK & ~LAYERBITS) | (MASKBITS & LAYERBITS);
 
-namespace vz::enums 
-{
-	enum class PrimitiveType : uint8_t {
-		// don't change the enums values (made to match GL)
-		POINTS = 0,    //!< points
-		LINES = 1,    //!< lines
-		LINE_STRIP = 2,    //!< line strip
-		TRIANGLES = 3,    //!< triangles
-		TRIANGLE_STRIP = 4     //!< triangle strip
-	};
-
-	enum class LightType : uint32_t	{
-		DIRECTIONAL = 0,
-		POINT,
-		SPOT,
-		COUNT
-	};
-}
-
 namespace vz
 {
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
@@ -101,6 +82,7 @@ namespace vz
 
 		inline std::string GetSceneName() { return name_; }
 		inline Entity GetSceneEntity() { return entity_; }
+		inline GScene* GetGSceneHandle() { return handlerScene_; }
 
 		inline void Update(const float dt);
 
@@ -410,6 +392,15 @@ namespace vz
 	struct CORE_EXPORT GeometryComponent : ComponentBase
 	{
 	public:
+		enum class PrimitiveType : uint8_t {
+			// don't change the enums values (made to match GL)
+			POINTS = 0,    //!< points
+			LINES = 1,    //!< lines
+			LINE_STRIP = 2,    //!< line strip
+			TRIANGLES = 3,    //!< triangles
+			TRIANGLE_STRIP = 4     //!< triangle strip
+		};
+
 		struct Primitive {
 		private:
 			inline static const size_t numBuffers_ = 6;
@@ -423,7 +414,7 @@ namespace vz
 			std::vector<uint32_t> indexPrimitives_;
 
 			primitive::AABB aabb_;
-			enums::PrimitiveType ptype_ = enums::PrimitiveType::TRIANGLES;
+			PrimitiveType ptype_ = PrimitiveType::TRIANGLES;
 		public:
 			void MoveFrom(Primitive& primitive)
 			{
@@ -450,9 +441,9 @@ namespace vz
 				for (size_t i = 0; i < numBuffers_; ++i) isValid_[i] = false;
 			}
 			primitive::AABB GetAABB() { return aabb_; }
-			enums::PrimitiveType GetPrimitiveType() { return ptype_; }
+			PrimitiveType GetPrimitiveType() { return ptype_; }
 			void SetAABB(const primitive::AABB& aabb) { aabb_ = aabb; }
-			void SetPrimitiveType(const enums::PrimitiveType ptype) { ptype_ = ptype; }
+			void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
 #define PRIM_GETTER(A)  if (data) { *data = A.data(); } return A.size();
 			size_t GetVtxPositions(XMFLOAT3** data) { assert(isValid_[0]); PRIM_GETTER(vertexPositions_) }
 			size_t GetVtxNormals(XMFLOAT3** data) { assert(isValid_[1]); PRIM_GETTER(vertexNormals_) }
@@ -596,6 +587,13 @@ namespace vz
 
 	struct CORE_EXPORT LightComponent : ComponentBase
 	{
+	public:
+		enum class LightType : uint32_t {
+			DIRECTIONAL = 0,
+			POINT,
+			SPOT,
+			COUNT
+		};
 	private:
 		enum Flags : uint32_t
 		{
@@ -606,7 +604,7 @@ namespace vz
 		};
 
 		uint32_t lightFlag_ = Flags::EMPTY;
-		enums::LightType type_ = enums::LightType::DIRECTIONAL;
+		LightType type_ = LightType::DIRECTIONAL;
 
 		XMFLOAT3 color_ = XMFLOAT3(1, 1, 1);
 		float range_ = 10.0f;
@@ -636,6 +634,8 @@ namespace vz
 		inline void SetDirty() { isDirty_ = true; }
 		inline bool IsDirty() const { return isDirty_; }
 		inline void SetLightColor(XMFLOAT3 color) { color_ = color; timeStampSetter_ = TimerNow; }
+		inline XMFLOAT3 GetLightColor() const { return color_; }
+		inline float GetLightIntensity() const { return intensity_; }
 		inline void SetRange(const float range) { range_ = range; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline float GetRange() const
 		{
@@ -645,8 +645,8 @@ namespace vz
 			return retval;
 		}
 		primitive::AABB GetAABB() const { return aabb_; }
-		inline enums::LightType GetLightType() const { return type_; }
-		inline void SetLightType(enums::LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
+		inline LightType GetLightType() const { return type_; }
+		inline void SetLightType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
 		inline bool IsInactive() const { return intensity_ == 0 || range_ == 0; }
 
 		inline void Update();	// if there is a transform entity, make sure the transform is updated!

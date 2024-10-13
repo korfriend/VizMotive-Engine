@@ -602,6 +602,258 @@ struct alignas(16) ShaderScene
 
 // ---------- Common Constant buffers: -----------------
 
+
+// Warning: the size of this structure directly affects shader performance.
+//	Try to reduce it as much as possible!
+//	Keep it aligned to 16 bytes for best performance!
+struct alignas(16) LightEntity
+{
+	float3 position;
+	uint type8_flags8_range16;
+
+	uint2 direction16_coneAngleCos16; // coneAngleCos is used for cascade count in directional light
+	uint2 color; // half4 packed
+
+	uint layerMask;
+	uint indices;
+	uint remap;
+	uint radius16_length16;
+
+	float4 shadowAtlasMulAdd;
+
+#ifndef __cplusplus
+	// Shader-side:
+	inline uint GetType()
+	{
+		return type8_flags8_range16 & 0xFF;
+	}
+	inline uint GetFlags()
+	{
+		return (type8_flags8_range16 >> 8u) & 0xFF;
+	}
+	inline half GetRange()
+	{
+		return (half)f16tof32(type8_flags8_range16 >> 16u);
+	}
+	inline half GetRadius()
+	{
+		return (half)f16tof32(radius16_length16);
+	}
+	inline half GetLength()
+	{
+		return (half)f16tof32(radius16_length16 >> 16u);
+	}
+	inline half3 GetDirection()
+	{
+		return normalize(half3(
+			(half)f16tof32(direction16_coneAngleCos16.x),
+			(half)f16tof32(direction16_coneAngleCos16.x >> 16u),
+			(half)f16tof32(direction16_coneAngleCos16.y)
+		));
+	}
+	inline half GetConeAngleCos()
+	{
+		return (half)f16tof32(direction16_coneAngleCos16.y >> 16u);
+	}
+	inline uint GetShadowCascadeCount()
+	{
+		return direction16_coneAngleCos16.y >> 16u;
+	}
+	inline half GetAngleScale()
+	{
+		return (half)f16tof32(remap);
+	}
+	inline half GetAngleOffset()
+	{
+		return (half)f16tof32(remap >> 16u);
+	}
+	inline half GetCubemapDepthRemapNear()
+	{
+		return (half)f16tof32(remap);
+	}
+	inline half GetCubemapDepthRemapFar()
+	{
+		return (half)f16tof32(remap >> 16u);
+	}
+	inline half4 GetColor()
+	{
+		half4 retVal;
+		retVal.x = (half)f16tof32(color.x);
+		retVal.y = (half)f16tof32(color.x >> 16u);
+		retVal.z = (half)f16tof32(color.y);
+		retVal.w = (half)f16tof32(color.y >> 16u);
+		return retVal;
+	}
+	inline uint GetMatrixIndex()
+	{
+		return indices & 0xFFFF;
+	}
+	inline uint GetTextureIndex()
+	{
+		return indices >> 16u;
+	}
+	inline bool IsCastingShadow()
+	{
+		return indices != ~0;
+	}
+	inline half GetGravity()
+	{
+		return GetConeAngleCos();
+	}
+	inline float3 GetColliderTip()
+	{
+		return shadowAtlasMulAdd.xyz;
+	}
+
+#else
+	// Application-side:
+	inline void SetType(uint type)
+	{
+		type8_flags8_range16 |= type & 0xFF;
+	}
+	inline void SetFlags(uint flags)
+	{
+		type8_flags8_range16 |= (flags & 0xFF) << 8u;
+	}
+	inline void SetRange(float value)
+	{
+		type8_flags8_range16 |= XMConvertFloatToHalf(value) << 16u;
+	}
+	inline void SetRadius(float value)
+	{
+		radius16_length16 |= XMConvertFloatToHalf(value);
+	}
+	inline void SetLength(float value)
+	{
+		radius16_length16 |= XMConvertFloatToHalf(value) << 16u;
+	}
+	inline void SetColor(float4 value)
+	{
+		color.x |= XMConvertFloatToHalf(value.x);
+		color.x |= XMConvertFloatToHalf(value.y) << 16u;
+		color.y |= XMConvertFloatToHalf(value.z);
+		color.y |= XMConvertFloatToHalf(value.w) << 16u;
+	}
+	inline void SetDirection(float3 value)
+	{
+		direction16_coneAngleCos16.x |= XMConvertFloatToHalf(value.x);
+		direction16_coneAngleCos16.x |= XMConvertFloatToHalf(value.y) << 16u;
+		direction16_coneAngleCos16.y |= XMConvertFloatToHalf(value.z);
+	}
+	inline void SetConeAngleCos(float value)
+	{
+		direction16_coneAngleCos16.y |= XMConvertFloatToHalf(value) << 16u;
+	}
+	inline void SetShadowCascadeCount(uint value)
+	{
+		direction16_coneAngleCos16.y |= (value & 0xFFFF) << 16u;
+	}
+	inline void SetAngleScale(float value)
+	{
+		remap |= XMConvertFloatToHalf(value);
+	}
+	inline void SetAngleOffset(float value)
+	{
+		remap |= XMConvertFloatToHalf(value) << 16u;
+	}
+	inline void SetCubeRemapNear(float value)
+	{
+		remap |= XMConvertFloatToHalf(value);
+	}
+	inline void SetCubeRemapFar(float value)
+	{
+		remap |= XMConvertFloatToHalf(value) << 16u;
+	}
+	inline void SetIndices(uint matrixIndex, uint textureIndex)
+	{
+		indices = matrixIndex & 0xFFFF;
+		indices |= (textureIndex & 0xFFFF) << 16u;
+	}
+	inline void SetGravity(float value)
+	{
+		SetConeAngleCos(value);
+	}
+	inline void SetColliderTip(float3 value)
+	{
+		shadowAtlasMulAdd = float4(value.x, value.y, value.z, 0);
+	}
+
+#endif // __cplusplus
+};
+
+static const uint LIGHT_ENTITY_COUNT = 256;
+static const uint LIGHT_ENTITY_TILE_BUCKET_COUNT = LIGHT_ENTITY_COUNT / 32;
+
+struct LightEntityIterator
+{
+	uint value;
+
+#ifdef __cplusplus
+	LightEntityIterator(uint offset, uint count)
+	{
+		value = offset | (count << 16u);
+	}
+	constexpr operator uint() const { return value; }
+#endif // __cplusplus
+
+	inline bool empty()
+	{
+		return value == 0;
+	}
+	inline uint item_offset()
+	{
+		return value & 0xFFFF;
+	}
+	inline uint item_count()
+	{
+		return value >> 16u;
+	}
+	inline uint first_item()
+	{
+		return item_offset();
+	}
+	inline uint last_item()
+	{
+		return empty() ? 0 : (item_offset() + item_count() - 1);
+	}
+	inline uint first_bucket()
+	{
+		return first_item() / 32u;
+	}
+	inline uint last_bucket()
+	{
+		return last_item() / 32u;
+	}
+	inline uint bucket_mask()
+	{
+		const uint bucket_mask_lo = ~0u << first_bucket();
+		const uint bucket_mask_hi = ~0u >> (31u - last_bucket());
+		return bucket_mask_lo & bucket_mask_hi;
+	}
+	inline uint first_bucket_entity_mask()
+	{
+		return ~0u << (first_item() % 32u);
+	}
+	inline uint last_bucket_entity_mask()
+	{
+		return ~0u >> (31u - (last_item() % 32u));
+	}
+	// This masks out inactive buckets of the current type based on a whole tile bucket mask
+	inline uint mask_type(uint tile_mask)
+	{
+		return tile_mask & bucket_mask();
+	}
+	// This masks out inactive entities for the current bucket type when processing either the first or the last bucket in the list
+	inline uint mask_entity(uint bucket, uint bucket_bits)
+	{
+		if (bucket == first_bucket())
+			bucket_bits &= first_bucket_entity_mask();
+		if (bucket == last_bucket())
+			bucket_bits &= last_bucket_entity_mask();
+		return bucket_bits;
+	}
+};
+
 struct alignas(16) FrameCB
 {
 	uint		options;					// renderer bool options packed into bitmask (OPTION_BIT_ values)
@@ -621,6 +873,7 @@ struct alignas(16) FrameCB
 
 	ShaderScene scene;
 
+	// Lights
 	uint probes;	// NOTE YET SUPPORTED
 	uint directional_lights;
 	uint spot_lights; // NOTE YET SUPPORTED
@@ -630,8 +883,12 @@ struct alignas(16) FrameCB
 	uint decals; // NOTE YET SUPPORTED
 	uint padding2; // NOTE YET SUPPORTED
 	uint padding3; 
+
+	// Note: 
+	//	A single renderable refers to a number of 'LightEntity's
+	//	This is why LightEntities and their transform matrices do not belong to 'ShaderScene'
+	LightEntity lightArray[LIGHT_ENTITY_COUNT];
+	float4x4 lightMatrixArray[LIGHT_ENTITY_COUNT];
 };
-
-
 
 #endif

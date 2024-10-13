@@ -92,4 +92,11 @@ namespace vz
 
 		mutable uint32_t lightmapIterationCount = 0;
 	};
+
+	struct CORE_EXPORT GLightComponent : LightComponent
+	{
+		GLightComponent(const Entity entity, const VUID vuid = 0) : LightComponent(entity, vuid) {}
+
+		std::vector<float> cascadeDistances = { 8, 80, 800 };
+	};
 }

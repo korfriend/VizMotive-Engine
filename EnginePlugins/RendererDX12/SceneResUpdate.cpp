@@ -1,100 +1,11 @@
-#include "PluginInterface.h"
 #include "Renderer.h"
 
-#include "Shaders/ShaderInterop.h"
-#include "Components/GComponents.h"
-#include "Utils/JobSystem.h"
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
 
 namespace vz
 {
 	const uint32_t SMALL_SUBTASK_GROUPSIZE = 64u;
-
-	struct GSceneDetails : GScene
-	{
-		GSceneDetails(Scene* scene) : GScene(scene) {}
-
-		// note all GPU resources (their pointers) are managed by
-		//  ComPtr or 
-		//  RAII (Resource Acquisition Is Initialization) patterns
-
-		// * This renderer plugin is based on Bindless Graphics 
-		//	(https://developer.download.nvidia.com/opengl/tutorials/bindless_graphics.pdf)
-
-		float deltaTime = 0.f;
-		std::vector<Entity> renderableEntities; // cached (non enclosing for jobsystem)
-		std::vector<Entity> lightEntities; // cached (non enclosing for jobsystem)
-		std::vector<Entity> geometryEntities; // cached (non enclosing for jobsystem)
-		std::vector<Entity> materialEntities; // cached (non enclosing for jobsystem)
-
-		// Separate stream of world matrices:
-		std::vector<XMFLOAT4X4> matrixRenderables;
-		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
-
-		const bool occlusionQueryEnabled = false;
-		const bool cameraFreezeCullingEnabled = false;
-
-		ShaderScene shaderscene = {};
-
-		graphics::GraphicsDevice* device = nullptr;
-		// Instances for bindless renderables:
-		//	contains in order:
-		//		1) renderables (normal meshes)
-		size_t instanceArraySize = 0;
-		graphics::GPUBuffer instanceUploadBuffer[graphics::GraphicsDevice::GetBufferCount()]; // dynamic GPU-usage
-		graphics::GPUBuffer instanceBuffer = {};	// default GPU-usage
-		ShaderMeshInstance* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
-
-		// Geometries for bindless visiblity indexing:
-		//	contains in order:
-		//		1) # of primitive parts
-		//		2) emitted particles * 1
-		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		ShaderGeometry* geometryArrayMapped = nullptr;
-		size_t geometryArraySize = 0;
-		graphics::GPUBuffer geometryBuffer = {};
-		std::atomic<uint32_t> geometryAllocator{ 0 };
-
-		// Materials for bindless visibility indexing:
-		size_t materialArraySize = 0;
-		graphics::GPUBuffer materialUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		graphics::GPUBuffer materialBuffer = {};
-		graphics::GPUBuffer textureStreamingFeedbackBuffer;	// a sinlge UINT
-		graphics::GPUBuffer textureStreamingFeedbackBuffer_readback[graphics::GraphicsDevice::GetBufferCount()];
-		const uint32_t* textureStreamingFeedbackMapped = nullptr;
-		ShaderMaterial* materialArrayMapped = nullptr;
-
-		// Occlusion query state:
-		struct OcclusionResult
-		{
-			int occlusionQueries[graphics::GraphicsDevice::GetBufferCount()];
-			// occlusion result history bitfield (32 bit->32 frame history)
-			uint32_t occlusionHistory = ~0u;
-
-			constexpr bool IsOccluded() const
-			{
-				// Perform a conservative occlusion test:
-				// If it is visible in any frames in the history, it is determined visible in this frame
-				// But if all queries failed in the history, it is occluded.
-				// If it pops up for a frame after occluded, it is visible again for some frames
-				return occlusionHistory == 0;
-			}
-		};
-		mutable std::vector<OcclusionResult> occlusionResultsObjects;
-		graphics::GPUQueryHeap queryHeap;
-		graphics::GPUBuffer queryResultBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		graphics::GPUBuffer queryPredicationBuffer = {};
-		uint32_t queryheapIdx = 0;
-		mutable std::atomic<uint32_t> queryAllocator{ 0 };
-
-		bool Update(const float dt) override;
-		bool Destory() override;
-
-		void RunMeshUpdateSystem(jobsystem::context& ctx);
-		void RunMaterialUpdateSystem(jobsystem::context& ctx);
-		void RunRenderableUpdateSystem(jobsystem::context& ctx);
-	};
 
 	GScene* NewGScene(Scene* scene)
 	{
@@ -320,6 +231,7 @@ namespace vz
 	}
 	void GSceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
 	{
+		occlusionResultsObjects.resize(renderableEntities.size());
 		// GPUs
 		jobsystem::Dispatch(ctx, (uint32_t)renderableEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 

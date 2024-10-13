@@ -1,9 +1,7 @@
-#include "PluginInterface.h"
 #include "Renderer.h"
 
-#include "Shaders/ShaderInterop.h"
-#include "Components/GComponents.h"
-#include "Utils/JobSystem.h"
+#include "TextureHelper.h"
+
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
 #include "Utils/EventHandler.h"
@@ -11,6 +9,7 @@
 #include "Utils/Profiler.h"
 #include "Libs/Math.h"
 #include "Libs/PrimitiveHelper.h"
+
 #include "ThirdParty/RectPacker.h"
 
 namespace vz::common
@@ -22,6 +21,7 @@ namespace vz::common
 	Shader				shaders[SHADERTYPE_COUNT];
 	GPUBuffer			buffers[BUFFERTYPE_COUNT];
 	Sampler				samplers[SAMPLER_COUNT];
+	Texture				textures[TEXTYPE_COUNT];
 
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	PipelineState		PSO_mesh[RENDERPASS_COUNT];
@@ -34,6 +34,7 @@ namespace vz::renderer
 	const bool isOcclusionCullingEnabled = true;
 	const bool isSceneUpdateEnabled = true;
 	const bool isTemporalAAEnabled = false;
+	const bool isFSREnabled = false;
 
 	using namespace primitive;
 
@@ -42,7 +43,7 @@ namespace vz::renderer
 		// User fills these:
 		uint8_t layerMask = ~0;
 		const Scene* scene = nullptr;
-		const CameraComponent* camera = nullptr;
+		CameraComponent* camera = nullptr;
 		enum FLAGS
 		{
 			EMPTY = 0,
@@ -218,7 +219,7 @@ namespace vz::renderer
 				const std::vector<Entity>& renderable_entities = vis.scene->GetRenderableEntities();
 				Entity entity = renderable_entities[args.jobIndex];
 				const RenderableComponent& renderable = *compfactory::GetRenderableComponent(entity);
-				assert(!renderable.IsDirty());
+				//assert(!renderable.IsDirty());
 
 				// Setup stream compaction:
 				uint32_t& group_count = *(uint32_t*)args.sharedmemory;
@@ -289,6 +290,7 @@ namespace vz::renderer
 	)
 	{
 		GraphicsDevice* device = graphics::GetDevice();
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();
 
 		// Update CPU-side frame constant buffer:
 		frameCB.delta_time = dt * renderingSpeed;
@@ -311,448 +313,75 @@ namespace vz::renderer
 			frameCB.options |= OPTION_BIT_TEMPORALAA_ENABLED;
 		}
 
-		/*
-		frameCB.scene = vis.scene->shaderscene;
+		frameCB.scene = scene_Gdetails->shaderscene;
 
 		frameCB.texture_random64x64_index = device->GetDescriptorIndex(texturehelper::getRandom64x64(), SubresourceType::SRV);
 		frameCB.texture_bluenoise_index = device->GetDescriptorIndex(texturehelper::getBlueNoise(), SubresourceType::SRV);
-		frameCB.texture_sheenlut_index = device->GetDescriptorIndex(&textures[TEXTYPE_2D_SHEENLUT], SubresourceType::SRV);
+		frameCB.texture_sheenlut_index = device->GetDescriptorIndex(&common::textures[TEXTYPE_2D_SHEENLUT], SubresourceType::SRV);
 
-		// Fill Entity Array with decals + envprobes + lights in the frustum:
-		uint envprobearray_offset = 0;
-		uint envprobearray_count = 0;
 		uint lightarray_offset_directional = 0;
 		uint lightarray_count_directional = 0;
-		uint lightarray_offset_spot = 0;
-		uint lightarray_count_spot = 0;
-		uint lightarray_offset_point = 0;
-		uint lightarray_count_point = 0;
 		uint lightarray_offset = 0;
 		uint lightarray_count = 0;
-		uint decalarray_offset = 0;
-		uint decalarray_count = 0;
-		uint forcefieldarray_offset = 0;
-		uint forcefieldarray_count = 0;
-		frameCB.entity_culling_count = 0;
+
+		LightEntity* light_entity_array = frameCB.lightArray;
+		float4x4* light_matrix_array = frameCB.lightMatrixArray;
+
+		uint32_t light_entity_counter = 0;
+
+		const std::vector<Entity>& light_entities = vis.scene->GetLightEntities();
+
+		// Write directional lights into entity array:
+		lightarray_offset = light_entity_counter;
+		lightarray_offset_directional = light_entity_counter;
+		for (uint32_t lightIndex : vis.visibleLights)
 		{
-			ShaderEntity* entityArray = frameCB.entityArray;
-			float4x4* matrixArray = frameCB.matrixArray;
-
-			uint32_t entityCounter = 0;
-			uint32_t matrixCounter = 0;
-
-			// Write decals into entity array:
-			decalarray_offset = entityCounter;
-			const size_t decal_iterations = std::min((size_t)MAX_SHADER_DECAL_COUNT, vis.visibleDecals.size());
-			for (size_t i = 0; i < decal_iterations; ++i)
+			if (light_entity_counter == LIGHT_ENTITY_COUNT)
 			{
-				if (entityCounter == SHADER_ENTITY_COUNT)
-				{
-					entityCounter--;
-					break;
-				}
-				if (matrixCounter >= MATRIXARRAY_COUNT)
-				{
-					matrixCounter--;
-					break;
-				}
-				ShaderEntity shaderentity = {};
-				XMMATRIX shadermatrix;
-
-				const uint32_t decalIndex = vis.visibleDecals[vis.visibleDecals.size() - 1 - i]; // note: reverse order, for correct blending!
-				const DecalComponent& decal = vis.scene->decals[decalIndex];
-
-				shaderentity.layerMask = ~0u;
-
-				Entity entity = vis.scene->decals.GetEntity(decalIndex);
-				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
-				if (layer != nullptr)
-				{
-					shaderentity.layerMask = layer->layerMask;
-				}
-
-				shaderentity.SetType(ENTITY_TYPE_DECAL);
-				if (decal.IsBaseColorOnlyAlpha())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_DECAL_BASECOLOR_ONLY_ALPHA);
-				}
-				shaderentity.position = decal.position;
-				shaderentity.SetRange(decal.range);
-				float emissive_mul = 1 + decal.emissive;
-				shaderentity.SetColor(float4(decal.color.x * emissive_mul, decal.color.y * emissive_mul, decal.color.z * emissive_mul, decal.color.w));
-				shaderentity.shadowAtlasMulAdd = decal.texMulAdd;
-				shaderentity.SetConeAngleCos(decal.slopeBlendPower);
-				shaderentity.SetDirection(decal.front);
-				shaderentity.SetAngleScale(decal.normal_strength);
-				shaderentity.SetLength(decal.displacement_strength);
-
-				shaderentity.SetIndices(matrixCounter, 0);
-				shadermatrix = XMMatrixInverse(nullptr, XMLoadFloat4x4(&decal.world));
-
-				int texture = -1;
-				if (decal.texture.IsValid())
-				{
-					texture = device->GetDescriptorIndex(&decal.texture.GetTexture(), SubresourceType::SRV, decal.texture.GetTextureSRGBSubresource());
-				}
-				int normal = -1;
-				if (decal.normal.IsValid())
-				{
-					normal = device->GetDescriptorIndex(&decal.normal.GetTexture(), SubresourceType::SRV);
-				}
-				int surfacemap = -1;
-				if (decal.surfacemap.IsValid())
-				{
-					surfacemap = device->GetDescriptorIndex(&decal.surfacemap.GetTexture(), SubresourceType::SRV);
-				}
-				int displacementmap = -1;
-				if (decal.displacementmap.IsValid())
-				{
-					displacementmap = device->GetDescriptorIndex(&decal.displacementmap.GetTexture(), SubresourceType::SRV);
-				}
-
-				shadermatrix.r[0] = XMVectorSetW(shadermatrix.r[0], *(float*)&texture);
-				shadermatrix.r[1] = XMVectorSetW(shadermatrix.r[1], *(float*)&normal);
-				shadermatrix.r[2] = XMVectorSetW(shadermatrix.r[2], *(float*)&surfacemap);
-				shadermatrix.r[3] = XMVectorSetW(shadermatrix.r[3], *(float*)&displacementmap);
-
-				XMStoreFloat4x4(matrixArray + matrixCounter, shadermatrix);
-				matrixCounter++;
-
-				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-				entityCounter++;
-				decalarray_count++;
+				light_entity_counter--;
+				break;
 			}
 
+			const GLightComponent& light = *(GLightComponent*)compfactory::GetLightComponent(light_entities[lightIndex]);
+			if (light.GetLightType() != LightComponent::LightType::DIRECTIONAL || light.IsInactive())
+				continue;
 
-			// Write directional lights into entity array:
-			lightarray_offset = entityCounter;
-			lightarray_offset_directional = entityCounter;
-			for (uint32_t lightIndex : vis.visibleLights)
-			{
-				if (entityCounter == SHADER_ENTITY_COUNT)
-				{
-					entityCounter--;
-					break;
-				}
+			LightEntity light_entity = {};
+			light_entity.layerMask = ~0u;
 
-				const LightComponent& light = vis.scene->lights[lightIndex];
-				if (light.GetType() != LightComponent::DIRECTIONAL || light.IsInactive())
-					continue;
+			light_entity.SetType(SCU32(light.GetLightType()));
+			light_entity.position = light.position;
+			light_entity.SetRange(light.GetRange());
+			light_entity.SetRadius(0);
+			light_entity.SetLength(0);
+			light_entity.SetDirection(light.direction);
+			XMFLOAT3 light_color = light.GetLightColor();
+			float light_intensity = light.GetLightIntensity();
+			light_entity.SetColor(float4(light_color.x * light_intensity, light_color.y * light_intensity, light_color.z * light_intensity, 1.f));
 
-				ShaderEntity shaderentity = {};
-				shaderentity.layerMask = ~0u;
+			// mark as no shadow by default:
+			light_entity.indices = ~0;
 
-				Entity entity = vis.scene->lights.GetEntity(lightIndex);
-				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
-				if (layer != nullptr)
-				{
-					shaderentity.layerMask = layer->layerMask;
-				}
+			const uint cascade_count = std::min((uint)light.cascadeDistances.size(), LIGHT_ENTITY_COUNT - light_entity_counter);
+			light_entity.SetShadowCascadeCount(cascade_count);
 
-				shaderentity.SetType(light.GetType());
-				shaderentity.position = light.position;
-				shaderentity.SetRange(light.GetRange());
-				shaderentity.SetRadius(light.radius);
-				shaderentity.SetLength(light.length);
-				shaderentity.SetDirection(light.direction);
-				shaderentity.SetColor(float4(light.color.x * light.intensity, light.color.y * light.intensity, light.color.z * light.intensity, 1));
+			//if (shadow && !light.cascade_distances.empty())
+			//{
+			//	SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
+			//	CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
+			//	for (size_t cascade = 0; cascade < cascade_count; ++cascade)
+			//	{
+			//		XMStoreFloat4x4(&light_matrix_array[light_matrix_counter++], shcams[cascade].view_projection);
+			//	}
+			//}
 
-				// mark as no shadow by default:
-				shaderentity.indices = ~0;
-
-				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
-				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
-
-				if (shadow)
-				{
-					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
-					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
-					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
-					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
-					shaderentity.SetIndices(matrixCounter, 0);
-				}
-
-				const uint cascade_count = std::min((uint)light.cascade_distances.size(), MATRIXARRAY_COUNT - matrixCounter);
-				shaderentity.SetShadowCascadeCount(cascade_count);
-
-				if (shadow && !light.cascade_distances.empty())
-				{
-					SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
-					CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
-					for (size_t cascade = 0; cascade < cascade_count; ++cascade)
-					{
-						XMStoreFloat4x4(&matrixArray[matrixCounter++], shcams[cascade].view_projection);
-					}
-				}
-
-				if (light.IsStatic())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
-				}
-
-				if (light.IsVolumetricCloudsEnabled())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
-				}
-
-				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-				entityCounter++;
-				lightarray_count_directional++;
-			}
-
-			// Write spot lights into entity array:
-			lightarray_offset_spot = entityCounter;
-			for (uint32_t lightIndex : vis.visibleLights)
-			{
-				if (entityCounter == SHADER_ENTITY_COUNT)
-				{
-					entityCounter--;
-					break;
-				}
-
-				const LightComponent& light = vis.scene->lights[lightIndex];
-				if (light.GetType() != LightComponent::SPOT || light.IsInactive())
-					continue;
-
-				ShaderEntity shaderentity = {};
-				shaderentity.layerMask = ~0u;
-
-				Entity entity = vis.scene->lights.GetEntity(lightIndex);
-				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
-				if (layer != nullptr)
-				{
-					shaderentity.layerMask = layer->layerMask;
-				}
-
-				shaderentity.SetType(light.GetType());
-				shaderentity.position = light.position;
-				shaderentity.SetRange(light.GetRange());
-				shaderentity.SetRadius(light.radius);
-				shaderentity.SetLength(light.length);
-				shaderentity.SetDirection(light.direction);
-				shaderentity.SetColor(float4(light.color.x * light.intensity, light.color.y * light.intensity, light.color.z * light.intensity, 1));
-
-				// mark as no shadow by default:
-				shaderentity.indices = ~0;
-
-				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
-				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
-
-				if (shadow)
-				{
-					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
-					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
-					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
-					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
-					shaderentity.SetIndices(matrixCounter, 0);
-				}
-
-				const float outerConeAngle = light.outerConeAngle;
-				const float innerConeAngle = std::min(light.innerConeAngle, outerConeAngle);
-				const float outerConeAngleCos = std::cos(outerConeAngle);
-				const float innerConeAngleCos = std::cos(innerConeAngle);
-
-				// https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual#inner-and-outer-cone-angles
-				const float lightAngleScale = 1.0f / std::max(0.001f, innerConeAngleCos - outerConeAngleCos);
-				const float lightAngleOffset = -outerConeAngleCos * lightAngleScale;
-
-				shaderentity.SetConeAngleCos(outerConeAngleCos);
-				shaderentity.SetAngleScale(lightAngleScale);
-				shaderentity.SetAngleOffset(lightAngleOffset);
-
-				if (shadow)
-				{
-					SHCAM shcam;
-					CreateSpotLightShadowCam(light, shcam);
-					XMStoreFloat4x4(&matrixArray[matrixCounter++], shcam.view_projection);
-				}
-
-				if (light.IsStatic())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
-				}
-
-				if (light.IsVolumetricCloudsEnabled())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
-				}
-
-				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-				entityCounter++;
-				lightarray_count_spot++;
-			}
-
-			// Write point lights into entity array:
-			lightarray_offset_point = entityCounter;
-			for (uint32_t lightIndex : vis.visibleLights)
-			{
-				if (entityCounter == SHADER_ENTITY_COUNT)
-				{
-					entityCounter--;
-					break;
-				}
-
-				const LightComponent& light = vis.scene->lights[lightIndex];
-				if (light.GetType() != LightComponent::POINT || light.IsInactive())
-					continue;
-
-				ShaderEntity shaderentity = {};
-				shaderentity.layerMask = ~0u;
-
-				Entity entity = vis.scene->lights.GetEntity(lightIndex);
-				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
-				if (layer != nullptr)
-				{
-					shaderentity.layerMask = layer->layerMask;
-				}
-
-				shaderentity.SetType(light.GetType());
-				shaderentity.position = light.position;
-				shaderentity.SetRange(light.GetRange());
-				shaderentity.SetRadius(light.radius);
-				shaderentity.SetLength(light.length);
-				shaderentity.SetDirection(light.direction);
-				shaderentity.SetColor(float4(light.color.x * light.intensity, light.color.y * light.intensity, light.color.z * light.intensity, 1));
-
-				// mark as no shadow by default:
-				shaderentity.indices = ~0;
-
-				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
-				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
-
-				if (shadow)
-				{
-					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
-					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
-					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
-					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
-					shaderentity.SetIndices(matrixCounter, 0);
-				}
-
-				if (shadow)
-				{
-					const float FarZ = 0.1f;	// watch out: reversed depth buffer! Also, light near plane is constant for simplicity, this should match on cpu side!
-					const float NearZ = std::max(1.0f, light.GetRange()); // watch out: reversed depth buffer!
-					const float fRange = FarZ / (FarZ - NearZ);
-					const float cubemapDepthRemapNear = fRange;
-					const float cubemapDepthRemapFar = -fRange * NearZ;
-					shaderentity.SetCubeRemapNear(cubemapDepthRemapNear);
-					shaderentity.SetCubeRemapFar(cubemapDepthRemapFar);
-				}
-
-				if (light.IsStatic())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
-				}
-
-				if (light.IsVolumetricCloudsEnabled())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
-				}
-
-				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-				entityCounter++;
-				lightarray_count_point++;
-			}
-			lightarray_count = lightarray_count_directional + lightarray_count_spot + lightarray_count_point;
-			frameCB.entity_culling_count = lightarray_count + decalarray_count + envprobearray_count;
-
-			// Write colliders into entity array:
-			forcefieldarray_offset = entityCounter;
-			for (size_t i = 0; i < vis.scene->collider_count_gpu; ++i)
-			{
-				if (entityCounter == SHADER_ENTITY_COUNT)
-				{
-					entityCounter--;
-					break;
-				}
-				ShaderEntity shaderentity = {};
-
-				const ColliderComponent& collider = vis.scene->colliders_gpu[i];
-				shaderentity.layerMask = collider.layerMask;
-
-				switch (collider.shape)
-				{
-				case ColliderComponent::Shape::Sphere:
-					shaderentity.SetType(ENTITY_TYPE_COLLIDER_SPHERE);
-					shaderentity.position = collider.sphere.center;
-					shaderentity.SetRange(collider.sphere.radius);
-					break;
-				case ColliderComponent::Shape::Capsule:
-					shaderentity.SetType(ENTITY_TYPE_COLLIDER_CAPSULE);
-					shaderentity.position = collider.capsule.base;
-					shaderentity.SetColliderTip(collider.capsule.tip);
-					shaderentity.SetRange(collider.capsule.radius);
-					break;
-				case ColliderComponent::Shape::Plane:
-					shaderentity.SetType(ENTITY_TYPE_COLLIDER_PLANE);
-					shaderentity.position = collider.plane.origin;
-					shaderentity.SetDirection(collider.plane.normal);
-					shaderentity.SetIndices(matrixCounter, ~0u);
-					matrixArray[matrixCounter++] = collider.plane.projection;
-					break;
-				default:
-					assert(0);
-					break;
-				}
-
-				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-				entityCounter++;
-				forcefieldarray_count++;
-			}
-
-			// Write force fields into entity array:
-			for (size_t i = 0; i < vis.scene->forces.GetCount(); ++i)
-			{
-				if (entityCounter == SHADER_ENTITY_COUNT)
-				{
-					entityCounter--;
-					break;
-				}
-				ShaderEntity shaderentity = {};
-
-				const ForceFieldComponent& force = vis.scene->forces[i];
-
-				shaderentity.layerMask = ~0u;
-
-				Entity entity = vis.scene->forces.GetEntity(i);
-				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
-				if (layer != nullptr)
-				{
-					shaderentity.layerMask = layer->layerMask;
-				}
-
-				switch (force.type)
-				{
-				default:
-				case ForceFieldComponent::Type::Point:
-					shaderentity.SetType(ENTITY_TYPE_FORCEFIELD_POINT);
-					break;
-				case ForceFieldComponent::Type::Plane:
-					shaderentity.SetType(ENTITY_TYPE_FORCEFIELD_PLANE);
-					break;
-				}
-				shaderentity.position = force.position;
-				shaderentity.SetGravity(force.gravity);
-				shaderentity.SetRange(std::max(0.001f, force.GetRange()));
-				// The default planar force field is facing upwards, and thus the pull direction is downwards:
-				shaderentity.SetDirection(force.direction);
-
-				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-				entityCounter++;
-				forcefieldarray_count++;
-			}
+			std::memcpy(light_entity_array + light_entity_counter, &light_entity, sizeof(LightEntity));
+			light_entity_counter++;
+			lightarray_count_directional++;
 		}
 
-		frameCB.probes = ShaderEntityIterator(envprobearray_offset, envprobearray_count);
-		frameCB.directional_lights = ShaderEntityIterator(lightarray_offset_directional, lightarray_count_directional);
-		frameCB.spotlights = ShaderEntityIterator(lightarray_offset_spot, lightarray_count_spot);
-		frameCB.pointlights = ShaderEntityIterator(lightarray_offset_point, lightarray_count_point);
-		frameCB.lights = ShaderEntityIterator(lightarray_offset, lightarray_count);
-		frameCB.decals = ShaderEntityIterator(decalarray_offset, decalarray_count);
-		frameCB.forces = ShaderEntityIterator(forcefieldarray_offset, forcefieldarray_count);
-		/**/
-
+		frameCB.directional_lights = LightEntityIterator(lightarray_offset_directional, lightarray_count_directional);
+		frameCB.lights = LightEntityIterator(lightarray_offset, lightarray_count);
 	}
 
 
@@ -788,6 +417,16 @@ namespace vz::renderer
 
 namespace vz
 {
+	struct TemporalAAResources
+	{
+		mutable int frame = 0;
+		graphics::Texture textureTemporal[2];
+
+		bool IsValid() const { return textureTemporal[0].IsValid(); }
+		const graphics::Texture* GetCurrent() const { return &textureTemporal[frame % arraysize(textureTemporal)]; }
+		const graphics::Texture* GetHistory() const { return &textureTemporal[(frame + 1) % arraysize(textureTemporal)]; }
+	};
+
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
 		GRenderPath3DDetails(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
@@ -803,6 +442,7 @@ namespace vz
 		CameraComponent* cameraReflection = nullptr;
 
 		// resources associated with render target buffers and textures
+		TemporalAAResources temporalAAResources;
 
 		void UpdateViewRes(const float dt);
 
@@ -843,7 +483,7 @@ namespace vz
 			// Frustum culling for planar reflections:
 			cameraReflection = camera;
 			cameraReflection->jitter = XMFLOAT2(0, 0);
-			//cameraReflection.Reflect(viewMain.reflectionPlane);
+			//cameraReflection->Reflect(viewMain.reflectionPlane);
 			//viewReflection.layerMask = getLayerMask();
 			viewReflection.scene = scene;
 			viewReflection.camera = cameraReflection;
@@ -864,218 +504,71 @@ namespace vz
 			renderer::isSceneUpdateEnabled ? dt : 0
 		);
 
-		/*
-		if (getFSR2Enabled())
-		{
-			camera->jitter = fsr2Resources.GetJitter();
-			camera_reflection.jitter.x = camera->jitter.x * 2;
-			camera_reflection.jitter.y = camera->jitter.x * 2;
-		}
-		else if (renderer::GetTemporalAAEnabled())
+		
+		if (renderer::isTemporalAAEnabled)
 		{
 			const XMFLOAT4& halton = math::GetHaltonSequence(graphics::GetDevice()->GetFrameCount() % 256);
 			camera->jitter.x = (halton.x * 2 - 1) / (float)internalResolution.x;
 			camera->jitter.y = (halton.y * 2 - 1) / (float)internalResolution.y;
-			camera_reflection.jitter.x = camera->jitter.x * 2;
-			camera_reflection.jitter.y = camera->jitter.x * 2;
+			if (cameraReflection)
+			{
+				cameraReflection->jitter.x = camera->jitter.x * 2;
+				cameraReflection->jitter.y = camera->jitter.x * 2;
+			}
 			if (!temporalAAResources.IsValid())
 			{
-				renderer::CreateTemporalAAResources(temporalAAResources, internalResolution);
+				temporalAAResources.frame = 0;
+
+				TextureDesc desc;
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.format = Format::R11G11B10_FLOAT;
+				desc.width = internalResolution.x;
+				desc.height = internalResolution.y;
+				device->CreateTexture(&desc, nullptr, &temporalAAResources.textureTemporal[0]);
+				device->SetName(&temporalAAResources.textureTemporal[0], "TemporalAAResources::texture_temporal[0]");
+				device->CreateTexture(&desc, nullptr, &temporalAAResources.textureTemporal[1]);
+				device->SetName(&temporalAAResources.textureTemporal[1], "TemporalAAResources::texture_temporal[1]");
 			}
 		}
 		else
 		{
 			camera->jitter = XMFLOAT2(0, 0);
-			camera_reflection.jitter = XMFLOAT2(0, 0);
+			if (cameraReflection)
+			{
+				cameraReflection->jitter = XMFLOAT2(0, 0);
+			}
 			temporalAAResources = {};
 		}
 
-		camera->UpdateCamera();
-		if (viewMain.planar_reflection_visible)
+		// for updating Jitters
+		viewMain.camera->UpdateMatrix();
+		if (viewMain.isPlanarReflectionVisible)
 		{
-			camera_reflection.UpdateCamera();
-		}
-
-		if (getAO() != AO_RTAO)
-		{
-			rtaoResources.frame = 0;
-		}
-		if (!renderer::GetRaytracedShadowsEnabled())
-		{
-			rtshadowResources.frame = 0;
-		}
-		if (!getSSREnabled() && !getRaytracedReflectionEnabled())
-		{
-			rtSSR = {};
-		}
-		if (!getSSGIEnabled())
-		{
-			rtSSGI = {};
-		}
-		if (!getRaytracedDiffuseEnabled())
-		{
-			rtRaytracedDiffuse = {};
-		}
-		if (getAO() == AO_DISABLED)
-		{
-			rtAO = {};
-		}
-
-		if (renderer::GetRaytracedShadowsEnabled() && device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-		{
-			if (!rtshadowResources.denoised.IsValid())
-			{
-				renderer::CreateRTShadowResources(rtshadowResources, internalResolution);
-			}
-		}
-		else
-		{
-			rtshadowResources = {};
-		}
-
-		if (scene->weather.IsRealisticSky() && scene->weather.IsRealisticSkyAerialPerspective())
-		{
-			if (!aerialperspectiveResources.texture_output.IsValid())
-			{
-				renderer::CreateAerialPerspectiveResources(aerialperspectiveResources, internalResolution);
-			}
-			if (getReflectionsEnabled() && depthBuffer_Reflection.IsValid())
-			{
-				if (!aerialperspectiveResources_reflection.texture_output.IsValid())
-				{
-					renderer::CreateAerialPerspectiveResources(aerialperspectiveResources_reflection, XMUINT2(depthBuffer_Reflection.desc.width, depthBuffer_Reflection.desc.height));
-				}
-			}
-			else
-			{
-				aerialperspectiveResources_reflection = {};
-			}
-		}
-		else
-		{
-			aerialperspectiveResources = {};
-		}		
-
-		if (!scene->waterRipples.empty())
-		{
-			if (!rtWaterRipple.IsValid())
-			{
-				TextureDesc desc;
-				desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
-				desc.format = Format::R16G16_FLOAT;
-				desc.width = internalResolution.x / 8;
-				desc.height = internalResolution.y / 8;
-				assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtParticleDistortion.desc)); // aliasing check
-				device->CreateTexture(&desc, nullptr, &rtWaterRipple, &rtParticleDistortion); // aliased!
-				device->SetName(&rtWaterRipple, "rtWaterRipple");
-			}
-		}
-		else
-		{
-			rtWaterRipple = {};
-		}
-
-		if (renderer::GetSurfelGIEnabled())
-		{
-			if (!surfelGIResources.result.IsValid())
-			{
-				renderer::CreateSurfelGIResources(surfelGIResources, internalResolution);
-			}
-		}
-
-		if (renderer::GetVXGIEnabled())
-		{
-			if (!vxgiResources.IsValid())
-			{
-				renderer::CreateVXGIResources(vxgiResources, internalResolution);
-			}
-		}
-		else
-		{
-			vxgiResources = {};
-		}
-
-		// Check whether reprojected depth is required:
-		if (!first_frame && renderer::IsMeshShaderAllowed() && renderer::IsMeshletOcclusionCullingEnabled())
-		{
-			TextureDesc desc;
-			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			desc.format = Format::R16_UNORM;
-			desc.width = internalResolution.x;
-			desc.height = internalResolution.y;
-			desc.mip_levels = GetMipCount(desc.width, desc.height, 1, 4);
-			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
-			device->CreateTexture(&desc, nullptr, &reprojectedDepth);
-			device->SetName(&reprojectedDepth, "reprojectedDepth");
-
-			for (uint32_t i = 0; i < reprojectedDepth.desc.mip_levels; ++i)
-			{
-				int subresource_index;
-				subresource_index = device->CreateSubresource(&reprojectedDepth, SubresourceType::SRV, 0, 1, i, 1);
-				assert(subresource_index == i);
-				subresource_index = device->CreateSubresource(&reprojectedDepth, SubresourceType::UAV, 0, 1, i, 1);
-				assert(subresource_index == i);
-			}
-		}
-		else
-		{
-			reprojectedDepth = {};
-		}
-
-		// Check whether velocity buffer is required:
-		if (
-			getMotionBlurEnabled() ||
-			renderer::GetTemporalAAEnabled() ||
-			getSSREnabled() ||
-			getSSGIEnabled() ||
-			getRaytracedReflectionEnabled() ||
-			getRaytracedDiffuseEnabled() ||
-			renderer::GetRaytracedShadowsEnabled() ||
-			getAO() == AO::AO_RTAO ||
-			renderer::GetVariableRateShadingClassification() ||
-			getFSR2Enabled() ||
-			reprojectedDepth.IsValid()
-			)
-		{
-			if (!rtVelocity.IsValid())
-			{
-				TextureDesc desc;
-				desc.format = Format::R16G16_FLOAT;
-				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS | BindFlag::RENDER_TARGET;
-				desc.width = internalResolution.x;
-				desc.height = internalResolution.y;
-				desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
-				device->CreateTexture(&desc, nullptr, &rtVelocity);
-				device->SetName(&rtVelocity, "rtVelocity");
-			}
-		}
-		else
-		{
-			rtVelocity = {};
+			cameraReflection->UpdateMatrix();
 		}
 
 		// Check whether shadow mask is required:
-		if (renderer::GetScreenSpaceShadowsEnabled() || renderer::GetRaytracedShadowsEnabled())
-		{
-			if (!rtShadow.IsValid())
-			{
-				TextureDesc desc;
-				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-				desc.format = Format::R8_UNORM;
-				desc.array_size = 16;
-				desc.width = internalResolution.x;
-				desc.height = internalResolution.y;
-				desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
-				device->CreateTexture(&desc, nullptr, &rtShadow);
-				device->SetName(&rtShadow, "rtShadow");
-			}
-		}
-		else
-		{
-			rtShadow = {};
-		}
+		//if (renderer::GetScreenSpaceShadowsEnabled() || renderer::GetRaytracedShadowsEnabled())
+		//{
+		//	if (!rtShadow.IsValid())
+		//	{
+		//		TextureDesc desc;
+		//		desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+		//		desc.format = Format::R8_UNORM;
+		//		desc.array_size = 16;
+		//		desc.width = internalResolution.x;
+		//		desc.height = internalResolution.y;
+		//		desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+		//		device->CreateTexture(&desc, nullptr, &rtShadow);
+		//		device->SetName(&rtShadow, "rtShadow");
+		//	}
+		//}
+		//else
+		//{
+		//	rtShadow = {};
+		//}
 
-		if (getFSR2Enabled())
+		if (renderer::isFSREnabled)
 		{
 			// FSR2 also acts as a temporal AA, so we inform the shaders about it here
 			//	This will allow improved stochastic alpha test transparency
@@ -1084,82 +577,6 @@ namespace vz
 			uint y = frameCB.frame_count / 4;
 			frameCB.temporalaa_samplerotation = (x & 0x000000FF) | ((y & 0x000000FF) << 8);
 		}
-
-		// Check whether visibility resources are required:
-		if (
-			visibility_shading_in_compute ||
-			getSSREnabled() ||
-			getSSGIEnabled() ||
-			getRaytracedReflectionEnabled() ||
-			getRaytracedDiffuseEnabled() ||
-			renderer::GetScreenSpaceShadowsEnabled() ||
-			renderer::GetRaytracedShadowsEnabled() ||
-			renderer::GetVXGIEnabled()
-			)
-		{
-			if (!visibilityResources.IsValid())
-			{
-				renderer::CreateVisibilityResources(visibilityResources, internalResolution);
-			}
-		}
-		else
-		{
-			visibilityResources = {};
-		}
-
-		// Check for depth of field allocation:
-		if (getDepthOfFieldEnabled() &&
-			getDepthOfFieldStrength() > 0 &&
-			camera->aperture_size > 0
-			)
-		{
-			if (!depthoffieldResources.IsValid())
-			{
-				XMUINT2 resolution = GetInternalResolution();
-				if (getFSR2Enabled())
-				{
-					resolution = XMUINT2(GetPhysicalWidth(), GetPhysicalHeight());
-				}
-				renderer::CreateDepthOfFieldResources(depthoffieldResources, resolution);
-			}
-		}
-		else
-		{
-			depthoffieldResources = {};
-		}
-
-		// Check for motion blur allocation:
-		if (getMotionBlurEnabled() && getMotionBlurStrength() > 0)
-		{
-			if (!motionblurResources.IsValid())
-			{
-				XMUINT2 resolution = GetInternalResolution();
-				if (getFSR2Enabled())
-				{
-					resolution = XMUINT2(GetPhysicalWidth(), GetPhysicalHeight());
-				}
-				renderer::CreateMotionBlurResources(motionblurResources, resolution);
-			}
-		}
-		else
-		{
-			motionblurResources = {};
-		}
-
-		// Keep a copy of last frame's depth buffer for temporal disocclusion checks, so swap with current one every frame:
-		std::swap(depthBuffer_Copy, depthBuffer_Copy1);
-
-		visibilityResources.depthbuffer = &depthBuffer_Copy;
-		visibilityResources.lineardepth = &rtLinearDepth;
-		if (getMSAASampleCount() > 1)
-		{
-			visibilityResources.primitiveID_resolved = &rtPrimitiveID;
-		}
-		else
-		{
-			visibilityResources.primitiveID_resolved = nullptr;
-		}
-		/**/
 	}
 
 	bool GRenderPath3DDetails::Render(const float dt)
@@ -1183,9 +600,10 @@ namespace vz
 
 	bool GRenderPath3DDetails::Destory()
 	{
+		temporalAAResources = {};
+
 		return true;
 	}
-
 }
 
 namespace vz
