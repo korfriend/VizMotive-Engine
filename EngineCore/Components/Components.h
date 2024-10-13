@@ -30,7 +30,9 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241014";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
+	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
 	struct GScene;
@@ -403,8 +405,8 @@ namespace vz
 
 		struct Primitive {
 		private:
-			inline static const size_t numBuffers_ = 6;
-			bool isValid_[numBuffers_] = { }; // false
+			inline static const size_t NUMBUFFERS = 6;
+			bool isValid_[NUMBUFFERS] = { }; // false
 
 			std::vector<XMFLOAT3> vertexPositions_;
 			std::vector<XMFLOAT3> vertexNormals_;
@@ -419,14 +421,19 @@ namespace vz
 			void MoveFrom(Primitive& primitive)
 			{
 				vertexPositions_ = std::move(primitive.vertexPositions_);
+				if (vertexPositions_.size() > 0) isValid_[0] = true;
 				vertexNormals_ = std::move(primitive.vertexNormals_);
+				if (vertexNormals_.size() > 0) isValid_[1] = true;
 				vertexUVset0_ = std::move(primitive.vertexUVset0_);
+				if (vertexUVset0_.size() > 0) isValid_[2] = true;
 				vertexUVset1_ = std::move(primitive.vertexUVset1_);
+				if (vertexUVset1_.size() > 0) isValid_[3] = true;
 				vertexColors_ = std::move(primitive.vertexColors_);
+				if (vertexColors_.size() > 0) isValid_[4] = true;
 				indexPrimitives_ = std::move(primitive.indexPrimitives_);
+				if (indexPrimitives_.size() > 0) isValid_[5] = true;
 				aabb_ = primitive.aabb_;
 				ptype_ = primitive.ptype_;
-				for (size_t i = 0; i < numBuffers_; ++i) isValid_[i] = true;
 			}
 			void MoveTo(Primitive& primitive)
 			{
@@ -438,10 +445,13 @@ namespace vz
 				primitive.indexPrimitives_ = std::move(indexPrimitives_);
 				primitive.aabb_ = aabb_;
 				primitive.ptype_ = ptype_;
-				for (size_t i = 0; i < numBuffers_; ++i) isValid_[i] = false;
+				for (size_t i = 0; i < NUMBUFFERS; ++i) isValid_[i] = false;
 			}
 			primitive::AABB GetAABB() { return aabb_; }
 			PrimitiveType GetPrimitiveType() { return ptype_; }
+			bool IsValid() {
+				return vertexPositions_.size() > 0 && aabb_.IsValid();
+			}
 			void SetAABB(const primitive::AABB& aabb) { aabb_ = aabb; }
 			void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
 #define PRIM_GETTER(A)  if (data) { *data = A.data(); } return A.size();

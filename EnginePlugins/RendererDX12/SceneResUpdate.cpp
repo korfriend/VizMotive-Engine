@@ -231,9 +231,12 @@ namespace vz
 	}
 	void GSceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
 	{
-		occlusionResultsObjects.resize(renderableEntities.size());
+		size_t num_renderables = renderableEntities.size();
+		matrixRenderables.resize(num_renderables);
+		matrixRenderablesPrev.resize(num_renderables);
+		occlusionResultsObjects.resize(num_renderables);
 		// GPUs
-		jobsystem::Dispatch(ctx, (uint32_t)renderableEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			Entity entity = renderableEntities[args.jobIndex];
 			GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(entity);
