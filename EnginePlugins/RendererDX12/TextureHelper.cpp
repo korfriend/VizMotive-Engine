@@ -49,7 +49,7 @@ namespace vz::texturehelper
 
 		// Random64x64
 		{
-			uint8_t data[64 * 64 * 4];
+			std::vector<uint8_t> data(64 * 64 * 4);
 			for (int i = 0; i < arraysize(data); i += 4)
 			{
 				data[i] = vz::random::GetRandom(0, 255);
@@ -58,13 +58,13 @@ namespace vz::texturehelper
 				data[i + 3] = vz::random::GetRandom(0, 255);
 			}
 
-			CreateTexture(helperTextures[HELPERTEXTURE_RANDOM64X64], data, 64, 64);
+			CreateTexture(helperTextures[HELPERTEXTURE_RANDOM64X64], data.data(), 64, 64);
 			device->SetName(&helperTextures[HELPERTEXTURE_RANDOM64X64], "HELPERTEXTURE_RANDOM64X64");
 		}
 
 		// ColorGradeDefault
 		{
-			uint8_t data[256 * 16 * 4];
+			std::vector<uint8_t> data(256 * 16 * 4);
 			for (uint8_t slice = 0; slice < 16; ++slice)
 			{
 				for (int x = 0; x < 16; ++x)
@@ -84,7 +84,7 @@ namespace vz::texturehelper
 				}
 			}
 
-			CreateTexture(helperTextures[HELPERTEXTURE_COLORGRADEDEFAULT], data, 256, 16);
+			CreateTexture(helperTextures[HELPERTEXTURE_COLORGRADEDEFAULT], data.data(), 256, 16);
 			device->SetName(&helperTextures[HELPERTEXTURE_COLORGRADEDEFAULT], "HELPERTEXTURE_COLORGRADEDEFAULT");
 		}
 

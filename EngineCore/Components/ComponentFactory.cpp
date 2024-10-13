@@ -14,7 +14,7 @@ namespace vz::compfactory
 	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>("TANSFORM");
 	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>("HIERARCHY");
 	ComponentManager<GRenderableComponent>& renderableManager = componentLibrary.Register<GRenderableComponent>("RENDERABLE");
-	ComponentManager<LightComponent>& lightManager = componentLibrary.Register<LightComponent>("LIGHT");
+	ComponentManager<GLightComponent>& lightManager = componentLibrary.Register<GLightComponent>("LIGHT");
 	ComponentManager<CameraComponent>& cameraManager = componentLibrary.Register<CameraComponent>("CAMERA");
 
 	ComponentManager<GMaterialComponent>& materialManager = componentLibrary.Register<GMaterialComponent>("MATERIAL");

@@ -1,6 +1,8 @@
 #include "Renderer.h"
 #include "Shaders/ShaderInterop.h"
 
+#include "sheenLUT.h"
+
 namespace vz::common
 {
 	extern InputLayout			inputLayouts[ILTYPE_COUNT];
@@ -10,6 +12,7 @@ namespace vz::common
 	extern Shader				shaders[SHADERTYPE_COUNT];
 	extern GPUBuffer			buffers[BUFFERTYPE_COUNT];
 	extern Sampler				samplers[SAMPLER_COUNT];
+	extern Texture				textures[TEXTYPE_COUNT];
 }
 
 namespace vz::initializer
@@ -28,6 +31,18 @@ namespace vz::initializer
 		device->SetName(&common::buffers[BUFFERTYPE_FRAMECB], "buffers[BUFFERTYPE_FRAMECB]");
 
 		// to do (future features)
+		{
+			TextureDesc desc;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE;
+			desc.format = Format::R8_UNORM;
+			desc.height = 16;
+			desc.width = 16;
+			SubresourceData InitData;
+			InitData.data_ptr = sheenLUTdata;
+			InitData.row_pitch = desc.width;
+			device->CreateTexture(&desc, &InitData, &common::textures[TEXTYPE_2D_SHEENLUT]);
+			device->SetName(&common::textures[TEXTYPE_2D_SHEENLUT], "textures[TEXTYPE_2D_SHEENLUT]");
+		}
 	}
 	void SetUpStates()
 	{

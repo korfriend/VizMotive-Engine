@@ -9,8 +9,10 @@
     <ClCompile Include="ShaderCompiler.cpp" />
     <ClCompile Include="SceneResUpdate.cpp" />
     <ClCompile Include="TextureHelper.cpp" />
-    <ClCompile Include="samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
     <ClCompile Include="Random.cpp" />
+    <ClCompile Include="samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraphicsDevice_DX12.h" />
@@ -25,9 +27,14 @@
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="TextureHelper.h" />
-    <ClInclude Include="waterripple.h" />
     <ClInclude Include="Noise.h" />
     <ClInclude Include="Random.h" />
+    <ClInclude Include="waterripple.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="sheenLUT.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -41,6 +48,9 @@
     </Filter>
     <Filter Include="Utility">
       <UniqueIdentifier>{bf283072-045c-4e50-aa3b-198bb0c8af69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{dfad21a7-1cf0-4c0c-a0ce-3f1637b1ec56}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
