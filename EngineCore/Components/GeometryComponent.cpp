@@ -13,14 +13,12 @@ namespace vz
 			prim.MoveFrom(primitives[i]);
 		}
 		updateAABB();
-		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 	void GeometryComponent::CopyPrimitives(const std::vector<Primitive>& primitives)
 	{
 		parts_ = primitives;
 		updateAABB();
-		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 
@@ -35,7 +33,7 @@ namespace vz
 			{
 				parts_tmp[i].MoveFrom(parts[i]);
 			}
-			parts.assign((slot + 1) * 2, Primitive()); // * 2 for fast grow-up
+			parts.assign(slot + 1, Primitive());
 			for (size_t i = 0; i < n; ++i)
 			{
 				parts_tmp[i].MoveTo(parts[i]);
@@ -48,7 +46,6 @@ namespace vz
 		Primitive& prim = parts_[slot];
 		prim.MoveFrom(primitive);
 		updateAABB();
-		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 	void GeometryComponent::CopyPrimitive(const Primitive& primitive, const size_t slot)
@@ -56,7 +53,6 @@ namespace vz
 		tryAssignParts(slot, parts_);
 		parts_[slot] = primitive;
 		updateAABB();
-		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 	const Primitive* GeometryComponent::GetPrimitive(const size_t slot) const
@@ -76,5 +72,6 @@ namespace vz
 			aabb_._max = math::Max(aabb_._max, part_aabb._max);
 			aabb_._min = math::Min(aabb_._min, part_aabb._min);
 		}
+		isDirty_ = false;
 	}
 }

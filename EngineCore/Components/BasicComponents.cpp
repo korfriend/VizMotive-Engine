@@ -48,6 +48,11 @@ namespace vz::uuid
 
 namespace vz
 {
+	std::string GetComponentVersion()
+	{
+		return COMPONENT_INTERFACE_VERSION;
+	}
+
 	ComponentBase::ComponentBase(const ComponentType compType, const Entity entity, const VUID vuid) : cType_(compType), entity_(entity)
 	{
 		if (vuid == 0) vuid_ = uuid::generateUUID(static_cast<uint8_t>(compType));
@@ -296,14 +301,14 @@ namespace vz
 		if (slot >= vuidMaterials_.size())
 		{
 			std::vector<VUID> vuidMaterials_temp = vuidMaterials_;
-			vuidMaterials_.assign((slot + 1) * 2, INVALID_VUID); // * 2 for fast grow-up
+			vuidMaterials_.assign(slot + 1, INVALID_VUID);
 			if (vuidMaterials_temp.size() > 0)
 			{
 				memcpy(&vuidMaterials_[0], &vuidMaterials_temp[0], sizeof(VUID) * vuidMaterials_temp.size());
 			}
 		}
 		vuidMaterials_[slot] = mat_comp->GetVUID();
-		checkValidity(vuidGeometry_, vuidMaterials_);
+		isValid_ = checkValidity(vuidGeometry_, vuidMaterials_);
 		timeStampSetter_ = TimerNow;
 	}
 	void RenderableComponent::SetMaterials(const std::vector<Entity>& materials)
@@ -316,7 +321,7 @@ namespace vz
 			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materials[i]);
 			vuidMaterials_.push_back(mat_comp->GetVUID());
 		}
-		checkValidity(vuidGeometry_, vuidMaterials_);
+		isValid_ = checkValidity(vuidGeometry_, vuidMaterials_);
 		timeStampSetter_ = TimerNow;
 	}
 

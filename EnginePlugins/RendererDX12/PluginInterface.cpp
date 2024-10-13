@@ -13,6 +13,8 @@ namespace vz
 
 	bool Initialize()
 	{
+		assert(vz::GetComponentVersion() == vz::COMPONENT_INTERFACE_VERSION);
+
 		ValidationMode validationMode = ValidationMode::Disabled;
 		GPUPreference preference = GPUPreference::Discrete;
 		//renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
