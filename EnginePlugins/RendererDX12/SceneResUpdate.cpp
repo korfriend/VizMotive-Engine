@@ -270,25 +270,35 @@ namespace vz
 				// These will only be valid for a single frame:
 				const GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(renderable.GetGeometry());
 
-				// TODO:
 				//	* wetmap looks useful in our rendering purposes
 				//	* To allow this, the logic neeeds to be modified
 				//		1. wetmap option must be checked in the materials
 				//		2. graphics::GPUBuffer GSceneDetails::wetmap
-				//if (renderable.IsWetmapEnabled() && !renderable.wetmap.IsValid())
-				//{
-				//	GPUBufferDesc desc;
-				//	desc.size = geometry.vertex_positions.size() * sizeof(uint16_t);
-				//	desc.format = Format::R16_UNORM;
-				//	desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-				//	device->CreateBuffer(&desc, nullptr, &renderable.wetmap);
-				//	device->SetName(&renderable.wetmap, "wetmap");
-				//	renderable.wetmap_cleared = false;
-				//}
-				//else if (!renderable.IsWetmapEnabled() && renderable.wetmap.IsValid())
-				//{
-				//	renderable.wetmap = {};
-				//}
+				if (renderable.isWebmapEnabled)
+				{
+					const std::vector<GeometryComponent::Primitive>& primitives = geometry.GetPrimitives();
+					renderable.vbWetmaps.reserve(primitives.size());
+					for (uint32_t i = 0, n = primitives.size(); i < n; ++i)
+					{
+						// TODO
+						//MaterialComponent& material = *compfactory::GetMaterialComponent(renderable.GetMaterial(i));
+						//material.allowWebmap
+
+						const GeometryComponent::Primitive& primitive = primitives[i];
+						GPUBufferDesc desc;
+						desc.size = primitive.GetNumVertices() * sizeof(uint16_t);
+						desc.format = Format::R16_UNORM;
+						desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+						device->CreateBuffer(&desc, nullptr, &renderable.vbWetmaps[i]);
+						device->SetName(&renderable.vbWetmaps[i], ("wetmap" + std::to_string(i)).c_str());
+					}
+					
+					renderable.wetmapCleared = false;
+				}
+				else if (!renderable.isWebmapEnabled && renderable.vbWetmaps.size() > 0)
+				{
+					renderable.vbWetmaps.clear();
+				}
 
 				union SortBits
 				{

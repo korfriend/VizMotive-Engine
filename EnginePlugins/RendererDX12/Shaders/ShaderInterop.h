@@ -58,6 +58,9 @@ namespace vz
 
 #endif // __cplusplus
 
+#define CBSLOT_RENDERER_FRAME	0
+#define CBSLOT_RENDERER_CAMERA	1
+
 struct alignas(16) ShaderTransform
 {
 	float4 mat0;
@@ -600,9 +603,6 @@ struct alignas(16) ShaderScene
 	DDGI ddgi;
 };
 
-// ---------- Common Constant buffers: -----------------
-
-
 // Warning: the size of this structure directly affects shader performance.
 //	Try to reduce it as much as possible!
 //	Keep it aligned to 16 bytes for best performance!
@@ -890,5 +890,236 @@ struct alignas(16) FrameCB
 	LightEntity lightArray[LIGHT_ENTITY_COUNT];
 	float4x4 lightMatrixArray[LIGHT_ENTITY_COUNT];
 };
+
+
+// ---------- Common Constant buffers: -----------------
+
+struct alignas(16) ShaderFrustum
+{
+	// Frustum planes:
+	//	0 : near
+	//	1 : far
+	//	2 : left
+	//	3 : right
+	//	4 : top
+	//	5 : bottom
+	float4 planes[6];
+
+#ifndef __cplusplus
+	inline bool Intersects(ShaderSphere sphere)
+	{
+		uint infrustum = 1;
+		infrustum &= dot(planes[0], float4(sphere.center, 1)) > -sphere.radius;
+		infrustum &= dot(planes[1], float4(sphere.center, 1)) > -sphere.radius;
+		infrustum &= dot(planes[2], float4(sphere.center, 1)) > -sphere.radius;
+		infrustum &= dot(planes[3], float4(sphere.center, 1)) > -sphere.radius;
+		infrustum &= dot(planes[4], float4(sphere.center, 1)) > -sphere.radius;
+		infrustum &= dot(planes[5], float4(sphere.center, 1)) > -sphere.radius;
+		return infrustum != 0;
+	}
+#endif // __cplusplus
+};
+
+enum SHADERCAMERA_OPTIONS
+{
+	SHADERCAMERA_OPTION_NONE = 0,
+	SHADERCAMERA_OPTION_USE_SHADOW_MASK = 1 << 0,
+	SHADERCAMERA_OPTION_ORTHO = 1 << 1,
+};
+struct alignas(16) ShaderCamera
+{
+	float4x4	view_projection;
+
+	float3		position;
+	uint		output_index; // viewport or rendertarget array index
+
+	float4		clip_plane;
+	float4		reflection_plane; // not clip plane (not reversed when camera is under), but the original plane
+
+	float3		forward;
+	float		z_near;
+
+	float3		up;
+	float		z_far;
+
+	float		z_near_rcp;
+	float		z_far_rcp;
+	float		z_range;
+	float		z_range_rcp;
+
+	float4x4	view;
+	float4x4	projection;
+	float4x4	inverse_view;
+	float4x4	inverse_projection;
+	float4x4	inverse_view_projection;
+
+	ShaderFrustum frustum;
+
+	float2		temporalaa_jitter;
+	float2		temporalaa_jitter_prev;
+
+	float4x4	previous_view;
+	float4x4	previous_projection;
+	float4x4	previous_view_projection;
+	float4x4	previous_inverse_view_projection;
+	float4x4	reflection_view_projection;
+	float4x4	reflection_inverse_view_projection;
+	float4x4	reprojection; // view_projection_inverse_matrix * previous_view_projection_matrix
+
+	float2		aperture_shape;
+	float		aperture_size;
+	float		focal_length;
+
+	uint2 internal_resolution;
+	float2 internal_resolution_rcp;
+
+	uint4 scissor; // scissor in physical coordinates (left,top,right,bottom) range: [0, internal_resolution]
+	float4 scissor_uv; // scissor in screen UV coordinates (left,top,right,bottom) range: [0, 1]
+
+	uint2 entity_culling_tilecount;
+	uint entity_culling_tile_bucket_count_flat; // tilecount.x * tilecount.y * SHADER_ENTITY_TILE_BUCKET_COUNT (the total number of uint buckets for the whole screen)
+	uint sample_count;
+
+	uint2 visibility_tilecount;
+	uint visibility_tilecount_flat;
+	uint options;	// SHADERCAMERA_OPTIONS
+
+	int texture_rtdiffuse_index;
+	int texture_primitiveID_index;
+	int texture_depth_index;
+	int texture_lineardepth_index;
+
+	int texture_velocity_index;
+	int texture_normal_index;
+	int texture_roughness_index;
+	int buffer_entitytiles_index;
+
+	int texture_reflection_index;
+	int texture_reflection_depth_index;
+	int texture_refraction_index;
+	int texture_waterriples_index;
+
+	int texture_ao_index;
+	int texture_ssr_index;
+	int texture_ssgi_index;
+	int texture_rtshadow_index;
+
+	int texture_surfelgi_index;
+	int texture_depth_index_prev;
+	int texture_vxgi_diffuse_index;
+	int texture_vxgi_specular_index;
+
+	int texture_reprojected_depth_index;
+	uint padding0;
+	uint padding1;
+	uint padding2;
+
+#ifdef __cplusplus
+	void Init()
+	{
+		view_projection = {};
+		position = {};
+		output_index = 0;
+		clip_plane = {};
+		forward = {};
+		z_near = {};
+		up = {};
+		z_far = {};
+		z_near_rcp = {};
+		z_far_rcp = {};
+		z_range = {};
+		z_range_rcp = {};
+		view = {};
+		projection = {};
+		inverse_view = {};
+		inverse_projection = {};
+		inverse_view_projection = {};
+		frustum = {};
+		temporalaa_jitter = {};
+		temporalaa_jitter_prev = {};
+		previous_view = {};
+		previous_projection = {};
+		previous_view_projection = {};
+		previous_inverse_view_projection = {};
+		reflection_view_projection = {};
+		reprojection = {};
+		aperture_shape = {};
+		aperture_size = {};
+		focal_length = {};
+		internal_resolution = {};
+		internal_resolution_rcp = {};
+		scissor = {};
+		scissor_uv = {};
+		entity_culling_tilecount = {};
+		entity_culling_tile_bucket_count_flat = 0;
+		sample_count = {};
+		visibility_tilecount = {};
+		visibility_tilecount_flat = {};
+
+		texture_rtdiffuse_index = -1;
+		texture_primitiveID_index = -1;
+		texture_depth_index = -1;
+		texture_lineardepth_index = -1;
+		texture_velocity_index = -1;
+		texture_normal_index = -1;
+		texture_roughness_index = -1;
+		buffer_entitytiles_index = -1;
+		texture_reflection_index = -1;
+		texture_refraction_index = -1;
+		texture_waterriples_index = -1;
+		texture_ao_index = -1;
+		texture_ssr_index = -1;
+		texture_ssgi_index = -1;
+		texture_rtshadow_index = -1;
+		texture_surfelgi_index = -1;
+		texture_depth_index_prev = -1;
+		texture_vxgi_diffuse_index = -1;
+		texture_vxgi_specular_index = -1;
+		texture_reprojected_depth_index = -1;
+
+		options = 0;
+	}
+
+#else
+	inline float2 clamp_uv_to_scissor(in float2 uv)
+	{
+		return float2(
+			clamp(uv.x, scissor_uv.x, scissor_uv.z),
+			clamp(uv.y, scissor_uv.y, scissor_uv.w)
+		);
+	}
+	inline float2 clamp_pixel_to_scissor(in uint2 pixel)
+	{
+		return uint2(
+			clamp(pixel.x, scissor.x, scissor.z),
+			clamp(pixel.y, scissor.y, scissor.w)
+		);
+	}
+	inline bool is_uv_inside_scissor(float2 uv)
+	{
+		return uv.x >= scissor_uv.x && uv.x <= scissor_uv.z && uv.y >= scissor_uv.y && uv.y <= scissor_uv.w;
+	}
+	inline bool is_pixel_inside_scissor(uint2 pixel)
+	{
+		return pixel.x >= scissor.x && pixel.x <= scissor.z && pixel.y >= scissor.y && pixel.y <= scissor.w;
+	}
+#endif // __cplusplus
+};
+
+struct alignas(16) CameraCB
+{
+	ShaderCamera cameras[16];
+
+#ifdef __cplusplus
+	void Init()
+	{
+		for (int i = 0; i < 16; ++i)
+		{
+			cameras[i].Init();
+		}
+	}
+#endif // __cplusplus
+};
+
 
 #endif

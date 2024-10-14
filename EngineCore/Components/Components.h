@@ -82,9 +82,9 @@ namespace vz
 		void SetDirty() { isDirty_ = true; }
 		bool IsDirty() const { return isDirty_; }
 
-		inline std::string GetSceneName() { return name_; }
-		inline Entity GetSceneEntity() { return entity_; }
-		inline GScene* GetGSceneHandle() { return handlerScene_; }
+		inline const std::string GetSceneName() const { return name_; }
+		inline const Entity GetSceneEntity() const { return entity_; }
+		inline const GScene* GetGSceneHandle() const { return handlerScene_; }
 
 		inline void Update(const float dt);
 
@@ -679,6 +679,9 @@ namespace vz
 		float zNearP_ = 0.1f;
 		float zFarP_ = 5000.0f;
 		float fovY_ = XM_PI / 3.0f;
+		float focalLength_ = 1;
+		float apertureSize_ = 0;
+		XMFLOAT2 apertureShape_ = XMFLOAT2(1, 1);
 
 		// These parameters are used differently depending on the projection mode.
 		// 1. orthogonal : image plane's width and height
@@ -733,20 +736,24 @@ namespace vz
 		// update view-proj and their inverse matrices using the updated view and proj matrices
 		void UpdateMatrix();
 
-		XMFLOAT3 GetWorldEye() const { return eye_; }
-		XMFLOAT3 GetWorldAt() const { return at_; }
-		XMFLOAT3 GetWorldUp() const { return up_; }
-		XMFLOAT3X3 GetWorldRotation() const { return rotationMatrix_; }
-		XMFLOAT4X4 GetView() const { return view_; }
-		XMFLOAT4X4 GetProjection() const { return projection_; }
-		XMFLOAT4X4 GetViewProjection() const { return viewProjection_; }
-		XMFLOAT4X4 GetInvView() const { return invView_; }
-		XMFLOAT4X4 GetInvProjection() const { return invProjection_; }
-		XMFLOAT4X4 GetInvViewProjection() const { return invViewProjection_; }
-		vz::primitive::Frustum GetFrustum() const { return frustum_; }
+		const XMFLOAT3& GetWorldEye() const { return eye_; }
+		const XMFLOAT3& GetWorldAt() const { return at_; }
+		const XMFLOAT3& GetWorldUp() const { return up_; }
+		const XMFLOAT3X3& GetWorldRotation() const { return rotationMatrix_; }
+		const XMFLOAT4X4& GetView() const { return view_; }
+		const XMFLOAT4X4& GetProjection() const { return projection_; }
+		const XMFLOAT4X4& GetViewProjection() const { return viewProjection_; }
+		const XMFLOAT4X4& GetInvView() const { return invView_; }
+		const XMFLOAT4X4& GetInvProjection() const { return invProjection_; }
+		const XMFLOAT4X4& GetInvViewProjection() const { return invViewProjection_; }
+		const primitive::Frustum& GetFrustum() const { return frustum_; }
 
 		Projection GetProjectionType() const { return projectionType_; }
 		float GetFovVertical() const { return fovY_; }
+		float GetFocalLength() const { return focalLength_; }
+		float GetApertureSize() const { return apertureSize_; }
+		XMFLOAT2 GetApertureShape() const { return apertureShape_; }
+
 		void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
 		void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }
 

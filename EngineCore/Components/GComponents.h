@@ -7,6 +7,7 @@ namespace vz
 	// Note:
 	//	The parameters inside 'G'-components are used by Graphics pipeline and GPGPUs
 	//	So, all attributes here are Non-serialized attributes
+	//	Most parameters are strongly related to the renderer plugin
 	
 	// resources
 
@@ -89,6 +90,10 @@ namespace vz
 
 		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
 		uint32_t sortBits = 0;
+
+		std::vector<graphics::GPUBuffer> vbWetmaps; // for each primitive part
+		bool isWebmapEnabled = false;
+		mutable bool wetmapCleared = false;
 
 		mutable uint32_t lightmapIterationCount = 0;
 	};
