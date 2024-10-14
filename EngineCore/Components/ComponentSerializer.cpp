@@ -267,6 +267,10 @@ namespace vz
 			archive >> zNearP_;
 			archive >> zFarP_;
 			archive >> fovY_;
+			archive >> focalLength_;
+			archive >> apertureSize_;
+			archive >> apertureShape_;
+
 			archive >> width_;
 			archive >> height_;
 
@@ -282,6 +286,10 @@ namespace vz
 			archive << zNearP_;
 			archive << zFarP_;
 			archive << fovY_;
+			archive << focalLength_;
+			archive << apertureSize_;
+			archive << apertureShape_;
+
 			archive << width_;
 			archive << height_;
 			archive << static_cast<uint8_t>(projectionType_);

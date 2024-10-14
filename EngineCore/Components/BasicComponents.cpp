@@ -1,4 +1,4 @@
-#include "Components.h"
+#include "GComponents.h"
 #include "Utils/Backlog.h"
 
 #include <cstdint>
@@ -275,7 +275,7 @@ namespace vz
 	{
 		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(compfactory::GetEntityByVUID(vuidGeo));
 		if (geo_comp == nullptr) return false;
-		return geo_comp->GetNumParts() == vuidMaterials.size();
+		return geo_comp->GetNumParts() == vuidMaterials.size() && geo_comp->GetNumParts() > 0;
 	}
 	void RenderableComponent::SetGeometry(const Entity geometryEntity)
 	{
@@ -285,6 +285,10 @@ namespace vz
 			backlog::post("invalid entity", backlog::LogLevel::Error);
 			return;
 		}
+
+		GRenderableComponent* downcast = (GRenderableComponent*)this;
+		downcast->vbWetmaps.clear();
+
 		vuidGeometry_ = geo_comp->GetVUID();
 		isValid_ = geo_comp->GetNumParts() == vuidMaterials_.size() && compfactory::GetTransformComponent(entity_);
 		timeStampSetter_ = TimerNow;

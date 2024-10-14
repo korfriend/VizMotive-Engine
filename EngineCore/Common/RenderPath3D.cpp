@@ -29,9 +29,10 @@ namespace vz
 	void RenderPath3D::DeleteGPUResources(const bool resizableOnly)
 	{
 		RenderPath2D::DeleteGPUResources(resizableOnly);
+		handlerRenderPath3D_->Destory();
 		if (!resizableOnly)
 		{
-			//
+			// Scene?!
 		}
 	}
 
