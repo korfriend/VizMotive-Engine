@@ -421,11 +421,12 @@ namespace vz
 
 		struct Primitive {
 		private:
-			inline static const size_t NUMBUFFERS = 6;
+			inline static const size_t NUMBUFFERS = 7;
 			bool isValid_[NUMBUFFERS] = { }; // false
 
 			std::vector<XMFLOAT3> vertexPositions_;
 			std::vector<XMFLOAT3> vertexNormals_;
+			std::vector<XMFLOAT4> vertexTangents_;
 			std::vector<XMFLOAT2> vertexUVset0_;
 			std::vector<XMFLOAT2> vertexUVset1_;
 			std::vector<uint32_t> vertexColors_;
@@ -463,49 +464,57 @@ namespace vz
 				primitive.ptype_ = ptype_;
 				for (size_t i = 0; i < NUMBUFFERS; ++i) isValid_[i] = false;
 			}
-			primitive::AABB GetAABB() { return aabb_; }
+			const primitive::AABB& GetAABB() { return aabb_; }
 			PrimitiveType GetPrimitiveType() { return ptype_; }
 			bool IsValid() {
 				return vertexPositions_.size() > 0 && aabb_.IsValid();
 			}
 			void SetAABB(const primitive::AABB& aabb) { aabb_ = aabb; }
 			void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
-#define PRIM_GETTER(A)  if (data) { *data = A.data(); } return A.size();
-			size_t GetVtxPositions(XMFLOAT3** data) { assert(isValid_[0]); PRIM_GETTER(vertexPositions_) }
-			size_t GetVtxNormals(XMFLOAT3** data) { assert(isValid_[1]); PRIM_GETTER(vertexNormals_) }
-			size_t GetVtxUVSet0(XMFLOAT2** data) { assert(isValid_[2]); PRIM_GETTER(vertexUVset0_) }
-			size_t GetVtxUVSet1(XMFLOAT2** data) { assert(isValid_[3]); PRIM_GETTER(vertexUVset1_) }
-			size_t GetVtxColors(uint32_t** data) { assert(isValid_[4]); PRIM_GETTER(vertexColors_) }
-			size_t GetIdxPrimives(uint32_t** data) { assert(isValid_[5]); PRIM_GETTER(indexPrimitives_) }
+
+			// ----- Getters -----
+			inline const std::vector<XMFLOAT3>& GetVtxPositions() { assert(isValid_[0]); return vertexPositions_; }
+			inline const std::vector<uint32_t>& GetIdxPrimives() { assert(isValid_[6]); return indexPrimitives_; }
+			inline const std::vector<XMFLOAT3>& GetVtxNormals() { assert(isValid_[1]); return vertexNormals_; }
+			inline const std::vector<XMFLOAT4>& GetVtxTangents() { assert(isValid_[2]); return vertexTangents_; }
+			inline const std::vector<XMFLOAT2>& GetVtxUVSet0() { assert(isValid_[3]); return vertexUVset0_; }
+			inline const std::vector<XMFLOAT2>& GetVtxUVSet1() { assert(isValid_[4]); return vertexUVset1_; }
+			inline const std::vector<uint32_t>& GetVtxColors() { assert(isValid_[5]); return vertexColors_; }
+
 			size_t GetNumVertices() const { return vertexPositions_.size(); }
 			size_t GetNumIndices() const { return indexPrimitives_.size(); }
 
-#define PRIM_SETTER(A, B) A##_ = onlyMoveOwnership ? std::move(A) : A; isValid_[B] = true;
+			#define PRIM_SETTER(A, B) A##_ = onlyMoveOwnership ? std::move(A) : A; isValid_[B] = true;
 			// move or copy
 			// note: if onlyMoveOwnership is true, input std::vector will be invalid!
 			//	carefully use onlyMoveOwnership(true) to avoid the ABI issue
 			void SetVtxPositions(std::vector<XMFLOAT3>& vertexPositions, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexPositions, 0) }
 			void SetVtxNormals(std::vector<XMFLOAT3>& vertexNormals, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexNormals, 1) }
-			void SetVtxUVSet0(std::vector<XMFLOAT2>& vertexUVset0, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexUVset0, 2) }
-			void SetVtxUVSet1(std::vector<XMFLOAT2>& vertexUVset1, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexUVset1, 3) }
-			void SetVtxColors(std::vector<uint32_t>& vertexColors, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexColors, 4) }
-			void SetIdxPrimives(std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, 5) }
+			void SetVtxTangents(std::vector<XMFLOAT4>& vertexTangents, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexTangents, 2) }
+			void SetVtxUVSet0(std::vector<XMFLOAT2>& vertexUVset0, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexUVset0, 3) }
+			void SetVtxUVSet1(std::vector<XMFLOAT2>& vertexUVset1, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexUVset1, 4) }
+			void SetVtxColors(std::vector<uint32_t>& vertexColors, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexColors, 5) }
+			void SetIdxPrimives(std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, 6) }
 
 			void Serialize(vz::Archive& archive, const uint64_t version);
+
+			friend struct GeometryComponent;
 		};
-	private:
+	protected:
 		std::vector<Primitive> parts_;	
 
 		// Non-serialized attributes
-		bool isDirty_ = true;
+		bool isDirtyAABB_ = true;
 		primitive::AABB aabb_; // not serialized (automatically updated)
 		bool hasBVH_ = false;
+		bool isDirtyRenderData_ = true;
 
 		void updateAABB();
 	public:
 		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
 
-		bool IsDirty() { return isDirty_; }
+		bool IsDirtyAABB() { return isDirtyAABB_; }
+		bool IsDirtyRenderData() { return isDirtyRenderData_; }
 		primitive::AABB GetAABB() { return aabb_; }
 		void MovePrimitives(std::vector<Primitive>& primitives);
 		void CopyPrimitives(const std::vector<Primitive>& primitives);
@@ -514,7 +523,20 @@ namespace vz
 		const Primitive* GetPrimitive(const size_t slot) const;
 		const std::vector<Primitive>& GetPrimitives() const { return parts_; }
 		size_t GetNumParts() const { return parts_.size(); }
+
+		inline std::vector<XMFLOAT3>& GetModifierVtxPositions(const size_t slot) { isDirtyAABB_ = true; isDirtyRenderData_ = true; return parts_[slot].vertexPositions_; }
+		inline std::vector<uint32_t>& GetModifierIdxPrimives(const size_t slot) { isDirtyRenderData_ = true; return parts_[slot].indexPrimitives_; }
+		inline std::vector<XMFLOAT3>& GetModifierVtxNormals(const size_t slot) { isDirtyRenderData_ = true; return parts_[slot].vertexNormals_; }
+		inline std::vector<XMFLOAT4>& GetModifierVtxTangents(const size_t slot) { isDirtyRenderData_ = true; return parts_[slot].vertexTangents_; }
+		inline std::vector<XMFLOAT2>& GetModifierVtxUVSet0(const size_t slot) { isDirtyRenderData_ = true; return parts_[slot].vertexUVset0_; }
+		inline std::vector<XMFLOAT2>& GetModifierVtxUVSet1(const size_t slot) { isDirtyRenderData_ = true; return parts_[slot].vertexUVset1_; }
+		inline std::vector<uint32_t>& GetModifierVtxColors(const size_t slot) { isDirtyRenderData_ = true; return parts_[slot].vertexColors_; }
+
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		// GPU interfaces //
+		virtual void DeleteRenderData() = 0;
+		virtual void UpdateRenderData() = 0;
 
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};

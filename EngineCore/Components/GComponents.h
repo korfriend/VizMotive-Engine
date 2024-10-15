@@ -46,33 +46,81 @@ namespace vz
 		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
 
 		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
-		uint32_t geometryOffset = 0; // used for bindless graphics 
 
-		struct BufferView
+		struct GeometryPartBuffer
 		{
-			uint64_t offset = ~0ull;
-			uint64_t size = 0ull;
-			int subresource_srv = -1;
-			int descriptor_srv = -1;
-			int subresource_uav = -1;
-			int descriptor_uav = -1;
+			uint32_t geometryOffset = 0; // used for bindless graphics 
 
-			constexpr bool IsValid() const
+			graphics::GPUBuffer generalBuffer; // index buffer + all static vertex buffers
+			graphics::GPUBuffer streamoutBuffer; // all dynamic vertex buffers
+
+			struct BufferView
 			{
-				return offset != ~0ull;
+				uint64_t offset = ~0ull;
+				uint64_t size = 0ull;
+				int subresource_srv = -1;
+				int descriptor_srv = -1;
+				int subresource_uav = -1;
+				int descriptor_uav = -1;
+
+				constexpr bool IsValid() const
+				{
+					return offset != ~0ull;
+				}
+			};
+
+			BufferView ib;
+			BufferView vbPosition;
+			BufferView vbNormal;
+			BufferView vbTangent;
+			BufferView vbUVs;
+			BufferView vbColor;
+
+			// so refers to Shader Output
+			BufferView soPosition;
+			BufferView soNormal;
+			BufferView soPrev;
+
+			void Destroy()
+			{
+				generalBuffer = {};
+				streamoutBuffer = {};
+
+				// buffer views
+				ib = {};
+				vbPosition = {};
+				vbTangent = {};
+				vbNormal = {};
+				vbUVs = {};
+				vbColor = {};
+
+				soPosition = {};
+				soNormal = {};
+				soPrev = {};
 			}
 		};
+		std::vector<GeometryPartBuffer> bufferParts;
 
-		BufferView ib;
-		BufferView vbPosition;
-		BufferView vbNormal;
-		BufferView vbUVs;
-		BufferView vbColor;
+		void UpdateRenderData() override;
+		void DeleteRenderData() override;
 
-		// so refers to Shader Output
-		BufferView soPosition; 
-		BufferView soNormal;
-		BufferView soPrev;
+		// CreateRaytracingRenderData
+		
+		// These will be added in GeometryComponent (override)
+		// BuildBVH
+		// ComputeNormals
+		// FlipCulling
+		// FlipNormals
+		// Recenter
+		// RecenterToBottom
+		// GetBoundingSphere
+		// FlipNormals, FlipCulling
+		// Recenter (Pivot)
+		// RecenterToBottom
+		// GetBoundingSphere
+		// GetClusterCount
+		// CreateSubset
+		// GetMemory...
 	};
 
 	struct CORE_EXPORT GTextureComponent : TextureComponent

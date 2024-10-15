@@ -11,6 +11,7 @@ using namespace vz::graphics;
 
 static const uint32_t SHADERTYPE_BIN_COUNT = (uint32_t)vz::MaterialComponent::ShaderType::COUNT;
 
+//----- global constants -----
 namespace vz
 {
 	// global resources //
@@ -30,7 +31,11 @@ namespace vz
 	constexpr uint32_t BLENDMODE_ADDITIVE = SCU32(MaterialComponent::BlendMode::BLENDMODE_ADDITIVE);
 	constexpr uint32_t BLENDMODE_MULTIPLY = SCU32(MaterialComponent::BlendMode::BLENDMODE_MULTIPLY);
 	constexpr uint32_t BLENDMODE_COUNT = SCU32(MaterialComponent::BlendMode::BLENDMODE_COUNT);
-
+}
+	
+//----- enumerations -----
+namespace vz	
+{
 	// shaders
 	enum SHADERTYPE : uint32_t
 	{
@@ -64,7 +69,7 @@ namespace vz
 		//////////////////////
 		// geometry shaders //
 		GSTYPE_VOXELIZER,
-		GSTYPE_ENVMAP_EMULATION, 
+		GSTYPE_ENVMAP_EMULATION,
 		GSTYPE_SHADOW_TRANSPARENT_EMULATION,
 		GSTYPE_SHADOW_ALPHATEST_EMULATION,
 		GSTYPE_SHADOW_EMULATION,
@@ -119,6 +124,13 @@ namespace vz
 		MSTYPE_SHADOW, // (Future Work) for mesh shader
 
 		SHADERTYPE_COUNT,
+	};
+
+	enum MESH_SHADER_PSO
+	{
+		MESH_SHADER_PSO_DISABLED,
+		MESH_SHADER_PSO_ENABLED,
+		MESH_SHADER_PSO_COUNT
 	};
 
 	// textures
@@ -235,7 +247,7 @@ namespace vz
 		RENDERPASS_VOXELIZE,
 		RENDERPASS_COUNT
 	};
-	
+
 	enum DEBUGRENDERING
 	{
 		DEBUGRENDERING_GRID,
@@ -251,6 +263,21 @@ namespace vz
 		DEBUGRENDERING_COUNT
 	};
 
+	// engine stencil reference values. These can be in range of [0, 15].
+	enum STENCILREF
+	{
+		STENCILREF_EMPTY = 0,
+		STENCILREF_DEFAULT = 1,
+		STENCILREF_CUSTOMSHADER = 2,
+		STENCILREF_OUTLINE = 3,
+		STENCILREF_CUSTOMSHADER_OUTLINE = 4,
+		STENCILREF_LAST = 15
+	};
+}
+
+//----- renderer interfaces -----
+namespace vz
+{
 	namespace initializer
 	{
 		void SetUpStates();

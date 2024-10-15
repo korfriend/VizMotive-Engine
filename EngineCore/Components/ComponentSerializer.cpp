@@ -133,6 +133,7 @@ namespace vz
 		{
 			archive >> vertexPositions_;
 			archive >> vertexNormals_;
+			archive >> vertexTangents_;
 			archive >> vertexUVset0_;
 			archive >> vertexUVset1_;
 			archive >> vertexColors_;
@@ -142,6 +143,7 @@ namespace vz
 		{
 			archive << vertexPositions_;
 			archive << vertexNormals_;
+			archive << vertexTangents_;
 			archive << vertexUVset0_;
 			archive << vertexUVset1_;
 			archive << vertexColors_;
@@ -164,7 +166,7 @@ namespace vz
 				parts_[i].Serialize(archive, version);
 			}
 			updateAABB();
-			isDirty_ = true;
+			isDirtyAABB_ = true;
 		}
 		else
 		{
