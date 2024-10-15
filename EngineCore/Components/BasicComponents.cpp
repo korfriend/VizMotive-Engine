@@ -277,6 +277,20 @@ namespace vz
 		if (geo_comp == nullptr) return false;
 		return geo_comp->GetNumParts() == vuidMaterials.size() && geo_comp->GetNumParts() > 0;
 	}
+	void RenderableComponent::checkWebmapEnabled()
+	{
+		bool wetmap = false;
+		for (auto vuid : vuidMaterials_)
+		{
+			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuid));
+			if (mat_comp->IsWebmapEnabled())
+			{
+				wetmap = true;
+				break;
+			}
+		}
+		wetmap ? flags_ |= SCU32(RenderableFlags::WETMAP_ENABLED) : flags_ &= ~SCU32(RenderableFlags::WETMAP_ENABLED);
+	}
 	void RenderableComponent::SetGeometry(const Entity geometryEntity)
 	{
 		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(geometryEntity);
@@ -290,7 +304,15 @@ namespace vz
 		downcast->vbWetmaps.clear();
 
 		vuidGeometry_ = geo_comp->GetVUID();
-		isValid_ = geo_comp->GetNumParts() == vuidMaterials_.size() && compfactory::GetTransformComponent(entity_);
+		if (geo_comp->GetNumParts() == vuidMaterials_.size() && compfactory::GetTransformComponent(entity_)
+			&& geo_comp->GetNumParts() > 0)
+		{
+			flags_ |= SCU32(RenderableFlags::RENDERABLE);
+		}
+		else
+		{
+			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
+		}
 		timeStampSetter_ = TimerNow;
 	}
 	void RenderableComponent::SetMaterial(const Entity materialEntity, const size_t slot)
@@ -312,7 +334,16 @@ namespace vz
 			}
 		}
 		vuidMaterials_[slot] = mat_comp->GetVUID();
-		isValid_ = checkValidity(vuidGeometry_, vuidMaterials_);
+		if (checkValidity(vuidGeometry_, vuidMaterials_))
+		{
+			flags_ |= SCU32(RenderableFlags::RENDERABLE);
+		}
+		else
+		{
+			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
+		}
+		checkWebmapEnabled();
+
 		timeStampSetter_ = TimerNow;
 	}
 	void RenderableComponent::SetMaterials(const std::vector<Entity>& materials)
@@ -325,7 +356,16 @@ namespace vz
 			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materials[i]);
 			vuidMaterials_.push_back(mat_comp->GetVUID());
 		}
-		isValid_ = checkValidity(vuidGeometry_, vuidMaterials_);
+		if (checkValidity(vuidGeometry_, vuidMaterials_))
+		{
+			flags_ |= SCU32(RenderableFlags::RENDERABLE);
+		}
+		else
+		{
+			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
+		}
+		checkWebmapEnabled();
+
 		timeStampSetter_ = TimerNow;
 	}
 

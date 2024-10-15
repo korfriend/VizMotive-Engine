@@ -12,6 +12,8 @@ namespace vzm
 
 		void SetViewport(const float x, const float y, const float w, const float h);
 		void GetViewport(float* VZ_NULLABLE x, float* VZ_NULLABLE y, float* VZ_NULLABLE w, float* VZ_NULLABLE h);
+		void UseCanvasViewport();
+		// add scissor interfaces
 
 		void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits);
 

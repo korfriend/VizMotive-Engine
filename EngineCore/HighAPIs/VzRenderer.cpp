@@ -47,6 +47,18 @@ namespace vzm
 		if (h) *h = renderer->viewport.height;
 	}
 
+	void VzRenderer::UseCanvasViewport()
+	{
+		GET_RENDERPATH(renderer, );
+
+		renderer->useManualSetViewport = false;
+
+		renderer->viewport.top_left_x = 0;
+		renderer->viewport.top_left_y = 0;
+		renderer->viewport.width = renderer->GetPhysicalWidth();
+		renderer->viewport.height = renderer->GetPhysicalHeight();
+	}
+
 	void VzRenderer::SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits)
 	{
 		// to do //

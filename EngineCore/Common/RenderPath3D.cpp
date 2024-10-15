@@ -1,5 +1,6 @@
 #include "RenderPath3D.h"
 #include "Common/Backend/GRendererInterface.h"
+#include "Components/GComponents.h"
 
 namespace vz
 {
@@ -41,6 +42,23 @@ namespace vz
 		DeleteGPUResources(true);
 		handlerRenderPath3D_->ResizeCanvas(width_, height_);
 		RenderPath2D::ResizeResources();
+
+		//viewport
+		if (!useManualSetViewport)
+		{
+			viewport.top_left_x = 0;
+			viewport.top_left_y = 0;
+			viewport.width = width_;
+			viewport.height = height_;
+		}
+		//scissor
+		if (!useManualSetScissor)
+		{
+			scissor.left = 0;
+			scissor.right = width_;
+			scissor.top = 0;
+			scissor.bottom = height_;
+		}
 	}
 
 	// scene and camera updates
@@ -100,6 +118,11 @@ namespace vz
 		//	3. execute rendering pipelines
 		handlerRenderPath3D_->scene = scene;
 		handlerRenderPath3D_->camera = camera;
+
+		GCameraComponent* downcast_camera = (GCameraComponent*)camera;
+		downcast_camera->viewport = viewport;
+		downcast_camera->scissor = scissor;
+
 		handlerRenderPath3D_->Render(dt);
 	}
 }
