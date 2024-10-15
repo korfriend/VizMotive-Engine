@@ -87,7 +87,7 @@ namespace vz
 			uint32_t u32_data;
 			archive >> u32_data;
 			shaderType_ = static_cast<ShaderType>(u32_data);
-			archive >> renderOptionFlags_;
+			archive >> flags_;
 			archive >> u32_data;
 			blendMode_ = static_cast<BlendMode>(u32_data);
 			archive >> baseColor_;
@@ -110,12 +110,13 @@ namespace vz
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
 			archive << SCU32(shaderType_);
-			archive << renderOptionFlags_;
+			archive << flags_;
 			archive << SCU32(blendMode_);
 			archive << baseColor_;
 			archive << specularColor_;
 			archive << emissiveColor_;
 			archive << phongFactors_;
+
 			uint32_t tex_slot_count = SCU32(TextureSlot::TEXTURESLOT_COUNT);
 			archive << tex_slot_count;
 			for (uint32_t i = 0; i < tex_slot_count; ++i)
@@ -211,8 +212,10 @@ namespace vz
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 
+			archive >> flags_;
 			archive >> visibleLayerMask_;
 			archive >> vuidGeometry_;
+			archive >> fadeDistance_;
 
 			uint32_t u32_data;
 			archive >> u32_data;
@@ -225,8 +228,10 @@ namespace vz
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
+			archive << flags_;
 			archive << visibleLayerMask_;
 			archive << vuidGeometry_;
+			archive << fadeDistance_;
 
 			archive << vuidMaterials_.size();
 			for (size_t i = 0, n = vuidMaterials_.size(); i < n; ++i)

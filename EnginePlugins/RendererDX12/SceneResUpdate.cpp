@@ -12,7 +12,7 @@ namespace vz
 		return new GSceneDetails(scene);
 	}
 
-	void GSceneDetails::RunMeshUpdateSystem(jobsystem::context& ctx)
+	void GSceneDetails::RunPrimtiveUpdateSystem(jobsystem::context& ctx)
 	{
 		jobsystem::Dispatch(ctx, (uint32_t)geometryEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
@@ -263,26 +263,25 @@ namespace vz
 			}
 			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
 
-			uint32_t layerMask = ~0;
-
-			if (renderable.IsValid())
+			renderable.geometryIndex = ~0u;
+			if (renderable.IsRenderable())
 			{
 				// These will only be valid for a single frame:
-				const GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(renderable.GetGeometry());
+				Entity geo_entity = renderable.GetGeometry();
+				const GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geo_entity);
+				const std::vector<GeometryComponent::Primitive>& primitives = geometry.GetPrimitives();
+				assert(primitives.size() > 0); // if (renderable.IsRenderable())				
+
+				renderable.geometryIndex = Scene::GetIndex(geometryEntities, geo_entity);
 
 				//	* wetmap looks useful in our rendering purposes
-				//	* To allow this, the logic neeeds to be modified
-				//		1. wetmap option must be checked in the materials
-				//		2. graphics::GPUBuffer GSceneDetails::wetmap
-				if (renderable.isWebmapEnabled)
+				//	* wetmap option is determined by the renderable's associated materials
+				if (renderable.IsWebmapEnabled() && renderable.vbWetmaps.size() == 0)
 				{
-					const std::vector<GeometryComponent::Primitive>& primitives = geometry.GetPrimitives();
 					renderable.vbWetmaps.reserve(primitives.size());
 					for (uint32_t i = 0, n = primitives.size(); i < n; ++i)
 					{
-						// TODO
-						//MaterialComponent& material = *compfactory::GetMaterialComponent(renderable.GetMaterial(i));
-						//material.allowWebmap
+						GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(i));
 
 						const GeometryComponent::Primitive& primitive = primitives[i];
 						GPUBufferDesc desc;
@@ -295,7 +294,7 @@ namespace vz
 					
 					renderable.wetmapCleared = false;
 				}
-				else if (!renderable.isWebmapEnabled && renderable.vbWetmaps.size() > 0)
+				else if (!renderable.IsWebmapEnabled() && renderable.vbWetmaps.size() > 0)
 				{
 					renderable.vbWetmaps.clear();
 				}
@@ -321,12 +320,15 @@ namespace vz
 
 				uint32_t first_part = 0;
 				uint32_t last_part = 0;
+				renderable.materialFilterFlags = 0;
 				for (uint32_t subsetIndex = first_part; subsetIndex < last_part; ++subsetIndex)
 				{
 					const GeometryComponent::Primitive* part = geometry.GetPrimitive(subsetIndex);
 					Entity material_entity = renderable.GetMaterial(subsetIndex);
-					const MaterialComponent* material = compfactory::GetMaterialComponent(material_entity);
+					const GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
 					assert(part && material);
+
+					renderable.materialFilterFlags |= material->GetFilterMaskFlags();
 
 					sort_bits.bits.tessellation |= material->IsTesellated();
 					sort_bits.bits.doublesided |= material->IsDoubleSided();
@@ -334,12 +336,6 @@ namespace vz
 					sort_bits.bits.shadertype |= 1 << SCU32(material->GetShaderType());
 					sort_bits.bits.blendmode |= 1 << SCU32(material->GetBlendMode());
 					sort_bits.bits.alphatest |= material->IsAlphaTestEnabled();
-
-					//int customshader = material->GetCustomShaderID();
-					//if (customshader >= 0)
-					//{
-					//	sort_bits.bits.customshader |= 1 << customshader;
-					//}
 				}
 
 				renderable.sortBits = sort_bits.value;
@@ -396,10 +392,10 @@ namespace vz
 		lightEntities = scene_->GetLightEntities();
 		size_t num_lights = lightEntities.size();
 
-		materialEntities = scene_->GetMaterialEntities();
+		materialEntities = scene_->ScanMaterialEntities();
 		size_t num_materials = materialEntities.size();
 
-		geometryEntities = scene_->GetGeometryEntities();
+		geometryEntities = scene_->ScanGeometryEntities();
 		size_t num_geometries = geometryEntities.size();
 
 		uint32_t pingpong_buffer_index = device->GetBufferIndex();
@@ -583,7 +579,7 @@ namespace vz
 		}
 		geometryArrayMapped = (ShaderGeometry*)geometryUploadBuffer[pingpong_buffer_index].mapped_data;
 
-		RunMeshUpdateSystem(ctx);
+		RunPrimtiveUpdateSystem(ctx);
 		RunMaterialUpdateSystem(ctx);
 
 		jobsystem::Wait(ctx); // dependencies

@@ -26,7 +26,11 @@ namespace vz
 
 		CameraComponent* camera = nullptr;
 		Scene* scene = nullptr;
+
+		bool useManualSetViewport = false;
+		bool useManualSetScissor = false;
 		graphics::Viewport viewport;
+		graphics::Rect scissor;
 
 		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;

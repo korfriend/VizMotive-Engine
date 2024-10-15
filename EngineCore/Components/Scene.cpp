@@ -88,7 +88,7 @@ namespace vz
 			{
 				renderable->Update();	// AABB
 
-				if (renderable->IsValid())
+				if (renderable->IsRenderable())
 				{
 					AABB aabb = renderable->GetAABB();
 
@@ -248,7 +248,7 @@ namespace vz
 		}
 	}
 
-	std::vector<Entity> Scene::GetGeometryEntities() const noexcept
+	std::vector<Entity> Scene::ScanGeometryEntities() const noexcept
 	{
 		std::vector<Entity> geometries;
 		for (auto& ett : renderables_)
@@ -267,7 +267,7 @@ namespace vz
 		return geometries;
 	}
 
-	std::vector<Entity> Scene::GetMaterialEntities() const noexcept
+	std::vector<Entity> Scene::ScanMaterialEntities() const noexcept
 	{
 		std::vector<Entity> materials;
 		for (auto& ett : renderables_)

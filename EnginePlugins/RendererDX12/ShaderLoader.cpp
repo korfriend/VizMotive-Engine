@@ -21,7 +21,7 @@ std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "Shaders/";
 std::atomic<size_t> SHADER_ERRORS{ 0 };
 std::atomic<size_t> SHADER_MISSING{ 0 };
 
-namespace vz::common
+namespace vz::rcommon
 {
 	extern InputLayout			inputLayouts[ILTYPE_COUNT];
 	extern RasterizerState		rasterizers[RSTYPE_COUNT];
@@ -34,6 +34,7 @@ namespace vz::common
 	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	extern PipelineState		PSO_mesh[RENDERPASS_COUNT];
 	extern PipelineState		PSO_wireframe;
+	extern PipelineState		PSO_occlusionquery;
 }
 
 
@@ -456,33 +457,33 @@ namespace vz::shader
 		jobsystem::context ctx;
 		
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso");
+			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso");
 			});
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso");
+			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso");
 			});
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso");
+			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso");
 			});
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			common::inputLayouts[ILTYPE_VERTEXCOLOR].elements =
+			rcommon::inputLayouts[ILTYPE_VERTEXCOLOR].elements =
 			{
 				{ "POSITION", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
 				{ "TEXCOORD", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
 			};
-			LoadShader(ShaderStage::VS, common::shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso");
+			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso");
 			});
 
-		common::inputLayouts[ILTYPE_POSITION].elements =
+		rcommon::inputLayouts[ILTYPE_POSITION].elements =
 		{
 			{ "POSITION", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
 		};
 		
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, common::shaders[PSTYPE_DEBUG], "meshPS_debug.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, common::shaders[PSTYPE_SIMPLE], "meshPS_simple.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_DEBUG], "meshPS_debug.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_SIMPLE], "meshPS_simple.cso"); });
 
 		static const std::vector<std::string> shaderTypeDefines[] = {
 			{}, // ShaderType::PHONG,
@@ -494,7 +495,7 @@ namespace vz::shader
 
 			LoadShader(
 				ShaderStage::PS,
-				common::shaders[PS_MATERIAL_FORWARD__BEGIN + args.jobIndex],
+				rcommon::shaders[PS_MATERIAL_FORWARD__BEGIN + args.jobIndex],
 				"meshPS_FW.cso",
 				ShaderModel::SM_6_0,
 				shaderTypeDefines[args.jobIndex] // permutation defines
@@ -523,19 +524,31 @@ namespace vz::shader
 		// create graphics pipelines
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			PipelineStateDesc desc;
-			desc.vs = &common::shaders[VSTYPE_MESH_SIMPLE];
-			desc.ps = &common::shaders[PSTYPE_SIMPLE];
-			desc.rs = &common::rasterizers[RSTYPE_WIRE];
-			desc.bs = &common::blendStates[BSTYPE_OPAQUE];
-			desc.dss = &common::depthStencils[DSSTYPE_DEFAULT];
+			desc.vs = &rcommon::shaders[VSTYPE_MESH_SIMPLE];
+			desc.ps = &rcommon::shaders[PSTYPE_SIMPLE];
+			desc.rs = &rcommon::rasterizers[RSTYPE_WIRE];
+			desc.bs = &rcommon::blendStates[BSTYPE_OPAQUE];
+			desc.dss = &rcommon::depthStencils[DSSTYPE_DEFAULT];
 
-			device->CreatePipelineState(&desc, &common::PSO_wireframe);
+			device->CreatePipelineState(&desc, &rcommon::PSO_wireframe);
 
 			//desc.pt = PrimitiveTopology::PATCHLIST;
 			//desc.vs = &common::shaders[VSTYPE_OBJECT_SIMPLE_TESSELLATION];
 			//desc.hs = &common::shaders[HSTYPE_MESH_SIMPLE];
 			//desc.ds = &common::shaders[DSTYPE_MESH_SIMPLE];
 			//device->CreatePipelineState(&desc, &PSO_object_wire_tessellation);
+			});
+
+
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
+			PipelineStateDesc desc;
+			desc.vs = &rcommon::shaders[VSTYPE_OCCLUDEE];
+			desc.rs = &rcommon::rasterizers[RSTYPE_OCCLUDEE];
+			desc.bs = &rcommon::blendStates[BSTYPE_COLORWRITEDISABLE];
+			desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+			desc.pt = PrimitiveTopology::TRIANGLESTRIP;
+
+			device->CreatePipelineState(&desc, &PSO_occlusionquery);
 			});
 
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
@@ -555,92 +568,92 @@ namespace vz::shader
 			switch (args.jobIndex)
 			{
 			case DEBUGRENDERING_GRID:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_CUBE:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_CUBE_DEPTH:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_LINES:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_LINES_DEPTH:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_TRIANGLE_SOLID:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &common::rasterizers[RSTYPE_DOUBLESIDED];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rcommon::rasterizers[RSTYPE_DOUBLESIDED];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_TRIANGLE_WIREFRAME:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_TRIANGLE_SOLID_DEPTH:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &common::rasterizers[RSTYPE_DOUBLESIDED];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rcommon::rasterizers[RSTYPE_DOUBLESIDED];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_TRIANGLE_WIREFRAME_DEPTH:
-				desc.vs = &common::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &common::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &common::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_EMITTER:
-				desc.vs = &common::shaders[VSTYPE_MESH_DEBUG];
-				desc.ps = &common::shaders[PSTYPE_DEBUG];
-				desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &common::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &common::blendStates[BSTYPE_OPAQUE];
+				desc.vs = &rcommon::shaders[VSTYPE_MESH_DEBUG];
+				desc.ps = &rcommon::shaders[PSTYPE_DEBUG];
+				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &rcommon::blendStates[BSTYPE_OPAQUE];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			//case DEBUGRENDERING_RAYTRACE_BVH:
@@ -653,7 +666,7 @@ namespace vz::shader
 			//	break;
 			}
 
-			device->CreatePipelineState(&desc, &common::PSO_debug[args.jobIndex]);
+			device->CreatePipelineState(&desc, &rcommon::PSO_debug[args.jobIndex]);
 		});
 		
 		jobsystem::Wait(ctx);
@@ -697,8 +710,8 @@ namespace vz::shader
 											SHADERTYPE realMS = GetMSTYPE((RENDERPASS)renderPass, tessellation, alphatest, transparency, mesh_shader);
 											if (realMS == SHADERTYPE_COUNT)
 												continue;
-											desc.as = realAS < SHADERTYPE_COUNT ? &common::shaders[realAS] : nullptr;
-											desc.ms = realMS < SHADERTYPE_COUNT ? &common::shaders[realMS] : nullptr;
+											desc.as = realAS < SHADERTYPE_COUNT ? &rcommon::shaders[realAS] : nullptr;
+											desc.ms = realMS < SHADERTYPE_COUNT ? &rcommon::shaders[realMS] : nullptr;
 										}
 										else
 										{
@@ -710,33 +723,33 @@ namespace vz::shader
 											if (tessellation && (realHS == SHADERTYPE_COUNT || realDS == SHADERTYPE_COUNT))
 												continue;
 
-											desc.vs = realVS < SHADERTYPE_COUNT ? &common::shaders[realVS] : nullptr;
-											desc.hs = realHS < SHADERTYPE_COUNT ? &common::shaders[realHS] : nullptr;
-											desc.ds = realDS < SHADERTYPE_COUNT ? &common::shaders[realDS] : nullptr;
-											desc.gs = realGS < SHADERTYPE_COUNT ? &common::shaders[realGS] : nullptr;
+											desc.vs = realVS < SHADERTYPE_COUNT ? &rcommon::shaders[realVS] : nullptr;
+											desc.hs = realHS < SHADERTYPE_COUNT ? &rcommon::shaders[realHS] : nullptr;
+											desc.ds = realDS < SHADERTYPE_COUNT ? &rcommon::shaders[realDS] : nullptr;
+											desc.gs = realGS < SHADERTYPE_COUNT ? &rcommon::shaders[realGS] : nullptr;
 										}
 
 										const uint32_t deferred_enabled = 0; // (TODO) 1
 
 										SHADERTYPE realPS = GetPSTYPE((RENDERPASS)renderPass, deferred_enabled, alphatest, transparency, static_cast<MaterialComponent::ShaderType>(shaderType));
-										desc.ps = realPS < SHADERTYPE_COUNT ? &common::shaders[realPS] : nullptr;
+										desc.ps = realPS < SHADERTYPE_COUNT ? &rcommon::shaders[realPS] : nullptr;
 
 										switch (blendMode)
 										{
 										case BLENDMODE_OPAQUE:
-											desc.bs = &common::blendStates[BSTYPE_OPAQUE];
+											desc.bs = &rcommon::blendStates[BSTYPE_OPAQUE];
 											break;
 										case BLENDMODE_ALPHA:
-											desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
+											desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
 											break;
 										case BLENDMODE_ADDITIVE:
-											desc.bs = &common::blendStates[BSTYPE_ADDITIVE];
+											desc.bs = &rcommon::blendStates[BSTYPE_ADDITIVE];
 											break;
 										case BLENDMODE_PREMULTIPLIED:
-											desc.bs = &common::blendStates[BSTYPE_PREMULTIPLIED];
+											desc.bs = &rcommon::blendStates[BSTYPE_PREMULTIPLIED];
 											break;
 										case BLENDMODE_MULTIPLY:
-											desc.bs = &common::blendStates[BSTYPE_MULTIPLY];
+											desc.bs = &rcommon::blendStates[BSTYPE_MULTIPLY];
 											break;
 										default:
 											assert(0);
@@ -746,7 +759,7 @@ namespace vz::shader
 										switch (renderPass)
 										{
 										case RENDERPASS_SHADOW:
-											desc.bs = &common::blendStates[transparency ? BSTYPE_TRANSPARENTSHADOW : BSTYPE_COLORWRITEDISABLE];
+											desc.bs = &rcommon::blendStates[transparency ? BSTYPE_TRANSPARENTSHADOW : BSTYPE_COLORWRITEDISABLE];
 											break;
 										default:
 											break;
@@ -755,32 +768,32 @@ namespace vz::shader
 										switch (renderPass)
 										{
 										case RENDERPASS_SHADOW:
-											desc.dss = &common::depthStencils[transparency ? DSSTYPE_DEPTHREAD : DSSTYPE_SHADOW];
+											desc.dss = &rcommon::depthStencils[transparency ? DSSTYPE_DEPTHREAD : DSSTYPE_SHADOW];
 											break;
 										case RENDERPASS_MAIN:
 											if (blendMode == BLENDMODE_ADDITIVE)
 											{
-												desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
+												desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
 											}
 											else
 											{
-												desc.dss = &common::depthStencils[transparency ? DSSTYPE_TRANSPARENT : DSSTYPE_DEPTHREADEQUAL];
+												desc.dss = &rcommon::depthStencils[transparency ? DSSTYPE_TRANSPARENT : DSSTYPE_DEPTHREADEQUAL];
 											}
 											break;
 										case RENDERPASS_ENVMAPCAPTURE:
-											desc.dss = &common::depthStencils[DSSTYPE_ENVMAP];
+											desc.dss = &rcommon::depthStencils[DSSTYPE_ENVMAP];
 											break;
 										case RENDERPASS_VOXELIZE:
-											desc.dss = &common::depthStencils[DSSTYPE_DEPTHDISABLED];
+											desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
 											break;
 										default:
 											if (blendMode == BLENDMODE_ADDITIVE)
 											{
-												desc.dss = &common::depthStencils[DSSTYPE_DEPTHREAD];
+												desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
 											}
 											else
 											{
-												desc.dss = &common::depthStencils[DSSTYPE_DEFAULT];
+												desc.dss = &rcommon::depthStencils[DSSTYPE_DEFAULT];
 											}
 											break;
 										}
@@ -788,23 +801,23 @@ namespace vz::shader
 										switch (renderPass)
 										{
 										case RENDERPASS_SHADOW:
-											desc.rs = &common::rasterizers[cullMode == (int)CullMode::NONE ? RSTYPE_SHADOW_DOUBLESIDED : RSTYPE_SHADOW];
+											desc.rs = &rcommon::rasterizers[cullMode == (int)CullMode::NONE ? RSTYPE_SHADOW_DOUBLESIDED : RSTYPE_SHADOW];
 											break;
 										case RENDERPASS_VOXELIZE:
-											desc.rs = &common::rasterizers[RSTYPE_VOXELIZE];
+											desc.rs = &rcommon::rasterizers[RSTYPE_VOXELIZE];
 											break;
 										default:
 											switch ((CullMode)cullMode)
 											{
 											default:
 											case CullMode::BACK:
-												desc.rs = &common::rasterizers[RSTYPE_FRONT];
+												desc.rs = &rcommon::rasterizers[RSTYPE_FRONT];
 												break;
 											case CullMode::NONE:
-												desc.rs = &common::rasterizers[RSTYPE_DOUBLESIDED];
+												desc.rs = &rcommon::rasterizers[RSTYPE_DOUBLESIDED];
 												break;
 											case CullMode::FRONT:
-												desc.rs = &common::rasterizers[RSTYPE_BACK];
+												desc.rs = &rcommon::rasterizers[RSTYPE_BACK];
 												break;
 											}
 											break;

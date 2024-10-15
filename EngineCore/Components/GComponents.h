@@ -13,6 +13,24 @@ namespace vz
 
 	struct CORE_EXPORT GMaterialComponent : MaterialComponent
 	{
+		enum MaterialFilterFlags
+		{
+			// Include nothing:
+			FILTER_NONE = 0,
+
+			// Object filtering types:
+			FILTER_OPAQUE = 1 << 0,
+			FILTER_TRANSPARENT = 1 << 1,
+			FILTER_NAVIGATION_MESH = 1 << 2,
+			FILTER_OBJECT_ALL = FILTER_OPAQUE | FILTER_TRANSPARENT | FILTER_NAVIGATION_MESH,
+
+			// Other filtering types:
+			FILTER_COLLIDER = 1 << 5,
+
+			// Include everything:
+			FILTER_ALL = ~0,
+		};
+
 		GMaterialComponent(const Entity entity, const VUID vuid = 0) : MaterialComponent(entity, vuid) {}
 
 		// Non-serialized attributes:
@@ -20,6 +38,7 @@ namespace vz
 
 		// Create texture resources for GPU
 		void UpdateAssociatedTextures();
+		uint32_t GetFilterMaskFlags() const;
 	};
 
 	struct CORE_EXPORT GGeometryComponent : GeometryComponent
@@ -89,13 +108,24 @@ namespace vz
 		GRenderableComponent(const Entity entity, const VUID vuid = 0) : RenderableComponent(entity, vuid) {}
 
 		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
+
+		// these will only be valid for a single frame: (supposed to be updated dynamically)
+		uint32_t geometryIndex = ~0u;	// bindless
 		uint32_t sortBits = 0;
 
+		//----- determined by associated materials -----
 		std::vector<graphics::GPUBuffer> vbWetmaps; // for each primitive part
-		bool isWebmapEnabled = false;
 		mutable bool wetmapCleared = false;
+		mutable uint32_t materialFilterFlags = 0u;
+		mutable uint32_t lightmapIterationCount = 0u;
+	};
 
-		mutable uint32_t lightmapIterationCount = 0;
+	struct CORE_EXPORT GCameraComponent : CameraComponent
+	{
+		GCameraComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(entity, vuid) {}
+
+		graphics::Viewport viewport;
+		graphics::Rect scissor;
 	};
 
 	struct CORE_EXPORT GLightComponent : LightComponent

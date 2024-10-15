@@ -43,6 +43,7 @@ namespace vz
 		VSTYPE_MESH_DEBUG,		// VER 0.1
 		VSTYPE_MESH_COMMON,		// VER 0.1
 		VSTYPE_MESH_SIMPLE,		// VER 0.1
+		VSTYPE_OCCLUDEE,		// VER 0.1
 		VSTYPE_VERTEXCOLOR,
 
 		VSTYPE_MESH_COMMON_TESSELLATION,
@@ -372,7 +373,7 @@ namespace vz
 		bool Update(const float dt) override;
 		bool Destory() override;
 
-		void RunMeshUpdateSystem(jobsystem::context& ctx);
+		void RunPrimtiveUpdateSystem(jobsystem::context& ctx);
 		void RunMaterialUpdateSystem(jobsystem::context& ctx);
 		void RunRenderableUpdateSystem(jobsystem::context& ctx);
 	};

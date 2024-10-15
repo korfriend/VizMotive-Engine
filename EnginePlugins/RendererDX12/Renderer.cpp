@@ -12,7 +12,7 @@
 
 #include "ThirdParty/RectPacker.h"
 
-namespace vz::common
+namespace vz::rcommon
 {
 	InputLayout			inputLayouts[ILTYPE_COUNT];
 	RasterizerState		rasterizers[RSTYPE_COUNT];
@@ -26,15 +26,23 @@ namespace vz::common
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	PipelineState		PSO_mesh[RENDERPASS_COUNT];
 	PipelineState		PSO_wireframe;
+	PipelineState		PSO_occlusionquery;
 }
+
+// TODO 
+// move 
+//	1. renderer options and functions to GRenderPath3DDetails
+//	2. global parameters to vz::rcommon
 
 namespace vz::renderer
 {
 	const float renderingSpeed = 1.f;
 	const bool isOcclusionCullingEnabled = true;
+	const bool isFreezeCullingCameraEnabled = false;
 	const bool isSceneUpdateEnabled = true;
 	const bool isTemporalAAEnabled = false;
 	const bool isFSREnabled = false;
+	const bool isWireRender = false;
 
 	using namespace primitive;
 
@@ -42,7 +50,7 @@ namespace vz::renderer
 	{
 		// User fills these:
 		uint8_t layerMask = ~0;
-		const Scene* scene = nullptr;
+		Scene* scene = nullptr;
 		CameraComponent* camera = nullptr;
 		enum FLAGS
 		{
@@ -116,14 +124,16 @@ namespace vz::renderer
 	};
 
 	// must be called after scene->update()
-	void UpdateView(View& vis)
+	void UpdateView(View& view)
 	{
 		// Perform parallel frustum culling and obtain closest reflector:
 		jobsystem::context ctx;
 		auto range = profiler::BeginRangeCPU("Frustum Culling");
 
-		assert(vis.scene != nullptr); // User must provide a scene!
-		assert(vis.camera != nullptr); // User must provide a camera!
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
+
+		assert(view.scene != nullptr); // User must provide a scene!
+		assert(view.camera != nullptr); // User must provide a camera!
 
 		// The parallel frustum culling is first performed in shared memory, 
 		//	then each group writes out it's local list to global memory
@@ -133,29 +143,28 @@ namespace vz::renderer
 		static const size_t sharedmemory_size = (groupSize + 1) * sizeof(uint32_t); // list + counter per group
 
 		// Initialize visible indices:
-		vis.Clear();
+		view.Clear();
 
 		// TODO : add frustum culling processs
-		//if (!GetFreezeCullingCameraEnabled()) // just for debug
+		if (!isFreezeCullingCameraEnabled) // just for debug
 		{
-			vis.frustum = vis.camera->GetFrustum();
+			view.frustum = view.camera->GetFrustum();
 		}
-		//if (!GetOcclusionCullingEnabled() || GetFreezeCullingCameraEnabled())
-		//{
-		//	vis.flags &= ~View::ALLOW_OCCLUSION_CULLING;
-		//}
-
+		if (!isOcclusionCullingEnabled || isFreezeCullingCameraEnabled)
+		{
+			view.flags &= ~View::ALLOW_OCCLUSION_CULLING;
+		}
 		
-		if (vis.flags & View::ALLOW_LIGHTS)
+		if (view.flags & View::ALLOW_LIGHTS)
 		{
 			// Cull lights:
-			const uint32_t light_loop = (uint32_t)vis.scene->GetLightCount();
-			vis.visibleLights.resize(light_loop);
+			const uint32_t light_loop = (uint32_t)view.scene->GetLightCount();
+			view.visibleLights.resize(light_loop);
 			//vis.visibleLightShadowRects.clear();
 			//vis.visibleLightShadowRects.resize(light_loop);
 			jobsystem::Dispatch(ctx, light_loop, groupSize, [&](jobsystem::JobArgs args) {
 
-				const std::vector<Entity>& light_entities = vis.scene->GetLightEntities();
+				const std::vector<Entity>& light_entities = view.scene->GetLightEntities();
 				Entity entity = light_entities[args.jobIndex];
 				const LightComponent& light = *compfactory::GetLightComponent(entity);
 				assert(!light.IsDirty());
@@ -170,7 +179,7 @@ namespace vz::renderer
 
 				const AABB& aabb = light.GetAABB();
 
-				if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
+				if ((aabb.layerMask & view.layerMask) && view.frustum.CheckBoxFast(aabb))
 				{
 					if (!light.IsInactive())
 					{
@@ -199,24 +208,24 @@ namespace vz::renderer
 				// Global stream compaction:
 				if (args.isLastJobInGroup && group_count > 0)
 				{
-					uint32_t prev_count = vis.lightCounter.fetch_add(group_count);
+					uint32_t prev_count = view.lightCounter.fetch_add(group_count);
 					for (uint32_t i = 0; i < group_count; ++i)
 					{
-						vis.visibleLights[prev_count + i] = group_list[i];
+						view.visibleLights[prev_count + i] = group_list[i];
 					}
 				}
 
 				}, sharedmemory_size);
 		}
 
-		if (vis.flags & View::ALLOW_RENDERABLES)
+		if (view.flags & View::ALLOW_RENDERABLES)
 		{
 			// Cull objects:
-			const uint32_t renderable_loop = (uint32_t)vis.scene->GetRenderableCount();
-			vis.visibleRenderables.resize(renderable_loop);
+			const uint32_t renderable_loop = (uint32_t)view.scene->GetRenderableCount();
+			view.visibleRenderables.resize(renderable_loop);
 			jobsystem::Dispatch(ctx, renderable_loop, groupSize, [&](jobsystem::JobArgs args) {
 
-				const std::vector<Entity>& renderable_entities = vis.scene->GetRenderableEntities();
+				const std::vector<Entity>& renderable_entities = view.scene->GetRenderableEntities();
 				Entity entity = renderable_entities[args.jobIndex];
 				const RenderableComponent& renderable = *compfactory::GetRenderableComponent(entity);
 				//assert(!renderable.IsDirty());
@@ -231,42 +240,42 @@ namespace vz::renderer
 
 				const AABB& aabb = renderable.GetAABB();
 
-				if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
+				if ((aabb.layerMask & view.layerMask) && view.frustum.CheckBoxFast(aabb))
 				{
 					// Local stream compaction:
 					group_list[group_count++] = args.jobIndex;
 
-					//Scene::OcclusionResult& occlusion_result = vis.scene->occlusion_results_objects[args.jobIndex];
-					//bool occluded = false;
-					//if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
-					//{
-					//	occluded = occlusion_result.IsOccluded();
-					//}
-					//
-					//if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
-					//{
-					//	if (renderable.IsRenderable() && occlusion_result.occlusionQueries[vis.scene->queryheap_idx] < 0)
-					//	{
-					//		if (aabb.intersects(vis.camera->Eye))
-					//		{
-					//			// camera is inside the instance, mark it as visible in this frame:
-					//			occlusion_result.occlusionHistory |= 1;
-					//		}
-					//		else
-					//		{
-					//			occlusion_result.occlusionQueries[vis.scene->queryheap_idx] = vis.scene->queryAllocator.fetch_add(1); // allocate new occlusion query from heap
-					//		}
-					//	}
-					//}
+					GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[args.jobIndex];
+					bool occluded = false;
+					if (view.flags & View::ALLOW_OCCLUSION_CULLING)
+					{
+						occluded = occlusion_result.IsOccluded();
+					}
+
+					if (view.flags & View::ALLOW_OCCLUSION_CULLING)
+					{
+						if (renderable.IsRenderable() && occlusion_result.occlusionQueries[scene_Gdetails->queryheapIdx] < 0)
+						{
+							if (aabb.intersects(view.camera->GetWorldEye()))
+							{
+								// camera is inside the instance, mark it as visible in this frame:
+								occlusion_result.occlusionHistory |= 1;
+							}
+							else
+							{
+								occlusion_result.occlusionQueries[scene_Gdetails->queryheapIdx] = scene_Gdetails->queryAllocator.fetch_add(1); // allocate new occlusion query from heap
+							}
+						}
+					}
 				}
 
 				// Global stream compaction:
 				if (args.isLastJobInGroup && group_count > 0)
 				{
-					uint32_t prev_count = vis.renderableCounter.fetch_add(group_count);
+					uint32_t prev_count = view.renderableCounter.fetch_add(group_count);
 					for (uint32_t i = 0; i < group_count; ++i)
 					{
-						vis.visibleRenderables[prev_count + i] = group_list[i];
+						view.visibleRenderables[prev_count + i] = group_list[i];
 					}
 				}
 
@@ -276,18 +285,12 @@ namespace vz::renderer
 		jobsystem::Wait(ctx);
 
 		// finalize stream compaction: (memory safe)
-		vis.visibleRenderables.resize((size_t)vis.renderableCounter.load());
-		vis.visibleLights.resize((size_t)vis.lightCounter.load());
+		view.visibleRenderables.resize((size_t)view.renderableCounter.load());
+		view.visibleLights.resize((size_t)view.lightCounter.load());
 		
 		profiler::EndRange(range); // Frustum Culling
 	}
-
-	void UpdatePerFrameData(
-		Scene& scene,
-		const View& vis,
-		FrameCB& frameCB,
-		float dt
-	)
+	void UpdatePerFrameData(Scene& scene, const View& vis, FrameCB& frameCB, float dt)
 	{
 		GraphicsDevice* device = graphics::GetDevice();
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();
@@ -317,7 +320,7 @@ namespace vz::renderer
 
 		frameCB.texture_random64x64_index = device->GetDescriptorIndex(texturehelper::getRandom64x64(), SubresourceType::SRV);
 		frameCB.texture_bluenoise_index = device->GetDescriptorIndex(texturehelper::getBlueNoise(), SubresourceType::SRV);
-		frameCB.texture_sheenlut_index = device->GetDescriptorIndex(&common::textures[TEXTYPE_2D_SHEENLUT], SubresourceType::SRV);
+		frameCB.texture_sheenlut_index = device->GetDescriptorIndex(&rcommon::textures[TEXTYPE_2D_SHEENLUT], SubresourceType::SRV);
 
 		uint lightarray_offset_directional = 0;
 		uint lightarray_count_directional = 0;
@@ -386,31 +389,31 @@ namespace vz::renderer
 
 	const Sampler* GetSampler(SAMPLERTYPES id)
 	{
-		return &common::samplers[id];
+		return &rcommon::samplers[id];
 	}
 	const Shader* GetShader(SHADERTYPE id)
 	{
-		return &common::shaders[id];
+		return &rcommon::shaders[id];
 	}
 	const InputLayout* GetInputLayout(ILTYPES id)
 	{
-		return &common::inputLayouts[id];
+		return &rcommon::inputLayouts[id];
 	}
 	const RasterizerState* GetRasterizerState(RSTYPES id)
 	{
-		return &common::rasterizers[id];
+		return &rcommon::rasterizers[id];
 	}
 	const DepthStencilState* GetDepthStencilState(DSSTYPES id)
 	{
-		return &common::depthStencils[id];
+		return &rcommon::depthStencils[id];
 	}
 	const BlendState* GetBlendState(BSTYPES id)
 	{
-		return &common::blendStates[id];
+		return &rcommon::blendStates[id];
 	}
 	const GPUBuffer* GetBuffer(BUFFERTYPES id)
 	{
-		return &common::buffers[id];
+		return &rcommon::buffers[id];
 	}
 
 	enum MIPGENFILTER
@@ -418,6 +421,15 @@ namespace vz::renderer
 		MIPGENFILTER_POINT,
 		MIPGENFILTER_LINEAR,
 		MIPGENFILTER_GAUSSIAN,
+	};
+	enum DRAWSCENE_FLAGS
+	{
+		DRAWSCENE_OPAQUE = 1 << 0, // include opaque objects
+		DRAWSCENE_TRANSPARENT = 1 << 1, // include transparent objects
+		DRAWSCENE_OCCLUSIONCULLING = 1 << 2, // enable skipping objects based on occlusion culling results
+		DRAWSCENE_TESSELLATION = 1 << 3, // enable tessellation
+		DRAWSCENE_FOREGROUND_ONLY = 1 << 4, // only include objects that are tagged as foreground
+		DRAWSCENE_DVR = 1 << 5, // only include objects that are tagged as foreground
 	};
 
 	struct MIPGEN_OPTIONS
@@ -437,6 +449,124 @@ namespace vz::renderer
 		const graphics::Texture* GetCurrent() const { return &textureTemporal[frame % arraysize(textureTemporal)]; }
 		const graphics::Texture* GetHistory() const { return &textureTemporal[(frame + 1) % arraysize(textureTemporal)]; }
 	};
+
+	// Direct reference to a renderable instance:
+	struct RenderBatch
+	{
+		uint32_t meshIndex;
+		uint32_t instanceIndex;
+		uint16_t distance;
+		uint16_t camera_mask;
+		uint32_t sort_bits; // an additional bitmask for sorting only, it should be used to reduce pipeline changes
+
+		inline void Create(uint32_t meshIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint16_t camera_mask = 0xFFFF)
+		{
+			this->meshIndex = meshIndex;
+			this->instanceIndex = instanceIndex;
+			this->distance = XMConvertFloatToHalf(distance);
+			this->sort_bits = sort_bits;
+			this->camera_mask = camera_mask;
+		}
+
+		inline float GetDistance() const
+		{
+			return XMConvertHalfToFloat(HALF(distance));
+		}
+		constexpr uint32_t GetMeshIndex() const
+		{
+			return meshIndex;
+		}
+		constexpr uint32_t GetInstanceIndex() const
+		{
+			return instanceIndex;
+		}
+
+		// opaque sorting
+		//	Priority is set to mesh index to have more instancing
+		//	distance is second priority (front to back Z-buffering)
+		constexpr bool operator<(const RenderBatch& other) const
+		{
+			union SortKey
+			{
+				struct
+				{
+					// The order of members is important here, it means the sort priority (low to high)!
+					uint64_t distance : 16;
+					uint64_t meshIndex : 16;
+					uint64_t sort_bits : 32;
+				} bits;
+				uint64_t value;
+			};
+			static_assert(sizeof(SortKey) == sizeof(uint64_t));
+			SortKey a = {};
+			a.bits.distance = distance;
+			a.bits.meshIndex = meshIndex;
+			a.bits.sort_bits = sort_bits;
+			SortKey b = {};
+			b.bits.distance = other.distance;
+			b.bits.meshIndex = other.meshIndex;
+			b.bits.sort_bits = other.sort_bits;
+			return a.value < b.value;
+		}
+		// transparent sorting
+		//	Priority is distance for correct alpha blending (back to front rendering)
+		//	mesh index is second priority for instancing
+		constexpr bool operator>(const RenderBatch& other) const
+		{
+			union SortKey
+			{
+				struct
+				{
+					// The order of members is important here, it means the sort priority (low to high)!
+					uint64_t meshIndex : 16;
+					uint64_t sort_bits : 32;
+					uint64_t distance : 16;
+				} bits;
+				uint64_t value;
+			};
+			static_assert(sizeof(SortKey) == sizeof(uint64_t));
+			SortKey a = {};
+			a.bits.distance = distance;
+			a.bits.sort_bits = sort_bits;
+			a.bits.meshIndex = meshIndex;
+			SortKey b = {};
+			b.bits.distance = other.distance;
+			b.bits.sort_bits = other.sort_bits;
+			b.bits.meshIndex = other.meshIndex;
+			return a.value > b.value;
+		}
+	};
+	static_assert(sizeof(RenderBatch) == 16ull);
+
+	struct RenderQueue
+	{
+		std::vector<RenderBatch> batches;
+
+		inline void init()
+		{
+			batches.clear();
+		}
+		inline void add(uint32_t meshIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint16_t camera_mask = 0xFFFF)
+		{
+			batches.emplace_back().Create(meshIndex, instanceIndex, distance, sort_bits, camera_mask);
+		}
+		inline void sort_transparent()
+		{
+			std::sort(batches.begin(), batches.end(), std::greater<RenderBatch>());
+		}
+		inline void sort_opaque()
+		{
+			std::sort(batches.begin(), batches.end(), std::less<RenderBatch>());
+		}
+		inline bool empty() const
+		{
+			return batches.empty();
+		}
+		inline size_t size() const
+		{
+			return batches.size();
+		}
+	};
 }
 
 namespace vz
@@ -444,18 +574,19 @@ namespace vz
 	using namespace renderer;
 
 	static thread_local std::vector<GPUBarrier> barrierStack;
+	static constexpr float foregroundDepthRange = 0.01f;
 
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
 		GRenderPath3DDetails(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
-			: GRenderPath3D(vp, swapChain, rtRenderFinal) 
+			: GRenderPath3D(vp, swapChain, rtRenderFinal)
 		{
 			device = GetDevice();
 		}
 
 		GraphicsDevice* device = nullptr;
 		bool viewShadingInCS = false;
-		
+
 		FrameCB frameCB;
 		// separate graphics pipelines for the combination of special rendering effects
 		renderer::View viewMain;
@@ -474,11 +605,15 @@ namespace vz
 		graphics::Texture rtMain_render; // can be MSAA
 		graphics::Texture rtPrimitiveID;
 		graphics::Texture rtPrimitiveID_render; // can be MSAA
+		graphics::Texture depthBufferMain; // used for depth-testing, can be MSAA
 
 		// progressive components
 		SpinLock deferredMIPGenLock;
 		std::vector<std::pair<Texture, bool>> deferredMIPGens;
 		std::vector<std::pair<Texture, Texture>> deferredBCQueue; // BC : Block Compression
+
+		// ---------- GRenderPath3D's internal impl.: -----------------
+		//  * functions with an input 'CommandList' are to be implemented here, otherwise, implement 'renderer::' namespace
 
 		void BarrierStackFlush(CommandList cmd)
 		{
@@ -491,8 +626,13 @@ namespace vz
 		//	1. viewMain
 		//	2. frameCB
 		void UpdateViewRes(const float dt);
+		// Updates the GPU state according to the previously called UpdatePerFrameData()
+		void UpdateRenderData(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
+		void UpdateRenderDataAsync(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
+
 		void ProcessDeferredTextureRequests(CommandList cmd);
 		void GenerateMipChain(const Texture& texture, MIPGENFILTER filter, CommandList cmd, const MIPGEN_OPTIONS& options);
+
 		// Compress a texture into Block Compressed format
 		//	textureSrc	: source uncompressed texture
 		//	textureBC	: destination compressed texture, must be a supported BC format (BC1/BC3/BC4/BC5/BC6H_UFLOAT)
@@ -502,21 +642,26 @@ namespace vz
 		//	cameraPrevious : camera from previous frame, used for reprojection effects.
 		//	cameraReflection : camera that renders planar reflection
 		void BindCameraCB(const CameraComponent& camera, const CameraComponent& cameraPrevious, const CameraComponent& cameraReflection, CommandList cmd);
-		// Updates the GPU state according to the previously called UpdatePerFrameData()
-		void UpdateRenderData(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
-		void UpdateRenderDataAsync(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
 		void BindCommonResources(CommandList cmd)
 		{
-			device->BindConstantBuffer(&common::buffers[BUFFERTYPE_FRAMECB], CBSLOT_RENDERER_FRAME, cmd);
+			device->BindConstantBuffer(&rcommon::buffers[BUFFERTYPE_FRAMECB], CBSLOT_RENDERER_FRAME, cmd);
 		}
+
+		void OcclusionCulling_Reset(const View& view, CommandList cmd);
+		void OcclusionCulling_Render(const CameraComponent& camera, const View& view, CommandList cmd);
+		void OcclusionCulling_Resolve(const View& view, CommandList cmd);
+
+		void DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags);
 
 		// ---------- GRenderPath3D's interfaces: -----------------
 		bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) override; // must delete all canvas-related resources and re-create
 		bool Render(const float dt) override;
 		bool Destory() override;
 	};
+}
 
-
+namespace vz
+{
 	void GRenderPath3DDetails::UpdateViewRes(const float dt)
 	{
 		// Frustum culling for main camera:
@@ -557,16 +702,16 @@ namespace vz
 			renderer::isSceneUpdateEnabled ? dt : 0
 		);
 
-		
+
 		if (renderer::isTemporalAAEnabled)
 		{
 			const XMFLOAT4& halton = math::GetHaltonSequence(graphics::GetDevice()->GetFrameCount() % 256);
 			camera->jitter.x = (halton.x * 2 - 1) / (float)internalResolution.x;
 			camera->jitter.y = (halton.y * 2 - 1) / (float)internalResolution.y;
-			
+
 			cameraReflection.jitter.x = camera->jitter.x * 2;
 			cameraReflection.jitter.y = camera->jitter.x * 2;
-			
+
 			if (!temporalAAResources.IsValid())
 			{
 				temporalAAResources.frame = 0;
@@ -761,7 +906,7 @@ namespace vz
 
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
 
-		barrierStack.push_back(GPUBarrier::Buffer(&common::buffers[BUFFERTYPE_FRAMECB], ResourceState::CONSTANT_BUFFER, ResourceState::COPY_DST));
+		barrierStack.push_back(GPUBarrier::Buffer(&rcommon::buffers[BUFFERTYPE_FRAMECB], ResourceState::CONSTANT_BUFFER, ResourceState::COPY_DST));
 		if (scene_Gdetails->instanceBuffer.IsValid())
 		{
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->instanceBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_DST));
@@ -776,8 +921,8 @@ namespace vz
 		}
 		BarrierStackFlush(cmd);
 
-		device->UpdateBuffer(&common::buffers[BUFFERTYPE_FRAMECB], &frameCB, cmd);
-		barrierStack.push_back(GPUBarrier::Buffer(&common::buffers[BUFFERTYPE_FRAMECB], ResourceState::COPY_DST, ResourceState::CONSTANT_BUFFER));
+		device->UpdateBuffer(&rcommon::buffers[BUFFERTYPE_FRAMECB], &frameCB, cmd);
+		barrierStack.push_back(GPUBarrier::Buffer(&rcommon::buffers[BUFFERTYPE_FRAMECB], ResourceState::COPY_DST, ResourceState::CONSTANT_BUFFER));
 
 		if (scene_Gdetails->instanceBuffer.IsValid() && scene_Gdetails->instanceArraySize > 0)
 		{
@@ -884,6 +1029,228 @@ namespace vz
 		device->EventEnd(cmd);
 	}
 
+	void GRenderPath3DDetails::OcclusionCulling_Reset(const View& view, CommandList cmd)
+	{
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
+		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
+
+		if (!renderer::isOcclusionCullingEnabled || renderer::isFreezeCullingCameraEnabled || !queryHeap.IsValid())
+		{
+			return;
+		}
+		if (view.visibleRenderables.empty() && view.visibleLights.empty())
+		{
+			return;
+		}
+
+		device->QueryReset(
+			&queryHeap,
+			0,
+			queryHeap.desc.query_count,
+			cmd
+		);
+	}
+	void GRenderPath3DDetails::OcclusionCulling_Render(const CameraComponent& camera, const View& view, CommandList cmd)
+	{
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
+		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
+
+		if (!renderer::isOcclusionCullingEnabled || renderer::isFreezeCullingCameraEnabled || !queryHeap.IsValid())
+		{
+			return;
+		}
+		if (view.visibleRenderables.empty() && view.visibleLights.empty())
+		{
+			return;
+		}
+
+		auto range = profiler::BeginRangeGPU("Occlusion Culling Render", &cmd);
+
+		device->BindPipelineState(&rcommon::PSO_occlusionquery, cmd);
+
+		XMMATRIX VP = XMLoadFloat4x4(&camera.GetViewProjection());
+
+		int query_write = scene_Gdetails->queryheapIdx;
+
+		if (!view.visibleRenderables.empty())
+		{
+			device->EventBegin("Occlusion Culling Objects", cmd);
+
+			for (uint32_t instanceIndex : view.visibleRenderables)
+			{
+				const GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[instanceIndex];
+
+				Entity entity = scene_Gdetails->renderableEntities[instanceIndex];
+				GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(entity);
+
+				int queryIndex = occlusion_result.occlusionQueries[query_write];
+				if (queryIndex >= 0)
+				{
+					const AABB& aabb = renderable.GetAABB();
+					const XMMATRIX transform = aabb.getAsBoxMatrix() * VP;
+					device->PushConstants(&transform, sizeof(transform), cmd);
+
+					// render bounding box to later read the occlusion status
+					device->QueryBegin(&queryHeap, queryIndex, cmd);
+					device->Draw(14, 0, cmd);
+					device->QueryEnd(&queryHeap, queryIndex, cmd);
+				}
+			}
+
+			device->EventEnd(cmd);
+		}
+
+		if (!view.visibleLights.empty())
+		{
+			device->EventBegin("Occlusion Culling Lights", cmd);
+
+			for (uint32_t lightIndex : view.visibleLights)
+			{
+				Entity entity = scene_Gdetails->lightEntities[lightIndex];
+				const LightComponent& light = *compfactory::GetLightComponent(entity);
+
+				if (light.occlusionquery >= 0)
+				{
+					uint32_t queryIndex = (uint32_t)light.occlusionquery;
+					const AABB& aabb = light.GetAABB();
+					const XMMATRIX transform = aabb.getAsBoxMatrix() * VP;
+					device->PushConstants(&transform, sizeof(transform), cmd);
+
+					device->QueryBegin(&queryHeap, queryIndex, cmd);
+					device->Draw(14, 0, cmd);
+					device->QueryEnd(&queryHeap, queryIndex, cmd);
+				}
+			}
+
+			device->EventEnd(cmd);
+		}
+
+		profiler::EndRange(range); // Occlusion Culling Render
+	}
+	void GRenderPath3DDetails::OcclusionCulling_Resolve(const View& view, CommandList cmd)
+	{
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
+		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
+
+		if (!renderer::isOcclusionCullingEnabled || renderer::isFreezeCullingCameraEnabled || !queryHeap.IsValid())
+		{
+			return;
+		}
+		if (view.visibleRenderables.empty() && view.visibleLights.empty())
+		{
+			return;
+		}
+
+		int query_write = scene_Gdetails->queryheapIdx;
+		uint32_t queryCount = scene_Gdetails->queryAllocator.load();
+
+		// Resolve into readback buffer:
+		device->QueryResolve(
+			&queryHeap,
+			0,
+			queryCount,
+			&scene_Gdetails->queryResultBuffer[query_write],
+			0ull,
+			cmd
+		);
+
+		if (device->CheckCapability(GraphicsDeviceCapability::PREDICATION))
+		{
+			// Resolve into predication buffer:
+			device->QueryResolve(
+				&queryHeap,
+				0,
+				queryCount,
+				&scene_Gdetails->queryPredicationBuffer,
+				0ull,
+				cmd
+			);
+
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Buffer(&scene_Gdetails->queryPredicationBuffer, ResourceState::COPY_DST, ResourceState::PREDICATION),
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+		}
+	}
+
+	void GRenderPath3DDetails::DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags)
+	{
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
+
+		const bool opaque = flags & DRAWSCENE_OPAQUE;
+		const bool transparent = flags & DRAWSCENE_TRANSPARENT;
+		const bool occlusion = (flags & DRAWSCENE_OCCLUSIONCULLING) && (view.flags & View::ALLOW_OCCLUSION_CULLING) && isOcclusionCullingEnabled;
+		const bool foreground = flags & DRAWSCENE_FOREGROUND_ONLY;
+
+		device->EventBegin("DrawScene", cmd);
+		device->BindShadingRate(ShadingRate::RATE_1X1, cmd);
+
+		BindCommonResources(cmd);
+
+		uint32_t filterMask = 0;
+		if (opaque)
+		{
+			filterMask |= GMaterialComponent::FILTER_OPAQUE;
+		}
+		if (transparent)
+		{
+			filterMask |= GMaterialComponent::FILTER_TRANSPARENT;
+		}
+
+		if (isWireRender)
+		{
+			filterMask = GMaterialComponent::FILTER_ALL;
+		}
+
+		if (opaque || transparent)
+		{
+			static thread_local RenderQueue renderQueue;
+			renderQueue.init();
+			for (uint32_t instanceIndex : view.visibleRenderables)
+			{
+				if (occlusion && scene_Gdetails->occlusionResultsObjects[instanceIndex].IsOccluded())
+					continue;
+
+				const GRenderableComponent& renderable = view.scene->GetRenderableEntities()[instanceIndex];
+				if (!renderable.IsRenderable())
+					continue;
+				if (foreground != renderable.IsForeground())
+					continue;
+				if (!(view.camera->GetVisibleLayerMask() & renderable.GetVisibleMask()))
+					continue;
+				if ((renderable.materialFilterFlags & filterMask) == 0)
+					continue;
+
+				const float distance = math::Distance(view.camera->GetWorldEye(), renderable.GetAABB().getCenter());
+				if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
+					continue;
+
+				renderQueue.add(renderable.geometryIndex, instanceIndex, distance, renderable.sortBits);
+			}
+			if (!renderQueue.empty())
+			{
+				if (transparent)
+				{
+					renderQueue.sort_transparent();
+				}
+				else
+				{
+					renderQueue.sort_opaque();
+				}
+				RenderMeshes(view, renderQueue, renderPass, filterMask, cmd, flags);
+			}
+		}
+
+		device->BindShadingRate(ShadingRate::RATE_1X1, cmd);
+		device->EventEnd(cmd);
+
+	}
+}
+
+namespace vz
+{
 	// ---------- GRenderPath3D's interfaces: -----------------
 
 	bool GRenderPath3DDetails::ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight)
@@ -917,12 +1284,7 @@ namespace vz
 		CommandList cmd_prepareframe = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
-			BindCameraCB(
-				*camera,
-				cameraPrevious,
-				cameraReflection,
-				cmd
-			);
+			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderData(viewMain, frameCB, cmd);
 
 			uint32_t num_barriers = 2;
@@ -945,59 +1307,45 @@ namespace vz
 		device->WaitCommandList(cmd, cmd_prepareframe);
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
-			BindCameraCB(
-				*camera,
-				cameraPrevious,
-				cameraReflection,
-				cmd
-			);
-			renderer::UpdateRenderDataAsync(visibility_main, frameCB, cmd);
+			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
+			UpdateRenderDataAsync(viewMain, frameCB, cmd);
 
 			});
 
 		static const uint32_t drawscene_flags =
 			renderer::DRAWSCENE_OPAQUE |
-			renderer::DRAWSCENE_IMPOSTOR |
-			renderer::DRAWSCENE_HAIRPARTICLE |
 			renderer::DRAWSCENE_TESSELLATION |
-			renderer::DRAWSCENE_OCCLUSIONCULLING |
-			renderer::DRAWSCENE_MAINCAMERA
-			;
+			//renderer::DRAWSCENE_OCCLUSIONCULLING |
+			renderer::DRAWSCENE_MAINCAMERA;
 
 		// Main camera depth prepass + occlusion culling:
 		cmd = device->BeginCommandList();
 		CommandList cmd_maincamera_prepass = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
-			GraphicsDevice* device = graphics::GetDevice();
+			GCameraComponent* downcast_camera = (GCameraComponent*)camera;
 
-			renderer::BindCameraCB(
-				*camera,
-				camera_previous,
-				camera_reflection,
-				cmd
-			);
+			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 
-			if (getOcclusionCullingEnabled())
+			if (renderer::isOcclusionCullingEnabled)
 			{
-				renderer::OcclusionCulling_Reset(visibility_main, cmd); // must be outside renderpass!
+				OcclusionCulling_Reset(viewMain, cmd); // must be outside renderpass!
 			}
 
-			renderer::RefreshImpostors(*scene, cmd);
-
-			if (reprojectedDepth.IsValid())
-			{
-				renderer::ComputeReprojectedDepthPyramid(
-					depthBuffer_Copy,
-					rtVelocity,
-					reprojectedDepth,
-					cmd
-				);
-			}
+			// TODO
+			//if (reprojectedDepth.IsValid())
+			//{
+			//	renderer::ComputeReprojectedDepthPyramid(
+			//		depthBuffer_Copy,
+			//		rtVelocity,
+			//		reprojectedDepth,
+			//		cmd
+			//	);
+			//}
 
 			RenderPassImage rp[] = {
 				RenderPassImage::DepthStencil(
-					&depthBuffer_Main,
+					&depthBufferMain,
 					RenderPassImage::LoadOp::CLEAR,
 					RenderPassImage::StoreOp::STORE,
 					ResourceState::DEPTHSTENCIL,
@@ -1015,21 +1363,21 @@ namespace vz
 			device->RenderPassBegin(rp, arraysize(rp), cmd);
 
 			device->EventBegin("Opaque Z-prepass", cmd);
-			auto range = profiler::BeginRangeGPU("Z-Prepass", cmd);
+			auto range = profiler::BeginRangeGPU("Z-Prepass", (CommandList*)&cmd);
 
-			Rect scissor = GetScissorInternalResolution();
+			Rect scissor = downcast_camera->scissor;
 			device->BindScissorRects(1, &scissor, cmd);
 
 			Viewport vp;
-			vp.width = (float)depthBuffer_Main.GetDesc().width;
-			vp.height = (float)depthBuffer_Main.GetDesc().height;
+			vp.width = (float)depthBufferMain.GetDesc().width;
+			vp.height = (float)depthBufferMain.GetDesc().height;
 
 			// Foreground:
-			vp.min_depth = 1 - foreground_depth_range;
-			vp.max_depth = 1;
+			vp.min_depth = 1.f - foregroundDepthRange;
+			vp.max_depth = 1.f;
 			device->BindViewports(1, &vp, cmd);
-			renderer::DrawScene(
-				visibility_main,
+			DrawScene(
+				viewMain,
 				RENDERPASS_PREPASS,
 				cmd,
 				renderer::DRAWSCENE_OPAQUE |
@@ -1540,8 +1888,8 @@ namespace vz
 			}
 
 			Viewport vp;
-			vp.width = (float)depthBuffer_Main.GetDesc().width;
-			vp.height = (float)depthBuffer_Main.GetDesc().height;
+			vp.width = (float)depthBufferMain.GetDesc().width;
+			vp.height = (float)depthBufferMain.GetDesc().height;
 			device->BindViewports(1, &vp, cmd);
 
 			Rect scissor = GetScissorInternalResolution();
@@ -1554,7 +1902,7 @@ namespace vz
 
 				RenderPassImage rp[] = {
 					RenderPassImage::RenderTarget(&rtOutlineSource, RenderPassImage::LoadOp::CLEAR),
-					RenderPassImage::DepthStencil(&depthBuffer_Main, RenderPassImage::LoadOp::LOAD)
+					RenderPassImage::DepthStencil(&depthBufferMain, RenderPassImage::LoadOp::LOAD)
 				};
 				device->RenderPassBegin(rp, arraysize(rp), cmd);
 				image::Params params;
@@ -1576,7 +1924,7 @@ namespace vz
 				visibility_shading_in_compute ? RenderPassImage::LoadOp::LOAD : RenderPassImage::LoadOp::CLEAR
 			);
 			rp[rp_count++] = RenderPassImage::DepthStencil(
-				&depthBuffer_Main,
+				&depthBufferMain,
 				RenderPassImage::LoadOp::LOAD,
 				RenderPassImage::StoreOp::STORE,
 				ResourceState::DEPTHSTENCIL,
@@ -1608,7 +1956,7 @@ namespace vz
 				auto range = profiler::BeginRangeGPU("Opaque Scene", cmd);
 
 				// Foreground:
-				vp.min_depth = 1 - foreground_depth_range;
+				vp.min_depth = 1 - foregroundDepthRange;
 				vp.max_depth = 1;
 				device->BindViewports(1, &vp, cmd);
 				renderer::DrawScene(
@@ -1771,6 +2119,7 @@ namespace vz
 		rtMain_render = {};
 		rtPrimitiveID = {};
 		rtPrimitiveID_render = {};
+		depthBufferMain = {};
 
 		return true;
 	}

@@ -46,6 +46,18 @@ namespace vz
 		static Scene* CreateScene(const std::string& name, const Entity entity = 0);
 		static void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
 		static bool DestoryScene(const Entity entity);
+		static uint32_t GetIndex(const std::vector<Entity>& entities, const Entity targetEntity)
+		{
+			std::vector<Entity>& _entities = (std::vector<Entity>&)entities;
+			for (uint32_t i = 0, n = (uint32_t)entities.size(); i < n; ++i)
+			{
+				if (_entities[i] = targetEntity)
+				{
+					return i;
+				}
+			}
+			return ~0u;
+		}
 
 	protected:
 		std::string name_;
@@ -143,8 +155,8 @@ namespace vz
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
 
 		// requires scanning process
-		inline std::vector<Entity> GetGeometryEntities() const noexcept;
-		inline std::vector<Entity> GetMaterialEntities() const noexcept;
+		inline std::vector<Entity> ScanGeometryEntities() const noexcept;
+		inline std::vector<Entity> ScanMaterialEntities() const noexcept;
 
 		inline const primitive::AABB& GetAABB() const { return aabb_; }
 
@@ -320,6 +332,7 @@ namespace vz
 			TRANSPARENCY = 1 << 5,
 			TESSELATION = 1 << 6,
 			ALPHA_TEST = 1 << 7,
+			WETMAP = 1 << 8,
 		};
 		enum class ShaderType : uint32_t
 		{
@@ -345,8 +358,8 @@ namespace vz
 			BLENDMODE_COUNT
 		};
 
-	private:
-		uint32_t renderOptionFlags_ = (uint32_t)RenderFlags::FORWARD;
+	protected:
+		uint32_t flags_ = (uint32_t)RenderFlags::FORWARD;
 		ShaderType shaderType_ = ShaderType::PHONG;
 		BlendMode blendMode_ = BlendMode::BLENDMODE_OPAQUE;
 
@@ -365,20 +378,23 @@ namespace vz
 	public:
 		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
 
-		inline const XMFLOAT4 GetBaseColor() const { return baseColor_; }	// w is opacity
-		inline const XMFLOAT4 GetSpecularColor() const { return specularColor_; }
-		inline const XMFLOAT4 GetEmissiveColor() const { return emissiveColor_; }	// w is emissive strength
+		inline const float GetOpacity() const { return baseColor_.w; }
+		inline const XMFLOAT4& GetBaseColor() const { return baseColor_; }	// w is opacity
+		inline const XMFLOAT4& GetSpecularColor() const { return specularColor_; }
+		inline const XMFLOAT4& GetEmissiveColor() const { return emissiveColor_; }	// w is emissive strength
 
 		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; }
 		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
+		inline void EnableWetmap(const bool enabled) { enabled ? flags_ |= SCU32(RenderFlags::WETMAP) : flags_ &= ~SCU32(RenderFlags::WETMAP); }
 
 		inline bool IsDirty() const { return isDirty_; }
 		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
-		inline bool IsOutlineEnabled() const { return renderOptionFlags_ & SCU32(RenderFlags::OUTLINE); }
-		inline bool IsDoubleSided() const { return renderOptionFlags_ & SCU32(RenderFlags::DOUBLE_SIDED); }
-		inline bool IsTesellated() const { return renderOptionFlags_ & SCU32(RenderFlags::TESSELATION); }
-		inline bool IsAlphaTestEnabled() const { return renderOptionFlags_ & SCU32(RenderFlags::ALPHA_TEST); }
+		inline bool IsOutlineEnabled() const { return flags_ & SCU32(RenderFlags::OUTLINE); }
+		inline bool IsDoubleSided() const { return flags_ & SCU32(RenderFlags::DOUBLE_SIDED); }
+		inline bool IsTesellated() const { return flags_ & SCU32(RenderFlags::TESSELATION); }
+		inline bool IsAlphaTestEnabled() const { return flags_ & SCU32(RenderFlags::ALPHA_TEST); }
+		inline bool IsWebmapEnabled() const { return flags_ & SCU32(RenderFlags::WETMAP); }
 		inline BlendMode GetBlendMode() const { return blendMode_; }
 		inline VUID GetTextureVUID(const size_t slot) const { 
 			if (slot >= SCU32(TextureSlot::TEXTURESLOT_COUNT)) return INVALID_VUID; return textureComponents_[slot];
@@ -562,29 +578,50 @@ namespace vz
 	struct CORE_EXPORT RenderableComponent : ComponentBase
 	{
 	private:
+		enum class RenderableFlags : uint32_t
+		{
+			EMPTY = 0,
+			RENDERABLE = 1 << 0,
+			CAST_SHADOW = 1 << 1,
+			RECEIVE_SHADOW = 1 << 2,
+			REQUEST_PLANAR_REFLECTION = 1 << 4,
+			LIGHTMAP_RENDER_REQUEST = 1 << 5,
+			LIGHTMAP_DISABLE_BLOCK_COMPRESSION = 1 << 6,
+			FOREGROUND = 1 << 7,
+			WETMAP_ENABLED = 1 << 10,
+		};
+		uint32_t flags_ = EMPTY;
+
 		uint8_t visibleLayerMask_ = 0x7;
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
-		//VUID vuidWetmapTexture_ = INVALID_VUID;
+		float fadeDistance_ = 0.f;
 
 		// Non-serialized attributes:
 		//	dirty check can be considered by the following components
 		//		- transformComponent, geometryComponent, and material components (with their referencing textureComponents)
-		bool isValid_ = false;
 		bool isDirty_ = true;
 		primitive::AABB aabb_; // world AABB
+		void checkWebmapEnabled();
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
 		void SetDirty() { isDirty_ = true; }
 		bool IsDirty() const { return isDirty_; }
-		bool IsValid() const { return isValid_; }
+		bool IsRenderable() const { return flags_ & SCU32(RenderableFlags::RENDERABLE); }
+
+		void SetForeground(const bool enabled) { enabled ? flags_ |= SCU32(RenderableFlags::FOREGROUND) : flags_ &= ~SCU32(RenderableFlags::FOREGROUND); }
+		bool IsForeground() const { return flags_ & ~SCU32(RenderableFlags::FOREGROUND); }
+
+		void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; }
 		void SetGeometry(const Entity geometryEntity);
 		void SetMaterial(const Entity materialEntity, const size_t slot);
 		void SetMaterials(const std::vector<Entity>& materials);
 		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); timeStampSetter_ = TimerNow; }
 		bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
+		bool IsWebmapEnabled() const { return flags_ & SCU32(RenderableFlags::WETMAP_ENABLED); }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
+		float GetFadeDistance() const { return fadeDistance_; }
 		Entity GetGeometry() const;
 		Entity GetMaterial(const size_t slot);
 		std::vector<Entity> GetMaterials() const;
@@ -654,7 +691,7 @@ namespace vz
 			retval = std::min(retval, 65504.0f); // clamp to 16-bit float max value
 			return retval;
 		}
-		primitive::AABB GetAABB() const { return aabb_; }
+		const primitive::AABB& GetAABB() const { return aabb_; }
 		inline LightType GetLightType() const { return type_; }
 		inline void SetLightType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
 		inline bool IsInactive() const { return intensity_ == 0 || range_ == 0; }
