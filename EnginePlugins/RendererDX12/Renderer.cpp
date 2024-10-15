@@ -24,9 +24,11 @@ namespace vz::rcommon
 	Texture				textures[TEXTYPE_COUNT];
 
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
-	PipelineState		PSO_mesh[RENDERPASS_COUNT];
+	PipelineState		PSO_render[RENDERPASS_COUNT];
 	PipelineState		PSO_wireframe;
 	PipelineState		PSO_occlusionquery;
+
+	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
 }
 
 // TODO 
@@ -41,8 +43,10 @@ namespace vz::renderer
 	const bool isFreezeCullingCameraEnabled = false;
 	const bool isSceneUpdateEnabled = true;
 	const bool isTemporalAAEnabled = false;
+	const bool isTessellationEnabled = false;
 	const bool isFSREnabled = false;
 	const bool isWireRender = false;
+	const bool isMeshShaderAllowed = false;
 
 	using namespace primitive;
 
@@ -653,6 +657,8 @@ namespace vz
 
 		void DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags);
 
+		void RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
+
 		// ---------- GRenderPath3D's interfaces: -----------------
 		bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) override; // must delete all canvas-related resources and re-create
 		bool Render(const float dt) override;
@@ -1247,6 +1253,304 @@ namespace vz
 		device->EventEnd(cmd);
 
 	}
+}
+
+namespace vz
+{
+	void GRenderPath3DDetails::RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags, uint32_t camera_count)
+	{
+		if (renderQueue.empty())
+			return;
+
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
+
+		device->EventBegin("RenderMeshes", cmd);
+
+		// Always wait for non-mesh shader variants, it can be used when mesh shader is not applicable for an object:
+		jobsystem::Wait(rcommon::CTX_renderPSO[renderPass][MESH_SHADER_PSO_DISABLED]);
+
+		RenderPassInfo renderpass_info = device->GetRenderPassInfo(cmd);
+
+		const bool tessellation =
+			(flags & DRAWSCENE_TESSELLATION) &&
+			isTessellationEnabled &&
+			device->CheckCapability(GraphicsDeviceCapability::TESSELLATION)
+			;
+
+		// Do we need to compute a light mask for this pass on the CPU?
+		const bool forwardLightmaskRequest =
+			renderPass == RENDERPASS_ENVMAPCAPTURE ||
+			renderPass == RENDERPASS_VOXELIZE;
+
+		const bool shadowRendering = renderPass == RENDERPASS_SHADOW;
+
+		const bool mesh_shader = isMeshShaderAllowed &&
+			(renderPass == RENDERPASS_PREPASS || renderPass == RENDERPASS_PREPASS_DEPTHONLY || renderPass == RENDERPASS_MAIN || renderPass == RENDERPASS_SHADOW);
+
+		if (mesh_shader)
+		{
+			assert(0 && "NOT SUPPORTED YET!!");
+			// Mesh shader is optional, only wait for these completions if enabled:
+			jobsystem::Wait(rcommon::CTX_renderPSO[renderPass][MESH_SHADER_PSO_ENABLED]);
+		}
+
+		// Pre-allocate space for all the instances in GPU-buffer:
+		const size_t alloc_size = renderQueue.size() * camera_count * sizeof(ShaderMeshInstancePointer);
+		const GraphicsDevice::GPUAllocation instances = device->AllocateGPU(alloc_size, cmd);
+		const int instanceBufferDescriptorIndex = device->GetDescriptorIndex(&instances.buffer, SubresourceType::SRV);
+
+		// This will correspond to a single draw call
+		//	It's used to render multiple instances of a single mesh
+		struct InstancedBatch
+		{
+			uint32_t meshIndex = ~0u;
+			uint32_t instanceCount = 0;
+			uint32_t dataOffset = 0;
+			uint8_t userStencilRefOverride = 0;
+			bool forceAlphatestForDithering = false;
+			AABB aabb;
+			uint32_t lod = 0;
+		} instancedBatch = {};
+
+		uint32_t prev_stencilref = STENCILREF_DEFAULT;
+		device->BindStencilRef(prev_stencilref, cmd);
+
+		const GPUBuffer* prev_ib = nullptr;
+
+		// This will be called every time we start a new draw call:
+		auto batch_flush = [&]()
+			{
+				if (instancedBatch.instanceCount == 0)
+					return;
+				Entity geometry_entity = scene_Gdetails->geometryEntities[instancedBatch.meshIndex];
+				const GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geometry_entity);
+				
+				if (!geometry.generalBuffer.IsValid())
+					return;
+
+				const bool forceAlphaTestForDithering = instancedBatch.forceAlphatestForDithering != 0;
+				const uint8_t userStencilRefOverride = instancedBatch.userStencilRefOverride;
+
+				const float tessF = geometry.GetTessellationFactor();
+				const bool tessellatorRequested = tessF > 0 && tessellation;
+				const bool meshShaderRequested = !tessellatorRequested && mesh_shader && geometry.vb_clu.IsValid();
+
+				if (forwardLightmaskRequest)
+				{
+					ForwardEntityMaskCB cb = ForwardEntityCullingCPU(view, instancedBatch.aabb, renderPass);
+					device->BindDynamicConstantBuffer(cb, CB_GETBINDSLOT(ForwardEntityMaskCB), cmd);
+				}
+
+				uint32_t first_subset = 0;
+				uint32_t last_subset = 0;
+				geometry.GetLODSubsetRange(instancedBatch.lod, first_subset, last_subset);
+				for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
+				{
+					const MeshComponent::MeshSubset& subset = geometry.subsets[subsetIndex];
+					if (subset.indexCount == 0 || subset.materialIndex >= view.scene->materials.GetCount())
+						continue;
+					const MaterialComponent& material = view.scene->materials[subset.materialIndex];
+
+					if (skip_planareflection_objects && material.HasPlanarReflection())
+						continue;
+
+					bool subsetRenderable = filterMask & material.GetFilterMask();
+
+					if (shadowRendering)
+					{
+						subsetRenderable = subsetRenderable && material.IsCastingShadow();
+					}
+
+					if (!subsetRenderable)
+					{
+						continue;
+					}
+
+					const PipelineState* pso = nullptr;
+					const PipelineState* pso_backside = nullptr; // only when separate backside rendering is required (transparent doublesided)
+					{
+						if (IsWireRender() && renderPass != RENDERPASS_ENVMAPCAPTURE)
+						{
+							switch (renderPass)
+							{
+							case RENDERPASS_MAIN:
+								if (meshShaderRequested)
+								{
+									pso = &PSO_object_wire_mesh_shader;
+								}
+								else
+								{
+									pso = tessellatorRequested ? &PSO_object_wire_tessellation : &PSO_object_wire;
+								}
+							}
+						}
+						else if (material.customShaderID >= 0 && material.customShaderID < (int)customShaders.size())
+						{
+							const CustomShader& customShader = customShaders[material.customShaderID];
+							if (filterMask & customShader.filterMask)
+							{
+								pso = &customShader.pso[renderPass];
+							}
+						}
+						else
+						{
+							ObjectRenderingVariant variant = {};
+							variant.bits.renderpass = renderPass;
+							variant.bits.shadertype = material.shaderType;
+							variant.bits.blendmode = material.GetBlendMode();
+							variant.bits.cullmode = (geometry.IsDoubleSided() || material.IsDoubleSided() || (shadowRendering && geometry.IsDoubleSidedShadow())) ? (uint32_t)CullMode::NONE : (uint32_t)CullMode::BACK;
+							variant.bits.tessellation = tessellatorRequested;
+							variant.bits.alphatest = material.IsAlphaTestEnabled() || forceAlphaTestForDithering;
+							variant.bits.sample_count = renderpass_info.sample_count;
+							variant.bits.mesh_shader = meshShaderRequested;
+
+							pso = GetObjectPSO(variant);
+							assert(pso->IsValid());
+
+							if ((filterMask & FILTER_TRANSPARENT) && variant.bits.cullmode == (uint32_t)CullMode::NONE)
+							{
+								variant.bits.cullmode = (uint32_t)CullMode::FRONT;
+								pso_backside = GetObjectPSO(variant);
+							}
+						}
+					}
+
+					if (pso == nullptr || !pso->IsValid())
+					{
+						continue;
+					}
+
+					const bool meshShaderPSO = pso->desc.ms != nullptr;
+					STENCILREF engineStencilRef = material.engineStencilRef;
+					uint8_t userStencilRef = userStencilRefOverride > 0 ? userStencilRefOverride : material.userStencilRef;
+					uint32_t stencilRef = CombineStencilrefs(engineStencilRef, userStencilRef);
+					if (stencilRef != prev_stencilref)
+					{
+						prev_stencilref = stencilRef;
+						device->BindStencilRef(stencilRef, cmd);
+					}
+
+					if (!meshShaderPSO && prev_ib != &geometry.generalBuffer)
+					{
+						device->BindIndexBuffer(&geometry.generalBuffer, geometry.GetIndexFormat(), geometry.ib.offset, cmd);
+						prev_ib = &geometry.generalBuffer;
+					}
+
+					if (
+						renderPass != RENDERPASS_PREPASS &&
+						renderPass != RENDERPASS_PREPASS_DEPTHONLY &&
+						renderPass != RENDERPASS_VOXELIZE
+						)
+					{
+						// depth only alpha test will be full res
+						device->BindShadingRate(material.shadingRate, cmd);
+					}
+
+					ObjectPushConstants push;
+					push.geometryIndex = geometry.geometryOffset + subsetIndex;
+					push.materialIndex = subset.materialIndex;
+					push.instances = instanceBufferDescriptorIndex;
+					push.instance_offset = (uint)instancedBatch.dataOffset;
+
+					if (pso_backside != nullptr)
+					{
+						device->BindPipelineState(pso_backside, cmd);
+						device->PushConstants(&push, sizeof(push), cmd);
+						if (meshShaderPSO)
+						{
+							device->DispatchMesh((geometry.cluster_ranges[subsetIndex].clusterCount + 31) / 32, instancedBatch.instanceCount, 1, cmd);
+						}
+						else
+						{
+							device->DrawIndexedInstanced(subset.indexCount, instancedBatch.instanceCount, subset.indexOffset, 0, 0, cmd);
+						}
+					}
+
+					device->BindPipelineState(pso, cmd);
+					device->PushConstants(&push, sizeof(push), cmd);
+					if (meshShaderPSO)
+					{
+						device->DispatchMesh((geometry.cluster_ranges[subsetIndex].clusterCount + 31) / 32, instancedBatch.instanceCount, 1, cmd);
+					}
+					else
+					{
+						device->DrawIndexedInstanced(subset.indexCount, instancedBatch.instanceCount, subset.indexOffset, 0, 0, cmd);
+					}
+
+				}
+			};
+
+		// The following loop is writing the instancing batches to a GPUBuffer:
+		//	RenderQueue is sorted based on mesh index, so when a new mesh or stencil request is encountered, we need to flush the batch
+		uint32_t instanceCount = 0;
+		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
+		{
+			const uint32_t meshIndex = batch.GetMeshIndex();
+			const uint32_t instanceIndex = batch.GetInstanceIndex();
+			const ObjectComponent& instance = view.scene->objects[instanceIndex];
+			const AABB& instanceAABB = view.scene->aabb_objects[instanceIndex];
+			const uint8_t userStencilRefOverride = instance.userStencilRef;
+
+			// When we encounter a new mesh inside the global instance array, we begin a new RenderBatch:
+			if (meshIndex != instancedBatch.meshIndex ||
+				userStencilRefOverride != instancedBatch.userStencilRefOverride ||
+				instance.lod != instancedBatch.lod
+				)
+			{
+				batch_flush();
+
+				instancedBatch = {};
+				instancedBatch.meshIndex = meshIndex;
+				instancedBatch.instanceCount = 0;
+				instancedBatch.dataOffset = (uint32_t)(instances.offset + instanceCount * sizeof(ShaderMeshInstancePointer));
+				instancedBatch.userStencilRefOverride = userStencilRefOverride;
+				instancedBatch.forceAlphatestForDithering = 0;
+				instancedBatch.aabb = AABB();
+				instancedBatch.lod = instance.lod;
+			}
+
+			const float dither = std::max(instance.GetTransparency(), std::max(0.0f, batch.GetDistance() - instance.fadeDistance) / instance.radius);
+			if (dither > 0.99f)
+			{
+				continue;
+			}
+			else if (dither > 0)
+			{
+				instancedBatch.forceAlphatestForDithering = 1;
+			}
+			if (instance.alphaRef < 1)
+			{
+				instancedBatch.forceAlphatestForDithering = 1;
+			}
+
+			if (forwardLightmaskRequest)
+			{
+				instancedBatch.aabb = AABB::Merge(instancedBatch.aabb, instanceAABB);
+			}
+
+			for (uint32_t camera_index = 0; camera_index < camera_count; ++camera_index)
+			{
+				const uint16_t camera_mask = 1 << camera_index;
+				if ((batch.camera_mask & camera_mask) == 0)
+					continue;
+
+				ShaderMeshInstancePointer poi;
+				poi.Create(instanceIndex, camera_index, dither);
+
+				// Write into actual GPU-buffer:
+				std::memcpy((ShaderMeshInstancePointer*)instances.data + instanceCount, &poi, sizeof(poi)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
+
+				instancedBatch.instanceCount++; // next instance in current InstancedBatch
+				instanceCount++;
+			}
+
+		}
+
+		batch_flush();
+
+		device->EventEnd(cmd);
+	}
+
 }
 
 namespace vz

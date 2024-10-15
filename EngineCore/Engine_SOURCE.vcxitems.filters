@@ -52,6 +52,9 @@
     <Filter Include="Components\APIs %28CORE_EXPORT%29">
       <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ThirdParty\meshoptimizer">
+      <UniqueIdentifier>{1845c6fe-c447-47a6-aad9-0b8b888b445f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h">
@@ -223,6 +226,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
       <Filter>Utils\Src</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\meshoptimizer.h">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -308,6 +314,54 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp">
       <Filter>Utils\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\overdrawoptimizer.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\quantization.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\simplifier.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\spatialorder.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\stripifier.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vcacheanalyzer.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vcacheoptimizer.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vertexcodec.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vertexfilter.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vfetchanalyzer.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vfetchoptimizer.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\allocator.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\clusterizer.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\indexcodec.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\indexgenerator.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\overdrawanalyzer.cpp">
+      <Filter>ThirdParty\meshoptimizer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

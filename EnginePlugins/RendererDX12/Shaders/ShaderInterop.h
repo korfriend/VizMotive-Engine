@@ -489,7 +489,7 @@ struct alignas(16) ShaderMaterial
 	inline bool IsDoubleSided() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED; }
 };
 
-// This is equivalent to a Mesh + MeshSubset
+// This is equivalent to a Geometry's Primitive parts
 //	But because these are always loaded together by shaders, they are unrolled into one to reduce individual buffer loads
 struct alignas(16) ShaderGeometry
 {
@@ -503,7 +503,7 @@ struct alignas(16) ShaderGeometry
 	int vb_atl;
 	int vb_pre;
 
-	uint materialIndex; // will be removed
+	uint materialIndex; 
 	uint meshletOffset; // offset of this subset in meshlets (locally within the mesh)
 	uint meshletCount;
 	int impostorSliceOffset;
@@ -548,6 +548,36 @@ struct alignas(16) ShaderGeometry
 		impostorSliceOffset = -1;
 		indexOffset = 0;
 		indexCount = 0;
+	}
+};
+
+// buffer's element (not constant buffer)
+struct ShaderMeshInstancePointer
+{
+	uint data;
+
+	void Init()
+	{
+		data = 0;
+	}
+	void Create(uint _instanceIndex, uint camera_index = 0, float dither = 0)
+	{
+		data = 0;
+		data |= _instanceIndex & 0xFFFFFF;
+		data |= (camera_index & 0xF) << 24u;
+		data |= (uint(dither * 15.0f) & 0xF) << 28u;
+	}
+	uint GetInstanceIndex()
+	{
+		return data & 0xFFFFFF;
+	}
+	uint GetCameraIndex()
+	{
+		return (data >> 24u) & 0xF;
+	}
+	float GetDither()
+	{
+		return float((data >> 28u) & 0xF) / 15.0f;
 	}
 };
 

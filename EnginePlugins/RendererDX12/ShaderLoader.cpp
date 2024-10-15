@@ -32,9 +32,11 @@ namespace vz::rcommon
 	extern Sampler				samplers[SAMPLER_COUNT];
 
 	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
-	extern PipelineState		PSO_mesh[RENDERPASS_COUNT];
+	extern PipelineState		PSO_render[RENDERPASS_COUNT];
 	extern PipelineState		PSO_wireframe;
 	extern PipelineState		PSO_occlusionquery;
+
+	extern jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
 }
 
 
@@ -55,18 +57,10 @@ namespace vz::shader
 {
 	using namespace vz::graphics;
 
-	enum MESH_SHADER_PSO
-	{
-		MESH_SHADER_PSO_DISABLED,
-		MESH_SHADER_PSO_ENABLED,
-		MESH_SHADER_PSO_COUNT
-	};
-
 	GraphicsDevice*& device = GetDevice();
 	// this is for the case when retry LoadShaders() 
-	jobsystem::context CTX_meshPS;
-	jobsystem::context CTX_meshPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
-	jobsystem::context CTX_meshMS;
+	jobsystem::context CTX_renderPS;
+	jobsystem::context CTX_renderMS;
 
 	SHADERTYPE GetASTYPE(RENDERPASS renderPass, bool tessellation, bool alphatest, bool transparent, bool mesh_shader)
 	{
@@ -451,8 +445,8 @@ namespace vz::shader
 
 	void LoadShaders()
 	{
-		jobsystem::Wait(CTX_meshPS);
-		CTX_meshPS.priority = jobsystem::Priority::Low;
+		jobsystem::Wait(CTX_renderPS);
+		CTX_renderPS.priority = jobsystem::Priority::Low;
 
 		jobsystem::context ctx;
 		
@@ -491,7 +485,7 @@ namespace vz::shader
 		};
 		static_assert(SHADERTYPE_BIN_COUNT == arraysize(shaderTypeDefines), "These values must match!");
 
-		jobsystem::Dispatch(CTX_meshPS, SHADERTYPE_BIN_COUNT, 1, [](jobsystem::JobArgs args) {
+		jobsystem::Dispatch(CTX_renderPS, SHADERTYPE_BIN_COUNT, 1, [](jobsystem::JobArgs args) {
 
 			LoadShader(
 				ShaderStage::PS,
@@ -680,11 +674,11 @@ namespace vz::shader
 				// default objectshaders:
 				//	We don't wait for these here, because then it can slow down the init time a lot
 				//	We will wait for these to complete in RenderMeshes() just before they will be first used
-				jobsystem::Wait(CTX_meshPSO[renderPass][mesh_shader]);
-				CTX_meshPSO[renderPass][mesh_shader].priority = jobsystem::Priority::Low;
+				jobsystem::Wait(rcommon::CTX_renderPSO[renderPass][mesh_shader]);
+				rcommon::CTX_renderPSO[renderPass][mesh_shader].priority = jobsystem::Priority::Low;
 				for (uint32_t shaderType = 0; shaderType < SHADERTYPE_BIN_COUNT; ++shaderType)
 				{
-					jobsystem::Execute(CTX_meshPSO[renderPass][mesh_shader], [=](jobsystem::JobArgs args) {
+					jobsystem::Execute(rcommon::CTX_renderPSO[renderPass][mesh_shader], [=](jobsystem::JobArgs args) {
 						for (uint32_t blendMode = 0; blendMode < BLENDMODE_COUNT; ++blendMode)
 						{
 							for (uint32_t cullMode = 0; cullMode <= 3; ++cullMode) // graphics::CullMode (NONE, FRONT, BACK)
@@ -832,10 +826,10 @@ namespace vz::shader
 											desc.pt = PrimitiveTopology::TRIANGLELIST;
 										}
 
-										jobsystem::Wait(CTX_meshPS);
+										jobsystem::Wait(CTX_renderPS);
 										if (mesh_shader)
 										{
-											jobsystem::Wait(CTX_meshMS);
+											jobsystem::Wait(CTX_renderMS);
 										}
 
 										MeshRenderingVariant variant = {};
