@@ -1,11 +1,12 @@
 #pragma once
+#include "Components/Components.h"
 
-#include "HighAPIs/VzEngineAPIs.h" // engine-level components
+#include <any>
 
-using namespace std;
-using namespace vz;
+#ifdef _WIN32
+#define PI_EXPORT __declspec(dllexport)
+#else
+#define PI_EXPORT __attribute__((visibility("default")))
+#endif
 
-__vmstatic bool GeneratePanoVolume(
-	ParamMap<string>& ioComponents, // value is entity
-	ParamMap<string>& ioParams,		// value is std::any (user-defined)
-	ComponentManager& cm);
+extern "C" PI_EXPORT bool ImportDicom(std::unordered_map<std::string, std::any>& io);

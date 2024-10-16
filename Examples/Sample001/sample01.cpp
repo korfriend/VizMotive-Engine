@@ -107,7 +107,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     float dpi = 96.f;
 
     vzm::ParamMap<std::string> arguments;
-	//arguments.SetString("api", "DX11");
+	//arguments.SetString("API", "DX11");
     if (!vzm::InitEngineLib(arguments)) {
         std::cerr << "Failed to initialize engine library." << std::endl;
         return -1;
@@ -140,6 +140,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MaskTestTriangle();
 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
+
+	//vzm::ImportDicom...;
+
+    using TextureSlot = vzm::VzMaterial::TextureSlot;
+
+    vzm::VzTexture* volume_texture = vzm::NewTexture("my dicom volume");
+    material_test->SetTexture(volume_texture, TextureSlot::VOLUME_DENSITYMAP);
+
+	vzm::ParamMap<std::string> io;
+	io.SetParam("filename", std::string("d:/aaa.dcm"));
+	io.SetParam("volume texture entity", volume_texture->GetVID());
+    vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
 
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
 	//actor_test->SetGeometry(geometry_test);
