@@ -72,20 +72,24 @@ namespace vz::compfactory
 		return num_changed;
 	}
 
+#define ENTITY_UPDATE(ENTITY) Entity ENTITY = entity; if (entity == 0u) ENTITY = ecs::CreateEntity();
 	NameComponent* CreateNameComponent(const Entity entity, const std::string& name)
 	{
-		NameComponent* comp = &nameManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		NameComponent* comp = &nameManager.Create(entity_update);
 		comp->name = name;
 		return comp;
 	}
 	TransformComponent* CreateTransformComponent(const Entity entity)
 	{
-		TransformComponent* comp = &transformManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		TransformComponent* comp = &transformManager.Create(entity_update);
 		return comp;
 	}
 	HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent)
 	{
-		HierarchyComponent* comp = &hierarchyManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		HierarchyComponent* comp = &hierarchyManager.Create(entity_update);
 		HierarchyComponent* comp_parent = compfactory::GetHierarchyComponent(parent);
 		if (comp_parent)
 		{
@@ -95,32 +99,38 @@ namespace vz::compfactory
 	}
 	MaterialComponent* CreateMaterialComponent(const Entity entity)
 	{
-		MaterialComponent* comp = &materialManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		MaterialComponent* comp = &materialManager.Create(entity_update);
 		return comp;
 	}
 	GeometryComponent* CreateGeometryComponent(const Entity entity)
 	{
-		GeometryComponent* comp = &geometryManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		GeometryComponent* comp = &geometryManager.Create(entity_update);
 		return comp;
 	}
 	TextureComponent* CreateTextureComponent(const Entity entity)
 	{
-		TextureComponent* comp = &textureManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		TextureComponent* comp = &textureManager.Create(entity_update);
 		return comp;
 	}
 	LightComponent* CreateLightComponent(const Entity entity)
 	{
-		LightComponent* comp = &lightManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		LightComponent* comp = &lightManager.Create(entity_update);
 		return comp;
 	}
 	CameraComponent* CreateCameraComponent(const Entity entity)
 	{
-		CameraComponent* comp = &cameraManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		CameraComponent* comp = &cameraManager.Create(entity_update);
 		return comp;
 	}
 	RenderableComponent* CreateRenderableComponent(const Entity entity)
 	{
-		RenderableComponent* comp = &renderableManager.Create(entity);
+		ENTITY_UPDATE(entity_update);
+		RenderableComponent* comp = &renderableManager.Create(entity_update);
 		return comp;
 	}
 

@@ -3,11 +3,6 @@
 
 namespace vz
 {
-	GTextureComponent::GTextureComponent(const Entity entity, const VUID vuid) : TextureComponent(entity, vuid)
-	{
-		internalResource_ = std::make_shared<Resource>();
-	}
-
 	bool TextureComponent::IsValid() const
 	{
 		Resource& resource = *internalResource_.get();
@@ -42,6 +37,10 @@ namespace vz
 
 namespace vz
 {
+	GTextureComponent::GTextureComponent(const Entity entity, const VUID vuid) : TextureComponent(entity, vuid)
+	{
+		internalResource_ = std::make_shared<Resource>();
+	}
 	uint32_t GTextureComponent::GetUVSet() const
 	{
 		Resource& resource = *internalResource_.get();

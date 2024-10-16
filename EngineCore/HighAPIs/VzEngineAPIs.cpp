@@ -434,6 +434,19 @@ namespace vzm
 		return it->second.get();
 	}
 
+	bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io)
+	{
+		typedef bool(*PI_Function)(std::unordered_map<std::string, std::any>& io);
+		PI_Function lpdll_function = platform::LoadModule<PI_Function>(pluginFilename, functionName);
+		if (lpdll_function == nullptr)
+		{
+			backlog::post("vzm::ExecutePluginFunction >> Invalid plugin function!", backlog::LogLevel::Error);
+			return false;
+		}
+		std::unordered_map<std::string, std::any>& io_map = io.GetMap();
+		return lpdll_function(io_map);
+	}
+
 	bool DeinitEngineLib()
 	{
 		CHECK_API_VALIDITY(false);

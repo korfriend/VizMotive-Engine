@@ -24,7 +24,7 @@ namespace vzm
 	bool VzActor::IsRenderable()
 	{
 		GET_RENDERABLE_COMP(renderable, false);
-		return renderable->IsValid();
+		return renderable->IsRenderable();
 	}
 	void VzActor::SetGeometry(const GeometryVID vid)
 	{

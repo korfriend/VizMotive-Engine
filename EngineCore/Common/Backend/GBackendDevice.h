@@ -284,7 +284,7 @@ namespace vz::graphics
 
 		// Allocates temporary memory that the CPU can write and GPU can read. 
 		//	It is only alive for one frame and automatically invalidated after that.
-		GPUAllocation AllocateGPU(uint64_t dataSize, CommandList cmd)
+		virtual GPUAllocation AllocateGPU(uint64_t dataSize, CommandList cmd)
 		{
 			GPUAllocation allocation;
 			if (dataSize == 0)
@@ -319,7 +319,7 @@ namespace vz::graphics
 		// Updates a Usage::DEFAULT buffer data
 		//	Since it uses a GPU Copy operation, appropriate synchronization is expected
 		//	And it cannot be used inside a RenderPass
-		void UpdateBuffer(const GPUBuffer* buffer, const void* data, CommandList cmd, uint64_t size = ~0, uint64_t offset = 0)
+		virtual void UpdateBuffer(const GPUBuffer* buffer, const void* data, CommandList cmd, uint64_t size = ~0, uint64_t offset = 0)
 		{
 			if (buffer == nullptr || data == nullptr)
 				return;

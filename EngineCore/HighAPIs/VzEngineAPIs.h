@@ -43,6 +43,7 @@ namespace vzm
 	API_EXPORT VzGeometry* NewGeometry(const std::string& name);
 	API_EXPORT VzMaterial* NewMaterial(const std::string& name);
 	API_EXPORT VzTexture* NewTexture(const std::string& name);
+
 	// Get Component and return its pointer registered in renderer
 	//  - return nullptr in case of failure
 	API_EXPORT VzBaseComp* GetVzComponent(const VID vid);
@@ -64,6 +65,9 @@ namespace vzm
 	// Get a graphics render target view 
 	//  - Must belong to the internal scene
 	API_EXPORT void* GetGraphicsSharedRenderTarget();
+
+	API_EXPORT bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io);
+
 	// Reload shaders
 	API_EXPORT void ReloadShader();
 }

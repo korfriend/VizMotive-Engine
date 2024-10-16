@@ -344,7 +344,7 @@ namespace vz
 		enum class TextureSlot : uint32_t
 		{
 			BASECOLORMAP = 0,
-			VOLUMEDENSITYMAP, // this is used for volume rendering
+			VOLUME_DENSITYMAP, // this is used for volume rendering
 
 			TEXTURESLOT_COUNT
 		};
@@ -387,6 +387,8 @@ namespace vz
 		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
 		inline void EnableWetmap(const bool enabled) { enabled ? flags_ |= SCU32(RenderFlags::WETMAP) : flags_ &= ~SCU32(RenderFlags::WETMAP); }
+
+		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 
 		inline bool IsDirty() const { return isDirty_; }
 		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
@@ -612,7 +614,7 @@ namespace vz
 			FOREGROUND = 1 << 7,
 			WETMAP_ENABLED = 1 << 10,
 		};
-		uint32_t flags_ = EMPTY;
+		uint32_t flags_ = SCU32(RenderableFlags::EMPTY);
 
 		uint8_t visibleLayerMask_ = 0x7;
 		VUID vuidGeometry_ = INVALID_ENTITY;
