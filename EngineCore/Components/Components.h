@@ -409,6 +409,7 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::MATERIAL;
 	};
 
+	struct GGeometryComponent;
 	struct CORE_EXPORT GeometryComponent : ComponentBase
 	{
 	public:
@@ -434,9 +435,15 @@ namespace vz
 			std::vector<uint32_t> vertexColors_;
 			std::vector<uint32_t> indexPrimitives_;
 
-			primitive::AABB aabb_;
 			PrimitiveType ptype_ = PrimitiveType::TRIANGLES;
+
+			// Non-serialized Attributes:
+			primitive::AABB aabb_;
+			XMFLOAT2 uvRangeMin_ = XMFLOAT2(0, 0);
+			XMFLOAT2 uvRangeMax_ = XMFLOAT2(1, 1);
+
 		public:
+
 			void MoveFrom(Primitive& primitive)
 			{
 				vertexPositions_ = std::move(primitive.vertexPositions_);
@@ -501,6 +508,7 @@ namespace vz
 			void Serialize(vz::Archive& archive, const uint64_t version);
 
 			friend struct GeometryComponent;
+			friend struct GGeometryComponent;
 		};
 	protected:
 		std::vector<Primitive> parts_;	

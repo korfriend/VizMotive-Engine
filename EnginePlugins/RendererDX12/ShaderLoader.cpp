@@ -542,7 +542,7 @@ namespace vz::shader
 			desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
 			desc.pt = PrimitiveTopology::TRIANGLESTRIP;
 
-			device->CreatePipelineState(&desc, &PSO_occlusionquery);
+			device->CreatePipelineState(&desc, &rcommon::PSO_occlusionquery);
 			});
 
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {

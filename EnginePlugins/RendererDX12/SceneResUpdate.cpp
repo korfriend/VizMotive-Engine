@@ -19,53 +19,63 @@ namespace vz
 			Entity entity = geometryEntities[args.jobIndex];
 			GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(entity);
 
-			if (geometry.soPosition.IsValid() && geometry.soPrev.IsValid())
+			// Note :
+			//	Here, PrimtiveUpdateSystem depends on "geometry.bufferParts" instead of "geometry.parts_"
+			//	Ideally, # of geometry.bufferParts is same to # of geometry.parts_
+			//	but asynchronous scenario does not guarantee the same number of them. 
+
+			for (size_t i = 0, n = geometry.bufferParts.size(); i < n; ++i)
 			{
-				std::swap(geometry.soPosition, geometry.soPrev);
-			}
+				GGeometryComponent::GeometryPartBuffer& buffer_part = geometry.bufferParts[i];
 
-			if (geometryArrayMapped != nullptr)
-			{
-				ShaderGeometry shader_geometry;
-				shader_geometry.Init();
-				shader_geometry.ib = geometry.ib.descriptor_srv;
-				if (geometry.soPosition.IsValid())
+				if (buffer_part.soPosition.IsValid() && buffer_part.soPrev.IsValid())
 				{
-					shader_geometry.vb_pos = geometry.soPosition.descriptor_srv;
+					std::swap(buffer_part.soPosition, buffer_part.soPrev);
 				}
-				else
-				{
-					shader_geometry.vb_pos = geometry.vbPosition.descriptor_srv;
-				}
-				if (geometry.soNormal.IsValid())
-				{
-					shader_geometry.vb_nor = geometry.soNormal.descriptor_srv;
-				}
-				else
-				{
-					shader_geometry.vb_nor = geometry.vbNormal.descriptor_srv;
-				}
-				shader_geometry.vb_col = geometry.vbColor.descriptor_srv;
-				shader_geometry.vb_uvs = geometry.vbUVs.descriptor_srv;
-				shader_geometry.vb_pre = geometry.soPrev.descriptor_srv;
-				primitive::AABB aabb = geometry.GetAABB();
-				shader_geometry.aabb_min = aabb._min;
-				shader_geometry.aabb_max = aabb._max;
-				shader_geometry.uv_range_min = shader_geometry.uv_range_min;
-				shader_geometry.uv_range_max = shader_geometry.uv_range_max;
-				shader_geometry.meshletCount = 0;
 
-				const std::vector<GeometryComponent::Primitive>& primitives = geometry.GetPrimitives();
-				uint index_offset_prev = 0;
-				for (uint32_t part_index = 0, n = geometry.GetNumParts(); part_index < n; ++part_index)
+				if (geometryArrayMapped != nullptr)
 				{
-					const GeometryComponent::Primitive& part_prim = primitives[part_index];
+					ShaderGeometry shader_geometry;
+					shader_geometry.Init();
+					shader_geometry.ib = buffer_part.ib.descriptor_srv;
+					if (buffer_part.soPosition.IsValid())
+					{
+						shader_geometry.vb_pos = buffer_part.soPosition.descriptor_srv;
+					}
+					else
+					{
+						shader_geometry.vb_pos = buffer_part.vbPosition.descriptor_srv;
+					}
+					if (buffer_part.soNormal.IsValid())
+					{
+						shader_geometry.vb_nor = buffer_part.soNormal.descriptor_srv;
+					}
+					else
+					{
+						shader_geometry.vb_nor = buffer_part.vbNormal.descriptor_srv;
+					}
+					shader_geometry.vb_col = buffer_part.vbColor.descriptor_srv;
+					shader_geometry.vb_uvs = buffer_part.vbUVs.descriptor_srv;
+					shader_geometry.vb_pre = buffer_part.soPrev.descriptor_srv;
+					primitive::AABB aabb = geometry.GetAABB();
+					shader_geometry.aabb_min = aabb._min;
+					shader_geometry.aabb_max = aabb._max;
+					shader_geometry.uv_range_min = shader_geometry.uv_range_min;
+					shader_geometry.uv_range_max = shader_geometry.uv_range_max;
+					shader_geometry.meshletCount = 0;
 
-					ShaderGeometry shader_geometry_part = shader_geometry;
-					shader_geometry_part.indexOffset = index_offset_prev;
-					index_offset_prev = shader_geometry_part.indexCount = part_prim.GetNumVertices();
-					//shader_geometry.meshletCount += subsetGeometry.meshletCount;
-					std::memcpy(geometryArrayMapped + geometry.geometryOffset + part_index, &shader_geometry_part, sizeof(shader_geometry_part));
+					const std::vector<GeometryComponent::Primitive>& primitives = geometry.GetPrimitives();
+					uint index_offset_prev = 0;
+					for (uint32_t part_index = 0, n = geometry.GetNumParts(); part_index < n; ++part_index)
+					{
+						const GeometryComponent::Primitive& part_prim = primitives[part_index];
+
+						ShaderGeometry shader_geometry_part = shader_geometry;
+						shader_geometry_part.indexOffset = index_offset_prev;
+						index_offset_prev = shader_geometry_part.indexCount = part_prim.GetNumVertices();
+						//shader_geometry.meshletCount += subsetGeometry.meshletCount;
+						std::memcpy(geometryArrayMapped + geometry.geometryOffset + part_index, &shader_geometry_part, sizeof(shader_geometry_part));
+					}
 				}
 			}
 

@@ -47,10 +47,10 @@ namespace vz
 
 		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
 
+		uint32_t geometryOffset = 0; // (including # of parts)
+
 		struct GeometryPartBuffer
 		{
-			uint32_t geometryOffset = 0; // used for bindless graphics 
-
 			graphics::GPUBuffer generalBuffer; // index buffer + all static vertex buffers
 			graphics::GPUBuffer streamoutBuffer; // all dynamic vertex buffers
 
