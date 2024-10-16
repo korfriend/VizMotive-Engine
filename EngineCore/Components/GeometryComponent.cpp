@@ -7,7 +7,7 @@
 namespace vz
 {
 #define MAX_GEOMETRY_PARTS 10000
-	void GeometryComponent::MovePrimitives(std::vector<Primitive>& primitives)
+	void GeometryComponent::MovePrimitivesFrom(std::vector<Primitive>& primitives)
 	{
 		parts_.assign(primitives.size(), Primitive());
 		for (size_t i = 0, n = primitives.size(); i < n; ++i)
@@ -15,13 +15,15 @@ namespace vz
 			Primitive& prim = parts_[i];
 			prim.MoveFrom(primitives[i]);
 		}
-		updateAABB();
+		update();
+		isDirtyRenderData_ = true;
 		timeStampSetter_ = TimerNow;
 	}
-	void GeometryComponent::CopyPrimitives(const std::vector<Primitive>& primitives)
+	void GeometryComponent::CopyPrimitivesFrom(const std::vector<Primitive>& primitives)
 	{
 		parts_ = primitives;
-		updateAABB();
+		update();
+		isDirtyRenderData_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 
@@ -43,19 +45,21 @@ namespace vz
 			}
 		}
 	}
-	void GeometryComponent::MovePrimitive(Primitive& primitive, const size_t slot)
+	void GeometryComponent::MovePrimitiveFrom(Primitive& primitive, const size_t slot)
 	{
 		tryAssignParts(slot, parts_);
 		Primitive& prim = parts_[slot];
 		prim.MoveFrom(primitive);
-		updateAABB();
+		update();
+		isDirtyRenderData_ = true;
 		timeStampSetter_ = TimerNow;
 	}
-	void GeometryComponent::CopyPrimitive(const Primitive& primitive, const size_t slot)
+	void GeometryComponent::CopyPrimitiveFrom(const Primitive& primitive, const size_t slot)
 	{
 		tryAssignParts(slot, parts_);
 		parts_[slot] = primitive;
-		updateAABB();
+		update();
+		isDirtyRenderData_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 	const Primitive* GeometryComponent::GetPrimitive(const size_t slot) const
@@ -66,16 +70,19 @@ namespace vz
 		}
 		return &parts_[slot];	
 	}
-	void GeometryComponent::updateAABB()
+	void GeometryComponent::update()
 	{
+		aabb_ = {};
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& prim = parts_[i];
-			primitive::AABB part_aabb = prim.GetAABB();
-			aabb_._max = math::Max(aabb_._max, part_aabb._max);
-			aabb_._min = math::Min(aabb_._min, part_aabb._min);
+
+			prim.update();
+
+			aabb_._max = math::Max(aabb_._max, prim.aabb_._max);
+			aabb_._min = math::Min(aabb_._min, prim.aabb_._min);
 		}
-		isDirtyAABB_ = false;
+		isDirty_ = false;
 	}
 }
 
@@ -90,7 +97,7 @@ namespace vz
 		std::vector<XMFLOAT4>& vertexTangents;
 		std::vector<XMFLOAT2>& vertexUVset;
 
-		MikkTSpaceUserdata(const std::vector<XMFLOAT3>& vtxPositions, 
+		MikkTSpaceUserdata(const std::vector<XMFLOAT3>& vtxPositions,
 			std::vector<XMFLOAT3>& vtxNormals, std::vector<XMFLOAT4>& vtxTangents, std::vector<XMFLOAT2>& vtxUVset) :
 			vertexPositions(vtxPositions),
 			vertexNormals(vtxNormals),
@@ -154,10 +161,85 @@ namespace vz
 		vert.w = fSign;
 	}
 
+	void GeometryComponent::Primitive::update()
+	{
+		std::vector<XMFLOAT3>& vertex_positions = vertexPositions_;
+		std::vector<uint32_t>& indices = indexPrimitives_;
+		std::vector<XMFLOAT3>& vertex_normals = vertexNormals_;
+		std::vector<XMFLOAT4>& vertex_tangents = vertexTangents_;
+		std::vector<XMFLOAT2>& vertex_uvset_0 = vertexUVset0_;
+		std::vector<XMFLOAT2>& vertex_uvset_1 = vertexUVset1_;
 
+		// TANGENT computation
+		if (ptype_ == PrimitiveType::TRIANGLES && vertex_tangents.empty()
+			&& !vertex_uvset_0.empty() && !vertex_normals.empty())
+		{
+			// Generate tangents if not found:
+			vertex_tangents.resize(vertex_positions.size());
+
+			// MikkTSpace tangent generation:
+			MikkTSpaceUserdata userdata(vertex_positions, vertex_normals, vertex_tangents, vertex_uvset_0);
+			userdata.indicesLOD0 = indices.data();
+			userdata.faceCountLOD0 = indices.size() / 3;
+
+			SMikkTSpaceInterface iface = {};
+			iface.m_getNumFaces = get_num_faces;
+			iface.m_getNumVerticesOfFace = get_num_vertices_of_face;
+			iface.m_getNormal = get_normal;
+			iface.m_getPosition = get_position;
+			iface.m_getTexCoord = get_tex_coords;
+			iface.m_setTSpaceBasic = set_tspace_basic;
+			SMikkTSpaceContext context = {};
+			context.m_pInterface = &iface;
+			context.m_pUserData = &userdata;
+			tbool mikktspace_result = genTangSpaceDefault(&context);
+			assert(mikktspace_result == 1);
+		}
+
+		const size_t uv_count = std::max(vertex_uvset_0.size(), vertex_uvset_1.size());
+
+		// Bounds computation:
+		XMFLOAT3 _min = XMFLOAT3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+		XMFLOAT3 _max = XMFLOAT3(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
+		for (size_t i = 0; i < vertex_positions.size(); ++i)
+		{
+			const XMFLOAT3& pos = vertex_positions[i];
+			_min = math::Min(_min, pos);
+			_max = math::Max(_max, pos);
+		}
+		aabb_ = geometrics::AABB(_min, _max);
+
+		// Determine UV range for normalization:
+		if (!vertex_uvset_0.empty() || !vertex_uvset_1.empty())
+		{
+			const XMFLOAT2* uv0_stream = vertex_uvset_0.empty() ? vertex_uvset_1.data() : vertex_uvset_0.data();
+			const XMFLOAT2* uv1_stream = vertex_uvset_1.empty() ? vertex_uvset_0.data() : vertex_uvset_1.data();
+
+			uvRangeMin_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			uvRangeMax_ = XMFLOAT2(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
+			for (size_t i = 0; i < uv_count; ++i)
+			{
+				uvRangeMax_ = math::Max(uvRangeMax_, uv0_stream[i]);
+				uvRangeMax_ = math::Max(uvRangeMax_, uv1_stream[i]);
+				uvRangeMin_ = math::Min(uvRangeMin_, uv0_stream[i]);
+				uvRangeMin_ = math::Min(uvRangeMin_, uv1_stream[i]);
+			}
+		}
+
+		isDirty_ = true;
+	}
+}
+
+namespace vz
+{
 	void GGeometryComponent::DeleteRenderData()
 	{
-		bufferParts.clear();
+		for (size_t i = 0, n = parts_.size(); i < n; ++i)
+		{
+			Primitive& primitive = parts_[i];
+			primitive.bufferHandle_.reset();
+		}
+		isDirtyRenderData_ = true;
 	}
 	void GGeometryComponent::UpdateRenderData()
 	{
@@ -165,74 +247,10 @@ namespace vz
 
 		GraphicsDevice* device = graphics::GetDevice();
 
-		bufferParts.reserve(parts_.size());
-
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& primitive = parts_[i];
-
-			const std::vector<XMFLOAT3>& vertex_positions = primitive.vertexPositions_;
-			const std::vector<uint32_t>& indices = primitive.indexPrimitives_;
-			std::vector<XMFLOAT3>& vertex_normals = primitive.vertexNormals_;
-			std::vector<XMFLOAT4>& vertex_tangents = primitive.vertexTangents_;
-			std::vector<XMFLOAT2>& vertex_uvset_0 = primitive.vertexUVset0_;
-			std::vector<XMFLOAT2>& vertex_uvset_1 = primitive.vertexUVset1_;
-
-			// TANGENT computation
-			if (primitive.GetPrimitiveType() == PrimitiveType::TRIANGLES && vertex_tangents.empty() 
-				&& !vertex_uvset_0.empty() && !vertex_normals.empty())
-			{
-				// Generate tangents if not found:
-				vertex_tangents.resize(vertex_positions.size());
-
-				// MikkTSpace tangent generation:
-				MikkTSpaceUserdata userdata(vertex_positions, vertex_normals, vertex_tangents, vertex_uvset_0);
-				userdata.indicesLOD0 = indices.data();
-				userdata.faceCountLOD0 = indices.size() / 3;
-
-				SMikkTSpaceInterface iface = {};
-				iface.m_getNumFaces = get_num_faces;
-				iface.m_getNumVerticesOfFace = get_num_vertices_of_face;
-				iface.m_getNormal = get_normal;
-				iface.m_getPosition = get_position;
-				iface.m_getTexCoord = get_tex_coords;
-				iface.m_setTSpaceBasic = set_tspace_basic;
-				SMikkTSpaceContext context = {};
-				context.m_pInterface = &iface;
-				context.m_pUserData = &userdata;
-				tbool mikktspace_result = genTangSpaceDefault(&context);
-				assert(mikktspace_result == 1);
-			}
-
-			const size_t uv_count = std::max(vertex_uvset_0.size(), vertex_uvset_1.size());
-
-			// Bounds computation:
-			XMFLOAT3 _min = XMFLOAT3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			XMFLOAT3 _max = XMFLOAT3(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
-			for (size_t i = 0; i < vertex_positions.size(); ++i)
-			{
-				const XMFLOAT3& pos = vertex_positions[i];
-				_min = math::Min(_min, pos);
-				_max = math::Max(_max, pos);
-			}
-			primitive.aabb_ = primitive::AABB(_min, _max);
-
-			// Determine UV range for normalization:
-			if (!vertex_uvset_0.empty() || !vertex_uvset_1.empty())
-			{
-				const XMFLOAT2* uv0_stream = vertex_uvset_0.empty() ? vertex_uvset_1.data() : vertex_uvset_0.data();
-				const XMFLOAT2* uv1_stream = vertex_uvset_1.empty() ? vertex_uvset_0.data() : vertex_uvset_1.data();
-
-				primitive.uvRangeMin_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-				primitive.uvRangeMax_ = XMFLOAT2(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
-				for (size_t i = 0; i < uv_count; ++i)
-				{
-					primitive.uvRangeMax_ = math::Max(primitive.uvRangeMax_, uv0_stream[i]);
-					primitive.uvRangeMax_ = math::Max(primitive.uvRangeMax_, uv1_stream[i]);
-					primitive.uvRangeMin_ = math::Min(primitive.uvRangeMin_, uv0_stream[i]);
-					primitive.uvRangeMin_ = math::Min(primitive.uvRangeMin_, uv1_stream[i]);
-				}
-			}
+			primitive.bufferHandle_ = std::make_shared<GBuffers>();
 
 			const size_t position_stride = sizeof(XMFLOAT3);
 
@@ -253,6 +271,11 @@ namespace vz
 				bd.misc_flags |= ResourceMiscFlag::RAY_TRACING;
 			}
 			const uint64_t alignment = device->GetMinOffsetAlignment(&bd);
+
+
+			// bufferParts[i].aabb TODO : SET
+			// bufferParts[i].materialEntity
+
 			//bd.size =
 			//	AlignTo(vertex_positions.size() * position_stride, alignment) + // position will be first to have 0 offset for flexible alignment!
 			//	AlignTo(indices.size() * GetIndexStride(), alignment) +
@@ -634,6 +657,8 @@ namespace vz
 			}
 			/**/
 		}
+
+		isDirtyRenderData_ = false;
 	}
 
 	/*

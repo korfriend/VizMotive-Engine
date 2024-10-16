@@ -151,7 +151,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h">
       <Filter>Components\APIs %28CORE_EXPORT%29</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Geometrics.h">
       <Filter>Libs %28header only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h">

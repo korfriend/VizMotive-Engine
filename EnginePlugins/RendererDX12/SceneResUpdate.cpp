@@ -5,6 +5,9 @@
 
 namespace vz
 {
+	using GBuffers = GGeometryComponent::GBuffers;
+	using Primitive = GeometryComponent::Primitive;
+
 	const uint32_t SMALL_SUBTASK_GROUPSIZE = 64u;
 
 	GScene* NewGScene(Scene* scene)
@@ -19,63 +22,60 @@ namespace vz
 			Entity entity = geometryEntities[args.jobIndex];
 			GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(entity);
 
-			// Note :
-			//	Here, PrimtiveUpdateSystem depends on "geometry.bufferParts" instead of "geometry.parts_"
-			//	Ideally, # of geometry.bufferParts is same to # of geometry.parts_
-			//	but asynchronous scenario does not guarantee the same number of them. 
+			const std::vector<Primitive>& primitives = geometry.GetPrimitives();
 
-			for (size_t i = 0, n = geometry.bufferParts.size(); i < n; ++i)
+			float tessealation_factor = geometry.GetTesselationFactor();
+			for (size_t part_index = 0, n = primitives.size(); part_index < n; ++part_index)
 			{
-				GGeometryComponent::GeometryPartBuffer& buffer_part = geometry.bufferParts[i];
+				GBuffers& prim_buffer = *geometry.GetGBuffer(part_index);
+				const Primitive& primitive = primitives[part_index];
 
-				if (buffer_part.soPosition.IsValid() && buffer_part.soPrev.IsValid())
+				if (prim_buffer.soPosition.IsValid() && prim_buffer.soPre.IsValid())
 				{
-					std::swap(buffer_part.soPosition, buffer_part.soPrev);
+					std::swap(prim_buffer.soPosition, prim_buffer.soPre);
 				}
 
 				if (geometryArrayMapped != nullptr)
 				{
-					ShaderGeometry shader_geometry;
-					shader_geometry.Init();
-					shader_geometry.ib = buffer_part.ib.descriptor_srv;
-					if (buffer_part.soPosition.IsValid())
+					ShaderGeometryPart shader_geometry_part;
+					shader_geometry_part.Init();
+					shader_geometry_part.ib = prim_buffer.ib.descriptor_srv;
+					if (prim_buffer.soPosition.IsValid())
 					{
-						shader_geometry.vb_pos = buffer_part.soPosition.descriptor_srv;
+						shader_geometry_part.vb_pos = prim_buffer.soPosition.descriptor_srv;
 					}
 					else
 					{
-						shader_geometry.vb_pos = buffer_part.vbPosition.descriptor_srv;
+						shader_geometry_part.vb_pos = prim_buffer.vbPosition.descriptor_srv;
 					}
-					if (buffer_part.soNormal.IsValid())
+					if (prim_buffer.soNormal.IsValid())
 					{
-						shader_geometry.vb_nor = buffer_part.soNormal.descriptor_srv;
+						shader_geometry_part.vb_nor = prim_buffer.soNormal.descriptor_srv;
 					}
 					else
 					{
-						shader_geometry.vb_nor = buffer_part.vbNormal.descriptor_srv;
+						shader_geometry_part.vb_nor = prim_buffer.vbNormal.descriptor_srv;
 					}
-					shader_geometry.vb_col = buffer_part.vbColor.descriptor_srv;
-					shader_geometry.vb_uvs = buffer_part.vbUVs.descriptor_srv;
-					shader_geometry.vb_pre = buffer_part.soPrev.descriptor_srv;
-					primitive::AABB aabb = geometry.GetAABB();
-					shader_geometry.aabb_min = aabb._min;
-					shader_geometry.aabb_max = aabb._max;
-					shader_geometry.uv_range_min = shader_geometry.uv_range_min;
-					shader_geometry.uv_range_max = shader_geometry.uv_range_max;
-					shader_geometry.meshletCount = 0;
-
-					const std::vector<GeometryComponent::Primitive>& primitives = geometry.GetPrimitives();
-					uint index_offset_prev = 0;
-					for (uint32_t part_index = 0, n = geometry.GetNumParts(); part_index < n; ++part_index)
+					if (prim_buffer.soTangent.IsValid())
 					{
-						const GeometryComponent::Primitive& part_prim = primitives[part_index];
-
-						ShaderGeometry shader_geometry_part = shader_geometry;
-						shader_geometry_part.indexOffset = index_offset_prev;
-						index_offset_prev = shader_geometry_part.indexCount = part_prim.GetNumVertices();
-						//shader_geometry.meshletCount += subsetGeometry.meshletCount;
-						std::memcpy(geometryArrayMapped + geometry.geometryOffset + part_index, &shader_geometry_part, sizeof(shader_geometry_part));
+						shader_geometry_part.vb_tan = prim_buffer.soTangent.descriptor_srv;
 					}
+					else
+					{
+						shader_geometry_part.vb_tan = prim_buffer.vbTangent.descriptor_srv;
+					}
+					shader_geometry_part.vb_col = prim_buffer.vbColor.descriptor_srv;
+					shader_geometry_part.vb_uvs = prim_buffer.vbUVs.descriptor_srv;
+					shader_geometry_part.vb_pre = prim_buffer.soPre.descriptor_srv;
+					shader_geometry_part.aabb_min = primitive.GetAABB()._min;
+					shader_geometry_part.aabb_max = primitive.GetAABB()._max;
+					shader_geometry_part.uv_range_min = primitive.GetUVRangeMin();
+					shader_geometry_part.uv_range_max = primitive.GetUVRangeMax();
+					shader_geometry_part.tessellation_factor = tessealation_factor;
+
+					//shader_geometry.meshletCount += subsetGeometry.meshletCount;
+					std::memcpy(geometryArrayMapped + geometry.geometryOffset + part_index, &shader_geometry_part, sizeof(shader_geometry_part));
+
 				}
 			}
 
@@ -328,15 +328,21 @@ namespace vz
 				SortBits sort_bits;
 				sort_bits.bits.sort_priority = renderable.sortPriority;
 
-				uint32_t first_part = 0;
-				uint32_t last_part = 0;
 				renderable.materialFilterFlags = 0;
-				for (uint32_t subsetIndex = first_part; subsetIndex < last_part; ++subsetIndex)
+				size_t num_parts = primitives.size();
+				assert(num_parts < MAXPARTS);
+				// Create GPU instance data:
+				ShaderMeshInstance inst;
+				inst.Init();
+
+				for (uint32_t part_index = 0; part_index < num_parts; ++part_index)
 				{
-					const GeometryComponent::Primitive* part = geometry.GetPrimitive(subsetIndex);
-					Entity material_entity = renderable.GetMaterial(subsetIndex);
+					const Primitive& part = primitives[part_index];
+					Entity material_entity = renderable.GetMaterial(part_index);
 					const GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
-					assert(part && material);
+					assert(material);
+
+					inst.materialIndices[part_index] = Scene::GetIndex(materialEntities, material->GetEntity());
 
 					renderable.materialFilterFlags |= material->GetFilterMaskFlags();
 
@@ -350,9 +356,6 @@ namespace vz
 
 				renderable.sortBits = sort_bits.value;
 
-				// Create GPU instance data:
-				ShaderMeshInstance inst;
-				inst.Init();
 				XMFLOAT4X4 world_matrix_prev = matrixRenderables[args.jobIndex];
 				XMFLOAT4X4 world_matrix = transform->GetWorldMatrix();
 				matrixRenderablesPrev[args.jobIndex] = world_matrix_prev;
@@ -369,14 +372,14 @@ namespace vz
 				XMStoreFloat4(&inst.quaternion, R);
 				float size = std::max(XMVectorGetX(S), std::max(XMVectorGetY(S), XMVectorGetZ(S)));
 
-				primitive::AABB aabb = renderable.GetAABB();
+				const geometrics::AABB& aabb = renderable.GetAABB();
 
 				inst.uid = entity;
 				inst.baseGeometryOffset = geometry.geometryOffset;
-				inst.baseGeometryCount = (uint)geometry.GetNumParts();
-				inst.geometryOffset = inst.baseGeometryOffset + first_part;
-				inst.geometryCount = last_part - first_part;
-				inst.aabbCenter = aabb.getCenter();
+				inst.baseGeometryCount = (uint)num_parts;
+				inst.geometryOffset = inst.baseGeometryOffset;// inst.baseGeometryOffset + first_part;
+				inst.geometryCount = inst.baseGeometryCount;//last_part - first_part;
+				inst.aabbCenter = aabb.getCenter();	
 				inst.aabbRadius = aabb.getRadius();
 				//inst.vb_ao = renderable.vb_ao_srv;
 				//inst.vb_wetmap = device->GetDescriptorIndex(&renderable.wetmap, SubresourceType::SRV);
@@ -562,10 +565,10 @@ namespace vz
 
 		// GPU subset count allocation is ready at this point:
 		geometryArraySize = geometryAllocator.load();
-		if (geometryUploadBuffer[0].desc.size < (geometryArraySize * sizeof(ShaderGeometry)))
+		if (geometryUploadBuffer[0].desc.size < (geometryArraySize * sizeof(ShaderGeometryPart)))
 		{
 			GPUBufferDesc desc;
-			desc.stride = sizeof(ShaderGeometry);
+			desc.stride = sizeof(ShaderGeometryPart);
 			desc.size = desc.stride * geometryArraySize * 2; // *2 to grow fast
 			desc.bind_flags = BindFlag::SHADER_RESOURCE;
 			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
@@ -587,7 +590,7 @@ namespace vz
 				device->SetName(&geometryUploadBuffer[i], "Scene::geometryUploadBuffer");
 			}
 		}
-		geometryArrayMapped = (ShaderGeometry*)geometryUploadBuffer[pingpong_buffer_index].mapped_data;
+		geometryArrayMapped = (ShaderGeometryPart*)geometryUploadBuffer[pingpong_buffer_index].mapped_data;
 
 		RunPrimtiveUpdateSystem(ctx);
 		RunMaterialUpdateSystem(ctx);
@@ -655,7 +658,7 @@ namespace vz
 		//shaderscene.BVH_nodes = device->GetDescriptorIndex(&BVH.bvhNodeBuffer, SubresourceType::SRV);
 		//shaderscene.BVH_primitives = device->GetDescriptorIndex(&BVH.primitiveBuffer, SubresourceType::SRV);
 
-		const primitive::AABB& bounds = scene_->GetAABB();
+		const geometrics::AABB& bounds = scene_->GetAABB();
 		shaderscene.aabb_min = bounds.getMin();
 		shaderscene.aabb_max = bounds.getMax();
 		shaderscene.aabb_extents.x = abs(shaderscene.aabb_max.x - shaderscene.aabb_min.x);

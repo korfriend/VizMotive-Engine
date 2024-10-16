@@ -45,11 +45,7 @@ namespace vz
 	{
 		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
 
-		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
-
-		uint32_t geometryOffset = 0; // (including # of parts)
-
-		struct GeometryPartBuffer
+		struct GBuffers
 		{
 			graphics::GPUBuffer generalBuffer; // index buffer + all static vertex buffers
 			graphics::GPUBuffer streamoutBuffer; // all dynamic vertex buffers
@@ -76,10 +72,14 @@ namespace vz
 			BufferView vbUVs;
 			BufferView vbColor;
 
-			// so refers to Shader Output
+			// 'so' refers to Stream-Output:
+			//		useful when the mesh undergoes dynamic changes, 
+			//		such as in real-time physics simulations, deformations, or 
+			//		when the normals are affected by geometry shaders or other GPU-side processes.
 			BufferView soPosition;
 			BufferView soNormal;
-			BufferView soPrev;
+			BufferView soTangent;
+			BufferView soPre;
 
 			void Destroy()
 			{
@@ -96,11 +96,16 @@ namespace vz
 
 				soPosition = {};
 				soNormal = {};
-				soPrev = {};
+				soTangent = {};
+				soPre = {};
 			}
 		};
-		std::vector<GeometryPartBuffer> bufferParts;
 
+		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
+
+		uint32_t geometryOffset = 0; // (including # of parts)
+
+		GBuffers* GetGBuffer(const size_t slot) { return (GBuffers*)parts_[slot].bufferHandle_.get(); }
 		void UpdateRenderData() override;
 		void DeleteRenderData() override;
 

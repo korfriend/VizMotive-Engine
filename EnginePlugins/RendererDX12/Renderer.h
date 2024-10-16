@@ -360,7 +360,7 @@ namespace vz
 		//		1) # of primitive parts
 		//		2) emitted particles * 1
 		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		ShaderGeometry* geometryArrayMapped = nullptr;
+		ShaderGeometryPart* geometryArrayMapped = nullptr;
 		size_t geometryArraySize = 0;
 		graphics::GPUBuffer geometryBuffer = {};
 		std::atomic<uint32_t> geometryAllocator{ 0 };

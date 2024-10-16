@@ -4,7 +4,7 @@
 #include <limits>
 #include <cassert>
 
-namespace vz::primitive
+namespace vz::geometrics
 {
 	struct Sphere;
 	struct Ray;
@@ -246,7 +246,7 @@ namespace vz::primitive
 
 }
 
-namespace vz::primitive
+namespace vz::geometrics
 {
 	void AABB::createFromHalfWidth(const XMFLOAT3& center, const XMFLOAT3& halfwidth)
 	{

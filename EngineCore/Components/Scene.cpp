@@ -4,7 +4,7 @@
 #include "Utils/JobSystem.h"
 #include "Utils/Platform.h"
 #include "Common/Archive.h"
-#include "Libs/PrimitiveHelper.h"
+#include "Libs/Geometrics.h"
 #include "Common/Backend/GRendererInterface.h"
 
 #include <cstdint>
@@ -28,7 +28,7 @@ namespace vz
 		// the process is 1. gathering, 2. streaming up (sync/async)
 
 		// AABB culling streams:
-		std::vector<primitive::AABB> parallelBounds;
+		std::vector<geometrics::AABB> parallelBounds;
 		//std::vector<primitive::AABB> aabbRenderables;
 		//std::vector<primitive::AABB> aabbLights;
 
@@ -42,7 +42,7 @@ namespace vz
 	const uint32_t SMALL_SUBTASK_GROUPSIZE = 64u;
 
 	using namespace graphics;
-	using namespace primitive;
+	using namespace geometrics;
 
 	Scene::Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name)
 	{
@@ -113,7 +113,7 @@ namespace vz
 			{
 				light->Update();	// AABB
 			}
-		}, sizeof(primitive::AABB));
+		}, sizeof(geometrics::AABB));
 	}
 
 	void Scene::Update(const float dt)

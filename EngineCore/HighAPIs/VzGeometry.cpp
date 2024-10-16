@@ -27,14 +27,14 @@ namespace vzm
 		prim.SetVtxPositions(vertexPositions, true);
 		prim.SetIdxPrimives(indexPrimitives, true);
 	
-		primitive::AABB aabb;
+		geometrics::AABB aabb;
 		aabb._min = XMFLOAT3(-1.f, -1.f, -1.f);
 		aabb._max = XMFLOAT3( 1.f,  1.f,  1.f);
 
 		prim.SetAABB(aabb);
 		prim.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
 
-		geometry->MovePrimitive(prim, 0);
+		geometry->MovePrimitiveFrom(prim, 0);
 		UpdateTimeStamp();
 	}
 }

@@ -8,7 +8,7 @@
 #include "Utils/Spinlock.h"
 #include "Utils/Profiler.h"
 #include "Libs/Math.h"
-#include "Libs/PrimitiveHelper.h"
+#include "Libs/Geometrics.h"
 
 #include "ThirdParty/RectPacker.h"
 
@@ -48,7 +48,7 @@ namespace vz::renderer
 	const bool isWireRender = false;
 	const bool isMeshShaderAllowed = false;
 
-	using namespace primitive;
+	using namespace geometrics;
 
 	struct View
 	{
@@ -71,7 +71,7 @@ namespace vz::renderer
 		};
 		uint32_t flags = EMPTY;
 
-		primitive::Frustum frustum; // camera's frustum or special purposed frustum
+		Frustum frustum; // camera's frustum or special purposed frustum
 		std::vector<uint32_t> visibleRenderables; // index refers to the linear array of Scnee::renderables
 		//std::vector<uint32_t> visibleDecals;
 		//std::vector<uint32_t> visibleEnvProbes;
@@ -835,7 +835,7 @@ namespace vz
 		shadercam.clip_plane = XMFLOAT4(0, 0, 0, 0); // default: no clip plane
 		shadercam.reflection_plane = XMFLOAT4(0, 0, 0, 0);
 
-		const vz::primitive::Frustum& cam_frustum = camera.GetFrustum();
+		const Frustum& cam_frustum = camera.GetFrustum();
 		static_assert(arraysize(cam_frustum.planes) == arraysize(shadercam.frustum.planes), "Mismatch!");
 		for (int i = 0; i < arraysize(cam_frustum.planes); ++i)
 		{
@@ -950,7 +950,7 @@ namespace vz
 				0,
 				&scene_Gdetails->geometryUploadBuffer[device->GetBufferIndex()],
 				0,
-				scene_Gdetails->geometryArraySize * sizeof(ShaderGeometry),
+				scene_Gdetails->geometryArraySize * sizeof(ShaderGeometryPart),
 				cmd
 			);
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->geometryBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE));
