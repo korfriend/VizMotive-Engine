@@ -27,7 +27,11 @@ namespace vz
 			float tessealation_factor = geometry.GetTesselationFactor();
 			for (size_t part_index = 0, n = primitives.size(); part_index < n; ++part_index)
 			{
-				GBuffers& prim_buffer = *geometry.GetGBuffer(part_index);
+				GBuffers* prim_buffer_ptr = geometry.GetGBuffer(part_index);
+				if (!prim_buffer_ptr)
+					continue;
+
+				GBuffers& prim_buffer = *prim_buffer_ptr;
 				const Primitive& primitive = primitives[part_index];
 
 				if (prim_buffer.soPosition.IsValid() && prim_buffer.soPre.IsValid())
