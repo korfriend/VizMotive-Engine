@@ -93,18 +93,20 @@ struct alignas(16) ShaderTransform
 	}
 };
 
+#define MAXPARTS 16
 struct alignas(16) ShaderMeshInstance
 {
 	uint uid;	// using entity
 	uint flags;	// high 8 bits: user stencilRef (same as visibility-layered mask)
-	uint indexGeometryBuffers;	// index of bindless array of VBs 
+	uint indexGeometryBuffers;	// index of bindless array of VBs (with IB)
 	uint alphaTest_size;
-
 
 	uint geometryOffset; // offset of all geometry parts
 	uint geometryCount; // number of all geometry parts 
 	uint baseGeometryOffset;	// offset of all geometry parts of the instance (if no LODs, then it is equal to geometryOffset)
 	uint baseGeometryCount;		// number of all geometry parts of the instance (if no LODs, then it is equal to geometryCount)
+
+	uint materialIndices[MAXPARTS];
 
 	float3 aabbCenter;
 	float aabbRadius;
@@ -131,6 +133,11 @@ struct alignas(16) ShaderMeshInstance
 		transform.Init();
 		transformPrev.Init();
 		transformRaw.Init();
+
+		for (int i = 0; i < MAXPARTS; ++i)
+		{
+			materialIndices[i] = 0;
+		}
 	}
 
 	inline void SetUserStencilRef(uint stencilRef)
@@ -491,7 +498,7 @@ struct alignas(16) ShaderMaterial
 
 // This is equivalent to a Geometry's Primitive parts
 //	But because these are always loaded together by shaders, they are unrolled into one to reduce individual buffer loads
-struct alignas(16) ShaderGeometry
+struct alignas(16) ShaderGeometryPart
 {
 	int ib;
 	int vb_pos;
@@ -500,26 +507,17 @@ struct alignas(16) ShaderGeometry
 
 	int vb_tan;
 	int vb_col;
-	int vb_atl;
 	int vb_pre;
-
-	uint materialIndex; 
-	uint meshletOffset; // offset of this subset in meshlets (locally within the mesh)
-	uint meshletCount;
-	int impostorSliceOffset;
+	uint padding0;
 
 	float3 aabb_min;
 	uint flags;
+
 	float3 aabb_max;
 	float tessellation_factor;	
 
 	float2 uv_range_min;
 	float2 uv_range_max;
-
-	uint indexOffset;
-	uint indexCount;
-	int vb_clu;	// for mesh shader
-	int vb_bou; // for mesh shader
 
 	void Init()
 	{
@@ -529,13 +527,7 @@ struct alignas(16) ShaderGeometry
 		vb_nor = -1;
 		vb_tan = -1;
 		vb_col = -1;
-		vb_atl = -1;
 		vb_pre = -1;
-		vb_clu = -1;
-		vb_bou = -1;
-		materialIndex = 0;
-		meshletOffset = 0;
-		meshletCount = 0;
 
 		aabb_min = float3(0, 0, 0);
 		flags = 0;
@@ -544,10 +536,6 @@ struct alignas(16) ShaderGeometry
 
 		uv_range_min = float2(0, 0);
 		uv_range_max = float2(1, 1);
-
-		impostorSliceOffset = -1;
-		indexOffset = 0;
-		indexCount = 0;
 	}
 };
 

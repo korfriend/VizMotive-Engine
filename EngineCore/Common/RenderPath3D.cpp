@@ -48,8 +48,8 @@ namespace vz
 		{
 			viewport.top_left_x = 0;
 			viewport.top_left_y = 0;
-			viewport.width = width_;
-			viewport.height = height_;
+			viewport.width = (float)width_;
+			viewport.height = (float)height_;
 		}
 		//scissor
 		if (!useManualSetScissor)

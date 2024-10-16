@@ -162,20 +162,23 @@ namespace vz
 			uint8_t u8_data;
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
-
+			
+			archive >> tesselationFactor_;
 			uint32_t u32_data;
 			archive >> u32_data; // num of parts
 			for (size_t i = 0, n = u32_data; i < n; ++i)
 			{
 				parts_[i].Serialize(archive, version);
 			}
-			updateAABB();
-			isDirtyAABB_ = true;
+
+			update();
+			isDirty_ = true;
 		}
 		else
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
+			archive << tesselationFactor_;
 			archive << parts_.size();
 			for (size_t i = 0, n = parts_.size(); i < n; ++i)
 			{

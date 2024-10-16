@@ -47,7 +47,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\PrimitiveHelper.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Geometrics.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\h264.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h" />

@@ -55,8 +55,8 @@ namespace vzm
 
 		renderer->viewport.top_left_x = 0;
 		renderer->viewport.top_left_y = 0;
-		renderer->viewport.width = renderer->GetPhysicalWidth();
-		renderer->viewport.height = renderer->GetPhysicalHeight();
+		renderer->viewport.width = (float)renderer->GetPhysicalWidth();
+		renderer->viewport.height = (float)renderer->GetPhysicalHeight();
 	}
 
 	void VzRenderer::SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits)
