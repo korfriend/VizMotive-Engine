@@ -139,7 +139,7 @@ namespace vz
 	{
 		const MikkTSpaceUserdata* userdata = static_cast<const MikkTSpaceUserdata*>(context->m_pUserData);
 		int index = get_vertex_index(context, iFace, iVert);
-		const XMFLOAT2& vert = userdata->vertexUVset0[index];
+		const XMFLOAT2& vert = userdata->vertexUVset[index];
 		outuv[0] = vert.x;
 		outuv[1] = vert.y;
 	}
@@ -171,12 +171,12 @@ namespace vz
 		{
 			Primitive& primitive = parts_[i];
 
-			const std::vector<XMFLOAT3>& vertex_positions = primitive.GetVtxPositions();
-			const std::vector<uint32_t>& indices = primitive.GetIdxPrimives();
-			std::vector<XMFLOAT3>& vertex_normals = GetModifierVtxNormals(i);
-			std::vector<XMFLOAT4>& vertex_tangents = GetModifierVtxTangents(i);
-			std::vector<XMFLOAT2>& vertex_uvset_0 = GetModifierVtxUVSet0(i);
-			std::vector<XMFLOAT2>& vertex_uvset_1 = GetModifierVtxUVSet1(i);
+			const std::vector<XMFLOAT3>& vertex_positions = primitive.vertexPositions_;
+			const std::vector<uint32_t>& indices = primitive.indexPrimitives_;
+			std::vector<XMFLOAT3>& vertex_normals = primitive.vertexNormals_;
+			std::vector<XMFLOAT4>& vertex_tangents = primitive.vertexTangents_;
+			std::vector<XMFLOAT2>& vertex_uvset_0 = primitive.vertexUVset0_;
+			std::vector<XMFLOAT2>& vertex_uvset_1 = primitive.vertexUVset1_;
 
 			// TANGENT computation
 			if (primitive.GetPrimitiveType() == PrimitiveType::TRIANGLES && vertex_tangents.empty() 
@@ -215,63 +215,7 @@ namespace vz
 				_min = math::Min(_min, pos);
 				_max = math::Max(_max, pos);
 			}
-			primitive::AABB aabb = primitive::AABB(_min, _max);
-			primitive.SetAABB(aabb);
-
-			if (IsQuantizedPositionsDisabled())
-			{
-				position_format = vertex_windweights.empty() ? Vertex_POS32::FORMAT : Vertex_POS32W::FORMAT;
-			}
-			else
-			{
-				// Determine minimum precision for positions:
-				const float target_precision = 1.0f / 1000.0f; // millimeter
-				position_format = Vertex_POS16::FORMAT;
-				for (size_t i = 0; i < vertex_positions.size(); ++i)
-				{
-					const XMFLOAT3& pos = vertex_positions[i];
-					const uint8_t wind = vertex_windweights.empty() ? 0xFF : vertex_windweights[i];
-
-					Vertex_POS16 v;
-					v.FromFULL(aabb, pos, wind);
-					XMFLOAT3 p = v.GetPOS(aabb);
-					if (
-						std::abs(p.x - pos.x) <= target_precision &&
-						std::abs(p.y - pos.y) <= target_precision &&
-						std::abs(p.z - pos.z) <= target_precision &&
-						wind == v.GetWind()
-						)
-					{
-						// success, continue to next vertex with 16 bits
-						continue;
-					}
-					position_format = vertex_windweights.empty() ? Vertex_POS32::FORMAT : Vertex_POS32W::FORMAT; // failed, increase to 32 bits
-					break; // since 32 bit is the max, we can bail out
-				}
-
-				if (IsFormatUnorm(position_format))
-				{
-					// This is done to avoid 0 scaling on any axis of the UNORM remap matrix of the AABB
-					//	It specifically solves a problem with hardware raytracing which treats AABB with zero axis as invisible
-					//	Also there was problem with using float epsilon value, it did not enough precision for raytracing
-					constexpr float min_dim = 0.01f;
-					if (aabb._max.x - aabb._min.x < min_dim)
-					{
-						aabb._max.x += min_dim;
-						aabb._min.x -= min_dim;
-					}
-					if (aabb._max.y - aabb._min.y < min_dim)
-					{
-						aabb._max.y += min_dim;
-						aabb._min.y -= min_dim;
-					}
-					if (aabb._max.z - aabb._min.z < min_dim)
-					{
-						aabb._max.z += min_dim;
-						aabb._min.z -= min_dim;
-					}
-				}
-			}
+			primitive.aabb_ = primitive::AABB(_min, _max);
 
 			// Determine UV range for normalization:
 			if (!vertex_uvset_0.empty() || !vertex_uvset_1.empty())
@@ -279,18 +223,18 @@ namespace vz
 				const XMFLOAT2* uv0_stream = vertex_uvset_0.empty() ? vertex_uvset_1.data() : vertex_uvset_0.data();
 				const XMFLOAT2* uv1_stream = vertex_uvset_1.empty() ? vertex_uvset_0.data() : vertex_uvset_1.data();
 
-				uv_range_min = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-				uv_range_max = XMFLOAT2(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
+				primitive.uvRangeMin_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+				primitive.uvRangeMax_ = XMFLOAT2(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
 				for (size_t i = 0; i < uv_count; ++i)
 				{
-					uv_range_max = math::Max(uv_range_max, uv0_stream[i]);
-					uv_range_max = math::Max(uv_range_max, uv1_stream[i]);
-					uv_range_min = math::Min(uv_range_min, uv0_stream[i]);
-					uv_range_min = math::Min(uv_range_min, uv1_stream[i]);
+					primitive.uvRangeMax_ = math::Max(primitive.uvRangeMax_, uv0_stream[i]);
+					primitive.uvRangeMax_ = math::Max(primitive.uvRangeMax_, uv1_stream[i]);
+					primitive.uvRangeMin_ = math::Min(primitive.uvRangeMin_, uv0_stream[i]);
+					primitive.uvRangeMin_ = math::Min(primitive.uvRangeMin_, uv1_stream[i]);
 				}
 			}
 
-			const size_t position_stride = GetFormatStride(position_format);
+			const size_t position_stride = sizeof(XMFLOAT3);
 
 			GPUBufferDesc bd;
 			if (device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
@@ -309,18 +253,18 @@ namespace vz
 				bd.misc_flags |= ResourceMiscFlag::RAY_TRACING;
 			}
 			const uint64_t alignment = device->GetMinOffsetAlignment(&bd);
-			bd.size =
-				AlignTo(vertex_positions.size() * position_stride, alignment) + // position will be first to have 0 offset for flexible alignment!
-				AlignTo(indices.size() * GetIndexStride(), alignment) +
-				AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
-				AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment) +
-				AlignTo(uv_count * sizeof(Vertex_UVS), alignment) +
-				AlignTo(vertex_atlas.size() * sizeof(Vertex_TEX), alignment) +
-				AlignTo(vertex_colors.size() * sizeof(Vertex_COL), alignment) +
-				AlignTo(vertex_boneindices.size() * sizeof(Vertex_BON), alignment) +
-				AlignTo(vertex_boneindices2.size() * sizeof(Vertex_BON), alignment)
-				;
-
+			//bd.size =
+			//	AlignTo(vertex_positions.size() * position_stride, alignment) + // position will be first to have 0 offset for flexible alignment!
+			//	AlignTo(indices.size() * GetIndexStride(), alignment) +
+			//	AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
+			//	AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment) +
+			//	AlignTo(uv_count * sizeof(Vertex_UVS), alignment) +
+			//	AlignTo(vertex_atlas.size() * sizeof(Vertex_TEX), alignment) +
+			//	AlignTo(vertex_colors.size() * sizeof(Vertex_COL), alignment) +
+			//	AlignTo(vertex_boneindices.size() * sizeof(Vertex_BON), alignment) +
+			//	AlignTo(vertex_boneindices2.size() * sizeof(Vertex_BON), alignment)
+			//	;
+			/*
 			auto init_callback = [&](void* dest) {
 				uint8_t* buffer_data = (uint8_t*)dest;
 				uint64_t buffer_offset = 0ull;
@@ -688,6 +632,7 @@ namespace vz
 			{
 				CreateStreamoutRenderData();
 			}
+			/**/
 		}
 	}
 

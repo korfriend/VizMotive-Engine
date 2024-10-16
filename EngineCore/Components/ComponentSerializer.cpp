@@ -138,6 +138,9 @@ namespace vz
 			archive >> vertexUVset1_;
 			archive >> vertexColors_;
 			archive >> indexPrimitives_;
+			uint32_t data32t;
+			archive >> data32t;
+			ptype_ = static_cast<PrimitiveType>(data32t);
 		}
 		else
 		{
@@ -148,6 +151,7 @@ namespace vz
 			archive << vertexUVset1_;
 			archive << vertexColors_;
 			archive << indexPrimitives_;
+			archive << SCU32(ptype_);
 		}
 	}
 

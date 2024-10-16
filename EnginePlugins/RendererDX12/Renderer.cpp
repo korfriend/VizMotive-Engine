@@ -1245,7 +1245,7 @@ namespace vz
 				{
 					renderQueue.sort_opaque();
 				}
-				RenderMeshes(view, renderQueue, renderPass, filterMask, cmd, flags);
+				//RenderMeshes(view, renderQueue, renderPass, filterMask, cmd, flags);
 			}
 		}
 
@@ -1257,6 +1257,7 @@ namespace vz
 
 namespace vz
 {
+	/*
 	void GRenderPath3DDetails::RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags, uint32_t camera_count)
 	{
 		if (renderQueue.empty())
@@ -1550,7 +1551,7 @@ namespace vz
 
 		device->EventEnd(cmd);
 	}
-
+	/**/
 }
 
 namespace vz
@@ -1585,6 +1586,7 @@ namespace vz
 		device->WaitQueue(cmd, QUEUE_COMPUTE); // sync to prev frame compute (disallow prev frame overlapping a compute task into updating global scene resources for this frame)
 		//ProcessDeferredTextureRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
 
+		/*
 		CommandList cmd_prepareframe = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
@@ -2408,7 +2410,7 @@ namespace vz
 		//device->RenderPassBegin(&swapChain_, cmd);
 		//device->RenderPassEnd(cmd);
 		//device->SubmitCommandLists();
-
+		/**/
 		return true;
 	}
 
