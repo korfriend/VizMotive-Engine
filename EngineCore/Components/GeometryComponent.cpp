@@ -6,7 +6,7 @@
 
 namespace vz
 {
-#define MAX_GEOMETRY_PARTS 10000
+#define MAX_GEOMETRY_PARTS 32 // ShaderInterop.h's `#define MAXPARTS 32`
 	void GeometryComponent::MovePrimitivesFrom(std::vector<Primitive>& primitives)
 	{
 		parts_.assign(primitives.size(), Primitive());
@@ -232,6 +232,20 @@ namespace vz
 
 namespace vz
 {
+	using BufferView = GGeometryComponent::GBuffers::BufferView;
+
+	graphics::IndexBufferFormat GGeometryComponent::GetIndexFormat() const
+	{ 
+		size_t max_num_vertices = 0;
+		for (size_t i = 0, n = parts_.size(); i < n; ++i)
+		{
+			const Primitive& primitive = parts_[i];
+			max_num_vertices = std::max(max_num_vertices, primitive.vertexPositions_.size());
+		}
+
+		return graphics::GetIndexBufferFormat((uint32_t)max_num_vertices);
+	}
+
 	void GGeometryComponent::DeleteRenderData()
 	{
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
@@ -247,12 +261,18 @@ namespace vz
 
 		GraphicsDevice* device = graphics::GetDevice();
 
+		const size_t position_stride = sizeof(positionFormat);
+
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& primitive = parts_[i];
 			primitive.bufferHandle_ = std::make_shared<GBuffers>();
+			GBuffers& part_buffers = *(GBuffers*)primitive.bufferHandle_.get();
 
-			const size_t position_stride = sizeof(XMFLOAT3);
+			if (primitive.isDirty_)
+			{
+				primitive.update();
+			}
 
 			GPUBufferDesc bd;
 			if (device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
@@ -272,55 +292,51 @@ namespace vz
 			}
 			const uint64_t alignment = device->GetMinOffsetAlignment(&bd);
 
+			const std::vector<XMFLOAT3>& vertex_positions = primitive.vertexPositions_;
+			const std::vector<uint32_t>& indices = primitive.indexPrimitives_;
+			const std::vector<XMFLOAT3>& vertex_normals = primitive.vertexNormals_;
+			const std::vector<XMFLOAT4>& vertex_tangents = primitive.vertexTangents_;
+			const std::vector<XMFLOAT2>& vertex_uvset_0 = primitive.vertexUVset0_;
+			const std::vector<XMFLOAT2>& vertex_uvset_1 = primitive.vertexUVset1_;
+			const std::vector<uint32_t>& vertex_colors = primitive.vertexColors_;
 
-			// bufferParts[i].aabb TODO : SET
-			// bufferParts[i].materialEntity
+			const size_t uv_count = std::max(vertex_uvset_0.size(), vertex_uvset_1.size());
 
-			//bd.size =
-			//	AlignTo(vertex_positions.size() * position_stride, alignment) + // position will be first to have 0 offset for flexible alignment!
-			//	AlignTo(indices.size() * GetIndexStride(), alignment) +
-			//	AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
-			//	AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment) +
-			//	AlignTo(uv_count * sizeof(Vertex_UVS), alignment) +
-			//	AlignTo(vertex_atlas.size() * sizeof(Vertex_TEX), alignment) +
-			//	AlignTo(vertex_colors.size() * sizeof(Vertex_COL), alignment) +
-			//	AlignTo(vertex_boneindices.size() * sizeof(Vertex_BON), alignment) +
-			//	AlignTo(vertex_boneindices2.size() * sizeof(Vertex_BON), alignment)
-			//	;
-			/*
+			bd.size =
+				AlignTo(vertex_positions.size() * position_stride, alignment) + // position will be first to have 0 offset for flexible alignment!
+				AlignTo(indices.size() * GetIndexStride(), alignment) +
+				AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
+				AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment) +
+				AlignTo(uv_count * sizeof(Vertex_UVS), alignment) +
+				AlignTo(vertex_colors.size() * sizeof(Vertex_COL), alignment)
+				;
+
+			GPUBuffer& generalBuffer = part_buffers.generalBuffer;
+			BufferView& ib = part_buffers.ib;
+			BufferView& vb_pos = part_buffers.vbPosition;
+			BufferView& vb_nor = part_buffers.vbNormal;
+			BufferView& vb_tan = part_buffers.vbTangent;
+			BufferView& vb_uvs = part_buffers.vbUVs;
+			BufferView& vb_col = part_buffers.vbColor;
+			const XMFLOAT2& uv_range_min = primitive.GetUVRangeMin();
+			const XMFLOAT2& uv_range_max = primitive.GetUVRangeMax();
+
 			auto init_callback = [&](void* dest) {
 				uint8_t* buffer_data = (uint8_t*)dest;
 				uint64_t buffer_offset = 0ull;
 
-				// vertexBuffer - POSITION + WIND:
-				switch (position_format)
+				// vertexBuffer - POSITION:
+				switch (positionFormat)
 				{
-				case Vertex_POS16::FORMAT:
-				{
-					vb_pos_wind.offset = buffer_offset;
-					vb_pos_wind.size = vertex_positions.size() * sizeof(Vertex_POS16);
-					Vertex_POS16* vertices = (Vertex_POS16*)(buffer_data + buffer_offset);
-					buffer_offset += AlignTo(vb_pos_wind.size, alignment);
-					for (size_t i = 0; i < vertex_positions.size(); ++i)
-					{
-						XMFLOAT3 pos = vertex_positions[i];
-						const uint8_t wind = vertex_windweights.empty() ? 0xFF : vertex_windweights[i];
-						Vertex_POS16 vert;
-						vert.FromFULL(aabb, pos, wind);
-						std::memcpy(vertices + i, &vert, sizeof(vert));
-					}
-				}
-				break;
 				case Vertex_POS32::FORMAT:
 				{
-					vb_pos_wind.offset = buffer_offset;
-					vb_pos_wind.size = vertex_positions.size() * sizeof(Vertex_POS32);
+					vb_pos.offset = buffer_offset;
+					vb_pos.size = vertex_positions.size() * sizeof(Vertex_POS32);
 					Vertex_POS32* vertices = (Vertex_POS32*)(buffer_data + buffer_offset);
-					buffer_offset += AlignTo(vb_pos_wind.size, alignment);
+					buffer_offset += AlignTo(vb_pos.size, alignment);
 					for (size_t i = 0; i < vertex_positions.size(); ++i)
 					{
 						const XMFLOAT3& pos = vertex_positions[i];
-						const uint8_t wind = vertex_windweights.empty() ? 0xFF : vertex_windweights[i];
 						Vertex_POS32 vert;
 						vert.FromFULL(pos);
 						std::memcpy(vertices + i, &vert, sizeof(vert));
@@ -329,14 +345,15 @@ namespace vz
 				break;
 				case Vertex_POS32W::FORMAT:
 				{
-					vb_pos_wind.offset = buffer_offset;
-					vb_pos_wind.size = vertex_positions.size() * sizeof(Vertex_POS32W);
+					vb_pos.offset = buffer_offset;
+					vb_pos.size = vertex_positions.size() * sizeof(Vertex_POS32W);
 					Vertex_POS32W* vertices = (Vertex_POS32W*)(buffer_data + buffer_offset);
-					buffer_offset += AlignTo(vb_pos_wind.size, alignment);
+					buffer_offset += AlignTo(vb_pos.size, alignment);
 					for (size_t i = 0; i < vertex_positions.size(); ++i)
 					{
 						const XMFLOAT3& pos = vertex_positions[i];
-						const uint8_t wind = vertex_windweights.empty() ? 0xFF : vertex_windweights[i];
+						// something special?? e.g., density or probability for volume-geometric processing
+						const uint8_t wind = 0; // vertex_windweights.empty() ? 0xFF : vertex_windweights[i];
 						Vertex_POS32W vert;
 						vert.FromFULL(pos, wind);
 						std::memcpy(vertices + i, &vert, sizeof(vert));
@@ -418,21 +435,6 @@ namespace vz
 					}
 				}
 
-				// vertexBuffer - ATLAS
-				if (!vertex_atlas.empty())
-				{
-					vb_atl.offset = buffer_offset;
-					vb_atl.size = vertex_atlas.size() * sizeof(Vertex_TEX);
-					Vertex_TEX* vertices = (Vertex_TEX*)(buffer_data + buffer_offset);
-					buffer_offset += AlignTo(vb_atl.size, alignment);
-					for (size_t i = 0; i < vertex_atlas.size(); ++i)
-					{
-						Vertex_TEX vert;
-						vert.FromFULL(vertex_atlas[i]);
-						std::memcpy(vertices + i, &vert, sizeof(vert));
-					}
-				}
-
 				// vertexBuffer - COLORS
 				if (!vertex_colors.empty())
 				{
@@ -447,161 +449,16 @@ namespace vz
 						std::memcpy(vertices + i, &vert, sizeof(vert));
 					}
 				}
+			};
 
-				// bone reference buffers (skinning, soft body):
-				if (!vertex_boneindices.empty())
-				{
-					vb_bon.offset = buffer_offset;
-					const size_t influence_div4 = GetBoneInfluenceDiv4();
-					vb_bon.size = (vertex_boneindices.size() + vertex_boneindices2.size()) * sizeof(Vertex_BON);
-					Vertex_BON* vertices = (Vertex_BON*)(buffer_data + buffer_offset);
-					buffer_offset += AlignTo(vb_bon.size, alignment);
-					assert(vertex_boneindices.size() == vertex_boneweights.size()); // must have same number of indices as weights
-					assert(vertex_boneindices2.empty() || vertex_boneindices2.size() == vertex_boneindices.size()); // if second influence stream exists, it must be as large as the first
-					assert(vertex_boneindices2.size() == vertex_boneweights2.size()); // must have same number of indices as weights
-					for (size_t i = 0; i < vertex_boneindices.size(); ++i)
-					{
-						// Normalize weights:
-						//	Note: if multiple influence streams are present,
-						//	we have to normalize them together, not separately
-						float weights[8] = {};
-						weights[0] = vertex_boneweights[i].x;
-						weights[1] = vertex_boneweights[i].y;
-						weights[2] = vertex_boneweights[i].z;
-						weights[3] = vertex_boneweights[i].w;
-						if (influence_div4 > 1)
-						{
-							weights[4] = vertex_boneweights2[i].x;
-							weights[5] = vertex_boneweights2[i].y;
-							weights[6] = vertex_boneweights2[i].z;
-							weights[7] = vertex_boneweights2[i].w;
-						}
-						float sum = 0;
-						for (auto& weight : weights)
-						{
-							sum += weight;
-						}
-						if (sum > 0)
-						{
-							const float norm = 1.0f / sum;
-							for (auto& weight : weights)
-							{
-								weight *= norm;
-							}
-						}
-						// Store back normalized weights:
-						vertex_boneweights[i].x = weights[0];
-						vertex_boneweights[i].y = weights[1];
-						vertex_boneweights[i].z = weights[2];
-						vertex_boneweights[i].w = weights[3];
-						if (influence_div4 > 1)
-						{
-							vertex_boneweights2[i].x = weights[4];
-							vertex_boneweights2[i].y = weights[5];
-							vertex_boneweights2[i].z = weights[6];
-							vertex_boneweights2[i].w = weights[7];
-						}
-
-						Vertex_BON vert;
-						vert.FromFULL(vertex_boneindices[i], vertex_boneweights[i]);
-						std::memcpy(vertices + (i * influence_div4 + 0), &vert, sizeof(vert));
-
-						if (influence_div4 > 1)
-						{
-							vert.FromFULL(vertex_boneindices2[i], vertex_boneweights2[i]);
-							std::memcpy(vertices + (i * influence_div4 + 1), &vert, sizeof(vert));
-						}
-					}
-				}
-
-				// morph buffers:
-				if (!morph_targets.empty())
-				{
-					vb_mor.offset = buffer_offset;
-					for (MorphTarget& morph : morph_targets)
-					{
-						if (!morph.vertex_positions.empty())
-						{
-							morph.offset_pos = (buffer_offset - vb_mor.offset) / morph_stride;
-							XMHALF4* vertices = (XMHALF4*)(buffer_data + buffer_offset);
-							std::fill(vertices, vertices + vertex_positions.size(), 0);
-							if (morph.sparse_indices_positions.empty())
-							{
-								// flat morphs:
-								for (size_t i = 0; i < morph.vertex_positions.size(); ++i)
-								{
-									XMStoreHalf4(vertices + i, XMLoadFloat3(&morph.vertex_positions[i]));
-								}
-							}
-							else
-							{
-								// sparse morphs will be flattened for GPU because they will be evaluated in skinning for every vertex:
-								for (size_t i = 0; i < morph.sparse_indices_positions.size(); ++i)
-								{
-									const uint32_t ind = morph.sparse_indices_positions[i];
-									XMStoreHalf4(vertices + ind, XMLoadFloat3(&morph.vertex_positions[i]));
-								}
-							}
-							buffer_offset += AlignTo(morph.vertex_positions.size() * sizeof(XMHALF4), alignment);
-						}
-						if (!morph.vertex_normals.empty())
-						{
-							morph.offset_nor = (buffer_offset - vb_mor.offset) / morph_stride;
-							XMHALF4* vertices = (XMHALF4*)(buffer_data + buffer_offset);
-							std::fill(vertices, vertices + vertex_normals.size(), 0);
-							if (morph.sparse_indices_normals.empty())
-							{
-								// flat morphs:
-								for (size_t i = 0; i < morph.vertex_normals.size(); ++i)
-								{
-									XMStoreHalf4(vertices + i, XMLoadFloat3(&morph.vertex_normals[i]));
-								}
-							}
-							else
-							{
-								// sparse morphs will be flattened for GPU because they will be evaluated in skinning for every vertex:
-								for (size_t i = 0; i < morph.sparse_indices_normals.size(); ++i)
-								{
-									const uint32_t ind = morph.sparse_indices_normals[i];
-									XMStoreHalf4(vertices + ind, XMLoadFloat3(&morph.vertex_normals[i]));
-								}
-							}
-							buffer_offset += AlignTo(morph.vertex_normals.size() * sizeof(XMHALF4), alignment);
-						}
-					}
-					vb_mor.size = buffer_offset - vb_mor.offset;
-				}
-
-				if (!clusters.empty())
-				{
-					buffer_offset = AlignTo(buffer_offset, sizeof(ShaderCluster));
-					vb_clu.offset = buffer_offset;
-					vb_clu.size = clusters.size() * sizeof(ShaderCluster);
-					std::memcpy(buffer_data + buffer_offset, clusters.data(), vb_clu.size);
-					buffer_offset += AlignTo(vb_clu.size, alignment);
-				}
-				if (!cluster_bounds.empty())
-				{
-					buffer_offset = AlignTo(buffer_offset, sizeof(ShaderClusterBounds));
-					vb_bou.offset = buffer_offset;
-					vb_bou.size = cluster_bounds.size() * sizeof(ShaderClusterBounds);
-					std::memcpy(buffer_data + buffer_offset, cluster_bounds.data(), vb_bou.size);
-					buffer_offset += AlignTo(vb_bou.size, alignment);
-				}
-				};
-
-			bool success = device->CreateBuffer2(&bd, init_callback, &generalBuffer);
+			bool success = device->CreateBuffer2(&bd, init_callback, &part_buffers.generalBuffer);
 			assert(success);
-			device->SetName(&generalBuffer, "GGeometryComponent::generalBuffer");
+			device->SetName(&part_buffers.generalBuffer, "GGeometryComponent::bufferHandle_::generalBuffer");
 
 			assert(ib.IsValid());
 			const Format ib_format = GetIndexFormat() == IndexBufferFormat::UINT32 ? Format::R32_UINT : Format::R16_UINT;
 			ib.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, ib.offset, ib.size, &ib_format);
 			ib.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, ib.subresource_srv);
-
-			assert(vb_pos_wind.IsValid());
-			vb_pos_wind.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_pos_wind.offset, vb_pos_wind.size, &position_format);
-			vb_pos_wind.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_pos_wind.subresource_srv);
 
 			if (vb_nor.IsValid())
 			{
@@ -618,50 +475,16 @@ namespace vz
 				vb_uvs.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_uvs.offset, vb_uvs.size, &Vertex_UVS::FORMAT);
 				vb_uvs.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_uvs.subresource_srv);
 			}
-			if (vb_atl.IsValid())
-			{
-				vb_atl.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_atl.offset, vb_atl.size, &Vertex_TEX::FORMAT);
-				vb_atl.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_atl.subresource_srv);
-			}
 			if (vb_col.IsValid())
 			{
 				vb_col.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_col.offset, vb_col.size, &Vertex_COL::FORMAT);
 				vb_col.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_col.subresource_srv);
 			}
-			if (vb_bon.IsValid())
-			{
-				vb_bon.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_bon.offset, vb_bon.size);
-				vb_bon.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_bon.subresource_srv);
-			}
-			if (vb_mor.IsValid())
-			{
-				vb_mor.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_mor.offset, vb_mor.size, &morph_format);
-				vb_mor.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_mor.subresource_srv);
-			}
-			if (vb_clu.IsValid())
-			{
-				static constexpr uint32_t cluster_stride = sizeof(ShaderCluster);
-				vb_clu.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_clu.offset, vb_clu.size, nullptr, &cluster_stride);
-				vb_clu.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_clu.subresource_srv);
-			}
-			if (vb_bou.IsValid())
-			{
-				static constexpr uint32_t cluster_stride = sizeof(ShaderClusterBounds);
-				vb_bou.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_bou.offset, vb_bou.size, nullptr, &cluster_stride);
-				vb_bou.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_bou.subresource_srv);
-			}
-
-			if (!vertex_boneindices.empty() || !morph_targets.empty())
-			{
-				CreateStreamoutRenderData();
-			}
-			/**/
 		}
 
 		isDirtyRenderData_ = false;
 	}
 
-	/*
 	void GGeometryComponent::UpdateStreamoutRenderData()
 	{
 		GraphicsDevice* device = graphics::GetDevice();
@@ -676,58 +499,81 @@ namespace vz
 		}
 
 		const uint64_t alignment = device->GetMinOffsetAlignment(&desc) * sizeof(Vertex_POS32); // additional alignment for RGB32F
-		desc.size =
-			AlignTo(vertex_positions.size() * sizeof(Vertex_POS32), alignment) + // pos
-			AlignTo(vertex_positions.size() * sizeof(Vertex_POS32), alignment) + // prevpos
-			AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
-			AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment)
-			;
+		
 
-		bool success = device->CreateBuffer(&desc, nullptr, &streamoutBuffer);
-		assert(success);
-		device->SetName(&streamoutBuffer, "GGeometryComponent::streamoutBuffer");
-
-		uint64_t buffer_offset = 0ull;
-
-		so_pos.offset = buffer_offset;
-		so_pos.size = vertex_positions.size() * sizeof(Vertex_POS32);
-		buffer_offset += AlignTo(so_pos.size, alignment);
-		so_pos.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pos.offset, so_pos.size, &Vertex_POS32::FORMAT);
-		so_pos.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pos.offset, so_pos.size); // UAV can't have RGB32_F format!
-		so_pos.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_pos.subresource_srv);
-		so_pos.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_pos.subresource_uav);
-
-		so_pre.offset = buffer_offset;
-		so_pre.size = so_pos.size;
-		buffer_offset += AlignTo(so_pre.size, alignment);
-		so_pre.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pre.offset, so_pre.size, &Vertex_POS32::FORMAT);
-		so_pre.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pre.offset, so_pre.size); // UAV can't have RGB32_F format!
-		so_pre.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_pre.subresource_srv);
-		so_pre.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_pre.subresource_uav);
-
-		if (vb_nor.IsValid())
+		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
-			so_nor.offset = buffer_offset;
-			so_nor.size = vb_nor.size;
-			buffer_offset += AlignTo(so_nor.size, alignment);
-			so_nor.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_nor.offset, so_nor.size, &Vertex_NOR::FORMAT);
-			so_nor.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_nor.offset, so_nor.size, &Vertex_NOR::FORMAT);
-			so_nor.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_nor.subresource_srv);
-			so_nor.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_nor.subresource_uav);
-		}
+			Primitive& primitive = parts_[i];
+			primitive.bufferHandle_ = std::make_shared<GBuffers>();
+			GBuffers& part_buffers = *(GBuffers*)primitive.bufferHandle_.get();
 
-		if (vb_tan.IsValid())
-		{
-			so_tan.offset = buffer_offset;
-			so_tan.size = vb_tan.size;
-			buffer_offset += AlignTo(so_tan.size, alignment);
-			so_tan.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_tan.offset, so_tan.size, &Vertex_TAN::FORMAT);
-			so_tan.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_tan.offset, so_tan.size, &Vertex_TAN::FORMAT);
-			so_tan.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_tan.subresource_srv);
-			so_tan.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_tan.subresource_uav);
+			const std::vector<XMFLOAT3>& vertex_positions = primitive.vertexPositions_;
+			const std::vector<uint32_t>& indices = primitive.indexPrimitives_;
+			const std::vector<XMFLOAT3>& vertex_normals = primitive.vertexNormals_;
+			const std::vector<XMFLOAT4>& vertex_tangents = primitive.vertexTangents_;
+
+			desc.size =
+				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32), alignment) + // pos
+				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32), alignment) + // prevpos
+				AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
+				AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment)
+				;
+
+			GPUBuffer& streamoutBuffer = part_buffers.streamoutBuffer;
+			BufferView& vb_nor = part_buffers.vbNormal;
+			BufferView& vb_tan = part_buffers.vbTangent;
+			BufferView& so_pos = part_buffers.soPosition;
+			BufferView& so_pre = part_buffers.soPre;
+			BufferView& so_nor = part_buffers.soNormal;
+			BufferView& so_tan = part_buffers.soTangent;
+
+			bool success = device->CreateBuffer(&desc, nullptr, &streamoutBuffer);
+			assert(success);
+			device->SetName(&streamoutBuffer, "GGeometryComponent::streamoutBuffer");
+
+			uint64_t buffer_offset = 0ull;
+
+			so_pos.offset = buffer_offset;
+			so_pos.size = vertex_positions.size() * sizeof(Vertex_POS32);
+			buffer_offset += AlignTo(so_pos.size, alignment);
+			so_pos.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pos.offset, so_pos.size, &Vertex_POS32::FORMAT);
+			so_pos.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pos.offset, so_pos.size); // UAV can't have RGB32_F format!
+			so_pos.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_pos.subresource_srv);
+			so_pos.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_pos.subresource_uav);
+
+			so_pre.offset = buffer_offset;
+			so_pre.size = so_pos.size;
+			buffer_offset += AlignTo(so_pre.size, alignment);
+			so_pre.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pre.offset, so_pre.size, &Vertex_POS32::FORMAT);
+			so_pre.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pre.offset, so_pre.size); // UAV can't have RGB32_F format!
+			so_pre.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_pre.subresource_srv);
+			so_pre.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_pre.subresource_uav);
+
+			if (vb_nor.IsValid())
+			{
+				so_nor.offset = buffer_offset;
+				so_nor.size = vb_nor.size;
+				buffer_offset += AlignTo(so_nor.size, alignment);
+				so_nor.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_nor.offset, so_nor.size, &Vertex_NOR::FORMAT);
+				so_nor.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_nor.offset, so_nor.size, &Vertex_NOR::FORMAT);
+				so_nor.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_nor.subresource_srv);
+				so_nor.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_nor.subresource_uav);
+			}
+
+			if (vb_tan.IsValid())
+			{
+				so_tan.offset = buffer_offset;
+				so_tan.size = vb_tan.size;
+				buffer_offset += AlignTo(so_tan.size, alignment);
+				so_tan.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_tan.offset, so_tan.size, &Vertex_TAN::FORMAT);
+				so_tan.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_tan.offset, so_tan.size, &Vertex_TAN::FORMAT);
+				so_tan.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_tan.subresource_srv);
+				so_tan.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_tan.subresource_uav);
+			}
 		}
 	}
 
+	/*
 	size_t GGeometryComponent::GetMemoryUsageCPU() const
 	{
 		size_t size =

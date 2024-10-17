@@ -93,7 +93,7 @@ struct alignas(16) ShaderTransform
 	}
 };
 
-#define MAXPARTS 16
+#define MAXPARTS 32
 struct alignas(16) ShaderMeshInstance
 {
 	uint uid;	// using entity
