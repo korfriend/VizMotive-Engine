@@ -56,7 +56,22 @@ namespace vzm
 		}
 
 		// initialize the graphics backend
-		graphicsPackage.pluginInitializer();
+		graphics::ValidationMode validationMode = graphics::ValidationMode::Disabled;
+		std::string validation = arguments.GetString("GPU_VALIDATION", "DISABLED");
+		if (validation == "VERBOSE")
+		{
+			validationMode = graphics::ValidationMode::Verbose;
+		}
+#ifdef _DEBUG
+		validationMode = graphics::ValidationMode::Verbose;
+#endif
+		graphics::GPUPreference preferenceMode = graphics::GPUPreference::Discrete;
+		std::string preference = arguments.GetString("GPU_PREFERENCE", "DISCRETE");
+		if (preference == "INTEGRATED")
+		{
+			preferenceMode = graphics::GPUPreference::Integrated;
+		}
+		graphicsPackage.pluginInitializer(validationMode, preferenceMode);
 
 		// graphics device
 		graphicsDevice = graphicsPackage.pluginGetDev();

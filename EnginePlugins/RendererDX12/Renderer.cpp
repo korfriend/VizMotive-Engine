@@ -592,6 +592,7 @@ namespace vz
 		bool viewShadingInCS = false;
 
 		FrameCB frameCB;
+		CameraCB cameraCB;
 		// separate graphics pipelines for the combination of special rendering effects
 		renderer::View viewMain;
 		renderer::View viewReflection;
@@ -806,9 +807,8 @@ namespace vz
 	}
 	void GRenderPath3DDetails::BindCameraCB(const CameraComponent& camera, const CameraComponent& cameraPrevious, const CameraComponent& cameraReflection, CommandList cmd)
 	{
-		CameraCB cb;
-		cb.Init();
-		ShaderCamera& shadercam = cb.cameras[0];
+		cameraCB.Init();
+		ShaderCamera& shadercam = cameraCB.cameras[0];
 
 		// NOTE:
 		//  the following parameters need to be set according to 
@@ -901,7 +901,7 @@ namespace vz
 		shadercam.texture_vxgi_specular_index = camera.texture_vxgi_specular_index;
 		shadercam.texture_reprojected_depth_index = camera.texture_reprojected_depth_index;
 		/**/
-		device->BindDynamicConstantBuffer(cb, CBSLOT_RENDERER_CAMERA, cmd);
+		device->BindDynamicConstantBuffer(cameraCB, CBSLOT_RENDERER_CAMERA, cmd);
 	}
 	void GRenderPath3DDetails::UpdateRenderData(const View& view, const FrameCB& frameCB, CommandList cmd)
 	{

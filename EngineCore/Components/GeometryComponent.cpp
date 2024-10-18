@@ -354,6 +354,7 @@ namespace vz
 				vertexNormals_[i] = XMFLOAT3(0, 0, 0);
 			}
 
+			std::vector<size_t> vtx_counter(vertexPositions_.size(), 0);
 			// 2.) Find identical vertices by POSITION, accumulate face normals
 			for (size_t i = 0; i < vertexPositions_.size(); i++)
 			{
@@ -399,151 +400,152 @@ namespace vz
 						vertexNormals_[i].x += normal.x;
 						vertexNormals_[i].y += normal.y;
 						vertexNormals_[i].z += normal.z;
+						vtx_counter[i]++;
 					}
 
 				}
 			}
 
-			// 3.) Find duplicated vertices by POSITION and UV0 and UV1 and ATLAS and SUBSET and remove them:
-			/*uint32_t first_subset = 0;
+			// 3.) Find duplicated vertices by POSITION and UV0 and UV1 and remove them:
+			uint32_t first_subset = 0;
 			uint32_t last_subset = 0;
-			GetLODSubsetRange(0, first_subset, last_subset);
-			for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
+
+			for (uint32_t i = 0; i < indexPrimitives_.size() - 1; i++)
 			{
-				const GGeometryComponent::MeshSubset& subset = subsets[subsetIndex];
-				for (uint32_t i = 0; i < subset.indexCount - 1; i++)
+				uint32_t ind0 = indexPrimitives_[i];
+				const XMFLOAT3& p0 = vertexPositions_[ind0];
+				const XMFLOAT2& u00 = vertexUVset0_.empty() ? XMFLOAT2(0, 0) : vertexUVset0_[ind0];
+				const XMFLOAT2& u10 = vertexUVset1_.empty() ? XMFLOAT2(0, 0) : vertexUVset1_[ind0];
+
+				for (uint32_t j = 1; j < indexPrimitives_.size(); j++)
 				{
-					uint32_t ind0 = indices[subset.indexOffset + (uint32_t)i];
-					const XMFLOAT3& p0 = vertex_positions[ind0];
-					const XMFLOAT2& u00 = vertex_uvset_0.empty() ? XMFLOAT2(0, 0) : vertex_uvset_0[ind0];
-					const XMFLOAT2& u10 = vertex_uvset_1.empty() ? XMFLOAT2(0, 0) : vertex_uvset_1[ind0];
-					const XMFLOAT2& at0 = vertex_atlas.empty() ? XMFLOAT2(0, 0) : vertex_atlas[ind0];
+					uint32_t ind1 = indexPrimitives_[j];
 
-					for (uint32_t j = i + 1; j < subset.indexCount; j++)
+					if (ind1 == ind0)
 					{
-						uint32_t ind1 = indices[subset.indexOffset + (uint32_t)j];
+						continue;
+					}
 
-						if (ind1 == ind0)
+					const XMFLOAT3& p1 = vertexPositions_[ind1];
+					const XMFLOAT2& u01 = vertexUVset0_.empty() ? XMFLOAT2(0, 0) : vertexUVset0_[ind1];
+					const XMFLOAT2& u11 = vertexUVset1_.empty() ? XMFLOAT2(0, 0) : vertexUVset1_[ind1];
+
+					const bool duplicated_pos =
+						math::float_equal(p0.x, p1.x) &&
+						math::float_equal(p0.y, p1.y) &&
+						math::float_equal(p0.z, p1.z);
+
+					const bool duplicated_uv0 =
+						math::float_equal(u00.x, u01.x) &&
+						math::float_equal(u00.y, u01.y);
+
+					const bool duplicated_uv1 =
+						math::float_equal(u10.x, u11.x) &&
+						math::float_equal(u10.y, u11.y);
+
+					if (duplicated_pos && duplicated_uv0 && duplicated_uv1)
+					{
+						// Erase vertices[ind1] because it is a duplicate:
+						if (ind1 < vertexPositions_.size())
 						{
-							continue;
+							vertexPositions_.erase(vertexPositions_.begin() + ind1);
+						}
+						if (ind1 < vertexNormals_.size())
+						{
+							vertexNormals_.erase(vertexNormals_.begin() + ind1);
+						}
+						if (ind1 < vertexUVset0_.size())
+						{
+							vertexUVset0_.erase(vertexUVset0_.begin() + ind1);
+						}
+						if (ind1 < vertexUVset1_.size())
+						{
+							vertexUVset1_.erase(vertexUVset1_.begin() + ind1);
+						}
+						if (ind1 < vtx_counter.size())
+						{
+							vtx_counter.erase(vtx_counter.begin() + ind1);
 						}
 
-						const XMFLOAT3& p1 = vertex_positions[ind1];
-						const XMFLOAT2& u01 = vertex_uvset_0.empty() ? XMFLOAT2(0, 0) : vertex_uvset_0[ind1];
-						const XMFLOAT2& u11 = vertex_uvset_1.empty() ? XMFLOAT2(0, 0) : vertex_uvset_1[ind1];
-						const XMFLOAT2& at1 = vertex_atlas.empty() ? XMFLOAT2(0, 0) : vertex_atlas[ind1];
-
-						const bool duplicated_pos =
-							math::float_equal(p0.x, p1.x) &&
-							math::float_equal(p0.y, p1.y) &&
-							math::float_equal(p0.z, p1.z);
-
-						const bool duplicated_uv0 =
-							math::float_equal(u00.x, u01.x) &&
-							math::float_equal(u00.y, u01.y);
-
-						const bool duplicated_uv1 =
-							math::float_equal(u10.x, u11.x) &&
-							math::float_equal(u10.y, u11.y);
-
-						const bool duplicated_atl =
-							math::float_equal(at0.x, at1.x) &&
-							math::float_equal(at0.y, at1.y);
-
-						if (duplicated_pos && duplicated_uv0 && duplicated_uv1 && duplicated_atl)
+						// The vertices[ind1] was removed, so each index after that needs to be updated:
+						for (auto& index : indexPrimitives_)
 						{
-							// Erase vertices[ind1] because it is a duplicate:
-							if (ind1 < vertex_positions.size())
+							if (index > ind1 && index > 0)
 							{
-								vertex_positions.erase(vertex_positions.begin() + ind1);
+								index--;
 							}
-							if (ind1 < vertex_normals.size())
+							else if (index == ind1)
 							{
-								vertex_normals.erase(vertex_normals.begin() + ind1);
+								index = ind0;
 							}
-							if (ind1 < vertex_uvset_0.size())
-							{
-								vertex_uvset_0.erase(vertex_uvset_0.begin() + ind1);
-							}
-							if (ind1 < vertex_uvset_1.size())
-							{
-								vertex_uvset_1.erase(vertex_uvset_1.begin() + ind1);
-							}
-							if (ind1 < vertex_atlas.size())
-							{
-								vertex_atlas.erase(vertex_atlas.begin() + ind1);
-							}
-							if (ind1 < vertex_boneindices.size())
-							{
-								vertex_boneindices.erase(vertex_boneindices.begin() + ind1);
-							}
-							if (ind1 < vertex_boneweights.size())
-							{
-								vertex_boneweights.erase(vertex_boneweights.begin() + ind1);
-							}
-
-							// The vertices[ind1] was removed, so each index after that needs to be updated:
-							for (auto& index : indices)
-							{
-								if (index > ind1 && index > 0)
-								{
-									index--;
-								}
-								else if (index == ind1)
-								{
-									index = ind0;
-								}
-							}
-
 						}
 
 					}
 				}
-
 			}
-			/**/
+
+			// Normalize //
+			for (size_t i = 0; i < vertexNormals_.size(); i++)
+			{
+				float num_rcp = 1.f / (float)vtx_counter[i];
+				XMFLOAT3& n = vertexNormals_[i];
+				n.x *= num_rcp;
+				n.y *= num_rcp;
+				n.z *= num_rcp;
+			}
 		}
 		break;
 
 		case COMPUTE_NORMALS::COMPUTE_NORMALS_SMOOTH_FAST:
 		{
-			//vertex_normals.resize(vertex_positions.size());
-			//for (size_t i = 0; i < vertex_normals.size(); i++)
-			//{
-			//	vertex_normals[i] = XMFLOAT3(0, 0, 0);
-			//}
-			//uint32_t first_subset = 0;
-			//uint32_t last_subset = 0;
-			//GetLODSubsetRange(0, first_subset, last_subset);
-			//for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
-			//{
-			//	const MeshSubset& subset = subsets[subsetIndex];
-			//
-			//	for (uint32_t i = 0; i < subset.indexCount / 3; ++i)
-			//	{
-			//		uint32_t index1 = indices[subset.indexOffset + i * 3 + 0];
-			//		uint32_t index2 = indices[subset.indexOffset + i * 3 + 1];
-			//		uint32_t index3 = indices[subset.indexOffset + i * 3 + 2];
-			//
-			//		XMVECTOR side1 = XMLoadFloat3(&vertex_positions[index1]) - XMLoadFloat3(&vertex_positions[index3]);
-			//		XMVECTOR side2 = XMLoadFloat3(&vertex_positions[index1]) - XMLoadFloat3(&vertex_positions[index2]);
-			//		XMVECTOR N = XMVector3Normalize(XMVector3Cross(side1, side2));
-			//		XMFLOAT3 normal;
-			//		XMStoreFloat3(&normal, N);
-			//
-			//		vertex_normals[index1].x += normal.x;
-			//		vertex_normals[index1].y += normal.y;
-			//		vertex_normals[index1].z += normal.z;
-			//
-			//		vertex_normals[index2].x += normal.x;
-			//		vertex_normals[index2].y += normal.y;
-			//		vertex_normals[index2].z += normal.z;
-			//
-			//		vertex_normals[index3].x += normal.x;
-			//		vertex_normals[index3].y += normal.y;
-			//		vertex_normals[index3].z += normal.z;
-			//	}
-			//}
+
+			std::vector<size_t> vtx_counter(vertexPositions_.size(), 0);
+
+			vertexNormals_.resize(vertexPositions_.size());
+			for (size_t i = 0; i < vertexNormals_.size(); i++)
+			{
+				vertexNormals_[i] = XMFLOAT3(0, 0, 0);
+			}
+
+			uint32_t num_prims = indexPrimitives_.size() / 3;
+			for (uint32_t i = 0; i < num_prims; ++i)
+			{
+				uint32_t index1 = indexPrimitives_[i * 3 + 0];
+				uint32_t index2 = indexPrimitives_[i * 3 + 1];
+				uint32_t index3 = indexPrimitives_[i * 3 + 2];
+
+				XMVECTOR side1 = XMLoadFloat3(&vertexPositions_[index1]) - XMLoadFloat3(&vertexPositions_[index3]);
+				XMVECTOR side2 = XMLoadFloat3(&vertexPositions_[index1]) - XMLoadFloat3(&vertexPositions_[index2]);
+				XMVECTOR N = XMVector3Normalize(XMVector3Cross(side1, side2));
+				XMFLOAT3 normal;
+				XMStoreFloat3(&normal, N);
+
+				vertexNormals_[index1].x += normal.x;
+				vertexNormals_[index1].y += normal.y;
+				vertexNormals_[index1].z += normal.z;
+				vtx_counter[index1]++;
+
+				vertexNormals_[index2].x += normal.x;
+				vertexNormals_[index2].y += normal.y;
+				vertexNormals_[index2].z += normal.z;
+				vtx_counter[index2]++;
+
+				vertexNormals_[index3].x += normal.x;
+				vertexNormals_[index3].y += normal.y;
+				vertexNormals_[index3].z += normal.z;
+				vtx_counter[index3]++;
+			}
+
+
+			// Normalize //
+			for (size_t i = 0; i < vertexNormals_.size(); i++)
+			{
+				float num_rcp = 1.f / (float)vtx_counter[i];
+				XMFLOAT3& n = vertexNormals_[i];
+				n.x *= num_rcp;
+				n.y *= num_rcp;
+				n.z *= num_rcp;
+			}
 		}
 		break;
 
@@ -579,7 +581,33 @@ namespace vz
 
 		AUTO_RENDER_DATA;
 	}
-	
+	void Primitive::ReoriginToCenter()
+	{
+		XMFLOAT3 center = aabb_.getCenter();
+
+		for (auto& pos : vertexPositions_)
+		{
+			pos.x -= center.x;
+			pos.y -= center.y;
+			pos.z -= center.z;
+		}
+
+		AUTO_RENDER_DATA;
+	}
+	void Primitive::ReoriginToBottom()
+	{
+		XMFLOAT3 center = aabb_.getCenter();
+		center.y -= aabb_.getHalfWidth().y;
+
+		for (auto& pos : vertexPositions_)
+		{
+			pos.x -= center.x;
+			pos.y -= center.y;
+			pos.z -= center.z;
+		}
+
+		AUTO_RENDER_DATA;
+	}
 	//size_t Primitive::CreateSubset()
 	//{
 	//	int ret = 0;
@@ -649,7 +677,7 @@ namespace vz
 
 		GraphicsDevice* device = graphics::GetDevice();
 
-		const size_t position_stride = sizeof(positionFormat);
+		const size_t position_stride = GetFormatStride(positionFormat);
 
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
@@ -842,6 +870,10 @@ namespace vz
 			const Format ib_format = GetIndexFormat() == IndexBufferFormat::UINT32 ? Format::R32_UINT : Format::R16_UINT;
 			ib.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, ib.offset, ib.size, &ib_format);
 			ib.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, ib.subresource_srv);
+
+			assert(vb_pos.IsValid());
+			vb_pos.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_pos.offset, vb_pos.size, &positionFormat);
+			vb_pos.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_pos.subresource_srv);
 
 			if (vb_nor.IsValid())
 			{

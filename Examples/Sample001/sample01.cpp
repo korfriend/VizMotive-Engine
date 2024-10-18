@@ -138,10 +138,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
-	geometry_test->MaskTestTriangle();
+	geometry_test->MakeTestTriangle();
 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
-
-	//vzm::ImportDicom...;
 
     using TextureSlot = vzm::VzMaterial::TextureSlot;
 
