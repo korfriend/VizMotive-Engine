@@ -396,7 +396,7 @@ namespace vz
 		inline bool IsDoubleSided() const { return flags_ & SCU32(RenderFlags::DOUBLE_SIDED); }
 		inline bool IsTesellated() const { return flags_ & SCU32(RenderFlags::TESSELATION); }
 		inline bool IsAlphaTestEnabled() const { return flags_ & SCU32(RenderFlags::ALPHA_TEST); }
-		inline bool IsWebmapEnabled() const { return flags_ & SCU32(RenderFlags::WETMAP); }
+		inline bool IsWetmapEnabled() const { return flags_ & SCU32(RenderFlags::WETMAP); }
 		inline BlendMode GetBlendMode() const { return blendMode_; }
 		inline VUID GetTextureVUID(const size_t slot) const { 
 			if (slot >= SCU32(TextureSlot::TEXTURESLOT_COUNT)) return INVALID_VUID; return textureComponents_[slot];
@@ -421,7 +421,11 @@ namespace vz
 			TRIANGLES = 3,    //!< triangles
 			TRIANGLE_STRIP = 4     //!< triangle strip
 		};
-
+		enum class COMPUTE_NORMALS : uint8_t {
+			COMPUTE_NORMALS_HARD,		// hard face normals, can result in additional vertices generated
+			COMPUTE_NORMALS_SMOOTH,		// smooth per vertex normals, this can remove/simplify geometry, but slow
+			COMPUTE_NORMALS_SMOOTH_FAST	// average normals, vertex count will be unchanged, fast
+		};
 		enum class BufferDefinition {
 			POSITION = 0,
 			NORMAL,
@@ -449,17 +453,17 @@ namespace vz
 			PrimitiveType ptype_ = PrimitiveType::TRIANGLES;
 
 			// Non-serialized Attributes:
-			bool isDirty_ = true;
 			geometrics::AABB aabb_;
 			XMFLOAT2 uvRangeMin_ = XMFLOAT2(0, 0);
 			XMFLOAT2 uvRangeMax_ = XMFLOAT2(1, 1);
-
 			std::shared_ptr<void> bufferHandle_;	// 'void' refers to GGeometryComponent::GBuffer
+			Entity recentBelongingGeometry_ = INVALID_ENTITY;
 
-			void update(); // supposed to be called in GeometryComponent
+			void updateGpuEssentials(); // supposed to be called in GeometryComponent
 
 		public:
-			inline bool IsDirty() const { return isDirty_; }
+			mutable bool autoUpdateRenderData = true;
+
 			inline void MoveFrom(Primitive& primitive)
 			{
 				vertexPositions_ = std::move(primitive.vertexPositions_);
@@ -495,10 +499,17 @@ namespace vz
 				for (size_t i = 0, n = SCU32(BufferDefinition::COUNT); i < n; ++i) isValid_[i] = false;
 			}
 			inline const geometrics::AABB& GetAABB() const { return aabb_; }
+			inline geometrics::Sphere GetBoundingSphere() const
+			{
+				geometrics::Sphere sphere;
+				sphere.center = aabb_.getCenter();
+				sphere.radius = aabb_.getRadius();
+				return sphere;
+			}
 			inline PrimitiveType GetPrimitiveType() const { return ptype_; }
 			inline bool IsValid() const { return isValid_[SCU32(BufferDefinition::POSITION)] && aabb_.IsValid(); }
-			void SetAABB(const geometrics::AABB& aabb) { aabb_ = aabb; }
-			void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
+			inline void SetAABB(const geometrics::AABB& aabb) { aabb_ = aabb; }
+			inline void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
 
 			// ----- Getters -----
 			inline const std::vector<XMFLOAT3>& GetVtxPositions() const { assert(isValid_[SCU32(BufferDefinition::POSITION)]); return vertexPositions_; }
@@ -527,6 +538,11 @@ namespace vz
 			void SetVtxColors(std::vector<uint32_t>& vertexColors, const bool onlyMoveOwnership = false) { PRIM_SETTER(vertexColors, SCU32(BufferDefinition::COLOR)) }
 			void SetIdxPrimives(std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, SCU32(BufferDefinition::INDICES)) }
 
+			// Helpers for adding useful attributes to Primitive
+			void ComputeNormals(COMPUTE_NORMALS computeMode);
+			void FlipCulling();
+			void FlipNormals();
+
 			void Serialize(vz::Archive& archive, const uint64_t version);
 
 			friend struct GeometryComponent;
@@ -538,16 +554,15 @@ namespace vz
 
 		// Non-serialized attributes
 		bool isDirty_ = true;	// BVH, AABB, ...
+		bool hasRenderData_ = false;
 		geometrics::AABB aabb_; // not serialized (automatically updated)
-		bool hasBVH_ = false;
-		bool isDirtyRenderData_ = true;
+		//bool hasBVH_ = false;
 
 		void update();
 	public:
 		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
 
 		bool IsDirty() { return isDirty_; }
-		bool IsDirtyRenderData() { return isDirtyRenderData_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
 		void MovePrimitivesFrom(std::vector<Primitive>& primitives);
 		void CopyPrimitivesFrom(const std::vector<Primitive>& primitives);
@@ -562,8 +577,11 @@ namespace vz
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		// GPU interfaces //
+		bool HasRenderData() const { return hasRenderData_; }
 		virtual void DeleteRenderData() = 0;
 		virtual void UpdateRenderData() = 0;
+		virtual size_t GetMemoryUsageCPU() const = 0;
+		virtual size_t GetMemoryUsageGPU() const = 0;
 
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};
@@ -651,7 +669,7 @@ namespace vz
 		//		- transformComponent, geometryComponent, and material components (with their referencing textureComponents)
 		bool isDirty_ = true;
 		geometrics::AABB aabb_; // world AABB
-		void checkWebmapEnabled();
+		void checkWetmapEnabled();
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
@@ -668,7 +686,7 @@ namespace vz
 		void SetMaterials(const std::vector<Entity>& materials);
 		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); timeStampSetter_ = TimerNow; }
 		bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
-		bool IsWebmapEnabled() const { return flags_ & SCU32(RenderableFlags::WETMAP_ENABLED); }
+		bool IsWetmapEnabled() const { return flags_ & SCU32(RenderableFlags::WETMAP_ENABLED); }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
 		float GetFadeDistance() const { return fadeDistance_; }
 		Entity GetGeometry() const;

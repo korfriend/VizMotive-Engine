@@ -6,6 +6,8 @@
 
 namespace vz
 {
+	using Primitive = GeometryComponent::Primitive;
+
 #define MAX_GEOMETRY_PARTS 32 // ShaderInterop.h's `#define MAXPARTS 32`
 	void GeometryComponent::MovePrimitivesFrom(std::vector<Primitive>& primitives)
 	{
@@ -14,20 +16,23 @@ namespace vz
 		{
 			Primitive& prim = parts_[i];
 			prim.MoveFrom(primitives[i]);
+			prim.recentBelongingGeometry_ = entity_;
 		}
-		update();
-		isDirtyRenderData_ = true;
+		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 	void GeometryComponent::CopyPrimitivesFrom(const std::vector<Primitive>& primitives)
 	{
 		parts_ = primitives;
-		update();
-		isDirtyRenderData_ = true;
+		for (size_t i = 0, n = parts_.size(); i < n; ++i)
+		{
+			Primitive& prim = parts_[i];
+			prim.recentBelongingGeometry_ = entity_;
+		}
+		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 
-	using Primitive = GeometryComponent::Primitive;
 	void tryAssignParts(const size_t slot, std::vector<Primitive>& parts)
 	{
 		assert(slot < MAX_GEOMETRY_PARTS);
@@ -50,16 +55,17 @@ namespace vz
 		tryAssignParts(slot, parts_);
 		Primitive& prim = parts_[slot];
 		prim.MoveFrom(primitive);
-		update();
-		isDirtyRenderData_ = true;
+		prim.recentBelongingGeometry_ = entity_;
+		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 	void GeometryComponent::CopyPrimitiveFrom(const Primitive& primitive, const size_t slot)
 	{
 		tryAssignParts(slot, parts_);
 		parts_[slot] = primitive;
-		update();
-		isDirtyRenderData_ = true;
+		Primitive& prim = parts_[slot];
+		prim.recentBelongingGeometry_ = entity_;
+		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 	const Primitive* GeometryComponent::GetPrimitive(const size_t slot) const
@@ -68,8 +74,12 @@ namespace vz
 			backlog::post("slot is over # of parts!", backlog::LogLevel::Error);
 			return nullptr;
 		}
-		return &parts_[slot];	
+		return &parts_[slot];
 	}
+}
+
+namespace vz
+{
 	void GeometryComponent::update()
 	{
 		aabb_ = {};
@@ -77,7 +87,7 @@ namespace vz
 		{
 			Primitive& prim = parts_[i];
 
-			prim.update();
+			prim.updateGpuEssentials();	// update prim.aabb_
 
 			aabb_._max = math::Max(aabb_._max, prim.aabb_._max);
 			aabb_._min = math::Min(aabb_._min, prim.aabb_._min);
@@ -161,7 +171,7 @@ namespace vz
 		vert.w = fSign;
 	}
 
-	void GeometryComponent::Primitive::update()
+	void Primitive::updateGpuEssentials()
 	{
 		std::vector<XMFLOAT3>& vertex_positions = vertexPositions_;
 		std::vector<uint32_t>& indices = indexPrimitives_;
@@ -170,7 +180,24 @@ namespace vz
 		std::vector<XMFLOAT2>& vertex_uvset_0 = vertexUVset0_;
 		std::vector<XMFLOAT2>& vertex_uvset_1 = vertexUVset1_;
 
-		// TANGENT computation
+		if (vertex_tangents.size() != vertex_positions.size())
+		{
+			vertex_tangents.clear();
+		}
+		if (vertex_uvset_0.size() != vertex_positions.size())
+		{
+			vertex_uvset_0.clear();
+		}
+		if (vertex_uvset_1.size() != vertex_positions.size())
+		{
+			vertex_uvset_1.clear();
+		}
+		if (vertex_normals.size() != vertex_positions.size())
+		{
+			vertex_normals.clear();
+		}
+
+		// TANGENT computation (must be computed for quantized normals)
 		if (ptype_ == PrimitiveType::TRIANGLES && vertex_tangents.empty()
 			&& !vertex_uvset_0.empty() && !vertex_normals.empty())
 		{
@@ -225,13 +252,369 @@ namespace vz
 				uvRangeMin_ = math::Min(uvRangeMin_, uv1_stream[i]);
 			}
 		}
-
-		isDirty_ = true;
 	}
+
+#define AUTO_RENDER_DATA GeometryComponent* geometry = compfactory::GetGeometryComponent(recentBelongingGeometry_);\
+	if (geometry && autoUpdateRenderData) geometry->UpdateRenderData();
+
+	void Primitive::ComputeNormals(COMPUTE_NORMALS computeMode)
+	{
+		// Start recalculating normals:
+
+		if (computeMode != COMPUTE_NORMALS::COMPUTE_NORMALS_SMOOTH_FAST)
+		{
+			// Compute hard surface normals:
+
+			// Right now they are always computed even before smooth setting
+
+			std::vector<uint32_t> newIndexBuffer;
+			std::vector<XMFLOAT3> newPositionsBuffer;
+			std::vector<XMFLOAT3> newNormalsBuffer;
+			std::vector<XMFLOAT2> newUV0Buffer;
+			std::vector<XMFLOAT2> newUV1Buffer;
+			std::vector<XMFLOAT2> newAtlasBuffer;
+			std::vector<XMUINT4> newBoneIndicesBuffer;
+			std::vector<XMFLOAT4> newBoneWeightsBuffer;
+			std::vector<uint32_t> newColorsBuffer;
+
+			for (size_t face = 0; face < indexPrimitives_.size() / 3; face++)
+			{
+				uint32_t i0 = indexPrimitives_[face * 3 + 0];
+				uint32_t i1 = indexPrimitives_[face * 3 + 1];
+				uint32_t i2 = indexPrimitives_[face * 3 + 2];
+
+				XMFLOAT3& p0 = vertexPositions_[i0];
+				XMFLOAT3& p1 = vertexPositions_[i1];
+				XMFLOAT3& p2 = vertexPositions_[i2];
+
+				XMVECTOR U = XMLoadFloat3(&p2) - XMLoadFloat3(&p0);
+				XMVECTOR V = XMLoadFloat3(&p1) - XMLoadFloat3(&p0);
+
+				XMVECTOR N = XMVector3Cross(U, V);
+				N = XMVector3Normalize(N);
+
+				XMFLOAT3 normal;
+				XMStoreFloat3(&normal, N);
+
+				newPositionsBuffer.push_back(p0);
+				newPositionsBuffer.push_back(p1);
+				newPositionsBuffer.push_back(p2);
+
+				newNormalsBuffer.push_back(normal);
+				newNormalsBuffer.push_back(normal);
+				newNormalsBuffer.push_back(normal);
+
+				if (!vertexUVset0_.empty())
+				{
+					newUV0Buffer.push_back(vertexUVset0_[i0]);
+					newUV0Buffer.push_back(vertexUVset0_[i1]);
+					newUV0Buffer.push_back(vertexUVset0_[i2]);
+				}
+
+				if (!vertexUVset1_.empty())
+				{
+					newUV1Buffer.push_back(vertexUVset1_[i0]);
+					newUV1Buffer.push_back(vertexUVset1_[i1]);
+					newUV1Buffer.push_back(vertexUVset1_[i2]);
+				}
+
+				if (!vertexColors_.empty())
+				{
+					newColorsBuffer.push_back(vertexColors_[i0]);
+					newColorsBuffer.push_back(vertexColors_[i1]);
+					newColorsBuffer.push_back(vertexColors_[i2]);
+				}
+
+				newIndexBuffer.push_back(static_cast<uint32_t>(newIndexBuffer.size()));
+				newIndexBuffer.push_back(static_cast<uint32_t>(newIndexBuffer.size()));
+				newIndexBuffer.push_back(static_cast<uint32_t>(newIndexBuffer.size()));
+			}
+
+			// For hard surface normals, we created a new mesh in the previous loop through faces, so swap data:
+			vertexPositions_ = newPositionsBuffer;
+			vertexNormals_ = newNormalsBuffer;
+			vertexUVset0_ = newUV0Buffer;
+			vertexUVset1_ = newUV1Buffer;
+			vertexColors_ = newColorsBuffer;
+			indexPrimitives_ = newIndexBuffer;
+		}
+
+		switch (computeMode)
+		{
+		case COMPUTE_NORMALS::COMPUTE_NORMALS_HARD:
+			break;
+
+		case COMPUTE_NORMALS::COMPUTE_NORMALS_SMOOTH:
+		{
+			// Compute smooth surface normals:
+
+			// 1.) Zero normals, they will be averaged later
+			for (size_t i = 0; i < vertexNormals_.size(); i++)
+			{
+				vertexNormals_[i] = XMFLOAT3(0, 0, 0);
+			}
+
+			// 2.) Find identical vertices by POSITION, accumulate face normals
+			for (size_t i = 0; i < vertexPositions_.size(); i++)
+			{
+				XMFLOAT3& v_search_pos = vertexPositions_[i];
+
+				for (size_t ind = 0; ind < indexPrimitives_.size() / 3; ++ind)
+				{
+					uint32_t i0 = indexPrimitives_[ind * 3 + 0];
+					uint32_t i1 = indexPrimitives_[ind * 3 + 1];
+					uint32_t i2 = indexPrimitives_[ind * 3 + 2];
+
+					XMFLOAT3& v0 = vertexPositions_[i0];
+					XMFLOAT3& v1 = vertexPositions_[i1];
+					XMFLOAT3& v2 = vertexPositions_[i2];
+
+
+					bool match_pos0 =
+						math::float_equal(v_search_pos.x, v0.x) &&
+						math::float_equal(v_search_pos.y, v0.y) &&
+						math::float_equal(v_search_pos.z, v0.z);
+
+					bool match_pos1 =
+						math::float_equal(v_search_pos.x, v1.x) &&
+						math::float_equal(v_search_pos.y, v1.y) &&
+						math::float_equal(v_search_pos.z, v1.z);
+
+					bool match_pos2 =
+						math::float_equal(v_search_pos.x, v2.x) &&
+						math::float_equal(v_search_pos.y, v2.y) &&
+						math::float_equal(v_search_pos.z, v2.z);
+
+					if (match_pos0 || match_pos1 || match_pos2)
+					{
+						XMVECTOR U = XMLoadFloat3(&v2) - XMLoadFloat3(&v0);
+						XMVECTOR V = XMLoadFloat3(&v1) - XMLoadFloat3(&v0);
+
+						XMVECTOR N = XMVector3Cross(U, V);
+						N = XMVector3Normalize(N);
+
+						XMFLOAT3 normal;
+						XMStoreFloat3(&normal, N);
+
+						vertexNormals_[i].x += normal.x;
+						vertexNormals_[i].y += normal.y;
+						vertexNormals_[i].z += normal.z;
+					}
+
+				}
+			}
+
+			// 3.) Find duplicated vertices by POSITION and UV0 and UV1 and ATLAS and SUBSET and remove them:
+			/*uint32_t first_subset = 0;
+			uint32_t last_subset = 0;
+			GetLODSubsetRange(0, first_subset, last_subset);
+			for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
+			{
+				const GGeometryComponent::MeshSubset& subset = subsets[subsetIndex];
+				for (uint32_t i = 0; i < subset.indexCount - 1; i++)
+				{
+					uint32_t ind0 = indices[subset.indexOffset + (uint32_t)i];
+					const XMFLOAT3& p0 = vertex_positions[ind0];
+					const XMFLOAT2& u00 = vertex_uvset_0.empty() ? XMFLOAT2(0, 0) : vertex_uvset_0[ind0];
+					const XMFLOAT2& u10 = vertex_uvset_1.empty() ? XMFLOAT2(0, 0) : vertex_uvset_1[ind0];
+					const XMFLOAT2& at0 = vertex_atlas.empty() ? XMFLOAT2(0, 0) : vertex_atlas[ind0];
+
+					for (uint32_t j = i + 1; j < subset.indexCount; j++)
+					{
+						uint32_t ind1 = indices[subset.indexOffset + (uint32_t)j];
+
+						if (ind1 == ind0)
+						{
+							continue;
+						}
+
+						const XMFLOAT3& p1 = vertex_positions[ind1];
+						const XMFLOAT2& u01 = vertex_uvset_0.empty() ? XMFLOAT2(0, 0) : vertex_uvset_0[ind1];
+						const XMFLOAT2& u11 = vertex_uvset_1.empty() ? XMFLOAT2(0, 0) : vertex_uvset_1[ind1];
+						const XMFLOAT2& at1 = vertex_atlas.empty() ? XMFLOAT2(0, 0) : vertex_atlas[ind1];
+
+						const bool duplicated_pos =
+							math::float_equal(p0.x, p1.x) &&
+							math::float_equal(p0.y, p1.y) &&
+							math::float_equal(p0.z, p1.z);
+
+						const bool duplicated_uv0 =
+							math::float_equal(u00.x, u01.x) &&
+							math::float_equal(u00.y, u01.y);
+
+						const bool duplicated_uv1 =
+							math::float_equal(u10.x, u11.x) &&
+							math::float_equal(u10.y, u11.y);
+
+						const bool duplicated_atl =
+							math::float_equal(at0.x, at1.x) &&
+							math::float_equal(at0.y, at1.y);
+
+						if (duplicated_pos && duplicated_uv0 && duplicated_uv1 && duplicated_atl)
+						{
+							// Erase vertices[ind1] because it is a duplicate:
+							if (ind1 < vertex_positions.size())
+							{
+								vertex_positions.erase(vertex_positions.begin() + ind1);
+							}
+							if (ind1 < vertex_normals.size())
+							{
+								vertex_normals.erase(vertex_normals.begin() + ind1);
+							}
+							if (ind1 < vertex_uvset_0.size())
+							{
+								vertex_uvset_0.erase(vertex_uvset_0.begin() + ind1);
+							}
+							if (ind1 < vertex_uvset_1.size())
+							{
+								vertex_uvset_1.erase(vertex_uvset_1.begin() + ind1);
+							}
+							if (ind1 < vertex_atlas.size())
+							{
+								vertex_atlas.erase(vertex_atlas.begin() + ind1);
+							}
+							if (ind1 < vertex_boneindices.size())
+							{
+								vertex_boneindices.erase(vertex_boneindices.begin() + ind1);
+							}
+							if (ind1 < vertex_boneweights.size())
+							{
+								vertex_boneweights.erase(vertex_boneweights.begin() + ind1);
+							}
+
+							// The vertices[ind1] was removed, so each index after that needs to be updated:
+							for (auto& index : indices)
+							{
+								if (index > ind1 && index > 0)
+								{
+									index--;
+								}
+								else if (index == ind1)
+								{
+									index = ind0;
+								}
+							}
+
+						}
+
+					}
+				}
+
+			}
+			/**/
+		}
+		break;
+
+		case COMPUTE_NORMALS::COMPUTE_NORMALS_SMOOTH_FAST:
+		{
+			//vertex_normals.resize(vertex_positions.size());
+			//for (size_t i = 0; i < vertex_normals.size(); i++)
+			//{
+			//	vertex_normals[i] = XMFLOAT3(0, 0, 0);
+			//}
+			//uint32_t first_subset = 0;
+			//uint32_t last_subset = 0;
+			//GetLODSubsetRange(0, first_subset, last_subset);
+			//for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
+			//{
+			//	const MeshSubset& subset = subsets[subsetIndex];
+			//
+			//	for (uint32_t i = 0; i < subset.indexCount / 3; ++i)
+			//	{
+			//		uint32_t index1 = indices[subset.indexOffset + i * 3 + 0];
+			//		uint32_t index2 = indices[subset.indexOffset + i * 3 + 1];
+			//		uint32_t index3 = indices[subset.indexOffset + i * 3 + 2];
+			//
+			//		XMVECTOR side1 = XMLoadFloat3(&vertex_positions[index1]) - XMLoadFloat3(&vertex_positions[index3]);
+			//		XMVECTOR side2 = XMLoadFloat3(&vertex_positions[index1]) - XMLoadFloat3(&vertex_positions[index2]);
+			//		XMVECTOR N = XMVector3Normalize(XMVector3Cross(side1, side2));
+			//		XMFLOAT3 normal;
+			//		XMStoreFloat3(&normal, N);
+			//
+			//		vertex_normals[index1].x += normal.x;
+			//		vertex_normals[index1].y += normal.y;
+			//		vertex_normals[index1].z += normal.z;
+			//
+			//		vertex_normals[index2].x += normal.x;
+			//		vertex_normals[index2].y += normal.y;
+			//		vertex_normals[index2].z += normal.z;
+			//
+			//		vertex_normals[index3].x += normal.x;
+			//		vertex_normals[index3].y += normal.y;
+			//		vertex_normals[index3].z += normal.z;
+			//	}
+			//}
+		}
+		break;
+
+		}
+
+		vertexTangents_.clear(); // <- will be recomputed
+
+		AUTO_RENDER_DATA;
+	}
+	void Primitive::FlipCulling()
+	{
+		for (size_t face = 0; face < indexPrimitives_.size() / 3; face++)
+		{
+			uint32_t i0 = indexPrimitives_[face * 3 + 0];
+			uint32_t i1 = indexPrimitives_[face * 3 + 1];
+			uint32_t i2 = indexPrimitives_[face * 3 + 2];
+
+			indexPrimitives_[face * 3 + 0] = i0;
+			indexPrimitives_[face * 3 + 1] = i2;
+			indexPrimitives_[face * 3 + 2] = i1;
+		}
+
+		AUTO_RENDER_DATA;
+	}
+	void Primitive::FlipNormals()
+	{
+		for (auto& normal : vertexNormals_)
+		{
+			normal.x *= -1;
+			normal.y *= -1;
+			normal.z *= -1;
+		}
+
+		AUTO_RENDER_DATA;
+	}
+	
+	//size_t Primitive::CreateSubset()
+	//{
+	//	int ret = 0;
+	//	const uint32_t lod_count = GetLODCount();
+	//	for (uint32_t lod = 0; lod < lod_count; ++lod)
+	//	{
+	//		uint32_t first_subset = 0;
+	//		uint32_t last_subset = 0;
+	//		GetLODSubsetRange(lod, first_subset, last_subset);
+	//		GGeometryComponent::MeshSubset subset;
+	//		subset.indexOffset = ~0u;
+	//		subset.indexCount = 0;
+	//		for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
+	//		{
+	//			subset.indexOffset = std::min(subset.indexOffset, subsets[subsetIndex].indexOffset);
+	//			subset.indexCount = std::max(subset.indexCount, subsets[subsetIndex].indexOffset + subsets[subsetIndex].indexCount);
+	//		}
+	//		subsets.insert(subsets.begin() + last_subset, subset);
+	//		if (lod == 0)
+	//		{
+	//			ret = last_subset;
+	//		}
+	//	}
+	//	if (lod_count > 0)
+	//	{
+	//		subsets_per_lod++;
+	//	}
+	//	CreateRenderData(); // mesh shader needs to rebuild clusters, otherwise wouldn't be needed
+	//	return ret;
+	//}
 }
 
 namespace vz
 {
+	using GBuffers = GGeometryComponent::GBuffers;
 	using BufferView = GGeometryComponent::GBuffers::BufferView;
 
 	graphics::IndexBufferFormat GGeometryComponent::GetIndexFormat() const
@@ -253,11 +636,16 @@ namespace vz
 			Primitive& primitive = parts_[i];
 			primitive.bufferHandle_.reset();
 		}
-		isDirtyRenderData_ = true;
+		hasRenderData_ = false;
 	}
 	void GGeometryComponent::UpdateRenderData()
 	{
 		DeleteRenderData();
+
+		if (isDirty_)
+		{
+			update();
+		}
 
 		GraphicsDevice* device = graphics::GetDevice();
 
@@ -268,12 +656,7 @@ namespace vz
 			Primitive& primitive = parts_[i];
 			primitive.bufferHandle_ = std::make_shared<GBuffers>();
 			GBuffers& part_buffers = *(GBuffers*)primitive.bufferHandle_.get();
-
-			if (primitive.isDirty_)
-			{
-				primitive.update();
-			}
-
+			
 			GPUBufferDesc bd;
 			if (device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
 			{
@@ -482,11 +865,16 @@ namespace vz
 			}
 		}
 
-		isDirtyRenderData_ = false;
+		hasRenderData_ = true;
 	}
 
 	void GGeometryComponent::UpdateStreamoutRenderData()
 	{
+		if (!hasRenderData_) 
+		{
+			UpdateRenderData();
+		}
+
 		GraphicsDevice* device = graphics::GetDevice();
 
 		GPUBufferDesc desc;
@@ -573,558 +961,74 @@ namespace vz
 		}
 	}
 
-	/*
 	size_t GGeometryComponent::GetMemoryUsageCPU() const
 	{
-		size_t size =
-			vertex_positions.size() * sizeof(XMFLOAT3) +
-			vertex_normals.size() * sizeof(XMFLOAT3) +
-			vertex_tangents.size() * sizeof(XMFLOAT4) +
-			vertex_uvset_0.size() * sizeof(XMFLOAT2) +
-			vertex_uvset_1.size() * sizeof(XMFLOAT2) +
-			vertex_boneindices.size() * sizeof(XMUINT4) +
-			vertex_boneweights.size() * sizeof(XMFLOAT4) +
-			vertex_atlas.size() * sizeof(XMFLOAT2) +
-			vertex_colors.size() * sizeof(uint32_t) +
-			vertex_windweights.size() * sizeof(uint8_t) +
-			indices.size() * sizeof(uint32_t);
-
-		for (const MorphTarget& morph : morph_targets)
+		size_t size = 0;
+		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
+			const Primitive& primitive = parts_[i];
+
 			size +=
-				morph.vertex_positions.size() * sizeof(XMFLOAT3) +
-				morph.vertex_normals.size() * sizeof(XMFLOAT3) +
-				morph.sparse_indices_positions.size() * sizeof(uint32_t) +
-				morph.sparse_indices_normals.size() * sizeof(uint32_t);
+				primitive.vertexPositions_.size() * sizeof(XMFLOAT3) +
+				primitive.vertexNormals_.size() * sizeof(XMFLOAT3) +
+				primitive.vertexTangents_.size() * sizeof(XMFLOAT4) +
+				primitive.vertexUVset0_.size() * sizeof(XMFLOAT2) +
+				primitive.vertexUVset1_.size() * sizeof(XMFLOAT2) +
+				primitive.vertexColors_.size() * sizeof(uint32_t) +
+				primitive.indexPrimitives_.size() * sizeof(uint32_t);
+
+			//size += GetMemoryUsageBVH();
 		}
-
-		size += GetMemoryUsageBVH();
-
 		return size;
 	}
 	size_t GGeometryComponent::GetMemoryUsageGPU() const
 	{
-		return generalBuffer.desc.size + streamoutBuffer.desc.size;
-	}
-	size_t GGeometryComponent::GetMemoryUsageBVH() const
-	{
-		return
-			bvh.allocation.capacity() +
-			bvh_leaf_aabbs.size() * sizeof(primitive::AABB);
-	}
-
-	void GGeometryComponent::CreateRaytracingRenderData()
-	{
-		GraphicsDevice* device = graphics::GetDevice();
-
-		if (!device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-			return;
-
-		BLAS_state = GGeometryComponent::BLAS_STATE_NEEDS_REBUILD;
-
-		const uint32_t lod_count = GetLODCount();
-		BLASes.resize(lod_count);
-		for (uint32_t lod = 0; lod < lod_count; ++lod)
+		size_t size = 0;
+		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
-			RaytracingAccelerationStructureDesc desc;
-			desc.type = RaytracingAccelerationStructureDesc::Type::BOTTOMLEVEL;
-
-			if (streamoutBuffer.IsValid())
+			const Primitive& primitive = parts_[i];
+			const GBuffers* part_buffers = (GBuffers*)primitive.bufferHandle_.get();
+			if (part_buffers == nullptr)
 			{
-				desc.flags |= RaytracingAccelerationStructureDesc::FLAG_ALLOW_UPDATE;
-				desc.flags |= RaytracingAccelerationStructureDesc::FLAG_PREFER_FAST_BUILD;
-			}
-			else
-			{
-				desc.flags |= RaytracingAccelerationStructureDesc::FLAG_PREFER_FAST_TRACE;
-			}
-
-			uint32_t first_subset = 0;
-			uint32_t last_subset = 0;
-			GetLODSubsetRange(lod, first_subset, last_subset);
-			for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
-			{
-				const GGeometryComponent::MeshSubset& subset = subsets[subsetIndex];
-				desc.bottom_level.geometries.emplace_back();
-				auto& geometry = desc.bottom_level.geometries.back();
-				geometry.type = RaytracingAccelerationStructureDesc::BottomLevel::Geometry::Type::TRIANGLES;
-				geometry.triangles.vertex_buffer = generalBuffer;
-				geometry.triangles.vertex_byte_offset = vb_pos_wind.offset;
-				geometry.triangles.index_buffer = generalBuffer;
-				geometry.triangles.index_format = GetIndexFormat();
-				geometry.triangles.index_count = subset.indexCount;
-				geometry.triangles.index_offset = ib.offset / GetIndexStride() + subset.indexOffset;
-				geometry.triangles.vertex_count = (uint32_t)vertex_positions.size();
-				if (so_pos.IsValid())
-				{
-					geometry.triangles.vertex_format = Vertex_POS32::FORMAT;
-					geometry.triangles.vertex_stride = sizeof(Vertex_POS32);
-				}
-				else
-				{
-					geometry.triangles.vertex_format = position_format == Format::R32G32B32A32_FLOAT ? Format::R32G32B32_FLOAT : position_format;
-					geometry.triangles.vertex_stride = GetFormatStride(position_format);
-				}
-			}
-
-			bool success = device->CreateRaytracingAccelerationStructure(&desc, &BLASes[lod]);
-			assert(success);
-			device->SetName(&BLASes[lod], std::string("GGeometryComponent::BLAS[LOD" + std::to_string(lod) + "]").c_str());
-		}
-	}
-	void GGeometryComponent::BuildBVH()
-	{
-		bvh_leaf_aabbs.clear();
-		uint32_t first_subset = 0;
-		uint32_t last_subset = 0;
-		GetLODSubsetRange(0, first_subset, last_subset);
-		for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
-		{
-			const GGeometryComponent::MeshSubset& subset = subsets[subsetIndex];
-			if (subset.indexCount == 0)
 				continue;
-			const uint32_t indexOffset = subset.indexOffset;
-			const uint32_t triangleCount = subset.indexCount / 3;
-			for (uint32_t triangleIndex = 0; triangleIndex < triangleCount; ++triangleIndex)
-			{
-				const uint32_t i0 = indices[indexOffset + triangleIndex * 3 + 0];
-				const uint32_t i1 = indices[indexOffset + triangleIndex * 3 + 1];
-				const uint32_t i2 = indices[indexOffset + triangleIndex * 3 + 2];
-				const XMFLOAT3& p0 = vertex_positions[i0];
-				const XMFLOAT3& p1 = vertex_positions[i1];
-				const XMFLOAT3& p2 = vertex_positions[i2];
-				AABB aabb = primitive::AABB(math::Min(p0, math::Min(p1, p2)), math::Max(p0, math::Max(p1, p2)));
-				aabb.layerMask = triangleIndex;
-				aabb.userdata = subsetIndex;
-				bvh_leaf_aabbs.push_back(aabb);
 			}
+			size += part_buffers->generalBuffer.desc.size + part_buffers->streamoutBuffer.desc.size;
 		}
-		bvh.Build(bvh_leaf_aabbs.data(), (uint32_t)bvh_leaf_aabbs.size());
+		return size;
 	}
-	void GGeometryComponent::ComputeNormals(COMPUTE_NORMALS compute)
-	{
-		// Start recalculating normals:
-
-		if (compute != COMPUTE_NORMALS_SMOOTH_FAST)
-		{
-			// Compute hard surface normals:
-
-			// Right now they are always computed even before smooth setting
-
-			vector<uint32_t> newIndexBuffer;
-			vector<XMFLOAT3> newPositionsBuffer;
-			vector<XMFLOAT3> newNormalsBuffer;
-			vector<XMFLOAT2> newUV0Buffer;
-			vector<XMFLOAT2> newUV1Buffer;
-			vector<XMFLOAT2> newAtlasBuffer;
-			vector<XMUINT4> newBoneIndicesBuffer;
-			vector<XMFLOAT4> newBoneWeightsBuffer;
-			vector<uint32_t> newColorsBuffer;
-
-			for (size_t face = 0; face < indices.size() / 3; face++)
-			{
-				uint32_t i0 = indices[face * 3 + 0];
-				uint32_t i1 = indices[face * 3 + 1];
-				uint32_t i2 = indices[face * 3 + 2];
-
-				XMFLOAT3& p0 = vertex_positions[i0];
-				XMFLOAT3& p1 = vertex_positions[i1];
-				XMFLOAT3& p2 = vertex_positions[i2];
-
-				XMVECTOR U = XMLoadFloat3(&p2) - XMLoadFloat3(&p0);
-				XMVECTOR V = XMLoadFloat3(&p1) - XMLoadFloat3(&p0);
-
-				XMVECTOR N = XMVector3Cross(U, V);
-				N = XMVector3Normalize(N);
-
-				XMFLOAT3 normal;
-				XMStoreFloat3(&normal, N);
-
-				newPositionsBuffer.push_back(p0);
-				newPositionsBuffer.push_back(p1);
-				newPositionsBuffer.push_back(p2);
-
-				newNormalsBuffer.push_back(normal);
-				newNormalsBuffer.push_back(normal);
-				newNormalsBuffer.push_back(normal);
-
-				if (!vertex_uvset_0.empty())
-				{
-					newUV0Buffer.push_back(vertex_uvset_0[i0]);
-					newUV0Buffer.push_back(vertex_uvset_0[i1]);
-					newUV0Buffer.push_back(vertex_uvset_0[i2]);
-				}
-
-				if (!vertex_uvset_1.empty())
-				{
-					newUV1Buffer.push_back(vertex_uvset_1[i0]);
-					newUV1Buffer.push_back(vertex_uvset_1[i1]);
-					newUV1Buffer.push_back(vertex_uvset_1[i2]);
-				}
-
-				if (!vertex_atlas.empty())
-				{
-					newAtlasBuffer.push_back(vertex_atlas[i0]);
-					newAtlasBuffer.push_back(vertex_atlas[i1]);
-					newAtlasBuffer.push_back(vertex_atlas[i2]);
-				}
-
-				if (!vertex_boneindices.empty())
-				{
-					newBoneIndicesBuffer.push_back(vertex_boneindices[i0]);
-					newBoneIndicesBuffer.push_back(vertex_boneindices[i1]);
-					newBoneIndicesBuffer.push_back(vertex_boneindices[i2]);
-				}
-
-				if (!vertex_boneweights.empty())
-				{
-					newBoneWeightsBuffer.push_back(vertex_boneweights[i0]);
-					newBoneWeightsBuffer.push_back(vertex_boneweights[i1]);
-					newBoneWeightsBuffer.push_back(vertex_boneweights[i2]);
-				}
-
-				if (!vertex_colors.empty())
-				{
-					newColorsBuffer.push_back(vertex_colors[i0]);
-					newColorsBuffer.push_back(vertex_colors[i1]);
-					newColorsBuffer.push_back(vertex_colors[i2]);
-				}
-
-				newIndexBuffer.push_back(static_cast<uint32_t>(newIndexBuffer.size()));
-				newIndexBuffer.push_back(static_cast<uint32_t>(newIndexBuffer.size()));
-				newIndexBuffer.push_back(static_cast<uint32_t>(newIndexBuffer.size()));
-			}
-
-			// For hard surface normals, we created a new mesh in the previous loop through faces, so swap data:
-			vertex_positions = newPositionsBuffer;
-			vertex_normals = newNormalsBuffer;
-			vertex_uvset_0 = newUV0Buffer;
-			vertex_uvset_1 = newUV1Buffer;
-			vertex_atlas = newAtlasBuffer;
-			vertex_colors = newColorsBuffer;
-			if (!vertex_boneindices.empty())
-			{
-				vertex_boneindices = newBoneIndicesBuffer;
-			}
-			if (!vertex_boneweights.empty())
-			{
-				vertex_boneweights = newBoneWeightsBuffer;
-			}
-			indices = newIndexBuffer;
-		}
-
-		switch (compute)
-		{
-		case GGeometryComponent::COMPUTE_NORMALS_HARD:
-			break;
-
-		case GGeometryComponent::COMPUTE_NORMALS_SMOOTH:
-		{
-			// Compute smooth surface normals:
-
-			// 1.) Zero normals, they will be averaged later
-			for (size_t i = 0; i < vertex_normals.size(); i++)
-			{
-				vertex_normals[i] = XMFLOAT3(0, 0, 0);
-			}
-
-			// 2.) Find identical vertices by POSITION, accumulate face normals
-			for (size_t i = 0; i < vertex_positions.size(); i++)
-			{
-				XMFLOAT3& v_search_pos = vertex_positions[i];
-
-				for (size_t ind = 0; ind < indices.size() / 3; ++ind)
-				{
-					uint32_t i0 = indices[ind * 3 + 0];
-					uint32_t i1 = indices[ind * 3 + 1];
-					uint32_t i2 = indices[ind * 3 + 2];
-
-					XMFLOAT3& v0 = vertex_positions[i0];
-					XMFLOAT3& v1 = vertex_positions[i1];
-					XMFLOAT3& v2 = vertex_positions[i2];
-
-
-					bool match_pos0 =
-						math::float_equal(v_search_pos.x, v0.x) &&
-						math::float_equal(v_search_pos.y, v0.y) &&
-						math::float_equal(v_search_pos.z, v0.z);
-
-					bool match_pos1 =
-						math::float_equal(v_search_pos.x, v1.x) &&
-						math::float_equal(v_search_pos.y, v1.y) &&
-						math::float_equal(v_search_pos.z, v1.z);
-
-					bool match_pos2 =
-						math::float_equal(v_search_pos.x, v2.x) &&
-						math::float_equal(v_search_pos.y, v2.y) &&
-						math::float_equal(v_search_pos.z, v2.z);
-
-					if (match_pos0 || match_pos1 || match_pos2)
-					{
-						XMVECTOR U = XMLoadFloat3(&v2) - XMLoadFloat3(&v0);
-						XMVECTOR V = XMLoadFloat3(&v1) - XMLoadFloat3(&v0);
-
-						XMVECTOR N = XMVector3Cross(U, V);
-						N = XMVector3Normalize(N);
-
-						XMFLOAT3 normal;
-						XMStoreFloat3(&normal, N);
-
-						vertex_normals[i].x += normal.x;
-						vertex_normals[i].y += normal.y;
-						vertex_normals[i].z += normal.z;
-					}
-
-				}
-			}
-
-			// 3.) Find duplicated vertices by POSITION and UV0 and UV1 and ATLAS and SUBSET and remove them:
-			uint32_t first_subset = 0;
-			uint32_t last_subset = 0;
-			GetLODSubsetRange(0, first_subset, last_subset);
-			for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
-			{
-				const GGeometryComponent::MeshSubset& subset = subsets[subsetIndex];
-				for (uint32_t i = 0; i < subset.indexCount - 1; i++)
-				{
-					uint32_t ind0 = indices[subset.indexOffset + (uint32_t)i];
-					const XMFLOAT3& p0 = vertex_positions[ind0];
-					const XMFLOAT2& u00 = vertex_uvset_0.empty() ? XMFLOAT2(0, 0) : vertex_uvset_0[ind0];
-					const XMFLOAT2& u10 = vertex_uvset_1.empty() ? XMFLOAT2(0, 0) : vertex_uvset_1[ind0];
-					const XMFLOAT2& at0 = vertex_atlas.empty() ? XMFLOAT2(0, 0) : vertex_atlas[ind0];
-
-					for (uint32_t j = i + 1; j < subset.indexCount; j++)
-					{
-						uint32_t ind1 = indices[subset.indexOffset + (uint32_t)j];
-
-						if (ind1 == ind0)
-						{
-							continue;
-						}
-
-						const XMFLOAT3& p1 = vertex_positions[ind1];
-						const XMFLOAT2& u01 = vertex_uvset_0.empty() ? XMFLOAT2(0, 0) : vertex_uvset_0[ind1];
-						const XMFLOAT2& u11 = vertex_uvset_1.empty() ? XMFLOAT2(0, 0) : vertex_uvset_1[ind1];
-						const XMFLOAT2& at1 = vertex_atlas.empty() ? XMFLOAT2(0, 0) : vertex_atlas[ind1];
-
-						const bool duplicated_pos =
-							math::float_equal(p0.x, p1.x) &&
-							math::float_equal(p0.y, p1.y) &&
-							math::float_equal(p0.z, p1.z);
-
-						const bool duplicated_uv0 =
-							math::float_equal(u00.x, u01.x) &&
-							math::float_equal(u00.y, u01.y);
-
-						const bool duplicated_uv1 =
-							math::float_equal(u10.x, u11.x) &&
-							math::float_equal(u10.y, u11.y);
-
-						const bool duplicated_atl =
-							math::float_equal(at0.x, at1.x) &&
-							math::float_equal(at0.y, at1.y);
-
-						if (duplicated_pos && duplicated_uv0 && duplicated_uv1 && duplicated_atl)
-						{
-							// Erase vertices[ind1] because it is a duplicate:
-							if (ind1 < vertex_positions.size())
-							{
-								vertex_positions.erase(vertex_positions.begin() + ind1);
-							}
-							if (ind1 < vertex_normals.size())
-							{
-								vertex_normals.erase(vertex_normals.begin() + ind1);
-							}
-							if (ind1 < vertex_uvset_0.size())
-							{
-								vertex_uvset_0.erase(vertex_uvset_0.begin() + ind1);
-							}
-							if (ind1 < vertex_uvset_1.size())
-							{
-								vertex_uvset_1.erase(vertex_uvset_1.begin() + ind1);
-							}
-							if (ind1 < vertex_atlas.size())
-							{
-								vertex_atlas.erase(vertex_atlas.begin() + ind1);
-							}
-							if (ind1 < vertex_boneindices.size())
-							{
-								vertex_boneindices.erase(vertex_boneindices.begin() + ind1);
-							}
-							if (ind1 < vertex_boneweights.size())
-							{
-								vertex_boneweights.erase(vertex_boneweights.begin() + ind1);
-							}
-
-							// The vertices[ind1] was removed, so each index after that needs to be updated:
-							for (auto& index : indices)
-							{
-								if (index > ind1 && index > 0)
-								{
-									index--;
-								}
-								else if (index == ind1)
-								{
-									index = ind0;
-								}
-							}
-
-						}
-
-					}
-				}
-
-			}
-
-		}
-		break;
-
-		case GGeometryComponent::COMPUTE_NORMALS_SMOOTH_FAST:
-		{
-			vertex_normals.resize(vertex_positions.size());
-			for (size_t i = 0; i < vertex_normals.size(); i++)
-			{
-				vertex_normals[i] = XMFLOAT3(0, 0, 0);
-			}
-			uint32_t first_subset = 0;
-			uint32_t last_subset = 0;
-			GetLODSubsetRange(0, first_subset, last_subset);
-			for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
-			{
-				const MeshSubset& subset = subsets[subsetIndex];
-
-				for (uint32_t i = 0; i < subset.indexCount / 3; ++i)
-				{
-					uint32_t index1 = indices[subset.indexOffset + i * 3 + 0];
-					uint32_t index2 = indices[subset.indexOffset + i * 3 + 1];
-					uint32_t index3 = indices[subset.indexOffset + i * 3 + 2];
-
-					XMVECTOR side1 = XMLoadFloat3(&vertex_positions[index1]) - XMLoadFloat3(&vertex_positions[index3]);
-					XMVECTOR side2 = XMLoadFloat3(&vertex_positions[index1]) - XMLoadFloat3(&vertex_positions[index2]);
-					XMVECTOR N = XMVector3Normalize(XMVector3Cross(side1, side2));
-					XMFLOAT3 normal;
-					XMStoreFloat3(&normal, N);
-
-					vertex_normals[index1].x += normal.x;
-					vertex_normals[index1].y += normal.y;
-					vertex_normals[index1].z += normal.z;
-
-					vertex_normals[index2].x += normal.x;
-					vertex_normals[index2].y += normal.y;
-					vertex_normals[index2].z += normal.z;
-
-					vertex_normals[index3].x += normal.x;
-					vertex_normals[index3].y += normal.y;
-					vertex_normals[index3].z += normal.z;
-				}
-			}
-		}
-		break;
-
-		}
-
-		vertex_tangents.clear(); // <- will be recomputed
-
-		CreateRenderData(); // <- normals will be normalized here!
-	}
-	void GGeometryComponent::FlipCulling()
-	{
-		for (size_t face = 0; face < indices.size() / 3; face++)
-		{
-			uint32_t i0 = indices[face * 3 + 0];
-			uint32_t i1 = indices[face * 3 + 1];
-			uint32_t i2 = indices[face * 3 + 2];
-
-			indices[face * 3 + 0] = i0;
-			indices[face * 3 + 1] = i2;
-			indices[face * 3 + 2] = i1;
-		}
-
-		CreateRenderData();
-	}
-	void GGeometryComponent::FlipNormals()
-	{
-		for (auto& normal : vertex_normals)
-		{
-			normal.x *= -1;
-			normal.y *= -1;
-			normal.z *= -1;
-		}
-
-		CreateRenderData();
-	}
-	void GGeometryComponent::Recenter()
-	{
-		XMFLOAT3 center = aabb.getCenter();
-
-		for (auto& pos : vertex_positions)
-		{
-			pos.x -= center.x;
-			pos.y -= center.y;
-			pos.z -= center.z;
-		}
-
-		CreateRenderData();
-	}
-	void GGeometryComponent::RecenterToBottom()
-	{
-		XMFLOAT3 center = aabb.getCenter();
-		center.y -= aabb.getHalfWidth().y;
-
-		for (auto& pos : vertex_positions)
-		{
-			pos.x -= center.x;
-			pos.y -= center.y;
-			pos.z -= center.z;
-		}
-
-		CreateRenderData();
-	}
-	Sphere GGeometryComponent::GetBoundingSphere() const
-	{
-		Sphere sphere;
-		sphere.center = aabb.getCenter();
-		sphere.radius = aabb.getRadius();
-		return sphere;
-	}
-	size_t GGeometryComponent::GetClusterCount() const
-	{
-		size_t cnt = 0;
-		for (auto& x : cluster_ranges)
-		{
-			cnt = std::max(cnt, size_t(x.clusterOffset + x.clusterCount));
-		}
-		return cnt;
-	}
-	size_t GGeometryComponent::CreateSubset()
-	{
-		int ret = 0;
-		const uint32_t lod_count = GetLODCount();
-		for (uint32_t lod = 0; lod < lod_count; ++lod)
-		{
-			uint32_t first_subset = 0;
-			uint32_t last_subset = 0;
-			GetLODSubsetRange(lod, first_subset, last_subset);
-			GGeometryComponent::MeshSubset subset;
-			subset.indexOffset = ~0u;
-			subset.indexCount = 0;
-			for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
-			{
-				subset.indexOffset = std::min(subset.indexOffset, subsets[subsetIndex].indexOffset);
-				subset.indexCount = std::max(subset.indexCount, subsets[subsetIndex].indexOffset + subsets[subsetIndex].indexCount);
-			}
-			subsets.insert(subsets.begin() + last_subset, subset);
-			if (lod == 0)
-			{
-				ret = last_subset;
-			}
-		}
-		if (lod_count > 0)
-		{
-			subsets_per_lod++;
-		}
-		CreateRenderData(); // mesh shader needs to rebuild clusters, otherwise wouldn't be needed
-		return ret;
-	}
-	/**/
+	//size_t GGeometryComponent::GetMemoryUsageBVH() const
+	//{
+	//	return
+	//		bvh.allocation.capacity() +
+	//		bvh_leaf_aabbs.size() * sizeof(primitive::AABB);
+	//}
+	//void GGeometryComponent::BuildBVH()
+	//{
+	//	bvh_leaf_aabbs.clear();
+	//	uint32_t first_subset = 0;
+	//	uint32_t last_subset = 0;
+	//	GetLODSubsetRange(0, first_subset, last_subset);
+	//	for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
+	//	{
+	//		const GGeometryComponent::MeshSubset& subset = subsets[subsetIndex];
+	//		if (subset.indexCount == 0)
+	//			continue;
+	//		const uint32_t indexOffset = subset.indexOffset;
+	//		const uint32_t triangleCount = subset.indexCount / 3;
+	//		for (uint32_t triangleIndex = 0; triangleIndex < triangleCount; ++triangleIndex)
+	//		{
+	//			const uint32_t i0 = indices[indexOffset + triangleIndex * 3 + 0];
+	//			const uint32_t i1 = indices[indexOffset + triangleIndex * 3 + 1];
+	//			const uint32_t i2 = indices[indexOffset + triangleIndex * 3 + 2];
+	//			const XMFLOAT3& p0 = vertex_positions[i0];
+	//			const XMFLOAT3& p1 = vertex_positions[i1];
+	//			const XMFLOAT3& p2 = vertex_positions[i2];
+	//			AABB aabb = primitive::AABB(math::Min(p0, math::Min(p1, p2)), math::Max(p0, math::Max(p1, p2)));
+	//			aabb.layerMask = triangleIndex;
+	//			aabb.userdata = subsetIndex;
+	//			bvh_leaf_aabbs.push_back(aabb);
+	//		}
+	//	}
+	//	bvh.Build(bvh_leaf_aabbs.data(), (uint32_t)bvh_leaf_aabbs.size());
+	//}
 }

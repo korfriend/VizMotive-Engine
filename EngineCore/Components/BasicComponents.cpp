@@ -277,13 +277,13 @@ namespace vz
 		if (geo_comp == nullptr) return false;
 		return geo_comp->GetNumParts() == vuidMaterials.size() && geo_comp->GetNumParts() > 0;
 	}
-	void RenderableComponent::checkWebmapEnabled()
+	void RenderableComponent::checkWetmapEnabled()
 	{
 		bool wetmap = false;
 		for (auto vuid : vuidMaterials_)
 		{
 			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuid));
-			if (mat_comp->IsWebmapEnabled())
+			if (mat_comp->IsWetmapEnabled())
 			{
 				wetmap = true;
 				break;
@@ -342,7 +342,7 @@ namespace vz
 		{
 			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
 		}
-		checkWebmapEnabled();
+		checkWetmapEnabled();
 
 		timeStampSetter_ = TimerNow;
 	}
@@ -364,7 +364,7 @@ namespace vz
 		{
 			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
 		}
-		checkWebmapEnabled();
+		checkWetmapEnabled();
 
 		timeStampSetter_ = TimerNow;
 	}

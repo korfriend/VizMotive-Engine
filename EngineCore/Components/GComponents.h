@@ -111,6 +111,8 @@ namespace vz
 		void UpdateRenderData() override;
 		void DeleteRenderData() override;
 		void UpdateStreamoutRenderData();
+		size_t GetMemoryUsageCPU() const override;
+		size_t GetMemoryUsageGPU() const override;
 
 		struct Vertex_POS32
 		{
@@ -285,24 +287,6 @@ namespace vz
 			}
 			static constexpr graphics::Format FORMAT = graphics::Format::R8G8B8A8_SNORM;
 		};
-
-		// CreateRaytracingRenderData
-		
-		// These will be added in GeometryComponent (override)
-		// BuildBVH
-		// ComputeNormals
-		// FlipCulling
-		// FlipNormals
-		// Recenter
-		// RecenterToBottom
-		// GetBoundingSphere
-		// FlipNormals, FlipCulling
-		// Recenter (Pivot)
-		// RecenterToBottom
-		// GetBoundingSphere
-		// GetClusterCount
-		// CreateSubset
-		// GetMemory...
 	};
 
 	struct CORE_EXPORT GTextureComponent : TextureComponent
