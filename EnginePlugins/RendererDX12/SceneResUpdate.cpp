@@ -290,7 +290,7 @@ namespace vz
 
 				//	* wetmap looks useful in our rendering purposes
 				//	* wetmap option is determined by the renderable's associated materials
-				if (renderable.IsWebmapEnabled() && renderable.vbWetmaps.size() == 0)
+				if (renderable.IsWetmapEnabled() && renderable.vbWetmaps.size() == 0)
 				{
 					renderable.vbWetmaps.reserve(primitives.size());
 					for (uint32_t i = 0, n = primitives.size(); i < n; ++i)
@@ -308,7 +308,7 @@ namespace vz
 					
 					renderable.wetmapCleared = false;
 				}
-				else if (!renderable.IsWebmapEnabled() && renderable.vbWetmaps.size() > 0)
+				else if (!renderable.IsWetmapEnabled() && renderable.vbWetmaps.size() > 0)
 				{
 					renderable.vbWetmaps.clear();
 				}
