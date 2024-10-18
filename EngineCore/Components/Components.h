@@ -542,6 +542,10 @@ namespace vz
 			void ComputeNormals(COMPUTE_NORMALS computeMode);
 			void FlipCulling();
 			void FlipNormals();
+			// These are to replace memory-stored positions
+			//	for performance enhancement, better using pivot transforms (will be implemented)
+			void ReoriginToCenter();
+			void ReoriginToBottom();
 
 			void Serialize(vz::Archive& archive, const uint64_t version);
 

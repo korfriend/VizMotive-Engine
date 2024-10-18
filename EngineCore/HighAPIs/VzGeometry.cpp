@@ -11,13 +11,14 @@ namespace vzm
 #define GET_GEO_COMP(COMP, RET) GeometryComponent* COMP = compfactory::GetGeometryComponent(componentVID_); \
 	if (!COMP) {post(type_ + "(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
-	void VzGeometry::MaskTestTriangle()
+	void VzGeometry::MakeTestTriangle()
 	{
 		GET_GEO_COMP(geometry, );
 
 		GeometryComponent::Primitive prim;
 
-		std::vector<XMFLOAT3> vertexPositions(3);
+		std::vector<XMFLOAT3> vertexPositions;
+		vertexPositions.reserve(3);
 		vertexPositions.push_back(XMFLOAT3(0, 1, 0));
 		vertexPositions.push_back(XMFLOAT3(1, -0.3f, 0));
 		vertexPositions.push_back(XMFLOAT3(-1, -0.3f, 0));
@@ -35,6 +36,7 @@ namespace vzm
 		prim.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
 
 		geometry->MovePrimitiveFrom(prim, 0);
+		geometry->UpdateRenderData();
 		UpdateTimeStamp();
 	}
 }

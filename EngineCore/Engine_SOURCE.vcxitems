@@ -20,6 +20,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GRendererInterface.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GSceneRenderPath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h" />
