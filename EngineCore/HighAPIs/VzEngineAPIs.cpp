@@ -24,6 +24,7 @@ namespace vzm
 
 	namespace vzcomp
 	{
+		// all are VzBaseComp (node-based)
 		std::unordered_map<VID, VzBaseComp*> lookup;
 
 		std::unordered_map<SceneVID, std::unique_ptr<VzScene>> scenes;
@@ -37,6 +38,69 @@ namespace vzm
 		std::unordered_map<GeometryVID, std::unique_ptr<VzGeometry>> geometries;
 		std::unordered_map<MaterialVID, std::unique_ptr<VzMaterial>> materials;
 		std::unordered_map<TextureVID, std::unique_ptr<VzTexture>> textures;
+
+		bool Destroy(const VID vid)
+		{
+			auto it = lookup.find(vid);
+			if (it == lookup.end())
+			{
+				return false;
+			}
+			lookup.erase(it);
+
+			jobsystem::context ctx;
+			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
+				if (graphicsDevice)
+				{
+					graphicsDevice->WaitForGPU();
+				}
+
+				VzBaseComp* vcomp = it->second;
+				COMPONENT_TYPE comp_type = vcomp->GetType();
+				switch (comp_type)
+				{
+				case COMPONENT_TYPE::SCENE: scenes.erase(vid); Scene::DestroyScene(vid); break;
+				case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); break;
+				case COMPONENT_TYPE::CAMERA: cameras.erase(vid); break;
+				case COMPONENT_TYPE::ACTOR: actors.erase(vid); break;
+				case COMPONENT_TYPE::LIGHT: lights.erase(vid); break;
+				case COMPONENT_TYPE::GEOMETRY: geometries.erase(vid); break;
+				case COMPONENT_TYPE::MATERIAL: materials.erase(vid); break;
+				case COMPONENT_TYPE::TEXTURE: textures.erase(vid); break;
+				default:
+					assert(0);
+				}
+
+				if (comp_type != COMPONENT_TYPE::SCENE && comp_type != COMPONENT_TYPE::RENDERER)
+				{
+					compfactory::Destroy(vid);
+					Scene::RemoveEntityForScenes(vid);
+				}
+			});
+			jobsystem::Wait(ctx);
+			return true;
+		}
+
+		void DestroyAll()
+		{
+			scenes.clear();
+			renderers.clear();
+			cameras.clear();
+			actors.clear();
+			lights.clear();
+			geometries.clear();
+			materials.clear();
+			textures.clear();
+			lookup.clear();
+
+			jobsystem::context ctx;
+			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
+				Scene::DestroyAll();
+				canvas::DestroyAll();
+				compfactory::DestroyAll();
+				});
+			jobsystem::Wait(ctx);
+		}
 	}
 
 	bool InitEngineLib(const vzm::ParamMap<std::string>& arguments)
@@ -107,11 +171,16 @@ namespace vzm
 		return it.first->second.get();
 	}
 
-	VzSceneComp* newSceneComponent(const SCENE_COMPONENT_TYPE compType, const std::string& compName, const VID parentVid)
+	VzSceneComp* newSceneComponent(const COMPONENT_TYPE compType, const std::string& compName, const VID parentVid)
 	{
 		CHECK_API_VALIDITY(nullptr);
-		if (compType == SCENE_COMPONENT_TYPE::SCENEBASE)
+		switch (compType)
 		{
+		case COMPONENT_TYPE::ACTOR:
+		case COMPONENT_TYPE::LIGHT:
+		case COMPONENT_TYPE::CAMERA:
+			break;
+		default:
 			return nullptr;
 		}
 
@@ -126,21 +195,21 @@ namespace vzm
 
 		switch (compType)
 		{
-		case SCENE_COMPONENT_TYPE::ACTOR:
+		case COMPONENT_TYPE::ACTOR:
 			compfactory::CreateRenderableComponent(entity);
 			{
 				auto it = vzcomp::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewSceneComponent"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
-		case SCENE_COMPONENT_TYPE::LIGHT:
+		case COMPONENT_TYPE::LIGHT:
 			compfactory::CreateLightComponent(entity);
 			{
 				auto it = vzcomp::lights.emplace(vid, std::make_unique<VzLight>(vid, "vzm::NewSceneComponent"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
-		case SCENE_COMPONENT_TYPE::CAMERA:
+		case COMPONENT_TYPE::CAMERA:
 			compfactory::CreateCameraComponent(entity);
 			{
 				auto it = vzcomp::cameras.emplace(vid, std::make_unique<VzCamera>(vid, "vzm::NewSceneComponent"));
@@ -148,7 +217,7 @@ namespace vzm
 			}
 			break;
 		default:
-			backlog::post("vzm::NewSceneComponent >> Invalid SCENE_COMPONENT_TYPE", backlog::LogLevel::Error);
+			backlog::post("vzm::NewSceneComponent >> Invalid COMPONENT_TYPE", backlog::LogLevel::Error);
 			return nullptr;
 		}
 
@@ -163,11 +232,11 @@ namespace vzm
 
 	VzCamera* NewCamera(const std::string& name, const VID parentVid)
 	{
-		return (VzCamera*)newSceneComponent(SCENE_COMPONENT_TYPE::CAMERA, name, parentVid);
+		return (VzCamera*)newSceneComponent(COMPONENT_TYPE::CAMERA, name, parentVid);
 	}
 	VzActor* NewActor(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
 	{
-		VzActor* actor = (VzActor*)newSceneComponent(SCENE_COMPONENT_TYPE::ACTOR, name, parentVid);
+		VzActor* actor = (VzActor*)newSceneComponent(COMPONENT_TYPE::ACTOR, name, parentVid);
 		if (vidGeo) actor->SetGeometry(vidGeo);
 		if (vidMat) actor->SetMaterial(vidMat);
 		return actor;
@@ -178,14 +247,19 @@ namespace vzm
 	}
 	VzLight* NewLight(const std::string& name, const VID parentVid)
 	{
-		return (VzLight*)newSceneComponent(SCENE_COMPONENT_TYPE::LIGHT, name, parentVid);
+		return (VzLight*)newSceneComponent(COMPONENT_TYPE::LIGHT, name, parentVid);
 	}
 
-	VzResource* newResComponent(const RES_COMPONENT_TYPE compType, const std::string& compName)
+	VzResource* newResComponent(const COMPONENT_TYPE compType, const std::string& compName)
 	{
 		CHECK_API_VALIDITY(nullptr);
-		if (compType == RES_COMPONENT_TYPE::RESOURCE)
+		switch (compType)
 		{
+		case COMPONENT_TYPE::GEOMETRY:
+		case COMPONENT_TYPE::MATERIAL:
+		case COMPONENT_TYPE::TEXTURE:
+			break;
+		default:
 			return nullptr;
 		}
 
@@ -198,21 +272,21 @@ namespace vzm
 
 		switch (compType)
 		{
-		case RES_COMPONENT_TYPE::GEOMETRY:
+		case COMPONENT_TYPE::GEOMETRY:
 			compfactory::CreateGeometryComponent(entity);
 			{
 				auto it = vzcomp::geometries.emplace(vid, std::make_unique<VzGeometry>(vid, "vzm::NewResComponent"));
 				hlcomp = (VzGeometry*)it.first->second.get();
 			}
 			break;
-		case RES_COMPONENT_TYPE::MATERIAL:
+		case COMPONENT_TYPE::MATERIAL:
 			compfactory::CreateMaterialComponent(entity);
 			{
 				auto it = vzcomp::materials.emplace(vid, std::make_unique<VzMaterial>(vid, "vzm::NewResComponent"));
 				hlcomp = (VzMaterial*)it.first->second.get();
 			}
 			break;
-		case RES_COMPONENT_TYPE::TEXTURE:
+		case COMPONENT_TYPE::TEXTURE:
 			compfactory::CreateTextureComponent(entity);
 			{
 				auto it = vzcomp::textures.emplace(vid, std::make_unique<VzTexture>(vid, "vzm::NewResComponent"));
@@ -220,7 +294,7 @@ namespace vzm
 			}
 			break;
 		default:
-			backlog::post("vzm::NewResComponent >> Invalid RES_COMPONENT_TYPE", backlog::LogLevel::Error);
+			backlog::post("vzm::NewResComponent >> Invalid COMPONENT_TYPE", backlog::LogLevel::Error);
 			return nullptr;
 		}
 		vzcomp::lookup[vid] = hlcomp;
@@ -229,15 +303,15 @@ namespace vzm
 
 	VzGeometry* NewGeometry(const std::string& name)
 	{
-		return (VzGeometry*)newResComponent(RES_COMPONENT_TYPE::GEOMETRY, name);
+		return (VzGeometry*)newResComponent(COMPONENT_TYPE::GEOMETRY, name);
 	}
 	VzMaterial* NewMaterial(const std::string& name)
 	{
-		return (VzMaterial*)newResComponent(RES_COMPONENT_TYPE::MATERIAL, name);
+		return (VzMaterial*)newResComponent(COMPONENT_TYPE::MATERIAL, name);
 	}
 	VzTexture* NewTexture(const std::string& name)
 	{
-		return (VzTexture*)newResComponent(RES_COMPONENT_TYPE::TEXTURE, name);
+		return (VzTexture*)newResComponent(COMPONENT_TYPE::TEXTURE, name);
 	}
 
 	void getDescendants(const Entity ett, std::vector<Entity>& decendants)
@@ -328,7 +402,7 @@ namespace vzm
 					hier->SetParent(hier_dst->GetVUID());
 				}
 			}
-			Scene::DestoryScene(vid_scene_src);
+			Scene::DestroyScene(vid_scene_src);
 			scene_src = nullptr;
 		}
 		else if (vidSrc != vid_scene_src && vidDst == vid_scene_dst)
@@ -361,7 +435,7 @@ namespace vzm
 				entities_moving.push_back(ett);
 			}
 
-			Scene::DestoryScene(vid_scene_src);
+			Scene::DestroyScene(vid_scene_src);
 			scene_src = nullptr;
 		}
 
@@ -466,6 +540,10 @@ namespace vzm
 	{
 		CHECK_API_VALIDITY(false);
 		jobsystem::ShutDown();
+
+		// high-level apis handle engine components via functions in vzcomp namespace
+		vzcomp::DestroyAll();
+
 		graphicsPackage.pluginDeinitializer();
 		return true;
 	}

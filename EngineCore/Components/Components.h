@@ -45,7 +45,8 @@ namespace vz
 		static Scene* GetSceneIncludingEntity(const Entity entity);
 		static Scene* CreateScene(const std::string& name, const Entity entity = 0);
 		static void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
-		static bool DestoryScene(const Entity entity);
+		static bool DestroyScene(const Entity entity);
+		static void DestroyAll();
 		static uint32_t GetIndex(const std::vector<Entity>& entities, const Entity targetEntity)
 		{
 			std::vector<Entity>& _entities = (std::vector<Entity>&)entities;
@@ -878,58 +879,54 @@ namespace vz::compfactory
 	// 1. singleton (when initializing engine APIs)
 	// 2. getter
 	// 3. destroy all (or leaking message)
-	
-	// TODO: Destory Group 
-	// 1. Entity
-	// 2. VUID
-	// 3. ComponentBase
-	// 4. Scene
-	// 5. ??
 
 	// here, inlining is actually applied only when building the same object file
 	// calling in other built object files ignores the inlining
 
 	// VUID Manager
-	extern "C" CORE_EXPORT inline ComponentBase* GetComponentByVUID(const VUID vuid);
-	extern "C" CORE_EXPORT inline Entity GetEntityByVUID(const VUID vuid);
+	CORE_EXPORT inline ComponentBase* GetComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline Entity GetEntityByVUID(const VUID vuid);
 
 	// Component Manager
-	extern "C" CORE_EXPORT inline size_t SetSceneComponentsDirty(const Entity entity);
+	CORE_EXPORT inline size_t SetSceneComponentsDirty(const Entity entity);
 
-	extern "C" CORE_EXPORT inline NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
-	extern "C" CORE_EXPORT inline TransformComponent* CreateTransformComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
-	extern "C" CORE_EXPORT inline MaterialComponent* CreateMaterialComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline GeometryComponent* CreateGeometryComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline TextureComponent* CreateTextureComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline LightComponent* CreateLightComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline CameraComponent* CreateCameraComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline RenderableComponent* CreateRenderableComponent(const Entity entity);
+	CORE_EXPORT inline NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
+	CORE_EXPORT inline TransformComponent* CreateTransformComponent(const Entity entity);
+	CORE_EXPORT inline HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
+	CORE_EXPORT inline MaterialComponent* CreateMaterialComponent(const Entity entity);
+	CORE_EXPORT inline GeometryComponent* CreateGeometryComponent(const Entity entity);
+	CORE_EXPORT inline TextureComponent* CreateTextureComponent(const Entity entity);
+	CORE_EXPORT inline LightComponent* CreateLightComponent(const Entity entity);
+	CORE_EXPORT inline CameraComponent* CreateCameraComponent(const Entity entity);
+	CORE_EXPORT inline RenderableComponent* CreateRenderableComponent(const Entity entity);
 
-	extern "C" CORE_EXPORT inline NameComponent* GetNameComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline TransformComponent* GetTransformComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline HierarchyComponent* GetHierarchyComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline MaterialComponent* GetMaterialComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline GeometryComponent* GetGeometryComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline TextureComponent* GetTextureComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline RenderableComponent* GetRenderableComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline LightComponent* GetLightComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline CameraComponent* GetCameraComponent(const Entity entity);
+	CORE_EXPORT inline NameComponent* GetNameComponent(const Entity entity);
+	CORE_EXPORT inline TransformComponent* GetTransformComponent(const Entity entity);
+	CORE_EXPORT inline HierarchyComponent* GetHierarchyComponent(const Entity entity);
+	CORE_EXPORT inline MaterialComponent* GetMaterialComponent(const Entity entity);
+	CORE_EXPORT inline GeometryComponent* GetGeometryComponent(const Entity entity);
+	CORE_EXPORT inline TextureComponent* GetTextureComponent(const Entity entity);
+	CORE_EXPORT inline RenderableComponent* GetRenderableComponent(const Entity entity);
+	CORE_EXPORT inline LightComponent* GetLightComponent(const Entity entity);
+	CORE_EXPORT inline CameraComponent* GetCameraComponent(const Entity entity);
 
-	extern "C" CORE_EXPORT inline size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
-	extern "C" CORE_EXPORT inline size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
-	extern "C" CORE_EXPORT inline size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps);
-	extern "C" CORE_EXPORT inline size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps);
+	CORE_EXPORT inline size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
+	CORE_EXPORT inline size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
+	CORE_EXPORT inline size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps);
+	CORE_EXPORT inline size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps);
 
-	extern "C" CORE_EXPORT inline bool ContainNameComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline bool ContainTransformComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline bool ContainHierarchyComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline bool ContainMaterialComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline bool ContainGeometryComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline bool ContainRenderableComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline bool ContainLightComponent(const Entity entity);
-	extern "C" CORE_EXPORT inline bool ContainCameraComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainNameComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainTransformComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainHierarchyComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainMaterialComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainGeometryComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainRenderableComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainLightComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainCameraComponent(const Entity entity);
 
-	extern "C" CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
-	extern "C" CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
+	CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
+	CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
+
+	CORE_EXPORT size_t Destroy(const Entity entity);
+	CORE_EXPORT size_t DestroyAll();
 }

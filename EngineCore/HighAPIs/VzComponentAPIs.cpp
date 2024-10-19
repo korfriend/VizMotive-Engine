@@ -9,7 +9,7 @@ using namespace backlog;
 namespace vzm
 {
 #define GET_NAME_COMP(COMP, RET) NameComponent* COMP = compfactory::GetNameComponent(componentVID_); \
-	if (!COMP) {post(type_ + "(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+	if (!COMP) {post("NameComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 	
 	std::string VzBaseComp::GetName()
 	{
@@ -27,7 +27,7 @@ namespace vzm
 namespace vzm
 {
 #define GET_TRANS_COMP(COMP, RET) TransformComponent* COMP = compfactory::GetTransformComponent(componentVID_); \
-	if (!COMP) {post(type_ + "(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+	if (!COMP) {post("TransformComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
 	bool VzSceneComp::IsDirtyTransform()
 	{
@@ -185,7 +185,7 @@ namespace vzm
 	}
 
 #define GET_HIER_COMP(COMP, RET) HierarchyComponent* COMP = compfactory::GetHierarchyComponent(componentVID_); \
-	if (!COMP) {post(type_ + "(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+	if (!COMP) {post("HierarchyComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
 	VID VzSceneComp::GetParent()
 	{
@@ -210,7 +210,7 @@ namespace vzm
 namespace vzm
 {
 #define GET_CAM_COMP(COMP, RET) CameraComponent* COMP = compfactory::GetCameraComponent(componentVID_); \
-	if (!COMP) {post(type_ + "(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+	if (!COMP) {post("CameraComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
 	void VzCamera::SetWorldPoseByHierarchy()
 	{

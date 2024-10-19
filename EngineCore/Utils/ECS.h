@@ -568,8 +568,8 @@ namespace vz::ecs
 			std::unique_ptr<ComponentManager_Interface> component_manager;
 			uint64_t version = 0;
 		};
-	private:
-		std::unordered_map<std::string, LibraryEntry> entries_;
+
+		std::unordered_map<std::string, LibraryEntry> entries;
 
 	public:
 
@@ -579,16 +579,16 @@ namespace vz::ecs
 		template<typename T>
 		inline ComponentManager<T>& Register(const std::string& name, uint64_t version = 0)
 		{
-			entries_[name].component_manager = std::make_unique<ComponentManager<T>>();
-			entries_[name].version = version;
-			return static_cast<ComponentManager<T>&>(*entries_[name].component_manager);
+			entries[name].component_manager = std::make_unique<ComponentManager<T>>();
+			entries[name].version = version;
+			return static_cast<ComponentManager<T>&>(*entries[name].component_manager);
 		}
 
 		template<typename T>
 		inline ComponentManager<T>* Get(const std::string& name)
 		{
-			auto it = entries_.find(name);
-			if (it == entries_.end())
+			auto it = entries.find(name);
+			if (it == entries.end())
 				return nullptr;
 			return static_cast<ComponentManager<T>*>(it->second.component_manager.get());
 		}
@@ -596,16 +596,16 @@ namespace vz::ecs
 		template<typename T>
 		inline const ComponentManager<T>* Get(const std::string& name) const
 		{
-			auto it = entries_.find(name);
-			if (it == entries_.end())
+			auto it = entries.find(name);
+			if (it == entries.end())
 				return nullptr;
 			return static_cast<const ComponentManager<T>*>(it->second.component_manager.get());
 		}
 
 		inline uint64_t GetVersion(std::string name) const
 		{
-			auto it = entries_.find(name);
-			if (it == entries_.end())
+			auto it = entries.find(name);
+			if (it == entries.end())
 				return 0;
 			return it->second.version;
 		}
@@ -627,8 +627,8 @@ namespace vz::ecs
 						archive >> name;
 						uint64_t jump_pos = 0;
 						archive >> jump_pos;
-						auto it = entries_.find(name);
-						if (it != entries_.end())
+						auto it = entries.find(name);
+						if (it != entries.end())
 						{
 							uint64_t version;
 							archive >> version;
@@ -645,7 +645,7 @@ namespace vz::ecs
 			else
 			{
 				// Serialize all component data, at this point component type version lookup is also complete
-				for (auto& it : entries_)
+				for (auto& it : entries)
 				{
 					archive << true;	// has next
 					archive << it.first; // name (component type as string)
@@ -673,8 +673,8 @@ namespace vz::ecs
 						archive >> name;
 						uint64_t jump_size = 0;
 						archive >> jump_size;
-						auto it = entries_.find(name);
-						if (it != entries_.end())
+						auto it = entries.find(name);
+						if (it != entries.end())
 						{
 							uint64_t version;
 							archive >> version;
@@ -690,7 +690,7 @@ namespace vz::ecs
 			}
 			else
 			{
-				for (auto& it : entries_)
+				for (auto& it : entries)
 				{
 					archive << true;
 					archive << it.first; // name

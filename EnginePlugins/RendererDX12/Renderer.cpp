@@ -591,8 +591,8 @@ namespace vz
 		GraphicsDevice* device = nullptr;
 		bool viewShadingInCS = false;
 
-		FrameCB frameCB;
-		CameraCB cameraCB;
+		FrameCB frameCB = {};
+		CameraCB cameraCB = {};
 		// separate graphics pipelines for the combination of special rendering effects
 		renderer::View viewMain;
 		renderer::View viewReflection;
@@ -663,7 +663,7 @@ namespace vz
 		// ---------- GRenderPath3D's interfaces: -----------------
 		bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) override; // must delete all canvas-related resources and re-create
 		bool Render(const float dt) override;
-		bool Destory() override;
+		bool Destroy() override;
 	};
 }
 
@@ -2414,7 +2414,7 @@ namespace vz
 		return true;
 	}
 
-	bool GRenderPath3DDetails::Destory()
+	bool GRenderPath3DDetails::Destroy()
 	{
 		device->WaitForGPU();
 

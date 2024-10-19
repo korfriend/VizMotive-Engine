@@ -398,7 +398,7 @@ namespace vz
 		mutable std::atomic<uint32_t> queryAllocator{ 0 };
 
 		bool Update(const float dt) override;
-		bool Destory() override;
+		bool Destroy() override;
 
 		void RunPrimtiveUpdateSystem(jobsystem::context& ctx);
 		void RunMaterialUpdateSystem(jobsystem::context& ctx);

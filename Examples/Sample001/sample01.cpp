@@ -186,7 +186,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
             else
             {
-                renderer->Render(scene, cam);
+                //renderer->Render(scene, cam);
             }
         }
         if (done)

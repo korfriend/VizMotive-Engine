@@ -52,7 +52,7 @@ namespace vz
 
 	Scene::~Scene()
 	{
-		handlerScene_->Destory();
+		handlerScene_->Destroy();
 		delete handlerScene_;
 		handlerScene_ = nullptr;
 	}
@@ -387,16 +387,21 @@ namespace vz
 		}
 	}
 
-	bool Scene::DestoryScene(const Entity entity)
+	bool Scene::DestroyScene(const Entity entity)
 	{
 		auto it = scenes.find(entity);
 		if (it == scenes.end())
 		{
-			backlog::post("Scene::DestoryScene >> Invalid Entity! " + stringEntity(entity), backlog::LogLevel::Error);
+			backlog::post("Scene::DestroyScene >> Invalid Entity! " + stringEntity(entity), backlog::LogLevel::Error);
 			return false;
 		}
 		it->second.reset();
 		scenes.erase(it);
 		return true;
+	}
+
+	void Scene::DestroyAll()
+	{
+		scenes.clear();
 	}
 }

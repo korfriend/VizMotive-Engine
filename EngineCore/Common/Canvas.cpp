@@ -34,16 +34,21 @@ namespace vz::canvas
 		return render_path;
 	}
 
-	bool DestoryCanvas(const Entity entity)
+	bool DestroyCanvas(const Entity entity)
 	{
 		auto it = renderPaths.find(entity);
 		if (it == renderPaths.end())
 		{
-			backlog::post("Scene::DestoryScene >> Invalid Entity! " + stringEntity(entity), backlog::LogLevel::Error);
+			backlog::post("Scene::DestroyCanvas >> Invalid Entity! " + stringEntity(entity), backlog::LogLevel::Error);
 			return false;
 		}
 		it->second.reset();
 		renderPaths.erase(it);
 		return true;
+	}
+
+	void DestroyAll()
+	{
+		renderPaths.clear();
 	}
 }
