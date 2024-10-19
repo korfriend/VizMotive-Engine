@@ -523,6 +523,71 @@ namespace vzm
 		return it->second.get();
 	}
 
+	VID GetFirstVidByName(const std::string& name)
+	{
+		return compfactory::GetFirstEntityByName(name);
+	}
+	VzBaseComp* GetFirstComponentByName(const std::string& name)
+	{
+		VID vid = compfactory::GetFirstEntityByName(name);
+		if (vid == INVALID_VID)
+		{
+			return nullptr;
+		}
+		auto it = vzcomp::lookup.find(vid);
+		assert(it != vzcomp::lookup.end());
+		return it->second;
+	}
+
+	size_t GetVidsByName(const std::string& name, std::vector<VID>& vids)
+	{
+		return compfactory::GetEntitiesByName(name, vids);
+	}
+
+	size_t GetComponentsByName(const std::string& name, std::vector<VzBaseComp*>& components)
+	{
+		components.clear();
+		std::vector<VID> vids;
+		size_t n = compfactory::GetEntitiesByName(name, vids);
+		if (n == 0)
+		{
+			return 0;
+		}
+		
+		components.reserve(n);
+		for (size_t i = 0; i < n; ++i)
+		{
+			auto it = vzcomp::lookup.find(vids[i]);
+			assert(it != vzcomp::lookup.end());
+			components.push_back(it->second);
+		}
+		return n;
+	}
+
+	std::string GetNameByVid(const VID vid)
+	{
+		NameComponent* name_comp = compfactory::GetNameComponent(vid);
+		return name_comp ? name_comp->name : "";
+	}
+
+	VzBaseComp* GetComponent(const VID vid)
+	{
+		auto it = vzcomp::lookup.find(vid);
+		return it == vzcomp::lookup.end() ? nullptr : it->second;
+	}
+
+	
+	bool RemoveComponent(const VID vid)
+	{
+		return vzcomp::Destroy(vid);	// jobsystem
+	}
+
+
+
+
+
+
+
 	bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io)
 	{
 		typedef bool(*PI_Function)(std::unordered_map<std::string, std::any>& io);
