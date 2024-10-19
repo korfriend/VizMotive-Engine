@@ -3,12 +3,16 @@
 #include "Common/Archive.h"
 #include "Common/ResourceManager.h"
 
+#include <unordered_set>
+
 // component factory
 namespace vz::compfactory
 {
 	using namespace vz::ecs;
 
 	ComponentLibrary componentLibrary;
+
+	std::unordered_map<std::string, std::unordered_set<Entity>> lookupName2Entities;
 
 	ComponentManager<NameComponent>& nameManager = componentLibrary.Register<NameComponent>("NAME");
 	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>("TANSFORM");
@@ -78,6 +82,7 @@ namespace vz::compfactory
 		ENTITY_UPDATE(entity_update);
 		NameComponent* comp = &nameManager.Create(entity_update);
 		comp->name = name;
+		lookupName2Entities[name].insert(entity);
 		return comp;
 	}
 	TransformComponent* CreateTransformComponent(const Entity entity)
@@ -244,16 +249,36 @@ namespace vz::compfactory
 	}
 	size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities)
 	{
-		const std::vector<NameComponent>& names = nameManager.GetComponentArray();
 		entities.clear();
-		for (auto& it : names)
+
+		auto it = lookupName2Entities.find(name);
+		if (it == lookupName2Entities.end())
 		{
-			if (it.name == name)
-			{
-				entities.push_back(it.GetEntity());
-			}
+			return 0;
 		}
+		auto entity_set = it->second;
+		entities.resize(entity_set.size());
+		std::copy(entity_set.begin(), entity_set.end(), entities.begin());
+
+		//const std::vector<NameComponent>& names = nameManager.GetComponentArray();
+		//for (auto& it : names)
+		//{
+		//	if (it.name == name)
+		//	{
+		//		entities.push_back(it.GetEntity());
+		//	}
+		//}
+
 		return entities.size();
+	}
+	Entity GetFirstEntityByName(const std::string& name)
+	{
+		auto it = lookupName2Entities.find(name);
+		if (it == lookupName2Entities.end())
+		{
+			return INVALID_ENTITY;
+		}
+		return *it->second.begin();
 	}
 
 	size_t Destroy(const Entity entity)
@@ -275,6 +300,14 @@ namespace vz::compfactory
 			if (is_contain)
 			{
 				comp_manager->Remove(entity);
+
+				if (entry.first == "NAME")
+				{
+					NameComponent* name_comp = nameManager.GetComponent(entity);
+					assert(lookupName2Entities.contains(name_comp->name));
+					lookupName2Entities[name_comp->name].erase(entity);
+				}
+
 				num_destroyed++;
 			}
 		}
@@ -290,6 +323,7 @@ namespace vz::compfactory
 			num_destroyed += comp_manager->GetCount();
 			comp_manager->Clear();
 		}
+		lookupName2Entities.clear();
 		return num_destroyed;
 	}
 }

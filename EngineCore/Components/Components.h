@@ -926,6 +926,7 @@ namespace vz::compfactory
 
 	CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
+	CORE_EXPORT Entity GetFirstEntityByName(const std::string& name);
 
 	CORE_EXPORT size_t Destroy(const Entity entity);
 	CORE_EXPORT size_t DestroyAll();
