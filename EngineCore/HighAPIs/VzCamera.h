@@ -6,7 +6,7 @@ namespace vzm
 	struct API_EXPORT VzCamera : VzSceneComp
 	{
 		VzCamera(const VID vid, const std::string& originFrom)
-			: VzSceneComp(vid, originFrom, "VzCamera", SCENE_COMPONENT_TYPE::CAMERA) {}
+			: VzSceneComp(vid, originFrom, COMPONENT_TYPE::CAMERA) {}
 		// Pose parameters are defined in WS (not local space)
 		void SetWorldPoseByHierarchy();
 		void SetWorldPose(const float pos[3], const float view[3], const float up[3]);

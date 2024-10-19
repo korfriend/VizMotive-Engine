@@ -140,21 +140,20 @@ namespace vzm
         const_iterator end() const { return __params.end(); }
     };
 
-	enum class SCENE_COMPONENT_TYPE // every component involves a transform and a name
+	enum class COMPONENT_TYPE
 	{
-		// camera, light, actor component can have renderable resources technically
-		SCENEBASE = 0,  // empty (only transform and name)
+		UNDEF = 0,
 
+		// render interface component
+		SCENE,
+		RENDERER,
+
+		// scene components
 		CAMERA,
 		LIGHT,
-
-		// actors
 		ACTOR,
-	};
 
-	enum class RES_COMPONENT_TYPE
-	{
-		RESOURCE = 0,
+		// resources
 		GEOMETRY,
 		MATERIAL,
 		TEXTURE,
@@ -166,17 +165,17 @@ namespace vzm
 		VID componentVID_ = INVALID_VID;
 		TimeStamp timeStamp_ = {}; // will be automatically set 
 		std::string originFrom_;
-		std::string type_;
+		COMPONENT_TYPE type_;
 	public:
 		// User data
 		ParamMap<std::string> attributes;
-		VzBaseComp(const VID vid, const std::string& originFrom, const std::string& typeName)
-			: componentVID_(vid), originFrom_(originFrom), type_(typeName)
+		VzBaseComp(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
+			: componentVID_(vid), originFrom_(originFrom), type_(type)
 		{
 			UpdateTimeStamp();
 		}
 		VID GetVID() const { return componentVID_; }
-		std::string GetType() { return type_; };
+		COMPONENT_TYPE GetType() { return type_; };
 		TimeStamp GetTimeStamp() { return timeStamp_; };
 		void UpdateTimeStamp()
 		{
@@ -187,12 +186,8 @@ namespace vzm
 	};
     struct API_EXPORT VzSceneComp : VzBaseComp
     {
-	protected:
-		SCENE_COMPONENT_TYPE scenecompType_ = SCENE_COMPONENT_TYPE::SCENEBASE;
-	public:
-		VzSceneComp(const VID vid, const std::string& originFrom, const std::string& typeName, const SCENE_COMPONENT_TYPE scenecompType)
-			: VzBaseComp(vid, originFrom, typeName), scenecompType_(scenecompType) {}
-		SCENE_COMPONENT_TYPE GetSceneCompType() { return scenecompType_; };
+		VzSceneComp(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
+			: VzBaseComp(vid, originFrom, type) {}
 
 		bool IsDirtyTransform();
 		bool IsMatrixAutoUpdate();
@@ -233,12 +228,8 @@ namespace vzm
     };
 	struct API_EXPORT VzResource : VzBaseComp
 	{
-	protected:
-		RES_COMPONENT_TYPE resType_ = RES_COMPONENT_TYPE::RESOURCE;
-	public:
-		VzResource(const VID vid, const std::string& originFrom, const std::string& typeName, const RES_COMPONENT_TYPE resType)
-			: VzBaseComp(vid, originFrom, typeName), resType_(resType) {}
-		RES_COMPONENT_TYPE GetResType() { return resType_; }
+		VzResource(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
+			: VzBaseComp(vid, originFrom, type) {}
 	};
 }
 

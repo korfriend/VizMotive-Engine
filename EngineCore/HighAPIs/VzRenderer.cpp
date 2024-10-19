@@ -10,8 +10,8 @@ using namespace backlog;
 namespace vzm
 {
 #define GET_RENDERPATH(RENDERER, RET) RenderPath3D* RENDERER = (RenderPath3D*)canvas::GetCanvas(componentVID_); \
-	if (!RENDERER) {post(type_ + "(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;} \
-	if (RENDERER->GetType() != "RenderPath3D") {post(type_ + "(" + to_string(componentVID_) + ") is NOT RenderPath3D! (" + RENDERER->GetType() + ")", LogLevel::Error); return RET;}
+	if (!RENDERER) {post("RenderPath3D(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;} \
+	if (RENDERER->GetType() != "RenderPath3D") {post("RenderPath3D(" + to_string(componentVID_) + ") is NOT RenderPath3D!", LogLevel::Error); return RET;}
 
 	void VzRenderer::SetCanvas(const uint32_t w, const uint32_t h, const float dpi, void* window)
 	{

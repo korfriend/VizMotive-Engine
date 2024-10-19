@@ -9,7 +9,7 @@ using namespace backlog;
 namespace vzm
 {
 #define GET_GEO_COMP(COMP, RET) GeometryComponent* COMP = compfactory::GetGeometryComponent(componentVID_); \
-	if (!COMP) {post(type_ + "(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+	if (!COMP) {post("GeometryComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
 	void VzGeometry::MakeTestTriangle()
 	{
@@ -36,7 +36,7 @@ namespace vzm
 		prim.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
 
 		geometry->MovePrimitiveFrom(prim, 0);
-		geometry->UpdateRenderData();
+		//geometry->UpdateRenderData();
 		UpdateTimeStamp();
 	}
 }

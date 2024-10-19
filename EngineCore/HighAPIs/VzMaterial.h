@@ -14,7 +14,7 @@ namespace vzm
 		};
 
 		VzMaterial(const VID vid, const std::string& originFrom)
-			: VzResource(vid, originFrom, "VzMaterial", RES_COMPONENT_TYPE::MATERIAL) {}
+			: VzResource(vid, originFrom, COMPONENT_TYPE::MATERIAL) {}
 
 		void SetTexture(const VID vid, const TextureSlot slot);
 		void SetTexture(const VzResource* res, const TextureSlot slot) { SetTexture(res->GetVID(), slot); }

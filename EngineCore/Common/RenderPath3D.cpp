@@ -21,7 +21,7 @@ namespace vz
 
 		if (handlerRenderPath3D_)
 		{
-			handlerRenderPath3D_->Destory();
+			handlerRenderPath3D_->Destroy();
 			delete handlerRenderPath3D_;
 			handlerRenderPath3D_ = nullptr;
 		}
@@ -30,7 +30,7 @@ namespace vz
 	void RenderPath3D::DeleteGPUResources(const bool resizableOnly)
 	{
 		RenderPath2D::DeleteGPUResources(resizableOnly);
-		handlerRenderPath3D_->Destory();
+		handlerRenderPath3D_->Destroy();
 		if (!resizableOnly)
 		{
 			// Scene?!

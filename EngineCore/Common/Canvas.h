@@ -16,7 +16,8 @@ namespace vz
 		Canvas* GetCanvas(const Entity entity);
 		Canvas* GetFirstCanvasByName(const std::string& name);
 		RenderPath3D* CreateRenderPath3D(graphics::GraphicsDevice* graphicsDevice, const std::string& name, const Entity entity = 0);
-		bool DestoryCanvas(const Entity entity);
+		bool DestroyCanvas(const Entity entity);
+		void DestroyAll();
 	}
 
 	// The canvas specifies a DPI-aware drawing area

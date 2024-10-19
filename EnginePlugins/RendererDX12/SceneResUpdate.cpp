@@ -700,7 +700,7 @@ namespace vz
 		return true;
 	}
 
-	bool GSceneDetails::Destory()
+	bool GSceneDetails::Destroy()
 	{
 		instanceArraySize = 0;
 		geometryArraySize = 0;

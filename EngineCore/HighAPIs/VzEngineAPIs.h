@@ -55,9 +55,6 @@ namespace vzm
 	//  - return sceneId containing the parent component 
 	API_EXPORT SceneVID AppendSceneCompVidTo(const VID vid, const VID parentVid);
 	API_EXPORT VzScene* AppendSceneCompTo(const VZ_NONNULL VzBaseComp* comp, const VZ_NONNULL VzBaseComp* parentComp);
-	// Get Component IDs in a scene
-	//  - return # of scene Components 
-	API_EXPORT size_t GetSceneCompoenentVids(const SCENE_COMPONENT_TYPE compType, const VID sceneVid, std::vector<VID>& vids, const bool isRenderableOnly = false);	// Get CameraParams and return its pointer registered in renderer
 	// Load a mesh file (obj and stl) into actors and return the first actor
 	//  - return zero in case of failure
 	API_EXPORT VzActor* LoadModelFileIntoActors(const std::string& filename, std::vector<VzActor*>& actors);

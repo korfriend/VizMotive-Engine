@@ -255,4 +255,41 @@ namespace vz::compfactory
 		}
 		return entities.size();
 	}
+
+	size_t Destroy(const Entity entity)
+	{
+		size_t num_destroyed = 0u;
+		for (auto& entry : componentLibrary.entries)
+		{
+			auto& comp_manager = entry.second.component_manager;
+			auto& entities = comp_manager->GetEntityArray();
+			bool is_contain = false;
+			for (auto ett : entities)
+			{
+				if (ett == entity)
+				{
+					is_contain = true;
+					break;
+				}
+			}
+			if (is_contain)
+			{
+				comp_manager->Remove(entity);
+				num_destroyed++;
+			}
+		}
+		return num_destroyed;
+	}
+
+	size_t DestroyAll()
+	{
+		size_t num_destroyed = 0u;
+		for (auto& entry : componentLibrary.entries)
+		{
+			auto& comp_manager = entry.second.component_manager;
+			num_destroyed += comp_manager->GetCount();
+			comp_manager->Clear();
+		}
+		return num_destroyed;
+	}
 }
