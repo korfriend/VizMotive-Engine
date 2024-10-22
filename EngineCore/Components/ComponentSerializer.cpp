@@ -200,21 +200,75 @@ namespace vz
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 
+			archive >> u8_data;
+			dataType_ = static_cast<DataType>(u8_data);
 			archive >> width_;
 			archive >> height_;
 			archive >> depth_;
 			archive >> arraySize_;
-			archive >> vuidBindingGeometry_;
 		}
 		else
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
+			archive << static_cast<uint8_t>(dataType_);
 			archive << width_;
 			archive << height_;
 			archive << depth_;
 			archive << arraySize_;
-			archive << vuidBindingGeometry_;	
+		}
+	}
+
+
+	XMFLOAT3 voxelSize_ = {};
+	DataType originalDataType_ = DataType::UNDEFINED;
+	XMFLOAT2 storedMinMax_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
+	XMFLOAT2 originalMinMax_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
+
+	Histogram histogram_;
+
+	XMFLOAT4X4 matAlign_ = math::IDENTITY_MATRIX; // VS to real-sized aligned space
+
+
+	void VolumeTextureComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		TextureComponent::Serialize(archive, version);
+		if (archive.IsReadMode())
+		{
+			uint8_t u8_data;
+			archive >> u8_data;
+			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
+
+			archive >> voxelSize_;
+			archive >> u8_data;
+			originalDataType_ = static_cast<DataType>(u8_data);
+			archive >> storedMinMax_;
+			archive >> originalMinMax_;
+			archive >> matAlign_;
+
+			archive >> histogram_.minValue;
+			archive >> histogram_.maxValue;
+			archive >> histogram_.numBins;
+			archive >> histogram_.range;
+			archive >> histogram_.range_rcp;
+			archive >> histogram_.histogram;
+		}
+		else
+		{
+			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
+
+			archive << voxelSize_;
+			archive << static_cast<uint8_t>(originalDataType_);
+			archive << storedMinMax_;
+			archive << originalMinMax_;
+			archive << matAlign_;
+
+			archive << histogram_.minValue;
+			archive << histogram_.maxValue;
+			archive << histogram_.numBins;
+			archive << histogram_.range;
+			archive << histogram_.range_rcp;
+			archive << histogram_.histogram;
 		}
 	}
 

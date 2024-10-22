@@ -191,8 +191,46 @@ namespace vz
 		GEOMETRY,
 		RENDERABLE,
 		TEXTURE,
+		VOLUMETEXTURE,
 		LIGHT,
 		CAMERA,
+	};
+
+	enum class DataType : uint8_t 
+	{
+		UNDEFINED = 0,
+		BOOL,
+		CHAR,
+		CHAR2,
+		CHAR3,
+		CHAR4,
+		BYTE,
+		BYTE2,
+		BYTE3,
+		BYTE4,
+		SHORT,
+		SHORT2,
+		SHORT3,
+		SHORT4,
+		USHORT,
+		USHORT2,
+		USHORT3,
+		USHORT4,
+		FLOAT,
+		FLOAT2,
+		FLOAT3,
+		FLOAT4,
+		INT,
+		INT2,
+		INT3,
+		INT4,
+		UINT,
+		UINT2,
+		UINT3,
+		UINT4,
+		MAT3,   //!< a 3x3 float matrix
+		MAT4,   //!< a 4x4 float matrix
+		STRUCT
 	};
 
 	struct CORE_EXPORT ComponentBase
@@ -208,6 +246,7 @@ namespace vz
 		//std::atomic_bool isLocked_ = {};
 
 	public:
+		ComponentBase() {};
 		ComponentBase(const ComponentType compType, const Entity entity, const VUID vuid);
 		ComponentType GetComponentType() const { return cType_; }
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
@@ -616,11 +655,36 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};
 
+	struct Histogram
+	{
+		std::vector<uint64_t> histogram;	// num bins
+		float minValue = 0;
+		float maxValue = 0;
+		float range = 0;
+		float range_rcp = 0;
+		float numBins = 0;
+
+		void CreateHistogram(const float minValue, const float maxValue, const size_t numBins)
+		{
+			histogram.assign(numBins, 0);
+			this->minValue = minValue;
+			this->maxValue = maxValue;
+			this->numBins = (float)numBins;
+			range = maxValue - minValue;
+			range_rcp = 1.f / range;
+		}
+		inline void CountValue(const float v)
+		{
+			float normal_v = (v - minValue) * range_rcp;
+			if (normal_v < 0 || normal_v > 1) return;
+			size_t index = (size_t)(normal_v * numBins) - 1;
+			histogram[index]++;
+		}
+	};
 	struct Resource;
 	constexpr size_t TEXTURE_MAX_RESOLUTION = 4096;
-	struct CORE_EXPORT TextureComponent : ComponentBase
+	struct CORE_EXPORT TextureComponent : virtual ComponentBase
 	{
-	public:
 		enum class TextureType : uint8_t
 		{
 			Undefined,
@@ -636,18 +700,17 @@ namespace vz
 		};
 	protected:
 		TextureType textureType_ = TextureType::Undefined;
+		DataType dataType_ = DataType::UNDEFINED;
 		std::shared_ptr<Resource> internalResource_;
 		uint32_t width_ = 1;
 		uint32_t height_ = 1;
 		uint32_t depth_ = 1;
 		uint32_t arraySize_ = 1;
 
-		// dicom info : using geometry or not
-		VUID vuidBindingGeometry_ = INVALID_VUID;
-
 		// sampler 
 	public:
 		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
+		TextureComponent(const ComponentType type, const Entity entity, const VUID vuid = 0) : ComponentBase(type, entity, vuid) {}
 		
 		TextureType GetTextureType() const { return textureType_; }
 		bool IsValid() const;
@@ -656,7 +719,7 @@ namespace vz
 		int GetFontStyle() const;
 		void CopyFromData(const std::vector<uint8_t>& data);
 		void MoveFromData(std::vector<uint8_t>&& data);
-		void SetOutdated();
+		void SetOutdated();	// to avoid automatic renderdata update
 
 		inline uint32_t GetWidth() const { return width_; }
 		inline uint32_t GetHeight() const { return height_; }
@@ -665,10 +728,51 @@ namespace vz
 		inline void SetTextureDimension(const uint32_t w, const uint32_t h, const uint32_t d, const uint32_t array) {
 			width_ = w, height_ = h, depth_ = d, arraySize_ = array;
 		}
+		inline void SetDataType(const DataType dtype) { dataType_ = dtype; }
+		inline DataType GetDataType() const { return dataType_; }
 		
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
+	};
+
+	struct CORE_EXPORT VolumeTextureComponent : virtual TextureComponent
+	{
+	protected:
+		XMFLOAT3 voxelSize_ = {};
+		DataType originalDataType_ = DataType::UNDEFINED;
+		XMFLOAT2 storedMinMax_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
+		XMFLOAT2 originalMinMax_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
+
+		Histogram histogram_;
+
+		XMFLOAT4X4 matAlign_ = math::IDENTITY_MATRIX; // VS to real-sized aligned space
+
+		// sampler 
+	public:
+		VolumeTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid) {}
+
+		inline void SetVoxelSize(const XMFLOAT3& voxelSize) { voxelSize_ = voxelSize; }
+		inline XMFLOAT3 GetVoxelSize() const { return voxelSize_; }
+		inline float GetMinVoxelSize() const { return std::min({voxelSize_.x, voxelSize_.y, voxelSize_.z}); }
+
+		inline void SetOriginalDataType(const DataType originalDataType) { originalDataType_ = originalDataType; }
+		inline DataType GetOriginalDataType() const { return originalDataType_; }
+
+		inline void SetStoredMinMax(const XMFLOAT2 minMax) { storedMinMax_ = minMax; }
+		inline XMFLOAT2 GetStoredMinMax() const { return storedMinMax_; }
+		inline void SetOriginalMinMax(const XMFLOAT2 minMax) { originalMinMax_ = minMax; }
+		inline XMFLOAT2 GetOriginalMinMax() const { return originalMinMax_; }
+
+		const Histogram& GetHistogram() const { return histogram_; }
+		void UpdateHistogram();
+
+		inline void SetAlign(const XMFLOAT3& axisVolX, const XMFLOAT3& axisVolY, const bool isRHS);
+		inline XMFLOAT4X4 GetAlign() const { return matAlign_; }
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		inline static const ComponentType IntrinsicType = ComponentType::VOLUMETEXTURE;
 	};
 
 	// scene 
