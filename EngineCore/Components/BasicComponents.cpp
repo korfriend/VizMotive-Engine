@@ -277,20 +277,6 @@ namespace vz
 		if (geo_comp == nullptr) return false;
 		return geo_comp->GetNumParts() == vuidMaterials.size() && geo_comp->GetNumParts() > 0;
 	}
-	void RenderableComponent::checkWetmapEnabled()
-	{
-		bool wetmap = false;
-		for (auto vuid : vuidMaterials_)
-		{
-			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuid));
-			if (mat_comp->IsWetmapEnabled())
-			{
-				wetmap = true;
-				break;
-			}
-		}
-		wetmap ? flags_ |= SCU32(RenderableFlags::WETMAP_ENABLED) : flags_ &= ~SCU32(RenderableFlags::WETMAP_ENABLED);
-	}
 	void RenderableComponent::SetGeometry(const Entity geometryEntity)
 	{
 		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(geometryEntity);
@@ -301,7 +287,6 @@ namespace vz
 		}
 
 		GRenderableComponent* downcast = (GRenderableComponent*)this;
-		downcast->vbWetmaps.clear();
 
 		vuidGeometry_ = geo_comp->GetVUID();
 		if (geo_comp->GetNumParts() == vuidMaterials_.size() && compfactory::GetTransformComponent(entity_)
@@ -342,7 +327,6 @@ namespace vz
 		{
 			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
 		}
-		checkWetmapEnabled();
 
 		timeStampSetter_ = TimerNow;
 	}
@@ -364,13 +348,12 @@ namespace vz
 		{
 			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
 		}
-		checkWetmapEnabled();
 
 		timeStampSetter_ = TimerNow;
 	}
 
 	Entity RenderableComponent::GetGeometry() const { return compfactory::GetEntityByVUID(vuidGeometry_); }
-	Entity RenderableComponent::GetMaterial(const size_t slot) { return slot >= vuidMaterials_.size() ? INVALID_ENTITY : compfactory::GetEntityByVUID(vuidMaterials_[slot]); }
+	Entity RenderableComponent::GetMaterial(const size_t slot) const { return slot >= vuidMaterials_.size() ? INVALID_ENTITY : compfactory::GetEntityByVUID(vuidMaterials_[slot]); }
 	std::vector<Entity> RenderableComponent::GetMaterials() const
 	{
 		size_t n = vuidMaterials_.size();

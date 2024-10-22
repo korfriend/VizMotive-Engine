@@ -94,6 +94,9 @@ namespace vz
 			archive >> specularColor_;
 			archive >> emissiveColor_;
 			archive >> phongFactors_;
+			archive >> alphaRef_;
+			archive >> u32_data;
+			engineStencilRef_ = static_cast<StencilRef>(u32_data);
 
 			// need to check version 
 			archive >> u32_data;
@@ -116,6 +119,8 @@ namespace vz
 			archive << specularColor_;
 			archive << emissiveColor_;
 			archive << phongFactors_;
+			archive << alphaRef_;
+			archive << SCU32(engineStencilRef_);
 
 			uint32_t tex_slot_count = SCU32(TextureSlot::TEXTURESLOT_COUNT);
 			archive << tex_slot_count;
@@ -163,7 +168,7 @@ namespace vz
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 			
-			archive >> tesselationFactor_;
+			archive >> tessellationFactor_;
 			uint32_t u32_data;
 			archive >> u32_data; // num of parts
 			for (size_t i = 0, n = u32_data; i < n; ++i)
@@ -178,7 +183,7 @@ namespace vz
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
-			archive << tesselationFactor_;
+			archive << tessellationFactor_;
 			archive << parts_.size();
 			for (size_t i = 0, n = parts_.size(); i < n; ++i)
 			{
@@ -225,6 +230,8 @@ namespace vz
 			archive >> visibleLayerMask_;
 			archive >> vuidGeometry_;
 			archive >> fadeDistance_;
+			archive >> visibleCenter_;
+			archive >> visibleRadius_;
 
 			uint32_t u32_data;
 			archive >> u32_data;
@@ -241,6 +248,8 @@ namespace vz
 			archive << visibleLayerMask_;
 			archive << vuidGeometry_;
 			archive << fadeDistance_;
+			archive << visibleCenter_;
+			archive << visibleRadius_;
 
 			archive << vuidMaterials_.size();
 			for (size_t i = 0, n = vuidMaterials_.size(); i < n; ++i)

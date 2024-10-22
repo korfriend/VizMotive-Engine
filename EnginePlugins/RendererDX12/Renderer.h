@@ -262,22 +262,28 @@ namespace vz
 		DEBUGRENDERING_EMITTER,
 		DEBUGRENDERING_COUNT
 	};
-
-	// engine stencil reference values. These can be in range of [0, 15].
-	enum STENCILREF
-	{
-		STENCILREF_EMPTY = 0,
-		STENCILREF_DEFAULT = 1,
-		STENCILREF_CUSTOMSHADER = 2,
-		STENCILREF_OUTLINE = 3,
-		STENCILREF_CUSTOMSHADER_OUTLINE = 4,
-		STENCILREF_LAST = 15
-	};
 }
 
 //----- renderer interfaces -----
 namespace vz
 {
+	union MeshRenderingVariant
+	{
+		struct
+		{
+			uint32_t renderpass : 4;	// enums::RENDERPASS
+			uint32_t shadertype : 8;	// MaterialComponent::ShaderType::COUNT
+			uint32_t blendmode : 4;		// enums::BLENDMODE
+			uint32_t cullmode : 2;		// graphics::CullMode
+			uint32_t tessellation : 1;	// bool
+			uint32_t alphatest : 1;		// bool
+			uint32_t sample_count : 4;	// 1, 2, 4, 8
+			uint32_t mesh_shader : 1;	// bool
+		} bits;
+		uint32_t value;
+	};
+	static_assert(sizeof(MeshRenderingVariant) == sizeof(uint32_t));
+
 	namespace initializer
 	{
 		void SetUpStates();
@@ -295,23 +301,6 @@ namespace vz
 		);
 
 		void LoadShaders();
-
-		union MeshRenderingVariant
-		{
-			struct
-			{
-				uint32_t renderpass : 4;	// enums::RENDERPASS
-				uint32_t shadertype : SHADERTYPE_BIN_COUNT;	// MaterialComponent::ShaderType::COUNT
-				uint32_t blendmode : 4;		// enums::BLENDMODE
-				uint32_t cullmode : 2;		// graphics::CullMode
-				uint32_t tessellation : 1;	// bool
-				uint32_t alphatest : 1;		// bool
-				uint32_t sample_count : 4;	// 1, 2, 4, 8
-				uint32_t mesh_shader : 1;	// bool
-			} bits;
-			uint32_t value;
-		};
-		static_assert(sizeof(MeshRenderingVariant) == sizeof(uint32_t));
 		inline PipelineState* GetObjectPSO(MeshRenderingVariant variant);
 	}
 
@@ -347,13 +336,13 @@ namespace vz
 		ShaderScene shaderscene = {};
 
 		graphics::GraphicsDevice* device = nullptr;
-		// Instances for bindless renderables:
+		// Instances (parts) for bindless renderables:
 		//	contains in order:
 		//		1) renderables (normal meshes)
 		size_t instanceArraySize = 0;
 		graphics::GPUBuffer instanceUploadBuffer[graphics::GraphicsDevice::GetBufferCount()]; // dynamic GPU-usage
 		graphics::GPUBuffer instanceBuffer = {};	// default GPU-usage
-		ShaderMeshInstance* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
+		ShaderRenderable* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
 
 		// Geometries for bindless visiblity indexing:
 		//	contains in order:
@@ -402,6 +391,6 @@ namespace vz
 
 		void RunPrimtiveUpdateSystem(jobsystem::context& ctx);
 		void RunMaterialUpdateSystem(jobsystem::context& ctx);
-		void RunRenderableUpdateSystem(jobsystem::context& ctx);
+		void RunRenderableUpdateSystem(jobsystem::context& ctx); // note a single renderable can generate multiple mesh instances
 	};
 }

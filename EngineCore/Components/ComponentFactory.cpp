@@ -1,4 +1,4 @@
-#include "Components.h"
+#include "ComponentDetails.h"
 #include "Utils/ECS.h"
 #include "Common/Archive.h"
 #include "Common/ResourceManager.h"

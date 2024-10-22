@@ -93,20 +93,17 @@ struct alignas(16) ShaderTransform
 	}
 };
 
-#define MAXPARTS 32
-struct alignas(16) ShaderMeshInstance
+struct alignas(16) ShaderRenderable
 {
 	uint uid;	// using entity
 	uint flags;	// high 8 bits: user stencilRef (same as visibility-layered mask)
-	uint indexGeometryBuffers;	// index of bindless array of VBs (with IB)
 	uint alphaTest_size;
+	float fadeDistance;
 
-	uint geometryOffset; // offset of all geometry parts
-	uint geometryCount; // number of all geometry parts 
-	uint baseGeometryOffset;	// offset of all geometry parts of the instance (if no LODs, then it is equal to geometryOffset)
-	uint baseGeometryCount;		// number of all geometry parts of the instance (if no LODs, then it is equal to geometryCount)
-
-	uint materialIndices[MAXPARTS];
+	uint geometryOffset; // offset of all geometries for currently active LOD (geomtryPartIndex applied by LODs)
+	uint geometryCount;
+	uint baseGeometryOffset;	// offset of all geometries of the instance (if no LODs, then it is equal to geometryOffset)
+	uint baseGeometryCount;
 
 	float3 aabbCenter;
 	float aabbRadius;
@@ -120,11 +117,11 @@ struct alignas(16) ShaderMeshInstance
 	{
 		uid = 0;
 		flags = 0;
-		indexGeometryBuffers = 0;
 		alphaTest_size = 0;
+		fadeDistance = 0;
 
-		baseGeometryOffset = geometryOffset = 0;
-		baseGeometryOffset = geometryCount = 0;
+		geometryOffset = baseGeometryOffset = 0;
+		baseGeometryOffset = baseGeometryOffset = 0;
 
 		aabbCenter = float3(0, 0, 0);
 		aabbRadius = 0;
@@ -133,11 +130,6 @@ struct alignas(16) ShaderMeshInstance
 		transform.Init();
 		transformPrev.Init();
 		transformRaw.Init();
-
-		for (int i = 0; i < MAXPARTS; ++i)
-		{
-			materialIndices[i] = 0;
-		}
 	}
 
 	inline void SetUserStencilRef(uint stencilRef)
@@ -567,6 +559,14 @@ struct ShaderMeshInstancePointer
 	{
 		return float((data >> 28u) & 0xF) / 15.0f;
 	}
+};
+
+struct RenderablePushConstants
+{
+	uint geometryIndex;
+	uint materialIndex;
+	int instances;
+	uint instance_offset;
 };
 
 struct alignas(16) ShaderScene
