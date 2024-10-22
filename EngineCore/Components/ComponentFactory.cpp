@@ -26,6 +26,7 @@ namespace vz::compfactory
 	ComponentManager<GMaterialComponent>& materialManager = componentLibrary.Register<GMaterialComponent>("MATERIAL");
 	ComponentManager<GGeometryComponent>& geometryManager = componentLibrary.Register<GGeometryComponent>("GEOMETRY");
 	ComponentManager<GTextureComponent>& textureManager = componentLibrary.Register<GTextureComponent>("TEXTURE");
+	ComponentManager<GVolumeTextureComponent>& volumeManager = componentLibrary.Register<GVolumeTextureComponent>("TEXTURE");
 
 	ComponentBase* GetComponentByVUID(const VUID vuid)
 	{
@@ -40,6 +41,7 @@ namespace vz::compfactory
 		case ComponentType::MATERIAL: return materialManager.GetComponent(vuid);
 		case ComponentType::GEOMETRY: return geometryManager.GetComponent(vuid);
 		case ComponentType::TEXTURE: return textureManager.GetComponent(vuid);
+		case ComponentType::VOLUMETEXTURE: return volumeManager.GetComponent(vuid);
 		case ComponentType::LIGHT: return lightManager.GetComponent(vuid);
 		case ComponentType::CAMERA: return cameraManager.GetComponent(vuid);
 		default: assert(0);
@@ -120,6 +122,12 @@ namespace vz::compfactory
 		TextureComponent* comp = &textureManager.Create(entity_update);
 		return comp;
 	}
+	VolumeTextureComponent* CreateVolumeComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		VolumeTextureComponent* comp = &volumeManager.Create(entity_update);
+		return comp;
+	}
 	LightComponent* CreateLightComponent(const Entity entity)
 	{
 		ENTITY_UPDATE(entity_update);
@@ -162,6 +170,10 @@ namespace vz::compfactory
 	TextureComponent* GetTextureComponent(const Entity entity)
 	{
 		return textureManager.GetComponent(entity);
+	}
+	VolumeTextureComponent* GetVolumeComponent(const Entity entity)
+	{
+		return volumeManager.GetComponent(entity);
 	}
 	RenderableComponent* GetRenderableComponent(const Entity entity)
 	{
