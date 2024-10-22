@@ -319,6 +319,8 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::HIERARCHY;
 	};
 
+#define FLAG_SETTER(FLAG, FLAG_ENUM) enabled ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
+
 	// resources
 	struct CORE_EXPORT MaterialComponent : ComponentBase
 	{
@@ -334,6 +336,8 @@ namespace vz
 			TESSELATION = 1 << 6,
 			ALPHA_TEST = 1 << 7,
 			WETMAP = 1 << 8,
+			CAST_SHADOW = 1 << 9,
+			RECEIVE_SHADOW = 1 << 10,
 		};
 		enum class ShaderType : uint32_t
 		{
@@ -359,11 +363,24 @@ namespace vz
 			BLENDMODE_COUNT
 		};
 
+		// engine stencil reference values. These can be in range of [0, 15].
+		enum class StencilRef : uint8_t
+		{
+			STENCILREF_EMPTY = 0,
+			STENCILREF_DEFAULT = 1,
+			STENCILREF_CUSTOMSHADER = 2,
+			STENCILREF_OUTLINE = 3,
+			STENCILREF_CUSTOMSHADER_OUTLINE = 4,
+			STENCILREF_LAST = 15
+		};
+
 	protected:
 		uint32_t flags_ = (uint32_t)RenderFlags::FORWARD;
 		ShaderType shaderType_ = ShaderType::PHONG;
 		BlendMode blendMode_ = BlendMode::BLENDMODE_OPAQUE;
+		StencilRef engineStencilRef_ = StencilRef::STENCILREF_DEFAULT;
 
+		float alphaRef_ = 1.f;
 		XMFLOAT4 baseColor_ = XMFLOAT4(1, 1, 1, 1);
 		XMFLOAT4 specularColor_ = XMFLOAT4(1, 1, 1, 1);
 		XMFLOAT4 emissiveColor_ = XMFLOAT4(1, 1, 1, 0);
@@ -384,10 +401,13 @@ namespace vz
 		inline const XMFLOAT4& GetSpecularColor() const { return specularColor_; }
 		inline const XMFLOAT4& GetEmissiveColor() const { return emissiveColor_; }	// w is emissive strength
 
+		void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; }
 		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; }
 		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
-		inline void EnableWetmap(const bool enabled) { enabled ? flags_ |= SCU32(RenderFlags::WETMAP) : flags_ &= ~SCU32(RenderFlags::WETMAP); }
+		inline void EnableWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; }
+		inline void SetCastShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; }
+		inline void SetReceiveShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 
@@ -398,6 +418,11 @@ namespace vz
 		inline bool IsTesellated() const { return flags_ & SCU32(RenderFlags::TESSELATION); }
 		inline bool IsAlphaTestEnabled() const { return flags_ & SCU32(RenderFlags::ALPHA_TEST); }
 		inline bool IsWetmapEnabled() const { return flags_ & SCU32(RenderFlags::WETMAP); }
+		inline bool IsCastShadow() const { return flags_ & SCU32(RenderFlags::CAST_SHADOW); }
+		inline bool IsReceiveShadow() const { return flags_ & SCU32(RenderFlags::RECEIVE_SHADOW); }
+		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
+
+		inline float GetAlphaRef() const { return alphaRef_; }
 		inline BlendMode GetBlendMode() const { return blendMode_; }
 		inline VUID GetTextureVUID(const size_t slot) const { 
 			if (slot >= SCU32(TextureSlot::TEXTURESLOT_COUNT)) return INVALID_VUID; return textureComponents_[slot];
@@ -555,7 +580,7 @@ namespace vz
 		};
 	protected:
 		std::vector<Primitive> parts_;	
-		float tesselationFactor_ = 0.f;
+		float tessellationFactor_ = 0.f;
 
 		// Non-serialized attributes
 		bool isDirty_ = true;	// BVH, AABB, ...
@@ -576,8 +601,8 @@ namespace vz
 		const Primitive* GetPrimitive(const size_t slot) const;
 		const std::vector<Primitive>& GetPrimitives() const { return parts_; }
 		size_t GetNumParts() const { return parts_.size(); }
-		void SetTesselationFactor(const float tesslationFactor) { tesselationFactor_ = tesslationFactor; }
-		float GetTesselationFactor() const { return tesselationFactor_; }
+		void SetTessellationFactor(const float tessllationFactor) { tessellationFactor_ = tessllationFactor; }
+		float GetTessellationFactor() const { return tessellationFactor_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -654,19 +679,20 @@ namespace vz
 		{
 			EMPTY = 0,
 			RENDERABLE = 1 << 0,
-			CAST_SHADOW = 1 << 1,
-			RECEIVE_SHADOW = 1 << 2,
 			REQUEST_PLANAR_REFLECTION = 1 << 4,
 			LIGHTMAP_RENDER_REQUEST = 1 << 5,
 			LIGHTMAP_DISABLE_BLOCK_COMPRESSION = 1 << 6,
 			FOREGROUND = 1 << 7,
-			WETMAP_ENABLED = 1 << 10,
 		};
 		uint32_t flags_ = SCU32(RenderableFlags::EMPTY);
 
 		uint8_t visibleLayerMask_ = 0x7;
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
+
+		// parameters for visibility effect
+		XMFLOAT3 visibleCenter_ = XMFLOAT3(0, 0, 0);
+		float visibleRadius_ = 0;
 		float fadeDistance_ = 0.f;
 
 		// Non-serialized attributes:
@@ -674,7 +700,6 @@ namespace vz
 		//		- transformComponent, geometryComponent, and material components (with their referencing textureComponents)
 		bool isDirty_ = true;
 		geometrics::AABB aabb_; // world AABB
-		void checkWetmapEnabled();
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
@@ -682,20 +707,23 @@ namespace vz
 		bool IsDirty() const { return isDirty_; }
 		bool IsRenderable() const { return flags_ & SCU32(RenderableFlags::RENDERABLE); }
 
-		void SetForeground(const bool enabled) { enabled ? flags_ |= SCU32(RenderableFlags::FOREGROUND) : flags_ &= ~SCU32(RenderableFlags::FOREGROUND); }
+		void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
 		bool IsForeground() const { return flags_ & ~SCU32(RenderableFlags::FOREGROUND); }
 
 		void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; }
+		void SetVisibleRadius(const float radius) { visibleRadius_ = radius; }
+		void SetVisibleCenter(const XMFLOAT3 center) { visibleCenter_ = center; }
 		void SetGeometry(const Entity geometryEntity);
 		void SetMaterial(const Entity materialEntity, const size_t slot);
 		void SetMaterials(const std::vector<Entity>& materials);
 		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); timeStampSetter_ = TimerNow; }
 		bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
-		bool IsWetmapEnabled() const { return flags_ & SCU32(RenderableFlags::WETMAP_ENABLED); }
 		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
 		float GetFadeDistance() const { return fadeDistance_; }
+		float GetVisibleRadius() const { return visibleRadius_; }
+		XMFLOAT3 GetVisibleCenter() const { return visibleCenter_; }
 		Entity GetGeometry() const;
-		Entity GetMaterial(const size_t slot);
+		Entity GetMaterial(const size_t slot) const;
 		std::vector<Entity> GetMaterials() const;
 		void Update();
 		geometrics::AABB GetAABB() const { return aabb_; }
@@ -927,7 +955,4 @@ namespace vz::compfactory
 	CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
 	CORE_EXPORT Entity GetFirstEntityByName(const std::string& name);
-
-	CORE_EXPORT size_t Destroy(const Entity entity);
-	CORE_EXPORT size_t DestroyAll();
 }

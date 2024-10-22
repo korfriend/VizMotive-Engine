@@ -24,7 +24,7 @@ namespace vz
 
 			const std::vector<Primitive>& primitives = geometry.GetPrimitives();
 
-			float tessealation_factor = geometry.GetTesselationFactor();
+			float tessealation_factor = geometry.GetTessellationFactor();
 			for (size_t part_index = 0, n = primitives.size(); part_index < n; ++part_index)
 			{
 				GBuffers* prim_buffer_ptr = geometry.GetGBuffer(part_index);
@@ -116,6 +116,7 @@ namespace vz
 					shader_material.emissive_cloak = pack_half4(XMFLOAT4(emissive_color.x * emissive_color.w, emissive_color.y * emissive_color.w, emissive_color.z * emissive_color.w, 0));
 					shader_material.specular_chromatic = pack_half4(XMFLOAT4(specular_color.x * specular_color.w, specular_color.y * specular_color.w, specular_color.z * specular_color.w, 0));
 					shader_material.texMulAdd = tex_mul_add;
+					const float alphaRef = material.GetAlphaRef();
 
 					// will add the material feature..
 					const float roughness = 0.f;
@@ -124,7 +125,6 @@ namespace vz
 					const float refraction = 0.f;
 					const float normalMapStrength = 0.f;
 					const float parallaxOcclusionMapping = 0.f;
-					const float alphaRef = 1.f;
 					const float displacementMapping = 0.f;
 					const XMFLOAT4 subsurfaceScattering = XMFLOAT4(1, 1, 1, 0);
 					const XMFLOAT4 sheenColor = XMFLOAT4(1, 1, 1, 1);
@@ -277,41 +277,14 @@ namespace vz
 			}
 			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
 
-			renderable.geometryIndex = ~0u;
+			renderable.renderableIndex = ~0u;
 			if (renderable.IsRenderable())
 			{
 				// These will only be valid for a single frame:
 				Entity geo_entity = renderable.GetGeometry();
-				const GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geo_entity);
+				GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geo_entity);
 				const std::vector<GeometryComponent::Primitive>& primitives = geometry.GetPrimitives();
-				assert(primitives.size() > 0); // if (renderable.IsRenderable())				
-
-				renderable.geometryIndex = Scene::GetIndex(geometryEntities, geo_entity);
-
-				//	* wetmap looks useful in our rendering purposes
-				//	* wetmap option is determined by the renderable's associated materials
-				if (renderable.IsWetmapEnabled() && renderable.vbWetmaps.size() == 0)
-				{
-					renderable.vbWetmaps.reserve(primitives.size());
-					for (uint32_t i = 0, n = primitives.size(); i < n; ++i)
-					{
-						GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(i));
-
-						const GeometryComponent::Primitive& primitive = primitives[i];
-						GPUBufferDesc desc;
-						desc.size = primitive.GetNumVertices() * sizeof(uint16_t);
-						desc.format = Format::R16_UNORM;
-						desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-						device->CreateBuffer(&desc, nullptr, &renderable.vbWetmaps[i]);
-						device->SetName(&renderable.vbWetmaps[i], ("wetmap" + std::to_string(i)).c_str());
-					}
-					
-					renderable.wetmapCleared = false;
-				}
-				else if (!renderable.IsWetmapEnabled() && renderable.vbWetmaps.size() > 0)
-				{
-					renderable.vbWetmaps.clear();
-				}
+				assert(primitives.size() > 0); // if (renderable.IsRenderable())		
 
 				union SortBits
 				{
@@ -332,30 +305,55 @@ namespace vz
 				SortBits sort_bits;
 				sort_bits.bits.sort_priority = renderable.sortPriority;
 
-				renderable.materialFilterFlags = 0;
 				size_t num_parts = primitives.size();
-				assert(num_parts < MAXPARTS);
+
+				renderable.renderableIndex = Scene::GetIndex(renderableEntities, entity);
+				renderable.geometryIndex = Scene::GetIndex(renderableEntities, geo_entity);
+				renderable.materialIndices.resize(num_parts);
+				renderable.materialFilterFlags = 0;
 				// Create GPU instance data:
-				ShaderMeshInstance inst;
+				ShaderRenderable inst;
 				inst.Init();
 
 				for (uint32_t part_index = 0; part_index < num_parts; ++part_index)
 				{
 					const Primitive& part = primitives[part_index];
 					Entity material_entity = renderable.GetMaterial(part_index);
-					const GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
-					assert(material);
+					const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
 
-					inst.materialIndices[part_index] = Scene::GetIndex(materialEntities, material->GetEntity());
+					renderable.materialIndices[part_index] = Scene::GetIndex(materialEntities, material.GetEntity());
 
-					renderable.materialFilterFlags |= material->GetFilterMaskFlags();
+					renderable.materialFilterFlags |= material.GetFilterMaskFlags();
 
-					sort_bits.bits.tessellation |= material->IsTesellated();
-					sort_bits.bits.doublesided |= material->IsDoubleSided();
+					sort_bits.bits.tessellation |= material.IsTesellated();
+					sort_bits.bits.doublesided |= material.IsDoubleSided();
 
-					sort_bits.bits.shadertype |= 1 << SCU32(material->GetShaderType());
-					sort_bits.bits.blendmode |= 1 << SCU32(material->GetBlendMode());
-					sort_bits.bits.alphatest |= material->IsAlphaTestEnabled();
+					sort_bits.bits.shadertype |= 1 << SCU32(material.GetShaderType());
+					sort_bits.bits.blendmode |= 1 << SCU32(material.GetBlendMode());
+					sort_bits.bits.alphatest |= material.IsAlphaTestEnabled();
+
+					if (!geometry.HasRenderData())
+					{
+						continue;
+					}
+					GBuffers& part_buffers = *geometry.GetGBuffer(part_index);
+					//	* wetmap looks useful in our rendering purposes
+					//	* wetmap option is determined by the renderable's associated materials
+					if (material.IsWetmapEnabled() && !part_buffers.wetmapBuffer.IsValid())
+					{
+						GPUBufferDesc desc;
+						desc.size = part.GetNumVertices() * sizeof(uint16_t);
+						desc.format = Format::R16_UNORM;
+						desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+						device->CreateBuffer(&desc, nullptr, &part_buffers.wetmapBuffer);
+						device->SetName(&part_buffers.wetmapBuffer, ("wetmap" + std::to_string(part_index)).c_str());
+
+						part_buffers.wetmapCleared = false;
+					}
+					else if (!material.IsWetmapEnabled() && part_buffers.wetmapBuffer.IsValid())
+					{
+						part_buffers.wetmapBuffer = {};
+					}
 				}
 
 				renderable.sortBits = sort_bits.value;
@@ -383,10 +381,12 @@ namespace vz
 				inst.baseGeometryCount = (uint)num_parts;
 				inst.geometryOffset = inst.baseGeometryOffset;// inst.baseGeometryOffset + first_part;
 				inst.geometryCount = inst.baseGeometryCount;//last_part - first_part;
+
 				inst.aabbCenter = aabb.getCenter();	
 				inst.aabbRadius = aabb.getRadius();
 				//inst.vb_ao = renderable.vb_ao_srv;
 				//inst.vb_wetmap = device->GetDescriptorIndex(&renderable.wetmap, SubresourceType::SRV);
+
 				inst.alphaTest_size = math::pack_half2(XMFLOAT2(0, size));
 				//inst.SetUserStencilRef(renderable.userStencilRef);
 
@@ -423,11 +423,11 @@ namespace vz
 			// TODO
 
 			// 2. constant (pingpong) buffers for renderables (Non Thread Task)
-			instanceArraySize = num_renderables; // instance is renderable
-			if (instanceUploadBuffer[0].desc.size < (instanceArraySize * sizeof(ShaderMeshInstance)))
+			instanceArraySize = num_renderables;
+			if (instanceUploadBuffer[0].desc.size < (instanceArraySize * sizeof(ShaderRenderable)))
 			{
 				GPUBufferDesc desc;
-				desc.stride = sizeof(ShaderMeshInstance);
+				desc.stride = sizeof(ShaderRenderable);
 				desc.size = desc.stride * instanceArraySize * 2; // *2 to grow fast
 				desc.bind_flags = BindFlag::SHADER_RESOURCE;
 				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
@@ -451,7 +451,7 @@ namespace vz
 					device->SetName(&instanceUploadBuffer[i], "GSceneDetails::instanceUploadBuffer");
 				}
 			}
-			instanceArrayMapped = (ShaderMeshInstance*)instanceUploadBuffer[pingpong_buffer_index].mapped_data;
+			instanceArrayMapped = (ShaderRenderable*)instanceUploadBuffer[pingpong_buffer_index].mapped_data;
 
 			// 3. material (pingpong) buffers for shaders (Non Thread Task)
 			materialArraySize = num_materials;
@@ -505,6 +505,7 @@ namespace vz
 			textureStreamingFeedbackMapped = (const uint32_t*)textureStreamingFeedbackBuffer_readback[pingpong_buffer_index].mapped_data;
 
 			// 4. Occlusion culling read: (Non Thread Task)
+			//	per each MeshInstance
 			if (occlusionQueryEnabled && !cameraFreezeCullingEnabled)
 			{
 				uint32_t min_query_count = instanceArraySize + num_lights;
@@ -554,9 +555,10 @@ namespace vz
 				geometry->geometryOffset = geometryAllocator.fetch_add((uint32_t)geometry->GetNumParts());
 				});
 
+			// initialize ShaderRenderable 
 			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
 				// Must not keep inactive instances, so init them for safety:
-				ShaderMeshInstance inst;
+				ShaderRenderable inst;
 				inst.Init();
 				for (uint32_t i = 0; i < instanceArraySize; ++i)
 				{
@@ -706,7 +708,7 @@ namespace vz
 		geometryArraySize = 0;
 		materialArraySize = 0;
 
-		const uint32_t buffer_count = graphics::GraphicsDevice::GetBufferCount();
+		constexpr uint32_t buffer_count = graphics::GraphicsDevice::GetBufferCount();
 		instanceBuffer = {};
 		geometryBuffer = {};
 		materialBuffer = {};

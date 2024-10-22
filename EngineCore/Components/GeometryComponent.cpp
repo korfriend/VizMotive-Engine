@@ -645,18 +645,6 @@ namespace vz
 	using GBuffers = GGeometryComponent::GBuffers;
 	using BufferView = GGeometryComponent::GBuffers::BufferView;
 
-	graphics::IndexBufferFormat GGeometryComponent::GetIndexFormat() const
-	{ 
-		size_t max_num_vertices = 0;
-		for (size_t i = 0, n = parts_.size(); i < n; ++i)
-		{
-			const Primitive& primitive = parts_[i];
-			max_num_vertices = std::max(max_num_vertices, primitive.vertexPositions_.size());
-		}
-
-		return graphics::GetIndexBufferFormat((uint32_t)max_num_vertices);
-	}
-
 	void GGeometryComponent::DeleteRenderData()
 	{
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
@@ -679,11 +667,18 @@ namespace vz
 
 		const size_t position_stride = GetFormatStride(positionFormat);
 
-		for (size_t i = 0, n = parts_.size(); i < n; ++i)
+		if (parts_.size() == 0 || !parts_[0].IsValid())
 		{
-			Primitive& primitive = parts_[i];
+			hasRenderData_ = false;
+			return;
+		}
+
+		for (size_t part_index = 0, n = parts_.size(); part_index < n; ++part_index)
+		{
+			Primitive& primitive = parts_[part_index];
 			primitive.bufferHandle_ = std::make_shared<GBuffers>();
 			GBuffers& part_buffers = *(GBuffers*)primitive.bufferHandle_.get();
+			part_buffers.slot = part_index;
 			
 			GPUBufferDesc bd;
 			if (device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
@@ -715,7 +710,7 @@ namespace vz
 
 			bd.size =
 				AlignTo(vertex_positions.size() * position_stride, alignment) + // position will be first to have 0 offset for flexible alignment!
-				AlignTo(indices.size() * GetIndexStride(), alignment) +
+				AlignTo(indices.size() * GetIndexStride(part_index), alignment) +
 				AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
 				AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment) +
 				AlignTo(uv_count * sizeof(Vertex_UVS), alignment) +
@@ -777,7 +772,7 @@ namespace vz
 				}
 
 				// Create index buffer GPU data:
-				if (GetIndexFormat() == IndexBufferFormat::UINT32)
+				if (GetIndexFormat(part_index) == IndexBufferFormat::UINT32)
 				{
 					ib.offset = buffer_offset;
 					ib.size = indices.size() * sizeof(uint32_t);
@@ -867,7 +862,7 @@ namespace vz
 			device->SetName(&part_buffers.generalBuffer, "GGeometryComponent::bufferHandle_::generalBuffer");
 
 			assert(ib.IsValid());
-			const Format ib_format = GetIndexFormat() == IndexBufferFormat::UINT32 ? Format::R32_UINT : Format::R16_UINT;
+			const Format ib_format = GetIndexFormat(part_index) == IndexBufferFormat::UINT32 ? Format::R32_UINT : Format::R16_UINT;
 			ib.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, ib.offset, ib.size, &ib_format);
 			ib.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, ib.subresource_srv);
 

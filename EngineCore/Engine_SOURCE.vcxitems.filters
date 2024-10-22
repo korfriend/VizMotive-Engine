@@ -232,6 +232,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GSceneRenderPath.h">
       <Filter>Common\Backend</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h">
+      <Filter>Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
