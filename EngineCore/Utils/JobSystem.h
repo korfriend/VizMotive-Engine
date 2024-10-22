@@ -28,7 +28,7 @@ namespace vz::jobsystem
 
 	enum class Priority
 	{
-		High,		// Default
+		High = 0,		// Default
 		Low,		// Pool of low priority threads, useful for generic tasks that shouldn't interfere with high priority tasks
 		Streaming,	// Single low priority thread, for streaming resources
 		Count
@@ -61,4 +61,6 @@ namespace vz::jobsystem
 	// Wait until all threads become idle
 	//	Current thread will become a worker thread, executing jobs
 	UTIL_EXPORT void Wait(const context& ctx);
+
+	UTIL_EXPORT void WaitAllJobs();
 }

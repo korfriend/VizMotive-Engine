@@ -2,6 +2,7 @@
 #include "Canvas.h"
 #include "Components/Components.h"
 #include "Utils/Backlog.h"
+#include "Utils/Timer.h"
 #include "Backend/GBackendDevice.h"
 
 namespace vz
@@ -32,6 +33,14 @@ namespace vz
 		virtual ~RenderPath() = default;
 
 		float clearColor[4] = {};
+
+		// framerate controllers
+		uint64_t frameCount = 0;
+		float deltaTimeAccumulator = 0;
+		float targetFrameRate = 60;
+		bool frameskip = true;
+		bool framerateLock = false;
+		vz::Timer timer;
 
 		bool UpdateResizedCanvas() {
 			if (swapChain_.IsValid())

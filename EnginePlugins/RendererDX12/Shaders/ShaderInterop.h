@@ -61,6 +61,13 @@ namespace vz
 #define CBSLOT_RENDERER_FRAME	0
 #define CBSLOT_RENDERER_CAMERA	1
 
+static const uint TILED_CULLING_BLOCKSIZE = 16;
+static const uint TILED_CULLING_THREADSIZE = 8;
+static const uint TILED_CULLING_GRANULARITY = TILED_CULLING_BLOCKSIZE / TILED_CULLING_THREADSIZE;
+
+static const uint VISIBILITY_BLOCKSIZE = 8;
+static const uint VISIBILITY_TILED_CULLING_GRANULARITY = TILED_CULLING_BLOCKSIZE / VISIBILITY_BLOCKSIZE;
+
 struct alignas(16) ShaderTransform
 {
 	float4 mat0;
@@ -1139,5 +1146,25 @@ struct alignas(16) CameraCB
 #endif // __cplusplus
 };
 
+// For binning shading based on shader types:
+struct alignas(16) ShaderTypeBin
+{
+	uint dispatchX;
+	uint dispatchY;
+	uint dispatchZ;
+	uint shaderType;
+};
+
+struct alignas(16) ViewTile
+{
+	uint64_t execution_mask;
+	uint view_tile_id;
+	uint entity_flat_tile_index;
+
+	inline bool check_thread_valid(uint groupIndex)
+	{
+		return (execution_mask & (uint64_t(1) << uint64_t(groupIndex))) != 0;
+	}
+};
 
 #endif

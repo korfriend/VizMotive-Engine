@@ -118,7 +118,7 @@ namespace vz
 
 	void Scene::Update(const float dt)
 	{
-		dt_ += dt;
+		dt_ = dt;
 
 		SceneDetails* scene_details = static_cast<SceneDetails*>(this);
 
