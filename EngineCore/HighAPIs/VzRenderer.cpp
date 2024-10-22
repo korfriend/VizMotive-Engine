@@ -2,6 +2,7 @@
 #include "Components/Components.h"
 #include "Common/RenderPath3D.h"
 #include "Utils/Backlog.h"
+#include "Utils/Helpers.h"
 
 using namespace vz;
 using namespace std;
@@ -96,9 +97,28 @@ namespace vzm
 		renderer->scene = Scene::GetScene(vidScene);
 		renderer->camera = compfactory::GetCameraComponent(vidCam);
 
-		// todo DeltaTime...
-		renderer->Update(0.f);
-		renderer->Render(0.f);
+		if (!renderer->scene || !renderer->camera)
+		{
+			return false;
+		}
+
+		float dt = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+		const float target_deltaTime = 1.0f / renderer->targetFrameRate;
+		if (renderer->framerateLock && dt < target_deltaTime)
+		{
+			if (renderer->frameskip)
+			{
+				return false;
+			}
+			helper::QuickSleep((target_deltaTime - dt) * 1000);
+			dt += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+		}
+		renderer->deltaTimeAccumulator += dt;
+
+		renderer->Update(dt);
+		renderer->Render(dt);
+
+		renderer->frameCount++;
 
 		return true;
 	}

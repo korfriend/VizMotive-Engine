@@ -41,6 +41,8 @@ namespace vzm
 
 		bool Destroy(const VID vid)
 		{
+			jobsystem::WaitAllJobs();
+
 			auto it = lookup.find(vid);
 			if (it == lookup.end())
 			{
@@ -83,6 +85,8 @@ namespace vzm
 
 		void DestroyAll()
 		{
+			jobsystem::WaitAllJobs();
+
 			scenes.clear();
 			renderers.clear();
 			cameras.clear();
@@ -575,15 +579,11 @@ namespace vzm
 		auto it = vzcomp::lookup.find(vid);
 		return it == vzcomp::lookup.end() ? nullptr : it->second;
 	}
-
 	
 	bool RemoveComponent(const VID vid)
 	{
 		return vzcomp::Destroy(vid);	// jobsystem
 	}
-
-
-
 
 
 
@@ -607,7 +607,7 @@ namespace vzm
 		jobsystem::ShutDown();
 
 		// high-level apis handle engine components via functions in vzcomp namespace
-		vzcomp::DestroyAll();
+		vzcomp::DestroyAll();	// here, after-shutdown drives a single threaded process
 
 		graphicsPackage.pluginDeinitializer();
 		return true;

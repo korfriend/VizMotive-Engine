@@ -395,6 +395,13 @@ namespace vz::renderer
 	{
 		return (userStencilRef << 4) | static_cast<uint8_t>(engineStencilRef);
 	}
+	constexpr XMUINT2 GetViewTileCount(XMUINT2 internalResolution)
+	{
+		return XMUINT2(
+			(internalResolution.x + VISIBILITY_BLOCKSIZE - 1) / VISIBILITY_BLOCKSIZE,
+			(internalResolution.y + VISIBILITY_BLOCKSIZE - 1) / VISIBILITY_BLOCKSIZE
+		);
+	}
 
 	const Sampler* GetSampler(SAMPLERTYPES id)
 	{
@@ -611,6 +618,9 @@ namespace vz
 
 		// resources associated with render target buffers and textures
 		TemporalAAResources temporalAAResources;
+
+		// aliased (rtPostprocess, rtPrimitiveID)
+
 		graphics::Texture debugUAV; // debug UAV can be used by some shaders...
 		graphics::Texture rtPostprocess; // ping-pong with main scene RT in post-process chain
 
@@ -619,6 +629,8 @@ namespace vz
 		graphics::Texture rtPrimitiveID;
 		graphics::Texture rtPrimitiveID_render; // can be MSAA
 		graphics::Texture depthBufferMain; // used for depth-testing, can be MSAA
+
+		ViewResources viewResources;
 
 		// progressive components
 		SpinLock deferredMIPGenLock;
@@ -642,6 +654,8 @@ namespace vz
 		// Updates the GPU state according to the previously called UpdatePerFrameData()
 		void UpdateRenderData(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
 		void UpdateRenderDataAsync(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
+
+		void CreateViewResources(ViewResources& res, XMUINT2 resolution);
 
 		void ProcessDeferredTextureRequests(CommandList cmd);
 		void GenerateMipChain(const Texture& texture, MIPGENFILTER filter, CommandList cmd, const MIPGEN_OPTIONS& options);
@@ -786,9 +800,78 @@ namespace vz
 			uint y = frameCB.frame_count / 4;
 			frameCB.temporalaa_samplerotation = (x & 0x000000FF) | ((y & 0x000000FF) << 8);
 		}
+
+		// Check whether visibility resources are required:
+		if (
+			viewShadingInCS// ||
+			//getSSREnabled() ||
+			//getSSGIEnabled() ||
+			//getRaytracedReflectionEnabled() ||
+			//getRaytracedDiffuseEnabled() ||
+			//GetScreenSpaceShadowsEnabled() ||
+			//GetRaytracedShadowsEnabled() ||
+			//GetVXGIEnabled()
+			)
+		{
+			if (!viewResources.IsValid())
+			{
+				CreateViewResources(viewResources, internalResolution);
+			}
+		}
+		else
+		{
+			viewResources = {};
+		}
 	}
+
+	void GRenderPath3DDetails::CreateViewResources(ViewResources& res, XMUINT2 resolution)
+	{
+		res.tile_count = GetViewTileCount(resolution);
+		{
+			GPUBufferDesc desc;
+			desc.stride = sizeof(ShaderTypeBin);
+			desc.size = desc.stride * SCU32(MaterialComponent::ShaderType::COUNT);
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED | ResourceMiscFlag::INDIRECT_ARGS;
+			bool success = device->CreateBuffer(&desc, nullptr, &res.bins);
+			assert(success);
+			device->SetName(&res.bins, "res.bins");
+
+			desc.stride = sizeof(ViewTile);
+			desc.size = desc.stride * res.tile_count.x * res.tile_count.y * SCU32(MaterialComponent::ShaderType::COUNT);
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+			success = device->CreateBuffer(&desc, nullptr, &res.binned_tiles);
+			assert(success);
+			device->SetName(&res.binned_tiles, "res.binned_tiles");
+		}
+		{
+			TextureDesc desc;
+			desc.width = resolution.x;
+			desc.height = resolution.y;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+
+			desc.format = Format::R16G16_FLOAT;
+			device->CreateTexture(&desc, nullptr, &res.texture_normals);
+			device->SetName(&res.texture_normals, "res.texture_normals");
+
+			desc.format = Format::R8_UNORM;
+			device->CreateTexture(&desc, nullptr, &res.texture_roughness);
+			device->SetName(&res.texture_roughness, "res.texture_roughness");
+
+			desc.format = Format::R32G32B32A32_UINT;
+			device->CreateTexture(&desc, nullptr, &res.texture_payload_0);
+			device->SetName(&res.texture_payload_0, "res.texture_payload_0");
+			device->CreateTexture(&desc, nullptr, &res.texture_payload_1);
+			device->SetName(&res.texture_payload_1, "res.texture_payload_1");
+		}
+	}
+
 	void GRenderPath3DDetails::ProcessDeferredTextureRequests(CommandList cmd)
 	{
+		// TODO: paint texture...
+
 		deferredMIPGenLock.lock();
 		for (auto& it : deferredMIPGens)
 		{
@@ -1627,10 +1710,11 @@ namespace vz
 
 		CommandList cmd = device->BeginCommandList();
 		device->WaitQueue(cmd, QUEUE_COMPUTE); // sync to prev frame compute (disallow prev frame overlapping a compute task into updating global scene resources for this frame)
-		//ProcessDeferredTextureRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
-
-		/*
+		ProcessDeferredTextureRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
+		
 		CommandList cmd_prepareframe = cmd;
+		// remember GraphicsDevice::BeginCommandList does incur some overhead
+		//	this is why jobsystem::Execute is used here
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
@@ -1654,6 +1738,7 @@ namespace vz
 		cmd = device->BeginCommandList(QUEUE_COMPUTE);
 		CommandList cmd_prepareframe_async = cmd;
 		device->WaitCommandList(cmd, cmd_prepareframe);
+
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
@@ -1661,13 +1746,12 @@ namespace vz
 
 			});
 
-		static const uint32_t drawscene_flags =
+		static const uint32_t drawscene_flags = 
 			renderer::DRAWSCENE_OPAQUE |
 			renderer::DRAWSCENE_TESSELLATION |
-			//renderer::DRAWSCENE_OCCLUSIONCULLING |
-			renderer::DRAWSCENE_MAINCAMERA;
+			renderer::DRAWSCENE_OCCLUSIONCULLING;
 
-		// Main camera depth prepass + occlusion culling:
+		// Camera depth prepass + occlusion culling:
 		cmd = device->BeginCommandList();
 		CommandList cmd_maincamera_prepass = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
@@ -1717,11 +1801,11 @@ namespace vz
 			Rect scissor = downcast_camera->scissor;
 			device->BindScissorRects(1, &scissor, cmd);
 
-			Viewport vp;
+			Viewport vp;// = downcast_camera->viewport; // TODO.. viewport just for render-out result vs. viewport for enhancing performance...?!
 			vp.width = (float)depthBufferMain.GetDesc().width;
 			vp.height = (float)depthBufferMain.GetDesc().height;
 
-			// Foreground:
+			// ----- Foreground: -----
 			vp.min_depth = 1.f - foregroundDepthRange;
 			vp.max_depth = 1.f;
 			device->BindViewports(1, &vp, cmd);
@@ -1730,16 +1814,15 @@ namespace vz
 				RENDERPASS_PREPASS,
 				cmd,
 				renderer::DRAWSCENE_OPAQUE |
-				renderer::DRAWSCENE_FOREGROUND_ONLY |
-				renderer::DRAWSCENE_MAINCAMERA
+				renderer::DRAWSCENE_FOREGROUND_ONLY
 			);
 
-			// Regular:
+			// ----- Regular: -----
 			vp.min_depth = 0;
 			vp.max_depth = 1;
 			device->BindViewports(1, &vp, cmd);
-			renderer::DrawScene(
-				visibility_main,
+			DrawScene(
+				viewMain,
 				RENDERPASS_PREPASS,
 				cmd,
 				drawscene_flags
@@ -1748,16 +1831,16 @@ namespace vz
 			profiler::EndRange(range);
 			device->EventEnd(cmd);
 
-			if (getOcclusionCullingEnabled())
+			if (isOcclusionCullingEnabled)
 			{
-				renderer::OcclusionCulling_Render(*camera, visibility_main, cmd);
+				OcclusionCulling_Render(*camera, viewMain, cmd);
 			}
 
 			device->RenderPassEnd(cmd);
 
-			if (getOcclusionCullingEnabled())
+			if (isOcclusionCullingEnabled)
 			{
-				renderer::OcclusionCulling_Resolve(visibility_main, cmd); // must be outside renderpass!
+				OcclusionCulling_Resolve(viewMain, cmd); // must be outside renderpass!
 			}
 
 			});
@@ -1767,27 +1850,23 @@ namespace vz
 		//	must finish before "main scene opaque color pass")
 		cmd = device->BeginCommandList(QUEUE_COMPUTE);
 		device->WaitCommandList(cmd, cmd_maincamera_prepass);
-		if (video_cmd.IsValid())
-		{
-			device->WaitCommandList(cmd, video_cmd);
-		}
+
 		CommandList cmd_maincamera_compute_effects = cmd;
+		/*
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
-			GraphicsDevice* device = graphics::GetDevice();
-
-			for (size_t i = 0; i < scene->videos.GetCount(); ++i)
-			{
-				scene::VideoComponent& video = scene->videos[i];
-				video::ResolveVideoToRGB(&video.videoinstance, cmd);
-			}
-
-			renderer::BindCameraCB(
+			BindCameraCB(
 				*camera,
-				camera_previous,
-				camera_reflection,
+				cameraPrevious,
+				cameraReflection,
 				cmd
 			);
+
+
+
+
+			View_... Prepares.... ÄÚµù
+
 
 			renderer::Visibility_Prepare(
 				visibilityResources,
@@ -1827,79 +1906,58 @@ namespace vz
 				);
 			}
 
-			if (rtVelocity.IsValid())
-			{
-				renderer::Visibility_Velocity(
-					rtVelocity,
-					cmd
-				);
-			}
+			//if (renderer::GetSurfelGIEnabled())
+			//{
+			//	renderer::SurfelGI_Coverage(
+			//		surfelGIResources,
+			//		*scene,
+			//		rtLinearDepth,
+			//		debugUAV,
+			//		cmd
+			//	);
+			//}
+			//
+			//RenderAO(cmd);
 
-			if (renderer::GetSurfelGIEnabled())
-			{
-				renderer::SurfelGI_Coverage(
-					surfelGIResources,
-					*scene,
-					rtLinearDepth,
-					debugUAV,
-					cmd
-				);
-			}
+			//if (renderer::GetVariableRateShadingClassification() && device->CheckCapability(GraphicsDeviceCapability::VARIABLE_RATE_SHADING_TIER2))
+			//{
+			//	renderer::ComputeShadingRateClassification(
+			//		rtShadingRate,
+			//		debugUAV,
+			//		cmd
+			//	);
+			//}
+			//
+			//RenderSSR(cmd);
+			//
+			//RenderSSGI(cmd);
 
-			RenderAO(cmd);
+			//if (renderer::GetScreenSpaceShadowsEnabled())
+			//{
+			//	renderer::Postprocess_ScreenSpaceShadow(
+			//		screenspaceshadowResources,
+			//		tiledLightResources.entityTiles,
+			//		rtLinearDepth,
+			//		rtShadow,
+			//		cmd,
+			//		getScreenSpaceShadowRange(),
+			//		getScreenSpaceShadowSampleCount()
+			//	);
+			//}
 
-			if (renderer::GetVariableRateShadingClassification() && device->CheckCapability(GraphicsDeviceCapability::VARIABLE_RATE_SHADING_TIER2))
-			{
-				renderer::ComputeShadingRateClassification(
-					rtShadingRate,
-					debugUAV,
-					cmd
-				);
-			}
-
-			RenderSSR(cmd);
-
-			RenderSSGI(cmd);
-
-			if (renderer::GetScreenSpaceShadowsEnabled())
-			{
-				renderer::Postprocess_ScreenSpaceShadow(
-					screenspaceshadowResources,
-					tiledLightResources.entityTiles,
-					rtLinearDepth,
-					rtShadow,
-					cmd,
-					getScreenSpaceShadowRange(),
-					getScreenSpaceShadowSampleCount()
-				);
-			}
-
-			if (renderer::GetRaytracedShadowsEnabled())
-			{
-				renderer::Postprocess_RTShadow(
-					rtshadowResources,
-					*scene,
-					tiledLightResources.entityTiles,
-					rtLinearDepth,
-					rtShadow,
-					cmd
-				);
-			}
+			//if (renderer::GetRaytracedShadowsEnabled())
+			//{
+			//	renderer::Postprocess_RTShadow(
+			//		rtshadowResources,
+			//		*scene,
+			//		tiledLightResources.entityTiles,
+			//		rtLinearDepth,
+			//		rtShadow,
+			//		cmd
+			//	);
+			//}
 
 			});
-
-		CommandList cmd_ocean;
-		if (scene->weather.IsOceanEnabled() && scene->ocean.IsValid())
-		{
-			// Ocean simulation can be updated async to opaque passes:
-			cmd_ocean = device->BeginCommandList(QUEUE_COMPUTE);
-			renderer::UpdateOcean(visibility_main, cmd_ocean);
-
-			// Copying to readback is done on copy queue to use DMA instead of compute warps:
-			CommandList cmd_oceancopy = device->BeginCommandList(QUEUE_COPY);
-			device->WaitCommandList(cmd_oceancopy, cmd_ocean);
-			renderer::ReadbackOcean(visibility_main, cmd_oceancopy);
-		}
 
 		// Shadow maps:
 		if (getShadowsEnabled())
@@ -2121,51 +2179,6 @@ namespace vz
 				});
 		}
 
-		// Main camera weather compute effects depending on shadow maps, envmaps, etc, but don't depend on async surface pass:
-		if (scene->weather.IsRealisticSky() || scene->weather.IsVolumetricClouds())
-		{
-			cmd = device->BeginCommandList();
-			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
-
-				renderer::BindCameraCB(
-					*camera,
-					camera_previous,
-					camera_reflection,
-					cmd
-				);
-
-				if (scene->weather.IsRealisticSky())
-				{
-					renderer::ComputeSkyAtmosphereSkyViewLut(cmd);
-
-					if (scene->weather.IsRealisticSkyAerialPerspective())
-					{
-						renderer::ComputeSkyAtmosphereCameraVolumeLut(cmd);
-					}
-				}
-				if (scene->weather.IsRealisticSky() && scene->weather.IsRealisticSkyAerialPerspective())
-				{
-					renderer::Postprocess_AerialPerspective(
-						aerialperspectiveResources,
-						cmd
-					);
-				}
-				if (scene->weather.IsVolumetricClouds())
-				{
-					renderer::Postprocess_VolumetricClouds(
-						volumetriccloudResources,
-						cmd,
-						*camera,
-						camera_previous,
-						camera_reflection,
-						renderer::GetTemporalAAEnabled() || getFSR2Enabled(),
-						scene->weather.volumetricCloudsWeatherMapFirst.IsValid() ? &scene->weather.volumetricCloudsWeatherMapFirst.GetTexture() : nullptr,
-						scene->weather.volumetricCloudsWeatherMapSecond.IsValid() ? &scene->weather.volumetricCloudsWeatherMapSecond.GetTexture() : nullptr
-					);
-				}
-				});
-		}
-
 		// Main camera opaque color pass:
 		cmd = device->BeginCommandList();
 		device->WaitCommandList(cmd, cmd_maincamera_compute_effects);
@@ -2366,27 +2379,6 @@ namespace vz
 			device->EventEnd(cmd);
 			});
 
-		if (scene->terrains.GetCount() > 0)
-		{
-			CommandList cmd_allocation_tilerequest = device->BeginCommandList(QUEUE_COMPUTE);
-			device->WaitCommandList(cmd_allocation_tilerequest, cmd); // wait for opaque scene
-			jobsystem::Execute(ctx, [this, cmd_allocation_tilerequest](jobsystem::JobArgs args) {
-				for (size_t i = 0; i < scene->terrains.GetCount(); ++i)
-				{
-					scene->terrains[i].AllocateVirtualTextureTileRequestsGPU(cmd_allocation_tilerequest);
-				}
-				});
-
-			CommandList cmd_writeback_tilerequest = device->BeginCommandList(QUEUE_COPY);
-			device->WaitCommandList(cmd_writeback_tilerequest, cmd_allocation_tilerequest);
-			jobsystem::Execute(ctx, [this, cmd_writeback_tilerequest](jobsystem::JobArgs args) {
-				for (size_t i = 0; i < scene->terrains.GetCount(); ++i)
-				{
-					scene->terrains[i].WritebackTileRequestsGPU(cmd_writeback_tilerequest);
-				}
-				});
-		}
-
 		// Transparents, post processes, etc:
 		cmd = device->BeginCommandList();
 		if (cmd_ocean.IsValid())
@@ -2469,6 +2461,8 @@ namespace vz
 		rtPrimitiveID = {};
 		rtPrimitiveID_render = {};
 		depthBufferMain = {};
+
+		viewResources = {};
 
 		return true;
 	}

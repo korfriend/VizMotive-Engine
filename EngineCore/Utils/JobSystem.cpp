@@ -129,7 +129,10 @@ namespace vz::jobsystem
 			{
 				for (auto& thread : x.threads)
 				{
-					thread.join();
+					if (thread.joinable())  // Check if the thread can be joined
+					{
+						thread.join();
+					}
 				}
 			}
 			wake_loop = false;
@@ -141,6 +144,32 @@ namespace vz::jobsystem
 				x.numThreads = 0;
 			}
 			numCores = 0;
+		}
+		void WaitAll()
+		{
+			alive.store(false); // indicate that new jobs cannot be started from this point
+			bool wake_loop = true;
+			std::thread waker([&] {
+				while (wake_loop)
+				{
+					for (auto& x : resources)
+					{
+						x.wakeCondition.notify_all(); // wakes up sleeping worker threads
+					}
+				}
+				});
+			for (auto& x : resources) // priorities
+			{
+				for (auto& thread : x.threads)
+				{
+					if (thread.joinable())  // Check if the thread can be joined
+					{
+						thread.join();
+					}
+				}
+			}
+			wake_loop = false;
+			waker.join();
 		}
 		~InternalState()
 		{
@@ -409,5 +438,10 @@ namespace vz::jobsystem
 				std::this_thread::yield();
 			}
 		}
+	}
+
+	void WaitAllJobs()
+	{
+		internal_state.WaitAll();
 	}
 }
