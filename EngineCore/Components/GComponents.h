@@ -338,7 +338,7 @@ namespace vz
 	{
 		GVolumeTextureComponent(const Entity entity, const VUID vuid = 0) : 
 			ComponentBase(ComponentType::VOLUMETEXTURE, entity, vuid) 
-			, TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid)
+			, TextureComponent(entity, vuid)
 			, GTextureComponent(entity, vuid)
 			, VolumeComponent(entity, vuid) {}
 
@@ -366,14 +366,12 @@ namespace vz
 		//----- determined by associated materials -----
 		mutable uint32_t materialFilterFlags = 0u;
 		mutable uint32_t lightmapIterationCount = 0u;
+		mutable uint32_t renderFlags = 0u;
 	};
 
 	struct CORE_EXPORT GCameraComponent : CameraComponent
 	{
 		GCameraComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(entity, vuid) {}
-
-		graphics::Viewport viewport;
-		graphics::Rect scissor;
 	};
 
 	struct CORE_EXPORT GLightComponent : LightComponent

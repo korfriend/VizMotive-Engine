@@ -36,7 +36,7 @@ namespace vzm
 		prim.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
 
 		geometry->MovePrimitiveFrom(prim, 0);
-		//geometry->UpdateRenderData();
+		geometry->UpdateRenderData();
 		UpdateTimeStamp();
 	}
 }

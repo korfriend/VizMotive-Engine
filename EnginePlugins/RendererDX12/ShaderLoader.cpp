@@ -278,11 +278,11 @@ namespace vz::shader
 		case RENDERPASS_MAIN:
 			if (deferred)
 			{
-				realPS = SHADERTYPE((transparent ? PS_MATERIAL_DEFERRED_TRANSPARENT__BEGIN : PS_MATERIAL_DEFERRED__BEGIN) + index_material_shadertype);
+				realPS = SHADERTYPE((transparent ? PSTYPE_RENDERABLE_TRANSPARENT_PERMUTATION__BEGIN : PSTYPE_RENDERABLE_PERMUTATION__BEGIN) + index_material_shadertype);
 			}
 			else
 			{
-				realPS = SHADERTYPE((transparent ? PS_MATERIAL_FORWARD_TRANSPARENT__BEGIN : PS_MATERIAL_FORWARD__BEGIN) + index_material_shadertype);
+				realPS = SHADERTYPE((transparent ? PSTYPE_RENDERABLE_TRANSPARENT_PERMUTATION__BEGIN : PSTYPE_RENDERABLE_PERMUTATION__BEGIN) + index_material_shadertype);
 			}
 			break;
 		case RENDERPASS_PREPASS:
@@ -480,8 +480,9 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_SIMPLE], "meshPS_simple.cso"); });
 
 		static const std::vector<std::string> shaderTypeDefines[] = {
-			{}, // ShaderType::PHONG,
+			{"PHONG"}, // ShaderType::PHONG,
 			{"PBR"}, // ShaderType::PBR,
+			{"UNLIT"}, // ShaderType::UNLIT,
 		};
 		static_assert(SHADERTYPE_BIN_COUNT == arraysize(shaderTypeDefines), "These values must match!");
 
@@ -489,7 +490,7 @@ namespace vz::shader
 
 			LoadShader(
 				ShaderStage::PS,
-				rcommon::shaders[PS_MATERIAL_FORWARD__BEGIN + args.jobIndex],
+				rcommon::shaders[PSTYPE_RENDERABLE_PERMUTATION__BEGIN + args.jobIndex],
 				"meshPS_FW.cso",
 				ShaderModel::SM_6_0,
 				shaderTypeDefines[args.jobIndex] // permutation defines

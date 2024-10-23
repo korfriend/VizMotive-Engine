@@ -87,6 +87,8 @@ namespace vz
 	}
 	void GSceneDetails::RunMaterialUpdateSystem(jobsystem::context& ctx)
 	{
+		isWetmapProcessingRequired = false;
+
 		jobsystem::Dispatch(ctx, (uint32_t)materialEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			Entity entity = materialEntities[args.jobIndex];
@@ -95,6 +97,11 @@ namespace vz
 			if (material.IsOutlineEnabled())
 			{
 				//material.engineStencilRef = STENCILREF_OUTLINE;
+			}
+
+			if (material.IsWetmapEnabled())
+			{
+				isWetmapProcessingRequired = true;
 			}
 
 			if (material.IsDirty())
@@ -172,8 +179,8 @@ namespace vz
 						GTextureComponent* texture_comp = nullptr;
 						if (texture_vuid != INVALID_VUID)
 						{
-							Entity material_entity = compfactory::GetEntityByVUID(texture_vuid);
-							texture_comp = dynamic_cast<GTextureComponent*>(compfactory::GetTextureComponent(material_entity));
+							Entity texture_entity = compfactory::GetEntityByVUID(texture_vuid);
+							texture_comp = dynamic_cast<GTextureComponent*>(compfactory::GetTextureComponent(texture_entity));
 							shader_material.textures[i].uvset_lodclamp = (texture_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(texture_comp->GetLodClamp()) << 1u);
 							if (texture_comp->IsValid())
 							{
@@ -277,6 +284,7 @@ namespace vz
 			}
 			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
 
+			renderable.renderFlags = 0u;
 			renderable.renderableIndex = ~0u;
 			if (renderable.IsRenderable())
 			{
@@ -324,6 +332,7 @@ namespace vz
 					renderable.materialIndices[part_index] = Scene::GetIndex(materialEntities, material.GetEntity());
 
 					renderable.materialFilterFlags |= material.GetFilterMaskFlags();
+					renderable.renderFlags |= material.GetRenderFlags();
 
 					sort_bits.bits.tessellation |= material.IsTesellated();
 					sort_bits.bits.doublesided |= material.IsDoubleSided();
@@ -582,7 +591,7 @@ namespace vz
 			{
 				// Non-UMA: separate Default usage buffer
 				device->CreateBuffer(&desc, nullptr, &geometryBuffer);
-				device->SetName(&geometryBuffer, "Scene::geometryBuffer");
+				device->SetName(&geometryBuffer, "GSceneDetails::geometryBuffer");
 
 				// Upload buffer shouldn't be used by shaders with Non-UMA:
 				desc.bind_flags = BindFlag::NONE;
@@ -593,7 +602,7 @@ namespace vz
 			for (int i = 0; i < arraysize(geometryUploadBuffer); ++i)
 			{
 				device->CreateBuffer(&desc, nullptr, &geometryUploadBuffer[i]);
-				device->SetName(&geometryUploadBuffer[i], "Scene::geometryUploadBuffer");
+				device->SetName(&geometryUploadBuffer[i], "GSceneDetails::geometryUploadBuffer");
 			}
 		}
 		geometryArrayMapped = (ShaderGeometryPart*)geometryUploadBuffer[pingpong_buffer_index].mapped_data;

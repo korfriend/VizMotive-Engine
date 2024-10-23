@@ -26,7 +26,7 @@ namespace vz::compfactory
 	ComponentManager<GMaterialComponent>& materialManager = componentLibrary.Register<GMaterialComponent>("MATERIAL");
 	ComponentManager<GGeometryComponent>& geometryManager = componentLibrary.Register<GGeometryComponent>("GEOMETRY");
 	ComponentManager<GTextureComponent>& textureManager = componentLibrary.Register<GTextureComponent>("TEXTURE");
-	ComponentManager<GVolumeTextureComponent>& volumeManager = componentLibrary.Register<GVolumeTextureComponent>("TEXTURE");
+	ComponentManager<GVolumeTextureComponent>& volumeManager = componentLibrary.Register<GVolumeTextureComponent>("VOLUMETEXTURE");
 
 	ComponentBase* GetComponentByVUID(const VUID vuid)
 	{
@@ -169,7 +169,12 @@ namespace vz::compfactory
 	}
 	TextureComponent* GetTextureComponent(const Entity entity)
 	{
-		return textureManager.GetComponent(entity);
+		TextureComponent* comp = textureManager.GetComponent(entity);
+		if (comp == nullptr)
+		{
+			comp = volumeManager.GetComponent(entity);
+		}
+		return comp;
 	}
 	VolumeComponent* GetVolumeComponent(const Entity entity)
 	{

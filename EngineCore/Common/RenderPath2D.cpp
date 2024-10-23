@@ -14,7 +14,7 @@ namespace vz
 
 	void RenderPath2D::ResizeResources()
 	{
-		DeleteGPUResources(true);
+		RenderPath2D::DeleteGPUResources(true);
 
 		SwapChainDesc desc;
 		if (window_)
