@@ -736,9 +736,10 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 	};
 
-	struct CORE_EXPORT VolumeTextureComponent : virtual TextureComponent
+	struct CORE_EXPORT VolumeComponent : virtual TextureComponent
 	{
 	protected:
+		std::shared_ptr<Resource> internalBlock_;
 		XMFLOAT3 voxelSize_ = {};
 		DataType originalDataType_ = DataType::UNDEFINED;
 		XMFLOAT2 storedMinMax_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
@@ -750,7 +751,7 @@ namespace vz
 
 		// sampler 
 	public:
-		VolumeTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid) {}
+		VolumeComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid) {}
 
 		inline void SetVoxelSize(const XMFLOAT3& voxelSize) { voxelSize_ = voxelSize; }
 		inline XMFLOAT3 GetVoxelSize() const { return voxelSize_; }
@@ -765,7 +766,7 @@ namespace vz
 		inline XMFLOAT2 GetOriginalMinMax() const { return originalMinMax_; }
 
 		const Histogram& GetHistogram() const { return histogram_; }
-		void UpdateHistogram();
+		void UpdateHistogram(const float minValue, const float maxValue, const size_t numBins);
 
 		inline void SetAlign(const XMFLOAT3& axisVolX, const XMFLOAT3& axisVolY, const bool isRHS);
 		inline XMFLOAT4X4 GetAlign() const { return matAlign_; }
@@ -1028,6 +1029,7 @@ namespace vz::compfactory
 	CORE_EXPORT inline MaterialComponent* CreateMaterialComponent(const Entity entity);
 	CORE_EXPORT inline GeometryComponent* CreateGeometryComponent(const Entity entity);
 	CORE_EXPORT inline TextureComponent* CreateTextureComponent(const Entity entity);
+	CORE_EXPORT inline VolumeComponent* CreateVolumeComponent(const Entity entity);
 	CORE_EXPORT inline LightComponent* CreateLightComponent(const Entity entity);
 	CORE_EXPORT inline CameraComponent* CreateCameraComponent(const Entity entity);
 	CORE_EXPORT inline RenderableComponent* CreateRenderableComponent(const Entity entity);
@@ -1038,6 +1040,7 @@ namespace vz::compfactory
 	CORE_EXPORT inline MaterialComponent* GetMaterialComponent(const Entity entity);
 	CORE_EXPORT inline GeometryComponent* GetGeometryComponent(const Entity entity);
 	CORE_EXPORT inline TextureComponent* GetTextureComponent(const Entity entity);
+	CORE_EXPORT inline VolumeComponent* GetVolumeComponent(const Entity entity);
 	CORE_EXPORT inline RenderableComponent* GetRenderableComponent(const Entity entity);
 	CORE_EXPORT inline LightComponent* GetLightComponent(const Entity entity);
 	CORE_EXPORT inline CameraComponent* GetCameraComponent(const Entity entity);

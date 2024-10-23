@@ -334,16 +334,16 @@ namespace vz
 	//		戌式式 resources(only once)
 	//	戍式式 GTextureComponent
 	//	戌式式 VolumeComponent
-	struct CORE_EXPORT GVolumeTextureComponent : GTextureComponent, VolumeTextureComponent
+	struct CORE_EXPORT GVolumeTextureComponent : GTextureComponent, VolumeComponent
 	{
 		GVolumeTextureComponent(const Entity entity, const VUID vuid = 0) : 
 			ComponentBase(ComponentType::VOLUMETEXTURE, entity, vuid) 
 			, TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid)
 			, GTextureComponent(entity, vuid)
-			, VolumeTextureComponent(entity, vuid) {}
+			, VolumeComponent(entity, vuid) {}
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override {
-			VolumeTextureComponent::Serialize(archive, version);
+			VolumeComponent::Serialize(archive, version);
 		}
 	};
 

@@ -122,10 +122,10 @@ namespace vz::compfactory
 		TextureComponent* comp = &textureManager.Create(entity_update);
 		return comp;
 	}
-	VolumeTextureComponent* CreateVolumeComponent(const Entity entity)
+	VolumeComponent* CreateVolumeComponent(const Entity entity)
 	{
 		ENTITY_UPDATE(entity_update);
-		VolumeTextureComponent* comp = &volumeManager.Create(entity_update);
+		VolumeComponent* comp = &volumeManager.Create(entity_update);
 		return comp;
 	}
 	LightComponent* CreateLightComponent(const Entity entity)
@@ -171,7 +171,7 @@ namespace vz::compfactory
 	{
 		return textureManager.GetComponent(entity);
 	}
-	VolumeTextureComponent* GetVolumeComponent(const Entity entity)
+	VolumeComponent* GetVolumeComponent(const Entity entity)
 	{
 		return volumeManager.GetComponent(entity);
 	}
