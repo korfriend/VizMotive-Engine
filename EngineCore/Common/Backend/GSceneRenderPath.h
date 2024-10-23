@@ -30,6 +30,10 @@ namespace vz
 		Scene* scene = nullptr;
 		CameraComponent* camera = nullptr;
 
+		graphics::Viewport viewport;
+		graphics::Rect scissor;
+		uint32_t msaaSampleCount = 1;
+
 		virtual bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) = 0; // must delete all canvas-related resources and re-create
 		virtual bool Render(const float dt) = 0;
 		virtual bool Destroy() = 0;

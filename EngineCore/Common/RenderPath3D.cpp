@@ -39,8 +39,9 @@ namespace vz
 
 	void RenderPath3D::ResizeResources()
 	{
-		DeleteGPUResources(true);
+		RenderPath3D::DeleteGPUResources(true);
 		handlerRenderPath3D_->ResizeCanvas(width_, height_);
+
 		RenderPath2D::ResizeResources();
 
 		//viewport
@@ -118,10 +119,9 @@ namespace vz
 		//	3. execute rendering pipelines
 		handlerRenderPath3D_->scene = scene;
 		handlerRenderPath3D_->camera = camera;
-
-		GCameraComponent* downcast_camera = (GCameraComponent*)camera;
-		downcast_camera->viewport = viewport;
-		downcast_camera->scissor = scissor;
+		handlerRenderPath3D_->viewport = viewport;
+		handlerRenderPath3D_->scissor = scissor;
+		handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
 
 		handlerRenderPath3D_->Render(dt);
 	}

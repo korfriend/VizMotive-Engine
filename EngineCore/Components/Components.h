@@ -30,7 +30,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241014";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241023";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -382,6 +382,7 @@ namespace vz
 		{
 			PHONG = 0,
 			PBR,
+			UNLIT,
 
 			COUNT
 		};
@@ -459,6 +460,9 @@ namespace vz
 		inline bool IsWetmapEnabled() const { return flags_ & SCU32(RenderFlags::WETMAP); }
 		inline bool IsCastShadow() const { return flags_ & SCU32(RenderFlags::CAST_SHADOW); }
 		inline bool IsReceiveShadow() const { return flags_ & SCU32(RenderFlags::RECEIVE_SHADOW); }
+
+		inline uint32_t GetRenderFlags() const { return flags_; }
+
 		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
 
 		inline float GetAlphaRef() const { return alphaRef_; }
@@ -710,7 +714,7 @@ namespace vz
 		// sampler 
 	public:
 		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
-		TextureComponent(const ComponentType type, const Entity entity, const VUID vuid = 0) : ComponentBase(type, entity, vuid) {}
+		//TextureComponent(const ComponentType type, const Entity entity, const VUID vuid = 0) : ComponentBase(type, entity, vuid) {}
 		
 		TextureType GetTextureType() const { return textureType_; }
 		bool IsValid() const;
@@ -751,7 +755,7 @@ namespace vz
 
 		// sampler 
 	public:
-		VolumeComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid) {}
+		VolumeComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::VOLUMETEXTURE, entity, vuid), TextureComponent(entity, vuid) {}
 
 		inline void SetVoxelSize(const XMFLOAT3& voxelSize) { voxelSize_ = voxelSize; }
 		inline XMFLOAT3 GetVoxelSize() const { return voxelSize_; }

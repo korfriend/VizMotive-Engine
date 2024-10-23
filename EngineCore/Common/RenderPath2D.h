@@ -10,6 +10,8 @@ namespace vz
 		public RenderPath
 	{
 	protected:
+		uint32_t msaaSampleCount_ = 1;
+
 	public:
 		RenderPath2D(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
 			: RenderPath(entity, graphicsDevice) {  type_ = "RenderPath2D"; }
@@ -18,6 +20,9 @@ namespace vz
 
 		using SlicerComponent = CameraComponent;
 		SlicerComponent* slicer = nullptr;
+
+		void SetMSAASampleCount(uint32_t value) { msaaSampleCount_ = value; }
+		constexpr uint32_t GetMSAASampleCount() const { return msaaSampleCount_; }
 
 		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;
