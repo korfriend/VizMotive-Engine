@@ -50,6 +50,7 @@ using LightVID = VID;
 using GeometryVID = VID;
 using MaterialVID = VID;
 using TextureVID = VID;
+using VolumeVID = VID;
 
 inline constexpr VID INVALID_VID = 0;
 using TimeStamp = std::chrono::high_resolution_clock::time_point;
@@ -157,6 +158,7 @@ namespace vzm
 		GEOMETRY,
 		MATERIAL,
 		TEXTURE,
+		VOLUME,
 	};
 
 	struct API_EXPORT VzBaseComp

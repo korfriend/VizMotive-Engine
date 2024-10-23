@@ -230,7 +230,7 @@ namespace vz
 	XMFLOAT4X4 matAlign_ = math::IDENTITY_MATRIX; // VS to real-sized aligned space
 
 
-	void VolumeTextureComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	void VolumeComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
 		TextureComponent::Serialize(archive, version);
 		if (archive.IsReadMode())

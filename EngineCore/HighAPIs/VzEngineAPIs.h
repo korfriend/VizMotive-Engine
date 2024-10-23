@@ -31,6 +31,7 @@ namespace vzm
 	API_EXPORT VzGeometry* NewGeometry(const std::string& name);
 	API_EXPORT VzMaterial* NewMaterial(const std::string& name);
 	API_EXPORT VzTexture* NewTexture(const std::string& name);
+	API_EXPORT VzVolume* NewVolume(const std::string& name);
 
 	// Append Component to the parent component
 	//  - in : VzSceneComp or VzScene

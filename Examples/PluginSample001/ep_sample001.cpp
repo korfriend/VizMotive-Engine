@@ -12,8 +12,8 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 	if (it == io.end()) return false;
 	Entity texture_entity = std::any_cast<Entity>(it->second);
 	
-	TextureComponent* texture = compfactory::GetTextureComponent(texture_entity);
-	if (texture == nullptr) return false;
+	VolumeComponent* volume = compfactory::GetVolumeComponent(texture_entity);
+	if (volume == nullptr) return false;
 	
 	// TODO
 	uint32_t volume_w = 516;
@@ -24,7 +24,8 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 	float voxel_y = 0.2f;
 	float voxel_z = 0.2f;
 
-	texture->SetTextureDimension(volume_w, volume_h, volume_d, 1);
+	volume->SetTextureDimension(volume_w, volume_h, volume_d, 1);
+	volume->SetVoxelSize({ 0.2f , 0.2f , 0.2f });
 
 	//pointer..
 

@@ -143,12 +143,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     using TextureSlot = vzm::VzMaterial::TextureSlot;
 
-    vzm::VzTexture* volume_texture = vzm::NewTexture("my dicom volume");
-    material_test->SetTexture(volume_texture, TextureSlot::VOLUME_DENSITYMAP);
+    vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
+    material_test->SetTexture(volume, TextureSlot::VOLUME_DENSITYMAP);
 
 	vzm::ParamMap<std::string> io;
 	io.SetParam("filename", std::string("d:/aaa.dcm"));
-	io.SetParam("volume texture entity", volume_texture->GetVID());
+	io.SetParam("volume texture entity", volume->GetVID());
     vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
 
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);

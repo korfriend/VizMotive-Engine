@@ -173,7 +173,7 @@ namespace vz
 						if (texture_vuid != INVALID_VUID)
 						{
 							Entity material_entity = compfactory::GetEntityByVUID(texture_vuid);
-							texture_comp = (GTextureComponent*)compfactory::GetTextureComponent(material_entity);
+							texture_comp = dynamic_cast<GTextureComponent*>(compfactory::GetTextureComponent(material_entity));
 							shader_material.textures[i].uvset_lodclamp = (texture_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(texture_comp->GetLodClamp()) << 1u);
 							if (texture_comp->IsValid())
 							{
@@ -229,7 +229,7 @@ namespace vz
 						if (texture_vuid != INVALID_VUID)
 						{
 							Entity material_entity = compfactory::GetEntityByVUID(texture_vuid);
-							GTextureComponent* texture_comp = (GTextureComponent*)compfactory::GetTextureComponent(material_entity);
+							GTextureComponent* texture_comp = dynamic_cast<GTextureComponent*>(compfactory::GetTextureComponent(material_entity));
 							if (texture_comp)
 							{
 								if (texture_comp->IsValid())

@@ -38,6 +38,7 @@ namespace vzm
 		std::unordered_map<GeometryVID, std::unique_ptr<VzGeometry>> geometries;
 		std::unordered_map<MaterialVID, std::unique_ptr<VzMaterial>> materials;
 		std::unordered_map<TextureVID, std::unique_ptr<VzTexture>> textures;
+		std::unordered_map<VolumeVID, std::unique_ptr<VzVolume>> volumes;
 
 		bool Destroy(const VID vid)
 		{
@@ -262,6 +263,7 @@ namespace vzm
 		case COMPONENT_TYPE::GEOMETRY:
 		case COMPONENT_TYPE::MATERIAL:
 		case COMPONENT_TYPE::TEXTURE:
+		case COMPONENT_TYPE::VOLUME:
 			break;
 		default:
 			return nullptr;
@@ -297,6 +299,13 @@ namespace vzm
 				hlcomp = (VzTexture*)it.first->second.get();
 			}
 			break;
+		case COMPONENT_TYPE::VOLUME:
+			compfactory::CreateVolumeComponent(entity);
+			{
+				auto it = vzcomp::volumes.emplace(vid, std::make_unique<VzVolume>(vid, "vzm::NewResComponent"));
+				hlcomp = (VzVolume*)it.first->second.get();
+			}
+			break;
 		default:
 			backlog::post("vzm::NewResComponent >> Invalid COMPONENT_TYPE", backlog::LogLevel::Error);
 			return nullptr;
@@ -316,6 +325,10 @@ namespace vzm
 	VzTexture* NewTexture(const std::string& name)
 	{
 		return (VzTexture*)newResComponent(COMPONENT_TYPE::TEXTURE, name);
+	}
+	VzVolume* NewVolume(const std::string& name)
+	{
+		return (VzVolume*)newResComponent(COMPONENT_TYPE::VOLUME, name);
 	}
 
 	void getDescendants(const Entity ett, std::vector<Entity>& decendants)
