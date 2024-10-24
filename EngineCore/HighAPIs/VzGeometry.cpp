@@ -35,7 +35,7 @@ namespace vzm
 		prim.SetAABB(aabb);
 		prim.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
 
-		geometry->MovePrimitiveFrom(prim, 0);
+		geometry->MovePrimitiveFrom(std::move(prim), 0);
 		geometry->UpdateRenderData();
 		UpdateTimeStamp();
 	}

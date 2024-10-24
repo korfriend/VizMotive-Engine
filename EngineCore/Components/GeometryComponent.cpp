@@ -9,13 +9,14 @@ namespace vz
 	using Primitive = GeometryComponent::Primitive;
 
 #define MAX_GEOMETRY_PARTS 32 // ShaderInterop.h's `#define MAXPARTS 32`
-	void GeometryComponent::MovePrimitivesFrom(std::vector<Primitive>& primitives)
+	void GeometryComponent::MovePrimitivesFrom(std::vector<Primitive>&& primitives)
 	{
-		parts_.assign(primitives.size(), Primitive());
-		for (size_t i = 0, n = primitives.size(); i < n; ++i)
+		parts_ = std::move(primitives);
+		//parts_.assign(primitives.size(), Primitive());
+		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& prim = parts_[i];
-			prim.MoveFrom(primitives[i]);
+			//prim.MoveFrom(primitives[i]);
 			prim.recentBelongingGeometry_ = entity_;
 		}
 		isDirty_ = true;
@@ -41,7 +42,7 @@ namespace vz
 			std::vector<Primitive> parts_tmp(n);
 			for (size_t i = 0; i < n; ++i)
 			{
-				parts_tmp[i].MoveFrom(parts[i]);
+				parts_tmp[i].MoveFrom(std::move(parts[i]));
 			}
 			parts.assign(slot + 1, Primitive());
 			for (size_t i = 0; i < n; ++i)
@@ -50,11 +51,11 @@ namespace vz
 			}
 		}
 	}
-	void GeometryComponent::MovePrimitiveFrom(Primitive& primitive, const size_t slot)
+	void GeometryComponent::MovePrimitiveFrom(Primitive&& primitive, const size_t slot)
 	{
 		tryAssignParts(slot, parts_);
 		Primitive& prim = parts_[slot];
-		prim.MoveFrom(primitive);
+		prim.MoveFrom(std::move(primitive));
 		prim.recentBelongingGeometry_ = entity_;
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;

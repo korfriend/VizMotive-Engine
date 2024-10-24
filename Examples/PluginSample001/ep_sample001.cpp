@@ -31,6 +31,7 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 
 	std::vector<uint8_t> data(volume_w * volume_h * volume_d * 2);
 
+	volume->MoveFromData(std::move(data));
 	// fill data...
 	//texture->MoveFromData();
 
