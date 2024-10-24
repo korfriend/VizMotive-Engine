@@ -533,39 +533,43 @@ namespace vz
 		public:
 			mutable bool autoUpdateRenderData = true;
 
-			inline void MoveFrom(Primitive& primitive)
+			inline void MoveFrom(Primitive&& primitive)
 			{
-				vertexPositions_ = std::move(primitive.vertexPositions_);
-				vertexNormals_ = std::move(primitive.vertexNormals_);
-				vertexTangents_ = std::move(primitive.vertexTangents_);
-				vertexUVset0_ = std::move(primitive.vertexUVset0_);
-				vertexUVset1_ = std::move(primitive.vertexUVset1_);
-				vertexColors_ = std::move(primitive.vertexColors_);
-				indexPrimitives_ = std::move(primitive.indexPrimitives_);
-
-				aabb_ = primitive.aabb_;
-				ptype_ = primitive.ptype_;
-
-				if (vertexPositions_.size() > 0) isValid_[SCU32(BufferDefinition::POSITION)] = true;
-				if (vertexNormals_.size() > 0 && vertexNormals_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::NORMAL)] = true;
-				if (vertexTangents_.size() > 0 && vertexTangents_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::TANGENT)] = true;
-				if (vertexUVset0_.size() > 0 && vertexUVset0_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::UVSET0)] = true;
-				if (vertexUVset1_.size() > 0 && vertexUVset1_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::UVSET1)] = true;
-				if (vertexColors_.size() > 0 && vertexColors_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::COLOR)] = true;
-				if (indexPrimitives_.size() > 0) isValid_[SCU32(BufferDefinition::INDICES)] = true;
+				*this = std::move(primitive);
+				//vertexPositions_ = std::move(primitive.vertexPositions_);
+				//vertexNormals_ = std::move(primitive.vertexNormals_);
+				//vertexTangents_ = std::move(primitive.vertexTangents_);
+				//vertexUVset0_ = std::move(primitive.vertexUVset0_);
+				//vertexUVset1_ = std::move(primitive.vertexUVset1_);
+				//vertexColors_ = std::move(primitive.vertexColors_);
+				//indexPrimitives_ = std::move(primitive.indexPrimitives_);
+				//bufferHandle_ = std::move(primitive.bufferHandle_);
+				//
+				//aabb_ = primitive.aabb_;
+				//ptype_ = primitive.ptype_;
+				//
+				//if (vertexPositions_.size() > 0) isValid_[SCU32(BufferDefinition::POSITION)] = true;
+				//if (vertexNormals_.size() > 0 && vertexNormals_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::NORMAL)] = true;
+				//if (vertexTangents_.size() > 0 && vertexTangents_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::TANGENT)] = true;
+				//if (vertexUVset0_.size() > 0 && vertexUVset0_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::UVSET0)] = true;
+				//if (vertexUVset1_.size() > 0 && vertexUVset1_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::UVSET1)] = true;
+				//if (vertexColors_.size() > 0 && vertexColors_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::COLOR)] = true;
+				//if (indexPrimitives_.size() > 0) isValid_[SCU32(BufferDefinition::INDICES)] = true;
 			}
 			inline void MoveTo(Primitive& primitive)
 			{
-				primitive.vertexPositions_ = std::move(vertexPositions_);
-				primitive.vertexNormals_ = std::move(vertexNormals_);
-				primitive.vertexTangents_ = std::move(vertexTangents_);
-				primitive.vertexUVset0_ = std::move(vertexUVset0_);
-				primitive.vertexUVset1_ = std::move(vertexUVset1_);
-				primitive.vertexColors_ = std::move(vertexColors_);
-				primitive.indexPrimitives_ = std::move(indexPrimitives_);
-				primitive.aabb_ = aabb_;
-				primitive.ptype_ = ptype_;
-				for (size_t i = 0, n = SCU32(BufferDefinition::COUNT); i < n; ++i) isValid_[i] = false;
+				primitive = std::move(*this);
+				*this = Primitive();
+				//primitive.vertexPositions_ = std::move(vertexPositions_);
+				//primitive.vertexNormals_ = std::move(vertexNormals_);
+				//primitive.vertexTangents_ = std::move(vertexTangents_);
+				//primitive.vertexUVset0_ = std::move(vertexUVset0_);
+				//primitive.vertexUVset1_ = std::move(vertexUVset1_);
+				//primitive.vertexColors_ = std::move(vertexColors_);
+				//primitive.indexPrimitives_ = std::move(indexPrimitives_);
+				//primitive.aabb_ = aabb_;
+				//primitive.ptype_ = ptype_;
+				//for (size_t i = 0, n = SCU32(BufferDefinition::COUNT); i < n; ++i) isValid_[i] = false;
 			}
 			inline const geometrics::AABB& GetAABB() const { return aabb_; }
 			inline geometrics::Sphere GetBoundingSphere() const
@@ -637,9 +641,9 @@ namespace vz
 
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
-		void MovePrimitivesFrom(std::vector<Primitive>& primitives);
+		void MovePrimitivesFrom(std::vector<Primitive>&& primitives);
 		void CopyPrimitivesFrom(const std::vector<Primitive>& primitives);
-		void MovePrimitiveFrom(Primitive& primitive, const size_t slot);
+		void MovePrimitiveFrom(Primitive&& primitive, const size_t slot);
 		void CopyPrimitiveFrom(const Primitive& primitive, const size_t slot);
 		const Primitive* GetPrimitive(const size_t slot) const;
 		const std::vector<Primitive>& GetPrimitives() const { return parts_; }
