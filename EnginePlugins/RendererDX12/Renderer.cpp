@@ -2640,7 +2640,6 @@ namespace vz
 	{
 		UpdateViewRes(dt);
 
-		return true;
 		jobsystem::context ctx;
 
 		CommandList cmd = device->BeginCommandList();
@@ -3329,7 +3328,7 @@ namespace vz
 		return new GRenderPath3DDetails(vp, swapChain, rtRenderFinal);
 	}
 
-	bool InitRendererShaders()
+	bool InitRenderer()
 	{
 		Timer timer;
 
@@ -3337,7 +3336,7 @@ namespace vz
 		initializer::LoadBuffers();
 
 		//static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
-		//LoadShaders();
+		shader::LoadShaders();
 
 		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
 		//initialized.store(true);

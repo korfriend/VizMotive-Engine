@@ -173,6 +173,9 @@
     <None Include="Shaders\PixelPacking_R11G11B10.hlsli" />
     <None Include="Shaders\PixelPacking_RGBE.hlsli" />
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\meshVS_debug.hlsl" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
