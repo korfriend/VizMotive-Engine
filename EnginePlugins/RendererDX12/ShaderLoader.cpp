@@ -10,12 +10,12 @@
 
 #ifdef SHADERDUMP_ENABLED
 // Note: when using Shader Dump, use relative directory, because the dump will contain relative names too
-std::string SHADERPATH = "Shaders/";
-std::string SHADERSOURCEPATH = "Shaders/";
+std::string SHADERPATH = "./Shaders/";
+std::string SHADERSOURCEPATH = "./Shaders/";
 #else
 // Note: when NOT using Shader Dump, use absolute directory, to avoid the case when something (eg. file dialog) overrides working directory
-std::string SHADERPATH = vz::helper::GetCurrentPath() + "Shaders/";
-std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "Shaders/";
+std::string SHADERPATH = vz::helper::GetCurrentPath() + "/Shaders/";
+std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "../../EnginePlugins/RendererDX12/Shaders/";
 #endif // SHADERDUMP_ENABLED
 
 std::atomic<size_t> SHADER_ERRORS{ 0 };
@@ -50,6 +50,11 @@ namespace vz
 		const std::vector<std::string>& permutation_defines)
 	{
 		return shader::LoadShader(stage, shader, filename, minshadermodel, permutation_defines);
+	}
+	bool LoadShaders()
+	{
+		shader::LoadShaders();
+		return true;
 	}
 }
 
@@ -453,6 +458,8 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso");
 			});
+
+		return;
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso");

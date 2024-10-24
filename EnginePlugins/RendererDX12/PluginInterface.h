@@ -22,6 +22,7 @@ namespace vz
 	// Renderer.cpp
 	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene);
 	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
+	extern "C" DX12_EXPORT bool InitRenderer();
 
 	// ShaderLoader.cpp
 	extern "C" DX12_EXPORT bool LoadShader(
@@ -30,4 +31,5 @@ namespace vz
 		const std::string& filename,
 		graphics::ShaderModel minshadermodel,
 		const std::vector<std::string>& permutation_defines);
+	extern "C" DX12_EXPORT bool LoadShaders();
 }

@@ -84,6 +84,9 @@
     <Filter Include="APIs">
       <UniqueIdentifier>{8cff3810-04b2-4316-8b39-e1980909b55e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\hlsl\VS">
+      <UniqueIdentifier>{78a37123-faac-4dd5-9336-c2c326e05c3d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Globals.hlsli">
@@ -98,5 +101,10 @@
     <None Include="Shaders\PixelPacking_R11G11B10.hlsli">
       <Filter>Shaders\hlsl\common</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\meshVS_debug.hlsl">
+      <Filter>Shaders\hlsl\VS</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
