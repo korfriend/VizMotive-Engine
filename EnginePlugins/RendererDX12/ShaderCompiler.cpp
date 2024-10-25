@@ -139,7 +139,7 @@ namespace vz::graphics::shadercompiler
 		{
 		case ShaderFormat::HLSL6:
 		case ShaderFormat::HLSL6_XS:
-			args.push_back(L"-rootsig-define"); args.push_back(L"WICKED_ENGINE_DEFAULT_ROOTSIGNATURE");
+			args.push_back(L"-rootsig-define"); args.push_back(L"ENGINE_DEFAULT_ROOTSIGNATURE");
 			if (has_flag(input.flags, Flags::STRIP_REFLECTION))
 			{
 				args.push_back(L"-Qstrip_reflect"); // only valid in HLSL6 compiler

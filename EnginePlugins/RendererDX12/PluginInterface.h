@@ -22,6 +22,8 @@ namespace vz
 	// Renderer.cpp
 	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene);
 	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
+
+	// RenderInitializer.cpp
 	extern "C" DX12_EXPORT bool InitRenderer();
 
 	// ShaderLoader.cpp

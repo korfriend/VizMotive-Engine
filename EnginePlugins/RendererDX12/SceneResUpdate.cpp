@@ -50,7 +50,7 @@ namespace vz
 					}
 					else
 					{
-						shader_geometry_part.vb_pos = prim_buffer.vbPosition.descriptor_srv;
+						shader_geometry_part.vb_pos = prim_buffer.vbPosW.descriptor_srv;
 					}
 					if (prim_buffer.soNormal.IsValid())
 					{

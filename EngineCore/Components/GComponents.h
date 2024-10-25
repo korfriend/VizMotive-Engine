@@ -73,7 +73,7 @@ namespace vz
 			};
 
 			BufferView ib;
-			BufferView vbPosition;
+			BufferView vbPosW;
 			BufferView vbNormal;
 			BufferView vbTangent;
 			BufferView vbUVs;
@@ -97,7 +97,7 @@ namespace vz
 
 				// buffer views
 				ib = {};
-				vbPosition = {};
+				vbPosW = {};
 				vbTangent = {};
 				vbNormal = {};
 				vbUVs = {};
@@ -177,7 +177,9 @@ namespace vz
 			}
 			static constexpr graphics::Format FORMAT = graphics::Format::R32G32B32A32_FLOAT;
 		};
-		graphics::Format positionFormat = Vertex_POS32::FORMAT; // can be modified (current version uses Vertex_POS32 as default)
+
+		// For a compatibility issue (also binding SRV for extension), use Vertex_POS32W as default
+		graphics::Format positionFormat = Vertex_POS32W::FORMAT; // can be modified 
 
 		struct Vertex_TEX
 		{

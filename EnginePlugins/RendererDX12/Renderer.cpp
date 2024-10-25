@@ -3327,21 +3327,5 @@ namespace vz
 	{
 		return new GRenderPath3DDetails(vp, swapChain, rtRenderFinal);
 	}
-
-	bool InitRenderer()
-	{
-		Timer timer;
-
-		initializer::SetUpStates();
-		initializer::LoadBuffers();
-
-		//static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
-		shader::LoadShaders();
-
-		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
-		//initialized.store(true);
-		return true;
-	}
-
 }
 

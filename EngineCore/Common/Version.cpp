@@ -1,6 +1,7 @@
 ﻿#include "Version.h"
 
 #include <string>
+#include <assert.h>
 
 namespace vz::version
 {
@@ -12,6 +13,12 @@ namespace vz::version
 	const int revision = 0;
 
 	const std::string versionString = std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision);
+
+	long GetVersion()
+	{
+		assert(major < 10000 && minor < 1000 && revision < 1000);
+		return major * 1000000 + minor * 1000 + revision;
+	}
 
 	int GetMajor()
 	{

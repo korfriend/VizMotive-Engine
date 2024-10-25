@@ -1,7 +1,11 @@
 #include "Renderer.h"
+#include "PluginInterface.h"
 #include "Shaders/ShaderInterop.h"
 
 #include "sheenLUT.h"
+
+#include "Utils/Timer.h"
+#include "Utils/Backlog.h"
 
 namespace vz::rcommon
 {
@@ -13,6 +17,24 @@ namespace vz::rcommon
 	extern GPUBuffer			buffers[BUFFERTYPE_COUNT];
 	extern Sampler				samplers[SAMPLER_COUNT];
 	extern Texture				textures[TEXTYPE_COUNT];
+}
+
+namespace vz
+{
+	bool InitRenderer()
+	{
+		Timer timer;
+
+		initializer::SetUpStates();
+		initializer::LoadBuffers();
+
+		//static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
+		shader::LoadShaders();
+
+		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
+		//initialized.store(true);
+		return true;
+	}
 }
 
 namespace vz::initializer
