@@ -335,8 +335,8 @@ namespace vz::renderer
 		uint lightarray_offset = 0;
 		uint lightarray_count = 0;
 
-		LightEntity* light_entity_array = frameCB.lightArray;
-		float4x4* light_matrix_array = frameCB.lightMatrixArray;
+		ShaderEntity* light_entity_array = frameCB.entityArray;
+		float4x4* light_matrix_array = frameCB.matrixArray;
 
 		uint32_t light_entity_counter = 0;
 
@@ -347,7 +347,7 @@ namespace vz::renderer
 		lightarray_offset_directional = light_entity_counter;
 		for (uint32_t lightIndex : vis.visibleLights)
 		{
-			if (light_entity_counter == LIGHT_ENTITY_COUNT)
+			if (light_entity_counter == SHADER_ENTITY_COUNT)
 			{
 				light_entity_counter--;
 				break;
@@ -357,7 +357,7 @@ namespace vz::renderer
 			if (light.GetLightType() != LightComponent::LightType::DIRECTIONAL || light.IsInactive())
 				continue;
 
-			LightEntity light_entity = {};
+			ShaderEntity light_entity = {};
 			light_entity.layerMask = ~0u;
 
 			light_entity.SetType(SCU32(light.GetLightType()));
@@ -373,7 +373,7 @@ namespace vz::renderer
 			// mark as no shadow by default:
 			light_entity.indices = ~0;
 
-			const uint cascade_count = std::min((uint)light.cascadeDistances.size(), LIGHT_ENTITY_COUNT - light_entity_counter);
+			const uint cascade_count = std::min((uint)light.cascadeDistances.size(), SHADER_ENTITY_COUNT - light_entity_counter);
 			light_entity.SetShadowCascadeCount(cascade_count);
 
 			//if (shadow && !light.cascade_distances.empty())
@@ -386,13 +386,13 @@ namespace vz::renderer
 			//	}
 			//}
 
-			std::memcpy(light_entity_array + light_entity_counter, &light_entity, sizeof(LightEntity));
+			std::memcpy(light_entity_array + light_entity_counter, &light_entity, sizeof(ShaderEntity));
 			light_entity_counter++;
 			lightarray_count_directional++;
 		}
 
-		frameCB.directional_lights = LightEntityIterator(lightarray_offset_directional, lightarray_count_directional);
-		frameCB.lights = LightEntityIterator(lightarray_offset, lightarray_count);
+		frameCB.directional_lights = ShaderEntityIterator(lightarray_offset_directional, lightarray_count_directional);
+		frameCB.lights = ShaderEntityIterator(lightarray_offset, lightarray_count);
 	}
 
 	constexpr uint32_t CombineStencilrefs(MaterialComponent::StencilRef engineStencilRef, uint8_t userStencilRef)
@@ -1037,7 +1037,7 @@ namespace vz
 				0,
 				&scene_Gdetails->instanceUploadBuffer[device->GetBufferIndex()],
 				0,
-				scene_Gdetails->instanceArraySize * sizeof(ShaderRenderable),
+				scene_Gdetails->instanceArraySize * sizeof(ShaderMeshInstance),
 				cmd
 			);
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->instanceBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE));
@@ -1050,7 +1050,7 @@ namespace vz
 				0,
 				&scene_Gdetails->geometryUploadBuffer[device->GetBufferIndex()],
 				0,
-				scene_Gdetails->geometryArraySize * sizeof(ShaderGeometryPart),
+				scene_Gdetails->geometryArraySize * sizeof(ShaderGeometry),
 				cmd
 			);
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->geometryBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE));

@@ -41,7 +41,7 @@ namespace vz
 
 				if (geometryArrayMapped != nullptr)
 				{
-					ShaderGeometryPart shader_geometry_part;
+					ShaderGeometry shader_geometry_part;
 					shader_geometry_part.Init();
 					shader_geometry_part.ib = prim_buffer.ib.descriptor_srv;
 					if (prim_buffer.soPosition.IsValid())
@@ -320,7 +320,7 @@ namespace vz
 				renderable.materialIndices.resize(num_parts);
 				renderable.materialFilterFlags = 0;
 				// Create GPU instance data:
-				ShaderRenderable inst;
+				ShaderMeshInstance inst;
 				inst.Init();
 
 				for (uint32_t part_index = 0; part_index < num_parts; ++part_index)
@@ -433,10 +433,10 @@ namespace vz
 
 			// 2. constant (pingpong) buffers for renderables (Non Thread Task)
 			instanceArraySize = num_renderables;
-			if (instanceUploadBuffer[0].desc.size < (instanceArraySize * sizeof(ShaderRenderable)))
+			if (instanceUploadBuffer[0].desc.size < (instanceArraySize * sizeof(ShaderMeshInstance)))
 			{
 				GPUBufferDesc desc;
-				desc.stride = sizeof(ShaderRenderable);
+				desc.stride = sizeof(ShaderMeshInstance);
 				desc.size = desc.stride * instanceArraySize * 2; // *2 to grow fast
 				desc.bind_flags = BindFlag::SHADER_RESOURCE;
 				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
@@ -460,7 +460,7 @@ namespace vz
 					device->SetName(&instanceUploadBuffer[i], "GSceneDetails::instanceUploadBuffer");
 				}
 			}
-			instanceArrayMapped = (ShaderRenderable*)instanceUploadBuffer[pingpong_buffer_index].mapped_data;
+			instanceArrayMapped = (ShaderMeshInstance*)instanceUploadBuffer[pingpong_buffer_index].mapped_data;
 
 			// 3. material (pingpong) buffers for shaders (Non Thread Task)
 			materialArraySize = num_materials;
@@ -567,7 +567,7 @@ namespace vz
 			// initialize ShaderRenderable 
 			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
 				// Must not keep inactive instances, so init them for safety:
-				ShaderRenderable inst;
+				ShaderMeshInstance inst;
 				inst.Init();
 				for (uint32_t i = 0; i < instanceArraySize; ++i)
 				{
@@ -580,10 +580,10 @@ namespace vz
 
 		// GPU subset count allocation is ready at this point:
 		geometryArraySize = geometryAllocator.load();
-		if (geometryUploadBuffer[0].desc.size < (geometryArraySize * sizeof(ShaderGeometryPart)))
+		if (geometryUploadBuffer[0].desc.size < (geometryArraySize * sizeof(ShaderGeometry)))
 		{
 			GPUBufferDesc desc;
-			desc.stride = sizeof(ShaderGeometryPart);
+			desc.stride = sizeof(ShaderGeometry);
 			desc.size = desc.stride * geometryArraySize * 2; // *2 to grow fast
 			desc.bind_flags = BindFlag::SHADER_RESOURCE;
 			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
@@ -605,7 +605,7 @@ namespace vz
 				device->SetName(&geometryUploadBuffer[i], "GSceneDetails::geometryUploadBuffer");
 			}
 		}
-		geometryArrayMapped = (ShaderGeometryPart*)geometryUploadBuffer[pingpong_buffer_index].mapped_data;
+		geometryArrayMapped = (ShaderGeometry*)geometryUploadBuffer[pingpong_buffer_index].mapped_data;
 
 		RunPrimtiveUpdateSystem(ctx);
 		RunMaterialUpdateSystem(ctx);
