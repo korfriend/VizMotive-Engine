@@ -314,6 +314,248 @@ RWTexture2D<uint4> bindless_rwtextures_uint4[] : register(space36);
 #endif // __spirv__
 
 
+#include "ShaderInterop.h"
+
+#if defined(__spirv__)
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMeshInstance> bindless_structured_meshinstance[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderGeometry> bindless_structured_geometry[];
+//[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMeshlet> bindless_structured_meshlet[];
+//[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderCluster> bindless_structured_cluster[];
+//[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderClusterBounds> bindless_structured_cluster_bounds[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMaterial> bindless_structured_material[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<uint> bindless_structured_uint[];
+#else
+StructuredBuffer<ShaderMeshInstance> bindless_structured_meshinstance[] : register(space37);
+StructuredBuffer<ShaderGeometry> bindless_structured_geometry[] : register(space38);
+//StructuredBuffer<ShaderMeshlet> bindless_structured_meshlet[] : register(space39);
+//StructuredBuffer<ShaderCluster> bindless_structured_cluster[] : register(space40);
+//StructuredBuffer<ShaderClusterBounds> bindless_structured_cluster_bounds[] : register(space41);
+StructuredBuffer<ShaderMaterial> bindless_structured_material[] : register(space42);
+StructuredBuffer<uint> bindless_structured_uint[] : register(space43);
+#endif // __spirv__
+
+
+inline FrameCB GetFrame()
+{
+    return g_xFrame;
+}
+inline ShaderCamera GetCamera(uint camera_index = 0)
+{
+    return g_xCamera.cameras[camera_index];
+}
+inline ShaderScene GetScene()
+{
+    return GetFrame().scene;
+}
+inline ShaderMeshInstance load_instance(uint instanceIndex)
+{
+    return bindless_structured_meshinstance[GetScene().instancebuffer][instanceIndex];
+}
+inline ShaderGeometry load_geometry(uint geometryIndex)
+{
+    return bindless_structured_geometry[GetScene().geometrybuffer][geometryIndex];
+}
+//inline ShaderMeshlet load_meshlet(uint meshletIndex)
+//{
+//    return bindless_structured_meshlet[GetScene().meshletbuffer][meshletIndex];
+//}
+inline ShaderMaterial load_material(uint materialIndex)
+{
+    return bindless_structured_material[GetScene().materialbuffer][materialIndex];
+}
+uint load_entitytile(uint tileIndex)
+{
+    uint offset = 0;
+#ifdef TRANSPARENT
+	offset += GetCamera().entity_culling_tile_bucket_count_flat;
+#endif // TRANSPARENT
+    return bindless_structured_uint[GetCamera().buffer_entitytiles_index][offset + tileIndex];
+}
+inline ShaderEntity load_entity(uint entityIndex)
+{
+    return GetFrame().entityArray[entityIndex];
+}
+inline float4x4 load_entitymatrix(uint matrixIndex)
+{
+    return GetFrame().matrixArray[matrixIndex];
+}
+inline void write_mipmap_feedback(uint materialIndex, float4 uvsets_dx, float4 uvsets_dy)
+{
+	[branch]
+    if (GetScene().texturestreamingbuffer >= 0)
+    {
+        const float lod_uvset0 = get_lod(65536u, uvsets_dx.xy, uvsets_dy.xy);
+        const float lod_uvset1 = get_lod(65536u, uvsets_dx.zw, uvsets_dy.zw);
+        const uint resolution0 = 65536u >> uint(max(0, lod_uvset0));
+        const uint resolution1 = 65536u >> uint(max(0, lod_uvset1));
+        const uint mask = resolution0 | (resolution1 << 16u);
+        const uint wave_mask = WaveActiveBitOr(mask);
+        if (WaveIsFirstLane())
+        {
+            InterlockedOr(bindless_rwbuffers_uint[GetScene().texturestreamingbuffer][materialIndex], wave_mask);
+        }
+    }
+}
+inline void write_mipmap_feedback(uint materialIndex, uint resolution0, uint resolution1)
+{
+	[branch]
+    if (WaveIsFirstLane() && GetScene().texturestreamingbuffer >= 0)
+    {
+        const uint mask = resolution0 | (resolution1 << 16u);
+        InterlockedOr(bindless_rwbuffers_uint[GetScene().texturestreamingbuffer][materialIndex], mask);
+    }
+}
+
+inline ShaderEntityIterator lights()
+{
+    ShaderEntityIterator iter;
+    iter.value = GetFrame().lights;
+    return iter;
+}
+inline ShaderEntityIterator directional_lights()
+{
+    ShaderEntityIterator iter;
+    iter.value = GetFrame().directional_lights;
+    return iter;
+}
+inline ShaderEntityIterator spotlights()
+{
+    ShaderEntityIterator iter;
+    iter.value = GetFrame().spot_lights;
+    return iter;
+}
+inline ShaderEntityIterator pointlights()
+{
+    ShaderEntityIterator iter;
+    iter.value = GetFrame().point_lights;
+    return iter;
+}
+inline ShaderEntityIterator probes()
+{
+    ShaderEntityIterator iter;
+    iter.value = GetFrame().probes;
+    return iter;
+}
+//inline ShaderEntityIterator decals()
+//{
+//    ShaderEntityIterator iter;
+//    iter.value = GetFrame().decals;
+//    return iter;
+//}
+//inline ShaderEntityIterator forces()
+//{
+//    ShaderEntityIterator iter;
+//    iter.value = GetFrame().forces;
+//    return iter;
+//}
+
+struct PrimitiveID
+{
+    uint primitiveIndex;
+    uint instanceIndex;
+    uint subsetIndex;   // part
+    bool maybe_clustered;
+
+	// These packing methods require meshlet data, and pack into 32 bits:
+    //inline uint pack()
+    //{
+	//	// 25 bit meshletIndex
+	//	// 7  bit meshletPrimitiveIndex
+    //    ShaderMeshInstance inst = load_instance(instanceIndex);
+    //    ShaderGeometry geometry = load_geometry(inst.geometryOffset + subsetIndex);
+    //    uint meshletIndex = inst.meshletOffset + geometry.meshletOffset + primitiveIndex / MESHLET_TRIANGLE_COUNT;
+    //    meshletIndex += 1; // indicate that it is valid
+    //    meshletIndex &= ~0u >> 7u; // mask 25 active bits
+    //    uint meshletPrimitiveIndex = primitiveIndex % MESHLET_TRIANGLE_COUNT;
+    //    meshletPrimitiveIndex &= 0x7F; // mask 7 active bits
+    //    meshletPrimitiveIndex <<= 25u;
+    //    return meshletPrimitiveIndex | meshletIndex;
+    //}
+    //inline void unpack(uint value)
+    //{
+    //    uint meshletIndex = value & (~0u >> 7u);
+    //    meshletIndex -= 1; // remove valid check
+    //    uint meshletPrimitiveIndex = (value >> 25u) & 0x7F;
+    //    ShaderMeshlet meshlet = load_meshlet(meshletIndex);
+    //    ShaderMeshInstance inst = load_instance(meshlet.instanceIndex);
+    //    primitiveIndex = meshlet.primitiveOffset + meshletPrimitiveIndex;
+    //    instanceIndex = meshlet.instanceIndex;
+    //    subsetIndex = meshlet.geometryIndex - inst.geometryOffset;
+    //    maybe_clustered = true;
+    //}
+
+	// These packing methods don't need meshlets, but they are packed into 64 bits:
+    uint2 pack2()
+    {
+		// 32 bit primitiveIndex + 1 valid check
+		// 24 bit instanceIndex
+		// 8  bit subsetIndex
+        return uint2(primitiveIndex + 1, (instanceIndex & 0xFFFFFF) | ((subsetIndex & 0xFF) << 24u));
+    }
+    void unpack2(uint2 value)
+    {
+        primitiveIndex = value.x - 1; // remove valid check
+        instanceIndex = value.y & 0xFFFFFF;
+        subsetIndex = (value.y >> 24u) & 0xFF;
+        maybe_clustered = false;
+    }
+
+    uint3 tri()
+    {
+        ShaderMeshInstance inst = load_instance(instanceIndex);
+        ShaderGeometry geometry = load_geometry(inst.geometryOffset + subsetIndex);
+        //if (maybe_clustered && geometry.vb_clu >= 0)
+        //{
+        //    const uint clusterID = primitiveIndex >> 7u;
+        //    const uint triangleID = primitiveIndex & 0x7F;
+        //    ShaderCluster cluster = bindless_structured_cluster[NonUniformResourceIndex(geometry.vb_clu)][clusterID];
+        //    uint i0 = cluster.vertices[cluster.triangles[triangleID].i0()];
+        //    uint i1 = cluster.vertices[cluster.triangles[triangleID].i1()];
+        //    uint i2 = cluster.vertices[cluster.triangles[triangleID].i2()];
+        //    return uint3(i0, i1, i2);
+        //}
+        const uint startIndex = primitiveIndex * 3; // + geometry.indexOffset; (our ShaderGeometry begins without offset)
+        Buffer<uint> indexBuffer = bindless_buffers_uint[NonUniformResourceIndex(geometry.ib)];
+        uint i0 = indexBuffer[startIndex + 0];
+        uint i1 = indexBuffer[startIndex + 1];
+        uint i2 = indexBuffer[startIndex + 2];
+        return uint3(i0, i1, i2);
+    }
+    uint i0()
+    {
+        return tri().x;
+    }
+    uint i1()
+    {
+        return tri().y;
+    }
+    uint i2()
+    {
+        return tri().z;
+    }
+};
+
+#define texture_random64x64 bindless_textures[GetFrame().texture_random64x64_index]
+#define texture_bluenoise bindless_textures[GetFrame().texture_bluenoise_index]
+#define texture_sheenlut bindless_textures[GetFrame().texture_sheenlut_index]
+#define texture_skyviewlut bindless_textures[GetFrame().texture_skyviewlut_index]
+#define texture_transmittancelut bindless_textures[GetFrame().texture_transmittancelut_index]
+#define texture_multiscatteringlut bindless_textures[GetFrame().texture_multiscatteringlut_index]
+#define texture_skyluminancelut bindless_textures[GetFrame().texture_skyluminancelut_index]
+#define texture_cameravolumelut bindless_textures3D[GetFrame().texture_cameravolumelut_index]
+#define texture_wind bindless_textures3D[GetFrame().texture_wind_index]
+#define texture_wind_prev bindless_textures3D[GetFrame().texture_wind_prev_index]
+#define texture_caustics bindless_textures[GetFrame().texture_caustics_index]
+#define scene_acceleration_structure bindless_accelerationstructures[GetScene().TLAS]
+
+#define texture_depth bindless_textures_float[GetCamera().texture_depth_index]
+#define texture_depth_history bindless_textures_float[GetCamera().texture_depth_index_prev]
+#define texture_lineardepth bindless_textures_float[GetCamera().texture_lineardepth_index]
+#define texture_primitiveID bindless_textures_uint[GetCamera().texture_primitiveID_index]
+#define texture_velocity bindless_textures_float2[GetCamera().texture_velocity_index]
+#define texture_normal bindless_textures_float2[GetCamera().texture_normal_index]
+#define texture_roughness bindless_textures_float[GetCamera().texture_roughness_index]
+
 // Note: defines can be better for choosing between half/float by compiler than "static const float"
 #define PI 3.14159265358979323846
 #define SQRT2 1.41421356237309504880
@@ -486,6 +728,31 @@ template<typename T>
 T inverse_lerp(T value1, T value2, T pos)
 {
     return all(value2 == value1) ? 0 : ((pos - value1) / (value2 - value1));
+}
+
+inline uint2 GetInternalResolution()
+{
+    return GetCamera().internal_resolution;
+}
+inline float GetDeltaTime()
+{
+    return GetFrame().delta_time;
+}
+inline float GetTime()
+{
+    return GetFrame().time;
+}
+inline float GetTimePrev()
+{
+    return GetFrame().time_previous;
+}
+inline float GetFrameCount()
+{
+    return GetFrame().frame_count;
+}
+inline min16uint2 GetTemporalAASampleRotation()
+{
+    return min16uint2(GetFrame().temporalaa_samplerotation & 0xFF, (GetFrame().temporalaa_samplerotation >> 8u) & 0xFF);
 }
 
 // Mie scaterring approximated with Henyey-Greenstein phase function.
@@ -1174,7 +1441,7 @@ static const half BayerMatrix8[8][8] =
 
 inline half ditherMask2(in min16uint2 pixel)
 {
-    return BayerMatrix2[pixel.x % 2][pixel.y % 2];
+    return half(BayerMatrix2[pixel.x % 2][pixel.y % 2]);
 }
 
 inline half ditherMask3(in min16uint2 pixel)
@@ -1488,32 +1755,6 @@ RayCone pixel_ray_cone_from_image_height(float image_height)
 }
 
 
-float3 sample_wind(float3 position, float weight)
-{
-	[branch]
-    if (weight > 0)
-    {
-        return texture_wind.SampleLevel(sampler_linear_mirror, position, 0).r * GetWeather().wind.direction * weight;
-    }
-    else
-    {
-        return 0;
-    }
-}
-float3 sample_wind_prev(float3 position, float weight)
-{
-	[branch]
-    if (weight > 0)
-    {
-        return texture_wind_prev.SampleLevel(sampler_linear_mirror, position, 0).r * GetWeather().wind.direction * weight;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-
 static const float4 halton64[] =
 {
     float4(0.5000000000f, 0.3333333333f, 0.2000000000f, 0.1428571429f),
@@ -1583,14 +1824,13 @@ static const float4 halton64[] =
 	float4(0.5078125000f, 0.7283950617f, 0.1360000000f, 0.3294460641f),
 };
 
-// This the same as graphics::ColorSpace
+// This is the same as graphics::ColorSpace
 enum class ColorSpace
 {
 	SRGB,			// SDR color space (8 or 10 bits per channel)
 	HDR10_ST2084,	// HDR10 color space (10 bits per channel)
 	HDR_LINEAR,		// HDR color space (16 bits per channel)
 };
-
 
 static const uint NUM_PARALLAX_OCCLUSION_STEPS = 32;
 static const float NUM_PARALLAX_OCCLUSION_STEPS_RCP = 1.0 / NUM_PARALLAX_OCCLUSION_STEPS;
@@ -1646,10 +1886,7 @@ inline float3 get_up(float4x4 m)
 }
 inline float3 get_right(float4x4 m)
 {
-    return float3(m[0][0], m[0][1], m[0][2]);
+    return -float3(m[0][0], m[0][1], m[0][2]);
 }
-
-
-#include "ShaderInterop.h"
 
 #endif // SHADER_GLOBALS_HF

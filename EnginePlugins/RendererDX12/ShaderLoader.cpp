@@ -459,8 +459,6 @@ namespace vz::shader
 			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso");
 			});
 
-		return;
-
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso");
 			});

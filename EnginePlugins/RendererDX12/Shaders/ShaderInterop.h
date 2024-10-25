@@ -101,7 +101,7 @@ struct alignas(16) ShaderTransform
 	}
 };
 
-struct alignas(16) ShaderRenderable
+struct alignas(16) ShaderMeshInstance
 {
 	uint uid;	// using entity
 	uint flags;	// high 8 bits: user stencilRef (same as visibility-layered mask)
@@ -213,6 +213,35 @@ enum TEXTURESLOT
 
 	TEXTURESLOT_COUNT
 };
+
+// Sparse Virtual Texturing (SVT)
+static const uint SVT_TILE_SIZE = 256u;
+static const uint SVT_TILE_BORDER = 4u;
+static const uint SVT_TILE_SIZE_PADDED = SVT_TILE_SIZE + SVT_TILE_BORDER * 2;
+static const uint SVT_PACKED_MIP_COUNT = 6;
+static const uint2 SVT_PACKED_MIP_OFFSETS[SVT_PACKED_MIP_COUNT] = {
+	uint2(0, 0),
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2, 0),
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2 + SVT_TILE_SIZE / 4 + SVT_TILE_BORDER * 2, 0),
+	// shift the offset down a bit to not go over the tile limit:
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2, SVT_TILE_SIZE / 4 + SVT_TILE_BORDER * 2),
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2 + SVT_TILE_SIZE / 16 + SVT_TILE_BORDER * 2, SVT_TILE_SIZE / 4 + SVT_TILE_BORDER * 2),
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2 + SVT_TILE_SIZE / 16 + SVT_TILE_BORDER * 2 + SVT_TILE_SIZE / 32 + SVT_TILE_BORDER * 2, SVT_TILE_SIZE / 4 + SVT_TILE_BORDER * 2),
+};
+
+#ifndef __cplusplus
+#ifdef TEXTURE_SLOT_NONUNIFORM
+#define UniformTextureSlot(x) NonUniformResourceIndex(x)
+#else
+#define UniformTextureSlot(x) (x)
+#endif // TEXTURE_SLOT_NONUNIFORM
+
+inline float get_lod(in uint2 dim, in float2 uv_dx, in float2 uv_dy)
+{
+	// https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#7.18.11%20LOD%20Calculations
+	return log2(max(length(uv_dx * dim), length(uv_dy * dim)));
+}
+#endif // __cplusplus
 
 struct alignas(16) ShaderTextureSlot
 {
@@ -508,7 +537,7 @@ struct alignas(16) ShaderMaterial
 
 // This is equivalent to a Geometry's Primitive parts
 //	But because these are always loaded together by shaders, they are unrolled into one to reduce individual buffer loads
-struct alignas(16) ShaderGeometryPart
+struct alignas(16) ShaderGeometry
 {
 	int ib;
 	int vb_pos;
@@ -647,7 +676,7 @@ struct alignas(16) ShaderScene
 // Warning: the size of this structure directly affects shader performance.
 //	Try to reduce it as much as possible!
 //	Keep it aligned to 16 bytes for best performance!
-struct alignas(16) LightEntity
+struct alignas(16) ShaderEntity
 {
 	float3 position;
 	uint type8_flags8_range16;
@@ -822,15 +851,12 @@ struct alignas(16) LightEntity
 #endif // __cplusplus
 };
 
-static const uint LIGHT_ENTITY_COUNT = 256;
-static const uint LIGHT_ENTITY_TILE_BUCKET_COUNT = LIGHT_ENTITY_COUNT / 32;
-
-struct LightEntityIterator
+struct ShaderEntityIterator
 {
 	uint value;
 
 #ifdef __cplusplus
-	LightEntityIterator(uint offset, uint count)
+	ShaderEntityIterator(uint offset, uint count)
 	{
 		value = offset | (count << 16u);
 	}
@@ -926,14 +952,21 @@ struct alignas(16) FrameCB
 	uint padding3; 
 
 	// Note: 
-	//	A single renderable refers to a number of 'LightEntity's
-	//	This is why LightEntities and their transform matrices do not belong to 'ShaderScene'
-	LightEntity lightArray[LIGHT_ENTITY_COUNT];
-	float4x4 lightMatrixArray[LIGHT_ENTITY_COUNT];
+	//	A single renderable refers to a number of shader units such as light.
+	//											e.g., light sources (original light, probe, ...)
+	//	such units can be stored into 'ShaderEntity'
+	//	This is why such units and their transform matrices do not belong to 'ShaderScene'
+	ShaderEntity entityArray[SHADER_ENTITY_COUNT];
+	float4x4 matrixArray[SHADER_ENTITY_COUNT];
 };
 
 
 // ---------- Common Constant buffers: -----------------
+struct alignas(16) ShaderSphere
+{
+	float3 center;
+	float radius;
+};
 
 struct alignas(16) ShaderFrustum
 {

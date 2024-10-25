@@ -358,14 +358,14 @@ namespace vz
 		size_t instanceArraySize = 0;
 		graphics::GPUBuffer instanceUploadBuffer[graphics::GraphicsDevice::GetBufferCount()]; // dynamic GPU-usage
 		graphics::GPUBuffer instanceBuffer = {};	// default GPU-usage
-		ShaderRenderable* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
+		ShaderMeshInstance* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
 
 		// Geometries for bindless visiblity indexing:
 		//	contains in order:
 		//		1) # of primitive parts
 		//		2) emitted particles * 1
 		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		ShaderGeometryPart* geometryArrayMapped = nullptr;
+		ShaderGeometry* geometryArrayMapped = nullptr;
 		size_t geometryArraySize = 0;
 		graphics::GPUBuffer geometryBuffer = {};
 		std::atomic<uint32_t> geometryAllocator{ 0 };
