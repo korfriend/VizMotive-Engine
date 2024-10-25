@@ -14,7 +14,6 @@
 #include "ColorSpaceUtility.hlsli"
 #include "PixelPacking_R11G11B10.hlsli"
 #include "PixelPacking_RGBE.hlsli"
-#include "ShaderInterop.h"
 
 inline uint pack_unitvector(in half3 value)
 {
@@ -128,6 +127,83 @@ inline uint2 unpack_pixel(uint value)
     return retVal;
 }
 
+// The root signature will affect shader compilation for DX12.
+//	The shader compiler will take the defined name: WICKED_ENGINE_DEFAULT_ROOTSIGNATURE and use it as root signature
+//	If you wish to specify custom root signature, make sure that this define is not available
+//		(for example: not including this file, or using #undef WICKED_ENGINE_DEFAULT_ROOTSIGNATURE)
+#define ENGINE_DEFAULT_ROOTSIGNATURE \
+	"RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
+	"RootConstants(num32BitConstants=12, b999), " \
+	"CBV(b0), " \
+	"CBV(b1), " \
+	"CBV(b2), " \
+	"DescriptorTable( " \
+		"CBV(b3, numDescriptors = 11, flags = DATA_STATIC_WHILE_SET_AT_EXECUTE)," \
+		"SRV(t0, numDescriptors = 16, flags = DESCRIPTORS_VOLATILE | DATA_STATIC_WHILE_SET_AT_EXECUTE)," \
+		"UAV(u0, numDescriptors = 16, flags = DESCRIPTORS_VOLATILE | DATA_STATIC_WHILE_SET_AT_EXECUTE)" \
+	")," \
+	"DescriptorTable( " \
+		"Sampler(s0, offset = 0, numDescriptors = 8, flags = DESCRIPTORS_VOLATILE)" \
+	")," \
+	"DescriptorTable( " \
+		"Sampler(s0, space = 1, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE)" \
+	")," \
+	"DescriptorTable( " \
+		"SRV(t0, space = 2, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 3, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 4, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 5, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 6, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 7, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 8, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 9, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 10, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 11, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 12, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 13, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 14, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 15, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 16, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 17, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 18, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 19, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 20, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 21, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 22, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 23, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 24, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 25, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 26, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 27, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 28, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 29, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 30, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 31, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 32, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 33, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 34, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 35, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"UAV(u0, space = 36, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 37, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 38, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 39, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 40, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 41, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 42, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 43, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 44, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)" \
+	"), " \
+	"StaticSampler(s100, addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP, filter = FILTER_MIN_MAG_MIP_LINEAR)," \
+	"StaticSampler(s101, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP, filter = FILTER_MIN_MAG_MIP_LINEAR)," \
+	"StaticSampler(s102, addressU = TEXTURE_ADDRESS_MIRROR, addressV = TEXTURE_ADDRESS_MIRROR, addressW = TEXTURE_ADDRESS_MIRROR, filter = FILTER_MIN_MAG_MIP_LINEAR)," \
+	"StaticSampler(s103, addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP, filter = FILTER_MIN_MAG_MIP_POINT)," \
+	"StaticSampler(s104, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP, filter = FILTER_MIN_MAG_MIP_POINT)," \
+	"StaticSampler(s105, addressU = TEXTURE_ADDRESS_MIRROR, addressV = TEXTURE_ADDRESS_MIRROR, addressW = TEXTURE_ADDRESS_MIRROR, filter = FILTER_MIN_MAG_MIP_POINT)," \
+	"StaticSampler(s106, addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP, filter = FILTER_ANISOTROPIC, maxAnisotropy = 16)," \
+	"StaticSampler(s107, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP, filter = FILTER_ANISOTROPIC, maxAnisotropy = 16)," \
+	"StaticSampler(s108, addressU = TEXTURE_ADDRESS_MIRROR, addressV = TEXTURE_ADDRESS_MIRROR, addressW = TEXTURE_ADDRESS_MIRROR, filter = FILTER_ANISOTROPIC, maxAnisotropy = 16)," \
+	"StaticSampler(s109, addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP, filter = FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, comparisonFunc = COMPARISON_GREATER_EQUAL),"
+
 // These are static samplers, they don't need to be bound:
 //	They are also on slots that are not bindable as sampler bind slots must be in [0,15] range!
 SamplerState sampler_linear_clamp : register(s100);
@@ -140,6 +216,103 @@ SamplerState sampler_aniso_clamp : register(s106);
 SamplerState sampler_aniso_wrap : register(s107);
 SamplerState sampler_aniso_mirror : register(s108);
 SamplerComparisonState sampler_cmp_depth : register(s109);
+
+#if defined(__spirv__)
+// In Vulkan, we can manually overlap descriptor sets to reduce bindings:
+//	Note that HLSL register space declaration was not working correctly with overlapped spaces,
+//	But vk::binding works correctly in this case.
+//	HLSL register space declaration is working well with Vulkan when spaces are not overlapping.
+static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER = 1;
+static const uint DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER = 2;
+static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 3;
+static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 4;
+static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 5;
+static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER = 6;
+static const uint DESCRIPTOR_SET_BINDLESS_ACCELERATION_STRUCTURE = 7;
+
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] ByteAddressBuffer bindless_buffers[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER)]] Buffer<uint> bindless_buffers_uint[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER)]] Buffer<uint2> bindless_buffers_uint2[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER)]] Buffer<uint3> bindless_buffers_uint3[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER)]] Buffer<uint4> bindless_buffers_uint4[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER)]] Buffer<float> bindless_buffers_float[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER)]] Buffer<float2> bindless_buffers_float2[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER)]] Buffer<float3> bindless_buffers_float3[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_UNIFORM_TEXEL_BUFFER)]] Buffer<float4> bindless_buffers_float4[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindless_samplers[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D bindless_textures[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2DArray bindless_textures2DArray[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] TextureCube bindless_cubemaps[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] TextureCubeArray bindless_cubearrays[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture3D bindless_textures3D[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D<float> bindless_textures_float[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D<float2> bindless_textures_float2[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D<uint> bindless_textures_uint[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D<uint4> bindless_textures_uint4[];
+
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] RWByteAddressBuffer bindless_rwbuffers[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER)]] RWBuffer<uint> bindless_rwbuffers_uint[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER)]] RWBuffer<uint2> bindless_rwbuffers_uint2[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER)]] RWBuffer<uint3> bindless_rwbuffers_uint3[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER)]] RWBuffer<uint4> bindless_rwbuffers_uint4[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER)]] RWBuffer<float> bindless_rwbuffers_float[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER)]] RWBuffer<float2> bindless_rwbuffers_float2[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER)]] RWBuffer<float3> bindless_rwbuffers_float3[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_TEXEL_BUFFER)]] RWBuffer<float4> bindless_rwbuffers_float4[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2D<float4> bindless_rwtextures[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2DArray<float4> bindless_rwtextures2DArray[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture3D<float4> bindless_rwtextures3D[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2D<uint> bindless_rwtextures_uint[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2D<uint2> bindless_rwtextures_uint2[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2D<uint3> bindless_rwtextures_uint3[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2D<uint4> bindless_rwtextures_uint4[];
+#ifdef RTAPI
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_ACCELERATION_STRUCTURE)]] RaytracingAccelerationStructure bindless_accelerationstructures[];
+#endif // RTAPI
+
+#else
+SamplerState bindless_samplers[] : register(space1);
+Texture2D bindless_textures[] : register(space2);
+ByteAddressBuffer bindless_buffers[] : register(space3);
+Buffer<uint> bindless_buffers_uint[] : register(space4);
+Buffer<uint2> bindless_buffers_uint2[] : register(space5);
+Buffer<uint3> bindless_buffers_uint3[] : register(space6);
+Buffer<uint4> bindless_buffers_uint4[] : register(space7);
+Buffer<float> bindless_buffers_float[] : register(space8);
+Buffer<float2> bindless_buffers_float2[] : register(space9);
+Buffer<float3> bindless_buffers_float3[] : register(space10);
+Buffer<float4> bindless_buffers_float4[] : register(space11);
+#ifdef RTAPI
+RaytracingAccelerationStructure bindless_accelerationstructures[] : register(space12);
+#endif // RTAPI
+Texture2DArray bindless_textures2DArray[] : register(space13);
+TextureCube bindless_cubemaps[] : register(space14);
+TextureCubeArray bindless_cubearrays[] : register(space15);
+Texture3D bindless_textures3D[] : register(space16);
+Texture2D<float> bindless_textures_float[] : register(space17);
+Texture2D<float2> bindless_textures_float2[] : register(space18);
+Texture2D<uint> bindless_textures_uint[] : register(space19);
+Texture2D<uint4> bindless_textures_uint4[] : register(space20);
+
+RWTexture2D<float4> bindless_rwtextures[] : register(space21);
+RWByteAddressBuffer bindless_rwbuffers[] : register(space22);
+RWBuffer<uint> bindless_rwbuffers_uint[] : register(space23);
+RWBuffer<uint2> bindless_rwbuffers_uint2[] : register(space24);
+RWBuffer<uint3> bindless_rwbuffers_uint3[] : register(space25);
+RWBuffer<uint4> bindless_rwbuffers_uint4[] : register(space26);
+RWBuffer<float> bindless_rwbuffers_float[] : register(space27);
+RWBuffer<float2> bindless_rwbuffers_float2[] : register(space28);
+RWBuffer<float3> bindless_rwbuffers_float3[] : register(space29);
+RWBuffer<float4> bindless_rwbuffers_float4[] : register(space30);
+RWTexture2DArray<float4> bindless_rwtextures2DArray[] : register(space31);
+RWTexture3D<float4> bindless_rwtextures3D[] : register(space32);
+RWTexture2D<uint> bindless_rwtextures_uint[] : register(space33);
+RWTexture2D<uint2> bindless_rwtextures_uint2[] : register(space34);
+RWTexture2D<uint3> bindless_rwtextures_uint3[] : register(space35);
+RWTexture2D<uint4> bindless_rwtextures_uint4[] : register(space36);
+
+#endif // __spirv__
+
 
 // Note: defines can be better for choosing between half/float by compiler than "static const float"
 #define PI 3.14159265358979323846
@@ -157,14 +330,12 @@ SamplerComparisonState sampler_cmp_depth : register(s109);
 #define saturateMediump(x) min(x, MEDIUMP_FLT_MAX)
 #define highp
 
-template<
-typename T>
+template<typename T>
 float max3(T v)
 {
     return max(max(v.x, v.y), v.z);
 }
-template<
-typename T>
+template<typename T>
 float min3(T v)
 {
     return min(min(v.x, v.y), v.z);
@@ -234,14 +405,12 @@ float4 med3(float4 a, float4 b, float4 c)
 //	a2 : attribute at triangle corner 2
 //  bary : (u,v) barycentrics [same as you get from raytracing]; w is computed as 1 - u - w
 //	computation can be also written as: p0 * w + p1 * u + p2 * v
-template<
-typename T>
+template<typename T>
 inline T attribute_at_bary(in T a0, in T a1, in T a2, in float2 bary)
 {
     return mad(a0, 1 - bary.x - bary.y, mad(a1, bary.x, a2 * bary.y));
 }
-template<
-typename T>
+template<typename T>
 inline T attribute_at_bary(in T a0, in T a1, in T a2, in half2 bary)
 {
     return mad(a0, 1 - bary.x - bary.y, mad(a1, bary.x, a2 * bary.y));
@@ -261,8 +430,7 @@ inline half bilinear(half4 gather, half2 pixel_frac)
     return lerp(top_row, bottom_row, pixel_frac.y);
 }
 
-template<
-typename T>
+template<typename T>
 inline bool is_saturated(T a)
 {
     return all(a == saturate(a));
@@ -314,8 +482,7 @@ inline half3 clipspace_to_uv(in half3 clipspace)
     return clipspace * half3(0.5, -0.5, 0.5) + 0.5;
 }
 
-template<
-typename T>
+template<typename T>
 T inverse_lerp(T value1, T value2, T pos)
 {
     return all(value2 == value1) ? 0 : ((pos - value1) / (value2 - value1));
@@ -1417,8 +1584,7 @@ static const float4 halton64[] =
 };
 
 // This the same as graphics::ColorSpace
-enum
-class ColorSpace
+enum class ColorSpace
 {
 	SRGB,			// SDR color space (8 or 10 bits per channel)
 	HDR10_ST2084,	// HDR10 color space (10 bits per channel)
@@ -1482,5 +1648,8 @@ inline float3 get_right(float4x4 m)
 {
     return float3(m[0][0], m[0][1], m[0][2]);
 }
+
+
+#include "ShaderInterop.h"
 
 #endif // SHADER_GLOBALS_HF

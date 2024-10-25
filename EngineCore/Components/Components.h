@@ -821,7 +821,7 @@ namespace vz
 		bool IsRenderable() const { return flags_ & SCU32(RenderableFlags::RENDERABLE); }
 
 		void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
-		bool IsForeground() const { return flags_ & ~SCU32(RenderableFlags::FOREGROUND); }
+		bool IsForeground() const { return flags_ & SCU32(RenderableFlags::FOREGROUND); }
 
 		void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; }
 		void SetVisibleRadius(const float radius) { visibleRadius_ = radius; }

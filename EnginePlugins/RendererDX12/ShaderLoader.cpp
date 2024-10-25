@@ -15,7 +15,7 @@ std::string SHADERSOURCEPATH = "./Shaders/";
 #else
 // Note: when NOT using Shader Dump, use absolute directory, to avoid the case when something (eg. file dialog) overrides working directory
 std::string SHADERPATH = vz::helper::GetCurrentPath() + "/Shaders/";
-std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "../../EnginePlugins/RendererDX12/Shaders/";
+std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "../../../EnginePlugins/RendererDX12/Shaders/";
 #endif // SHADERDUMP_ENABLED
 
 std::atomic<size_t> SHADER_ERRORS{ 0 };

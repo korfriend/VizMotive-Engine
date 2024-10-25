@@ -37,9 +37,7 @@ using int4 = XMINT4;
 #define CBUFFER(name, slot) cbuffer name : register(PASTE(b, slot))
 #define CONSTANTBUFFER(name, type, slot) ConstantBuffer< type > name : register(PASTE(b, slot))
 
-#if defined(__PSSL__)
-// defined separately in preincluded PS5 extension file
-#elif defined(__spirv__)
+#if defined(__spirv__)
 #define PUSHCONSTANT(name, type) [[vk::push_constant]] type name;
 #else
 #define PUSHCONSTANT(name, type) ConstantBuffer<type> name : register(b999)
@@ -118,6 +116,12 @@ struct alignas(16) ShaderRenderable
 	float3 aabbCenter;
 	float aabbRadius;
 
+	// renderable-special 
+	//	determined by flags (use_renderable_attributes)
+	uint2 emissive;
+	uint color;
+	uint numPatrs;
+
 	float4 quaternion;
 	ShaderTransform transform;
 	ShaderTransform transformPrev;
@@ -136,6 +140,10 @@ struct alignas(16) ShaderRenderable
 		aabbCenter = float3(0, 0, 0);
 		aabbRadius = 0;
 
+		emissive = uint2(0, 0);
+		color = ~0u;
+		numPatrs = 0;
+		
 		quaternion = float4(0, 0, 0, 1);
 		transform.Init();
 		transformPrev.Init();
@@ -577,6 +585,11 @@ struct RenderablePushConstants
 	uint materialIndex;
 	int instances;
 	uint instance_offset;
+};
+
+struct DebugObjectPushConstants
+{
+	int vbPosW;
 };
 
 struct alignas(16) ShaderScene
@@ -1169,5 +1182,55 @@ struct alignas(16) ViewTile
 		return (execution_mask & (uint64_t(1) << uint64_t(groupIndex))) != 0;
 	}
 };
+
+
+// ------- Constant buffers: ----------
+
+// Common buffers:
+// These are usable by all shaders
+#define CBSLOT_IMAGE							0
+#define CBSLOT_FONT								0
+#define CBSLOT_RENDERER_FRAME					0
+#define CBSLOT_RENDERER_CAMERA					1
+
+// On demand buffers:
+// These are bound on demand and alive until another is bound at the same slot
+#define CBSLOT_RENDERER_FORWARD_LIGHTMASK		2
+#define CBSLOT_RENDERER_VOLUMELIGHT				3
+#define CBSLOT_RENDERER_VOXELIZER				3
+#define CBSLOT_RENDERER_TRACED					2
+#define CBSLOT_RENDERER_MISC					3
+
+#define CBSLOT_OTHER_EMITTEDPARTICLE			4
+#define CBSLOT_OTHER_FFTGENERATOR				3
+#define CBSLOT_OTHER_CLOUDGENERATOR				3
+#define CBSLOT_OTHER_GPUSORTLIB					4
+#define CBSLOT_MSAO								4
+#define CBSLOT_FSR								4
+
+CONSTANTBUFFER(g_xFrame, FrameCB, CBSLOT_RENDERER_FRAME);
+CONSTANTBUFFER(g_xCamera, CameraCB, CBSLOT_RENDERER_CAMERA);
+
+// ------- On demand Constant buffers: ----------
+CBUFFER(MiscCB, CBSLOT_RENDERER_MISC)
+{
+	float4x4	g_xTransform;
+	float4		g_xColor;
+};
+
+CBUFFER(ForwardEntityMaskCB, CBSLOT_RENDERER_FORWARD_LIGHTMASK)
+{
+	uint2 xForwardLightMask;	// supports indexing 64 lights
+	uint xForwardDecalMask;		// supports indexing 32 decals
+	uint xForwardEnvProbeMask;	// supports indexing 32 environment probes
+};
+
+CBUFFER(VolumeLightCB, CBSLOT_RENDERER_VOLUMELIGHT)
+{
+	float4x4 xLightWorld;
+	float4 xLightColor;
+	float4 xLightEnerdis;
+};
+
 
 #endif
