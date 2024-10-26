@@ -1427,7 +1427,7 @@ namespace vz
 					device->BindIndexBuffer(&mesh.generalBuffer, mesh.GetIndexFormat(), mesh.ib.offset, cmd);
 
 					LightmapPushConstants push;
-					push.vb_pos_wind = mesh.vb_pos_wind.descriptor_srv;
+					push.vb_pos_w = mesh.vb_pos_wind.descriptor_srv;
 					push.vb_nor = mesh.vb_nor.descriptor_srv;
 					push.vb_atl = mesh.vb_atl.descriptor_srv;
 					push.instanceIndex = objectIndex;
