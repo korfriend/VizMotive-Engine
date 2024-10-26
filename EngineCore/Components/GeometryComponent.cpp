@@ -644,7 +644,6 @@ namespace vz
 namespace vz
 {
 	using GBuffers = GGeometryComponent::GBuffers;
-	using BufferView = GGeometryComponent::GBuffers::BufferView;
 
 	void GGeometryComponent::DeleteRenderData()
 	{
@@ -938,7 +937,7 @@ namespace vz
 			GPUBuffer& streamoutBuffer = part_buffers.streamoutBuffer;
 			BufferView& vb_nor = part_buffers.vbNormal;
 			BufferView& vb_tan = part_buffers.vbTangent;
-			BufferView& so_pos = part_buffers.soPosition;
+			BufferView& so_pos = part_buffers.soPosW;
 			BufferView& so_pre = part_buffers.soPre;
 			BufferView& so_nor = part_buffers.soNormal;
 			BufferView& so_tan = part_buffers.soTangent;
