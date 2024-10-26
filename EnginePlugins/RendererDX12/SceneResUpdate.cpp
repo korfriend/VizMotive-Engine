@@ -46,11 +46,11 @@ namespace vz
 					shader_geometry_part.ib = prim_buffer.ib.descriptor_srv;
 					if (prim_buffer.soPosition.IsValid())
 					{
-						shader_geometry_part.vb_pos = prim_buffer.soPosition.descriptor_srv;
+						shader_geometry_part.vb_pos_w = prim_buffer.soPosition.descriptor_srv;
 					}
 					else
 					{
-						shader_geometry_part.vb_pos = prim_buffer.vbPosW.descriptor_srv;
+						shader_geometry_part.vb_pos_w = prim_buffer.vbPosW.descriptor_srv;
 					}
 					if (prim_buffer.soNormal.IsValid())
 					{

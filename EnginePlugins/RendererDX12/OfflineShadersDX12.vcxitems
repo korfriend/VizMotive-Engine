@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{fd7a4774-0a05-4e2b-bf88-b8a8e688e116}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\ColorSpaceUtility.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\fogHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\lightingHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\objectHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\shadingHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\shadowHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\skyAtmosphere.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\skyHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\surfaceHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\voxelConeTracingHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\Globals.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_R11G11B10.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_RGBE.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_debug.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_simple.hlsl" />
+  </ItemGroup>
+</Project>

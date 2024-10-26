@@ -1,4 +1,4 @@
-#include "Globals.hlsli"
+#include "../Globals.hlsli"
 
 PUSHCONSTANT(push, DebugObjectPushConstants);
 
