@@ -338,11 +338,13 @@ struct Surface
 		geometry = load_geometry(inst.geometryOffset + prim.subsetIndex);
 		if (geometry.vb_pos_w < 0)
 			return false;
-
-		material = load_material(geometry.materialIndex);
+		
+        //material = load_material(geometry.materialIndex);
+        uint material_lookup_idx = inst.materialLookupOffset + prim.subsetIndex;
+        material = load_material_by_lookup(material_lookup_idx);
 		create(material);
 
-		layerMask = material.layerMask & inst.layerMask;
+        layerMask = material.layerMask;// & inst.layerMask;
 
 		i0 = prim.i0();
 		i1 = prim.i1();
@@ -358,33 +360,32 @@ struct Surface
 	void load_internal(uint flatTileIndex = 0)
 	{
 		SamplerState sam = bindless_samplers[material.sampler_descriptor];
+		
+		const bool is_emittedparticle = false; //geometry.flags & SHADERMESH_FLAG_EMITTEDPARTICLE;
+		const bool simple_lighting = is_emittedparticle;
 
-		const bool is_hairparticle = geometry.flags & SHADERMESH_FLAG_HAIRPARTICLE;
-		const bool is_emittedparticle = geometry.flags & SHADERMESH_FLAG_EMITTEDPARTICLE;
-		const bool simple_lighting = is_hairparticle || is_emittedparticle;
-
-		half3 Nunnormalized = 0;
+		float3 Nunnormalized = 0;
 		
 		[branch]
 		if (geometry.vb_nor >= 0)
 		{
 			Buffer<float4> buf = bindless_buffers_float4[NonUniformResourceIndex(geometry.vb_nor)];
-			half3 n0 = rotate_vector(buf[i0].xyz, (half4)inst.quaternion);
-			half3 n1 = rotate_vector(buf[i1].xyz, (half4)inst.quaternion);
-			half3 n2 = rotate_vector(buf[i2].xyz, (half4)inst.quaternion);
+			float3 n0 = rotate_vector(buf[i0].xyz, (half4)inst.quaternion);
+			float3 n1 = rotate_vector(buf[i1].xyz, (half4)inst.quaternion);
+            float3 n2 = rotate_vector(buf[i2].xyz, (half4) inst.quaternion);
 			n0 = any(n0) ? normalize(n0) : 0;
 			n1 = any(n1) ? normalize(n1) : 0;
-			n2 = any(n2) ? normalize(n2) : 0;
-			N = attribute_at_bary(n0, n1, n2, bary);
-		}
+            n2 = any(n2) ? normalize(n2) : 0;
+            N = attribute_at_bary(n0, n1, n2, bary);
+        }
 		
-		if (is_backface && !is_hairparticle && !is_emittedparticle)
+		if (is_backface && !is_emittedparticle)
 		{
 			N = -N;
 		}
 		Nunnormalized = N; // after normalized-interpolated at barycentric, this is unnormalized!
 		N = normalize(N);
-		facenormal = N;
+        facenormal = (half3)N;
 
 #ifdef SURFACE_LOAD_MIPCONE
 		float3 p0 = data0.xyz;
@@ -442,23 +443,23 @@ struct Surface
 		if (geometry.vb_tan >= 0)
 		{
 			Buffer<float4> buf = bindless_buffers_float4[NonUniformResourceIndex(geometry.vb_tan)];
-			half4 t0 = buf[i0];
-			half4 t1 = buf[i1];
-			half4 t2 = buf[i2];
-			t0.xyz = rotate_vector(t0.xyz, (half4)inst.quaternion);
-			t1.xyz = rotate_vector(t1.xyz, (half4)inst.quaternion);
-			t2.xyz = rotate_vector(t2.xyz, (half4)inst.quaternion);
+			float4 t0 = buf[i0];
+			float4 t1 = buf[i1];
+			float4 t2 = buf[i2];
+			t0.xyz = rotate_vector(t0.xyz, inst.quaternion);
+			t1.xyz = rotate_vector(t1.xyz, inst.quaternion);
+			t2.xyz = rotate_vector(t2.xyz, inst.quaternion);
 			t0.xyz = any(t0.xyz) ? normalize(t0.xyz) : 0;
 			t1.xyz = any(t1.xyz) ? normalize(t1.xyz) : 0;
 			t2.xyz = any(t2.xyz) ? normalize(t2.xyz) : 0;
-			T = attribute_at_bary(t0, t1, t2, bary);
+			T = (half4)attribute_at_bary(t0, t1, t2, bary);
 			if (is_backface)
 			{
 				T = -T;
 			}
 			T.w = T.w < 0 ? -1 : 1;
-			half3 bitangent = cross(T.xyz, Nunnormalized) * T.w;
-			TBN = half3x3(T.xyz, bitangent, Nunnormalized); // unnormalized TBN! http://www.mikktspace.com/
+            half3 bitangent = (half3)cross((float3) T.xyz, Nunnormalized) * T.w;
+            TBN = half3x3(T.xyz, bitangent, (half3)Nunnormalized); // unnormalized TBN! http://www.mikktspace.com/
 			
 			T.xyz = normalize(T.xyz);
 
@@ -540,7 +541,7 @@ struct Surface
 #ifdef SURFACE_LOAD_MIPCONE
 			lod = compute_texture_lod(material.textures[BASECOLORMAP].GetTexture(), material.textures[BASECOLORMAP].GetUVSet() == 0 ? lod_constant0 : lod_constant1, ray_direction, surf_normal, cone_width);
 #endif // SURFACE_LOAD_MIPCONE
-			half4 baseColorMap = material.textures[BASECOLORMAP].SampleLevel(sam, uvsets, lod);
+            half4 baseColorMap = (half4)material.textures[BASECOLORMAP].SampleLevel(sam, uvsets, lod);
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 			if ((GetFrame().options & OPTION_BIT_DISABLE_ALBEDO_MAPS) == 0)
 			{
@@ -562,7 +563,7 @@ struct Surface
 #ifdef SURFACE_LOAD_MIPCONE
 			lod = compute_texture_lod(material.textures[TRANSPARENCYMAP].GetTexture(), material.textures[TRANSPARENCYMAP].GetUVSet() == 0 ? lod_constant0 : lod_constant1, ray_direction, surf_normal, cone_width);
 #endif // SURFACE_LOAD_MIPCONE
-			baseColor.a *= material.textures[TRANSPARENCYMAP].SampleLevel(sam, uvsets, lod).r;
+            baseColor.a *= (half) material.textures[TRANSPARENCYMAP].SampleLevel(sam, uvsets, lod).r;
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 		}
 
@@ -570,50 +571,51 @@ struct Surface
 		if (geometry.vb_col >= 0 && material.IsUsingVertexColors())
 		{
 			Buffer<float4> buf = bindless_buffers_float4[NonUniformResourceIndex(geometry.vb_col)];
-			const half4 c0 = buf[i0];
-			const half4 c1 = buf[i1];
-			const half4 c2 = buf[i2];
+			const half4 c0 = (half4)buf[i0];
+			const half4 c1 = (half4)buf[i1];
+            const half4 c2 = (half4)buf[i2];
 			half4 vertexColor = attribute_at_bary(c0, c1, c2, bary);
 			baseColor *= vertexColor;
 		}
 
 		[branch]
-		if (inst.vb_ao >= 0 && material.IsUsingVertexAO())
+        if (geometry.vb_ao >= 0 && material.IsUsingVertexAO())
 		{
-			Buffer<float> buf = bindless_buffers_float[NonUniformResourceIndex(inst.vb_ao)];
-			const half ao0 = buf[i0];
-			const half ao1 = buf[i1];
-			const half ao2 = buf[i2];
+            Buffer<float> buf = bindless_buffers_float[NonUniformResourceIndex(geometry.vb_ao)];
+			const half ao0 = (half)buf[i0];
+			const half ao1 = (half)buf[i1];
+            const half ao2 = (half)buf[i2];
 			half ao = attribute_at_bary(ao0, ao1, ao2, bary);
 			occlusion = ao;
 		}
 
-		[branch]
-		if (inst.lightmap >= 0 && geometry.vb_atl >= 0)
-		{
-			Buffer<float2> buf = bindless_buffers_float2[NonUniformResourceIndex(geometry.vb_atl)];
-			const float2 a0 = buf[i0];
-			const float2 a1 = buf[i1];
-			const float2 a2 = buf[i2];
-			float2 atlas = attribute_at_bary(a0, a1, a2, bary);
-
-			Texture2D tex = bindless_textures[NonUniformResourceIndex(inst.lightmap)];
-			gi = tex.SampleLevel(sampler_linear_clamp, atlas, 0).rgb;
-			SetGIApplied(true);
-		}
+		// TODO
+		//[branch]
+		//if (inst.lightmap >= 0 && geometry.vb_atl >= 0)
+		//{
+		//	Buffer<float2> buf = bindless_buffers_float2[NonUniformResourceIndex(geometry.vb_atl)];
+		//	const float2 a0 = buf[i0];
+		//	const float2 a1 = buf[i1];
+		//	const float2 a2 = buf[i2];
+		//	float2 atlas = attribute_at_bary(a0, a1, a2, bary);
+		//
+		//	Texture2D tex = bindless_textures[NonUniformResourceIndex(inst.lightmap)];
+		//	gi = tex.SampleLevel(sampler_linear_clamp, atlas, 0).rgb;
+		//	SetGIApplied(true);
+		//}
 
 		half4 surfaceMap = 1;
 		[branch]
 		if (material.textures[SURFACEMAP].IsValid() && !simple_lighting)
 		{
 #ifdef SURFACE_LOAD_QUAD_DERIVATIVES
-			surfaceMap = material.textures[SURFACEMAP].SampleGrad(sam, uvsets, uvsets_dx, uvsets_dy);
+			surfaceMap = (half4)material.textures[SURFACEMAP].SampleGrad(sam, uvsets, uvsets_dx, uvsets_dy);
 #else
 			float lod = 0;
 #ifdef SURFACE_LOAD_MIPCONE
 			lod = compute_texture_lod(material.textures[SURFACEMAP].GetTexture(), material.textures[SURFACEMAP].GetUVSet() == 0 ? lod_constant0 : lod_constant1, ray_direction, surf_normal, cone_width);
 #endif // SURFACE_LOAD_MIPCONE
-			surfaceMap = material.textures[SURFACEMAP].SampleLevel(sam, uvsets, lod);
+            surfaceMap = (half4)material.textures[SURFACEMAP].SampleLevel(sam, uvsets, lod);
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 		}
 
@@ -648,7 +650,7 @@ struct Surface
 #ifdef SURFACE_LOAD_MIPCONE
 				lod = compute_texture_lod(material.textures[EMISSIVEMAP].GetTexture(), material.textures[EMISSIVEMAP].GetUVSet() == 0 ? lod_constant0 : lod_constant1, ray_direction, surf_normal, cone_width);
 #endif // SURFACE_LOAD_MIPCONE
-				half4 emissiveMap = material.textures[EMISSIVEMAP].SampleLevel(sam, uvsets, lod);
+                half4 emissiveMap = (half4)material.textures[EMISSIVEMAP].SampleLevel(sam, uvsets, lod);
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 				emissiveColor *= emissiveMap.rgb * emissiveMap.a;
 			}
@@ -853,14 +855,14 @@ struct Surface
 #ifdef SURFACE_LOAD_MIPCONE
 			lod = compute_texture_lod(material.textures[SPECULARMAP].GetTexture(), material.textures[SPECULARMAP].GetUVSet() == 0 ? lod_constant0 : lod_constant1, ray_direction, surf_normal, cone_width);
 #endif // SURFACE_LOAD_MIPCONE
-			specularMap = material.textures[SPECULARMAP].SampleLevel(sam, uvsets, lod);
+			specularMap = (half4)material.textures[SPECULARMAP].SampleLevel(sam, uvsets, lod);
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 		}
 
 		create(material, baseColor, surfaceMap, specularMap);
 
 		[branch]
-		if (inst.vb_wetmap >= 0)
+		if (geometry.vb_wetmap >= 0)
 		{
 			Buffer<float> buf = bindless_buffers_float[NonUniformResourceIndex(inst.vb_wetmap)];
 			const half wet0 = buf[i0];

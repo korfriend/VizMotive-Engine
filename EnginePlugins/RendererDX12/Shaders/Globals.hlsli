@@ -128,9 +128,9 @@ inline uint2 unpack_pixel(uint value)
 }
 
 // The root signature will affect shader compilation for DX12.
-//	The shader compiler will take the defined name: WICKED_ENGINE_DEFAULT_ROOTSIGNATURE and use it as root signature
+//	The shader compiler will take the defined name: ENGINE_DEFAULT_ROOTSIGNATURE and use it as root signature
 //	If you wish to specify custom root signature, make sure that this define is not available
-//		(for example: not including this file, or using #undef WICKED_ENGINE_DEFAULT_ROOTSIGNATURE)
+//		(for example: not including this file, or using #undef ENGINE_DEFAULT_ROOTSIGNATURE)
 #define ENGINE_DEFAULT_ROOTSIGNATURE \
 	"RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
 	"RootConstants(num32BitConstants=12, b999), " \
@@ -323,6 +323,7 @@ RWTexture2D<uint4> bindless_rwtextures_uint4[] : register(space36);
 //[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderCluster> bindless_structured_cluster[];
 //[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderClusterBounds> bindless_structured_cluster_bounds[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMaterial> bindless_structured_material[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMaterialLookup> bindless_structured_materiallookup[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<uint> bindless_structured_uint[];
 #else
 StructuredBuffer<ShaderMeshInstance> bindless_structured_meshinstance[] : register(space37);
@@ -331,7 +332,8 @@ StructuredBuffer<ShaderGeometry> bindless_structured_geometry[] : register(space
 //StructuredBuffer<ShaderCluster> bindless_structured_cluster[] : register(space40);
 //StructuredBuffer<ShaderClusterBounds> bindless_structured_cluster_bounds[] : register(space41);
 StructuredBuffer<ShaderMaterial> bindless_structured_material[] : register(space42);
-StructuredBuffer<uint> bindless_structured_uint[] : register(space43);
+StructuredBuffer<ShaderMaterialLookup> bindless_structured_materiallookup[] : register(space43);
+StructuredBuffer<uint> bindless_structured_uint[] : register(space44); // used for load_entitytile
 #endif // __spirv__
 
 
@@ -362,6 +364,10 @@ inline ShaderGeometry load_geometry(uint geometryIndex)
 inline ShaderMaterial load_material(uint materialIndex)
 {
     return bindless_structured_material[GetScene().materialbuffer][materialIndex];
+}
+inline ShaderMaterial load_material_by_lookup(uint looupIndex)
+{
+    return load_material(bindless_structured_materiallookup[GetScene().instanceMaterialLookupbuffer][looupIndex].materialIndex);
 }
 uint load_entitytile(uint tileIndex)
 {

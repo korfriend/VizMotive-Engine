@@ -1124,18 +1124,22 @@ namespace vz
 			}
 
 			size_t num_parts = geomety.GetNumParts();
+			bool has_buffer_effect = num_parts == renderable.bufferEffects.size();
 			for (size_t part_index = 0; part_index < num_parts; ++part_index)
 			{
-				GBuffers& part_buffers = *geomety.GetGBuffer(part_index);
-				//GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(part_index));
-
-				if (part_buffers.wetmapCleared || !part_buffers.wetmapBuffer.IsValid())
+				if (!has_buffer_effect)
 				{
 					continue;
 				}
-				device->ClearUAV(&part_buffers.wetmapBuffer, 0, cmd);
-				barrierStack.push_back(GPUBarrier::Buffer(&part_buffers.wetmapBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
-				part_buffers.wetmapCleared = true;
+				const GRenderableComponent::GBufferBasedRes& buffer_based_res = renderable.bufferEffects[part_index];
+
+				if (buffer_based_res.wetmapCleared || !buffer_based_res.wetmapBuffer.IsValid())
+				{
+					continue;
+				}
+				device->ClearUAV(&buffer_based_res.wetmapBuffer, 0, cmd);
+				barrierStack.push_back(GPUBarrier::Buffer(&buffer_based_res.wetmapBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
+				buffer_based_res.wetmapCleared = true;
 			}
 		}
 		BarrierStackFlush(cmd);

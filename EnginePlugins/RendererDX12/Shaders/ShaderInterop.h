@@ -134,7 +134,7 @@ struct alignas(16) ShaderMeshInstance
 	uint geometryOffset; // offset of all geometries for currently active LOD (geomtryPartIndex applied by LODs)
 	uint geometryCount;
 	uint baseGeometryOffset;	// offset of all geometries of the instance (if no LODs, then it is equal to geometryOffset)
-	uint baseGeometryCount;
+	uint resLookupOffset;
 
 	float3 aabbCenter;
 	float aabbRadius;
@@ -158,7 +158,8 @@ struct alignas(16) ShaderMeshInstance
 		fadeDistance = 0;
 
 		geometryOffset = baseGeometryOffset = 0;
-		baseGeometryOffset = baseGeometryOffset = 0;
+		geometryCount = 0;
+		resLookupOffset = ~0u;
 
 		aabbCenter = float3(0, 0, 0);
 		aabbRadius = 0;
@@ -210,6 +211,21 @@ enum SHADERMATERIAL_OPTIONS
 enum TEXTURESLOT
 {
 	BASECOLORMAP,
+	NORMALMAP,
+	SURFACEMAP,
+	EMISSIVEMAP,
+	DISPLACEMENTMAP,
+	OCCLUSIONMAP,
+	TRANSMISSIONMAP,
+	SHEENCOLORMAP,
+	SHEENROUGHNESSMAP,
+	CLEARCOATMAP,
+	CLEARCOATROUGHNESSMAP,
+	CLEARCOATNORMALMAP,
+	SPECULARMAP,
+	ANISOTROPYMAP,
+	TRANSPARENCYMAP,
+
 	VOLUMEDENSITYMAP, // this is used for volume rendering
 
 	TEXTURESLOT_COUNT
@@ -609,6 +625,22 @@ struct ShaderMeshInstancePointer
 	}
 };
 
+// buffer's element (not constant buffer)
+struct alignas(16) ShaderInstanceResLookup
+{
+	uint materialIndex;
+	int vb_wetmap;
+	int vb_ao;
+	uint padding0;
+
+	void Init()
+	{
+		materialIndex = ~0u;
+		vb_wetmap = -1;
+		vb_ao = -1;
+	}
+};
+
 struct RenderablePushConstants
 {
 	uint geometryIndex;
@@ -628,7 +660,7 @@ struct alignas(16) ShaderScene
 	int geometrybuffer;
 	int materialbuffer;
 	int texturestreamingbuffer;
-	
+
 	// TODO
 	int TLAS;
 	int BVH_counter;
@@ -640,7 +672,7 @@ struct alignas(16) ShaderScene
 	float3 aabb_max;
 	int globalprobe; // rendered probe with guaranteed mipmaps, hdr, etc.
 	float3 aabb_extents;		// enclosing AABB abs(max - min)
-	float padding5;
+	int instanceMaterialLookupbuffer;
 	float3 aabb_extents_rcp;	// enclosing AABB 1.0f / abs(max - min)
 	float padding6;
 

@@ -34,9 +34,9 @@ namespace vz
 				GBuffers& prim_buffer = *prim_buffer_ptr;
 				const Primitive& primitive = primitives[part_index];
 
-				if (prim_buffer.soPosition.IsValid() && prim_buffer.soPre.IsValid())
+				if (prim_buffer.soPosW.IsValid() && prim_buffer.soPre.IsValid())
 				{
-					std::swap(prim_buffer.soPosition, prim_buffer.soPre);
+					std::swap(prim_buffer.soPosW, prim_buffer.soPre);
 				}
 
 				if (geometryArrayMapped != nullptr)
@@ -44,9 +44,9 @@ namespace vz
 					ShaderGeometry shader_geometry_part;
 					shader_geometry_part.Init();
 					shader_geometry_part.ib = prim_buffer.ib.descriptor_srv;
-					if (prim_buffer.soPosition.IsValid())
+					if (prim_buffer.soPosW.IsValid())
 					{
-						shader_geometry_part.vb_pos_w = prim_buffer.soPosition.descriptor_srv;
+						shader_geometry_part.vb_pos_w = prim_buffer.soPosW.descriptor_srv;
 					}
 					else
 					{
@@ -316,12 +316,15 @@ namespace vz
 				size_t num_parts = primitives.size();
 
 				renderable.renderableIndex = Scene::GetIndex(renderableEntities, entity);
-				renderable.geometryIndex = Scene::GetIndex(renderableEntities, geo_entity);
-				renderable.materialIndices.resize(num_parts);
+				renderable.geometryIndex = Scene::GetIndex(geometryEntities, geo_entity);
+
+				renderable.materialIndices.assign(num_parts, ~0u);
 				renderable.materialFilterFlags = 0;
 				// Create GPU instance data:
 				ShaderMeshInstance inst;
 				inst.Init();
+
+				bool hasBufferEffect = renderable.bufferEffects.size() == num_parts;
 
 				for (uint32_t part_index = 0; part_index < num_parts; ++part_index)
 				{
@@ -329,7 +332,23 @@ namespace vz
 					Entity material_entity = renderable.GetMaterial(part_index);
 					const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
 
-					renderable.materialIndices[part_index] = Scene::GetIndex(materialEntities, material.GetEntity());
+					ShaderInstanceResLookup inst_res_lookup;
+					inst_res_lookup.Init();
+					inst_res_lookup.materialIndex = Scene::GetIndex(materialEntities, material.GetEntity());
+					if (hasBufferEffect)
+					{
+						GRenderableComponent::GBufferBasedRes& effect_buffers = renderable.bufferEffects[part_index];
+						if (effect_buffers.vbWetmap.IsValid() && material.IsWetmapEnabled())
+						{
+							inst_res_lookup.vb_wetmap = effect_buffers.vbWetmap.descriptor_srv;
+						}
+						if (effect_buffers.vbAO.IsValid() && material.IsVertexAOEnabled())
+						{
+							inst_res_lookup.vb_ao = effect_buffers.vbAO.descriptor_srv;
+						}
+					}
+
+					renderable.materialIndices[part_index] = inst_res_lookup.materialIndex;
 
 					renderable.materialFilterFlags |= material.GetFilterMaskFlags();
 					renderable.renderFlags |= material.GetRenderFlags();
@@ -341,28 +360,8 @@ namespace vz
 					sort_bits.bits.blendmode |= 1 << SCU32(material.GetBlendMode());
 					sort_bits.bits.alphatest |= material.IsAlphaTestEnabled();
 
-					if (!geometry.HasRenderData())
-					{
-						continue;
-					}
-					GBuffers& part_buffers = *geometry.GetGBuffer(part_index);
-					//	* wetmap looks useful in our rendering purposes
-					//	* wetmap option is determined by the renderable's associated materials
-					if (material.IsWetmapEnabled() && !part_buffers.wetmapBuffer.IsValid())
-					{
-						GPUBufferDesc desc;
-						desc.size = part.GetNumVertices() * sizeof(uint16_t);
-						desc.format = Format::R16_UNORM;
-						desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-						device->CreateBuffer(&desc, nullptr, &part_buffers.wetmapBuffer);
-						device->SetName(&part_buffers.wetmapBuffer, ("wetmap" + std::to_string(part_index)).c_str());
-
-						part_buffers.wetmapCleared = false;
-					}
-					else if (!material.IsWetmapEnabled() && part_buffers.wetmapBuffer.IsValid())
-					{
-						part_buffers.wetmapBuffer = {};
-					}
+					std::memcpy(instanceResLookupMapped + renderable.resLookupOffset + part_index, 
+						&inst_res_lookup, sizeof(ShaderInstanceResLookup));
 				}
 
 				renderable.sortBits = sort_bits.value;
@@ -387,9 +386,9 @@ namespace vz
 
 				inst.uid = entity;
 				inst.baseGeometryOffset = geometry.geometryOffset;
-				inst.baseGeometryCount = (uint)num_parts;
+				inst.resLookupOffset = renderable.resLookupOffset;
 				inst.geometryOffset = inst.baseGeometryOffset;// inst.baseGeometryOffset + first_part;
-				inst.geometryCount = inst.baseGeometryCount;//last_part - first_part;
+				inst.geometryCount = (uint)num_parts;;//last_part - first_part;
 
 				inst.aabbCenter = aabb.getCenter();	
 				inst.aabbRadius = aabb.getRadius();
@@ -564,6 +563,18 @@ namespace vz
 				geometry->geometryOffset = geometryAllocator.fetch_add((uint32_t)geometry->GetNumParts());
 				});
 
+			// Scan renderable's materials 
+			instanceResLookupAllocator.store(0u);
+			jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+				GRenderableComponent* renderable = (GRenderableComponent*)compfactory::GetRenderableComponent(renderableEntities[args.jobIndex]);
+				if (!renderable->IsRenderable())
+				{
+					return;
+				}
+				size_t num_parts = compfactory::GetGeometryComponent(renderable->GetGeometry())->GetNumParts();
+				renderable->resLookupOffset = instanceResLookupAllocator.fetch_add((uint32_t)num_parts);
+				});
+
 			// initialize ShaderRenderable 
 			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
 				// Must not keep inactive instances, so init them for safety:
@@ -607,6 +618,35 @@ namespace vz
 		}
 		geometryArrayMapped = (ShaderGeometry*)geometryUploadBuffer[pingpong_buffer_index].mapped_data;
 
+		// GPU instance-mapping material count allocation is ready at this point:
+		instanceResLookupSize = instanceResLookupAllocator.load();
+		if (instanceResLookupUploadBuffer[0].desc.size < (instanceResLookupSize * sizeof(uint)))
+		{
+			GPUBufferDesc desc;
+			desc.stride = sizeof(ShaderInstanceResLookup);
+			desc.size = desc.stride * instanceResLookupSize * 2; // *2 to grow fast
+			desc.bind_flags = BindFlag::SHADER_RESOURCE;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+			if (!device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
+			{
+				// Non-UMA: separate Default usage buffer
+				device->CreateBuffer(&desc, nullptr, &instanceMaterialLookupBuffer);
+				device->SetName(&instanceMaterialLookupBuffer, "GSceneDetails::instanceMaterialLookup");
+
+				// Upload buffer shouldn't be used by shaders with Non-UMA:
+				desc.bind_flags = BindFlag::NONE;
+				desc.misc_flags = ResourceMiscFlag::NONE;
+			}
+
+			desc.usage = Usage::UPLOAD;
+			for (int i = 0; i < arraysize(instanceResLookupUploadBuffer); ++i)
+			{
+				device->CreateBuffer(&desc, nullptr, &instanceResLookupUploadBuffer[i]);
+				device->SetName(&instanceResLookupUploadBuffer[i], "GSceneDetails::instanceMaterialLookupUploadBuffer");
+			}
+		}
+		instanceResLookupMapped = (ShaderInstanceResLookup*)instanceResLookupUploadBuffer[pingpong_buffer_index].mapped_data;
+
 		RunPrimtiveUpdateSystem(ctx);
 		RunMaterialUpdateSystem(ctx);
 
@@ -638,12 +678,14 @@ namespace vz
 			shaderscene.instancebuffer = device->GetDescriptorIndex(&instanceUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
+			shaderscene.instanceMaterialLookupbuffer = device->GetDescriptorIndex(&instanceResLookupUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 		}
 		else
 		{
 			shaderscene.instancebuffer = device->GetDescriptorIndex(&instanceBuffer, SubresourceType::SRV);
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryBuffer, SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialBuffer, SubresourceType::SRV);
+			shaderscene.instanceMaterialLookupbuffer = device->GetDescriptorIndex(&instanceMaterialLookupBuffer, SubresourceType::SRV);
 		}
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
 		//if (weather.skyMap.IsValid())
@@ -716,12 +758,14 @@ namespace vz
 		instanceArraySize = 0;
 		geometryArraySize = 0;
 		materialArraySize = 0;
+		instanceResLookupSize = 0;
 
 		constexpr uint32_t buffer_count = graphics::GraphicsDevice::GetBufferCount();
 		instanceBuffer = {};
 		geometryBuffer = {};
 		materialBuffer = {};
 		textureStreamingFeedbackBuffer = {};
+		instanceMaterialLookupBuffer = {};
 		queryHeap = {};
 		queryPredicationBuffer = {};
 		for (uint32_t i = 0; i < buffer_count; ++i)
@@ -731,6 +775,7 @@ namespace vz
 			materialUploadBuffer[i] = {};
 			textureStreamingFeedbackBuffer_readback[i] = {};
 			queryResultBuffer[i] = {};
+			instanceResLookupUploadBuffer[i] = {};
 		}
 
 		return true;
