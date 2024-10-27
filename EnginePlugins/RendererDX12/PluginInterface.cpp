@@ -23,6 +23,7 @@ namespace vz
 
 	void Deinitialize()
 	{
+		initializer::ReleaseResources();
 		graphicsDevice.reset();
 	}
 

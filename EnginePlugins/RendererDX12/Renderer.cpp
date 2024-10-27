@@ -24,9 +24,9 @@ namespace vz::rcommon
 	Texture				textures[TEXTYPE_COUNT];
 
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
-	PipelineState		PSO_render[RENDERPASS_COUNT];
 	PipelineState		PSO_wireframe;
 	PipelineState		PSO_occlusionquery;
+	std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
 
 	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
 }

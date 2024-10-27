@@ -32,9 +32,9 @@ namespace vz::rcommon
 	extern Sampler				samplers[SAMPLER_COUNT];
 
 	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
-	extern PipelineState		PSO_render[RENDERPASS_COUNT];
 	extern PipelineState		PSO_wireframe;
 	extern PipelineState		PSO_occlusionquery;
+	extern std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
 
 	extern jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
 }
@@ -455,11 +455,9 @@ namespace vz::shader
 		return false;
 	}
 
-
-	std::unordered_map<uint32_t, PipelineState> PSO_object[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
 	PipelineState* GetObjectPSO(MeshRenderingVariant variant)
 	{
-		return &PSO_object[variant.bits.renderpass][variant.bits.shadertype][variant.value];
+		return &rcommon::PSO_render[variant.bits.renderpass][variant.bits.shadertype][variant.value];
 	}
 
 	void LoadShaders()
@@ -496,6 +494,7 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_DEBUG], "meshPS_debug.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_SIMPLE], "meshPS_simple.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_VERTEXCOLOR], "vertexcolorPS.cso"); });
+
 
 		//----- PS materials by permutation -----
 		static const std::vector<std::string> shaderTypeDefines[] = {
@@ -543,7 +542,7 @@ namespace vz::shader
 			);
 		
 			});
-		
+
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_VIEW_RESOLVE], "view_resolveCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_VIEW_RESOLVE_MSAA], "view_resolveCS_MSAA.cso"); });
 
@@ -588,7 +587,6 @@ namespace vz::shader
 		//
 		//	device->CreatePipelineState(&desc, &PSO_outline);
 		//	});
-
 		jobsystem::Dispatch(ctx, DEBUGRENDERING_COUNT, 1, [](jobsystem::JobArgs args) {
 			PipelineStateDesc desc;
 
