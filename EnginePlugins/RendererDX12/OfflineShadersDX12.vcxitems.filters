@@ -1,21 +1,29 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="VS">
-      <UniqueIdentifier>{23dbb783-f920-42dd-a8a6-112587b07d22}</UniqueIdentifier>
-    </Filter>
     <Filter Include="CommonHF">
       <UniqueIdentifier>{f92570bb-a5e3-4b03-ad7a-99124815d443}</UniqueIdentifier>
     </Filter>
-    <Filter Include="batch">
+    <Filter Include="Batch">
       <UniqueIdentifier>{87ef205b-9f03-4c75-9fa3-a0a1c697c1b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline Shaders">
+      <UniqueIdentifier>{580a4773-9b45-44e9-bc46-568927e883eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline Shaders\PS">
+      <UniqueIdentifier>{89e1659f-8e03-4d4a-b866-7b4c7876f0fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline Shaders\VS">
+      <UniqueIdentifier>{23dbb783-f920-42dd-a8a6-112587b07d22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{7a984d49-29e9-4f9b-99f8-db65d12cf319}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interop">
+      <UniqueIdentifier>{cba31e7b-f882-4efc-af50-f0d4f29c7e3e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)Shaders\ColorSpaceUtility.hlsli" />
-    <None Include="$(MSBuildThisFileDirectory)Shaders\Globals.hlsli" />
-    <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_R11G11B10.hlsli" />
-    <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_RGBE.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli">
       <Filter>CommonHF</Filter>
     </None>
@@ -41,24 +49,56 @@
       <Filter>CommonHF</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Shaders\compile.bat">
-      <Filter>batch</Filter>
+      <Filter>Batch</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\ColorSpaceUtility.hlsli">
+      <Filter>Common</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\Globals.hlsli">
+      <Filter>Common</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_R11G11B10.hlsli">
+      <Filter>Common</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_RGBE.hlsli">
+      <Filter>Common</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_VXGI.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_SurfelGI.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h">
+      <Filter>Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h">
+      <Filter>Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_SurfelGI.h">
+      <Filter>Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_VXGI.h">
+      <Filter>Interop</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl">
-      <Filter>VS</Filter>
+      <Filter>Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_debug.hlsl">
-      <Filter>VS</Filter>
+      <Filter>Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_simple.hlsl">
-      <Filter>VS</Filter>
+      <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\vertexcolorVS.hlsl">
+      <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_debug.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_simple.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
