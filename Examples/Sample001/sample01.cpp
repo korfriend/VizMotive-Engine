@@ -106,8 +106,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     uint32_t h = rc.bottom - rc.top;
     float dpi = 96.f;
 
-    vzm::ParamMap<std::string> arguments;
+	vzm::ParamMap<std::string> arguments;
 	//arguments.SetString("API", "DX11");
+	arguments.SetString("GPU_VALIDATION", "VERBOSE");
+	arguments.SetParam("MAX_THREADS", 1u);
     if (!vzm::InitEngineLib(arguments)) {
         std::cerr << "Failed to initialize engine library." << std::endl;
         return -1;

@@ -9,7 +9,7 @@
 
 using namespace vz::graphics;
 
-static const uint32_t SHADERTYPE_BIN_COUNT = (uint32_t)vz::MaterialComponent::ShaderType::COUNT;
+static_assert(SHADERTYPE_BIN_COUNT == SCU32(vz::MaterialComponent::ShaderType::COUNT));
 
 //----- global constants -----
 namespace vz
@@ -88,8 +88,8 @@ namespace vz
 
 		///////////////////
 		// pixel shaders //
-		PSTYPE_DEBUG,	// VER 0.1 // debug output (to final render target)
-		PSTYPE_SIMPLE,	// VER 0.1 // no shading (to final render target)
+		PSTYPE_MESH_DEBUG,	// VER 0.1 // debug output (to final render target)
+		PSTYPE_MESH_SIMPLE,	// VER 0.1 // no shading (to final render target)
 		PSTYPE_VERTEXCOLOR,
 
 		PSTYPE_MESH_PREPASS,
@@ -303,6 +303,7 @@ namespace vz
 	{
 		void SetUpStates();
 		void LoadBuffers();
+		void ReleaseResources();
 	}
 
 	namespace shader
@@ -358,26 +359,34 @@ namespace vz
 		size_t instanceArraySize = 0;
 		graphics::GPUBuffer instanceUploadBuffer[graphics::GraphicsDevice::GetBufferCount()]; // dynamic GPU-usage
 		graphics::GPUBuffer instanceBuffer = {};	// default GPU-usage
-		ShaderRenderable* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
+		ShaderMeshInstance* instanceArrayMapped = nullptr; // CPU-access buffer pointer for instanceUploadBuffer[%2]
 
-		// Geometries for bindless visiblity indexing:
+		// Geometries for bindless view indexing:
 		//	contains in order:
 		//		1) # of primitive parts
 		//		2) emitted particles * 1
-		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		ShaderGeometryPart* geometryArrayMapped = nullptr;
 		size_t geometryArraySize = 0;
-		graphics::GPUBuffer geometryBuffer = {};
+		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
+		graphics::GPUBuffer geometryBuffer = {};	// not same to the geometryEntities, reorganized using geometryAllocator
+		ShaderGeometry* geometryArrayMapped = nullptr;
 		std::atomic<uint32_t> geometryAllocator{ 0 };
 
-		// Materials for bindless visibility indexing:
+		// Materials for bindless view indexing:
 		size_t materialArraySize = 0;
 		graphics::GPUBuffer materialUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
 		graphics::GPUBuffer materialBuffer = {};
+		ShaderMaterial* materialArrayMapped = nullptr;
+
 		graphics::GPUBuffer textureStreamingFeedbackBuffer;	// a sinlge UINT
 		graphics::GPUBuffer textureStreamingFeedbackBuffer_readback[graphics::GraphicsDevice::GetBufferCount()];
 		const uint32_t* textureStreamingFeedbackMapped = nullptr;
-		ShaderMaterial* materialArrayMapped = nullptr;
+
+		// Material-index lookup corresponding to each geometry of a renderable
+		size_t instanceResLookupSize = 0;
+		graphics::GPUBuffer instanceResLookupUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
+		graphics::GPUBuffer instanceResLookupBuffer = {};
+		ShaderInstanceResLookup* instanceResLookupMapped = nullptr;
+		std::atomic<uint32_t> instanceResLookupAllocator{ 0 };
 
 		// Occlusion query state:
 		struct OcclusionResult

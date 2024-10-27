@@ -37,9 +37,7 @@ using int4 = XMINT4;
 #define CBUFFER(name, slot) cbuffer name : register(PASTE(b, slot))
 #define CONSTANTBUFFER(name, type, slot) ConstantBuffer< type > name : register(PASTE(b, slot))
 
-#if defined(__PSSL__)
-// defined separately in preincluded PS5 extension file
-#elif defined(__spirv__)
+#if defined(__spirv__)
 #define PUSHCONSTANT(name, type) [[vk::push_constant]] type name;
 #else
 #define PUSHCONSTANT(name, type) ConstantBuffer<type> name : register(b999)
@@ -58,8 +56,37 @@ namespace vz
 
 #endif // __cplusplus
 
+static const uint IndirectDrawArgsAlignment = 4u;
+static const uint IndirectDispatchArgsAlignment = 4u; 
+
+static const uint32_t SHADERTYPE_BIN_COUNT = 3;
+
+// Common buffers:
+// These are usable by all shaders
+#define CBSLOT_IMAGE							0
+#define CBSLOT_FONT								0
+#define CBSLOT_RENDERER_FRAME					0
+#define CBSLOT_RENDERER_CAMERA					1
+
+// On demand buffers:
+// These are bound on demand and alive until another is bound at the same slot
+#define CBSLOT_RENDERER_FORWARD_LIGHTMASK		2
+#define CBSLOT_RENDERER_VOLUMELIGHT				3
+#define CBSLOT_RENDERER_VOXELIZER				3
+#define CBSLOT_RENDERER_TRACED					2
+#define CBSLOT_RENDERER_MISC					3
+
+#define CBSLOT_OTHER_EMITTEDPARTICLE			4
+#define CBSLOT_OTHER_FFTGENERATOR				3
+#define CBSLOT_OTHER_CLOUDGENERATOR				3
+#define CBSLOT_OTHER_GPUSORTLIB					4
+#define CBSLOT_MSAO								4
+#define CBSLOT_FSR								4
+
 #define CBSLOT_RENDERER_FRAME	0
 #define CBSLOT_RENDERER_CAMERA	1
+
+#include "ShaderInterop_VXGI.h"
 
 static const uint SHADER_ENTITY_COUNT = 256;
 static const uint SHADER_ENTITY_TILE_BUCKET_COUNT = SHADER_ENTITY_COUNT / 32;
@@ -71,6 +98,94 @@ static const uint TILED_CULLING_GRANULARITY = TILED_CULLING_BLOCKSIZE / TILED_CU
 static const uint VISIBILITY_BLOCKSIZE = 8;
 static const uint VISIBILITY_TILED_CULLING_GRANULARITY = TILED_CULLING_BLOCKSIZE / VISIBILITY_BLOCKSIZE;
 
+//---------- Enumerations -----------
+// These option bits can be read from options constant buffer value:
+enum FRAME_OPTIONS
+{
+	OPTION_BIT_TEMPORALAA_ENABLED = 1 << 0,
+	//OPTION_BIT_TRANSPARENTSHADOWS_ENABLED = 1 << 1,
+	OPTION_BIT_VXGI_ENABLED = 1 << 2,
+	OPTION_BIT_VXGI_REFLECTIONS_ENABLED = 1 << 3,
+	OPTION_BIT_REALISTIC_SKY = 1 << 6,
+	OPTION_BIT_HEIGHT_FOG = 1 << 7,
+	OPTION_BIT_RAYTRACED_SHADOWS = 1 << 8,
+	OPTION_BIT_SHADOW_MASK = 1 << 9,
+	OPTION_BIT_SURFELGI_ENABLED = 1 << 10,
+	OPTION_BIT_DISABLE_ALBEDO_MAPS = 1 << 11,
+	OPTION_BIT_FORCE_DIFFUSE_LIGHTING = 1 << 12,
+	OPTION_BIT_VOLUMETRICCLOUDS_CAST_SHADOW = 1 << 13,
+	OPTION_BIT_OVERRIDE_FOG_COLOR = 1 << 14,
+	OPTION_BIT_STATIC_SKY_SPHEREMAP = 1 << 15,
+	OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE = 1 << 16,
+	OPTION_BIT_REALISTIC_SKY_HIGH_QUALITY = 1 << 17,
+	OPTION_BIT_REALISTIC_SKY_RECEIVE_SHADOW = 1 << 18,
+	OPTION_BIT_VOLUMETRICCLOUDS_RECEIVE_SHADOW = 1 << 19,
+};
+
+enum SHADERMATERIAL_OPTIONS
+{
+	SHADERMATERIAL_OPTION_BIT_USE_VERTEXCOLORS = 1 << 0,
+	SHADERMATERIAL_OPTION_BIT_SPECULARGLOSSINESS_WORKFLOW = 1 << 1,
+	SHADERMATERIAL_OPTION_BIT_OCCLUSION_PRIMARY = 1 << 2,
+	SHADERMATERIAL_OPTION_BIT_OCCLUSION_SECONDARY = 1 << 3,
+	SHADERMATERIAL_OPTION_BIT_USE_WIND = 1 << 4,
+	SHADERMATERIAL_OPTION_BIT_RECEIVE_SHADOW = 1 << 5,
+	SHADERMATERIAL_OPTION_BIT_CAST_SHADOW = 1 << 6,
+	SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED = 1 << 7,
+	SHADERMATERIAL_OPTION_BIT_TRANSPARENT = 1 << 8,
+	SHADERMATERIAL_OPTION_BIT_ADDITIVE = 1 << 9,
+	SHADERMATERIAL_OPTION_BIT_UNLIT = 1 << 10,
+	SHADERMATERIAL_OPTION_BIT_USE_VERTEXAO = 1 << 11,
+};
+
+// Same as MaterialComponent::TextureSlot
+enum TEXTURESLOT
+{
+	BASECOLORMAP,
+	NORMALMAP,
+	SURFACEMAP,
+	EMISSIVEMAP,
+	DISPLACEMENTMAP,
+	OCCLUSIONMAP,
+	TRANSMISSIONMAP,
+	SHEENCOLORMAP,
+	SHEENROUGHNESSMAP,
+	CLEARCOATMAP,
+	CLEARCOATROUGHNESSMAP,
+	CLEARCOATNORMALMAP,
+	SPECULARMAP,
+	ANISOTROPYMAP,
+	TRANSPARENCYMAP,
+
+	VOLUMEDENSITYMAP, // this is used for volume rendering
+
+	TEXTURESLOT_COUNT
+};
+
+enum SHADER_ENTITY_TYPE
+{
+	ENTITY_TYPE_DIRECTIONALLIGHT,
+	ENTITY_TYPE_POINTLIGHT,
+	ENTITY_TYPE_SPOTLIGHT,
+	ENTITY_TYPE_DECAL,
+	ENTITY_TYPE_ENVMAP,
+	ENTITY_TYPE_FORCEFIELD_POINT,
+	ENTITY_TYPE_FORCEFIELD_PLANE,
+	ENTITY_TYPE_COLLIDER_SPHERE,
+	ENTITY_TYPE_COLLIDER_CAPSULE,
+	ENTITY_TYPE_COLLIDER_PLANE,
+
+	ENTITY_TYPE_COUNT
+};
+
+enum SHADER_ENTITY_FLAGS
+{
+	ENTITY_FLAG_LIGHT_STATIC = 1 << 0,
+	ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS = 1 << 1,
+	ENTITY_FLAG_DECAL_BASECOLOR_ONLY_ALPHA = 1 << 0,
+};
+
+//---------- Shader Parameters -----------
 struct alignas(16) ShaderTransform
 {
 	float4 mat0;
@@ -103,7 +218,7 @@ struct alignas(16) ShaderTransform
 	}
 };
 
-struct alignas(16) ShaderRenderable
+struct alignas(16) ShaderMeshInstance
 {
 	uint uid;	// using entity
 	uint flags;	// high 8 bits: user stencilRef (same as visibility-layered mask)
@@ -111,12 +226,23 @@ struct alignas(16) ShaderRenderable
 	float fadeDistance;
 
 	uint geometryOffset; // offset of all geometries for currently active LOD (geomtryPartIndex applied by LODs)
-	uint geometryCount;
+	uint geometryCount; // number of all geometries in currently active LOD
 	uint baseGeometryOffset;	// offset of all geometries of the instance (if no LODs, then it is equal to geometryOffset)
-	uint baseGeometryCount;
+	uint resLookupOffset;
+
+	uint meshletOffset; // offset in the global meshlet buffer for first subset (for LOD0)
+	uint padding0;
+	uint padding1;
+	uint padding2;
 
 	float3 aabbCenter;
 	float aabbRadius;
+
+	// renderable-special 
+	//	determined by flags (use_renderable_attributes)
+	uint2 emissive;
+	uint color;
+	int lightmap;
 
 	float4 quaternion;
 	ShaderTransform transform;
@@ -131,11 +257,17 @@ struct alignas(16) ShaderRenderable
 		fadeDistance = 0;
 
 		geometryOffset = baseGeometryOffset = 0;
-		baseGeometryOffset = baseGeometryOffset = 0;
+		geometryCount = 0;
+		resLookupOffset = ~0u;
+		meshletOffset = ~0u;
 
 		aabbCenter = float3(0, 0, 0);
 		aabbRadius = 0;
 
+		emissive = uint2(0, 0);
+		color = ~0u;
+		lightmap = -1;
+		
 		quaternion = float4(0, 0, 0, 1);
 		transform.Init();
 		transformPrev.Init();
@@ -159,52 +291,34 @@ struct alignas(16) ShaderRenderable
 #endif // __cplusplus
 };
 
-enum FRAME_OPTIONS
-{
-	OPTION_BIT_TEMPORALAA_ENABLED = 1 << 0,
-	//OPTION_BIT_TRANSPARENTSHADOWS_ENABLED = 1 << 1,
-	//OPTION_BIT_VXGI_ENABLED = 1 << 2,
-	//OPTION_BIT_VXGI_REFLECTIONS_ENABLED = 1 << 3,
-	//OPTION_BIT_REALISTIC_SKY = 1 << 6,
-	//OPTION_BIT_HEIGHT_FOG = 1 << 7,
-	//OPTION_BIT_RAYTRACED_SHADOWS = 1 << 8,
-	//OPTION_BIT_SHADOW_MASK = 1 << 9,
-	//OPTION_BIT_SURFELGI_ENABLED = 1 << 10,
-	//OPTION_BIT_DISABLE_ALBEDO_MAPS = 1 << 11,
-	//OPTION_BIT_FORCE_DIFFUSE_LIGHTING = 1 << 12,
-	//OPTION_BIT_VOLUMETRICCLOUDS_CAST_SHADOW = 1 << 13,
-	//OPTION_BIT_OVERRIDE_FOG_COLOR = 1 << 14,
-	//OPTION_BIT_STATIC_SKY_SPHEREMAP = 1 << 15,
-	//OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE = 1 << 16,
-	//OPTION_BIT_REALISTIC_SKY_HIGH_QUALITY = 1 << 17,
-	//OPTION_BIT_REALISTIC_SKY_RECEIVE_SHADOW = 1 << 18,
-	//OPTION_BIT_VOLUMETRICCLOUDS_RECEIVE_SHADOW = 1 << 19,
+// Sparse Virtual Texturing (SVT)
+static const uint SVT_TILE_SIZE = 256u;
+static const uint SVT_TILE_BORDER = 4u;
+static const uint SVT_TILE_SIZE_PADDED = SVT_TILE_SIZE + SVT_TILE_BORDER * 2;
+static const uint SVT_PACKED_MIP_COUNT = 6;
+static const uint2 SVT_PACKED_MIP_OFFSETS[SVT_PACKED_MIP_COUNT] = {
+	uint2(0, 0),
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2, 0),
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2 + SVT_TILE_SIZE / 4 + SVT_TILE_BORDER * 2, 0),
+	// shift the offset down a bit to not go over the tile limit:
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2, SVT_TILE_SIZE / 4 + SVT_TILE_BORDER * 2),
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2 + SVT_TILE_SIZE / 16 + SVT_TILE_BORDER * 2, SVT_TILE_SIZE / 4 + SVT_TILE_BORDER * 2),
+	uint2(SVT_TILE_SIZE / 2 + SVT_TILE_BORDER * 2 + SVT_TILE_SIZE / 16 + SVT_TILE_BORDER * 2 + SVT_TILE_SIZE / 32 + SVT_TILE_BORDER * 2, SVT_TILE_SIZE / 4 + SVT_TILE_BORDER * 2),
 };
 
-enum SHADERMATERIAL_OPTIONS
-{
-	SHADERMATERIAL_OPTION_BIT_USE_VERTEXCOLORS = 1 << 0,
-	SHADERMATERIAL_OPTION_BIT_SPECULARGLOSSINESS_WORKFLOW = 1 << 1,
-	SHADERMATERIAL_OPTION_BIT_OCCLUSION_PRIMARY = 1 << 2,
-	SHADERMATERIAL_OPTION_BIT_OCCLUSION_SECONDARY = 1 << 3,
-	SHADERMATERIAL_OPTION_BIT_USE_WIND = 1 << 4,
-	SHADERMATERIAL_OPTION_BIT_RECEIVE_SHADOW = 1 << 5,
-	SHADERMATERIAL_OPTION_BIT_CAST_SHADOW = 1 << 6,
-	SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED = 1 << 7,
-	SHADERMATERIAL_OPTION_BIT_TRANSPARENT = 1 << 8,
-	SHADERMATERIAL_OPTION_BIT_ADDITIVE = 1 << 9,
-	SHADERMATERIAL_OPTION_BIT_UNLIT = 1 << 10,
-	SHADERMATERIAL_OPTION_BIT_USE_VERTEXAO = 1 << 11,
-};
+#ifndef __cplusplus
+#ifdef TEXTURE_SLOT_NONUNIFORM
+#define UniformTextureSlot(x) NonUniformResourceIndex(x)
+#else
+#define UniformTextureSlot(x) (x)
+#endif // TEXTURE_SLOT_NONUNIFORM
 
-// Same as MaterialComponent::TextureSlot
-enum TEXTURESLOT
+inline float get_lod(in uint2 dim, in float2 uv_dx, in float2 uv_dy)
 {
-	BASECOLORMAP,
-	VOLUMEDENSITYMAP, // this is used for volume rendering
-
-	TEXTURESLOT_COUNT
-};
+	// https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#7.18.11%20LOD%20Calculations
+	return log2(max(length(uv_dx * dim), length(uv_dy * dim)));
+}
+#endif // __cplusplus
 
 struct alignas(16) ShaderTextureSlot
 {
@@ -500,17 +614,22 @@ struct alignas(16) ShaderMaterial
 
 // This is equivalent to a Geometry's Primitive parts
 //	But because these are always loaded together by shaders, they are unrolled into one to reduce individual buffer loads
-struct alignas(16) ShaderGeometryPart
+struct alignas(16) ShaderGeometry
 {
 	int ib;
-	int vb_pos;
+	int vb_pos_w;
 	int vb_uvs;
 	int vb_nor;
 
 	int vb_tan;
 	int vb_col;
 	int vb_pre;
+	int vb_atl;
+
+	uint meshletOffset; // offset of this subset in meshlets (locally within the mesh) --> to ShaderInstanceResLookup?!
 	uint padding0;
+	uint padding1;
+	uint padding2;
 
 	float3 aabb_min;
 	uint flags;
@@ -524,12 +643,15 @@ struct alignas(16) ShaderGeometryPart
 	void Init()
 	{
 		ib = -1;
-		vb_pos = -1;
+		vb_pos_w = -1;
 		vb_uvs = -1;
 		vb_nor = -1;
 		vb_tan = -1;
 		vb_col = -1;
 		vb_pre = -1;
+		vb_atl = -1;
+
+		meshletOffset = ~0u;
 
 		aabb_min = float3(0, 0, 0);
 		flags = 0;
@@ -539,6 +661,48 @@ struct alignas(16) ShaderGeometryPart
 		uv_range_min = float2(0, 0);
 		uv_range_max = float2(1, 1);
 	}
+};
+
+static const uint MESHLET_VERTEX_COUNT = 64u;
+static const uint MESHLET_TRIANGLE_COUNT = 124u;
+inline uint triangle_count_to_meshlet_count(uint triangleCount)
+{
+	return (triangleCount + MESHLET_TRIANGLE_COUNT - 1u) / MESHLET_TRIANGLE_COUNT;
+}
+struct alignas(16) ShaderMeshlet
+{
+	uint instanceIndex;
+	uint geometryIndex;
+	uint primitiveOffset; // either direct triangle offset within index buffer, or masked cluster index for clustered geo
+	uint padding;
+};
+
+struct ShaderClusterTriangle
+{
+	uint packed;
+	void init(uint i0, uint i1, uint i2, uint flags = 0u)
+	{
+		packed = 0;
+		packed |= i0 & 0xFF;
+		packed |= (i1 & 0xFF) << 8u;
+		packed |= (i2 & 0xFF) << 16u;
+		packed |= (flags & 0xFF) << 24u;
+	}
+	uint i0() { return packed & 0xFF; }
+	uint i1() { return (packed >> 8u) & 0xFF; }
+	uint i2() { return (packed >> 16u) & 0xFF; }
+	uint3 tri() { return uint3(i0(), i1(), i2()); }
+	uint flags() { return packed >> 24u; }
+};
+struct alignas(16) ShaderCluster
+{
+	uint triangleCount;
+	uint vertexCount;
+	uint padding0;
+	uint padding1;
+
+	uint vertices[MESHLET_VERTEX_COUNT];
+	ShaderClusterTriangle triangles[MESHLET_TRIANGLE_COUNT];
 };
 
 // buffer's element (not constant buffer)
@@ -571,12 +735,46 @@ struct ShaderMeshInstancePointer
 	}
 };
 
-struct RenderablePushConstants
+// buffer's element (not constant buffer)
+struct alignas(16) ShaderInstanceResLookup
+{
+	uint materialIndex;
+	int vb_wetmap;
+	int vb_ao;
+	uint padding0;
+
+	void Init()
+	{
+		materialIndex = ~0u;
+		vb_wetmap = -1;
+		vb_ao = -1;
+	}
+};
+
+struct MeshPushConstants
 {
 	uint geometryIndex;
 	uint materialIndex;
 	int instances;
 	uint instance_offset;
+
+	uint instBufferResIndex;
+	uint padding0;
+	uint padding1;
+	uint padding2;
+};
+
+struct DebugObjectPushConstants
+{
+	int vbPosW;
+};
+
+struct alignas(16) ShaderFog
+{
+	float start;
+	float density;
+	float height_start;
+	float height_end;
 };
 
 struct alignas(16) ShaderScene
@@ -585,7 +783,7 @@ struct alignas(16) ShaderScene
 	int geometrybuffer;
 	int materialbuffer;
 	int texturestreamingbuffer;
-	
+
 	// TODO
 	int TLAS;
 	int BVH_counter;
@@ -597,9 +795,24 @@ struct alignas(16) ShaderScene
 	float3 aabb_max;
 	int globalprobe; // rendered probe with guaranteed mipmaps, hdr, etc.
 	float3 aabb_extents;		// enclosing AABB abs(max - min)
-	float padding5;
+	int instanceResLookupBuffer;
 	float3 aabb_extents_rcp;	// enclosing AABB 1.0f / abs(max - min)
-	float padding6;
+	int mostImportantLightIndex;
+
+	// ----- IBL and scene color -----
+	float3 ambient;
+	int meshletbuffer;	// buffer group (not IBL or scene color)
+
+	float3 horizonColor;
+	uint padding1;
+
+	float3 sunColor;
+	float sunExposure;
+
+	float3 sunDirection;
+	uint padding3;
+
+	ShaderFog fog;
 
 	// TODO
 	struct alignas(16) DDGI
@@ -634,7 +847,7 @@ struct alignas(16) ShaderScene
 // Warning: the size of this structure directly affects shader performance.
 //	Try to reduce it as much as possible!
 //	Keep it aligned to 16 bytes for best performance!
-struct alignas(16) LightEntity
+struct alignas(16) ShaderEntity
 {
 	float3 position;
 	uint type8_flags8_range16;
@@ -809,15 +1022,12 @@ struct alignas(16) LightEntity
 #endif // __cplusplus
 };
 
-static const uint LIGHT_ENTITY_COUNT = 256;
-static const uint LIGHT_ENTITY_TILE_BUCKET_COUNT = LIGHT_ENTITY_COUNT / 32;
-
-struct LightEntityIterator
+struct ShaderEntityIterator
 {
 	uint value;
 
 #ifdef __cplusplus
-	LightEntityIterator(uint offset, uint count)
+	ShaderEntityIterator(uint offset, uint count)
 	{
 		value = offset | (count << 16u);
 	}
@@ -891,15 +1101,25 @@ struct alignas(16) FrameCB
 
 	uint		frame_count;
 	uint		temporalaa_samplerotation;
+	int			texture_shadowatlas_index;
+	int			texture_shadowatlas_transparent_index;
+
+	uint2		shadow_atlas_resolution;
+	float2		shadow_atlas_resolution_rcp;
+
+	float		gi_boost;
+	uint		entity_culling_count;
 	uint		padding0;
 	uint		padding1;
-	
+
 	float		blue_noise_phase;
 	int			texture_random64x64_index;
 	int			texture_bluenoise_index;
 	int			texture_sheenlut_index;
 
 	ShaderScene scene;
+
+	VXGI vxgi;
 
 	// Lights
 	uint probes;	// NOTE YET SUPPORTED
@@ -913,14 +1133,21 @@ struct alignas(16) FrameCB
 	uint padding3; 
 
 	// Note: 
-	//	A single renderable refers to a number of 'LightEntity's
-	//	This is why LightEntities and their transform matrices do not belong to 'ShaderScene'
-	LightEntity lightArray[LIGHT_ENTITY_COUNT];
-	float4x4 lightMatrixArray[LIGHT_ENTITY_COUNT];
+	//	A single renderable refers to a number of shader units such as light.
+	//											e.g., light sources (original light, probe, ...)
+	//	such units can be stored into 'ShaderEntity'
+	//	This is why such units and their transform matrices do not belong to 'ShaderScene'
+	ShaderEntity entityArray[SHADER_ENTITY_COUNT];
+	float4x4 matrixArray[SHADER_ENTITY_COUNT];
 };
 
 
 // ---------- Common Constant buffers: -----------------
+struct alignas(16) ShaderSphere
+{
+	float3 center;
+	float radius;
+};
 
 struct alignas(16) ShaderFrustum
 {
@@ -1169,5 +1396,32 @@ struct alignas(16) ViewTile
 		return (execution_mask & (uint64_t(1) << uint64_t(groupIndex))) != 0;
 	}
 };
+
+// ------- Constant buffers: ----------
+
+CONSTANTBUFFER(g_xFrame, FrameCB, CBSLOT_RENDERER_FRAME);
+CONSTANTBUFFER(g_xCamera, CameraCB, CBSLOT_RENDERER_CAMERA);
+
+// ------- On demand Constant buffers: ----------
+CBUFFER(MiscCB, CBSLOT_RENDERER_MISC)
+{
+	float4x4	g_xTransform;
+	float4		g_xColor;
+};
+
+CBUFFER(ForwardEntityMaskCB, CBSLOT_RENDERER_FORWARD_LIGHTMASK)
+{
+	uint2 xForwardLightMask;	// supports indexing 64 lights
+	uint xForwardDecalMask;		// supports indexing 32 decals
+	uint xForwardEnvProbeMask;	// supports indexing 32 environment probes
+};
+
+CBUFFER(VolumeLightCB, CBSLOT_RENDERER_VOLUMELIGHT)
+{
+	float4x4 xLightWorld;
+	float4 xLightColor;
+	float4 xLightEnerdis;
+};
+
 
 #endif

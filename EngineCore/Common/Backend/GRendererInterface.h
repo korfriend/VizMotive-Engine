@@ -13,6 +13,7 @@ namespace vz
 		typedef bool(*PI_GraphicsDeinitializer)();
 		typedef GRenderPath3D* (*PI_NewGRenderPath3D)(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
 		typedef GScene* (*PI_NewGScene)(Scene* scene);
+		typedef bool(*PI_InitRenderer)();
 		typedef void(*PI_AddDeferredMIPGen)(const graphics::Texture& texture, bool preserve_coverage);
 		typedef void(*PI_AddDeferredBlockCompression)(const graphics::Texture& texture_src, const graphics::Texture& texture_bc);
 		typedef bool(*PI_LoadShader)(
@@ -21,6 +22,7 @@ namespace vz
 			const std::string& filename,
 			graphics::ShaderModel minshadermodel,
 			const std::vector<std::string>& permutation_defines);
+		typedef bool(*PI_LoadShaders)();
 
 		// essential
 		PI_GraphicsInitializer pluginInitializer = nullptr;
@@ -28,7 +30,9 @@ namespace vz
 		PI_GetGraphicsDevice pluginGetDev = nullptr;
 		PI_NewGRenderPath3D pluginNewGRenderPath3D = nullptr;
 		PI_NewGScene pluginNewGScene = nullptr;
+		PI_InitRenderer pluginInitRenderer = nullptr;
 		PI_LoadShader pluginLoadShader = nullptr;
+		PI_LoadShaders pluginLoadShaders = nullptr;
 
 		// optional 
 		PI_AddDeferredMIPGen pluginAddDeferredMIPGen = nullptr;
@@ -55,12 +59,14 @@ namespace vz
 			pluginGetDev = platform::LoadModule<PI_GetGraphicsDevice>(moduleName, "GetGraphicsDevice");
 			pluginNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>(moduleName, "NewGRenderPath");
 			pluginNewGScene = platform::LoadModule<PI_NewGScene>(moduleName, "NewGScene");
+			pluginInitRenderer = platform::LoadModule<PI_InitRenderer>(moduleName, "InitRenderer");
 			pluginLoadShader = platform::LoadModule<PI_LoadShader>(moduleName, "LoadShader");
+			pluginLoadShaders = platform::LoadModule<PI_LoadShaders>(moduleName, "LoadShaders");
 
 			pluginAddDeferredMIPGen = platform::LoadModule<PI_AddDeferredMIPGen>(moduleName, "AddDeferredMIPGen");
 			pluginAddDeferredBlockCompression = platform::LoadModule<PI_AddDeferredBlockCompression>(moduleName, "AddDeferredBlockCompression");
 
-			return pluginInitializer && pluginDeinitializer && pluginGetDev && pluginNewGRenderPath3D && pluginNewGScene && pluginLoadShader;
+			return pluginInitializer && pluginDeinitializer && pluginGetDev && pluginNewGRenderPath3D && pluginNewGScene && pluginInitRenderer && pluginLoadShader && pluginLoadShaders;
 		}
 	};
 }

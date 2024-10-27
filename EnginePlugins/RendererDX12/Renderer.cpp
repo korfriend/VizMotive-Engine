@@ -24,9 +24,9 @@ namespace vz::rcommon
 	Texture				textures[TEXTYPE_COUNT];
 
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
-	PipelineState		PSO_render[RENDERPASS_COUNT];
 	PipelineState		PSO_wireframe;
 	PipelineState		PSO_occlusionquery;
+	std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
 
 	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
 }
@@ -335,8 +335,8 @@ namespace vz::renderer
 		uint lightarray_offset = 0;
 		uint lightarray_count = 0;
 
-		LightEntity* light_entity_array = frameCB.lightArray;
-		float4x4* light_matrix_array = frameCB.lightMatrixArray;
+		ShaderEntity* light_entity_array = frameCB.entityArray;
+		float4x4* light_matrix_array = frameCB.matrixArray;
 
 		uint32_t light_entity_counter = 0;
 
@@ -347,7 +347,7 @@ namespace vz::renderer
 		lightarray_offset_directional = light_entity_counter;
 		for (uint32_t lightIndex : vis.visibleLights)
 		{
-			if (light_entity_counter == LIGHT_ENTITY_COUNT)
+			if (light_entity_counter == SHADER_ENTITY_COUNT)
 			{
 				light_entity_counter--;
 				break;
@@ -357,7 +357,7 @@ namespace vz::renderer
 			if (light.GetLightType() != LightComponent::LightType::DIRECTIONAL || light.IsInactive())
 				continue;
 
-			LightEntity light_entity = {};
+			ShaderEntity light_entity = {};
 			light_entity.layerMask = ~0u;
 
 			light_entity.SetType(SCU32(light.GetLightType()));
@@ -373,7 +373,7 @@ namespace vz::renderer
 			// mark as no shadow by default:
 			light_entity.indices = ~0;
 
-			const uint cascade_count = std::min((uint)light.cascadeDistances.size(), LIGHT_ENTITY_COUNT - light_entity_counter);
+			const uint cascade_count = std::min((uint)light.cascadeDistances.size(), SHADER_ENTITY_COUNT - light_entity_counter);
 			light_entity.SetShadowCascadeCount(cascade_count);
 
 			//if (shadow && !light.cascade_distances.empty())
@@ -386,13 +386,13 @@ namespace vz::renderer
 			//	}
 			//}
 
-			std::memcpy(light_entity_array + light_entity_counter, &light_entity, sizeof(LightEntity));
+			std::memcpy(light_entity_array + light_entity_counter, &light_entity, sizeof(ShaderEntity));
 			light_entity_counter++;
 			lightarray_count_directional++;
 		}
 
-		frameCB.directional_lights = LightEntityIterator(lightarray_offset_directional, lightarray_count_directional);
-		frameCB.lights = LightEntityIterator(lightarray_offset, lightarray_count);
+		frameCB.directional_lights = ShaderEntityIterator(lightarray_offset_directional, lightarray_count_directional);
+		frameCB.lights = ShaderEntityIterator(lightarray_offset, lightarray_count);
 	}
 
 	constexpr uint32_t CombineStencilrefs(MaterialComponent::StencilRef engineStencilRef, uint8_t userStencilRef)
@@ -1037,7 +1037,7 @@ namespace vz
 				0,
 				&scene_Gdetails->instanceUploadBuffer[device->GetBufferIndex()],
 				0,
-				scene_Gdetails->instanceArraySize * sizeof(ShaderRenderable),
+				scene_Gdetails->instanceArraySize * sizeof(ShaderMeshInstance),
 				cmd
 			);
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->instanceBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE));
@@ -1050,7 +1050,7 @@ namespace vz
 				0,
 				&scene_Gdetails->geometryUploadBuffer[device->GetBufferIndex()],
 				0,
-				scene_Gdetails->geometryArraySize * sizeof(ShaderGeometryPart),
+				scene_Gdetails->geometryArraySize * sizeof(ShaderGeometry),
 				cmd
 			);
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->geometryBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE));
@@ -1124,18 +1124,22 @@ namespace vz
 			}
 
 			size_t num_parts = geomety.GetNumParts();
+			bool has_buffer_effect = num_parts == renderable.bufferEffects.size();
 			for (size_t part_index = 0; part_index < num_parts; ++part_index)
 			{
-				GBuffers& part_buffers = *geomety.GetGBuffer(part_index);
-				//GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(part_index));
-
-				if (part_buffers.wetmapCleared || !part_buffers.wetmapBuffer.IsValid())
+				if (!has_buffer_effect)
 				{
 					continue;
 				}
-				device->ClearUAV(&part_buffers.wetmapBuffer, 0, cmd);
-				barrierStack.push_back(GPUBarrier::Buffer(&part_buffers.wetmapBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
-				part_buffers.wetmapCleared = true;
+				const GRenderableComponent::GBufferBasedRes& buffer_based_res = renderable.bufferEffects[part_index];
+
+				if (buffer_based_res.wetmapCleared || !buffer_based_res.wetmapBuffer.IsValid())
+				{
+					continue;
+				}
+				device->ClearUAV(&buffer_based_res.wetmapBuffer, 0, cmd);
+				barrierStack.push_back(GPUBarrier::Buffer(&buffer_based_res.wetmapBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
+				buffer_based_res.wetmapCleared = true;
 			}
 		}
 		BarrierStackFlush(cmd);
@@ -1427,7 +1431,7 @@ namespace vz
 					device->BindIndexBuffer(&mesh.generalBuffer, mesh.GetIndexFormat(), mesh.ib.offset, cmd);
 
 					LightmapPushConstants push;
-					push.vb_pos_wind = mesh.vb_pos_wind.descriptor_srv;
+					push.vb_pos_w = mesh.vb_pos_wind.descriptor_srv;
 					push.vb_nor = mesh.vb_nor.descriptor_srv;
 					push.vb_atl = mesh.vb_atl.descriptor_srv;
 					push.instanceIndex = objectIndex;
@@ -1997,6 +2001,7 @@ namespace vz
 		struct InstancedBatch
 		{
 			uint32_t geometryIndex = ~0u;	// geometryIndex
+			uint32_t renderableIndex = ~0u;
 			std::vector<uint32_t> materialIndices;
 			uint32_t instanceCount = 0;	// 
 			uint32_t dataOffset = 0;
@@ -2017,11 +2022,13 @@ namespace vz
 				if (instancedBatch.instanceCount == 0)
 					return;
 				Entity geometry_entity = scene_Gdetails->geometryEntities[instancedBatch.geometryIndex];
-
 				GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geometry_entity);
 
 				if (!geometry.HasRenderData())
 					return;
+
+				Entity renderable_entity = scene_Gdetails->renderableEntities[instancedBatch.renderableIndex];
+				GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(renderable_entity);
 
 				bool forceAlphaTestForDithering = instancedBatch.forceAlphatestForDithering != 0;
 
@@ -2150,9 +2157,10 @@ namespace vz
 						device->BindShadingRate(material.shadingRate, cmd);
 					}
 
-					RenderablePushConstants push;
+					MeshPushConstants push;
 					push.geometryIndex = geometry.geometryOffset + part_index;
 					push.materialIndex = material_index;
+					push.instBufferResIndex = renderable.resLookupOffset + part_index;
 					push.instances = instanceBufferDescriptorIndex;
 					push.instance_offset = (uint)instancedBatch.dataOffset;
 
@@ -2216,8 +2224,9 @@ namespace vz
 				BatchDrawingFlush();
 
 				instancedBatch = {};
-				instancedBatch.geometryIndex = geometry_index;
-				instancedBatch.instanceCount = 0;
+				instancedBatch.geometryIndex = geometry_index;	
+				instancedBatch.renderableIndex = renderable_index; 
+				instancedBatch.instanceCount = 0;	// rendering camera count..
 				instancedBatch.dataOffset = (uint32_t)(instances.offset + instanceCount * sizeof(ShaderMeshInstancePointer));
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
@@ -2640,7 +2649,6 @@ namespace vz
 	{
 		UpdateViewRes(dt);
 
-		return true;
 		jobsystem::context ctx;
 
 		CommandList cmd = device->BeginCommandList();
@@ -3328,21 +3336,5 @@ namespace vz
 	{
 		return new GRenderPath3DDetails(vp, swapChain, rtRenderFinal);
 	}
-
-	bool InitRendererShaders()
-	{
-		Timer timer;
-
-		initializer::SetUpStates();
-		initializer::LoadBuffers();
-
-		//static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
-		//LoadShaders();
-
-		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
-		//initialized.store(true);
-		return true;
-	}
-
 }
 

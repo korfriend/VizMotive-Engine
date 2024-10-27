@@ -3,9 +3,9 @@
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Utils/ECS.h"
-#include "Common/Backend/GBackendDevice.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
+#include "Common/Backend/GBackendDevice.h"
 #include "Common/Backend/GRendererInterface.h"
 
 namespace vz
@@ -147,8 +147,12 @@ namespace vzm
 		graphics::GetDevice() = graphicsDevice;
 
 		// engine core initializer
+		uint32_t num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
+		initializer::SetMaxThreadCount(num_max_threads);
 		initializer::InitializeComponentsAsync();
 		//initializer::InitializeComponentsImmediate();
+
+		graphicsPackage.pluginInitRenderer();
 		
 		initialized = true;
 		return true;
@@ -619,7 +623,7 @@ namespace vzm
 		CHECK_API_VALIDITY(false);
 		jobsystem::ShutDown();
 
-		// high-level apis handle engine components via functions in vzcomp namespace
+		// high-level apis handle engine components via functions defined in vzcomp namespace
 		vzcomp::DestroyAll();	// here, after-shutdown drives a single threaded process
 
 		graphicsPackage.pluginDeinitializer();

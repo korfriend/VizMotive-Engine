@@ -15,7 +15,7 @@ namespace vz
 	{
 		assert(vz::GetComponentVersion() == vz::COMPONENT_INTERFACE_VERSION);
 
-		//renderer::SetShaderPath(wi::renderer::GetShaderPath() + "hlsl6/");
+		//renderer::SetShaderPath(renderer::GetShaderPath() + "hlsl6/");
 		graphicsDevice = std::make_unique<GraphicsDevice_DX12>(validationMode, preference);
 		GetDevice() = graphicsDevice.get();
 		return graphicsDevice.get() != nullptr;
@@ -23,6 +23,7 @@ namespace vz
 
 	void Deinitialize()
 	{
+		initializer::ReleaseResources();
 		graphicsDevice.reset();
 	}
 

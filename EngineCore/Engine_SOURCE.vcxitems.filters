@@ -46,14 +46,14 @@
     <Filter Include="HighAPIs %28API_EXPORT%29\APIs\Components">
       <UniqueIdentifier>{3dec64ff-fb3f-42f3-ae98-269b75258a1d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc">
-      <UniqueIdentifier>{d6b212d0-c61d-4fdc-9bef-6a692fc64042}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Components\APIs %28CORE_EXPORT%29">
       <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
     </Filter>
     <Filter Include="ThirdParty\meshoptimizer">
       <UniqueIdentifier>{1845c6fe-c447-47a6-aad9-0b8b888b445f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HighAPIs %28API_EXPORT%29\ComponentsSrc">
+      <UniqueIdentifier>{d6b212d0-c61d-4fdc-9bef-6a692fc64042}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -286,19 +286,19 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\APIs\ComponentsSrc</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\ComponentsSrc</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp">
       <Filter>Common</Filter>
