@@ -567,7 +567,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	}
 	surface.T = input.tan;
 	surface.T.w = surface.T.w < 0 ? -1 : 1;
-	half3 bitangent = cross(surface.T.xyz, input.nor) * surface.T.w;
+	half3 bitangent = (half3)cross(surface.T.xyz, input.nor) * surface.T.w;
 	float3x3 TBN = float3x3(surface.T.xyz, bitangent, input.nor); // unnormalized TBN! http://www.mikktspace.com/
 	
 	surface.T.xyz = normalize(surface.T.xyz);
@@ -644,7 +644,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #endif // OBJECTSHADER_USE_TANGENT
 #endif // WATER
 
-	surface.layerMask = material.layerMask & meshinstance.layerMask;
+	surface.layerMask = material.layerMask;// & meshinstance.layerMask;
 
 
 	half4 surfaceMap = 1;
@@ -795,7 +795,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	[branch]
 	if (material.IsOcclusionEnabled_Secondary() && material.textures[OCCLUSIONMAP].IsValid())
 	{
-		surface.occlusion *= material.textures[OCCLUSIONMAP].Sample(sampler_objectshader, uvsets).r;
+		surface.occlusion *= (half)material.textures[OCCLUSIONMAP].Sample(sampler_objectshader, uvsets).r;
 	}
 #endif // OBJECTSHADER_USE_UVSETS
 
@@ -891,7 +891,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	surface.extinction = material.GetSheenColor().rgb; // Note: sheen color is repurposed as extinction color for water
 #endif // WATER
 
-	surface.pixel = pixel;
+	surface.pixel = (min16uint2)pixel;
 	surface.screenUV = ScreenCoord;
 
 	surface.update();

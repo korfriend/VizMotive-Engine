@@ -33,7 +33,7 @@ namespace vz::backlog
 	void intialize()
 	{
 		std::string log_path = helper::GetTempDirectoryPath();
-		std::string log_file_path = log_path + "/vzEngine.txt";
+		std::string log_file_path = log_path + "vzEngine.txt";
 
 		apiLogger->set_level(spdlog::level::trace);
 

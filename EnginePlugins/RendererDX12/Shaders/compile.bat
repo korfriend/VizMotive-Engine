@@ -5,3 +5,4 @@
 
  dxc -T ps_6_0 ./PS/meshPS_debug.hlsl -spirv
  dxc -T ps_6_0 ./PS/meshPS_simple.hlsl -spirv
+ dxc -T ps_6_0 ./PS/meshPS.hlsl -spirv -fspv-target-env=vulkan1.1

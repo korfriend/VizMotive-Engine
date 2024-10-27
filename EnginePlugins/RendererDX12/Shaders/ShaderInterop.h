@@ -235,7 +235,7 @@ struct alignas(16) ShaderMeshInstance
 	//	determined by flags (use_renderable_attributes)
 	uint2 emissive;
 	uint color;
-	uint numPatrs;
+	int lightmap;
 
 	float4 quaternion;
 	ShaderTransform transform;
@@ -258,7 +258,7 @@ struct alignas(16) ShaderMeshInstance
 
 		emissive = uint2(0, 0);
 		color = ~0u;
-		numPatrs = 0;
+		lightmap = -1;
 		
 		quaternion = float4(0, 0, 0, 1);
 		transform.Init();
