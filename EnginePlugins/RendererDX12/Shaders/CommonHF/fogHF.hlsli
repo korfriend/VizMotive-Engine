@@ -1,7 +1,7 @@
 #ifndef FOG_HF
 #define FOG_HF
 #include "../globals.hlsli"
-#include "skyAtmosphere.hlsli"
+//#include "skyAtmosphere.hlsli"
 
 // [-0.999; 0.999] Describes how the lighting is destributed across sky
 #define FOG_INSCATTERING_PHASE_G 0.6
@@ -13,7 +13,8 @@
 //	V			: sample to point vector
 inline float GetFogAmount(float distance, float3 O, float3 V)
 {
-	ShaderFog fog = GetWeather().fog;
+    //ShaderFog fog = GetWeather().fog;
+	ShaderFog fog = GetScene().fog;
 	
 	float startDistanceFalloff = saturate((distance - fog.start) / fog.start);
 	
@@ -55,19 +56,43 @@ inline float GetFogAmount(float distance, float3 O, float3 V)
 	}
 }
 
+float CornetteShanksMiePhaseFunction(float g, float cosTheta)
+{
+    float k = 3.0 / (8.0 * PI) * (1.0 - g * g) / (2.0 + g * g);
+    return k * (1.0 + cosTheta * cosTheta) / pow(abs(1.0 + g * g - 2.0 * g * -cosTheta), 1.5);
+}
+
+float HgPhase(float g, float cosTheta)
+{
+#ifdef USE_CornetteShanks
+	return CornetteShanksMiePhaseFunction(g, cosTheta);
+#else
+	// Reference implementation (i.e. not schlick approximation). 
+	// See http://www.pbr-book.org/3ed-2018/Volume_Scattering/Phase_Functions.html
+    float numer = 1.0f - g * g;
+    float denom = 1.0f + g * g + 2.0f * g * cosTheta;
+    return numer / (4.0f * PI * denom * sqrt(denom));
+#endif
+}
+
+float UniformPhase()
+{
+    return 1.0f / (4.0f * PI);
+}
+
 inline float4 GetFog(float distance, float3 O, float3 V)
 {
 	float3 fogColor = 0;
 	
-	if ((GetFrame().options & OPTION_BIT_REALISTIC_SKY) && (GetFrame().options & OPTION_BIT_OVERRIDE_FOG_COLOR) == 0)
+	//if ((GetFrame().options & OPTION_BIT_REALISTIC_SKY) && (GetFrame().options & OPTION_BIT_OVERRIDE_FOG_COLOR) == 0)
+	//{
+	//	// Sample captured ambient color from realisitc sky:
+	//	fogColor = texture_skyluminancelut.SampleLevel(sampler_point_clamp, float2(0.5, 0.5), 0).rgb;
+	//}
+	//else
 	{
-		// Sample captured ambient color from realisitc sky:
-		fogColor = texture_skyluminancelut.SampleLevel(sampler_point_clamp, float2(0.5, 0.5), 0).rgb;
-	}
-	else
-	{
-		fogColor = GetHorizonColor();
-	}
+        fogColor = GetHorizonColor();
+    }
 
 	// Sample inscattering color:
 	{
@@ -76,11 +101,11 @@ inline float4 GetFog(float distance, float3 O, float3 V)
 		float3 inscatteringColor = GetSunColor();
 
 		// Apply atmosphere transmittance:
-		if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
-		{
-			// 0 for position since fog is centered around world center
-			inscatteringColor *= GetAtmosphericLightTransmittance(GetWeather().atmosphere, float3(0.0, 0.0, 0.0), L, texture_transmittancelut);
-		}
+		//if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
+		//{
+		//	// 0 for position since fog is centered around world center
+		//	inscatteringColor *= GetAtmosphericLightTransmittance(GetWeather().atmosphere, float3(0.0, 0.0, 0.0), L, texture_transmittancelut);
+		//}
 		
 		// Apply phase function solely for directionality:
 		const float cosTheta = dot(-V, L);

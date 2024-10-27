@@ -312,6 +312,7 @@ struct Surface
 
 
 	ShaderMeshInstance inst;
+    ShaderInstanceResLookup instResLookup;
 	ShaderGeometry geometry;
 	ShaderMaterial material;
 	float2 bary;
@@ -339,9 +340,10 @@ struct Surface
 		if (geometry.vb_pos_w < 0)
 			return false;
 		
-        //material = load_material(geometry.materialIndex);
-        uint material_lookup_idx = inst.materialLookupOffset + prim.subsetIndex;
-        material = load_material_by_lookup(material_lookup_idx);
+        instResLookup = load_instResLookup(inst.resLookupOffset + prim.subsetIndex);
+		
+        material = load_material(instResLookup.materialIndex);
+		
 		create(material);
 
         layerMask = material.layerMask;// & inst.layerMask;
@@ -574,18 +576,18 @@ struct Surface
 			const half4 c0 = (half4)buf[i0];
 			const half4 c1 = (half4)buf[i1];
             const half4 c2 = (half4)buf[i2];
-			half4 vertexColor = attribute_at_bary(c0, c1, c2, bary);
+            half4 vertexColor = attribute_at_bary(c0, c1, c2, (half2) bary);
 			baseColor *= vertexColor;
 		}
 
 		[branch]
-        if (geometry.vb_ao >= 0 && material.IsUsingVertexAO())
+        if (instResLookup.vb_ao >= 0 && material.IsUsingVertexAO())
 		{
-            Buffer<float> buf = bindless_buffers_float[NonUniformResourceIndex(geometry.vb_ao)];
+            Buffer<float> buf = bindless_buffers_float[NonUniformResourceIndex(instResLookup.vb_ao)];
 			const half ao0 = (half)buf[i0];
 			const half ao1 = (half)buf[i1];
             const half ao2 = (half)buf[i2];
-			half ao = attribute_at_bary(ao0, ao1, ao2, bary);
+            half ao = attribute_at_bary(ao0, ao1, ao2, (half2) bary);
 			occlusion = ao;
 		}
 
@@ -862,17 +864,17 @@ struct Surface
 		create(material, baseColor, surfaceMap, specularMap);
 
 		[branch]
-		if (geometry.vb_wetmap >= 0)
+        if (instResLookup.vb_wetmap >= 0)
 		{
-			Buffer<float> buf = bindless_buffers_float[NonUniformResourceIndex(inst.vb_wetmap)];
-			const half wet0 = buf[i0];
-			const half wet1 = buf[i1];
-			const half wet2 = buf[i2];
-			const half wet = attribute_at_bary(wet0, wet1, wet2, bary);
+            Buffer<float> buf = bindless_buffers_float[NonUniformResourceIndex(instResLookup.vb_wetmap)];
+			const half wet0 = (half)buf[i0];
+			const half wet1 = (half)buf[i1];
+            const half wet2 = (half)buf[i2];
+            const half wet = attribute_at_bary(wet0, wet1, wet2, (half2) bary);
 			if(wet > 0)
 			{
 				albedo = lerp(albedo, 0, wet);
-				if(!is_hairparticle) // hair particle roughness modify doesn't look good because of copying surface normals
+				//if(!is_hairparticle) // hair particle roughness modify doesn't look good because of copying surface normals
 				{
 					roughness = clamp(roughness * sqr(1 - wet), 0.01, 1);
 					N = normalize(lerp(N, facenormal, wet));
@@ -892,7 +894,7 @@ struct Surface
 #ifdef SURFACE_LOAD_MIPCONE
 			lod = compute_texture_lod(material.textures[TRANSMISSIONMAP].GetTexture(), material.textures[TRANSMISSIONMAP].GetUVSet() == 0 ? lod_constant0 : lod_constant1, ray_direction, surf_normal, cone_width);
 #endif // SURFACE_LOAD_MIPCONE
-			transmission *= material.textures[TRANSMISSIONMAP].SampleLevel(sam, uvsets, lod).r;
+            transmission *= (half) material.textures[TRANSMISSIONMAP].SampleLevel(sam, uvsets, lod).r;
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 		}
 
@@ -906,7 +908,7 @@ struct Surface
 #ifdef SURFACE_LOAD_MIPCONE
 			lod = compute_texture_lod(material.textures[OCCLUSIONMAP].GetTexture(), material.textures[OCCLUSIONMAP].GetUVSet() == 0 ? lod_constant0 : lod_constant1, ray_direction, surf_normal, cone_width);
 #endif // SURFACE_LOAD_MIPCONE
-			occlusion *= material.textures[OCCLUSIONMAP].SampleLevel(sam, uvsets, lod).r;
+			occlusion *= (half) material.textures[OCCLUSIONMAP].SampleLevel(sam, uvsets, lod).r;
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 		}
 

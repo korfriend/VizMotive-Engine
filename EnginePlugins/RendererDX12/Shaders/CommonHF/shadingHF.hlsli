@@ -4,8 +4,8 @@
 #include "surfaceHF.hlsli"
 #include "lightingHF.hlsli"
 #include "brdf.hlsli"
-#include "ShaderInterop_SurfelGI.h"
-#include "ShaderInterop_DDGI.h"
+#include "../ShaderInterop_SurfelGI.h"
+#include "../ShaderInterop_DDGI.h"
 
 inline void LightMapping(in int lightmap, in float2 ATLAS, inout Lighting lighting, inout Surface surface)
 {
@@ -103,7 +103,7 @@ inline void ForwardLighting(inout Surface surface, inout Lighting lighting)
 	[branch]
 	if (!surface.IsGIApplied() && GetScene().ddgi.color_texture >= 0)
 	{
-		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, surface.N);
+		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, (half3)surface.N);
 		surface.SetGIApplied(true);
 	}
 
@@ -154,6 +154,7 @@ inline void ForwardLighting(inout Surface surface, inout Lighting lighting)
 
 }
 
+#define DISABLE_DECALS
 inline void ForwardDecals(inout Surface surface, inout half4 surfaceMap, SamplerState sam)
 {
 #ifndef DISABLE_DECALS
@@ -371,7 +372,7 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 	[branch]
 	if (!surface.IsGIApplied() && GetScene().ddgi.color_texture >= 0)
 	{
-		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, surface.N);
+		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, (half3)surface.N);
 		surface.SetGIApplied(true);
 	}
 
@@ -716,14 +717,14 @@ inline void ApplyFog(in float distance, float3 V, inout float4 color)
 	color.rgb = lerp(color.rgb, fog.rgb, fog.a); // non-premultiplied fog
 }
 
-inline void ApplyAerialPerspective(float2 uv, float3 P, inout float4 color)
-{
-	if (GetFrame().options & OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE)
-	{
-		const float4 AP = GetAerialPerspectiveTransmittance(uv, P, GetCamera().position, texture_cameravolumelut);
-		color.rgb = color.rgb * (1.0 - AP.a) + AP.rgb;
-	}
-}
+//inline void ApplyAerialPerspective(float2 uv, float3 P, inout float4 color)
+//{
+//	if (GetFrame().options & OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE)
+//	{
+//		const float4 AP = GetAerialPerspectiveTransmittance(uv, P, GetCamera().position, texture_cameravolumelut);
+//		color.rgb = color.rgb * (1.0 - AP.a) + AP.rgb;
+//	}
+//}
 
 inline uint AlphaToCoverage(float alpha, float alphaTest, float4 svposition)
 {
@@ -741,7 +742,7 @@ inline uint AlphaToCoverage(float alpha, float alphaTest, float4 svposition)
 	else if (GetCamera().sample_count > 1)
 	{
 		// Without Temporal AA, use static dithering:
-		alpha -= dither(svposition.xy) / GetCamera().sample_count;
+		alpha -= dither((min16uint2)svposition.xy) / (half)GetCamera().sample_count;
 	}
 	else
 	{

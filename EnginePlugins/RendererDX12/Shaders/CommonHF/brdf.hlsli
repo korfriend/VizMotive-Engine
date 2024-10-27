@@ -8,9 +8,9 @@
 half D_GGX(half roughness, highp float NoH, const float3 h)
 {
 	// Walter et al. 2007, "Microfacet Models for Refraction through Rough Surfaces"
-	half oneMinusNoHSquared = 1.0 - NoH * NoH;
+    half oneMinusNoHSquared = (half) (1.0 - NoH * NoH);
 
-	half a = NoH * roughness;
+	half a = (half)NoH * roughness;
 	half k = roughness / (oneMinusNoHSquared + a * a);
 	half d = k * k * (1.0 / PI);
 	return saturateMediump(d);
@@ -26,8 +26,8 @@ half D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH)
 	float a2 = at * ab;
 	highp float3 d = float3(ab * ToH, at * BoH, a2 * NoH);
 	highp float d2 = dot(d, d);
-	half b2 = a2 / d2;
-	return saturateMediump(a2 * b2 * b2 * (1.0 / PI));
+	float b2 = a2 / d2;
+    return (half)saturateMediump(a2 * b2 * b2 * (1.0 / PI));
 }
 
 half D_Charlie(half roughness, half NoH)
@@ -110,7 +110,7 @@ struct SurfaceToLight
 		L = Lnormalized;
 		H = normalize(L + surface.V);
 
-		NdotL = dot(L, surface.N);
+		NdotL = dot(L, (half)surface.N);
 
 #ifdef BRDF_NDOTL_BIAS
 		NdotL += BRDF_NDOTL_BIAS;
@@ -119,8 +119,8 @@ struct SurfaceToLight
 		NdotL_sss = (NdotL + surface.sss.rgb) * surface.sss_inv.rgb;
 
 		NdotH = saturate(dot(surface.N, H));
-		LdotH = saturate(dot(L, H));
-		VdotH = saturate(dot(surface.V, H));
+        LdotH = saturate(dot(L, (half3)H));
+		VdotH = (half)saturate(dot(surface.V, H));
 
 		F = F_Schlick(surface.f0, VdotH);
 

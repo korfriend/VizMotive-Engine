@@ -56,8 +56,35 @@ namespace vz
 
 #endif // __cplusplus
 
+static const uint IndirectDrawArgsAlignment = 4u;
+static const uint IndirectDispatchArgsAlignment = 4u;
+
+// Common buffers:
+// These are usable by all shaders
+#define CBSLOT_IMAGE							0
+#define CBSLOT_FONT								0
+#define CBSLOT_RENDERER_FRAME					0
+#define CBSLOT_RENDERER_CAMERA					1
+
+// On demand buffers:
+// These are bound on demand and alive until another is bound at the same slot
+#define CBSLOT_RENDERER_FORWARD_LIGHTMASK		2
+#define CBSLOT_RENDERER_VOLUMELIGHT				3
+#define CBSLOT_RENDERER_VOXELIZER				3
+#define CBSLOT_RENDERER_TRACED					2
+#define CBSLOT_RENDERER_MISC					3
+
+#define CBSLOT_OTHER_EMITTEDPARTICLE			4
+#define CBSLOT_OTHER_FFTGENERATOR				3
+#define CBSLOT_OTHER_CLOUDGENERATOR				3
+#define CBSLOT_OTHER_GPUSORTLIB					4
+#define CBSLOT_MSAO								4
+#define CBSLOT_FSR								4
+
 #define CBSLOT_RENDERER_FRAME	0
 #define CBSLOT_RENDERER_CAMERA	1
+
+#include "ShaderInterop_VXGI.h"
 
 static const uint SHADER_ENTITY_COUNT = 256;
 static const uint SHADER_ENTITY_TILE_BUCKET_COUNT = SHADER_ENTITY_COUNT / 32;
@@ -69,6 +96,7 @@ static const uint TILED_CULLING_GRANULARITY = TILED_CULLING_BLOCKSIZE / TILED_CU
 static const uint VISIBILITY_BLOCKSIZE = 8;
 static const uint VISIBILITY_TILED_CULLING_GRANULARITY = TILED_CULLING_BLOCKSIZE / VISIBILITY_BLOCKSIZE;
 
+//---------- Enumerations -----------
 // These option bits can be read from options constant buffer value:
 enum FRAME_OPTIONS
 {
@@ -92,6 +120,70 @@ enum FRAME_OPTIONS
 	OPTION_BIT_VOLUMETRICCLOUDS_RECEIVE_SHADOW = 1 << 19,
 };
 
+enum SHADERMATERIAL_OPTIONS
+{
+	SHADERMATERIAL_OPTION_BIT_USE_VERTEXCOLORS = 1 << 0,
+	SHADERMATERIAL_OPTION_BIT_SPECULARGLOSSINESS_WORKFLOW = 1 << 1,
+	SHADERMATERIAL_OPTION_BIT_OCCLUSION_PRIMARY = 1 << 2,
+	SHADERMATERIAL_OPTION_BIT_OCCLUSION_SECONDARY = 1 << 3,
+	SHADERMATERIAL_OPTION_BIT_USE_WIND = 1 << 4,
+	SHADERMATERIAL_OPTION_BIT_RECEIVE_SHADOW = 1 << 5,
+	SHADERMATERIAL_OPTION_BIT_CAST_SHADOW = 1 << 6,
+	SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED = 1 << 7,
+	SHADERMATERIAL_OPTION_BIT_TRANSPARENT = 1 << 8,
+	SHADERMATERIAL_OPTION_BIT_ADDITIVE = 1 << 9,
+	SHADERMATERIAL_OPTION_BIT_UNLIT = 1 << 10,
+	SHADERMATERIAL_OPTION_BIT_USE_VERTEXAO = 1 << 11,
+};
+
+// Same as MaterialComponent::TextureSlot
+enum TEXTURESLOT
+{
+	BASECOLORMAP,
+	NORMALMAP,
+	SURFACEMAP,
+	EMISSIVEMAP,
+	DISPLACEMENTMAP,
+	OCCLUSIONMAP,
+	TRANSMISSIONMAP,
+	SHEENCOLORMAP,
+	SHEENROUGHNESSMAP,
+	CLEARCOATMAP,
+	CLEARCOATROUGHNESSMAP,
+	CLEARCOATNORMALMAP,
+	SPECULARMAP,
+	ANISOTROPYMAP,
+	TRANSPARENCYMAP,
+
+	VOLUMEDENSITYMAP, // this is used for volume rendering
+
+	TEXTURESLOT_COUNT
+};
+
+enum SHADER_ENTITY_TYPE
+{
+	ENTITY_TYPE_DIRECTIONALLIGHT,
+	ENTITY_TYPE_POINTLIGHT,
+	ENTITY_TYPE_SPOTLIGHT,
+	ENTITY_TYPE_DECAL,
+	ENTITY_TYPE_ENVMAP,
+	ENTITY_TYPE_FORCEFIELD_POINT,
+	ENTITY_TYPE_FORCEFIELD_PLANE,
+	ENTITY_TYPE_COLLIDER_SPHERE,
+	ENTITY_TYPE_COLLIDER_CAPSULE,
+	ENTITY_TYPE_COLLIDER_PLANE,
+
+	ENTITY_TYPE_COUNT
+};
+
+enum SHADER_ENTITY_FLAGS
+{
+	ENTITY_FLAG_LIGHT_STATIC = 1 << 0,
+	ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS = 1 << 1,
+	ENTITY_FLAG_DECAL_BASECOLOR_ONLY_ALPHA = 1 << 0,
+};
+
+//---------- Shader Parameters -----------
 struct alignas(16) ShaderTransform
 {
 	float4 mat0;
@@ -189,46 +281,6 @@ struct alignas(16) ShaderMeshInstance
 	inline half GetAlphaTest() { return unpack_half2(alphaTest_size).x; }
 	inline half GetSize() { return unpack_half2(alphaTest_size).y; }
 #endif // __cplusplus
-};
-
-enum SHADERMATERIAL_OPTIONS
-{
-	SHADERMATERIAL_OPTION_BIT_USE_VERTEXCOLORS = 1 << 0,
-	SHADERMATERIAL_OPTION_BIT_SPECULARGLOSSINESS_WORKFLOW = 1 << 1,
-	SHADERMATERIAL_OPTION_BIT_OCCLUSION_PRIMARY = 1 << 2,
-	SHADERMATERIAL_OPTION_BIT_OCCLUSION_SECONDARY = 1 << 3,
-	SHADERMATERIAL_OPTION_BIT_USE_WIND = 1 << 4,
-	SHADERMATERIAL_OPTION_BIT_RECEIVE_SHADOW = 1 << 5,
-	SHADERMATERIAL_OPTION_BIT_CAST_SHADOW = 1 << 6,
-	SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED = 1 << 7,
-	SHADERMATERIAL_OPTION_BIT_TRANSPARENT = 1 << 8,
-	SHADERMATERIAL_OPTION_BIT_ADDITIVE = 1 << 9,
-	SHADERMATERIAL_OPTION_BIT_UNLIT = 1 << 10,
-	SHADERMATERIAL_OPTION_BIT_USE_VERTEXAO = 1 << 11,
-};
-
-// Same as MaterialComponent::TextureSlot
-enum TEXTURESLOT
-{
-	BASECOLORMAP,
-	NORMALMAP,
-	SURFACEMAP,
-	EMISSIVEMAP,
-	DISPLACEMENTMAP,
-	OCCLUSIONMAP,
-	TRANSMISSIONMAP,
-	SHEENCOLORMAP,
-	SHEENROUGHNESSMAP,
-	CLEARCOATMAP,
-	CLEARCOATROUGHNESSMAP,
-	CLEARCOATNORMALMAP,
-	SPECULARMAP,
-	ANISOTROPYMAP,
-	TRANSPARENCYMAP,
-
-	VOLUMEDENSITYMAP, // this is used for volume rendering
-
-	TEXTURESLOT_COUNT
 };
 
 // Sparse Virtual Texturing (SVT)
@@ -564,7 +616,7 @@ struct alignas(16) ShaderGeometry
 	int vb_tan;
 	int vb_col;
 	int vb_pre;
-	uint padding0;
+	int vb_atl;
 
 	float3 aabb_min;
 	uint flags;
@@ -584,6 +636,7 @@ struct alignas(16) ShaderGeometry
 		vb_tan = -1;
 		vb_col = -1;
 		vb_pre = -1;
+		vb_atl = -1;
 
 		aabb_min = float3(0, 0, 0);
 		flags = 0;
@@ -641,17 +694,30 @@ struct alignas(16) ShaderInstanceResLookup
 	}
 };
 
-struct RenderablePushConstants
+struct MeshPushConstants
 {
 	uint geometryIndex;
 	uint materialIndex;
 	int instances;
 	uint instance_offset;
+
+	uint instBufferResIndex;
+	uint padding0;
+	uint padding1;
+	uint padding2;
 };
 
 struct DebugObjectPushConstants
 {
 	int vbPosW;
+};
+
+struct alignas(16) ShaderFog
+{
+	float start;
+	float density;
+	float height_start;
+	float height_end;
 };
 
 struct alignas(16) ShaderScene
@@ -672,9 +738,24 @@ struct alignas(16) ShaderScene
 	float3 aabb_max;
 	int globalprobe; // rendered probe with guaranteed mipmaps, hdr, etc.
 	float3 aabb_extents;		// enclosing AABB abs(max - min)
-	int instanceMaterialLookupbuffer;
+	int instanceResLookupBuffer;
 	float3 aabb_extents_rcp;	// enclosing AABB 1.0f / abs(max - min)
-	float padding6;
+	int mostImportantLightIndex;
+
+	// ----- IBL and scene color -----
+	float3 ambient;
+	uint padding0;
+
+	float3 horizonColor;
+	uint padding1;
+
+	float3 sunColor;
+	float sunExposure;
+
+	float3 sunDirection;
+	uint padding3;
+
+	ShaderFog fog;
 
 	// TODO
 	struct alignas(16) DDGI
@@ -963,15 +1044,25 @@ struct alignas(16) FrameCB
 
 	uint		frame_count;
 	uint		temporalaa_samplerotation;
+	int			texture_shadowatlas_index;
+	int			texture_shadowatlas_transparent_index;
+
+	uint2		shadow_atlas_resolution;
+	float2		shadow_atlas_resolution_rcp;
+
+	float		gi_boost;
+	uint		entity_culling_count;
 	uint		padding0;
 	uint		padding1;
-	
+
 	float		blue_noise_phase;
 	int			texture_random64x64_index;
 	int			texture_bluenoise_index;
 	int			texture_sheenlut_index;
 
 	ShaderScene scene;
+
+	VXGI vxgi;
 
 	// Lights
 	uint probes;	// NOTE YET SUPPORTED
@@ -1249,30 +1340,7 @@ struct alignas(16) ViewTile
 	}
 };
 
-
 // ------- Constant buffers: ----------
-
-// Common buffers:
-// These are usable by all shaders
-#define CBSLOT_IMAGE							0
-#define CBSLOT_FONT								0
-#define CBSLOT_RENDERER_FRAME					0
-#define CBSLOT_RENDERER_CAMERA					1
-
-// On demand buffers:
-// These are bound on demand and alive until another is bound at the same slot
-#define CBSLOT_RENDERER_FORWARD_LIGHTMASK		2
-#define CBSLOT_RENDERER_VOLUMELIGHT				3
-#define CBSLOT_RENDERER_VOXELIZER				3
-#define CBSLOT_RENDERER_TRACED					2
-#define CBSLOT_RENDERER_MISC					3
-
-#define CBSLOT_OTHER_EMITTEDPARTICLE			4
-#define CBSLOT_OTHER_FFTGENERATOR				3
-#define CBSLOT_OTHER_CLOUDGENERATOR				3
-#define CBSLOT_OTHER_GPUSORTLIB					4
-#define CBSLOT_MSAO								4
-#define CBSLOT_FSR								4
 
 CONSTANTBUFFER(g_xFrame, FrameCB, CBSLOT_RENDERER_FRAME);
 CONSTANTBUFFER(g_xCamera, CameraCB, CBSLOT_RENDERER_CAMERA);

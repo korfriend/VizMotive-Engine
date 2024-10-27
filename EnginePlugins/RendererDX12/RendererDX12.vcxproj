@@ -162,6 +162,9 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderCompiler.h" />
     <ClInclude Include="Shaders\ShaderInterop.h" />
+    <ClInclude Include="Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="Shaders\ShaderInterop_SurfelGI.h" />
+    <ClInclude Include="Shaders\ShaderInterop_VXGI.h" />
     <ClInclude Include="sheenLUT.h" />
     <ClInclude Include="TextureHelper.h" />
     <ClInclude Include="Utility\dxcapi.h" />
