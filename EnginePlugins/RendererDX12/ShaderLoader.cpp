@@ -484,9 +484,6 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_DEBUG], "meshPS_debug.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_SIMPLE], "meshPS_simple.cso"); });
 
-		assert(0 && "OKAY HERE");
-		return;
-
 		static const std::vector<std::string> shaderTypeDefines[] = {
 			{"PHONG"}, // ShaderType::PHONG,
 			{"PBR"}, // ShaderType::PBR,
@@ -499,7 +496,7 @@ namespace vz::shader
 			LoadShader(
 				ShaderStage::PS,
 				rcommon::shaders[PSTYPE_RENDERABLE_PERMUTATION__BEGIN + args.jobIndex],
-				"meshPS_FW.cso",
+				"meshPS.cso",
 				ShaderModel::SM_6_0,
 				shaderTypeDefines[args.jobIndex] // permutation defines
 			);

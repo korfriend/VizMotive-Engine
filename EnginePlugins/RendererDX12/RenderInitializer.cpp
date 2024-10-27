@@ -29,7 +29,6 @@ namespace vz
 		initializer::LoadBuffers();
 
 		//static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
-		// dxc -T vs_6_0 meshVS_debug.hlsl
 		shader::LoadShaders();
 
 		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
