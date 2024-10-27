@@ -19,6 +19,7 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\fogHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\lightingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\objectHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\raytracingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\shadingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\shadowHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\surfaceHF.hlsli" />
@@ -30,20 +31,26 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Raytracing.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_SurfelGI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_VXGI.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS_MSAA.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_debug.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_PBR.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_PHONG.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_simple.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_UNLIT.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\vertexcolorPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_debug.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_simple.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\occludeeVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\vertexcolorVS.hlsl" />
   </ItemGroup>
 </Project>

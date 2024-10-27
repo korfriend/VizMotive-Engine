@@ -162,7 +162,9 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderCompiler.h" />
     <ClInclude Include="Shaders\ShaderInterop.h" />
+    <ClInclude Include="Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="Shaders\ShaderInterop_Raytracing.h" />
     <ClInclude Include="Shaders\ShaderInterop_SurfelGI.h" />
     <ClInclude Include="Shaders\ShaderInterop_VXGI.h" />
     <ClInclude Include="sheenLUT.h" />

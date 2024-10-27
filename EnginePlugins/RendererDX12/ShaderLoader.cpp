@@ -464,45 +464,58 @@ namespace vz::shader
 
 	void LoadShaders()
 	{
+		// naming convention based on Wicked Engine 
+		//	our variants: 'object' to 'mesh', and 'visibility' to 'view'
+
 		jobsystem::Wait(CTX_renderPS);
 		CTX_renderPS.priority = jobsystem::Priority::Low;
 
 		jobsystem::context ctx;
 		
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso");
-			});
-
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso");
-			});
-
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
-			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso");
-			});
-
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
+		//----- Input Layers -----
+		{
 			rcommon::inputLayouts[ILTYPE_VERTEXCOLOR].elements =
 			{
 				{ "POSITION", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
 				{ "TEXCOORD", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
 			};
-			LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso");
-			});
+			rcommon::inputLayouts[ILTYPE_POSITION].elements =
+			{
+				{ "POSITION", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
+			};
+		}
 
-		rcommon::inputLayouts[ILTYPE_POSITION].elements =
-		{
-			{ "POSITION", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
-		};
-		
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_DEBUG], "meshPS_debug.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_SIMPLE], "meshPS_simple.cso"); });
+		//----- VS -----
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_OCCLUDEE], "occludeeVS.cso"); });
 
+		//----- PS -----
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_DEBUG], "meshPS_debug.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_SIMPLE], "meshPS_simple.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_VERTEXCOLOR], "vertexcolorPS.cso"); });
+
+		//----- PS materials by permutation -----
 		static const std::vector<std::string> shaderTypeDefines[] = {
 			{"PHONG"}, // ShaderType::PHONG,
 			{"PBR"}, // ShaderType::PBR,
 			{"UNLIT"}, // ShaderType::UNLIT,
 		};
+		//inline static const std::vector<std::string> shaderTypeDefines[] = {
+		//	{}, // SHADERTYPE_PBR,
+		//	{"PLANARREFLECTION"}, // SHADERTYPE_PBR_PLANARREFLECTION,
+		//	{"PARALLAXOCCLUSIONMAPPING"}, // SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING,
+		//	{"ANISOTROPIC"}, // SHADERTYPE_PBR_ANISOTROPIC,
+		//	{"WATER"}, // SHADERTYPE_WATER,
+		//	{"CARTOON"}, // SHADERTYPE_CARTOON,
+		//	{"UNLIT"}, // SHADERTYPE_UNLIT,
+		//	{"SHEEN"}, // SHADERTYPE_PBR_CLOTH,
+		//	{"CLEARCOAT"}, // SHADERTYPE_PBR_CLEARCOAT,
+		//	{"SHEEN", "CLEARCOAT"}, // SHADERTYPE_PBR_CLOTH_CLEARCOAT,
+		//	{"TERRAINBLENDED"}, //SHADERTYPE_PBR_TERRAINBLENDED
+		//};
 		static_assert(SHADERTYPE_BIN_COUNT == arraysize(shaderTypeDefines), "These values must match!");
 
 		jobsystem::Dispatch(CTX_renderPS, SHADERTYPE_BIN_COUNT, 1, [](jobsystem::JobArgs args) {
@@ -517,21 +530,22 @@ namespace vz::shader
 
 			});
 
-		//jobsystem::Dispatch(objectps_ctx, SHADERTYPE_BIN_COUNT, 1, [](jobsystem::JobArgs args) {
-		//
-		//	auto defines = shaderTypeDefines[args.jobIndex];
-		//	defines.push_back("TRANSPARENT");
-		//	LoadShader(
-		//		ShaderStage::PS,
-		//		common::shaders[PS_PHONG_FORWARD_TRANSPARENT_BEGIN + args.jobIndex],
-		//		"meshPS_FW.cso",
-		//		ShaderModel::SM_6_0,
-		//		defines // permutation defines
-		//	);
-		//
-		//	});
-		//
-		// TODO : add the deferred shaders described by PS_PHONG_TRANSPARENT_BEGIN and PS_PHONG_TRANSPARENT_TRANSPARENT_BEGIN
+		jobsystem::Dispatch(CTX_renderPS, SHADERTYPE_BIN_COUNT, 1, [](jobsystem::JobArgs args) {
+		
+			auto defines = shaderTypeDefines[args.jobIndex];
+			defines.push_back("TRANSPARENT");
+			LoadShader(
+				ShaderStage::PS,
+				rcommon::shaders[PSTYPE_RENDERABLE_TRANSPARENT_PERMUTATION__BEGIN + args.jobIndex],
+				"meshPS.cso",
+				ShaderModel::SM_6_0,
+				defines // permutation defines
+			);
+		
+			});
+		
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_VIEW_RESOLVE], "view_resolveCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_VIEW_RESOLVE_MSAA], "view_resolveCS_MSAA.cso"); });
 
 		jobsystem::Wait(ctx);
 
@@ -539,7 +553,7 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			PipelineStateDesc desc;
 			desc.vs = &rcommon::shaders[VSTYPE_MESH_SIMPLE];
-			desc.ps = &rcommon::shaders[PSTYPE_SIMPLE];
+			desc.ps = &rcommon::shaders[PSTYPE_MESH_SIMPLE];
 			desc.rs = &rcommon::rasterizers[RSTYPE_WIRE];
 			desc.bs = &rcommon::blendStates[BSTYPE_OPAQUE];
 			desc.dss = &rcommon::depthStencils[DSSTYPE_DEFAULT];
@@ -552,7 +566,6 @@ namespace vz::shader
 			//desc.ds = &common::shaders[DSTYPE_MESH_SIMPLE];
 			//device->CreatePipelineState(&desc, &PSO_object_wire_tessellation);
 			});
-
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			PipelineStateDesc desc;
@@ -664,7 +677,7 @@ namespace vz::shader
 				break;
 			case DEBUGRENDERING_EMITTER:
 				desc.vs = &rcommon::shaders[VSTYPE_MESH_DEBUG];
-				desc.ps = &rcommon::shaders[PSTYPE_DEBUG];
+				desc.ps = &rcommon::shaders[PSTYPE_MESH_DEBUG];
 				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
 				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
 				desc.bs = &rcommon::blendStates[BSTYPE_OPAQUE];

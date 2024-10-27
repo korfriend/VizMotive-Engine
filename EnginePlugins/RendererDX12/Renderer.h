@@ -9,7 +9,7 @@
 
 using namespace vz::graphics;
 
-static const uint32_t SHADERTYPE_BIN_COUNT = (uint32_t)vz::MaterialComponent::ShaderType::COUNT;
+static_assert(SHADERTYPE_BIN_COUNT == SCU32(vz::MaterialComponent::ShaderType::COUNT));
 
 //----- global constants -----
 namespace vz
@@ -88,8 +88,8 @@ namespace vz
 
 		///////////////////
 		// pixel shaders //
-		PSTYPE_DEBUG,	// VER 0.1 // debug output (to final render target)
-		PSTYPE_SIMPLE,	// VER 0.1 // no shading (to final render target)
+		PSTYPE_MESH_DEBUG,	// VER 0.1 // debug output (to final render target)
+		PSTYPE_MESH_SIMPLE,	// VER 0.1 // no shading (to final render target)
 		PSTYPE_VERTEXCOLOR,
 
 		PSTYPE_MESH_PREPASS,

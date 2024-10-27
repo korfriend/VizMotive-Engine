@@ -131,6 +131,7 @@ inline uint2 unpack_pixel(uint value)
 //	The shader compiler will take the defined name: ENGINE_DEFAULT_ROOTSIGNATURE and use it as root signature
 //	If you wish to specify custom root signature, make sure that this define is not available
 //		(for example: not including this file, or using #undef ENGINE_DEFAULT_ROOTSIGNATURE)
+// refer to : https://learn.microsoft.com/en-us/windows/win32/direct3d12/specifying-root-signatures-in-hlsl
 #define ENGINE_DEFAULT_ROOTSIGNATURE \
 	"RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
 	"RootConstants(num32BitConstants=12, b999), " \
@@ -319,7 +320,7 @@ RWTexture2D<uint4> bindless_rwtextures_uint4[] : register(space36);
 #if defined(__spirv__)
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMeshInstance> bindless_structured_meshinstance[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderGeometry> bindless_structured_geometry[];
-//[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMeshlet> bindless_structured_meshlet[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMeshlet> bindless_structured_meshlet[];
 //[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderCluster> bindless_structured_cluster[];
 //[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderClusterBounds> bindless_structured_cluster_bounds[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMaterial> bindless_structured_material[];
@@ -328,7 +329,7 @@ RWTexture2D<uint4> bindless_rwtextures_uint4[] : register(space36);
 #else
 StructuredBuffer<ShaderMeshInstance> bindless_structured_meshinstance[] : register(space37);
 StructuredBuffer<ShaderGeometry> bindless_structured_geometry[] : register(space38);
-//StructuredBuffer<ShaderMeshlet> bindless_structured_meshlet[] : register(space39);
+StructuredBuffer<ShaderMeshlet> bindless_structured_meshlet[] : register(space39);
 //StructuredBuffer<ShaderCluster> bindless_structured_cluster[] : register(space40);
 //StructuredBuffer<ShaderClusterBounds> bindless_structured_cluster_bounds[] : register(space41);
 StructuredBuffer<ShaderMaterial> bindless_structured_material[] : register(space42);
@@ -361,10 +362,10 @@ inline ShaderInstanceResLookup load_instResLookup(uint instResIndex)
 {
     return bindless_structured_inst_reslookup[GetScene().instanceResLookupBuffer][instResIndex];
 }
-//inline ShaderMeshlet load_meshlet(uint meshletIndex)
-//{
-//    return bindless_structured_meshlet[GetScene().meshletbuffer][meshletIndex];
-//}
+inline ShaderMeshlet load_meshlet(uint meshletIndex)
+{
+    return bindless_structured_meshlet[GetScene().meshletbuffer][meshletIndex];
+}
 inline ShaderMaterial load_material(uint materialIndex)
 {
     return bindless_structured_material[GetScene().materialbuffer][materialIndex];
@@ -464,32 +465,32 @@ struct PrimitiveID
     bool maybe_clustered;
 
 	// These packing methods require meshlet data, and pack into 32 bits:
-    //inline uint pack()
-    //{
-	//	// 25 bit meshletIndex
-	//	// 7  bit meshletPrimitiveIndex
-    //    ShaderMeshInstance inst = load_instance(instanceIndex);
-    //    ShaderGeometry geometry = load_geometry(inst.geometryOffset + subsetIndex);
-    //    uint meshletIndex = inst.meshletOffset + geometry.meshletOffset + primitiveIndex / MESHLET_TRIANGLE_COUNT;
-    //    meshletIndex += 1; // indicate that it is valid
-    //    meshletIndex &= ~0u >> 7u; // mask 25 active bits
-    //    uint meshletPrimitiveIndex = primitiveIndex % MESHLET_TRIANGLE_COUNT;
-    //    meshletPrimitiveIndex &= 0x7F; // mask 7 active bits
-    //    meshletPrimitiveIndex <<= 25u;
-    //    return meshletPrimitiveIndex | meshletIndex;
-    //}
-    //inline void unpack(uint value)
-    //{
-    //    uint meshletIndex = value & (~0u >> 7u);
-    //    meshletIndex -= 1; // remove valid check
-    //    uint meshletPrimitiveIndex = (value >> 25u) & 0x7F;
-    //    ShaderMeshlet meshlet = load_meshlet(meshletIndex);
-    //    ShaderMeshInstance inst = load_instance(meshlet.instanceIndex);
-    //    primitiveIndex = meshlet.primitiveOffset + meshletPrimitiveIndex;
-    //    instanceIndex = meshlet.instanceIndex;
-    //    subsetIndex = meshlet.geometryIndex - inst.geometryOffset;
-    //    maybe_clustered = true;
-    //}
+    inline uint pack()
+    {
+		// 25 bit meshletIndex
+		// 7  bit meshletPrimitiveIndex
+        ShaderMeshInstance inst = load_instance(instanceIndex);
+        ShaderGeometry geometry = load_geometry(inst.geometryOffset + subsetIndex);
+        uint meshletIndex = inst.meshletOffset + geometry.meshletOffset + primitiveIndex / MESHLET_TRIANGLE_COUNT;
+        meshletIndex += 1; // indicate that it is valid
+        meshletIndex &= ~0u >> 7u; // mask 25 active bits
+        uint meshletPrimitiveIndex = primitiveIndex % MESHLET_TRIANGLE_COUNT;
+        meshletPrimitiveIndex &= 0x7F; // mask 7 active bits
+        meshletPrimitiveIndex <<= 25u;
+        return meshletPrimitiveIndex | meshletIndex;
+    }
+    inline void unpack(uint value)
+    {
+        uint meshletIndex = value & (~0u >> 7u);
+        meshletIndex -= 1; // remove valid check
+        uint meshletPrimitiveIndex = (value >> 25u) & 0x7F;
+        ShaderMeshlet meshlet = load_meshlet(meshletIndex);
+        ShaderMeshInstance inst = load_instance(meshlet.instanceIndex);
+        primitiveIndex = meshlet.primitiveOffset + meshletPrimitiveIndex;
+        instanceIndex = meshlet.instanceIndex;
+        subsetIndex = meshlet.geometryIndex - inst.geometryOffset;
+        maybe_clustered = true;
+    }
 
 	// These packing methods don't need meshlets, but they are packed into 64 bits:
     uint2 pack2()

@@ -57,7 +57,9 @@ namespace vz
 #endif // __cplusplus
 
 static const uint IndirectDrawArgsAlignment = 4u;
-static const uint IndirectDispatchArgsAlignment = 4u;
+static const uint IndirectDispatchArgsAlignment = 4u; 
+
+static const uint32_t SHADERTYPE_BIN_COUNT = 3;
 
 // Common buffers:
 // These are usable by all shaders
@@ -224,9 +226,14 @@ struct alignas(16) ShaderMeshInstance
 	float fadeDistance;
 
 	uint geometryOffset; // offset of all geometries for currently active LOD (geomtryPartIndex applied by LODs)
-	uint geometryCount;
+	uint geometryCount; // number of all geometries in currently active LOD
 	uint baseGeometryOffset;	// offset of all geometries of the instance (if no LODs, then it is equal to geometryOffset)
 	uint resLookupOffset;
+
+	uint meshletOffset; // offset in the global meshlet buffer for first subset (for LOD0)
+	uint padding0;
+	uint padding1;
+	uint padding2;
 
 	float3 aabbCenter;
 	float aabbRadius;
@@ -252,6 +259,7 @@ struct alignas(16) ShaderMeshInstance
 		geometryOffset = baseGeometryOffset = 0;
 		geometryCount = 0;
 		resLookupOffset = ~0u;
+		meshletOffset = ~0u;
 
 		aabbCenter = float3(0, 0, 0);
 		aabbRadius = 0;
@@ -618,6 +626,11 @@ struct alignas(16) ShaderGeometry
 	int vb_pre;
 	int vb_atl;
 
+	uint meshletOffset; // offset of this subset in meshlets (locally within the mesh) --> to ShaderInstanceResLookup?!
+	uint padding0;
+	uint padding1;
+	uint padding2;
+
 	float3 aabb_min;
 	uint flags;
 
@@ -638,6 +651,8 @@ struct alignas(16) ShaderGeometry
 		vb_pre = -1;
 		vb_atl = -1;
 
+		meshletOffset = ~0u;
+
 		aabb_min = float3(0, 0, 0);
 		flags = 0;
 		aabb_max = float3(0, 0, 0);
@@ -646,6 +661,48 @@ struct alignas(16) ShaderGeometry
 		uv_range_min = float2(0, 0);
 		uv_range_max = float2(1, 1);
 	}
+};
+
+static const uint MESHLET_VERTEX_COUNT = 64u;
+static const uint MESHLET_TRIANGLE_COUNT = 124u;
+inline uint triangle_count_to_meshlet_count(uint triangleCount)
+{
+	return (triangleCount + MESHLET_TRIANGLE_COUNT - 1u) / MESHLET_TRIANGLE_COUNT;
+}
+struct alignas(16) ShaderMeshlet
+{
+	uint instanceIndex;
+	uint geometryIndex;
+	uint primitiveOffset; // either direct triangle offset within index buffer, or masked cluster index for clustered geo
+	uint padding;
+};
+
+struct ShaderClusterTriangle
+{
+	uint packed;
+	void init(uint i0, uint i1, uint i2, uint flags = 0u)
+	{
+		packed = 0;
+		packed |= i0 & 0xFF;
+		packed |= (i1 & 0xFF) << 8u;
+		packed |= (i2 & 0xFF) << 16u;
+		packed |= (flags & 0xFF) << 24u;
+	}
+	uint i0() { return packed & 0xFF; }
+	uint i1() { return (packed >> 8u) & 0xFF; }
+	uint i2() { return (packed >> 16u) & 0xFF; }
+	uint3 tri() { return uint3(i0(), i1(), i2()); }
+	uint flags() { return packed >> 24u; }
+};
+struct alignas(16) ShaderCluster
+{
+	uint triangleCount;
+	uint vertexCount;
+	uint padding0;
+	uint padding1;
+
+	uint vertices[MESHLET_VERTEX_COUNT];
+	ShaderClusterTriangle triangles[MESHLET_TRIANGLE_COUNT];
 };
 
 // buffer's element (not constant buffer)
@@ -744,7 +801,7 @@ struct alignas(16) ShaderScene
 
 	// ----- IBL and scene color -----
 	float3 ambient;
-	uint padding0;
+	int meshletbuffer;	// buffer group (not IBL or scene color)
 
 	float3 horizonColor;
 	uint padding1;
