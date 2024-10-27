@@ -61,6 +61,21 @@
     <ClInclude Include="Random.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_VXGI.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_DDGI.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_SurfelGI.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_BVH.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_Raytracing.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -75,28 +90,8 @@
     <Filter Include="Resources">
       <UniqueIdentifier>{dfad21a7-1cf0-4c0c-a0ce-3f1637b1ec56}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\hlsl">
-      <UniqueIdentifier>{d649eac2-10ca-4dd6-9adb-0b1435672780}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\hlsl\common">
-      <UniqueIdentifier>{f5da2235-9254-4069-a4a5-cbe96fabd781}</UniqueIdentifier>
-    </Filter>
     <Filter Include="APIs">
       <UniqueIdentifier>{8cff3810-04b2-4316-8b39-e1980909b55e}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\Globals.hlsli">
-      <Filter>Shaders\hlsl\common</Filter>
-    </None>
-    <None Include="Shaders\ColorSpaceUtility.hlsli">
-      <Filter>Shaders\hlsl\common</Filter>
-    </None>
-    <None Include="Shaders\PixelPacking_RGBE.hlsli">
-      <Filter>Shaders\hlsl\common</Filter>
-    </None>
-    <None Include="Shaders\PixelPacking_R11G11B10.hlsli">
-      <Filter>Shaders\hlsl\common</Filter>
-    </None>
   </ItemGroup>
 </Project>

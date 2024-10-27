@@ -8,7 +8,22 @@ namespace vz
 	//	The parameters inside 'G'-components are used by Graphics pipeline and GPGPUs
 	//	So, all attributes here are Non-serialized attributes
 	//	Most parameters are strongly related to the renderer plugin
-	
+
+	struct BufferView
+	{
+		uint64_t offset = ~0ull;
+		uint64_t size = 0ull;
+		int subresource_srv = -1;
+		int descriptor_srv = -1;
+		int subresource_uav = -1;
+		int descriptor_uav = -1;
+
+		constexpr bool IsValid() const
+		{
+			return offset != ~0ull;
+		}
+	};
+
 	// resources
 
 	struct CORE_EXPORT GMaterialComponent : MaterialComponent
@@ -54,26 +69,8 @@ namespace vz
 			graphics::GPUBuffer generalBuffer; // index buffer + all static vertex buffers
 			graphics::GPUBuffer streamoutBuffer; // all dynamic vertex buffers
 
-			graphics::GPUBuffer wetmapBuffer;
-			mutable bool wetmapCleared = false;
-
-			struct BufferView
-			{
-				uint64_t offset = ~0ull;
-				uint64_t size = 0ull;
-				int subresource_srv = -1;
-				int descriptor_srv = -1;
-				int subresource_uav = -1;
-				int descriptor_uav = -1;
-
-				constexpr bool IsValid() const
-				{
-					return offset != ~0ull;
-				}
-			};
-
 			BufferView ib;
-			BufferView vbPosition;
+			BufferView vbPosW;
 			BufferView vbNormal;
 			BufferView vbTangent;
 			BufferView vbUVs;
@@ -83,7 +80,7 @@ namespace vz
 			//		useful when the mesh undergoes dynamic changes, 
 			//		such as in real-time physics simulations, deformations, or 
 			//		when the normals are affected by geometry shaders or other GPU-side processes.
-			BufferView soPosition;
+			BufferView soPosW;
 			BufferView soNormal;
 			BufferView soTangent;
 			BufferView soPre;
@@ -92,18 +89,16 @@ namespace vz
 			{
 				generalBuffer = {};
 				streamoutBuffer = {};
-				wetmapBuffer = {};
-				wetmapCleared = false;
 
 				// buffer views
 				ib = {};
-				vbPosition = {};
+				vbPosW = {};
 				vbTangent = {};
 				vbNormal = {};
 				vbUVs = {};
 				vbColor = {};
 
-				soPosition = {};
+				soPosW = {};
 				soNormal = {};
 				soTangent = {};
 				soPre = {};
@@ -177,7 +172,9 @@ namespace vz
 			}
 			static constexpr graphics::Format FORMAT = graphics::Format::R32G32B32A32_FLOAT;
 		};
-		graphics::Format positionFormat = Vertex_POS32::FORMAT; // can be modified (current version uses Vertex_POS32 as default)
+
+		// For a compatibility issue (also binding SRV for extension), use Vertex_POS32W as default
+		graphics::Format positionFormat = Vertex_POS32W::FORMAT; // can be modified 
 
 		struct Vertex_TEX
 		{
@@ -353,20 +350,46 @@ namespace vz
 	{
 		GRenderableComponent(const Entity entity, const VUID vuid = 0) : RenderableComponent(entity, vuid) {}
 
+		// ----- buffer-based resources -----
+		struct GBufferBasedRes
+		{
+			graphics::GPUBuffer wetmapBuffer;
+			graphics::GPUBuffer AOBuffer;
+			mutable bool wetmapCleared = false;
+
+			BufferView vbWetmap;
+			BufferView vbAO;
+
+			void Destroy()
+			{
+				AOBuffer = {};
+				wetmapBuffer = {};
+				wetmapCleared = false;
+
+				// buffer views
+				vbWetmap = {};
+				vbAO = {};
+			}
+		};
+		std::vector<GBufferBasedRes> bufferEffects;	// the same number of GBuffers
+		
+		// --- these will only be valid for a single frame: (supposed to be updated dynamically) ---
 		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
 
-		// --- these will only be valid for a single frame: (supposed to be updated dynamically) ---
+		// these are for linear array of scene component's array
+		uint32_t geometryIndex = ~0u; // current linear array of current rendering scene (used as an offset)
 		uint32_t renderableIndex = ~0u;	// current linear array of current rendering scene
-		uint32_t geometryIndex = ~0u; // current linear array of current rendering scene
 		std::vector<uint32_t> materialIndices; // current linear array of current rendering scene
 
 		uint32_t sortBits = 0;
 		uint8_t lod = 0;
 
+		uint32_t resLookupOffset = ~0u; // refer to geometryOffset defined in GGeometryComponent
+
 		//----- determined by associated materials -----
 		mutable uint32_t materialFilterFlags = 0u;
 		mutable uint32_t lightmapIterationCount = 0u;
-		mutable uint32_t renderFlags = 0u;
+		mutable uint32_t renderFlags = 0u; // OR-operated MaterialComponent::flags_
 	};
 
 	struct CORE_EXPORT GCameraComponent : CameraComponent

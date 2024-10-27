@@ -14,6 +14,8 @@ namespace vz::initializer
 	static jobsystem::context ctx;
 	static Timer timer;
 	static std::atomic_bool systems[INITIALIZED_SYSTEM_COUNT]{};
+	static uint32_t numMaxThreads = ~0u;
+	void SetMaxThreadCount(uint32_t numThreads) { numMaxThreads = numThreads; }
 
 	void InitializeComponentsImmediate()
 	{
@@ -53,7 +55,7 @@ namespace vz::initializer
 		//}
 
 		backlog::post("");
-		jobsystem::Initialize();
+		jobsystem::Initialize(numMaxThreads);
 
 		backlog::post("");
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { renderer::Initialize(); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });

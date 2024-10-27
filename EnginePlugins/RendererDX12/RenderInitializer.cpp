@@ -1,7 +1,12 @@
 #include "Renderer.h"
+#include "PluginInterface.h"
 #include "Shaders/ShaderInterop.h"
 
 #include "sheenLUT.h"
+
+#include "Utils/Timer.h"
+#include "Utils/Backlog.h"
+#include "Utils/JobSystem.h"
 
 namespace vz::rcommon
 {
@@ -13,6 +18,29 @@ namespace vz::rcommon
 	extern GPUBuffer			buffers[BUFFERTYPE_COUNT];
 	extern Sampler				samplers[SAMPLER_COUNT];
 	extern Texture				textures[TEXTYPE_COUNT];
+
+	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
+	extern PipelineState		PSO_wireframe;
+	extern PipelineState		PSO_occlusionquery;
+	extern std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
+}
+
+namespace vz
+{
+	bool InitRenderer()
+	{
+		Timer timer;
+
+		initializer::SetUpStates();
+		initializer::LoadBuffers();
+
+		//static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
+		shader::LoadShaders();
+
+		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
+		//initialized.store(true);
+		return true;
+	}
 }
 
 namespace vz::initializer
@@ -410,5 +438,29 @@ namespace vz::initializer
 		samplerDesc.max_anisotropy = 0;
 		samplerDesc.comparison_func = ComparisonFunc::GREATER_EQUAL;
 		device->CreateSampler(&samplerDesc, &rcommon::samplers[SAMPLER_CMP_DEPTH]);
+	}
+
+
+	void ReleaseResources()
+	{
+#define ReleaseRenderRes(SRC, R_COUNT) for (size_t i = 0, n = (size_t)R_COUNT; i < n; ++i) rcommon::SRC[i] = {};
+
+		jobsystem::WaitAllJobs();
+		ReleaseRenderRes(shaders, SHADERTYPE_COUNT);
+		ReleaseRenderRes(buffers, BUFFERTYPE_COUNT);
+		ReleaseRenderRes(samplers, SAMPLER_COUNT);
+		ReleaseRenderRes(textures, TEXTYPE_COUNT);
+
+		ReleaseRenderRes(PSO_debug, DEBUGRENDERING_COUNT);
+		rcommon::PSO_wireframe = {};
+		rcommon::PSO_occlusionquery = {};
+
+		for (size_t i = 0, n = (size_t)RENDERPASS_COUNT; i < n; ++i)
+		{
+			for (size_t j = 0; j < (size_t)SHADERTYPE_BIN_COUNT; ++j)
+			{
+				rcommon::PSO_render[i][j].clear();
+			}
+		}
 	}
 }

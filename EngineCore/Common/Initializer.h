@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace vz::initializer
 {
@@ -21,4 +22,6 @@ namespace vz::initializer
 	bool IsInitializeFinished(INITIALIZED_SYSTEM system = INITIALIZED_SYSTEM_COUNT);
 	// Wait for all system initializations to finish
 	void WaitForInitializationsToFinish();
+
+	void SetMaxThreadCount(uint32_t numThreads = ~0u);
 }

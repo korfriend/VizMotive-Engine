@@ -644,7 +644,6 @@ namespace vz
 namespace vz
 {
 	using GBuffers = GGeometryComponent::GBuffers;
-	using BufferView = GGeometryComponent::GBuffers::BufferView;
 
 	void GGeometryComponent::DeleteRenderData()
 	{
@@ -720,7 +719,7 @@ namespace vz
 
 			GPUBuffer& generalBuffer = part_buffers.generalBuffer;
 			BufferView& ib = part_buffers.ib;
-			BufferView& vb_pos = part_buffers.vbPosition;
+			BufferView& vb_pos = part_buffers.vbPosW;
 			BufferView& vb_nor = part_buffers.vbNormal;
 			BufferView& vb_tan = part_buffers.vbTangent;
 			BufferView& vb_uvs = part_buffers.vbUVs;
@@ -760,9 +759,9 @@ namespace vz
 					{
 						const XMFLOAT3& pos = vertex_positions[i];
 						// something special?? e.g., density or probability for volume-geometric processing
-						const uint8_t wind = 0; // vertex_windweights.empty() ? 0xFF : vertex_windweights[i];
+						const uint8_t weight = 0; // vertex_weights.empty() ? 0xFF : vertex_weights[i];
 						Vertex_POS32W vert;
-						vert.FromFULL(pos, wind);
+						vert.FromFULL(pos, weight);
 						std::memcpy(vertices + i, &vert, sizeof(vert));
 					}
 				}
@@ -938,7 +937,7 @@ namespace vz
 			GPUBuffer& streamoutBuffer = part_buffers.streamoutBuffer;
 			BufferView& vb_nor = part_buffers.vbNormal;
 			BufferView& vb_tan = part_buffers.vbTangent;
-			BufferView& so_pos = part_buffers.soPosition;
+			BufferView& so_pos = part_buffers.soPosW;
 			BufferView& so_pre = part_buffers.soPre;
 			BufferView& so_nor = part_buffers.soNormal;
 			BufferView& so_tan = part_buffers.soTangent;

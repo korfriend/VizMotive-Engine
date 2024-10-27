@@ -377,6 +377,7 @@ namespace vz
 			WETMAP = 1 << 8,
 			CAST_SHADOW = 1 << 9,
 			RECEIVE_SHADOW = 1 << 10,
+			VERTEXAO = 1 << 11,
 		};
 		enum class ShaderType : uint32_t
 		{
@@ -384,11 +385,26 @@ namespace vz
 			PBR,
 			UNLIT,
 
-			COUNT
+			COUNT	// UPDATE ShaderInterop.h's SHADERTYPE_BIN_COUNT when modifying ShaderType elements
 		};
 		enum class TextureSlot : uint32_t
 		{
 			BASECOLORMAP = 0,
+			NORMALMAP,
+			SURFACEMAP,
+			EMISSIVEMAP,
+			DISPLACEMENTMAP,
+			OCCLUSIONMAP,
+			TRANSMISSIONMAP,
+			SHEENCOLORMAP,
+			SHEENROUGHNESSMAP,
+			CLEARCOATMAP,
+			CLEARCOATROUGHNESSMAP,
+			CLEARCOATNORMALMAP,
+			SPECULARMAP,
+			ANISOTROPYMAP,
+			TRANSPARENCYMAP,
+
 			VOLUME_DENSITYMAP, // this is used for volume rendering
 
 			TEXTURESLOT_COUNT
@@ -460,6 +476,7 @@ namespace vz
 		inline bool IsWetmapEnabled() const { return flags_ & SCU32(RenderFlags::WETMAP); }
 		inline bool IsCastShadow() const { return flags_ & SCU32(RenderFlags::CAST_SHADOW); }
 		inline bool IsReceiveShadow() const { return flags_ & SCU32(RenderFlags::RECEIVE_SHADOW); }
+		inline bool IsVertexAOEnabled() const { return flags_ & SCU32(RenderFlags::VERTEXAO); }
 
 		inline uint32_t GetRenderFlags() const { return flags_; }
 
@@ -821,7 +838,7 @@ namespace vz
 		bool IsRenderable() const { return flags_ & SCU32(RenderableFlags::RENDERABLE); }
 
 		void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
-		bool IsForeground() const { return flags_ & ~SCU32(RenderableFlags::FOREGROUND); }
+		bool IsForeground() const { return flags_ & SCU32(RenderableFlags::FOREGROUND); }
 
 		void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; }
 		void SetVisibleRadius(const float radius) { visibleRadius_ = radius; }
