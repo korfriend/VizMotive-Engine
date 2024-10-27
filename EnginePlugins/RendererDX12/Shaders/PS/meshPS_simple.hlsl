@@ -1,6 +1,6 @@
 #define OBJECTSHADER_LAYOUT_SHADOW_TEX
 #define OBJECTSHADER_USE_COLOR
-#include "../Globals.hlsli"
+#include "../CommonHF/objectHF.hlsli"
 
 [earlydepthstencil]
 float4 main(PixelInput input) : SV_TARGET

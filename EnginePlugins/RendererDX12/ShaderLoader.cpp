@@ -349,6 +349,20 @@ namespace vz::shader
 	)
 	{
 		std::string shaderbinaryfilename = SHADERPATH + filename;
+		std::string shadersourcepath = SHADERSOURCEPATH;
+		switch (stage)
+		{
+		case vz::graphics::ShaderStage::MS: shadersourcepath += "MS/"; break;
+		case vz::graphics::ShaderStage::AS: shadersourcepath += "AS/"; break;
+		case vz::graphics::ShaderStage::VS: shadersourcepath += "VS/"; break;
+		case vz::graphics::ShaderStage::HS: shadersourcepath += "HS/"; break;
+		case vz::graphics::ShaderStage::DS: shadersourcepath += "DS/"; break;
+		case vz::graphics::ShaderStage::GS: shadersourcepath += "GS/"; break;
+		case vz::graphics::ShaderStage::PS: shadersourcepath += "PS/"; break;
+		case vz::graphics::ShaderStage::CS: shadersourcepath += "CS/"; break;
+		default:
+			assert(0);
+		}
 		
 		// dependency naming convention
 		//	e.g., ShaderInterop.h and ShaderInterop_BVH.h
@@ -394,7 +408,7 @@ namespace vz::shader
 			input.minshadermodel = minshadermodel;
 			input.defines = permutation_defines;
 
-			std::string sourcedir = SHADERSOURCEPATH;
+			std::string sourcedir = shadersourcepath;
 			vz::helper::MakePathAbsolute(sourcedir);
 			input.include_directories.push_back(sourcedir);
 			input.include_directories.push_back(sourcedir + vz::helper::GetDirectoryFromPath(filename));

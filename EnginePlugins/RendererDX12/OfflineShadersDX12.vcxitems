@@ -37,7 +37,10 @@
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_debug.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_PBR.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_PHONG.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_simple.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_UNLIT.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_debug.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_simple.hlsl" />
