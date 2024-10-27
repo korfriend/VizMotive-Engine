@@ -2001,6 +2001,7 @@ namespace vz
 		struct InstancedBatch
 		{
 			uint32_t geometryIndex = ~0u;	// geometryIndex
+			uint32_t renderableIndex = ~0u;
 			std::vector<uint32_t> materialIndices;
 			uint32_t instanceCount = 0;	// 
 			uint32_t dataOffset = 0;
@@ -2021,11 +2022,13 @@ namespace vz
 				if (instancedBatch.instanceCount == 0)
 					return;
 				Entity geometry_entity = scene_Gdetails->geometryEntities[instancedBatch.geometryIndex];
-
 				GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geometry_entity);
 
 				if (!geometry.HasRenderData())
 					return;
+
+				Entity renderable_entity = scene_Gdetails->renderableEntities[instancedBatch.renderableIndex];
+				GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(renderable_entity);
 
 				bool forceAlphaTestForDithering = instancedBatch.forceAlphatestForDithering != 0;
 
@@ -2154,9 +2157,10 @@ namespace vz
 						device->BindShadingRate(material.shadingRate, cmd);
 					}
 
-					RenderablePushConstants push;
+					MeshPushConstants push;
 					push.geometryIndex = geometry.geometryOffset + part_index;
 					push.materialIndex = material_index;
+					push.instBufferResIndex = renderable.resLookupOffset + part_index;
 					push.instances = instanceBufferDescriptorIndex;
 					push.instance_offset = (uint)instancedBatch.dataOffset;
 
@@ -2220,8 +2224,9 @@ namespace vz
 				BatchDrawingFlush();
 
 				instancedBatch = {};
-				instancedBatch.geometryIndex = geometry_index;
-				instancedBatch.instanceCount = 0;
+				instancedBatch.geometryIndex = geometry_index;	
+				instancedBatch.renderableIndex = renderable_index; 
+				instancedBatch.instanceCount = 0;	// rendering camera count..
 				instancedBatch.dataOffset = (uint32_t)(instances.offset + instanceCount * sizeof(ShaderMeshInstancePointer));
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();

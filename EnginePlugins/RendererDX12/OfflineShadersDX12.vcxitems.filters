@@ -7,6 +7,9 @@
     <Filter Include="CommonHF">
       <UniqueIdentifier>{f92570bb-a5e3-4b03-ad7a-99124815d443}</UniqueIdentifier>
     </Filter>
+    <Filter Include="batch">
+      <UniqueIdentifier>{87ef205b-9f03-4c75-9fa3-a0a1c697c1b2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\ColorSpaceUtility.hlsli" />
@@ -28,24 +31,24 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\shadingHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\skyAtmosphere.hlsli">
-      <Filter>CommonHF</Filter>
-    </None>
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\surfaceHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\shadowHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\skyHF.hlsli">
-      <Filter>CommonHF</Filter>
-    </None>
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\voxelConeTracingHF.hlsli">
       <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\compile.bat">
+      <Filter>batch</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_VXGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_SurfelGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl">

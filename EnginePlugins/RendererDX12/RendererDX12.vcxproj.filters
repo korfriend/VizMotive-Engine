@@ -61,6 +61,15 @@
     <ClInclude Include="Random.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_VXGI.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_DDGI.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_SurfelGI.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">

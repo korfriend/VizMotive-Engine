@@ -383,7 +383,7 @@ namespace vz
 		// Material-index lookup corresponding to each geometry of a renderable
 		size_t instanceResLookupSize = 0;
 		graphics::GPUBuffer instanceResLookupUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		graphics::GPUBuffer instanceMaterialLookupBuffer = {};
+		graphics::GPUBuffer instanceResLookupBuffer = {};
 		ShaderInstanceResLookup* instanceResLookupMapped = nullptr;
 		std::atomic<uint32_t> instanceResLookupAllocator{ 0 };
 

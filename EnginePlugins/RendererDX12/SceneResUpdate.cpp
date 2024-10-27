@@ -630,8 +630,8 @@ namespace vz
 			if (!device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
 			{
 				// Non-UMA: separate Default usage buffer
-				device->CreateBuffer(&desc, nullptr, &instanceMaterialLookupBuffer);
-				device->SetName(&instanceMaterialLookupBuffer, "GSceneDetails::instanceMaterialLookup");
+				device->CreateBuffer(&desc, nullptr, &instanceResLookupBuffer);
+				device->SetName(&instanceResLookupBuffer, "GSceneDetails::instanceMaterialLookup");
 
 				// Upload buffer shouldn't be used by shaders with Non-UMA:
 				desc.bind_flags = BindFlag::NONE;
@@ -678,14 +678,14 @@ namespace vz
 			shaderscene.instancebuffer = device->GetDescriptorIndex(&instanceUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
-			shaderscene.instanceMaterialLookupbuffer = device->GetDescriptorIndex(&instanceResLookupUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
+			shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 		}
 		else
 		{
 			shaderscene.instancebuffer = device->GetDescriptorIndex(&instanceBuffer, SubresourceType::SRV);
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryBuffer, SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialBuffer, SubresourceType::SRV);
-			shaderscene.instanceMaterialLookupbuffer = device->GetDescriptorIndex(&instanceMaterialLookupBuffer, SubresourceType::SRV);
+			shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupBuffer, SubresourceType::SRV);
 		}
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
 		//if (weather.skyMap.IsValid())
@@ -765,7 +765,7 @@ namespace vz
 		geometryBuffer = {};
 		materialBuffer = {};
 		textureStreamingFeedbackBuffer = {};
-		instanceMaterialLookupBuffer = {};
+		instanceResLookupBuffer = {};
 		queryHeap = {};
 		queryPredicationBuffer = {};
 		for (uint32_t i = 0; i < buffer_count; ++i)

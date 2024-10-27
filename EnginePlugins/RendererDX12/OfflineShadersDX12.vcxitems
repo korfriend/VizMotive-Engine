@@ -21,16 +21,18 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\objectHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\shadingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\shadowHF.hlsli" />
-    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\skyAtmosphere.hlsli" />
-    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\skyHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\surfaceHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\voxelConeTracingHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\compile.bat" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\Globals.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_R11G11B10.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_RGBE.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_SurfelGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_VXGI.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl" />

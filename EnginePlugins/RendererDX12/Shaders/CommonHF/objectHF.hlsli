@@ -38,7 +38,7 @@
 #include "../globals.hlsli"
 #include "brdf.hlsli"
 #include "lightingHF.hlsli"
-#include "skyAtmosphere.hlsli"
+//#include "skyAtmosphere.hlsli"
 #include "fogHF.hlsli"
 //#include "ShaderInterop_SurfelGI.h"
 //#include "ShaderInterop_DDGI.h"
@@ -47,7 +47,7 @@
 // DEFINITIONS
 //////////////////
 
-PUSHCONSTANT(push, ObjectPushConstants);
+PUSHCONSTANT(push, MeshPushConstants);
 
 inline ShaderGeometry GetMesh()
 {
@@ -148,14 +148,14 @@ struct VertexInput
 			return bindless_buffers[push.instances].Load<ShaderMeshInstancePointer>(push.instance_offset + instanceID * sizeof(ShaderMeshInstancePointer));
 
 		ShaderMeshInstancePointer poi;
-		poi.init();
+		poi.Init();
 		return poi;
 	}
 
 	half2 GetAtlasUV()
 	{
 		[branch]
-		if (GetMesh().vb_atl < 0)
+        if (GetMesh().vb_atl < 0)
 			return 0;
 		return (half2)bindless_buffers_float2[GetMesh().vb_atl][vertexID];
 	}
@@ -190,34 +190,45 @@ struct VertexInput
 			return load_instance(GetInstancePointer().GetInstanceIndex());
 
 		ShaderMeshInstance inst;
-		inst.init();
+		inst.Init();
 		return inst;
 	}
+	
+	ShaderInstanceResLookup GetInstRes()
+    {
+        if (push.instBufferResIndex >= 0)
+            return load_instResLookup(push.instBufferResIndex);
+
+        ShaderInstanceResLookup instRes;
+        instRes.Init();
+        return instRes;
+    }
 
 	half GetVertexAO()
-	{
+	{		
 		[branch]
-		if (GetInstance().vb_ao < 0)
+        if (GetInstRes().vb_ao < 0)
 			return 1;
-		return (half)bindless_buffers_float[GetInstance().vb_ao][vertexID];
-	}
+        return (half) bindless_buffers_float[GetInstRes().vb_ao][vertexID];
+    }
 
 	half GetWetmap()
-	{
+    {
 		//[branch]
-		//if (GetInstance().vb_wetmap < 0)
-		//	return 0;
-		//return (half)bindless_buffers_float[NonUniformResourceIndex(GetInstance().vb_wetmap)][vertexID];
-
+        //if (GetInstRes().vb_wetmap < 0)
+        //    return 0;
+        //return (half) bindless_buffers_float[GetInstRes().vb_wetmap][vertexID];
+		
 		// There is something seriously bad with AMD driver's shader compiler as the above commented version works incorrectly and this works correctly but only for wetmap
+
 		[branch]
-		if (GetInstance().vb_wetmap >= 0)
-			return (half)bindless_buffers_float[GetInstance().vb_wetmap][vertexID];
-		return 0;
+        if (GetInstRes().vb_wetmap >= 0)
+            return (half) bindless_buffers_float[GetInstRes().vb_wetmap][vertexID];
+        return 0;
 	}
 };
 
-
+#define DISABLE_WIND
 struct VertexSurface
 {
 	float4 position;

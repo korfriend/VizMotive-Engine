@@ -323,7 +323,7 @@ RWTexture2D<uint4> bindless_rwtextures_uint4[] : register(space36);
 //[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderCluster> bindless_structured_cluster[];
 //[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderClusterBounds> bindless_structured_cluster_bounds[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMaterial> bindless_structured_material[];
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMaterialLookup> bindless_structured_materiallookup[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderInstanceResLookup> bindless_structured_inst_reslookup[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<uint> bindless_structured_uint[];
 #else
 StructuredBuffer<ShaderMeshInstance> bindless_structured_meshinstance[] : register(space37);
@@ -332,7 +332,7 @@ StructuredBuffer<ShaderGeometry> bindless_structured_geometry[] : register(space
 //StructuredBuffer<ShaderCluster> bindless_structured_cluster[] : register(space40);
 //StructuredBuffer<ShaderClusterBounds> bindless_structured_cluster_bounds[] : register(space41);
 StructuredBuffer<ShaderMaterial> bindless_structured_material[] : register(space42);
-StructuredBuffer<ShaderMaterialLookup> bindless_structured_materiallookup[] : register(space43);
+StructuredBuffer<ShaderInstanceResLookup> bindless_structured_inst_reslookup[] : register(space43);
 StructuredBuffer<uint> bindless_structured_uint[] : register(space44); // used for load_entitytile
 #endif // __spirv__
 
@@ -357,6 +357,10 @@ inline ShaderGeometry load_geometry(uint geometryIndex)
 {
     return bindless_structured_geometry[GetScene().geometrybuffer][geometryIndex];
 }
+inline ShaderInstanceResLookup load_instResLookup(uint instResIndex)
+{
+    return bindless_structured_inst_reslookup[GetScene().instanceResLookupBuffer][instResIndex];
+}
 //inline ShaderMeshlet load_meshlet(uint meshletIndex)
 //{
 //    return bindless_structured_meshlet[GetScene().meshletbuffer][meshletIndex];
@@ -365,10 +369,7 @@ inline ShaderMaterial load_material(uint materialIndex)
 {
     return bindless_structured_material[GetScene().materialbuffer][materialIndex];
 }
-inline ShaderMaterial load_material_by_lookup(uint looupIndex)
-{
-    return load_material(bindless_structured_materiallookup[GetScene().instanceMaterialLookupbuffer][looupIndex].materialIndex);
-}
+
 uint load_entitytile(uint tileIndex)
 {
     uint offset = 0;
@@ -734,6 +735,26 @@ template<typename T>
 T inverse_lerp(T value1, T value2, T pos)
 {
     return all(value2 == value1) ? 0 : ((pos - value1) / (value2 - value1));
+}
+
+inline float3 GetSunColor()
+{
+    return GetScene().sunColor;
+} // sun color with intensity applied
+
+inline float3 GetSunDirection()
+{
+    return GetScene().sunDirection;
+}
+
+inline float3 GetHorizonColor()
+{
+    return GetScene().horizonColor.rgb;
+}
+
+inline float3 GetAmbientColor()
+{
+    return GetScene().ambient.rgb;
 }
 
 inline uint2 GetInternalResolution()

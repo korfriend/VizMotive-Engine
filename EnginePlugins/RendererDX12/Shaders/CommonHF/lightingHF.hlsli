@@ -4,7 +4,7 @@
 #include "shadowHF.hlsli"
 #include "brdf.hlsli"
 #include "voxelConeTracingHF.hlsli"
-#include "skyHF.hlsli"
+#//include "skyHF.hlsli"
 
 #ifdef CARTOON
 #define DISABLE_SOFT_SHADOWMAP
@@ -52,7 +52,7 @@ struct Lighting
 
 inline void ApplyLighting(in Surface surface, in Lighting lighting, inout half4 color)
 {
-	half3 diffuse = lighting.direct.diffuse / PI + lighting.indirect.diffuse * GetFrame().gi_boost * (1 - surface.F) * surface.occlusion + surface.ssgi;
+    half3 diffuse = lighting.direct.diffuse / PI + lighting.indirect.diffuse * (half) GetFrame().gi_boost * (1 - surface.F) * surface.occlusion + surface.ssgi;
 	half3 specular = lighting.direct.specular + lighting.indirect.specular * surface.occlusion; // reminder: cannot apply surface.F for whole indirect specular, because multiple layers have separate fresnels (sheen, clearcoat)
 	color.rgb = lerp(surface.albedo * diffuse, surface.refraction.rgb, surface.refraction.a);
 	color.rgb += specular;
@@ -99,7 +99,7 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
 				[branch]
 				if (is_saturated(shadow_uv))
 				{
-					const half2 cascade_edgefactor = saturate(saturate(abs(shadow_pos.xy)) - 0.8) * 5.0; // fade will be on edge and inwards 10%
+                    const half2 cascade_edgefactor = (half2) saturate(saturate(abs(shadow_pos.xy)) - 0.8) * 5.0; // fade will be on edge and inwards 10%
 					const half cascade_fade = max(cascade_edgefactor.x, cascade_edgefactor.y);
 						
 					// If we are on cascade edge threshold and not the last cascade, then fallback to a larger cascade:
@@ -116,11 +116,11 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
 		QuadBlur(light_color);
 	}
 
-	[branch]
-	if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
-	{
-		light_color *= GetAtmosphericLightTransmittance(GetWeather().atmosphere, surface.P, L, texture_transmittancelut);
-	}
+	//[branch]
+	//if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
+	//{
+	//	light_color *= GetAtmosphericLightTransmittance(GetWeather().atmosphere, surface.P, L, texture_transmittancelut);
+	//}
 
 	lighting.direct.diffuse = mad(light_color, BRDF_GetDiffuse(surface, surface_to_light), lighting.direct.diffuse);
 	lighting.direct.specular = mad(light_color, BRDF_GetSpecular(surface, surface_to_light), lighting.direct.specular);
@@ -132,25 +132,25 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
 			
 #ifndef WATER
 	// On non-water surfaces there can be procedural caustic if it's under ocean:
-	const ShaderOcean ocean = GetWeather().ocean;
-	if (ocean.texture_displacementmap >= 0)
-	{
-		Texture2D displacementmap = bindless_textures[ocean.texture_displacementmap];
-		float2 ocean_uv = surface.P.xz * ocean.patch_size_rcp;
-		float3 displacement = displacementmap.SampleLevel(sampler_linear_wrap, ocean_uv, 0).xzy;
-		float water_height = ocean.water_height + displacement.y;
-		if (surface.P.y < water_height)
-		{
-			half3 caustic = texture_caustics.SampleLevel(sampler_linear_mirror, ocean_uv, 0).rgb;
-			caustic *= sqr(saturate((water_height - surface.P.y) * 0.5)); // fade out at shoreline
-			caustic *= light_color;
-			lighting.indirect.diffuse += caustic;
-
-			// fade out specular at depth, it looks weird when specular appears under ocean from wetmap
-			half water_depth = water_height - surface.P.y;
-			lighting.direct.specular *= saturate(exp(-water_depth * 10));
-		}
-	}
+	//const ShaderOcean ocean = GetWeather().ocean;
+	//if (ocean.texture_displacementmap >= 0)
+	//{
+	//	Texture2D displacementmap = bindless_textures[ocean.texture_displacementmap];
+	//	float2 ocean_uv = surface.P.xz * ocean.patch_size_rcp;
+	//	float3 displacement = displacementmap.SampleLevel(sampler_linear_wrap, ocean_uv, 0).xzy;
+	//	float water_height = ocean.water_height + displacement.y;
+	//	if (surface.P.y < water_height)
+	//	{
+	//		half3 caustic = texture_caustics.SampleLevel(sampler_linear_mirror, ocean_uv, 0).rgb;
+	//		caustic *= sqr(saturate((water_height - surface.P.y) * 0.5)); // fade out at shoreline
+	//		caustic *= light_color;
+	//		lighting.indirect.diffuse += caustic;
+	//
+	//		// fade out specular at depth, it looks weird when specular appears under ocean from wetmap
+	//		half water_depth = water_height - surface.P.y;
+	//		lighting.direct.specular *= saturate(exp(-water_depth * 10));
+	//	}
+	//}
 #endif // WATER
 }
 
@@ -185,7 +185,7 @@ inline void light_point(in ShaderEntity light, in Surface surface, inout Lightin
 	}
 #endif // DISABLE_AREA_LIGHTS
 
-	const half dist2 = dot(Lunnormalized, Lunnormalized);
+    const half dist2 = (half) dot(Lunnormalized, Lunnormalized);
 	const half range = light.GetRange();
 	const half range2 = range * range;
 	
@@ -193,7 +193,7 @@ inline void light_point(in ShaderEntity light, in Surface surface, inout Lightin
 		return; // early exit: outside range
 		
 	const half dist_rcp = rsqrt(dist2);
-	half3 L = Lunnormalized * dist_rcp;
+    half3 L = (half3) Lunnormalized * dist_rcp;
 
 	SurfaceToLight surface_to_light;
 	surface_to_light.create(surface, L);
@@ -249,7 +249,7 @@ inline void light_point(in ShaderEntity light, in Surface surface, inout Lightin
 	}
 	if (light.GetLength() > 0 || light.GetRadius() > 0)
 	{
-		L = normalize(Lunnormalized);
+		L = (half3)normalize(Lunnormalized);
 		surface_to_light.create(surface, L); // recompute all surface-light vectors
 	}
 #endif // DISABLE_AREA_LIGHTS
@@ -276,7 +276,7 @@ inline void light_spot(in ShaderEntity light, in Surface surface, inout Lighting
 		return; // early exit: layer mismatch
 	
 	float3 Lunnormalized = light.position - surface.P;
-	const half dist2 = dot(Lunnormalized, Lunnormalized);
+    const half dist2 = (half) dot(Lunnormalized, Lunnormalized);
 	const half range = light.GetRange();
 	const half range2 = range * range;
 	
@@ -284,7 +284,7 @@ inline void light_spot(in ShaderEntity light, in Surface surface, inout Lighting
 		return; // early exit: outside range
 		
 	const half dist_rcp = rsqrt(dist2);
-	half3 L = Lunnormalized * dist_rcp;
+    half3 L = (half3) Lunnormalized * dist_rcp;
 
 	SurfaceToLight surface_to_light;
 	surface_to_light.create(surface, L);
@@ -331,8 +331,8 @@ inline void light_spot(in ShaderEntity light, in Surface surface, inout Lighting
 		// Specular representative point on sphere:
 		Lunnormalized = light.position - surface.P;
 		float3 centerToRay = mad(dot(Lunnormalized, surface.R), surface.R, -Lunnormalized);
-		Lunnormalized = mad(centerToRay, saturate(light.GetRadius() / length(centerToRay)), Lunnormalized);
-		L = normalize(Lunnormalized);
+		Lunnormalized = mad(centerToRay, saturate((float)light.GetRadius() / length(centerToRay)), Lunnormalized);
+		L = (half3) normalize(Lunnormalized);
 		surface_to_light.create(surface, L); // recompute all surface-light vectors
 		// Energy conservation for radius:
 		light_color /= max(1, sphere_volume(light.GetRadius()));
@@ -380,7 +380,7 @@ inline half3 GetAmbient(in float3 N)
 	// This is not entirely correct if we have probes, because it shouldn't be added twice.
 	//	However, it is not correct if we leave it out from probes, because if we render a scene
 	//	with dark sky but ambient, we still want some visible result.
-	ambient += GetAmbientColor();
+	ambient += (half3) GetAmbientColor();
 #endif // NO_FLAT_AMBIENT
 
 	return ambient;
@@ -416,7 +416,7 @@ inline half3 EnvironmentReflection_Global(in Surface surface)
 	uint mips;
 	cubemap.GetDimensions(0, dim.x, dim.y, mips);
 
-	half MIP = surface.roughness * mips;
+    half MIP = surface.roughness * (half) mips;
 	envColor = (half3)cubemap.SampleLevel(sampler_linear_clamp, surface.R, MIP).rgb * surface.F;
 
 #ifdef SHEEN
@@ -449,19 +449,19 @@ inline half4 EnvironmentReflection_Local(in TextureCube cubemap, in Surface surf
 		
 	// Perform parallax correction of reflection ray (R) into OBB:
 	half3 RayLS = mul((half3x3)probeProjection, surface.R);
-	half3 FirstPlaneIntersect = (half3(1, 1, 1) - clipSpacePos) / RayLS;
-	half3 SecondPlaneIntersect = (-half3(1, 1, 1) - clipSpacePos) / RayLS;
+    half3 FirstPlaneIntersect = (half3(1, 1, 1) - (half3) clipSpacePos) / RayLS;
+    half3 SecondPlaneIntersect = (-half3(1, 1, 1) - (half3) clipSpacePos) / RayLS;
 	half3 FurthestPlane = max(FirstPlaneIntersect, SecondPlaneIntersect);
 	half Distance = min(FurthestPlane.x, min(FurthestPlane.y, FurthestPlane.z));
-	half3 IntersectPositionWS = surface.P + surface.R * Distance;
-	half3 R_parallaxCorrected = IntersectPositionWS - probe.position;
+    half3 IntersectPositionWS = (half3) surface.P + surface.R * Distance;
+    half3 R_parallaxCorrected = IntersectPositionWS - (half3) probe.position;
 
 	uint2 dim;
 	uint mips;
 	cubemap.GetDimensions(0, dim.x, dim.y, mips);
 
 	// Sample cubemap texture:
-	half MIP = surface.roughness * mips;
+    half MIP = surface.roughness * (half) mips;
 	half3 envColor = (half3)cubemap.SampleLevel(sampler_linear_clamp, R_parallaxCorrected, MIP).rgb * surface.F;
 
 #ifdef SHEEN
@@ -485,7 +485,7 @@ inline half4 EnvironmentReflection_Local(in TextureCube cubemap, in Surface surf
 #endif // CLEARCOAT
 
 	// blend out if close to any cube edge:
-	half edgeBlend = 1 - pow(saturate(max(abs(clipSpacePos.x), max(abs(clipSpacePos.y), abs(clipSpacePos.z)))), 8);
+    half edgeBlend = 1 - (half) pow(saturate(max(abs(clipSpacePos.x), max(abs(clipSpacePos.y), abs(clipSpacePos.z)))), 8);
 
 	return half4(envColor, edgeBlend);
 }
@@ -502,7 +502,7 @@ inline void VoxelGI(inout Surface surface, inout Lighting lighting)
 		Texture3D voxels = bindless_textures3D[GetFrame().vxgi.texture_radiance];
 
 		// diffuse:
-		half4 trace = ConeTraceDiffuse(voxels, surface.P, surface.N);
+        half4 trace = (half4) ConeTraceDiffuse(voxels, surface.P, surface.N);
 		lighting.indirect.diffuse = mad(lighting.indirect.diffuse, 1 - trace.a, trace.rgb);
 
 		// specular:
@@ -510,7 +510,7 @@ inline void VoxelGI(inout Surface surface, inout Lighting lighting)
 		if (GetFrame().options & OPTION_BIT_VXGI_REFLECTIONS_ENABLED)
 		{
 			half roughnessBRDF = sqr(clamp(surface.roughness, min_roughness, 1));
-			half4 trace = ConeTraceSpecular(voxels, surface.P, surface.N, surface.V, roughnessBRDF, surface.pixel);
+            half4 trace = (half4) ConeTraceSpecular(voxels, surface.P, surface.N, surface.V, roughnessBRDF, surface.pixel);
 			lighting.indirect.specular = mad(lighting.indirect.specular, 1 - trace.a, trace.rgb * surface.F);
 		}
 	}
