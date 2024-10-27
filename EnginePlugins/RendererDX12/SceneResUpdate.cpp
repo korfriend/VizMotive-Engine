@@ -679,6 +679,7 @@ namespace vz
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 			shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
+			shaderscene.meshletbuffer = -1;
 		}
 		else
 		{
@@ -686,6 +687,7 @@ namespace vz
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryBuffer, SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialBuffer, SubresourceType::SRV);
 			shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupBuffer, SubresourceType::SRV);
+			shaderscene.meshletbuffer = -1;
 		}
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
 		//if (weather.skyMap.IsValid())

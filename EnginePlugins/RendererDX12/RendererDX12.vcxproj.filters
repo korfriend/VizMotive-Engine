@@ -70,6 +70,12 @@
     <ClInclude Include="Shaders\ShaderInterop_SurfelGI.h">
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_BVH.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_Raytracing.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">

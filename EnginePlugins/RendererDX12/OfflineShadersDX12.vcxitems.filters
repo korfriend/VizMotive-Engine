@@ -22,6 +22,9 @@
     <Filter Include="Interop %28root%29">
       <UniqueIdentifier>{cba31e7b-f882-4efc-af50-f0d4f29c7e3e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Pipeline Shaders\CS">
+      <UniqueIdentifier>{bfa6fdaf-e093-4e65-bdee-a6905930c1ed}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli">
@@ -63,6 +66,9 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_RGBE.hlsli">
       <Filter>Common %28root%29</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\raytracingHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h">
@@ -75,6 +81,12 @@
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_VXGI.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_BVH.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Raytracing.h">
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
   </ItemGroup>
@@ -108,6 +120,18 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_PHONG.hlsl">
       <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\occludeeVS.hlsl">
+      <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\vertexcolorPS.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS_MSAA.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

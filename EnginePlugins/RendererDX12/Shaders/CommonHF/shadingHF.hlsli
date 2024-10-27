@@ -717,14 +717,14 @@ inline void ApplyFog(in float distance, float3 V, inout float4 color)
 	color.rgb = lerp(color.rgb, fog.rgb, fog.a); // non-premultiplied fog
 }
 
-//inline void ApplyAerialPerspective(float2 uv, float3 P, inout float4 color)
-//{
-//	if (GetFrame().options & OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE)
-//	{
-//		const float4 AP = GetAerialPerspectiveTransmittance(uv, P, GetCamera().position, texture_cameravolumelut);
-//		color.rgb = color.rgb * (1.0 - AP.a) + AP.rgb;
-//	}
-//}
+inline void ApplyAerialPerspective(float2 uv, float3 P, inout float4 color)
+{
+	//if (GetFrame().options & OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE)
+	//{
+	//	const float4 AP = GetAerialPerspectiveTransmittance(uv, P, GetCamera().position, texture_cameravolumelut);
+	//	color.rgb = color.rgb * (1.0 - AP.a) + AP.rgb;
+	//}
+}
 
 inline uint AlphaToCoverage(float alpha, float alphaTest, float4 svposition)
 {

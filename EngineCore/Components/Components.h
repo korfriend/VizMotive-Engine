@@ -385,7 +385,7 @@ namespace vz
 			PBR,
 			UNLIT,
 
-			COUNT
+			COUNT	// UPDATE ShaderInterop.h's SHADERTYPE_BIN_COUNT when modifying ShaderType elements
 		};
 		enum class TextureSlot : uint32_t
 		{
