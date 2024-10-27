@@ -303,6 +303,7 @@ namespace vz
 	{
 		void SetUpStates();
 		void LoadBuffers();
+		void ReleaseResources();
 	}
 
 	namespace shader
