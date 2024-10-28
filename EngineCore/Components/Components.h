@@ -52,7 +52,7 @@ namespace vz
 			std::vector<Entity>& _entities = (std::vector<Entity>&)entities;
 			for (uint32_t i = 0, n = (uint32_t)entities.size(); i < n; ++i)
 			{
-				if (_entities[i] = targetEntity)
+				if (_entities[i] == targetEntity)
 				{
 					return i;
 				}
