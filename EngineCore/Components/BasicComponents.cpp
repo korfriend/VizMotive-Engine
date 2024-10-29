@@ -497,7 +497,7 @@ namespace vz
 		XMVECTOR _At = XMLoadFloat3(&at_);
 		XMVECTOR _Up = XMLoadFloat3(&up_);
 
-		XMMATRIX _V = VZMatrixLookTo(_Eye, _At, _Up);
+		XMMATRIX _V = VZMatrixLookAt(_Eye, _At, _Up);
 		XMStoreFloat4x4(&view_, _V);
 
 		XMMATRIX _P = XMLoadFloat4x4(&projection_);

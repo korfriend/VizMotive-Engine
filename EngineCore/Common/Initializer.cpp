@@ -1,5 +1,6 @@
 #include "Initializer.h"
 #include "Version.h"
+#include "Common/Backend/GRendererInterface.h"
 #include "Utils/JobSystem.h"
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
@@ -7,6 +8,11 @@
 #include <string>
 #include <thread>
 #include <atomic>
+
+namespace vz
+{
+	extern GraphicsPackage graphicsPackage;
+}
 
 namespace vz::initializer
 {
@@ -58,11 +64,9 @@ namespace vz::initializer
 		jobsystem::Initialize(numMaxThreads);
 
 		backlog::post("");
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { renderer::Initialize(); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { texturehelper::Initialize(); systems[INITIALIZED_SYSTEM_TEXTUREHELPER].store(true); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); systems[INITIALIZED_SYSTEM_GPUSORTLIB].store(true); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { GPUBVH::Initialize(); systems[INITIALIZED_SYSTEM_GPUBVH].store(true); });
 
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { graphicsPackage.pluginInitRenderer(); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });
+		
 		// take a new thread and wait the above jobs (asynchronously)
 		std::thread([] {
 			jobsystem::Wait(ctx);

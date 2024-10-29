@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "Image.h"
 #include "PluginInterface.h"
 #include "Shaders/ShaderInterop.h"
 
@@ -7,6 +8,7 @@
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
 #include "Utils/JobSystem.h"
+#include "Utils/EventHandler.h"
 
 namespace vz::rcommon
 {
@@ -25,27 +27,13 @@ namespace vz::rcommon
 	extern std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
 }
 
-namespace vz
-{
-	bool InitRenderer()
-	{
-		Timer timer;
 
-		initializer::SetUpStates();
-		initializer::LoadBuffers();
-
-		//static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
-		shader::LoadShaders();
-
-		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
-		//initialized.store(true);
-		return true;
-	}
-}
 
 namespace vz::initializer
 {
 	using namespace vz::graphics;
+
+	static std::atomic_bool initialized{ false };
 
 	GraphicsDevice*& device = GetDevice();
 
@@ -439,7 +427,10 @@ namespace vz::initializer
 		samplerDesc.comparison_func = ComparisonFunc::GREATER_EQUAL;
 		device->CreateSampler(&samplerDesc, &rcommon::samplers[SAMPLER_CMP_DEPTH]);
 	}
-
+	bool IsInitialized()
+	{
+		return initialized.load();
+	}
 
 	void ReleaseResources()
 	{
@@ -462,5 +453,29 @@ namespace vz::initializer
 				rcommon::PSO_render[i][j].clear();
 			}
 		}
+
+		image::Deinitialize();
+	}
+}
+
+namespace vz
+{
+	bool InitRenderer()
+	{
+		Timer timer;
+
+		initializer::SetUpStates();
+		initializer::LoadBuffers();
+
+		static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
+		
+		jobsystem::context ctx;
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::LoadShaders(); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { image::Initialize(); });
+
+		jobsystem::Wait(ctx);
+		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
+		initializer::initialized.store(true);
+		return true;
 	}
 }

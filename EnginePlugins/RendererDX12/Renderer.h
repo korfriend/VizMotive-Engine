@@ -24,13 +24,16 @@ namespace vz
 	constexpr Format FORMAT_rendertargetEnvprobe = Format::R11G11B10_FLOAT;
 	constexpr Format FORMAT_depthbufferEnvprobe = Format::D16_UNORM;
 
+	using StencilRef = MaterialComponent::StencilRef;
+	using BlendMode = MaterialComponent::BlendMode;
+
 	// Common blendmodes used across multiple systems
-	constexpr uint32_t BLENDMODE_OPAQUE = SCU32(MaterialComponent::BlendMode::BLENDMODE_OPAQUE);
-	constexpr uint32_t BLENDMODE_ALPHA = SCU32(MaterialComponent::BlendMode::BLENDMODE_ALPHA);
-	constexpr uint32_t BLENDMODE_PREMULTIPLIED = SCU32(MaterialComponent::BlendMode::BLENDMODE_PREMULTIPLIED);
-	constexpr uint32_t BLENDMODE_ADDITIVE = SCU32(MaterialComponent::BlendMode::BLENDMODE_ADDITIVE);
-	constexpr uint32_t BLENDMODE_MULTIPLY = SCU32(MaterialComponent::BlendMode::BLENDMODE_MULTIPLY);
-	constexpr uint32_t BLENDMODE_COUNT = SCU32(MaterialComponent::BlendMode::BLENDMODE_COUNT);
+	constexpr uint32_t BLENDMODE_OPAQUE = SCU32(BlendMode::BLENDMODE_OPAQUE);
+	constexpr uint32_t BLENDMODE_ALPHA = SCU32(BlendMode::BLENDMODE_ALPHA);
+	constexpr uint32_t BLENDMODE_PREMULTIPLIED = SCU32(BlendMode::BLENDMODE_PREMULTIPLIED);
+	constexpr uint32_t BLENDMODE_ADDITIVE = SCU32(BlendMode::BLENDMODE_ADDITIVE);
+	constexpr uint32_t BLENDMODE_MULTIPLY = SCU32(BlendMode::BLENDMODE_MULTIPLY);
+	constexpr uint32_t BLENDMODE_COUNT = SCU32(BlendMode::BLENDMODE_COUNT);
 }
 	
 //----- enumerations -----
@@ -301,6 +304,7 @@ namespace vz
 
 	namespace initializer
 	{
+		bool IsInitialized();
 		void SetUpStates();
 		void LoadBuffers();
 		void ReleaseResources();
@@ -323,6 +327,8 @@ namespace vz
 	namespace renderer
 	{
 		const Sampler* GetSampler(SAMPLERTYPES id);
+
+		constexpr uint32_t CombineStencilrefs(StencilRef engineStencilRef, uint8_t userStencilRef);
 	}
 
 	struct GSceneDetails : GScene

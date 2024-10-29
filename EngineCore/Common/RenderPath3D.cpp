@@ -1,6 +1,7 @@
 #include "RenderPath3D.h"
 #include "Common/Backend/GRendererInterface.h"
 #include "Components/GComponents.h"
+#include "Utils/Profiler.h"
 
 namespace vz
 {
@@ -124,5 +125,10 @@ namespace vz
 		handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
 
 		handlerRenderPath3D_->Render(dt);
+	}
+
+	void RenderPath3D::Compose()
+	{
+
 	}
 }

@@ -37,5 +37,6 @@ namespace vz
 		// cpu side... in scene
 		void Update(const float dt) override;
 		void Render(const float dt) override;
+		void Compose() override;
 	};
 }
