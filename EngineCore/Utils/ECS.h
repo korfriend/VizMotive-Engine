@@ -462,8 +462,9 @@ namespace vz::ecs
 		// Retrieve a [read/write] component specified by an entity (if it exists, otherwise nullptr)
 		inline Component* GetComponent(Entity entity)
 		{
-			if (lookup.empty())
+			if (lookup.empty()) {
 				return nullptr;
+			}
 			auto it = lookup.find(entity);
 			if (it != lookup.end())
 			{

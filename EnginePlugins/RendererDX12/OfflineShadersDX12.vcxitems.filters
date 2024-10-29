@@ -142,5 +142,29 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\imagePS.hlsl">
       <Filter>Pipeline Shaders\PS</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_prepass.hlsl">
+      <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_prepass_alphatest.hlsl">
+      <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_prepass_alphatest_tessellation.hlsl">
+      <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_prepass_tessellation.hlsl">
+      <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_prepass.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_prepass_alphatest.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_prepass_depthonly.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_prepass_depthonly_alphatest.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

@@ -832,7 +832,7 @@ namespace vz
 		// parameters for visibility effect
 		XMFLOAT3 visibleCenter_ = XMFLOAT3(0, 0, 0);
 		float visibleRadius_ = 0;
-		float fadeDistance_ = 0.f;
+		float fadeDistance_ = std::numeric_limits<float>::max();
 
 		// Non-serialized attributes:
 		//	dirty check can be considered by the following components

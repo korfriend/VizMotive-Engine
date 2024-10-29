@@ -525,7 +525,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #ifndef ENVMAPRENDERING
 #ifdef OBJECTSHADER_USE_DITHERING
 	// apply dithering:
-	clip(dither(pixel + GetTemporalAASampleRotation()) - (1 - input.GetDither()));
+	clip(dither((min16uint2) pixel + GetTemporalAASampleRotation()) - (1 - input.GetDither()));
 #endif // OBJECTSHADER_USE_DITHERING
 #endif // DISABLE_ALPHATEST
 #endif // TRANSPARENT

@@ -235,7 +235,7 @@ namespace vz::renderer
 			view.visibleRenderables.resize(renderable_loop);
 			jobsystem::Dispatch(ctx, renderable_loop, groupSize, [&](jobsystem::JobArgs args) {
 
-				const std::vector<Entity>& renderable_entities = view.scene->GetRenderableEntities();
+				const std::vector<Entity>& renderable_entities = scene_Gdetails->renderableEntities;
 				Entity entity = renderable_entities[args.jobIndex];
 				const RenderableComponent& renderable = *compfactory::GetRenderableComponent(entity);
 				//assert(!renderable.IsDirty());
@@ -1116,7 +1116,7 @@ namespace vz
 		BindCommonResources(cmd);
 
 		// Wetmaps will be initialized:
-		const std::vector<Entity> renderable_entities = view.scene->GetRenderableEntities();
+		const std::vector<Entity> renderable_entities = scene_Gdetails->renderableEntities;
 		for (uint32_t renderableIndex = 0; renderableIndex < view.scene->GetRenderableCount(); ++renderableIndex)
 		{
 			const GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(renderable_entities[renderableIndex]);
@@ -1344,7 +1344,9 @@ namespace vz
 				if (occlusion && scene_Gdetails->occlusionResultsObjects[instanceIndex].IsOccluded())
 					continue;
 
-				const GRenderableComponent& renderable = view.scene->GetRenderableEntities()[instanceIndex];
+				
+				Entity renderable_entity = scene_Gdetails->renderableEntities[instanceIndex];
+				const GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(renderable_entity);
 				if (!renderable.IsRenderable())
 					continue;
 				if (foreground != renderable.IsForeground())
@@ -2119,7 +2121,7 @@ namespace vz
 							variant.bits.renderpass = renderPass;
 							variant.bits.shadertype = SCU32(material.GetShaderType());
 							variant.bits.blendmode = SCU32(material.GetBlendMode());
-							variant.bits.cullmode = material.IsDoubleSided() ? (uint32_t)CullMode::NONE : (uint32_t)CullMode::BACK;
+							variant.bits.cullmode = (uint32_t)CullMode::NONE;// material.IsDoubleSided() ? (uint32_t)CullMode::NONE : (uint32_t)CullMode::BACK;
 							variant.bits.tessellation = tessellatorRequested;
 							variant.bits.alphatest = material.IsAlphaTestEnabled() || forceAlphaTestForDithering;
 							variant.bits.sample_count = renderpass_info.sample_count;
@@ -2665,7 +2667,8 @@ namespace vz
 		fx.enableFullScreen();
 
 		device->EventBegin("Composition", cmd);
-		image::Draw(&rtPostprocess, fx, cmd);
+		//image::Draw(&rtPostprocess, fx, cmd);
+		image::Draw(&rtMain, fx, cmd);
 		device->EventEnd(cmd);
 
 		if (
