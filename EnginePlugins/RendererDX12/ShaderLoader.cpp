@@ -487,6 +487,9 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_PREPASS], "meshVS_prepass.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_PREPASS_ALPHATEST], "meshVS_prepass_alphatest.cso"); });
+
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_OCCLUDEE], "occludeeVS.cso"); });
 
@@ -494,6 +497,10 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_DEBUG], "meshPS_debug.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_SIMPLE], "meshPS_simple.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_VERTEXCOLOR], "vertexcolorPS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS], "meshPS_prepass.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_ALPHATEST], "meshPS_prepass_alphatest.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_DEPTHONLY], "meshPS_prepass_depthonly.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_DEPTHONLY_ALPHATEST], "meshPS_prepass_depthonly_alphatest.cso"); });
 
 
 		//----- PS materials by permutation -----
@@ -696,8 +703,8 @@ namespace vz::shader
 		
 		jobsystem::Wait(ctx);
 
-		const uint32_t renderPass = 0;
 		//for (uint32_t renderPass = 0; renderPass < RENDERPASS_COUNT; ++renderPass)
+		for (uint32_t renderPass = 0; renderPass <= RENDERPASS_PREPASS; ++renderPass)
 		{
 			const uint32_t mesh_shader = 0;
 			//for (uint32_t mesh_shader = 0; mesh_shader <= (device->CheckCapability(GraphicsDeviceCapability::MESH_SHADER) ? 1u : 0u); ++mesh_shader)

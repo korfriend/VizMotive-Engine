@@ -97,7 +97,7 @@ namespace vz::compfactory
 	{
 		ENTITY_UPDATE(entity_update);
 		HierarchyComponent* comp = &hierarchyManager.Create(entity_update);
-		HierarchyComponent* comp_parent = compfactory::GetHierarchyComponent(parent);
+		HierarchyComponent* comp_parent = hierarchyManager.GetComponent(parent);
 		if (comp_parent)
 		{
 			comp->SetParent(comp_parent->GetVUID());
@@ -147,25 +147,26 @@ namespace vz::compfactory
 		return comp;
 	}
 
+#define RETURN_GET_COMP(COMP_TYPE, COMP_MNG, ENTITY) COMP_TYPE* comp = COMP_MNG.GetComponent(entity); return comp;
 	NameComponent* GetNameComponent(const Entity entity)
 	{
-		return nameManager.GetComponent(entity);
+		RETURN_GET_COMP(NameComponent, nameManager, entity);
 	}
 	TransformComponent* GetTransformComponent(const Entity entity)
 	{
-		return transformManager.GetComponent(entity);
+		RETURN_GET_COMP(TransformComponent, transformManager, entity);
 	}
 	HierarchyComponent* GetHierarchyComponent(const Entity entity)
 	{
-		return hierarchyManager.GetComponent(entity);
+		RETURN_GET_COMP(HierarchyComponent, hierarchyManager, entity);
 	}
 	MaterialComponent* GetMaterialComponent(const Entity entity)
 	{
-		return materialManager.GetComponent(entity);
+		RETURN_GET_COMP(MaterialComponent, materialManager, entity);
 	}
 	GeometryComponent* GetGeometryComponent(const Entity entity)
 	{
-		return geometryManager.GetComponent(entity);
+		RETURN_GET_COMP(GeometryComponent, geometryManager, entity);
 	}
 	TextureComponent* GetTextureComponent(const Entity entity)
 	{
@@ -174,23 +175,24 @@ namespace vz::compfactory
 		{
 			comp = volumeManager.GetComponent(entity);
 		}
+		assert(comp); 
 		return comp;
 	}
 	VolumeComponent* GetVolumeComponent(const Entity entity)
 	{
-		return volumeManager.GetComponent(entity);
+		RETURN_GET_COMP(VolumeComponent, volumeManager, entity);
 	}
 	RenderableComponent* GetRenderableComponent(const Entity entity)
 	{
-		return renderableManager.GetComponent(entity);
+		RETURN_GET_COMP(RenderableComponent, renderableManager, entity);
 	}
 	LightComponent* GetLightComponent(const Entity entity)
 	{
-		return lightManager.GetComponent(entity);
+		RETURN_GET_COMP(LightComponent, lightManager, entity);
 	}
 	CameraComponent* GetCameraComponent(const Entity entity)
 	{
-		return cameraManager.GetComponent(entity);
+		RETURN_GET_COMP(CameraComponent, cameraManager, entity);
 	}
 
 #define GET_COMPONENTS(T, TM) comps.clear(); size_t n = entities.size(); comps.reserve(n); \
