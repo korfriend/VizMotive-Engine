@@ -13,10 +13,26 @@ namespace vzm
 			TEXTURESLOT_COUNT
 		};
 
+		enum class ShaderType : uint32_t
+		{
+			PHONG = 0,
+			PBR,
+			UNLIT,
+
+			COUNT
+		};
+
 		VzMaterial(const VID vid, const std::string& originFrom)
 			: VzResource(vid, originFrom, COMPONENT_TYPE::MATERIAL) {}
 
 		void SetTexture(const VID vid, const TextureSlot slot);
 		void SetTexture(const VzResource* res, const TextureSlot slot) { SetTexture(res->GetVID(), slot); }
+
+		void SetShaderType(const ShaderType shaderType);
+		ShaderType GetShaderType() const;
+		void SetDoubleSided(const bool enabled);
+		bool IsDoubleSided() const;
 	};
+	using TextureSlot = VzMaterial::TextureSlot;
+	using ShaderType = VzMaterial::ShaderType;
 }
