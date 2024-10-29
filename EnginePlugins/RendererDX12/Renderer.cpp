@@ -1,5 +1,5 @@
 #include "Renderer.h"
-
+#include "Image.h"
 #include "TextureHelper.h"
 
 #include "Utils/Timer.h"
@@ -52,6 +52,7 @@ namespace vz::renderer
 	const bool isMeshShaderAllowed = false;
 	const bool isShadowsEnabled = false;
 	const bool isVariableRateShadingClassification = false;
+	const bool isSurfelGIDebugEnabled = false;
 
 	using namespace geometrics;
 
@@ -740,6 +741,7 @@ namespace vz
 		void RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
 		void RenderPostprocessChain(CommandList cmd);
 		bool RenderProcess(const float dt);
+		void Compose(CommandList cmd);
 
 		// ---------- GRenderPath3D's interfaces: -----------------
 		bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) override; // must delete all canvas-related resources and re-create
@@ -2651,6 +2653,35 @@ namespace vz
 		return true;
 	}
 
+	void GRenderPath3DDetails::Compose(CommandList cmd) 
+	{
+		auto range = profiler::BeginRangeCPU("Compose");
+
+		image::SetCanvas(canvasWidth_, canvasHeight_, 96.F);
+
+		image::Params fx;
+		fx.blendFlag = MaterialComponent::BlendMode::BLENDMODE_OPAQUE;
+		fx.quality = image::QUALITY_LINEAR;
+		fx.enableFullScreen();
+
+		device->EventBegin("Composition", cmd);
+		image::Draw(&rtPostprocess, fx, cmd);
+		device->EventEnd(cmd);
+
+		if (
+			isDebugLightCulling || 
+			isVariableRateShadingClassification || 
+			isSurfelGIDebugEnabled
+			)
+		{
+			fx.enableFullScreen();
+			fx.blendFlag = MaterialComponent::BlendMode::BLENDMODE_PREMULTIPLIED;
+			image::Draw(&debugUAV, fx, cmd);
+		}
+
+		profiler::EndRange(range);
+	}
+
 	bool GRenderPath3DDetails::Render(const float dt)
 	{
 		if (!initializer::IsInitialized())
@@ -2686,7 +2717,9 @@ namespace vz
 		}
 
 		// ----- main render process -----
+		auto range = profiler::BeginRangeCPU("Render");
 		RenderProcess(dt);	// rtMain...
+		profiler::EndRange(range);
 
 		graphics::CommandList cmd = device->BeginCommandList();
 		// Begin final compositing:
@@ -2707,40 +2740,17 @@ namespace vz
 			device->RenderPassBegin(&swapChain_, cmd);
 		}
 
-
-		// TODO : additional composition pass
-		//{
-		//	image::Params fx;
-		//	fx.blendFlag = BLENDMODE_OPAQUE;
-		//	fx.quality = image::QUALITY_LINEAR;
-		//	fx.enableFullScreen();
-		//
-		//	device->EventBegin("Composition", cmd);
-		//	image::Draw(GetLastPostprocessRT(), fx, cmd);
-		//	device->EventEnd(cmd);
-		//
-		//	if (
-		//		renderer::GetDebugLightCulling() ||
-		//		renderer::GetVariableRateShadingClassificationDebug() ||
-		//		renderer::GetSurfelGIDebugEnabled()
-		//		)
-		//	{
-		//		fx.enableFullScreen();
-		//		fx.blendFlag = BLENDMODE_PREMULTIPLIED;
-		//		image::Draw(&debugUAV, fx, cmd);
-		//	}
-		//}
-
+		Compose(cmd);
 		device->RenderPassEnd(cmd);
 
 		if (colorspace_conversion_required)
 		{
 			// In HDR10, we perform a final mapping from linear to HDR10, into the swapchain
 			device->RenderPassBegin(&swapChain_, cmd);
-			//wi::image::Params fx;
-			//fx.enableFullScreen();
-			//fx.enableHDR10OutputMapping();
-			//wi::image::Draw(&rtRenderFinal_, fx, cmd);
+			image::Params fx;
+			fx.enableFullScreen();
+			fx.enableHDR10OutputMapping();
+			image::Draw(&rtRenderFinal_, fx, cmd);	// note: in this case, rtRenderFinal_ is used as inter-result of final render-out
 			device->RenderPassEnd(cmd);
 		}
 

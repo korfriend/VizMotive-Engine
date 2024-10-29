@@ -220,6 +220,7 @@ namespace vz::image
 
 	// Set canvas to handle DPI-aware image rendering (applied to all image rendering commands on the current thread)
 	//void SetCanvas(const Canvas& current_canvas);
+	void SetCanvas(const uint32_t canvasWidth, const uint32_t canvasHeight, const float dpi);
 
 	// Set a background texture (applied to all image rendering commands on the current thread that used enableBackground())
 	void SetBackground(const graphics::Texture& texture);
