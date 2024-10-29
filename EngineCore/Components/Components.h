@@ -466,13 +466,15 @@ namespace vz
 		inline const XMFLOAT4& GetSpecularColor() const { return specularColor_; }
 		inline const XMFLOAT4& GetEmissiveColor() const { return emissiveColor_; }	// w is emissive strength
 
-		void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; }
+		inline void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; }
 		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; }
 		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
 		inline void EnableWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; }
 		inline void SetCastShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; }
 		inline void SetReceiveShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; }
+		inline void SetShaderType(ShaderType shaderType) { shaderType_ = shaderType; }
+		inline void SetDoubleSided(bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 

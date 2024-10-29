@@ -142,6 +142,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MakeTestTriangle();
 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
+    material_test->SetShaderType(vzm::ShaderType::UNLIT);
+    material_test->SetDoubleSided(true);
 
     using TextureSlot = vzm::VzMaterial::TextureSlot;
 
