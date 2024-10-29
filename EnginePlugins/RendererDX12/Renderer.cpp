@@ -2119,7 +2119,7 @@ namespace vz
 						{
 							MeshRenderingVariant variant = {};
 							variant.bits.renderpass = renderPass;
-							variant.bits.shadertype = SCU32(material.GetShaderType());
+							variant.bits.shadertype = SCU32(MaterialComponent::ShaderType::UNLIT);// SCU32(material.GetShaderType());
 							variant.bits.blendmode = SCU32(material.GetBlendMode());
 							variant.bits.cullmode = (uint32_t)CullMode::NONE;// material.IsDoubleSided() ? (uint32_t)CullMode::NONE : (uint32_t)CullMode::BACK;
 							variant.bits.tessellation = tessellatorRequested;
