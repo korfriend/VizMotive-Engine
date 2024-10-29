@@ -429,6 +429,15 @@ namespace vz
 			STENCILREF_CUSTOMSHADER_OUTLINE = 4,
 			STENCILREF_LAST = 15
 		};
+		// There are two different kinds of stencil refs:
+		//	ENGINE	: managed by the engine systems (STENCILREF enum values between 0-15)
+		//	USER	: managed by the user (raw numbers between 0-15)
+		enum class StencilRefMask : uint8_t
+		{
+			STENCILREF_MASK_ENGINE = 0x0F,
+			STENCILREF_MASK_USER = 0xF0,
+			STENCILREF_MASK_ALL = STENCILREF_MASK_ENGINE | STENCILREF_MASK_USER,
+		};
 
 	protected:
 		uint32_t flags_ = (uint32_t)RenderFlags::FORWARD;

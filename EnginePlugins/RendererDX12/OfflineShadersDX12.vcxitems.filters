@@ -69,6 +69,9 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\raytracingHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\imageHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h">
@@ -132,6 +135,12 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS.hlsl">
       <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\imageVS.hlsl">
+      <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\imagePS.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

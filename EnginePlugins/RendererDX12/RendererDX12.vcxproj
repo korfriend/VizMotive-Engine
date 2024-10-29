@@ -142,6 +142,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Image.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
     <ClCompile Include="SceneResUpdate.cpp" />
@@ -155,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12MemAlloc.h" />
+    <ClInclude Include="Image.h" />
     <ClInclude Include="Noise.h" />
     <ClInclude Include="PluginInterface.h" />
     <ClInclude Include="GraphicsDevice_DX12.h" />
@@ -164,6 +166,7 @@
     <ClInclude Include="Shaders\ShaderInterop.h" />
     <ClInclude Include="Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="Shaders\ShaderInterop_Image.h" />
     <ClInclude Include="Shaders\ShaderInterop_Raytracing.h" />
     <ClInclude Include="Shaders\ShaderInterop_SurfelGI.h" />
     <ClInclude Include="Shaders\ShaderInterop_VXGI.h" />

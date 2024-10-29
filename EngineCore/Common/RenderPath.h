@@ -26,10 +26,12 @@ namespace vz
 		graphics::ColorSpace prevColorSpace_ = colorSpace_;
 		uint32_t prevMsaaSampleCount_ = 1;
 
-		
+
 	public:
-		RenderPath(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
-			: Canvas(entity), graphicsDevice_(graphicsDevice) { type_ = "RenderPath"; }
+		RenderPath(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
+			: Canvas(entity), graphicsDevice_(graphicsDevice) {
+			type_ = "RenderPath";
+		}
 		virtual ~RenderPath() = default;
 
 		float clearColor[4] = {};
@@ -62,5 +64,6 @@ namespace vz
 		virtual void ResizeResources() = 0;
 		virtual void Update(const float dt) = 0;
 		virtual void Render(const float dt) = 0;
+		virtual void Compose() = 0;
 	};
 }

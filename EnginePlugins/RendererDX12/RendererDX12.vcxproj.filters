@@ -25,6 +25,7 @@
     <ClCompile Include="Random.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
+    <ClCompile Include="Image.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shaders\ShaderInterop.h">
@@ -74,6 +75,10 @@
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\ShaderInterop_Raytracing.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="Image.h" />
+    <ClInclude Include="Shaders\ShaderInterop_Image.h">
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
   </ItemGroup>

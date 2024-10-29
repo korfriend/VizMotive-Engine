@@ -3,6 +3,7 @@
 #include "Common/RenderPath3D.h"
 #include "Utils/Backlog.h"
 #include "Utils/Helpers.h"
+#include "Utils/Profiler.h"
 
 using namespace vz;
 using namespace std;

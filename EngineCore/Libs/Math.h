@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <limits>
 
+#define SCU8(A) static_cast<uint8_t>(A)
 #define SCU32(A) static_cast<uint32_t>(A)
 
 #if __has_include("DirectXMath.h")

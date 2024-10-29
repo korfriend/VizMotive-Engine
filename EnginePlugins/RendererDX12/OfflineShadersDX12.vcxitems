@@ -17,6 +17,7 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\ColorSpaceUtility.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\fogHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\imageHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\lightingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\objectHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\raytracingHF.hlsli" />
@@ -40,6 +41,7 @@
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS_MSAA.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\imagePS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_debug.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_PBR.hlsl" />
@@ -47,6 +49,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_simple.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_UNLIT.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\vertexcolorPS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\imageVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_debug.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_simple.hlsl" />

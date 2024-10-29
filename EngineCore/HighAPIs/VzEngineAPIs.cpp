@@ -149,10 +149,7 @@ namespace vzm
 		// engine core initializer
 		uint32_t num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
 		initializer::SetMaxThreadCount(num_max_threads);
-		initializer::InitializeComponentsAsync();
-		//initializer::InitializeComponentsImmediate();
-
-		graphicsPackage.pluginInitRenderer();
+		initializer::InitializeComponentsAsync();	// involving jobsystem initializer
 		
 		initialized = true;
 		return true;

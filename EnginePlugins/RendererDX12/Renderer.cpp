@@ -38,8 +38,9 @@ namespace vz::rcommon
 
 namespace vz::renderer
 {
+	const float giBoost = 1.f;
 	const float renderingSpeed = 1.f;
-	const bool isOcclusionCullingEnabled = true;
+	const bool isOcclusionCullingEnabled = false;
 	const bool isFreezeCullingCameraEnabled = false;
 	const bool isSceneUpdateEnabled = true;
 	const bool isTemporalAAEnabled = false;
@@ -318,6 +319,8 @@ namespace vz::renderer
 			frameCB.temporalaa_samplerotation = (x & 0x000000FF) | ((y & 0x000000FF) << 8);
 		}
 
+		frameCB.gi_boost = giBoost;
+
 		frameCB.options = 0;
 		if (isTemporalAAEnabled)
 		{
@@ -342,6 +345,7 @@ namespace vz::renderer
 
 		const std::vector<Entity>& light_entities = vis.scene->GetLightEntities();
 
+		frameCB.entity_culling_count = 0;
 		// Write directional lights into entity array:
 		lightarray_offset = light_entity_counter;
 		lightarray_offset_directional = light_entity_counter;
@@ -390,12 +394,13 @@ namespace vz::renderer
 			light_entity_counter++;
 			lightarray_count_directional++;
 		}
+		frameCB.entity_culling_count = lightarray_count;
 
 		frameCB.directional_lights = ShaderEntityIterator(lightarray_offset_directional, lightarray_count_directional);
 		frameCB.lights = ShaderEntityIterator(lightarray_offset, lightarray_count);
 	}
 
-	constexpr uint32_t CombineStencilrefs(MaterialComponent::StencilRef engineStencilRef, uint8_t userStencilRef)
+	constexpr uint32_t CombineStencilrefs(StencilRef engineStencilRef, uint8_t userStencilRef)
 	{
 		return (userStencilRef << 4) | static_cast<uint8_t>(engineStencilRef);
 	}
@@ -734,6 +739,7 @@ namespace vz
 
 		void RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
 		void RenderPostprocessChain(CommandList cmd);
+		bool RenderProcess(const float dt);
 
 		// ---------- GRenderPath3D's interfaces: -----------------
 		bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) override; // must delete all canvas-related resources and re-create
@@ -2647,6 +2653,106 @@ namespace vz
 
 	bool GRenderPath3DDetails::Render(const float dt)
 	{
+		if (!initializer::IsInitialized())
+		{
+			return false;
+		}
+
+		profiler::BeginFrame();
+		// color space check
+		bool colorspace_conversion_required = false;
+		if (swapChain_.IsValid())
+		{
+			ColorSpace colorspace = device->GetSwapChainColorSpace(&swapChain_);
+			colorspace_conversion_required = colorspace == ColorSpace::HDR10_ST2084;
+			if (colorspace_conversion_required)
+			{
+				if (!rtRenderFinal_.IsValid())
+				{
+					TextureDesc desc;
+					desc.width = swapChain_.desc.width;
+					desc.height = swapChain_.desc.height;
+					desc.format = Format::R11G11B10_FLOAT;
+					desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
+					bool success = device->CreateTexture(&desc, nullptr, &rtRenderFinal_);
+					assert(success);
+					device->SetName(&rtRenderFinal_, "GRenderPath3DDetails::rtRenderFinal_");
+				}
+			}
+			else
+			{
+				rtRenderFinal_ = {};
+			}
+		}
+
+		// ----- main render process -----
+		RenderProcess(dt);	// rtMain...
+
+		graphics::CommandList cmd = device->BeginCommandList();
+		// Begin final compositing:
+		graphics::Viewport viewport_composite; // full buffer
+		viewport_composite.width = (float)canvasWidth_;
+		viewport_composite.height = (float)canvasHeight_;
+		device->BindViewports(1, &viewport, cmd);
+
+		if (colorspace_conversion_required)
+		{
+			graphics::RenderPassImage rp[] = {
+				graphics::RenderPassImage::RenderTarget(&rtRenderFinal_, graphics::RenderPassImage::LoadOp::CLEAR),
+			};
+			device->RenderPassBegin(rp, arraysize(rp), cmd);
+		}
+		else
+		{
+			device->RenderPassBegin(&swapChain_, cmd);
+		}
+
+
+		// TODO : additional composition pass
+		//{
+		//	image::Params fx;
+		//	fx.blendFlag = BLENDMODE_OPAQUE;
+		//	fx.quality = image::QUALITY_LINEAR;
+		//	fx.enableFullScreen();
+		//
+		//	device->EventBegin("Composition", cmd);
+		//	image::Draw(GetLastPostprocessRT(), fx, cmd);
+		//	device->EventEnd(cmd);
+		//
+		//	if (
+		//		renderer::GetDebugLightCulling() ||
+		//		renderer::GetVariableRateShadingClassificationDebug() ||
+		//		renderer::GetSurfelGIDebugEnabled()
+		//		)
+		//	{
+		//		fx.enableFullScreen();
+		//		fx.blendFlag = BLENDMODE_PREMULTIPLIED;
+		//		image::Draw(&debugUAV, fx, cmd);
+		//	}
+		//}
+
+		device->RenderPassEnd(cmd);
+
+		if (colorspace_conversion_required)
+		{
+			// In HDR10, we perform a final mapping from linear to HDR10, into the swapchain
+			device->RenderPassBegin(&swapChain_, cmd);
+			//wi::image::Params fx;
+			//fx.enableFullScreen();
+			//fx.enableHDR10OutputMapping();
+			//wi::image::Draw(&rtRenderFinal_, fx, cmd);
+			device->RenderPassEnd(cmd);
+		}
+
+		profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
+
+		device->SubmitCommandLists();
+
+		return true;
+	}
+
+	bool GRenderPath3DDetails::RenderProcess(const float dt)
+	{
 		UpdateViewRes(dt);
 
 		jobsystem::context ctx;
@@ -3288,15 +3394,6 @@ namespace vz
 		jobsystem::Wait(ctx);
 
 		firstFrame = false;
-
-		//RenderPassImage rp[] = {
-		//	RenderPassImage::RenderTarget(&rtOut, RenderPassImage::LoadOp::CLEAR),
-		//};
-		//graphicsDevice_->RenderPassBegin(rp, arraysize(rp), cmd);
-		//device->RenderPassBegin(&swapChain_, cmd);
-		//device->RenderPassEnd(cmd);
-		//device->SubmitCommandLists();
-		/**/
 		return true;
 	}
 
