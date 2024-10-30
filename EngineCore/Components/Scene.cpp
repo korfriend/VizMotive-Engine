@@ -33,7 +33,8 @@ namespace vz
 		//std::vector<primitive::AABB> aabbLights;
 
 		inline void RunTransformUpdateSystem(jobsystem::context& ctx);
-		inline void RunSceneComponentUpdateSystem(jobsystem::context& ctx);
+		inline void RunRenderableUpdateSystem(jobsystem::context& ctx);
+		inline void RunLightUpdateSystem(jobsystem::context& ctx);
 	};
 }
 
@@ -69,7 +70,7 @@ namespace vz
 			transform->UpdateMatrix();
 			});
 	}
-	void SceneDetails::RunSceneComponentUpdateSystem(jobsystem::context& ctx)
+	void SceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
 	{
 		parallelBounds.clear();
 		parallelBounds.resize((size_t)jobsystem::DispatchGroupCount((uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE));
@@ -107,13 +108,26 @@ namespace vz
 					}
 				}
 			}
+		}, sizeof(geometrics::AABB));
+	}
+
+	void SceneDetails::RunLightUpdateSystem(jobsystem::context& ctx)
+	{
+		jobsystem::Dispatch(ctx, (uint32_t)lights_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+			Entity entity = lights_[args.jobIndex];
+
+			TransformComponent* transform = compfactory::GetTransformComponent(entity);
+			if (transform == nullptr)
+				return;
+			transform->UpdateWorldMatrix();
 
 			LightComponent* light = compfactory::GetLightComponent(entity);
 			if (light)
 			{
 				light->Update();	// AABB
 			}
-		}, sizeof(geometrics::AABB));
+			});
 	}
 
 	void Scene::Update(const float dt)
@@ -145,7 +159,8 @@ namespace vz
 
 		scene_details->RunTransformUpdateSystem(ctx);
 		jobsystem::Wait(ctx); // dependencies
-		scene_details->RunSceneComponentUpdateSystem(ctx);
+		scene_details->RunRenderableUpdateSystem(ctx);
+		scene_details->RunLightUpdateSystem(ctx);
 		jobsystem::Wait(ctx); // dependencies
 
 		// Merge parallel bounds computation (depends on object update system):

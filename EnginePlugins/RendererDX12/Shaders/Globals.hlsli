@@ -444,12 +444,12 @@ inline ShaderEntityIterator probes()
     iter.value = GetFrame().probes;
     return iter;
 }
-//inline ShaderEntityIterator decals()
-//{
-//    ShaderEntityIterator iter;
-//    iter.value = GetFrame().decals;
-//    return iter;
-//}
+inline ShaderEntityIterator decals()
+{
+    ShaderEntityIterator iter;
+    iter.value = GetFrame().decals;
+    return iter;
+}
 //inline ShaderEntityIterator forces()
 //{
 //    ShaderEntityIterator iter;

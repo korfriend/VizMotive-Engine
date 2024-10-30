@@ -1034,10 +1034,6 @@ struct ShaderEntityIterator
 	constexpr operator uint() const { return value; }
 #endif // __cplusplus
 
-	inline bool empty()
-	{
-		return value == 0;
-	}
 	inline uint item_offset()
 	{
 		return value & 0xFFFF;
@@ -1046,13 +1042,21 @@ struct ShaderEntityIterator
 	{
 		return value >> 16u;
 	}
+	inline bool empty()
+	{
+		return item_count() == 0;
+	}
 	inline uint first_item()
 	{
 		return item_offset();
 	}
-	inline uint last_item()
+	inline uint last_item() // includes last valid item
 	{
 		return empty() ? 0 : (item_offset() + item_count() - 1);
+	}
+	inline uint end_item() // excludes last valid item
+	{
+		return empty() ? 0 : (item_offset() + item_count());
 	}
 	inline uint first_bucket()
 	{
