@@ -914,6 +914,7 @@ namespace vz
 		mutable int occlusionquery = -1;
 
 		// Non-serialized attributes: (these variables are supposed to be updated via transformers)
+		// read-only
 		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
 		XMFLOAT3 direction = XMFLOAT3(0, 1, 0);
 		XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);

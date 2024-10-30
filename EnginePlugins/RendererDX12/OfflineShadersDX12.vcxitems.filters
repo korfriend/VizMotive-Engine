@@ -72,6 +72,9 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\imageHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\cullingShaderHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h">
@@ -165,6 +168,18 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_prepass_depthonly_alphatest.hlsl">
       <Filter>Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS_ADVANCED.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS_ADVANCED_DEBUG.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS_DEBUG.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

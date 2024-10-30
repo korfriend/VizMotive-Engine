@@ -389,6 +389,7 @@ namespace vz
 
 namespace vz
 {
+	const XMVECTOR BASE_LIGHT_DIR = XMVectorSet(0, 1, 0, 0);
 	inline void LightComponent::Update()
 	{
 		TransformComponent* transform = compfactory::GetTransformComponent(entity_);
@@ -408,7 +409,7 @@ namespace vz
 		XMStoreFloat3(&position, T);
 		XMStoreFloat4(&rotation, R);
 		XMStoreFloat3(&scale, S);
-		XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W)));
+		XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(BASE_LIGHT_DIR, W)));
 
 		occlusionquery = -1;	// TODO
 
@@ -416,15 +417,12 @@ namespace vz
 		{
 		default:
 		case LightType::DIRECTIONAL:
-			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W)));
 			aabb_.createFromHalfWidth(XMFLOAT3(0, 0, 0), XMFLOAT3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()));
 			break;
 		case LightType::SPOT:
-			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), W)));
 			aabb_.createFromHalfWidth(position, XMFLOAT3(range_, range_, range_));
 			break;
 		case LightType::POINT:
-			XMStoreFloat3(&direction, XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(1, 0, 0, 0), W)));
 			aabb_.createFromHalfWidth(position, XMFLOAT3(range_, range_, range_));
 			break;
 		}

@@ -486,7 +486,6 @@ namespace vz::renderer
 	struct TiledLightResources
 	{
 		XMUINT2 tileCount = {};
-		graphics::GPUBuffer tileFrustums; // entity culling frustums
 		graphics::GPUBuffer entityTiles; // culled entity indices
 	};
 	struct LuminanceResources
@@ -1508,26 +1507,14 @@ namespace vz
 	{
 		res.tileCount = GetEntityCullingTileCount(resolution);
 
-		{
-			GPUBufferDesc bd;
-			bd.stride = sizeof(XMFLOAT4) * 4; // storing 4 planes for every tile
-			bd.size = bd.stride * res.tileCount.x * res.tileCount.y;
-			bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			bd.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
-			bd.usage = Usage::DEFAULT;
-			device->CreateBuffer(&bd, nullptr, &res.tileFrustums);
-			device->SetName(&res.tileFrustums, "tileFrustums");
-		}
-		{
-			GPUBufferDesc bd;
-			bd.stride = sizeof(uint);
-			bd.size = res.tileCount.x * res.tileCount.y * bd.stride * SHADER_ENTITY_TILE_BUCKET_COUNT * 2; // *2: opaque and transparent arrays
-			bd.usage = Usage::DEFAULT;
-			bd.bind_flags = BindFlag::UNORDERED_ACCESS | BindFlag::SHADER_RESOURCE;
-			bd.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
-			device->CreateBuffer(&bd, nullptr, &res.entityTiles);
-			device->SetName(&res.entityTiles, "entityTiles");
-		}
+		GPUBufferDesc bd;
+		bd.stride = sizeof(uint);
+		bd.size = res.tileCount.x * res.tileCount.y * bd.stride * SHADER_ENTITY_TILE_BUCKET_COUNT * 2; // *2: opaque and transparent arrays
+		bd.usage = Usage::DEFAULT;
+		bd.bind_flags = BindFlag::UNORDERED_ACCESS | BindFlag::SHADER_RESOURCE;
+		bd.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+		device->CreateBuffer(&bd, nullptr, &res.entityTiles);
+		device->SetName(&res.entityTiles, "entityTiles");
 	}
 
 	void GRenderPath3DDetails::ComputeTiledLightCulling(
@@ -1539,14 +1526,7 @@ namespace vz
 	{
 		auto range = profiler::BeginRangeGPU("Entity Culling", &cmd);
 
-		// Initial barriers to put all resources into UAV:
-		{
-			GPUBarrier barriers[] = {
-				GPUBarrier::Buffer(&res.tileFrustums, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS),
-				GPUBarrier::Buffer(&res.entityTiles, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS),
-			};
-			device->Barrier(barriers, arraysize(barriers), cmd);
-		}
+		device->Barrier(GPUBarrier::Buffer(&res.entityTiles, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS), cmd);
 
 		if (
 			vis.visibleLights.empty() //&&
@@ -1555,15 +1535,8 @@ namespace vz
 			)
 		{
 			device->EventBegin("Tiled Entity Clear Only", cmd);
-			device->ClearUAV(&res.tileFrustums, 0, cmd);
 			device->ClearUAV(&res.entityTiles, 0, cmd);
-			{
-				GPUBarrier barriers[] = {
-					GPUBarrier::Buffer(&res.tileFrustums, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE),
-					GPUBarrier::Buffer(&res.entityTiles, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE),
-				};
-				device->Barrier(barriers, arraysize(barriers), cmd);
-			}
+			device->Barrier(GPUBarrier::Buffer(&res.entityTiles, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE), cmd);
 			device->EventEnd(cmd);
 			profiler::EndRange(range);
 			return;
@@ -1571,38 +1544,9 @@ namespace vz
 
 		BindCommonResources(cmd);
 
-		// Frustum computation
-		{
-			device->EventBegin("Tile Frustums", cmd);
-			device->BindComputeShader(&rcommon::shaders[CSTYPE_TILEFRUSTUMS], cmd);
-
-			const GPUResource* uavs[] = {
-				&res.tileFrustums
-			};
-			device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
-
-			device->Dispatch(
-				(res.tileCount.x + TILED_CULLING_BLOCKSIZE - 1) / TILED_CULLING_BLOCKSIZE,
-				(res.tileCount.y + TILED_CULLING_BLOCKSIZE - 1) / TILED_CULLING_BLOCKSIZE,
-				1,
-				cmd
-			);
-
-			{
-				GPUBarrier barriers[] = {
-					GPUBarrier::Buffer(&res.tileFrustums, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE),
-				};
-				device->Barrier(barriers, arraysize(barriers), cmd);
-			}
-
-			device->EventEnd(cmd);
-		}
-
 		// Perform the culling
 		{
 			device->EventBegin("Entity Culling", cmd);
-
-			device->BindResource(&res.tileFrustums, 0, cmd);
 
 			if (isDebugLightCulling && debugUAV.IsValid())
 			{

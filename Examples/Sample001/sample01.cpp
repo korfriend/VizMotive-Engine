@@ -142,7 +142,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MakeTestTriangle();
 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
-    material_test->SetShaderType(vzm::ShaderType::UNLIT);
+    material_test->SetShaderType(vzm::ShaderType::PBR);
     material_test->SetDoubleSided(true);
 
     using TextureSlot = vzm::VzMaterial::TextureSlot;
@@ -159,6 +159,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//actor_test->SetGeometry(geometry_test);
     //actor_test->SetMaterial(material_test, 0);
 
+	vzm::VzLight* light_test = vzm::NewLight("my light");
+	glm::fvec3 light_p(0, 0, 100);
+    light_test->SetPosition(__FP light_p);
+    glm::fvec3 light_euler(0, 180, 0);
+    light_test->SetEulerAngleZXYInDegree(__FP light_euler);
+
 
     // Actor New
     // Geometry New
@@ -166,9 +172,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // Scene Update (Geometry to GPU)
     // Graphics Pipeline
     // Material ...
-    // Draw it
+	// Draw it
 
 	vzm::AppendSceneCompTo(actor_test, scene);
+	vzm::AppendSceneCompTo(light_test, scene);
 
 	//vzm::AppendSceneCompTo(actor_axis, actor);
 	//vzm::AppendSceneCompTo(light, scene);
