@@ -2,6 +2,7 @@
 #include "Components/ComponentDetails.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
+#include "Utils/EventHandler.h"
 #include "Utils/ECS.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
@@ -238,10 +239,12 @@ namespace vzm
 
 	VzCamera* NewCamera(const std::string& name, const VID parentVid)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		return (VzCamera*)newSceneComponent(COMPONENT_TYPE::CAMERA, name, parentVid);
 	}
 	VzActor* NewActor(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		VzActor* actor = (VzActor*)newSceneComponent(COMPONENT_TYPE::ACTOR, name, parentVid);
 		if (vidGeo) actor->SetGeometry(vidGeo);
 		if (vidMat) actor->SetMaterial(vidMat);
@@ -249,10 +252,12 @@ namespace vzm
 	}
 	VzActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		return NewActor(name, geometry->GetVID(), material->GetVID(), parentVid);
 	}
 	VzLight* NewLight(const std::string& name, const VID parentVid)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		return (VzLight*)newSceneComponent(COMPONENT_TYPE::LIGHT, name, parentVid);
 	}
 
@@ -317,18 +322,22 @@ namespace vzm
 
 	VzGeometry* NewGeometry(const std::string& name)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		return (VzGeometry*)newResComponent(COMPONENT_TYPE::GEOMETRY, name);
 	}
 	VzMaterial* NewMaterial(const std::string& name)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		return (VzMaterial*)newResComponent(COMPONENT_TYPE::MATERIAL, name);
 	}
 	VzTexture* NewTexture(const std::string& name)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		return (VzTexture*)newResComponent(COMPONENT_TYPE::TEXTURE, name);
 	}
 	VzVolume* NewVolume(const std::string& name)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		return (VzVolume*)newResComponent(COMPONENT_TYPE::VOLUME, name);
 	}
 
@@ -543,10 +552,12 @@ namespace vzm
 
 	VID GetFirstVidByName(const std::string& name)
 	{
+		CHECK_API_VALIDITY(INVALID_VID);
 		return compfactory::GetFirstEntityByName(name);
 	}
 	VzBaseComp* GetFirstComponentByName(const std::string& name)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		VID vid = compfactory::GetFirstEntityByName(name);
 		if (vid == INVALID_VID)
 		{
@@ -559,11 +570,13 @@ namespace vzm
 
 	size_t GetVidsByName(const std::string& name, std::vector<VID>& vids)
 	{
+		CHECK_API_VALIDITY(0);
 		return compfactory::GetEntitiesByName(name, vids);
 	}
 
 	size_t GetComponentsByName(const std::string& name, std::vector<VzBaseComp*>& components)
 	{
+		CHECK_API_VALIDITY(0);
 		components.clear();
 		std::vector<VID> vids;
 		size_t n = compfactory::GetEntitiesByName(name, vids);
@@ -584,18 +597,21 @@ namespace vzm
 
 	std::string GetNameByVid(const VID vid)
 	{
+		CHECK_API_VALIDITY("");
 		NameComponent* name_comp = compfactory::GetNameComponent(vid);
 		return name_comp ? name_comp->name : "";
 	}
 
 	VzBaseComp* GetComponent(const VID vid)
 	{
+		CHECK_API_VALIDITY(nullptr);
 		auto it = vzcomp::lookup.find(vid);
 		return it == vzcomp::lookup.end() ? nullptr : it->second;
 	}
 	
 	bool RemoveComponent(const VID vid)
 	{
+		CHECK_API_VALIDITY(false);
 		return vzcomp::Destroy(vid);	// jobsystem
 	}
 
@@ -604,6 +620,7 @@ namespace vzm
 
 	bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io)
 	{
+		CHECK_API_VALIDITY(false);
 		typedef bool(*PI_Function)(std::unordered_map<std::string, std::any>& io);
 		PI_Function lpdll_function = platform::LoadModule<PI_Function>(pluginFilename, functionName);
 		if (lpdll_function == nullptr)
@@ -613,6 +630,12 @@ namespace vzm
 		}
 		std::unordered_map<std::string, std::any>& io_map = io.GetMap();
 		return lpdll_function(io_map);
+	}
+
+	void ReloadShader()
+	{
+		CHECK_API_VALIDITY(;);
+		eventhandler::FireEvent(eventhandler::EVENT_RELOAD_SHADERS, 0);
 	}
 
 	bool DeinitEngineLib()

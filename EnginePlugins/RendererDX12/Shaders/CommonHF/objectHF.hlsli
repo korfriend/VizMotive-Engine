@@ -901,7 +901,6 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 
 	Lighting lighting;
 	lighting.create(0, 0, ambient, 0);
-
 	
 	half4 color = surface.baseColor;
 
@@ -996,12 +995,12 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	lighting.indirect.specular += PlanarReflection(surface, surface.bumpColor.rg) * surface.F;
 #endif
 
-
 #ifdef FORWARD
 	ForwardLighting(surface, lighting);
 #endif // FORWARD
 
-
+// https://google.github.io/filament/Filament.html
+// the same asdouble Filament Forward+ rendering
 #ifdef TILEDFORWARD
 	TiledLighting(surface, lighting, flat_tile_index);
 #endif // TILEDFORWARD

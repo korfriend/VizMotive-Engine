@@ -110,7 +110,7 @@ struct SurfaceToLight
 		L = Lnormalized;
 		H = normalize(L + surface.V);
 
-		NdotL = dot(L, (half)surface.N);
+		NdotL = dot(L, (half3)surface.N);
 
 #ifdef BRDF_NDOTL_BIAS
 		NdotL += BRDF_NDOTL_BIAS;
@@ -145,9 +145,9 @@ struct SurfaceToLight
 		NdotL_sss = (NdotL_sss + surface.sss.rgb) * surface.sss_inv.rgb;
 #endif // CARTOON
 
-		NdotL = saturate(NdotL);
-		NdotL_sss = saturate(NdotL_sss);
-	}
+        NdotL = (half3)saturate((float3) NdotL);
+        NdotL_sss = (half3) saturate((float3) NdotL_sss);
+    }
 };
 
 

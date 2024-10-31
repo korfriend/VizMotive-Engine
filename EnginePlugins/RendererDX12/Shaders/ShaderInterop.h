@@ -840,8 +840,28 @@ struct alignas(16) ShaderScene
 
 		float3 cell_size_rcp;
 		float smooth_backface;
+		
+		void Init()
+		{
+			color_texture = depth_texture = offset_texture = -1;
+		}
 	};
 	DDGI ddgi;
+
+	void Init()
+	{
+		instancebuffer = -1;
+		geometrybuffer = -1;
+		materialbuffer = -1;
+		texturestreamingbuffer = -1;
+
+		TLAS = -1;
+		BVH_counter = -1;
+		BVH_nodes = -1;
+		BVH_primitives = -1;
+
+		ddgi.Init();
+	}
 };
 
 // Warning: the size of this structure directly affects shader performance.
@@ -1143,6 +1163,18 @@ struct alignas(16) FrameCB
 	//	This is why such units and their transform matrices do not belong to 'ShaderScene'
 	ShaderEntity entityArray[SHADER_ENTITY_COUNT];
 	float4x4 matrixArray[SHADER_ENTITY_COUNT];
+
+	void Init()
+	{
+		texture_shadowatlas_index = -1;
+		texture_shadowatlas_transparent_index = -1;
+		texture_random64x64_index = -1;
+		texture_bluenoise_index = -1;
+		texture_sheenlut_index = -1;
+
+		scene.Init();
+		vxgi.Init();
+	}
 };
 
 

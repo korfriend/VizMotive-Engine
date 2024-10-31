@@ -31,6 +31,7 @@ struct LightingPart
 	half3 diffuse;
 	half3 specular;
 };
+
 struct Lighting
 {
 	LightingPart direct;
@@ -66,10 +67,11 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
 		
 	half3 L = light.GetDirection();
 	SurfaceToLight surface_to_light;
+		
 	surface_to_light.create(surface, L);
 	
-	if (!any(surface_to_light.NdotL_sss))
-		return; // early exit: facing away from light
+    if (!any(surface_to_light.NdotL_sss))
+        return; // early exit: facing away from light
 		
 	half3 light_color = light.GetColor().rgb * shadow_mask;
 
@@ -352,7 +354,7 @@ inline void light_spot(in ShaderEntity light, in Surface surface, inout Lighting
 
 inline half3 GetAmbient(in float3 N)
 {
-	half3 ambient;
+    half3 ambient = (half3)0;
 
 #ifdef ENVMAPRENDERING
 
@@ -383,7 +385,7 @@ inline half3 GetAmbient(in float3 N)
 	ambient += (half3) GetAmbientColor();
 #endif // NO_FLAT_AMBIENT
 
-	return ambient;
+    return ambient;
 }
 
 // surface:				surface descriptor
