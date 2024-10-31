@@ -312,6 +312,8 @@ namespace vz
 			assert(seri_name == "Scene");
 			archive >> name_;
 
+			archive >> ambient_;
+
 			size_t num_renderables;
 			archive >> num_renderables;
 			for (size_t i = 0; i < num_renderables; ++i)
@@ -338,6 +340,8 @@ namespace vz
 		{
 			archive << "Scene";
 			archive << name_;
+
+			archive << ambient_;
 
 			archive << renderables_.size();
 			for (Entity entity : renderables_)

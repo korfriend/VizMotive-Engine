@@ -63,6 +63,10 @@ namespace vz
 	protected:
 		std::string name_;
 
+		// Scene lights (Skybox or Weather something...)
+		XMFLOAT3 ambient_ = XMFLOAT3(0.25f, 0.25f, 0.25f);
+
+
 		// Instead of Entity, VUID is stored by serialization
 		//	the index is same to the streaming index
 		std::vector<Entity> renderables_;
@@ -98,6 +102,9 @@ namespace vz
 		inline const std::string GetSceneName() const { return name_; }
 		inline const Entity GetSceneEntity() const { return entity_; }
 		inline const GScene* GetGSceneHandle() const { return handlerScene_; }
+
+		inline void SetAmbient(const XMFLOAT3& ambient) { ambient_ = ambient; }
+		inline XMFLOAT3 GetAmbient() const { return ambient_; }
 
 		inline void Update(const float dt);
 
@@ -897,6 +904,10 @@ namespace vz
 		XMFLOAT3 color_ = XMFLOAT3(1, 1, 1);
 		float range_ = 10.0f;
 		float intensity_ = 1.0f; // Brightness of light in. The units that this is defined in depend on the type of light. Point and spot lights use luminous intensity in candela (lm/sr) while directional lights use illuminance in lux (lm/m2). https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual
+		
+		// spotlight only
+		float radius_ = 0.25; 
+		float length_ = 0.f;
 
 		// Non-serialized attributes:
 		bool isDirty_ = true;
@@ -933,7 +944,11 @@ namespace vz
 			retval = std::min(retval, 65504.0f); // clamp to 16-bit float max value
 			return retval;
 		}
-		const geometrics::AABB& GetAABB() const { return aabb_; }
+		inline void SetRadius(const float radius) { radius_ = radius; }
+		inline float GetRadius() const { return radius_; }
+		inline void SetLength(const float length) { length_ = length; }
+		inline float GetLength() const { return length_; }
+		inline const geometrics::AABB& GetAABB() const { return aabb_; }
 		inline LightType GetLightType() const { return type_; }
 		inline void SetLightType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
 		inline bool IsInactive() const { return intensity_ == 0 || range_ == 0; }

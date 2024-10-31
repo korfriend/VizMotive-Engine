@@ -249,6 +249,8 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_KEYDOWN:
         switch (wParam) {
+        case 'R': vzm::ReloadShader(); 
+            break;
         default:
             break;
         }

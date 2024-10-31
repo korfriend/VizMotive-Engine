@@ -50,6 +50,12 @@ struct alignas(16) VXGI
 		return P;
 	}
 #endif // __cplusplus
+
+	void Init()
+	{
+		texture_radiance = -1;
+		texture_sdf = -1;
+	}
 };
 
 struct alignas(16) VoxelizerCB

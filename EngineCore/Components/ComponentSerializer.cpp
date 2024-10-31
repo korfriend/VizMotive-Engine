@@ -323,6 +323,8 @@ namespace vz
 
 			archive >> color_;
 			archive >> range_;
+			archive >> radius_;
+			archive >> length_;
 		}
 		else
 		{
@@ -330,6 +332,8 @@ namespace vz
 
 			archive << color_;
 			archive << range_;
+			archive << radius_;
+			archive << length_;
 		}
 	}
 

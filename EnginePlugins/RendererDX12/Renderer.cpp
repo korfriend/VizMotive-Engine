@@ -306,6 +306,7 @@ namespace vz::renderer
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();
 
 		// Update CPU-side frame constant buffer:
+		frameCB.Init();
 		frameCB.delta_time = dt * renderingSpeed;
 		frameCB.time_previous = frameCB.time;
 		frameCB.time += frameCB.delta_time;
@@ -327,6 +328,8 @@ namespace vz::renderer
 		{
 			frameCB.options |= OPTION_BIT_TEMPORALAA_ENABLED;
 		}
+		frameCB.options |= OPTION_BIT_DISABLE_ALBEDO_MAPS;
+		frameCB.options |= OPTION_BIT_FORCE_DIFFUSE_LIGHTING;
 
 		frameCB.scene = scene_Gdetails->shaderscene;
 
@@ -334,71 +337,502 @@ namespace vz::renderer
 		frameCB.texture_bluenoise_index = device->GetDescriptorIndex(texturehelper::getBlueNoise(), SubresourceType::SRV);
 		frameCB.texture_sheenlut_index = device->GetDescriptorIndex(&rcommon::textures[TEXTYPE_2D_SHEENLUT], SubresourceType::SRV);
 
+		// Fill Entity Array with decals + envprobes + lights in the frustum:
+		uint envprobearray_offset = 0;
+		uint envprobearray_count = 0;
 		uint lightarray_offset_directional = 0;
 		uint lightarray_count_directional = 0;
+		uint lightarray_offset_spot = 0;
+		uint lightarray_count_spot = 0;
+		uint lightarray_offset_point = 0;
+		uint lightarray_count_point = 0;
 		uint lightarray_offset = 0;
 		uint lightarray_count = 0;
-
-		ShaderEntity* light_entity_array = frameCB.entityArray;
-		float4x4* light_matrix_array = frameCB.matrixArray;
-
-		uint32_t light_entity_counter = 0;
-
-		const std::vector<Entity>& light_entities = vis.scene->GetLightEntities();
-
+		uint decalarray_offset = 0;
+		uint decalarray_count = 0;
+		uint forcefieldarray_offset = 0;
+		uint forcefieldarray_count = 0;
 		frameCB.entity_culling_count = 0;
-		// Write directional lights into entity array:
-		lightarray_offset = light_entity_counter;
-		lightarray_offset_directional = light_entity_counter;
-		for (uint32_t lightIndex : vis.visibleLights)
 		{
-			if (light_entity_counter == SHADER_ENTITY_COUNT)
-			{
-				light_entity_counter--;
-				break;
-			}
+			ShaderEntity* entity_array = frameCB.entityArray;
+			float4x4* light_matrix_array = frameCB.matrixArray;
 
-			const GLightComponent& light = *(GLightComponent*)compfactory::GetLightComponent(light_entities[lightIndex]);
-			if (light.GetLightType() != LightComponent::LightType::DIRECTIONAL || light.IsInactive())
-				continue;
+			uint32_t entity_counter = 0;
+			uint32_t matrix_counter = 0;
 
-			ShaderEntity light_entity = {};
-			light_entity.layerMask = ~0u;
-
-			light_entity.SetType(SCU32(light.GetLightType()));
-			light_entity.position = light.position;
-			light_entity.SetRange(light.GetRange());
-			light_entity.SetRadius(0);
-			light_entity.SetLength(0);
-			light_entity.SetDirection(light.direction);
-			XMFLOAT3 light_color = light.GetLightColor();
-			float light_intensity = light.GetLightIntensity();
-			light_entity.SetColor(float4(light_color.x * light_intensity, light_color.y * light_intensity, light_color.z * light_intensity, 1.f));
-
-			// mark as no shadow by default:
-			light_entity.indices = ~0;
-
-			const uint cascade_count = std::min((uint)light.cascadeDistances.size(), SHADER_ENTITY_COUNT - light_entity_counter);
-			light_entity.SetShadowCascadeCount(cascade_count);
-
-			//if (shadow && !light.cascade_distances.empty())
+			// Write decals into entity array:
+			//decalarray_offset = entityCounter;
+			//const size_t decal_iterations = std::min((size_t)MAX_SHADER_DECAL_COUNT, vis.visibleDecals.size());
+			//for (size_t i = 0; i < decal_iterations; ++i)
 			//{
-			//	SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
-			//	CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
-			//	for (size_t cascade = 0; cascade < cascade_count; ++cascade)
+			//	if (entity_counter == SHADER_ENTITY_COUNT)
 			//	{
-			//		XMStoreFloat4x4(&light_matrix_array[light_matrix_counter++], shcams[cascade].view_projection);
+			//		backlog::post("Shader Entity Overflow!! >> DECALS");
+			//		entity_counter--;
+			//		break;
 			//	}
+			//	if (matrix_counter >= MATRIXARRAY_COUNT)
+			//	{
+			//		matrix_counter--;
+			//		break;
+			//	}
+			//	ShaderEntity shaderentity = {};
+			//	XMMATRIX shadermatrix;
+			//
+			//	const uint32_t decalIndex = vis.visibleDecals[vis.visibleDecals.size() - 1 - i]; // note: reverse order, for correct blending!
+			//	const DecalComponent& decal = vis.scene->decals[decalIndex];
+			//
+			//	shaderentity.layerMask = ~0u;
+			//
+			//	Entity entity = vis.scene->decals.GetEntity(decalIndex);
+			//	const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
+			//	if (layer != nullptr)
+			//	{
+			//		shaderentity.layerMask = layer->layerMask;
+			//	}
+			//
+			//	shaderentity.SetType(ENTITY_TYPE_DECAL);
+			//	if (decal.IsBaseColorOnlyAlpha())
+			//	{
+			//		shaderentity.SetFlags(ENTITY_FLAG_DECAL_BASECOLOR_ONLY_ALPHA);
+			//	}
+			//	shaderentity.position = decal.position;
+			//	shaderentity.SetRange(decal.range);
+			//	float emissive_mul = 1 + decal.emissive;
+			//	shaderentity.SetColor(float4(decal.color.x * emissive_mul, decal.color.y * emissive_mul, decal.color.z * emissive_mul, decal.color.w));
+			//	shaderentity.shadowAtlasMulAdd = decal.texMulAdd;
+			//	shaderentity.SetConeAngleCos(decal.slopeBlendPower);
+			//	shaderentity.SetDirection(decal.front);
+			//	shaderentity.SetAngleScale(decal.normal_strength);
+			//	shaderentity.SetLength(decal.displacement_strength);
+			//
+			//	shaderentity.SetIndices(matrixCounter, 0);
+			//	shadermatrix = XMMatrixInverse(nullptr, XMLoadFloat4x4(&decal.world));
+			//
+			//	int texture = -1;
+			//	if (decal.texture.IsValid())
+			//	{
+			//		texture = device->GetDescriptorIndex(&decal.texture.GetTexture(), SubresourceType::SRV, decal.texture.GetTextureSRGBSubresource());
+			//	}
+			//	int normal = -1;
+			//	if (decal.normal.IsValid())
+			//	{
+			//		normal = device->GetDescriptorIndex(&decal.normal.GetTexture(), SubresourceType::SRV);
+			//	}
+			//	int surfacemap = -1;
+			//	if (decal.surfacemap.IsValid())
+			//	{
+			//		surfacemap = device->GetDescriptorIndex(&decal.surfacemap.GetTexture(), SubresourceType::SRV);
+			//	}
+			//	int displacementmap = -1;
+			//	if (decal.displacementmap.IsValid())
+			//	{
+			//		displacementmap = device->GetDescriptorIndex(&decal.displacementmap.GetTexture(), SubresourceType::SRV);
+			//	}
+			//
+			//	shadermatrix.r[0] = XMVectorSetW(shadermatrix.r[0], *(float*)&texture);
+			//	shadermatrix.r[1] = XMVectorSetW(shadermatrix.r[1], *(float*)&normal);
+			//	shadermatrix.r[2] = XMVectorSetW(shadermatrix.r[2], *(float*)&surfacemap);
+			//	shadermatrix.r[3] = XMVectorSetW(shadermatrix.r[3], *(float*)&displacementmap);
+			//
+			//	XMStoreFloat4x4(matrixArray + matrixCounter, shadermatrix);
+			//	matrixCounter++;
+			//
+			//	std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
+			//	entityCounter++;
+			//	decalarray_count++;
 			//}
 
-			std::memcpy(light_entity_array + light_entity_counter, &light_entity, sizeof(ShaderEntity));
-			light_entity_counter++;
-			lightarray_count_directional++;
-		}
-		frameCB.entity_culling_count = lightarray_count;
+			// Write environment probes into entity array:
+			//envprobearray_offset = entityCounter;
+			//const size_t probe_iterations = std::min((size_t)MAX_SHADER_PROBE_COUNT, vis.visibleEnvProbes.size());
+			//for (size_t i = 0; i < probe_iterations; ++i)
+			//{
+			//	if (entity_counter == SHADER_ENTITY_COUNT)
+			//	{
+			//		backlog::post("Shader Entity Overflow!! >> LIGHT PROBES");
+			//		entity_counter--;
+			//		break;
+			//	}
+			//	if (matrix_counter >= MATRIXARRAY_COUNT)
+			//	{
+			//		matrix_counter--;
+			//		break;
+			//	}
+			//	ShaderEntity shaderentity = {};
+			//	XMMATRIX shadermatrix;
+			//
+			//	const uint32_t probeIndex = vis.visibleEnvProbes[vis.visibleEnvProbes.size() - 1 - i]; // note: reverse order, for correct blending!
+			//	const EnvironmentProbeComponent& probe = vis.scene->probes[probeIndex];
+			//
+			//	shaderentity = {}; // zero out!
+			//	shaderentity.layerMask = ~0u;
+			//
+			//	Entity entity = vis.scene->probes.GetEntity(probeIndex);
+			//	const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
+			//	if (layer != nullptr)
+			//	{
+			//		shaderentity.layerMask = layer->layerMask;
+			//	}
+			//
+			//	shaderentity.SetType(ENTITY_TYPE_ENVMAP);
+			//	shaderentity.position = probe.position;
+			//	shaderentity.SetRange(probe.range);
+			//
+			//	shaderentity.SetIndices(matrixCounter, 0);
+			//	shadermatrix = XMLoadFloat4x4(&probe.inverseMatrix);
+			//
+			//	int texture = -1;
+			//	if (probe.texture.IsValid())
+			//	{
+			//		texture = device->GetDescriptorIndex(&probe.texture, SubresourceType::SRV);
+			//	}
+			//
+			//	shadermatrix.r[0] = XMVectorSetW(shadermatrix.r[0], *(float*)&texture);
+			//	shadermatrix.r[1] = XMVectorSetW(shadermatrix.r[1], 0);
+			//	shadermatrix.r[2] = XMVectorSetW(shadermatrix.r[2], 0);
+			//	shadermatrix.r[3] = XMVectorSetW(shadermatrix.r[3], 0);
+			//
+			//	XMStoreFloat4x4(matrixArray + matrixCounter, shadermatrix);
+			//	matrixCounter++;
+			//
+			//	std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
+			//	entityCounter++;
+			//	envprobearray_count++;
+			//}
+			
+			//const XMFLOAT2 atlas_dim_rcp = XMFLOAT2(1.0f / float(shadowMapAtlas.desc.width), 1.0f / float(shadowMapAtlas.desc.height));
 
+			const std::vector<Entity>& light_entities = vis.scene->GetLightEntities();
+			// Write directional lights into entity array:
+			lightarray_offset = entity_counter;
+			lightarray_offset_directional = entity_counter;
+			for (uint32_t lightIndex : vis.visibleLights)
+			{
+				if (entity_counter == SHADER_ENTITY_COUNT)
+				{
+					backlog::post("Shader Entity Overflow!! >> Directional Light");
+					entity_counter--;
+					break;
+				}
+
+				const GLightComponent& light = *(GLightComponent*)compfactory::GetLightComponent(light_entities[lightIndex]);
+				if (light.GetLightType() != LightComponent::LightType::DIRECTIONAL || light.IsInactive())
+					continue;
+
+				ShaderEntity shaderentity = {};
+				shaderentity.layerMask = ~0u;
+
+				shaderentity.SetType(SCU32(light.GetLightType()));
+				shaderentity.position = light.position;
+				shaderentity.SetRange(light.GetRange());
+				shaderentity.SetRadius(light.GetRadius());
+				shaderentity.SetLength(light.GetLength());
+				// note: the light direction used in shader refers to the direction to the light source
+				shaderentity.SetDirection(XMFLOAT3(-light.direction.x, -light.direction.y, -light.direction.z));
+				XMFLOAT3 light_color = light.GetLightColor();
+				float light_intensity = light.GetLightIntensity();
+				shaderentity.SetColor(float4(light_color.x * light_intensity, light_color.y * light_intensity, light_color.z * light_intensity, 1.f));
+
+				// mark as no shadow by default:
+				shaderentity.indices = ~0;
+
+				bool shadow = false;// IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
+				//const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
+				if (shadow)
+				{
+					//shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
+					//shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
+					//shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
+					//shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
+					//shaderentity.SetIndices(matrixCounter, 0);
+				}
+
+				const uint cascade_count = std::min((uint)light.cascadeDistances.size(), SHADER_ENTITY_COUNT - matrix_counter);
+				shaderentity.SetShadowCascadeCount(cascade_count);
+
+				//if (shadow && !light.cascade_distances.empty())
+				//{
+				//	SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
+				//	CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
+				//	for (size_t cascade = 0; cascade < cascade_count; ++cascade)
+				//	{
+				//		XMStoreFloat4x4(&light_matrix_array[light_matrix_counter++], shcams[cascade].view_projection);
+				//	}
+				//}
+
+				//if (light.IsStatic())
+				//{
+				//	shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
+				//}
+
+				std::memcpy(entity_array + entity_counter, &shaderentity, sizeof(ShaderEntity));
+				entity_counter++;
+				lightarray_count_directional++;
+			}
+
+
+			/*
+			// Write spot lights into entity array:
+			lightarray_offset_spot = entity_counter;
+			for (uint32_t lightIndex : vis.visibleLights)
+			{
+				if (entity_counter == SHADER_ENTITY_COUNT)
+				{
+					entity_counter--;
+					break;
+				}
+
+				const LightComponent& light = vis.scene->lights[lightIndex];
+				if (light.GetType() != LightComponent::SPOT || light.IsInactive())
+					continue;
+
+				ShaderEntity shaderentity = {};
+				shaderentity.layerMask = ~0u;
+
+				Entity entity = vis.scene->lights.GetEntity(lightIndex);
+				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
+				if (layer != nullptr)
+				{
+					shaderentity.layerMask = layer->layerMask;
+				}
+
+				shaderentity.SetType(light.GetType());
+				shaderentity.position = light.position;
+				shaderentity.SetRange(light.GetRange());
+				shaderentity.SetRadius(light.radius);
+				shaderentity.SetLength(light.length);
+				// note: the light direction used in shader refers to the direction to the light source
+				shaderentity.SetDirection(XMFLOAT3(-light.direction.x, -light.direction.y, -light.direction.z));
+				shaderentity.SetColor(float4(light.color.x * light.intensity, light.color.y * light.intensity, light.color.z * light.intensity, 1));
+
+				// mark as no shadow by default:
+				shaderentity.indices = ~0;
+
+				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
+				const wi::rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
+
+				if (shadow)
+				{
+					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
+					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
+					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
+					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
+					shaderentity.SetIndices(matrix_counter, 0);
+				}
+
+				const float outerConeAngle = light.outerConeAngle;
+				const float innerConeAngle = std::min(light.innerConeAngle, outerConeAngle);
+				const float outerConeAngleCos = std::cos(outerConeAngle);
+				const float innerConeAngleCos = std::cos(innerConeAngle);
+
+				// https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual#inner-and-outer-cone-angles
+				const float lightAngleScale = 1.0f / std::max(0.001f, innerConeAngleCos - outerConeAngleCos);
+				const float lightAngleOffset = -outerConeAngleCos * lightAngleScale;
+
+				shaderentity.SetConeAngleCos(outerConeAngleCos);
+				shaderentity.SetAngleScale(lightAngleScale);
+				shaderentity.SetAngleOffset(lightAngleOffset);
+
+				if (shadow)
+				{
+					SHCAM shcam;
+					CreateSpotLightShadowCam(light, shcam);
+					XMStoreFloat4x4(&matrixArray[matrix_counter++], shcam.view_projection);
+				}
+
+				if (light.IsStatic())
+				{
+					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
+				}
+
+				if (light.IsVolumetricCloudsEnabled())
+				{
+					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
+				}
+
+				std::memcpy(entityArray + entity_counter, &shaderentity, sizeof(ShaderEntity));
+				entity_counter++;
+				lightarray_count_spot++;
+			}
+
+			// Write point lights into entity array:
+			lightarray_offset_point = entity_counter;
+			for (uint32_t lightIndex : vis.visibleLights)
+			{
+				if (entity_counter == SHADER_ENTITY_COUNT)
+				{
+					entity_counter--;
+					break;
+				}
+
+				const LightComponent& light = vis.scene->lights[lightIndex];
+				if (light.GetType() != LightComponent::POINT || light.IsInactive())
+					continue;
+
+				ShaderEntity shaderentity = {};
+				shaderentity.layerMask = ~0u;
+
+				Entity entity = vis.scene->lights.GetEntity(lightIndex);
+				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
+				if (layer != nullptr)
+				{
+					shaderentity.layerMask = layer->layerMask;
+				}
+
+				shaderentity.SetType(light.GetType());
+				shaderentity.position = light.position;
+				shaderentity.SetRange(light.GetRange());
+				shaderentity.SetRadius(light.radius);
+				shaderentity.SetLength(light.length);
+				// note: the light direction used in shader refers to the direction to the light source
+				shaderentity.SetDirection(XMFLOAT3(-light.direction.x, -light.direction.y, -light.direction.z));
+				shaderentity.SetColor(float4(light.color.x * light.intensity, light.color.y * light.intensity, light.color.z * light.intensity, 1));
+
+				// mark as no shadow by default:
+				shaderentity.indices = ~0;
+
+				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
+				const wi::rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
+
+				if (shadow)
+				{
+					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
+					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
+					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
+					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
+					shaderentity.SetIndices(matrix_counter, 0);
+				}
+
+				if (shadow)
+				{
+					const float FarZ = 0.1f;	// watch out: reversed depth buffer! Also, light near plane is constant for simplicity, this should match on cpu side!
+					const float NearZ = std::max(1.0f, light.GetRange()); // watch out: reversed depth buffer!
+					const float fRange = FarZ / (FarZ - NearZ);
+					const float cubemapDepthRemapNear = fRange;
+					const float cubemapDepthRemapFar = -fRange * NearZ;
+					shaderentity.SetCubeRemapNear(cubemapDepthRemapNear);
+					shaderentity.SetCubeRemapFar(cubemapDepthRemapFar);
+				}
+
+				if (light.IsStatic())
+				{
+					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
+				}
+
+				if (light.IsVolumetricCloudsEnabled())
+				{
+					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
+				}
+
+				std::memcpy(entityArray + entity_counter, &shaderentity, sizeof(ShaderEntity));
+				entity_counter++;
+				lightarray_count_point++;
+			}
+			/**/
+
+			lightarray_count = lightarray_count_directional + lightarray_count_spot + lightarray_count_point;
+			frameCB.entity_culling_count = lightarray_count + decalarray_count + envprobearray_count;
+
+			/*
+			// Write colliders into entity array:
+			forcefieldarray_offset = entityCounter;
+			for (size_t i = 0; i < vis.scene->collider_count_gpu; ++i)
+			{
+				if (entityCounter == SHADER_ENTITY_COUNT)
+				{
+					entityCounter--;
+					break;
+				}
+				ShaderEntity shaderentity = {};
+
+				const ColliderComponent& collider = vis.scene->colliders_gpu[i];
+				shaderentity.layerMask = collider.layerMask;
+
+				switch (collider.shape)
+				{
+				case ColliderComponent::Shape::Sphere:
+					shaderentity.SetType(ENTITY_TYPE_COLLIDER_SPHERE);
+					shaderentity.position = collider.sphere.center;
+					shaderentity.SetRange(collider.sphere.radius);
+					break;
+				case ColliderComponent::Shape::Capsule:
+					shaderentity.SetType(ENTITY_TYPE_COLLIDER_CAPSULE);
+					shaderentity.position = collider.capsule.base;
+					shaderentity.SetColliderTip(collider.capsule.tip);
+					shaderentity.SetRange(collider.capsule.radius);
+					break;
+				case ColliderComponent::Shape::Plane:
+					shaderentity.SetType(ENTITY_TYPE_COLLIDER_PLANE);
+					shaderentity.position = collider.plane.origin;
+					shaderentity.SetDirection(collider.plane.normal);
+					shaderentity.SetIndices(matrixCounter, ~0u);
+					matrixArray[matrixCounter++] = collider.plane.projection;
+					break;
+				default:
+					assert(0);
+					break;
+				}
+
+				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
+				entityCounter++;
+				forcefieldarray_count++;
+			}
+
+			// Write force fields into entity array:
+			for (size_t i = 0; i < vis.scene->forces.GetCount(); ++i)
+			{
+				if (entityCounter == SHADER_ENTITY_COUNT)
+				{
+					entityCounter--;
+					break;
+				}
+				ShaderEntity shaderentity = {};
+
+				const ForceFieldComponent& force = vis.scene->forces[i];
+
+				shaderentity.layerMask = ~0u;
+
+				Entity entity = vis.scene->forces.GetEntity(i);
+				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
+				if (layer != nullptr)
+				{
+					shaderentity.layerMask = layer->layerMask;
+				}
+
+				switch (force.type)
+				{
+				default:
+				case ForceFieldComponent::Type::Point:
+					shaderentity.SetType(ENTITY_TYPE_FORCEFIELD_POINT);
+					break;
+				case ForceFieldComponent::Type::Plane:
+					shaderentity.SetType(ENTITY_TYPE_FORCEFIELD_PLANE);
+					break;
+				}
+				shaderentity.position = force.position;
+				shaderentity.SetGravity(force.gravity);
+				shaderentity.SetRange(std::max(0.001f, force.GetRange()));
+				// The default planar force field is facing upwards, and thus the pull direction is downwards:
+				shaderentity.SetDirection(force.direction);
+
+				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
+				entityCounter++;
+				forcefieldarray_count++;
+			}
+			/**/
+
+		}
+
+
+
+		frameCB.probes = ShaderEntityIterator(envprobearray_offset, envprobearray_count);
 		frameCB.directional_lights = ShaderEntityIterator(lightarray_offset_directional, lightarray_count_directional);
+		//frameCB.spotlights = ShaderEntityIterator(lightarray_offset_spot, lightarray_count_spot);
+		//frameCB.pointlights = ShaderEntityIterator(lightarray_offset_point, lightarray_count_point);
 		frameCB.lights = ShaderEntityIterator(lightarray_offset, lightarray_count);
+		frameCB.decals = ShaderEntityIterator(decalarray_offset, decalarray_count);
+		//frameCB.forces = ShaderEntityIterator(forcefieldarray_offset, forcefieldarray_count);
 	}
 
 	constexpr uint32_t CombineStencilrefs(StencilRef engineStencilRef, uint8_t userStencilRef)
@@ -968,11 +1402,10 @@ namespace vz
 		shadercam.internal_resolution = uint2((uint)canvasWidth_, (uint)canvasHeight_);
 		shadercam.internal_resolution_rcp = float2(1.0f / std::max(1u, shadercam.internal_resolution.x), 1.0f / std::max(1u, shadercam.internal_resolution.y));
 
-		/* TODO:
-		shadercam.scissor.x = camera.scissor.left;
-		shadercam.scissor.y = camera.scissor.top;
-		shadercam.scissor.z = camera.scissor.right;
-		shadercam.scissor.w = camera.scissor.bottom;
+		shadercam.scissor.x = scissor.left;
+		shadercam.scissor.y = scissor.top;
+		shadercam.scissor.z = scissor.right;
+		shadercam.scissor.w = scissor.bottom;
 
 		// scissor_uv is also offset by 0.5 (half pixel) to avoid going over last pixel center with bilinear sampler:
 		shadercam.scissor_uv.x = (shadercam.scissor.x + 0.5f) * shadercam.internal_resolution_rcp.x;
@@ -982,32 +1415,32 @@ namespace vz
 
 		shadercam.entity_culling_tilecount = GetEntityCullingTileCount(shadercam.internal_resolution);
 		shadercam.entity_culling_tile_bucket_count_flat = shadercam.entity_culling_tilecount.x * shadercam.entity_culling_tilecount.y * SHADER_ENTITY_TILE_BUCKET_COUNT;
-		shadercam.sample_count = camera.sample_count;
+		shadercam.sample_count = depthBufferMain.desc.sample_count;
 		shadercam.visibility_tilecount = GetViewTileCount(shadercam.internal_resolution);
 		shadercam.visibility_tilecount_flat = shadercam.visibility_tilecount.x * shadercam.visibility_tilecount.y;
 
-		shadercam.texture_primitiveID_index = camera.texture_primitiveID_index;
-		shadercam.texture_depth_index = camera.texture_depth_index;
-		shadercam.texture_lineardepth_index = camera.texture_lineardepth_index;
-		shadercam.texture_velocity_index = camera.texture_velocity_index;
-		shadercam.texture_normal_index = camera.texture_normal_index;
-		shadercam.texture_roughness_index = camera.texture_roughness_index;
-		shadercam.buffer_entitytiles_index = camera.buffer_entitytiles_index;
-		shadercam.texture_reflection_index = camera.texture_reflection_index;
-		shadercam.texture_reflection_depth_index = camera.texture_reflection_depth_index;
-		shadercam.texture_refraction_index = camera.texture_refraction_index;
-		shadercam.texture_waterriples_index = camera.texture_waterriples_index;
-		shadercam.texture_ao_index = camera.texture_ao_index;
-		shadercam.texture_ssr_index = camera.texture_ssr_index;
-		shadercam.texture_ssgi_index = camera.texture_ssgi_index;
-		shadercam.texture_rtshadow_index = camera.texture_rtshadow_index;
-		shadercam.texture_rtdiffuse_index = camera.texture_rtdiffuse_index;
-		shadercam.texture_surfelgi_index = camera.texture_surfelgi_index;
-		shadercam.texture_depth_index_prev = cameraPrevious.texture_depth_index;
-		shadercam.texture_vxgi_diffuse_index = camera.texture_vxgi_diffuse_index;
-		shadercam.texture_vxgi_specular_index = camera.texture_vxgi_specular_index;
-		shadercam.texture_reprojected_depth_index = camera.texture_reprojected_depth_index;
-		/**/
+		//shadercam.texture_primitiveID_index = camera.texture_primitiveID_index;
+		//shadercam.texture_depth_index = camera.texture_depth_index;
+		//shadercam.texture_lineardepth_index = camera.texture_lineardepth_index;
+		//shadercam.texture_velocity_index = camera.texture_velocity_index;
+		//shadercam.texture_normal_index = camera.texture_normal_index;
+		//shadercam.texture_roughness_index = camera.texture_roughness_index;
+		shadercam.buffer_entitytiles_index = device->GetDescriptorIndex(&tiledLightResources.entityTiles, SubresourceType::SRV);
+		//shadercam.texture_reflection_index = camera.texture_reflection_index;
+		//shadercam.texture_reflection_depth_index = camera.texture_reflection_depth_index;
+		//shadercam.texture_refraction_index = camera.texture_refraction_index;
+		//shadercam.texture_waterriples_index = camera.texture_waterriples_index;
+		//shadercam.texture_ao_index = camera.texture_ao_index;
+		//shadercam.texture_ssr_index = camera.texture_ssr_index;
+		//shadercam.texture_ssgi_index = camera.texture_ssgi_index;
+		//shadercam.texture_rtshadow_index = camera.texture_rtshadow_index;
+		//shadercam.texture_rtdiffuse_index = camera.texture_rtdiffuse_index;
+		//shadercam.texture_surfelgi_index = camera.texture_surfelgi_index;
+		//shadercam.texture_depth_index_prev = cameraPrevious.texture_depth_index;
+		//shadercam.texture_vxgi_diffuse_index = camera.texture_vxgi_diffuse_index;
+		//shadercam.texture_vxgi_specular_index = camera.texture_vxgi_specular_index;
+		//shadercam.texture_reprojected_depth_index = camera.texture_reprojected_depth_index;
+		
 		device->BindDynamicConstantBuffer(cameraCB, CBSLOT_RENDERER_CAMERA, cmd);
 	}
 	void GRenderPath3DDetails::UpdateRenderData(const View& view, const FrameCB& frameCB, CommandList cmd)

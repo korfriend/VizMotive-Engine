@@ -270,6 +270,8 @@ inline uint GetFlatTileIndex(uint2 pixel)
 	return flatten2D(tileIndex, GetCamera().entity_culling_tilecount.xy) * SHADER_ENTITY_TILE_BUCKET_COUNT;
 }
 
+// https://google.github.io/filament/Filament.html : refer to Section 8.4 (Light Path)
+// the same as Filament Forward+ rendering
 inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint flatTileIndex)
 {
 #ifndef DISABLE_ENVMAPS
@@ -339,12 +341,12 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 	VoxelGI(surface, lighting);
 #endif // TRANSPARENT
 #endif //DISABLE_VOXELGI
-
+	
 #ifndef TRANSPARENT
 	[branch]
 	if (!surface.IsGIApplied() && GetCamera().texture_rtdiffuse_index >= 0)
 	{
-		lighting.indirect.diffuse = (half3)bindless_textures[GetCamera().texture_rtdiffuse_index][surface.pixel].rgb;
+        lighting.indirect.diffuse = (half3) bindless_textures[GetCamera().texture_rtdiffuse_index][surface.pixel].rgb;
 		surface.SetGIApplied(true);
 	}
 
@@ -372,9 +374,10 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 	[branch]
 	if (!surface.IsGIApplied() && GetScene().ddgi.color_texture >= 0)
 	{
-		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, (half3)surface.N);
+        lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, (half3) surface.N);
 		surface.SetGIApplied(true);
 	}
+	
 
 #if 0
 	// Combined light loops:
@@ -446,11 +449,11 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 
 	[branch]
 	if (!directional_lights().empty())
-	{
+    {
 		// Loop through light buckets in the tile:
 		ShaderEntityIterator iterator = directional_lights();
 		for(uint bucket = iterator.first_bucket(); bucket <= iterator.last_bucket(); ++bucket)
-		{
+        {
 			uint bucket_bits = load_entitytile(flatTileIndex + bucket);
 
 #ifndef ENTITY_TILE_UNIFORM
@@ -459,10 +462,11 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 #endif // ENTITY_TILE_UNIFORM
 
 			bucket_bits = iterator.mask_entity(bucket, bucket_bits);
-
+			
 			[loop]
 			while (bucket_bits != 0)
-			{
+            {
+				
 				// Retrieve global entity index from local bucket, then remove bit from local bucket:
 				const uint bucket_bit_index = firstbitlow(bucket_bits);
 				const uint entity_index = bucket * 32 + bucket_bit_index;
@@ -483,12 +487,12 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 				}
 #endif // SHADOW_MASK_ENABLED && !TRANSPARENT
 
-				light_directional(light, surface, lighting, shadow_mask);
-
-			}
+                light_directional(light, surface, lighting, shadow_mask);
+				
+            }
 		}
 	}
-
+	
 	[branch]
 	if (!spotlights().empty())
 	{
