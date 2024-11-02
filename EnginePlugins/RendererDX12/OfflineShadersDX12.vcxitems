@@ -15,6 +15,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\ColorSpaceUtility.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\bc6h.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\blockCompress.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\cullingShaderHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\fogHF.hlsli" />
@@ -32,6 +34,9 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\PixelPacking_RGBE.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\compressonator\bcn_common_api.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\compressonator\bcn_common_kernel.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\compressonator\common_def.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
@@ -41,6 +46,12 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_VXGI.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC1.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC3.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC4.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC5.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC6H.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC6H_cubemap.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float1CS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float3CS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float4CS.hlsl" />

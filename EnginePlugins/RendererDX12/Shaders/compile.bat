@@ -44,3 +44,9 @@ dxc -T cs_6_0 ./CS/blur_gaussian_wide_float1CS.hlsl -spirv
 dxc -T cs_6_0 ./CS/blur_gaussian_wide_float3CS.hlsl -spirv 
 dxc -T cs_6_0 ./CS/blur_gaussian_wide_unorm1CS.hlsl -spirv 
 dxc -T cs_6_0 ./CS/blur_gaussian_wide_unorm4CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blockcompressCS_BC1.hlsl -spirv
+dxc -T cs_6_0 ./CS/blockcompressCS_BC3.hlsl -spirv
+dxc -T cs_6_0 ./CS/blockcompressCS_BC4.hlsl -spirv
+dxc -T cs_6_0 ./CS/blockcompressCS_BC5.hlsl -spirv
+dxc -T cs_6_0 ./CS/blockcompressCS_BC6H.hlsl -spirv
+dxc -T cs_6_0 ./CS/blockcompressCS_BC6H_cubemap.hlsl -spirv
