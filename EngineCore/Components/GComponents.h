@@ -54,7 +54,7 @@ namespace vz
 		graphics::ShadingRate shadingRate = graphics::ShadingRate::RATE_1X1;
 
 		// Create texture resources for GPU
-		void UpdateAssociatedTextures();
+		void UpdateAssociatedTextures() override;
 		uint32_t GetFilterMaskFlags() const;
 	};
 
@@ -303,26 +303,30 @@ namespace vz
 	{
 	private:
 	public:
-		GTextureComponent(const Entity entity, const VUID vuid = 0);
+		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid) {}
 
-		uint32_t GetUVSet() const;
-		float GetLodClamp() const;
-		int GetSparseResidencymapDescriptor() const;
-		int GetSparseFeedbackmapDescriptor() const;
+		inline uint32_t GetUVSet() const;
+		inline float GetLodClamp() const;
+		inline int GetSparseResidencymapDescriptor() const;
+		inline int GetSparseFeedbackmapDescriptor() const;
 
-		int GetTextureSRGBSubresource() const;
-		const graphics::Texture& GetTexture() const;
+		inline int GetTextureSRGBSubresource() const;
+		inline const graphics::Texture& GetTexture() const;
 		// Allows to set a Texture to the resource from outside
 		//	srgb_subresource: you can provide a subresource for SRGB view if the texture is going to be used as SRGB with the GetTextureSRGBSubresource() (optional)
-		void SetTexture(const graphics::Texture& texture, int srgb_subresource = -1);
+		inline void SetTexture(const graphics::Texture& texture, int srgb_subresource = -1);
 		// Let the streaming system know the required resolution of this resource
-		void StreamingRequestResolution(uint32_t resolution);
-		const graphics::GPUResource* GetGPUResource() const
-		{
+		inline void StreamingRequestResolution(uint32_t resolution);
+		inline const graphics::GPUResource* GetGPUResource() const {
 			if (!IsValid() || !GetTexture().IsValid())
 				return nullptr;
 			return &GetTexture();
 		}
+
+		//void DeleteRenderData() override;
+		//void UpdateRenderData() override;
+		//size_t GetMemoryUsageCPU() override;
+		//size_t GetMemoryUsageGPU() override;
 	};
 
 	//GVolumeComponent

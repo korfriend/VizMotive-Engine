@@ -24,11 +24,31 @@ namespace vz
 }
 
 namespace vz
-	{
+{
 
 	void GMaterialComponent::UpdateAssociatedTextures()
 	{
-		// to do //
+		for (uint32_t slot = 0; slot < SCU32(TextureSlot::TEXTURESLOT_COUNT); ++slot)
+		{
+			Entity texture_entity = compfactory::GetEntityByVUID(textureComponents_[slot]);
+			//GTextureComponent* texture = (GTextureComponent*)compfactory::GetTextureComponent(texture_entity);
+			//
+			//auto& textureslot = textures[slot];
+			//if (textureslot.resource.IsValid())
+			//{
+			//	textureslot.resource.SetOutdated();
+			//}
+		}
+
+		//for (uint32_t slot = 0; slot < TEXTURESLOT_COUNT; ++slot)
+		//{
+		//	auto& textureslot = textures[slot];
+		//	if (!textureslot.name.empty())
+		//	{
+		//		wi::resourcemanager::Flags flags = GetTextureSlotResourceFlags(TEXTURESLOT(slot));
+		//		textureslot.resource = wi::resourcemanager::Load(textureslot.name, flags);
+		//	}
+		//}
 	}
 
 	uint32_t GMaterialComponent::GetFilterMaskFlags() const

@@ -1,86 +1,284 @@
 #include "GComponents.h"
 #include "Common/ResourceManager.h"
+#include "Utils/Helpers.h"
+
+//enum class DataType : uint8_t
+//{
+//	UNDEFINED = 0,
+//	BOOL,
+//	CHAR,
+//	CHAR2,
+//	CHAR3,
+//	CHAR4,
+//	BYTE,
+//	BYTE2,
+//	BYTE3,
+//	BYTE4,
+//	SHORT,
+//	SHORT2,
+//	SHORT3,
+//	SHORT4,
+//	USHORT,
+//	USHORT2,
+//	USHORT3,
+//	USHORT4,
+//	FLOAT,
+//	FLOAT2,
+//	FLOAT3,
+//	FLOAT4,
+//	INT,
+//	INT2,
+//	INT3,
+//	INT4,
+//	UINT,
+//	UINT2,
+//	UINT3,
+//	UINT4,
+//	MAT3,   //!< a 3x3 float matrix
+//	MAT4,   //!< a 4x4 float matrix
+//	STRUCT
+//};
+//
+//inline size_t GetStride(const DataType dtype)
+//{
+//	switch (dtype)
+//	{
+//	case DataType::BOOL: return 1;
+//	case DataType::CHAR: return 1;
+//	case DataType::CHAR2: return 2;
+//	case DataType::CHAR3: return 3;
+//	case DataType::CHAR4: return 4;
+//	case DataType::BYTE: return 1;
+//	case DataType::BYTE2: return 2;
+//	case DataType::BYTE3: return 3;
+//	case DataType::BYTE4: return 4;
+//	case DataType::SHORT: return 2;
+//	case DataType::SHORT2: return 4;
+//	case DataType::SHORT3: return 6;
+//	case DataType::SHORT4: return 8;
+//	case DataType::USHORT: return 2;
+//	case DataType::USHORT2: return 4;
+//	case DataType::USHORT3: return 6;
+//	case DataType::USHORT4: return 8;
+//	case DataType::FLOAT: return 4;
+//	case DataType::FLOAT2: return 8;
+//	case DataType::FLOAT3: return 12;
+//	case DataType::FLOAT4: return 16;
+//	case DataType::INT: return 4;
+//	case DataType::INT2: return 8;
+//	case DataType::INT3: return 12;
+//	case DataType::INT4: return 16;
+//	case DataType::UINT: return 4;
+//	case DataType::UINT2: return 8;
+//	case DataType::UINT3: return 12;
+//	case DataType::UINT4: return 16;
+//	case DataType::MAT3: return 36;   //!< a 3x3 float matrix
+//	case DataType::MAT4: return 64;   //!< a 4x4 float matrix
+//	default:
+//		break;
+//	}
+//	return 0;
+//}
 
 namespace vz
 {
+#define GETTER_RES(RES, RET) Resource* RES = resource_.get(); if (RES == nullptr) return RET;
 	bool TextureComponent::IsValid() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.IsValid();
+		GETTER_RES(resource, false);
+		return resource->IsValid();
 	}
 	const std::vector<uint8_t>& TextureComponent::GetData() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.GetFileData();
+		static std::vector<uint8_t> empty;
+		GETTER_RES(resource, empty);
+		return resource->GetFileData();
 	}
 	int TextureComponent::GetFontStyle() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.GetFontStyle();
+		GETTER_RES(resource, -1);
+		return resource->GetFontStyle();
 	}
-	void TextureComponent::CopyFromData(const std::vector<uint8_t>& data)
+	void TextureComponent::CopyFromData(const std::vector<uint8_t>& filedata)
 	{
-		Resource& resource = *internalResource_.get();
-		resource.CopyFromData(data);
+		GETTER_RES(resource, );
+		assert(resource->GetFileData().size() == filedata.size());
+		resource->CopyFromData(filedata);
 	}
-	void TextureComponent::MoveFromData(std::vector<uint8_t>&& data)
+	void TextureComponent::MoveFromData(std::vector<uint8_t>&& filedata)
 	{
-		Resource& resource = *internalResource_.get();
-		resource.MoveFromData(std::move(data));
+		GETTER_RES(resource, );
+		assert(resource->GetFileData().size() == filedata.size());
+		resource->MoveFromData(std::move(filedata));
 	}
 	void TextureComponent::SetOutdated()
 	{
-		Resource& resource = *internalResource_.get();
-		resource.SetOutdated();
+		GETTER_RES(resource, );
+		resource->SetOutdated();
+	}
+
+	bool TextureComponent::LoadImageFile(const std::string& fileName)
+	{
+		resource_ = std::make_shared<Resource>(
+			resourcemanager::Load(fileName, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA | resourcemanager::Flags::STREAMING)
+		);
+
+		resName_ = fileName;
+		Resource& resource = *resource_.get();
+		if (resource.IsValid())
+		{
+			graphics::Texture texture = resource.GetTexture();
+			width_ = texture.desc.width;
+			height_ = texture.desc.height;
+			depth_ = texture.desc.depth;
+			arraySize_ = texture.desc.array_size;
+			stride_ = graphics::GetFormatStride(texture.desc.format);
+		}
+		return resource.IsValid();
+
+		//return resourcemanager::LoadResourceDirectly(fileName, 
+		//	resourcemanager::Flags::IMPORT_RETAIN_FILEDATA | resourcemanager::Flags::STREAMING, 
+		//	nullptr, 0, resource_.get());
+	}
+}
+
+template<typename T>
+void updateHistoValues(const uint8_t* data, const uint32_t w, const uint32_t h, const uint32_t d, vz::Histogram& histogram)
+{
+	const T* data_t = (const T*)data;
+	uint32_t num_voxels = w * h * d;
+	for (uint32_t i = 0; i < num_voxels; ++i)
+	{
+		histogram.CountValue((float)data_t[i]);
 	}
 }
 
 namespace vz
 {
-	GTextureComponent::GTextureComponent(const Entity entity, const VUID vuid) : TextureComponent(entity, vuid)
+	void VolumeComponent::UpdateHistogram(const float minValue, const float maxValue, const size_t numBins)
 	{
-		internalResource_ = std::make_shared<Resource>();
+		if (!IsValid())
+		{
+			return;
+		}
+
+		histogram_.CreateHistogram(minValue, maxValue, numBins);
+
+		const uint8_t* data = GetData().data();
+		switch (volFormat_)
+		{
+		case vz::VolumeComponent::VolumeFormat::UINT8:
+			updateHistoValues<uint8_t>(data, width_, height_, depth_, histogram_);
+			break;
+		case vz::VolumeComponent::VolumeFormat::UINT16:
+			updateHistoValues<uint16_t>(data, width_, height_, depth_, histogram_);
+			break;
+		case vz::VolumeComponent::VolumeFormat::FLOAT:
+			updateHistoValues<float>(data, width_, height_, depth_, histogram_);
+			break;
+		default:
+			break;
+		}
 	}
+
+	void VolumeComponent::SetAlign(const XMFLOAT3& axisVolX, const XMFLOAT3& axisVolY, const bool isRHS)
+	{
+		XMVECTOR vec_axisy_os = XMLoadFloat3(&axisVolX);
+		XMVECTOR vec_axisx_os = XMLoadFloat3(&axisVolY);
+		XMVECTOR z_vec_rhs = XMVector3Cross(vec_axisy_os, vec_axisx_os); // note the z-dir in lookat
+		XMVECTOR origin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+		XMMATRIX mat_t = VZMatrixLookTo(origin, z_vec_rhs, vec_axisy_os);
+		XMMATRIX mat_rs2os = XMMatrixInverse(nullptr, mat_t);
+		if (!isRHS)
+		{
+			XMMATRIX matInverseZ = XMMatrixScaling(1.f, 1.f, -1.f);
+			mat_rs2os = matInverseZ * mat_rs2os;
+		}
+		XMStoreFloat4x4(&matAlign_, mat_rs2os);
+	}
+
+	bool VolumeComponent::LoadVolume(const std::string& fileName, const std::vector<uint8_t>& volData,
+		const uint32_t w, const uint32_t h, const uint32_t d, const VolumeFormat volFormat)
+	{
+		std::string wildcard_file_ext = helper::toUpper(fileName.substr(fileName.find_last_of("#") + 1));
+		std::string ext = helper::toUpper(helper::GetExtensionFromFileName(fileName));
+		if (wildcard_file_ext != "DCM" && ext != "DCM")
+		{
+			return false;
+		}
+
+		resource_ = std::make_shared<Resource>(
+			resourcemanager::LoadVolume(fileName, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, volData.data(), w, h, d, volFormat)
+		);
+
+		resName_ = fileName;
+		Resource& resource = *resource_.get();
+		if (resource.IsValid())
+		{
+			graphics::Texture texture = resource.GetTexture();
+			width_ = texture.desc.width;
+			height_ = texture.desc.height;
+			depth_ = texture.desc.depth;
+			arraySize_ = texture.desc.array_size;
+			stride_ = graphics::GetFormatStride(texture.desc.format);
+		}
+		// 
+
+		//SetVolumeSize(const uint32_t w, const uint32_t h, const uint32_t d);
+		//SetDataType(const DataType dtype) { dataType_ = dtype; }
+		//SetVoxelSize(const XMFLOAT3 & voxelSize) { voxelSize_ = voxelSize; }
+		//SetOriginalDataType(const DataType originalDataType) { originalDataType_ = originalDataType; }
+		//SetStoredMinMax(const XMFLOAT2 minMax) { storedMinMax_ = minMax; }
+		//SetOriginalMinMax(const XMFLOAT2 minMax) { originalMinMax_ = minMax; }
+		//SetAlign(const XMFLOAT3 & axisVolX, const XMFLOAT3 & axisVolY, const bool isRHS);
+
+		return resource.IsValid();
+	}
+}
+
+namespace vz
+{
 	uint32_t GTextureComponent::GetUVSet() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.uvset;
+		GETTER_RES(resource, 0);
+		return resource->uvset;
 	}
 	float GTextureComponent::GetLodClamp() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.lod_clamp;
+		GETTER_RES(resource, 0);
+		return resource->lod_clamp;
 	}
 	int GTextureComponent::GetSparseResidencymapDescriptor() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.sparse_residencymap_descriptor;
+		GETTER_RES(resource, -1);
+		return resource->sparse_residencymap_descriptor;
 	}
 	int GTextureComponent::GetSparseFeedbackmapDescriptor() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.sparse_feedbackmap_descriptor;
+		GETTER_RES(resource, -1);
+		return resource->sparse_feedbackmap_descriptor;
 	}
 
 	int GTextureComponent::GetTextureSRGBSubresource() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.GetTextureSRGBSubresource();
+		GETTER_RES(resource, -1);
+		return resource->GetTextureSRGBSubresource();
 	}
 
 	const graphics::Texture& GTextureComponent::GetTexture() const
 	{
-		Resource& resource = *internalResource_.get();
-		return resource.GetTexture();
+		static graphics::Texture empty;
+		GETTER_RES(resource, empty);
+		return resource->GetTexture();
 	}
 	void GTextureComponent::SetTexture(const graphics::Texture& texture, int srgb_subresource)
 	{
-		Resource& resource = *internalResource_.get();
-		resource.SetTexture(texture, srgb_subresource);
+		GETTER_RES(resource, );
+		resource->SetTexture(texture, srgb_subresource);
 	}
 	void GTextureComponent::StreamingRequestResolution(uint32_t resolution)
 	{
-		Resource& resource = *internalResource_.get();
-		resource.StreamingRequestResolution(resolution);
+		GETTER_RES(resource, );
+		resource->StreamingRequestResolution(resolution);
 	}
 }
