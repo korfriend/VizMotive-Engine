@@ -25,6 +25,12 @@
     <Filter Include="Pipeline Shaders\CS">
       <UniqueIdentifier>{bfa6fdaf-e093-4e65-bdee-a6905930c1ed}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libs">
+      <UniqueIdentifier>{06159dd3-469f-4d2e-a561-53b813393e9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libs\compressonator">
+      <UniqueIdentifier>{9106b2c4-88fd-4372-a67e-9cb38c6df995}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli">
@@ -75,6 +81,12 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\cullingShaderHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\blockCompress.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\bc6h.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h">
@@ -97,6 +109,15 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Postprocess.h">
       <Filter>Interop %28root%29</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\compressonator\common_def.h">
+      <Filter>Libs\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\compressonator\bcn_common_api.h">
+      <Filter>Libs\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\compressonator\bcn_common_kernel.h">
+      <Filter>Libs\compressonator</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -236,6 +257,24 @@
       <Filter>Pipeline Shaders\CS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float3CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC6H_cubemap.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC1.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC3.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC5.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC6H.hlsl">
       <Filter>Pipeline Shaders\CS</Filter>
     </FxCompile>
   </ItemGroup>

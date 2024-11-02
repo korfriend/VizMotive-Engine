@@ -7,6 +7,7 @@
 #include "Utils/EventHandler.h"
 #include "Utils/Spinlock.h"
 #include "Utils/Profiler.h"
+#include "Utils/Helpers.h"
 #include "Libs/Math.h"
 #include "Libs/Geometrics.h"
 
@@ -615,7 +616,7 @@ namespace vz::renderer
 				shaderentity.indices = ~0;
 
 				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
-				const wi::rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
+				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
 
 				if (shadow)
 				{
@@ -698,7 +699,7 @@ namespace vz::renderer
 				shaderentity.indices = ~0;
 
 				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
-				const wi::rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
+				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
 
 				if (shadow)
 				{
@@ -1793,10 +1794,145 @@ namespace vz
 	}
 
 	void GRenderPath3DDetails::BlockCompress(const graphics::Texture& texture_src, graphics::Texture& texture_bc, graphics::CommandList cmd, uint32_t dst_slice_offset)
+
 	{
-		// TODO
-		// const graphics::Texture& textureSrc, graphics::Texture& textureBC, graphics::CommandList cmd, uint32_t dstSliceOffset
+		const uint32_t block_size = GetFormatBlockSize(texture_bc.desc.format);
+		TextureDesc desc;
+		desc.width = std::max(1u, texture_bc.desc.width / block_size);
+		desc.height = std::max(1u, texture_bc.desc.height / block_size);
+		desc.bind_flags = BindFlag::UNORDERED_ACCESS;
+		desc.layout = ResourceState::UNORDERED_ACCESS;
+
+		Texture bc_raw_dest;
+		{
+			// Find a raw block texture that will fit the request:
+			static std::mutex locker;
+			std::scoped_lock lock(locker);
+			static Texture bc_raw_uint2;
+			static Texture bc_raw_uint4;
+			static Texture bc_raw_uint4_cubemap;
+			Texture* bc_raw = nullptr;
+			switch (texture_bc.desc.format)
+			{
+			case Format::BC1_UNORM:
+			case Format::BC1_UNORM_SRGB:
+				desc.format = Format::R32G32_UINT;
+				bc_raw = &bc_raw_uint2;
+				device->BindComputeShader(&rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC1], cmd);
+				device->EventBegin("BlockCompress - BC1", cmd);
+				break;
+			case Format::BC3_UNORM:
+			case Format::BC3_UNORM_SRGB:
+				desc.format = Format::R32G32B32A32_UINT;
+				bc_raw = &bc_raw_uint4;
+				device->BindComputeShader(&rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC3], cmd);
+				device->EventBegin("BlockCompress - BC3", cmd);
+				break;
+			case Format::BC4_UNORM:
+				desc.format = Format::R32G32_UINT;
+				bc_raw = &bc_raw_uint2;
+				device->BindComputeShader(&rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC4], cmd);
+				device->EventBegin("BlockCompress - BC4", cmd);
+				break;
+			case Format::BC5_UNORM:
+				desc.format = Format::R32G32B32A32_UINT;
+				bc_raw = &bc_raw_uint4;
+				device->BindComputeShader(&rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC5], cmd);
+				device->EventBegin("BlockCompress - BC5", cmd);
+				break;
+			case Format::BC6H_UF16:
+				desc.format = Format::R32G32B32A32_UINT;
+				if (has_flag(texture_src.desc.misc_flags, ResourceMiscFlag::TEXTURECUBE))
+				{
+					bc_raw = &bc_raw_uint4_cubemap;
+					device->BindComputeShader(&rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC6H_CUBEMAP], cmd);
+					device->EventBegin("BlockCompress - BC6H - Cubemap", cmd);
+					desc.array_size = texture_src.desc.array_size; // src array size not dst!!
+				}
+				else
+				{
+					bc_raw = &bc_raw_uint4;
+					device->BindComputeShader(&rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC6H], cmd);
+					device->EventBegin("BlockCompress - BC6H", cmd);
+				}
+				break;
+			default:
+				assert(0); // not supported
+				return;
+			}
+
+			if (!bc_raw->IsValid() || bc_raw->desc.width < desc.width || bc_raw->desc.height < desc.height || bc_raw->desc.array_size < desc.array_size)
+			{
+				TextureDesc bc_raw_desc = desc;
+				bc_raw_desc.width = std::max(64u, bc_raw_desc.width);
+				bc_raw_desc.height = std::max(64u, bc_raw_desc.height);
+				bc_raw_desc.width = std::max(bc_raw->desc.width, bc_raw_desc.width);
+				bc_raw_desc.height = std::max(bc_raw->desc.height, bc_raw_desc.height);
+				bc_raw_desc.width = math::GetNextPowerOfTwo(bc_raw_desc.width);
+				bc_raw_desc.height = math::GetNextPowerOfTwo(bc_raw_desc.height);
+				device->CreateTexture(&bc_raw_desc, nullptr, bc_raw);
+				device->SetName(bc_raw, "bc_raw");
+
+				device->ClearUAV(bc_raw, 0, cmd);
+				device->Barrier(GPUBarrier::Memory(bc_raw), cmd);
+
+				std::string info;
+				info += "BlockCompress created a new raw block texture to fit request: " + std::string(GetFormatString(texture_bc.desc.format)) + " (" + std::to_string(texture_bc.desc.width) + ", " + std::to_string(texture_bc.desc.height) + ")";
+				info += "\n\tFormat = ";
+				info += GetFormatString(bc_raw_desc.format);
+				info += "\n\tResolution = " + std::to_string(bc_raw_desc.width) + " * " + std::to_string(bc_raw_desc.height);
+				info += "\n\tArray Size = " + std::to_string(bc_raw_desc.array_size);
+				size_t total_size = 0;
+				total_size += ComputeTextureMemorySizeInBytes(bc_raw_desc);
+				info += "\n\tMemory = " + helper::GetMemorySizeText(total_size) + "\n";
+				backlog::post(info);
+			}
+
+			bc_raw_dest = *bc_raw;
+		}
+
+		for (uint32_t mip = 0; mip < texture_bc.desc.mip_levels; ++mip)
+		{
+			const uint32_t width = std::max(1u, desc.width >> mip);
+			const uint32_t height = std::max(1u, desc.height >> mip);
+			device->BindResource(&texture_src, 0, cmd, texture_src.desc.mip_levels == 1 ? -1 : mip);
+			device->BindUAV(&bc_raw_dest, 0, cmd);
+			device->Dispatch((width + 7u) / 8u, (height + 7u) / 8u, desc.array_size, cmd);
+
+			GPUBarrier barriers[] = {
+				GPUBarrier::Image(&bc_raw_dest, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
+				GPUBarrier::Image(&texture_bc, texture_bc.desc.layout, ResourceState::COPY_DST),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+
+			for (uint32_t slice = 0; slice < desc.array_size; ++slice)
+			{
+				Box box;
+				box.left = 0;
+				box.right = width;
+				box.top = 0;
+				box.bottom = height;
+				box.front = 0;
+				box.back = 1;
+
+				device->CopyTexture(
+					&texture_bc, 0, 0, 0, mip, dst_slice_offset + slice,
+					&bc_raw_dest, 0, slice,
+					cmd,
+					&box
+				);
+			}
+
+			for (int i = 0; i < arraysize(barriers); ++i)
+			{
+				std::swap(barriers[i].image.layout_before, barriers[i].image.layout_after);
+			}
+			device->Barrier(barriers, arraysize(barriers), cmd);
+		}
+
+		device->EventEnd(cmd);
 	}
+
 	void GRenderPath3DDetails::BindCameraCB(const CameraComponent& camera, const CameraComponent& cameraPrevious, const CameraComponent& cameraReflection, CommandList cmd)
 	{
 		cameraCB.Init();
@@ -1977,7 +2113,7 @@ namespace vz
 		//{
 		//	auto range = profiler::BeginRangeGPU("Caustics", cmd);
 		//	device->EventBegin("Caustics", cmd);
-		//	device->BindComputeShader(&shaders[CSTYPE_CAUSTICS], cmd);
+		//	device->BindComputeShader(&rcommon::shaders[CSTYPE_CAUSTICS], cmd);
 		//	device->BindUAV(&textures[TEXTYPE_2D_CAUSTICS], 0, cmd);
 		//	const TextureDesc& desc = textures[TEXTYPE_2D_CAUSTICS].GetDesc();
 		//	device->Dispatch(desc.width / 8, desc.height / 8, 1, cmd);
@@ -4282,7 +4418,6 @@ namespace vz
 	}
 	void AddDeferredBlockCompression(const graphics::Texture& texture_src, const graphics::Texture& texture_bc)
 	{
-		assert(0);
 		rcommon::deferredMIPGenLock.lock();
 		rcommon::deferredBCQueue.push_back(std::make_pair(texture_src, texture_bc));
 		rcommon::deferredMIPGenLock.unlock();
