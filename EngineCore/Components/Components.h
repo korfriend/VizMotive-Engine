@@ -203,43 +203,6 @@ namespace vz
 		CAMERA,
 	};
 
-	enum class DataType : uint8_t 
-	{
-		UNDEFINED = 0,
-		BOOL,
-		CHAR,
-		CHAR2,
-		CHAR3,
-		CHAR4,
-		BYTE,
-		BYTE2,
-		BYTE3,
-		BYTE4,
-		SHORT,
-		SHORT2,
-		SHORT3,
-		SHORT4,
-		USHORT,
-		USHORT2,
-		USHORT3,
-		USHORT4,
-		FLOAT,
-		FLOAT2,
-		FLOAT3,
-		FLOAT4,
-		INT,
-		INT2,
-		INT3,
-		INT4,
-		UINT,
-		UINT2,
-		UINT3,
-		UINT4,
-		MAT3,   //!< a 3x3 float matrix
-		MAT4,   //!< a 4x4 float matrix
-		STRUCT
-	};
-
 	struct CORE_EXPORT ComponentBase
 	{
 	protected:
@@ -508,6 +471,8 @@ namespace vz
 		inline const XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
 
+		virtual void UpdateAssociatedTextures() = 0;
+
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::MATERIAL;
@@ -568,47 +533,14 @@ namespace vz
 		public:
 			mutable bool autoUpdateRenderData = true;
 
-			inline void MoveFrom(Primitive&& primitive)
-			{
-				*this = std::move(primitive);
-				//vertexPositions_ = std::move(primitive.vertexPositions_);
-				//vertexNormals_ = std::move(primitive.vertexNormals_);
-				//vertexTangents_ = std::move(primitive.vertexTangents_);
-				//vertexUVset0_ = std::move(primitive.vertexUVset0_);
-				//vertexUVset1_ = std::move(primitive.vertexUVset1_);
-				//vertexColors_ = std::move(primitive.vertexColors_);
-				//indexPrimitives_ = std::move(primitive.indexPrimitives_);
-				//bufferHandle_ = std::move(primitive.bufferHandle_);
-				//
-				//aabb_ = primitive.aabb_;
-				//ptype_ = primitive.ptype_;
-				//
-				//if (vertexPositions_.size() > 0) isValid_[SCU32(BufferDefinition::POSITION)] = true;
-				//if (vertexNormals_.size() > 0 && vertexNormals_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::NORMAL)] = true;
-				//if (vertexTangents_.size() > 0 && vertexTangents_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::TANGENT)] = true;
-				//if (vertexUVset0_.size() > 0 && vertexUVset0_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::UVSET0)] = true;
-				//if (vertexUVset1_.size() > 0 && vertexUVset1_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::UVSET1)] = true;
-				//if (vertexColors_.size() > 0 && vertexColors_.size() == vertexPositions_.size()) isValid_[SCU32(BufferDefinition::COLOR)] = true;
-				//if (indexPrimitives_.size() > 0) isValid_[SCU32(BufferDefinition::INDICES)] = true;
-			}
-			inline void MoveTo(Primitive& primitive)
-			{
+			inline void MoveFrom(Primitive&& primitive) { 
+				*this = std::move(primitive); }
+			inline void MoveTo(Primitive& primitive) {
 				primitive = std::move(*this);
 				*this = Primitive();
-				//primitive.vertexPositions_ = std::move(vertexPositions_);
-				//primitive.vertexNormals_ = std::move(vertexNormals_);
-				//primitive.vertexTangents_ = std::move(vertexTangents_);
-				//primitive.vertexUVset0_ = std::move(vertexUVset0_);
-				//primitive.vertexUVset1_ = std::move(vertexUVset1_);
-				//primitive.vertexColors_ = std::move(vertexColors_);
-				//primitive.indexPrimitives_ = std::move(indexPrimitives_);
-				//primitive.aabb_ = aabb_;
-				//primitive.ptype_ = ptype_;
-				//for (size_t i = 0, n = SCU32(BufferDefinition::COUNT); i < n; ++i) isValid_[i] = false;
 			}
 			inline const geometrics::AABB& GetAABB() const { return aabb_; }
-			inline geometrics::Sphere GetBoundingSphere() const
-			{
+			inline geometrics::Sphere GetBoundingSphere() const {
 				geometrics::Sphere sphere;
 				sphere.center = aabb_.getCenter();
 				sphere.radius = aabb_.getRadius();
@@ -743,48 +675,65 @@ namespace vz
 		};
 	protected:
 		TextureType textureType_ = TextureType::Undefined;
-		DataType dataType_ = DataType::UNDEFINED;
-		std::shared_ptr<Resource> internalResource_;
-		uint32_t width_ = 1;
-		uint32_t height_ = 1;
-		uint32_t depth_ = 1;
-		uint32_t arraySize_ = 1;
+		uint32_t width_ = 0;
+		uint32_t height_ = 0;
+		uint32_t depth_ = 0;
+		uint32_t arraySize_ = 0;
+		uint32_t stride_ = 0;
+
+		// file name or arbitrary name as an identifier used by resource manager
+		std::string resName_ = "";	
 
 		// sampler 
+
+		// Non-serialized attributes
+		std::shared_ptr<Resource> resource_;
+		bool hasRenderData_ = false;
+
+
+
 	public:
 		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
-		//TextureComponent(const ComponentType type, const Entity entity, const VUID vuid = 0) : ComponentBase(type, entity, vuid) {}
 		
 		TextureType GetTextureType() const { return textureType_; }
 		bool IsValid() const;
 
 		const std::vector<uint8_t>& GetData() const;
 		int GetFontStyle() const;
-		void CopyFromData(const std::vector<uint8_t>& data);
-		void MoveFromData(std::vector<uint8_t>&& data);
-		void SetOutdated();	// to avoid automatic renderdata update
+		void SetOutdated();	// to automatically update outdated filedata
 
 		inline uint32_t GetWidth() const { return width_; }
 		inline uint32_t GetHeight() const { return height_; }
 		inline uint32_t GetDepth() const { return depth_; }
 		inline uint32_t GetArraySize() const { return arraySize_; }
-		inline void SetTextureDimension(const uint32_t w, const uint32_t h, const uint32_t d, const uint32_t array) {
-			width_ = w, height_ = h, depth_ = d, arraySize_ = array;
-		}
-		inline void SetDataType(const DataType dtype) { dataType_ = dtype; }
-		inline DataType GetDataType() const { return dataType_; }
-		
+		inline uint32_t GetStride() const { return stride_; }
+
+		void CopyFromData(const std::vector<uint8_t>& data);
+		void MoveFromData(std::vector<uint8_t>&& data);
+
+		bool LoadImageFile(const std::string& fileName);
+
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		// GPU interfaces //
+		bool HasRenderData() const { return hasRenderData_; }
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 	};
 
 	struct CORE_EXPORT VolumeComponent : virtual TextureComponent
 	{
+		enum class VolumeFormat : uint8_t
+		{
+			UNDEF = 0,
+			UINT8 = 1,
+			UINT16 = 2,
+			FLOAT = 4,
+		};
 	protected:
 		std::shared_ptr<Resource> internalBlock_;
+		VolumeFormat volFormat_ = VolumeFormat::UNDEF;
 		XMFLOAT3 voxelSize_ = {};
-		DataType originalDataType_ = DataType::UNDEFINED;
 		XMFLOAT2 storedMinMax_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
 		XMFLOAT2 originalMinMax_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
 
@@ -797,22 +746,22 @@ namespace vz
 		VolumeComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::VOLUMETEXTURE, entity, vuid), TextureComponent(entity, vuid) {}
 
 		inline void SetVoxelSize(const XMFLOAT3& voxelSize) { voxelSize_ = voxelSize; }
-		inline XMFLOAT3 GetVoxelSize() const { return voxelSize_; }
-		inline float GetMinVoxelSize() const { return std::min({voxelSize_.x, voxelSize_.y, voxelSize_.z}); }
-
-		inline void SetOriginalDataType(const DataType originalDataType) { originalDataType_ = originalDataType; }
-		inline DataType GetOriginalDataType() const { return originalDataType_; }
-
 		inline void SetStoredMinMax(const XMFLOAT2 minMax) { storedMinMax_ = minMax; }
-		inline XMFLOAT2 GetStoredMinMax() const { return storedMinMax_; }
 		inline void SetOriginalMinMax(const XMFLOAT2 minMax) { originalMinMax_ = minMax; }
-		inline XMFLOAT2 GetOriginalMinMax() const { return originalMinMax_; }
-
-		const Histogram& GetHistogram() const { return histogram_; }
-		void UpdateHistogram(const float minValue, const float maxValue, const size_t numBins);
-
 		inline void SetAlign(const XMFLOAT3& axisVolX, const XMFLOAT3& axisVolY, const bool isRHS);
+
+		inline XMFLOAT3 GetVoxelSize() const { return voxelSize_; }
+		inline float GetMinVoxelSize() const { return std::min({ voxelSize_.x, voxelSize_.y, voxelSize_.z }); }
+		inline VolumeFormat GetVolumeFormat() const { return volFormat_; }
+		inline XMFLOAT2 GetStoredMinMax() const { return storedMinMax_; }
+		inline XMFLOAT2 GetOriginalMinMax() const { return originalMinMax_; }
+		const Histogram& GetHistogram() const { return histogram_; }
 		inline XMFLOAT4X4 GetAlign() const { return matAlign_; }
+
+		bool LoadVolume(const std::string& fileName, const std::vector<uint8_t>& volData, 
+			const uint32_t w, const uint32_t h, const uint32_t d, const VolumeFormat volFormat);
+
+		void UpdateHistogram(const float minValue, const float maxValue, const size_t numBins);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 

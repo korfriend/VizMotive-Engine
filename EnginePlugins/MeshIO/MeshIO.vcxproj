@@ -139,10 +139,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="PluginInterfaceMeshIO.cpp" />
+    <ClCompile Include="MeshIO.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="PluginInterfaceMeshIO.h" />
+    <ClInclude Include="MeshIO.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

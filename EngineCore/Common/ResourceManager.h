@@ -14,12 +14,6 @@ namespace vz
 	struct Resource
 	{
 		std::shared_ptr<void> internal_state;
-		uint32_t uvset = 0;
-
-		// Non-serialized attributes:
-		float lod_clamp = 0;						// optional, can be used by texture streaming
-		int sparse_residencymap_descriptor = -1;	// optional, can be used by texture streaming
-		int sparse_feedbackmap_descriptor = -1;		// optional, can be used by texture streaming
 
 		// BASIC interfaces //
 		inline bool IsValid() const { return internal_state.get() != nullptr; }
@@ -43,6 +37,15 @@ namespace vz
 				return nullptr;
 			return &GetTexture();
 		}
+
+		void ReleaseTexture();
+
+		// ----- GPU resource parameters -----
+		uint32_t uvset = 0;
+		// Non-serialized attributes:
+		float lod_clamp = 0;						// optional, can be used by texture streaming
+		int sparse_residencymap_descriptor = -1;	// optional, can be used by texture streaming
+		int sparse_feedbackmap_descriptor = -1;		// optional, can be used by texture streaming
 	};
 
 	namespace resourcemanager
@@ -83,6 +86,13 @@ namespace vz
 			size_t filesize = ~0ull,
 			const std::string& container_filename = "",
 			size_t container_fileoffset = 0
+		);
+
+		Resource LoadVolume(
+			const std::string& name,
+			Flags flags,
+			const uint8_t* filedata,
+			const uint32_t w, const uint32_t h, const uint32_t d, const VolumeComponent::VolumeFormat volFormat
 		);
 
 		// Check if a resource is currently loaded

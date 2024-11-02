@@ -1,5 +1,6 @@
 #include "ResourceManager.h"
 #include "Backend/GRendererInterface.h" // deferred task for streaming
+#include "Components/GComponents.h"
 
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
@@ -43,13 +44,13 @@ namespace vz
 		vz::graphics::Texture texture;
 		// subresource refers to SRV, RTV, DSV, UAV, ... and indicates # of those, 
 		//		-1 means not yet allocated, 
-		//		0 means no subresource
 		int srgb_subresource = -1;	
 		std::vector<uint8_t> filedata;
 		int font_style = -1;
 
 		// Original filename:
 		std::string filename;
+		std::string dataType = "";
 
 		// Container file is different from original filename when
 		//	multiple resources are embedded inside one file:
@@ -133,6 +134,17 @@ namespace vz
 		resourceinternal->srgb_subresource = srgb_subresource;
 	}
 
+	void Resource::ReleaseTexture()
+	{
+		if (internal_state == nullptr)
+		{
+			return;
+		}
+		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
+		resourceinternal->texture = {};
+		resourceinternal->srgb_subresource = -1;;
+	}
+
 	namespace resourcemanager
 	{
 		static std::mutex locker;
@@ -151,6 +163,7 @@ namespace vz
 		enum class DataType
 		{
 			IMAGE,
+			VOLUME,
 			FONTSTYLE,
 		};
 		static const std::unordered_map<std::string, DataType> types = {
@@ -164,7 +177,7 @@ namespace vz
 			{"TGA", DataType::IMAGE},
 			{"QOI", DataType::IMAGE},
 			{"HDR", DataType::IMAGE},
-			{"DCM", DataType::IMAGE},
+			{"DCM", DataType::VOLUME},
 			{"TTF", DataType::FONTSTYLE},
 		};
 		std::vector<std::string> GetSupportedImageExtensions()
@@ -1043,7 +1056,6 @@ namespace vz
 				}
 			}
 			break;
-
 			case DataType::FONTSTYLE:
 			{
 				//resource->font_style = vz::font::AddFontStyle(name, filedata, filesize, true);
@@ -1053,6 +1065,7 @@ namespace vz
 
 			};
 
+			resource->dataType = ext;
 			if (!resource->filedata.empty() && !has_flag(flags, Flags::IMPORT_RETAIN_FILEDATA) && !has_flag(flags, Flags::IMPORT_DELAY))
 			{
 				// file data can be discarded:
@@ -1061,6 +1074,130 @@ namespace vz
 			}
 
 			return success;
+		}
+		
+		Resource LoadVolume(
+			const std::string& name,
+			Flags flags,
+			const uint8_t* filedata,
+			const uint32_t w, const uint32_t h, const uint32_t d, const VolumeComponent::VolumeFormat volFormat
+		)
+		{
+			std::string wildcard_file_ext = helper::toUpper(name.substr(name.find_last_of("#") + 1));
+			if (wildcard_file_ext != "DCM")
+			{
+				return Resource();
+			}
+
+			locker.lock();
+			std::weak_ptr<ResourceInternal>& weak_resource = resources[name];
+			std::shared_ptr<ResourceInternal> resource = weak_resource.lock();
+
+			static bool basis_init = false; // within lock!
+			if (!basis_init)
+			{
+				basis_init = true;
+				basist::basisu_transcoder_init();
+			}
+
+			size_t stride = SCU32(volFormat);
+			uint64_t timestamp = helper::FileTimestamp(name);
+			size_t filesize = (size_t)(w * h * d) * stride;
+			resource->flags &= ~Flags::IMPORT_DELAY;	// Flags::IMPORT_DELAY is not allowed
+			resource->flags &= ~Flags::STREAMING;	// Flags::STREAMING is not allowed
+
+			if (resource == nullptr || resource->timestamp < timestamp)
+			{
+				resource = std::make_shared<ResourceInternal>();
+				resources[name] = resource;
+				resource->filename = name;
+				resource->container_filename = name;
+				resource->container_filesize = filesize;
+				resource->container_fileoffset = 0;
+				resource->dataType = "DCM";
+				
+				if (filedata != nullptr && resource->filedata.empty() && has_flag(flags, Flags::IMPORT_RETAIN_FILEDATA))
+				{
+					// resource was loaded with external filedata, and we want to retain filedata
+					//	this must also happen when using IMPORT_DELAY!
+					resource->filedata.resize(filesize);
+					std::memcpy(resource->filedata.data(), filedata, filesize);
+				}
+			}
+			else
+			{
+				Resource retVal;
+				retVal.internal_state = resource;
+				locker.unlock();
+				return retVal;
+			}
+			locker.unlock();
+
+			assert(filedata != nullptr && filesize != 0);
+
+			flags |= resource->flags;
+
+			bool success = false;
+
+			// load process : refers to loadResourceDirectly(name, flags, filedata, filesize, resource.get())
+			{
+				TextureDesc desc;
+				desc.array_size = 1;
+				desc.bind_flags = BindFlag::SHADER_RESOURCE;
+				desc.width = w;
+				desc.height = h;
+				desc.depth = d;
+				desc.mip_levels = 1;
+				desc.array_size = 1;
+				switch (volFormat)
+				{
+				case VolumeComponent::VolumeFormat::UINT8:
+					desc.format = Format::R8_UNORM; break;
+				case VolumeComponent::VolumeFormat::UINT16:
+					desc.format = Format::R16_UNORM; break;
+				case VolumeComponent::VolumeFormat::FLOAT:
+					desc.format = Format::R32_FLOAT; break;
+				default:
+					break;
+				}
+				desc.layout = ResourceState::SHADER_RESOURCE;
+
+				//if (desc.mip_levels == 1 || desc.depth > 1 || desc.array_size > 1)
+				//{
+				//	// don't allow streaming for single mip, array and 3D textures
+				//	flags &= ~Flags::STREAMING;
+				//}
+
+				desc.type = TextureDesc::Type::TEXTURE_3D;
+
+				SubresourceData initdata;
+
+				// we need heap allocation for initdata (normally, volume is large data)
+				initdata.data_ptr = filedata;
+				initdata.row_pitch = w * stride;
+				initdata.slice_pitch = initdata.row_pitch * h;
+
+				GraphicsDevice* device = vz::graphics::GetDevice();
+				success = device->CreateTexture(&desc, &initdata, &resource->texture);
+				device->SetName(&resource->texture, name.c_str());
+
+				resource->srgb_subresource = device->CreateSubresource(
+					&resource->texture, SubresourceType::SRV, 0, -1, 0, -1
+				);
+
+				success &= resource->srgb_subresource >= 0;
+			}
+
+			if (success)
+			{
+				resource->flags = flags;
+				resource->timestamp = timestamp;
+
+				Resource retVal;
+				retVal.internal_state = resource;
+				return retVal;
+			}
+			return Resource();
 		}
 
 		Resource Load(
