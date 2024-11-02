@@ -24,15 +24,15 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 	float voxel_y = 0.2f;
 	float voxel_z = 0.2f;
 
-	volume->SetTextureDimension(volume_w, volume_h, volume_d, 1);
+	std::vector<uint8_t> data(volume_w * volume_h * volume_d * 2);
+
+	volume->LoadVolume("my volume #dcm", data, volume_w, volume_h, volume_d, VolumeComponent::VolumeFormat::UINT16);
 	volume->SetVoxelSize({ 0.2f , 0.2f , 0.2f });
 
 	//pointer..
 
-	std::vector<uint8_t> data(volume_w * volume_h * volume_d * 2);
-
-	volume->MoveFromData(std::move(data));
-	// fill data...
+	// modify volume data if required
+	//volume->MoveFromData(std::move(data));x
 	//texture->MoveFromData();
 
 	return true;

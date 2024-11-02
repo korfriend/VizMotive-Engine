@@ -1103,8 +1103,6 @@ namespace vz
 			size_t stride = SCU32(volFormat);
 			uint64_t timestamp = helper::FileTimestamp(name);
 			size_t filesize = (size_t)(w * h * d) * stride;
-			resource->flags &= ~Flags::IMPORT_DELAY;	// Flags::IMPORT_DELAY is not allowed
-			resource->flags &= ~Flags::STREAMING;	// Flags::STREAMING is not allowed
 
 			if (resource == nullptr || resource->timestamp < timestamp)
 			{
@@ -1131,6 +1129,10 @@ namespace vz
 				locker.unlock();
 				return retVal;
 			}
+			
+			resource->flags &= ~Flags::IMPORT_DELAY;	// Flags::IMPORT_DELAY is not allowed
+			resource->flags &= ~Flags::STREAMING;	// Flags::STREAMING is not allowed
+
 			locker.unlock();
 
 			assert(filedata != nullptr && filesize != 0);
