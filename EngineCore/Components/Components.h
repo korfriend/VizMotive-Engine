@@ -700,7 +700,6 @@ namespace vz
 
 		const std::vector<uint8_t>& GetData() const;
 		int GetFontStyle() const;
-		void SetOutdated();	// to automatically update outdated filedata
 
 		inline uint32_t GetWidth() const { return width_; }
 		inline uint32_t GetHeight() const { return height_; }

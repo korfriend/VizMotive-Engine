@@ -1,6 +1,7 @@
 #include "GComponents.h"
 #include "Common/ResourceManager.h"
 #include "Utils/Helpers.h"
+#include "Utils/Backlog.h"
 
 //enum class DataType : uint8_t
 //{
@@ -82,7 +83,8 @@
 
 namespace vz
 {
-#define GETTER_RES(RES, RET) Resource* RES = resource_.get(); if (RES == nullptr) return RET;
+#define GETTER_RES(RES, RET) Resource* RES = resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); return RET; };
+
 	bool TextureComponent::IsValid() const
 	{
 		GETTER_RES(resource, false);
@@ -104,16 +106,13 @@ namespace vz
 		GETTER_RES(resource, );
 		assert(resource->GetFileData().size() == filedata.size());
 		resource->CopyFromData(filedata);
+		resource->SetOutdated();
 	}
 	void TextureComponent::MoveFromData(std::vector<uint8_t>&& filedata)
 	{
 		GETTER_RES(resource, );
 		assert(resource->GetFileData().size() == filedata.size());
 		resource->MoveFromData(std::move(filedata));
-	}
-	void TextureComponent::SetOutdated()
-	{
-		GETTER_RES(resource, );
 		resource->SetOutdated();
 	}
 
@@ -135,10 +134,6 @@ namespace vz
 			stride_ = graphics::GetFormatStride(texture.desc.format);
 		}
 		return resource.IsValid();
-
-		//return resourcemanager::LoadResourceDirectly(fileName, 
-		//	resourcemanager::Flags::IMPORT_RETAIN_FILEDATA | resourcemanager::Flags::STREAMING, 
-		//	nullptr, 0, resource_.get());
 	}
 }
 
