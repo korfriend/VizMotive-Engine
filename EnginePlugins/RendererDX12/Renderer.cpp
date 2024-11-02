@@ -29,6 +29,11 @@ namespace vz::rcommon
 	std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
 
 	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
+
+	// progressive components
+	std::vector<std::pair<Texture, bool>> deferredMIPGens;
+	std::vector<std::pair<Texture, Texture>> deferredBCQueue; // BC : Block Compression
+	SpinLock deferredMIPGenLock;
 }
 
 // TODO 
@@ -1111,11 +1116,6 @@ namespace vz
 
 		ViewResources viewResources;	// dynamic allocation
 
-		// progressive components
-		SpinLock deferredMIPGenLock;
-		std::vector<std::pair<Texture, bool>> deferredMIPGens;
-		std::vector<std::pair<Texture, Texture>> deferredBCQueue; // BC : Block Compression
-
 		// ---------- GRenderPath3D's internal impl.: -----------------
 		//  * functions with an input 'CommandList' are to be implemented here, otherwise, implement 'renderer::' namespace
 
@@ -1332,20 +1332,20 @@ namespace vz
 	void GRenderPath3DDetails::ProcessDeferredTextureRequests(CommandList cmd)
 	{
 		// TODO: paint texture...
-		deferredMIPGenLock.lock();
-		for (auto& it : deferredMIPGens)
+		rcommon::deferredMIPGenLock.lock();
+		for (auto& it : rcommon::deferredMIPGens)
 		{
 			MIPGEN_OPTIONS mipopt;
 			mipopt.preserve_coverage = it.second;
 			GenerateMipChain(it.first, MIPGENFILTER_LINEAR, cmd, mipopt);
 		}
-		deferredMIPGens.clear();
-		for (auto& it : deferredBCQueue)
+		rcommon::deferredMIPGens.clear();
+		for (auto& it : rcommon::deferredBCQueue)
 		{
 			BlockCompress(it.first, it.second, cmd);
 		}
-		deferredBCQueue.clear();
-		deferredMIPGenLock.unlock();
+		rcommon::deferredBCQueue.clear();
+		rcommon::deferredMIPGenLock.unlock();
 	}
 	void GRenderPath3DDetails::Postprocess_Blur_Gaussian(
 		const Texture& input,
@@ -4273,6 +4273,19 @@ namespace vz
 	GRenderPath3D* NewGRenderPath(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
 	{
 		return new GRenderPath3DDetails(vp, swapChain, rtRenderFinal);
+	}
+	void AddDeferredMIPGen(const Texture& texture, bool preserve_coverage)
+	{
+		rcommon::deferredMIPGenLock.lock();
+		rcommon::deferredMIPGens.push_back(std::make_pair(texture, preserve_coverage));
+		rcommon::deferredMIPGenLock.unlock();
+	}
+	void AddDeferredBlockCompression(const graphics::Texture& texture_src, const graphics::Texture& texture_bc)
+	{
+		assert(0);
+		rcommon::deferredMIPGenLock.lock();
+		rcommon::deferredBCQueue.push_back(std::make_pair(texture_src, texture_bc));
+		rcommon::deferredMIPGenLock.unlock();
 	}
 }
 

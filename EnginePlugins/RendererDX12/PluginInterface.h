@@ -22,6 +22,8 @@ namespace vz
 	// Renderer.cpp
 	extern "C" DX12_EXPORT GScene* NewGScene(Scene* scene);
 	extern "C" DX12_EXPORT GRenderPath3D* NewGRenderPath(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
+	extern "C" DX12_EXPORT void AddDeferredMIPGen(const graphics::Texture& texture, bool preserve_coverage);
+	extern "C" DX12_EXPORT void AddDeferredBlockCompression(const graphics::Texture& texture_src, const graphics::Texture& texture_bc);
 
 	// RenderInitializer.cpp
 	extern "C" DX12_EXPORT bool InitRenderer();
@@ -34,4 +36,5 @@ namespace vz
 		graphics::ShaderModel minshadermodel,
 		const std::vector<std::string>& permutation_defines);
 	extern "C" DX12_EXPORT bool LoadShaders();
+
 }
