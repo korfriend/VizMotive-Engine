@@ -213,6 +213,8 @@ namespace vz
 			ResourceInternal* resource
 		)
 		{
+			using namespace std;
+
 			std::string ext = helper::toUpper(helper::GetExtensionFromFileName(name));
 			DataType type;
 
@@ -235,7 +237,7 @@ namespace vz
 			{
 			case DataType::IMAGE:
 			{
-				GraphicsDevice* device = vz::graphics::GetDevice();
+				GraphicsDevice* device = graphics::GetDevice();
 				if (!ext.compare("KTX2"))
 				{
 					flags &= ~Flags::STREAMING; // disable streaming
@@ -310,9 +312,9 @@ namespace vz
 									}
 								}
 							}
-							std::vector<uint8_t> transcoded_data(transcoded_data_size);
+							vector<uint8_t> transcoded_data(transcoded_data_size);
 
-							std::vector<SubresourceData> InitData;
+							vector<SubresourceData> InitData;
 							size_t transcoded_data_offset = 0;
 							for (uint32_t layer = 0; layer < layers; ++layer)
 							{
@@ -345,13 +347,13 @@ namespace vz
 											}
 											else
 											{
-												vz::backlog::post("KTX2 transcoding error while loading image!", vz::backlog::LogLevel::Error);
+												backlog::post("KTX2 transcoding error while loading image!", backlog::LogLevel::Error);
 												assert(0);
 											}
 										}
 										else
 										{
-											vz::backlog::post("KTX2 transcoding error while loading image level info!", vz::backlog::LogLevel::Error);
+											backlog::post("KTX2 transcoding error while loading image level info!", backlog::LogLevel::Error);
 											assert(0);
 										}
 									}
@@ -446,9 +448,9 @@ namespace vz
 											transcoded_data_size += bytes_per_block * pixel_or_block_count;
 										}
 									}
-									std::vector<uint8_t> transcoded_data(transcoded_data_size);
+									vector<uint8_t> transcoded_data(transcoded_data_size);
 
-									std::vector<SubresourceData> InitData;
+									vector<SubresourceData> InitData;
 									size_t transcoded_data_offset = 0;
 									for (uint32_t mip = 0; mip < desc.mip_levels; ++mip)
 									{
@@ -478,13 +480,13 @@ namespace vz
 											}
 											else
 											{
-												vz::backlog::post("BASIS transcoding error while loading image!", vz::backlog::LogLevel::Error);
+												backlog::post("BASIS transcoding error while loading image!", backlog::LogLevel::Error);
 												assert(0);
 											}
 										}
 										else
 										{
-											vz::backlog::post("BASIS transcoding error while loading image level info!", vz::backlog::LogLevel::Error);
+											backlog::post("BASIS transcoding error while loading image level info!", backlog::LogLevel::Error);
 											assert(0);
 										}
 									}
@@ -633,7 +635,7 @@ namespace vz
 							desc.height = AlignTo(desc.height, GetFormatBlockSize(desc.format));
 						}
 
-						std::vector<SubresourceData> initdata_heap;
+						vector<SubresourceData> initdata_heap;
 						SubresourceData initdata_stack[16] = {};
 						SubresourceData* initdata = nullptr;
 
@@ -841,7 +843,7 @@ namespace vz
 									uint16_t r, g, b;
 								};
 								const Color3* color3 = (const Color3*)rgba;
-								vz::Color16* color4 = (vz::Color16*)malloc(width * height * sizeof(vz::Color16));
+								Color16* color4 = (Color16*)malloc(width * height * sizeof(Color16));
 								for (int i = 0; i < width * height; ++i)
 								{
 									color4[i].setR(color3[i].r);
@@ -887,7 +889,7 @@ namespace vz
 									uint8_t r, g, b;
 								};
 								const Color3* color3 = (const Color3*)rgba;
-								vz::Color* color4 = (vz::Color*)malloc(width * height * sizeof(vz::Color));
+								Color* color4 = (Color*)malloc(width * height * sizeof(Color));
 								for (int i = 0; i < width * height; ++i)
 								{
 									color4[i].setR(color3[i].r);
@@ -932,9 +934,7 @@ namespace vz
 							}
 							else
 							{
-								//uint32_t data[16 * 16 * 16];
-								std::vector<uint32_t> data_v(16 * 16 * 16);
-								uint32_t* data = data_v.data();
+								uint32_t data[16 * 16 * 16];
 								int pixel = 0;
 								for (int z = 0; z < 16; ++z)
 								{
@@ -1003,6 +1003,7 @@ namespace vz
 								);
 							}
 
+							//renderer::AddDeferredMIPGen(resource->texture, true);
 							if (graphicsPackage.pluginAddDeferredMIPGen)
 							{
 								graphicsPackage.pluginAddDeferredMIPGen(resource->texture, true);
@@ -1045,6 +1046,7 @@ namespace vz
 									);
 								}
 
+								//renderer::AddDeferredBlockCompression(uncompressed_src, resource->texture);
 								if (graphicsPackage.pluginAddDeferredBlockCompression)
 								{
 									graphicsPackage.pluginAddDeferredBlockCompression(uncompressed_src, resource->texture);
@@ -1056,16 +1058,11 @@ namespace vz
 				}
 			}
 			break;
-			case DataType::FONTSTYLE:
-			{
-				//resource->font_style = vz::font::AddFontStyle(name, filedata, filesize, true);
-				//success = resource->font_style >= 0;
-			}
-			break;
-
+			default:
+				assert(0 && "NOT YET SUPPORTED!");
+				return false;
 			};
 
-			resource->dataType = ext;
 			if (!resource->filedata.empty() && !has_flag(flags, Flags::IMPORT_RETAIN_FILEDATA) && !has_flag(flags, Flags::IMPORT_DELAY))
 			{
 				// file data can be discarded:
@@ -1075,7 +1072,7 @@ namespace vz
 
 			return success;
 		}
-		
+
 		Resource LoadVolume(
 			const std::string& name,
 			Flags flags,

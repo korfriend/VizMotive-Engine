@@ -11,15 +11,18 @@ namespace vz
 			backlog::post("MaterialComponent::SetTexture >> Invalid texture entity!!", backlog::LogLevel::Warn);
 			return;
 		}
-		if (textureSlot == TextureSlot::VOLUME_DENSITYMAP)
-		{
-			if (texture->GetComponentType() != ComponentType::VOLUMETEXTURE)
-			{
-				backlog::post("MaterialComponent::SetTexture >> TextureSlot::VOLUME_DENSITYMAP requires VolumeTexture! (here, just a Texture)", backlog::LogLevel::Warn);
-			}
-		}
-
 		textureComponents_[SCU32(textureSlot)] = texture->GetVUID();
+	}
+
+	void MaterialComponent::SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot)
+	{
+		VolumeComponent* volume = compfactory::GetVolumeComponent(volumetextureEntity);
+		if (volume == nullptr)
+		{
+			backlog::post("MaterialComponent::SetVolumeTexture >> Invalid texture entity!!", backlog::LogLevel::Warn);
+			return;
+		}
+		volumeComponents_[SCU32(volumetextureSlot)] = volume->GetVUID();
 	}
 }
 

@@ -97,6 +97,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\basisu_common.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\lodepng.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\allocator.cpp" />

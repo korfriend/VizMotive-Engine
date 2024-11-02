@@ -23,9 +23,14 @@ namespace vzm
 			ANISOTROPYMAP,
 			TRANSPARENCYMAP,
 
-			VOLUME_DENSITYMAP, // this is used for volume rendering
-
 			TEXTURESLOT_COUNT
+		};
+		enum class VolumeTextureSlot : uint32_t
+		{
+			VOLUME_DENSITYMAP, // this is used for volume rendering
+			VOLUME_SEMANTICMAP,
+
+			VOLUME_TEXTURESLOT_COUNT
 		};
 
 		enum class ShaderType : uint32_t
@@ -42,6 +47,8 @@ namespace vzm
 
 		void SetTexture(const VID vid, const TextureSlot slot);
 		void SetTexture(const VzResource* res, const TextureSlot slot) { SetTexture(res->GetVID(), slot); }
+		void SetVolumeTexture(const VID vid, const VolumeTextureSlot slot);
+		void SetVolumeTexture(const VzResource* res, const VolumeTextureSlot slot) { SetVolumeTexture(res->GetVID(), slot); }
 
 		void SetShaderType(const ShaderType shaderType);
 		ShaderType GetShaderType() const;
@@ -49,5 +56,6 @@ namespace vzm
 		bool IsDoubleSided() const;
 	};
 	using TextureSlot = VzMaterial::TextureSlot;
+	using VolumeTextureSlot = VzMaterial::VolumeTextureSlot;
 	using ShaderType = VzMaterial::ShaderType;
 }

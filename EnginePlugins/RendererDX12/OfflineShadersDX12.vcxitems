@@ -35,11 +35,30 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Postprocess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Raytracing.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_SurfelGI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_VXGI.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float1CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float3CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float4CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_unorm1CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_unorm4CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_float1CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_float3CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_float4CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_unorm1CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_unorm4CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain2DCS_float4.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain2DCS_unorm4.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain3DCS_float4.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain3DCS_unorm4.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChainCubeArrayCS_float4.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChainCubeArrayCS_unorm4.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChainCubeCS_float4.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChainCubeCS_unorm4.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS_ADVANCED.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS_ADVANCED_DEBUG.hlsl" />

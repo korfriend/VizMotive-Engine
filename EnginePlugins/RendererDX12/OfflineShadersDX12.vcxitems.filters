@@ -95,6 +95,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Raytracing.h">
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Postprocess.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl">
@@ -179,6 +182,60 @@
       <Filter>Pipeline Shaders\CS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS_DEBUG.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChainCubeArrayCS_unorm4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChainCubeArrayCS_float4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChainCubeCS_unorm4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChainCubeCS_float4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain3DCS_unorm4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain2DCS_float4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain2DCS_unorm4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain3DCS_float4.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float4CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_unorm1CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_unorm4CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_float1CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_float3CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_float4CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_unorm1CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_unorm4CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float1CS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_float3CS.hlsl">
       <Filter>Pipeline Shaders\CS</Filter>
     </FxCompile>
   </ItemGroup>

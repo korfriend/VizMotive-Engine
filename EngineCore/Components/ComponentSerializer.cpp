@@ -105,6 +105,14 @@ namespace vz
 			{
 				archive >> textureComponents_[i];
 			}
+
+			archive >> u32_data;
+			assert(u32_data <= SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT));
+			for (uint32_t i = 0, n = u32_data; i < n; ++i)
+			{
+				archive >> volumeComponents_[i];
+			}
+
 			archive >> texMulAdd_;
 			isDirty_ = true;
 		}
@@ -127,6 +135,12 @@ namespace vz
 			for (uint32_t i = 0; i < tex_slot_count; ++i)
 			{
 				archive << textureComponents_[i];
+			}
+			tex_slot_count = SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT);
+			archive << tex_slot_count;
+			for (uint32_t i = 0; i < tex_slot_count; ++i)
+			{
+				archive << volumeComponents_[i];
 			}
 			archive << texMulAdd_;
 		}

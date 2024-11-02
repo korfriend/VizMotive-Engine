@@ -179,8 +179,8 @@ namespace vz
 						GTextureComponent* texture_comp = nullptr;
 						if (texture_vuid != INVALID_VUID)
 						{
-							Entity texture_entity = compfactory::GetEntityByVUID(texture_vuid);
-							texture_comp = dynamic_cast<GTextureComponent*>(compfactory::GetTextureComponent(texture_entity));
+							texture_comp = (GTextureComponent*)compfactory::GetComponentByVUID(texture_vuid);
+							assert(texture_comp && texture_comp->GetComponentType() == ComponentType::TEXTURE);
 							shader_material.textures[i].uvset_lodclamp = (texture_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(texture_comp->GetLodClamp()) << 1u);
 							if (texture_comp->IsValid())
 							{
@@ -204,6 +204,26 @@ namespace vz
 							}
 							shader_material.textures[i].sparse_residencymap_descriptor = texture_comp->GetSparseResidencymapDescriptor();
 							shader_material.textures[i].sparse_feedbackmap_descriptor = texture_comp->GetSparseFeedbackmapDescriptor();
+						}
+					}
+					for (int i = 0; i < VOLUME_TEXTURESLOT_COUNT; ++i)
+					{
+						VUID volume_vuid = material.GetVolumeTextureVUID(i);
+						GVolumeComponent* volume_comp = nullptr;
+						if (volume_vuid != INVALID_VUID)
+						{
+							volume_comp = (GVolumeComponent*)compfactory::GetComponentByVUID(volume_vuid);
+							assert(volume_comp && volume_comp->GetComponentType() == ComponentType::VOLUMETEXTURE);
+							if (volume_comp->IsValid())
+							{
+								shader_material.volume_textures[i].texture_descriptor = device->GetDescriptorIndex(volume_comp->GetGPUResource(), SubresourceType::SRV);
+							}
+							else
+							{
+								shader_material.volume_textures[i].texture_descriptor = -1;
+							}
+							shader_material.volume_textures[i].sparse_residencymap_descriptor = volume_comp->GetSparseResidencymapDescriptor();
+							shader_material.volume_textures[i].sparse_feedbackmap_descriptor = volume_comp->GetSparseFeedbackmapDescriptor();
 						}
 					}
 

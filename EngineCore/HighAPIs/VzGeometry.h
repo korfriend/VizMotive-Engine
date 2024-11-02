@@ -9,5 +9,6 @@ namespace vzm
 			: VzResource(vid, originFrom, COMPONENT_TYPE::GEOMETRY) {}
 
 		void MakeTestTriangle();
+		void MakeTestQuadWithUVs();
 	};
 }
