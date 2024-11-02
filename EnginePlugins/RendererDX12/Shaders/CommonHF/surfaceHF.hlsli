@@ -590,7 +590,7 @@ struct Surface
             half ao = attribute_at_bary(ao0, ao1, ao2, (half2) bary);
 			occlusion = ao;
 		}
-
+		
 		// TODO
 		//[branch]
 		//if (inst.lightmap >= 0 && geometry.vb_atl >= 0)
@@ -662,7 +662,7 @@ struct Surface
 		{
 			emissiveColor += baseColor.rgb * baseColor.a;
 		}
-
+		
 #ifdef SURFACE_LOAD_QUAD_DERIVATIVES
 #ifdef TERRAINBLENDED
 		[branch]

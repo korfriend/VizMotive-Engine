@@ -369,6 +369,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\overdrawanalyzer.cpp">
       <Filter>ThirdParty\meshoptimizer</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.cpp">
+      <Filter>HighAPIs %28API_EXPORT%29\ComponentsSrc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl">

@@ -17,6 +17,12 @@ namespace vzm
 		material->SetTexture(vid, static_cast<MaterialComponent::TextureSlot>(slot));
 	}
 
+	void VzMaterial::SetVolumeTexture(const VID vid, const VolumeTextureSlot slot)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetVolumeTexture(vid, static_cast<MaterialComponent::VolumeTextureSlot>(slot));
+	}
+
 	void VzMaterial::SetShaderType(const ShaderType shaderType)
 	{
 		GET_MATERIAL_COMP(material, );

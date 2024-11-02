@@ -4,6 +4,8 @@ using namespace vz;
 
 bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 {
+	assert(vz::GetComponentVersion() == vz::COMPONENT_INTERFACE_VERSION);
+
 	auto it = io.find("filename");
 	if (it == io.end()) return false;
 	std::string filename = std::any_cast<std::string>(it->second);

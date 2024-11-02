@@ -30,7 +30,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241023";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241103";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -375,9 +375,14 @@ namespace vz
 			ANISOTROPYMAP,
 			TRANSPARENCYMAP,
 
-			VOLUME_DENSITYMAP, // this is used for volume rendering
-
 			TEXTURESLOT_COUNT
+		};
+		enum class VolumeTextureSlot : uint32_t
+		{
+			VOLUME_DENSITYMAP, // this is used for volume rendering
+			VOLUME_SEMANTICMAP, 
+
+			VOLUME_TEXTURESLOT_COUNT
 		};
 		enum class BlendMode : uint32_t
 		{
@@ -423,6 +428,7 @@ namespace vz
 		XMFLOAT4 phongFactors_ = XMFLOAT4(0.2f, 1, 1, 1);	// only used for ShaderType::PHONG
 
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
+		VUID volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 
@@ -447,6 +453,7 @@ namespace vz
 		inline void SetDoubleSided(bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
+		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
 
 		inline bool IsDirty() const { return isDirty_; }
 		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
@@ -467,6 +474,9 @@ namespace vz
 		inline BlendMode GetBlendMode() const { return blendMode_; }
 		inline VUID GetTextureVUID(const size_t slot) const { 
 			if (slot >= SCU32(TextureSlot::TEXTURESLOT_COUNT)) return INVALID_VUID; return textureComponents_[slot];
+		}
+		inline VUID GetVolumeTextureVUID(const size_t slot) const {
+			if (slot >= SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)) return INVALID_VUID; return volumeComponents_[slot];
 		}
 		inline const XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
@@ -657,8 +667,9 @@ namespace vz
 		}
 	};
 	struct Resource;
+	struct GTextureInterface;
 	constexpr size_t TEXTURE_MAX_RESOLUTION = 4096;
-	struct CORE_EXPORT TextureComponent : virtual ComponentBase
+	struct CORE_EXPORT TextureComponent : ComponentBase
 	{
 		enum class TextureType : uint8_t
 		{
@@ -671,7 +682,7 @@ namespace vz
 			Texture1D,	// can be used for low-resolution lookup table (for OTF)
 			Texture2D,
 			Texture3D,
-			TextureEnv, // TODO
+			Texture2D_Array, // TODO
 		};
 	protected:
 		TextureType textureType_ = TextureType::Undefined;
@@ -690,10 +701,9 @@ namespace vz
 		std::shared_ptr<Resource> resource_;
 		bool hasRenderData_ = false;
 
-
-
 	public:
 		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
+		TextureComponent(const ComponentType ctype, const Entity entity, const VUID vuid = 0) : ComponentBase(ctype, entity, vuid) {}
 		
 		TextureType GetTextureType() const { return textureType_; }
 		bool IsValid() const;
@@ -718,9 +728,10 @@ namespace vz
 		bool HasRenderData() const { return hasRenderData_; }
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
+		friend struct GTextureInterface;
 	};
 
-	struct CORE_EXPORT VolumeComponent : virtual TextureComponent
+	struct CORE_EXPORT VolumeComponent : TextureComponent
 	{
 		enum class VolumeFormat : uint8_t
 		{
@@ -742,7 +753,7 @@ namespace vz
 
 		// sampler 
 	public:
-		VolumeComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::VOLUMETEXTURE, entity, vuid), TextureComponent(entity, vuid) {}
+		VolumeComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid) {}
 
 		inline void SetVoxelSize(const XMFLOAT3& voxelSize) { voxelSize_ = voxelSize; }
 		inline void SetStoredMinMax(const XMFLOAT2 minMax) { storedMinMax_ = minMax; }

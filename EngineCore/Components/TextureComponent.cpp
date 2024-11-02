@@ -233,6 +233,32 @@ namespace vz
 
 namespace vz
 {
+#define GETTER_RES_GTI(RES, RET) Resource* RES = texture_->resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); return RET; };
+
+	int GTextureInterface::GetSparseResidencymapDescriptor() const
+	{
+		GETTER_RES_GTI(resource, -1);
+		return resource->sparse_residencymap_descriptor;
+	}
+	int GTextureInterface::GetSparseFeedbackmapDescriptor() const
+	{
+		GETTER_RES_GTI(resource, -1);
+		return resource->sparse_feedbackmap_descriptor;
+	}
+	const graphics::Texture& GTextureInterface::GetTexture() const
+	{
+		static graphics::Texture empty;
+		GETTER_RES_GTI(resource, empty);
+		return resource->GetTexture();
+	}
+	void GTextureInterface::SetTexture(const graphics::Texture& texture, int srgb_subresource)
+	{
+		GETTER_RES_GTI(resource, );
+		resource->SetTexture(texture, srgb_subresource);
+	}
+}
+namespace vz
+{
 	uint32_t GTextureComponent::GetUVSet() const
 	{
 		GETTER_RES(resource, 0);
@@ -243,16 +269,6 @@ namespace vz
 		GETTER_RES(resource, 0);
 		return resource->lod_clamp;
 	}
-	int GTextureComponent::GetSparseResidencymapDescriptor() const
-	{
-		GETTER_RES(resource, -1);
-		return resource->sparse_residencymap_descriptor;
-	}
-	int GTextureComponent::GetSparseFeedbackmapDescriptor() const
-	{
-		GETTER_RES(resource, -1);
-		return resource->sparse_feedbackmap_descriptor;
-	}
 
 	int GTextureComponent::GetTextureSRGBSubresource() const
 	{
@@ -260,17 +276,7 @@ namespace vz
 		return resource->GetTextureSRGBSubresource();
 	}
 
-	const graphics::Texture& GTextureComponent::GetTexture() const
-	{
-		static graphics::Texture empty;
-		GETTER_RES(resource, empty);
-		return resource->GetTexture();
-	}
-	void GTextureComponent::SetTexture(const graphics::Texture& texture, int srgb_subresource)
-	{
-		GETTER_RES(resource, );
-		resource->SetTexture(texture, srgb_subresource);
-	}
+	
 	void GTextureComponent::StreamingRequestResolution(uint32_t resolution)
 	{
 		GETTER_RES(resource, );

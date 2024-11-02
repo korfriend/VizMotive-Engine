@@ -115,6 +115,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return -1;
     }
 
+    // Here, VID is same to the Entity that refers to the ECS-based components
+    //  The different btw. VID and Entity is
+    //  VID is an ID for node-based components (kind of abstraction)
+    //  Entity is an ID for ECS-based components (internal implementation)
+
 	vzm::VzScene* scene = vzm::NewScene("my scene");
     //scene->LoadIBL("../../../VisualStudio/samples/assets/ibl/lightroom_14b");
     //
@@ -140,20 +145,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
-	geometry_test->MakeTestTriangle();
+	//geometry_test->MakeTestTriangle();
+	geometry_test->MakeTestQuadWithUVs();
 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
     material_test->SetShaderType(vzm::ShaderType::PBR);
     material_test->SetDoubleSided(true);
 
-    using TextureSlot = vzm::VzMaterial::TextureSlot;
+	vzm::VzTexture* texture = vzm::NewTexture("my texture");
+    texture->LoadImageFile("../Assets/testimage_2ns.jpg");
 
     vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
-    material_test->SetTexture(volume, TextureSlot::VOLUME_DENSITYMAP);
+	{
+		vzm::ParamMap<std::string> io;
+		io.SetParam("filename", std::string("d:/aaa.dcm"));
+		io.SetParam("volume texture entity", volume->GetVID());
+		vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
+    }
 
-	vzm::ParamMap<std::string> io;
-	io.SetParam("filename", std::string("d:/aaa.dcm"));
-	io.SetParam("volume texture entity", volume->GetVID());
-    vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
+    material_test->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
+    material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
 	//actor_test->SetGeometry(geometry_test);
@@ -300,8 +310,8 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         RECT rc;
         GetClientRect(hWnd, &rc);
-        UINT width = rc.right - rc.left;
-        UINT height = rc.bottom - rc.top;
+        //UINT width = rc.right - rc.left;
+        //UINT height = rc.bottom - rc.top;
         //if (is_valid)
         //{
         //    cc->SetViewport(w, h);

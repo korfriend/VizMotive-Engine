@@ -46,4 +46,50 @@ namespace vzm
 		geometry->UpdateRenderData();
 		UpdateTimeStamp();
 	}
+
+	void VzGeometry::MakeTestQuadWithUVs()
+	{
+		GET_GEO_COMP(geometry, );
+
+		GeometryComponent::Primitive prim;
+
+		std::vector<XMFLOAT3> vertexPositions;
+		vertexPositions.reserve(4);
+		vertexPositions.push_back(XMFLOAT3(-1, 1, 0));
+		vertexPositions.push_back(XMFLOAT3( 1, 1, 0));
+		vertexPositions.push_back(XMFLOAT3( 1,-1, 0));
+		vertexPositions.push_back(XMFLOAT3(-1,-1, 0));
+
+		std::vector<XMFLOAT3> normals;
+		normals.reserve(4);
+		normals.push_back(XMFLOAT3(0, 0, -1));
+		normals.push_back(XMFLOAT3(0, 0, -1));
+		normals.push_back(XMFLOAT3(0, 0, -1));
+		normals.push_back(XMFLOAT3(0, 0, -1));
+
+		std::vector<XMFLOAT2> uvs0;
+		uvs0.reserve(4);
+		uvs0.push_back(XMFLOAT2(0, 0));
+		uvs0.push_back(XMFLOAT2(1, 0));
+		uvs0.push_back(XMFLOAT2(1, 1));
+		uvs0.push_back(XMFLOAT2(0, 1));
+
+		std::vector<uint32_t> indexPrimitives = { 0, 3, 1, 1, 3, 2 };
+
+		prim.SetVtxPositions(vertexPositions, true);
+		prim.SetVtxNormals(normals, true);
+		prim.SetVtxUVSet0(uvs0, true);
+		prim.SetIdxPrimives(indexPrimitives, true);
+
+		geometrics::AABB aabb;
+		aabb._min = XMFLOAT3(-1.f, -1.f, -1.f);
+		aabb._max = XMFLOAT3(1.f, 1.f, 1.f);
+
+		prim.SetAABB(aabb);
+		prim.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
+
+		geometry->MovePrimitiveFrom(std::move(prim), 0);
+		geometry->UpdateRenderData();
+		UpdateTimeStamp();
+	}
 }

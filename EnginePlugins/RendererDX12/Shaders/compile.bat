@@ -27,3 +27,20 @@ dxc -T cs_6_0 ./CS/lightCullingCS.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T cs_6_0 ./CS/lightCullingCS_ADVANCED.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T cs_6_0 ./CS/lightCullingCS_ADVANCED_DEBUG.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T cs_6_0 ./CS/lightCullingCS_DEBUG.hlsl -spirv -fspv-target-env=vulkan1.1
+dxc -T cs_6_0 ./CS/generateMIPChainCubeArrayCS_float4.hlsl -spirv 
+dxc -T cs_6_0 ./CS/generateMIPChainCubeArrayCS_unorm4.hlsl -spirv 
+dxc -T cs_6_0 ./CS/generateMIPChainCubeCS_float4.hlsl -spirv 
+dxc -T cs_6_0 ./CS/generateMIPChainCubeCS_unorm4.hlsl -spirv 
+dxc -T cs_6_0 ./CS/generateMIPChain2DCS_float4.hlsl -spirv 
+dxc -T cs_6_0 ./CS/generateMIPChain2DCS_unorm4.hlsl -spirv 
+dxc -T cs_6_0 ./CS/generateMIPChain3DCS_float4.hlsl -spirv 
+dxc -T cs_6_0 ./CS/generateMIPChain3DCS_unorm4.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_float1CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_float3CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_float4CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_unorm1CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_unorm4CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_wide_float1CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_wide_float3CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_wide_unorm1CS.hlsl -spirv 
+dxc -T cs_6_0 ./CS/blur_gaussian_wide_unorm4CS.hlsl -spirv 

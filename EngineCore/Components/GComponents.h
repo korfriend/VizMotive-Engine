@@ -299,53 +299,43 @@ namespace vz
 		};
 	};
 
-	struct CORE_EXPORT GTextureComponent : virtual TextureComponent
+	struct CORE_EXPORT GTextureInterface
 	{
 	private:
+		TextureComponent* texture_ = nullptr;
 	public:
-		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid) {}
-
-		inline uint32_t GetUVSet() const;
-		inline float GetLodClamp() const;
+		GTextureInterface(TextureComponent* texture) : texture_(texture) {}
+		
 		inline int GetSparseResidencymapDescriptor() const;
 		inline int GetSparseFeedbackmapDescriptor() const;
-
-		inline int GetTextureSRGBSubresource() const;
 		inline const graphics::Texture& GetTexture() const;
 		// Allows to set a Texture to the resource from outside
 		//	srgb_subresource: you can provide a subresource for SRGB view if the texture is going to be used as SRGB with the GetTextureSRGBSubresource() (optional)
 		inline void SetTexture(const graphics::Texture& texture, int srgb_subresource = -1);
-		// Let the streaming system know the required resolution of this resource
-		inline void StreamingRequestResolution(uint32_t resolution);
 		inline const graphics::GPUResource* GetGPUResource() const {
-			if (!IsValid() || !GetTexture().IsValid())
+			if (!texture_->IsValid() || !GetTexture().IsValid())
 				return nullptr;
 			return &GetTexture();
 		}
-
-		//void DeleteRenderData() override;
-		//void UpdateRenderData() override;
-		//size_t GetMemoryUsageCPU() override;
-		//size_t GetMemoryUsageGPU() override;
 	};
 
-	//GVolumeComponent
-	//	戍式式 Base(only once)
-	//	戌式式 TextureComponent(only once)
-	//		戌式式 resources(only once)
-	//	戍式式 GTextureComponent
-	//	戌式式 VolumeComponent
-	struct CORE_EXPORT GVolumeTextureComponent : GTextureComponent, VolumeComponent
+	struct CORE_EXPORT GTextureComponent : TextureComponent, GTextureInterface
 	{
-		GVolumeTextureComponent(const Entity entity, const VUID vuid = 0) : 
-			ComponentBase(ComponentType::VOLUMETEXTURE, entity, vuid) 
-			, TextureComponent(entity, vuid)
-			, GTextureComponent(entity, vuid)
-			, VolumeComponent(entity, vuid) {}
+	private:
+	public:
+		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid), GTextureInterface(this) {}
 
-		void Serialize(vz::Archive& archive, const uint64_t version) override {
-			VolumeComponent::Serialize(archive, version);
-		}
+		inline uint32_t GetUVSet() const;
+		inline float GetLodClamp() const;
+
+		inline int GetTextureSRGBSubresource() const;
+		// Let the streaming system know the required resolution of this resource
+		inline void StreamingRequestResolution(uint32_t resolution);
+	};
+
+	struct CORE_EXPORT GVolumeComponent : VolumeComponent, GTextureInterface
+	{
+		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(this) {}
 	};
 
 	// scene 

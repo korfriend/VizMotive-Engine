@@ -56,6 +56,29 @@ namespace vz
 
 #endif // __cplusplus
 
+
+struct IndirectDrawArgsInstanced
+{
+	uint VertexCountPerInstance;
+	uint InstanceCount;
+	uint StartVertexLocation;
+	uint StartInstanceLocation;
+};
+struct IndirectDrawArgsIndexedInstanced
+{
+	uint IndexCountPerInstance;
+	uint InstanceCount;
+	uint StartIndexLocation;
+	int BaseVertexLocation;
+	uint StartInstanceLocation;
+};
+struct IndirectDispatchArgs
+{
+	uint ThreadGroupCountX;
+	uint ThreadGroupCountY;
+	uint ThreadGroupCountZ;
+};
+
 static const uint IndirectDrawArgsAlignment = 4u;
 static const uint IndirectDispatchArgsAlignment = 4u; 
 
@@ -157,9 +180,15 @@ enum TEXTURESLOT
 	ANISOTROPYMAP,
 	TRANSPARENCYMAP,
 
-	VOLUMEDENSITYMAP, // this is used for volume rendering
-
 	TEXTURESLOT_COUNT
+};
+
+enum VOLUNMETEXTURESLOT
+{
+	VOLUME_DENSITYMAP, // this is used for volume rendering
+	VOLUME_SEMANTICMAP,
+
+	VOLUME_TEXTURESLOT_COUNT
 };
 
 enum SHADER_ENTITY_TYPE
@@ -536,6 +565,7 @@ struct alignas(16) ShaderMaterial
 	uint4 userdata;
 
 	ShaderTextureSlot textures[TEXTURESLOT_COUNT];
+	ShaderTextureSlot volume_textures[VOLUME_TEXTURESLOT_COUNT];
 
 	void Init()
 	{
@@ -566,6 +596,10 @@ struct alignas(16) ShaderMaterial
 		for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
 		{
 			textures[i].Init();
+		}
+		for (int i = 0; i < VOLUME_TEXTURESLOT_COUNT; ++i)
+		{
+			volume_textures[i].Init();
 		}
 	}
 
@@ -768,6 +802,26 @@ struct DebugObjectPushConstants
 {
 	int vbPosW;
 };
+
+// MIP Generator params:
+static const uint GENERATEMIPCHAIN_1D_BLOCK_SIZE = 64;
+static const uint GENERATEMIPCHAIN_2D_BLOCK_SIZE = 8;
+static const uint GENERATEMIPCHAIN_3D_BLOCK_SIZE = 4;
+
+struct MipgenPushConstants
+{
+	uint3 outputResolution;
+	uint arrayIndex;
+	float3 outputResolution_rcp;
+	uint mipgen_options;
+	int texture_input;
+	int texture_output;
+	int sampler_index;
+	int padding;
+};
+static const uint MIPGEN_OPTION_BIT_PRESERVE_COVERAGE = 1 << 0;
+static const uint MIPGEN_OPTION_BIT_SRGB = 1 << 1;
+
 
 struct alignas(16) ShaderFog
 {

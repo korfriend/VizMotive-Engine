@@ -81,6 +81,9 @@
     <ClInclude Include="Shaders\ShaderInterop_Image.h">
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_Postprocess.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">

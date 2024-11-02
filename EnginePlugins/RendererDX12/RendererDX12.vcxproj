@@ -167,6 +167,7 @@
     <ClInclude Include="Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="Shaders\ShaderInterop_DDGI.h" />
     <ClInclude Include="Shaders\ShaderInterop_Image.h" />
+    <ClInclude Include="Shaders\ShaderInterop_Postprocess.h" />
     <ClInclude Include="Shaders\ShaderInterop_Raytracing.h" />
     <ClInclude Include="Shaders\ShaderInterop_SurfelGI.h" />
     <ClInclude Include="Shaders\ShaderInterop_VXGI.h" />
