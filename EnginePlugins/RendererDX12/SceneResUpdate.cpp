@@ -175,7 +175,7 @@ namespace vz
 
 					for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
 					{
-						VUID texture_vuid = material.GetTextureVUID(i);
+						VUID texture_vuid = material.GetTextureVUID(static_cast<MaterialComponent::TextureSlot>(i));
 						GTextureComponent* texture_comp = nullptr;
 						if (texture_vuid != INVALID_VUID)
 						{
@@ -208,7 +208,7 @@ namespace vz
 					}
 					for (int i = 0; i < VOLUME_TEXTURESLOT_COUNT; ++i)
 					{
-						VUID volume_vuid = material.GetVolumeTextureVUID(i);
+						VUID volume_vuid = material.GetVolumeTextureVUID(static_cast<MaterialComponent::VolumeTextureSlot>(i));
 						GVolumeComponent* volume_comp = nullptr;
 						if (volume_vuid != INVALID_VUID)
 						{
@@ -252,7 +252,7 @@ namespace vz
 					for (size_t slot = 0, n = SCU32(MaterialComponent::TextureSlot::TEXTURESLOT_COUNT);
 						slot < n; ++slot)
 					{
-						VUID texture_vuid = material.GetTextureVUID(slot);
+						VUID texture_vuid = material.GetTextureVUID(static_cast<MaterialComponent::TextureSlot>(slot));
 						if (texture_vuid != INVALID_VUID)
 						{
 							Entity material_entity = compfactory::GetEntityByVUID(texture_vuid);
