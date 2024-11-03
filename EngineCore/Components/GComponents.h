@@ -301,10 +301,10 @@ namespace vz
 
 	struct CORE_EXPORT GTextureInterface
 	{
-	private:
-		TextureComponent* texture_ = nullptr;
+	protected:
+		Entity texureEntity_ = 0;
 	public:
-		GTextureInterface(TextureComponent* texture) : texture_(texture) {}
+		GTextureInterface(Entity texureEntity) : texureEntity_(texureEntity) {}
 		
 		inline int GetSparseResidencymapDescriptor() const;
 		inline int GetSparseFeedbackmapDescriptor() const;
@@ -312,18 +312,14 @@ namespace vz
 		// Allows to set a Texture to the resource from outside
 		//	srgb_subresource: you can provide a subresource for SRGB view if the texture is going to be used as SRGB with the GetTextureSRGBSubresource() (optional)
 		inline void SetTexture(const graphics::Texture& texture, int srgb_subresource = -1);
-		inline const graphics::GPUResource* GetGPUResource() const {
-			if (!texture_->IsValid() || !GetTexture().IsValid())
-				return nullptr;
-			return &GetTexture();
-		}
+		inline const graphics::GPUResource* GetGPUResource() const;
 	};
 
 	struct CORE_EXPORT GTextureComponent : TextureComponent, GTextureInterface
 	{
 	private:
 	public:
-		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid), GTextureInterface(this) {}
+		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid), GTextureInterface(entity) {}
 
 		inline uint32_t GetUVSet() const;
 		inline float GetLodClamp() const;
@@ -335,7 +331,7 @@ namespace vz
 
 	struct CORE_EXPORT GVolumeComponent : VolumeComponent, GTextureInterface
 	{
-		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(this) {}
+		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(entity) {}
 	};
 
 	// scene 

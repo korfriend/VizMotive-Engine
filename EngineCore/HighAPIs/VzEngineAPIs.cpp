@@ -616,6 +616,43 @@ namespace vzm
 	}
 
 
+	ActorVID LoadModelFile(const std::string& filename)
+	{
+		CHECK_API_VALIDITY(INVALID_VID);
+		typedef Entity(*PI_Function)(const std::string& fileName,
+			std::vector<Entity>& actors,
+			std::vector<Entity>& cameras, // obj does not include camera
+			std::vector<Entity>& lights,
+			std::vector<Entity>& geometries,
+			std::vector<Entity>& materials,
+			std::vector<Entity>& textures
+			);
+
+		PI_Function lpdll_function = platform::LoadModule<PI_Function>("MeshIO", "ImportModel_OBJ");
+		if (lpdll_function == nullptr)
+		{
+			backlog::post("vzm::LoadModelFile >> Invalid plugin function!", backlog::LogLevel::Error);
+			return INVALID_VID;
+		}
+		std::vector<Entity> actors;
+		std::vector<Entity> cameras; // obj does not include camera
+		std::vector<Entity> lights;
+		std::vector<Entity> geometries;
+		std::vector<Entity> materials;
+		std::vector<Entity> textures;		
+		Entity root_entity = lpdll_function(filename, actors, cameras, lights, geometries, materials, textures);
+
+#define REGISTER_HLCOMP(COMPTYPE, vzcomponents, vID) { auto it = vzcomp::vzcomponents.emplace(vID, std::make_unique<COMPTYPE>(vID, "vzm::LoadModelFile")); VzBaseComp* hlcomp = it.first->second.get(); vzcomp::lookup[vID] = hlcomp; }
+
+		for (Entity vid : actors) REGISTER_HLCOMP(VzActor, actors, vid);
+		for (Entity vid : cameras) REGISTER_HLCOMP(VzCamera, cameras, vid);
+		for (Entity vid : lights) REGISTER_HLCOMP(VzLight, lights, vid);
+		for (Entity vid : geometries) REGISTER_HLCOMP(VzGeometry, geometries, vid);
+		for (Entity vid : materials) REGISTER_HLCOMP(VzMaterial, materials, vid);
+		for (Entity vid : textures) REGISTER_HLCOMP(VzTexture, textures, vid);
+
+		return root_entity;
+	}
 
 
 	bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io)

@@ -233,7 +233,9 @@ namespace vz
 
 namespace vz
 {
-#define GETTER_RES_GTI(RES, RET) Resource* RES = texture_->resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); return RET; };
+#define GETTER_RES_GTI(RES, RET) TextureComponent* texture = compfactory::GetTextureComponent(texureEntity_); \
+Resource* RES = texture->resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); \
+return RET; };
 
 	int GTextureInterface::GetSparseResidencymapDescriptor() const
 	{
@@ -251,10 +253,17 @@ namespace vz
 		GETTER_RES_GTI(resource, empty);
 		return resource->GetTexture();
 	}
-	void GTextureInterface::SetTexture(const graphics::Texture& texture, int srgb_subresource)
+	void GTextureInterface::SetTexture(const graphics::Texture& texture_, int srgb_subresource)
 	{
 		GETTER_RES_GTI(resource, );
-		resource->SetTexture(texture, srgb_subresource);
+		resource->SetTexture(texture_, srgb_subresource);
+	}
+
+	const graphics::GPUResource* GTextureInterface::GetGPUResource() const {
+		GETTER_RES_GTI(resource, nullptr);
+		if (!texture->IsValid() || !GetTexture().IsValid())
+			return nullptr;
+		return &GetTexture();
 	}
 }
 namespace vz
