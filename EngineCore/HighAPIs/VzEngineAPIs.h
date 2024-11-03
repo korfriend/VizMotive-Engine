@@ -59,8 +59,8 @@ namespace vzm
 	API_EXPORT inline bool RemoveComponent(const VzBaseComp* comp) { return RemoveComponent(comp->GetVID()); }
 
 	// Load a mesh file (obj and stl) into actors and return the first actor
-	//  - return zero in case of failure
-	API_EXPORT VzActor* LoadModelFileIntoActors(const std::string& filename, std::vector<VzActor*>& actors);
+	//  - return root-node actor (empty)
+	API_EXPORT ActorVID LoadModelFile(const std::string& filename);
 	API_EXPORT float GetAsyncLoadProgress();
 	// Get a graphics render target view 
 	//  - Must belong to the internal scene

@@ -30,7 +30,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241103";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241104";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -522,8 +522,6 @@ namespace vz
 
 		struct Primitive {
 		private:
-			bool isValid_[SCU32(BufferDefinition::COUNT)] = { }; // false
-
 			std::vector<XMFLOAT3> vertexPositions_;
 			std::vector<XMFLOAT3> vertexNormals_;
 			std::vector<XMFLOAT4> vertexTangents_;
@@ -560,25 +558,25 @@ namespace vz
 				return sphere;
 			}
 			inline PrimitiveType GetPrimitiveType() const { return ptype_; }
-			inline bool IsValid() const { return isValid_[SCU32(BufferDefinition::POSITION)] && aabb_.IsValid(); }
+			inline bool IsValid() const { return vertexPositions_.size() > 0 && aabb_.IsValid(); }
 			inline void SetAABB(const geometrics::AABB& aabb) { aabb_ = aabb; }
 			inline void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
 
 			// ----- Getters -----
-			inline const std::vector<XMFLOAT3>& GetVtxPositions() const { assert(isValid_[SCU32(BufferDefinition::POSITION)]); return vertexPositions_; }
-			inline const std::vector<uint32_t>& GetIdxPrimives() const { assert(isValid_[SCU32(BufferDefinition::INDICES)]); return indexPrimitives_; }
-			inline const std::vector<XMFLOAT3>& GetVtxNormals() const { assert(isValid_[SCU32(BufferDefinition::NORMAL)]); return vertexNormals_; }
-			inline const std::vector<XMFLOAT4>& GetVtxTangents() const { assert(isValid_[SCU32(BufferDefinition::TANGENT)]); return vertexTangents_; }
-			inline const std::vector<XMFLOAT2>& GetVtxUVSet0() const { assert(isValid_[SCU32(BufferDefinition::UVSET0)]); return vertexUVset0_; }
-			inline const std::vector<XMFLOAT2>& GetVtxUVSet1() const { assert(isValid_[SCU32(BufferDefinition::UVSET1)]); return vertexUVset1_; }
-			inline const std::vector<uint32_t>& GetVtxColors() const { assert(isValid_[SCU32(BufferDefinition::COLOR)]); return vertexColors_; }
-			inline std::vector<XMFLOAT3>& GetMutableVtxPositions() { assert(isValid_[SCU32(BufferDefinition::POSITION)]); return vertexPositions_; }
-			inline std::vector<uint32_t>& GetMutableIdxPrimives() { assert(isValid_[SCU32(BufferDefinition::INDICES)]); return indexPrimitives_; }
-			inline std::vector<XMFLOAT3>& GetMutableVtxNormals() { assert(isValid_[SCU32(BufferDefinition::NORMAL)]); return vertexNormals_; }
-			inline std::vector<XMFLOAT4>& GetMutableVtxTangents() { assert(isValid_[SCU32(BufferDefinition::TANGENT)]); return vertexTangents_; }
-			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet0() { assert(isValid_[SCU32(BufferDefinition::UVSET0)]); return vertexUVset0_; }
-			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet1() { assert(isValid_[SCU32(BufferDefinition::UVSET1)]); return vertexUVset1_; }
-			inline std::vector<uint32_t>& GetMutableVtxColors() { assert(isValid_[SCU32(BufferDefinition::COLOR)]); return vertexColors_; }
+			inline const std::vector<XMFLOAT3>& GetVtxPositions() const { return vertexPositions_; }
+			inline const std::vector<uint32_t>& GetIdxPrimives() const { return indexPrimitives_; }
+			inline const std::vector<XMFLOAT3>& GetVtxNormals() const { return vertexNormals_; }
+			inline const std::vector<XMFLOAT4>& GetVtxTangents() const { return vertexTangents_; }
+			inline const std::vector<XMFLOAT2>& GetVtxUVSet0() const { return vertexUVset0_; }
+			inline const std::vector<XMFLOAT2>& GetVtxUVSet1() const { return vertexUVset1_; }
+			inline const std::vector<uint32_t>& GetVtxColors() const { return vertexColors_; }
+			inline std::vector<XMFLOAT3>& GetMutableVtxPositions() { return vertexPositions_; }
+			inline std::vector<uint32_t>& GetMutableIdxPrimives() { return indexPrimitives_; }
+			inline std::vector<XMFLOAT3>& GetMutableVtxNormals() { return vertexNormals_; }
+			inline std::vector<XMFLOAT4>& GetMutableVtxTangents() { return vertexTangents_; }
+			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet0() { return vertexUVset0_; }
+			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet1() { return vertexUVset1_; }
+			inline std::vector<uint32_t>& GetMutableVtxColors() { return vertexColors_; }
 
 			inline size_t GetNumVertices() const { return vertexPositions_.size(); }
 			inline size_t GetNumIndices() const { return indexPrimitives_.size(); }
@@ -586,7 +584,7 @@ namespace vz
 			inline const XMFLOAT2& GetUVRangeMin() const { return uvRangeMin_; }
 			inline const XMFLOAT2& GetUVRangeMax() const { return uvRangeMax_; }
 
-			#define PRIM_SETTER(A, B) A##_ = onlyMoveOwnership ? std::move(A) : A; isValid_[B] = true;
+			#define PRIM_SETTER(A, B) A##_ = onlyMoveOwnership ? std::move(A) : A;
 			// move or copy
 			// note: if onlyMoveOwnership is true, input std::vector will be invalid!
 			//	carefully use onlyMoveOwnership(true) to avoid the ABI issue
@@ -713,7 +711,7 @@ namespace vz
 		bool hasRenderData_ = false;
 
 	public:
-		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {}
+		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {};
 		TextureComponent(const ComponentType ctype, const Entity entity, const VUID vuid = 0) : ComponentBase(ctype, entity, vuid) {}
 		
 		TextureType GetTextureType() const { return textureType_; }

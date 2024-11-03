@@ -69,7 +69,14 @@ private:
 // Transform the data from OBJ space to engine-space:
 static const bool transform_to_LH = false;
 
-bool ImportModel_OBJ(const std::string& fileName, Scene& scene)
+Entity ImportModel_OBJ(const std::string& fileName,
+	std::vector<Entity>& actors,
+	std::vector<Entity>& cameras, // obj does not include camera
+	std::vector<Entity>& lights,
+	std::vector<Entity>& geometries,
+	std::vector<Entity>& materials,
+	std::vector<Entity>& textures
+)
 {
 	std::string directory = helper::GetDirectoryFromPath(fileName);
 	std::string name = helper::GetFileNameFromPath(fileName);
@@ -96,18 +103,12 @@ bool ImportModel_OBJ(const std::string& fileName, Scene& scene)
 
 	if (!obj_errors.empty())
 	{
-		backlog::post(obj_errors, backlog::LogLevel::Error);
+		backlog::post(obj_errors, backlog::LogLevel::Warn);
 	}
 
 	Entity root_entity = INVALID_ENTITY;
 
 	// entity list to configure node-style components
-	vector<Entity> actors;
-	vector<Entity> cameras; // obj does not include camera
-	vector<Entity> lights;
-	vector<Entity> geometries;
-	vector<Entity> materials;
-	vector<Entity> textures;
 
 	enum NodeType
 	{
@@ -173,6 +174,7 @@ bool ImportModel_OBJ(const std::string& fileName, Scene& scene)
 			// textures //
 			auto registerMaterial = [&material, &directory, &textures, &CreateNode](const std::string& obj_mat_name, const MaterialComponent::TextureSlot slot)
 				{
+					if (obj_mat_name == "") return;
 					std::string mat_filename = directory + obj_mat_name;
 					if (helper::FileExists(mat_filename))
 					{
