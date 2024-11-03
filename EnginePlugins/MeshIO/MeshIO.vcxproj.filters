@@ -12,10 +12,16 @@
     <ClCompile Include="MeshIO.cpp">
       <Filter>Public</Filter>
     </ClCompile>
+    <ClCompile Include="ModelImporter_OBJ.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MeshIO.h">
       <Filter>Public</Filter>
+    </ClInclude>
+    <ClInclude Include="tiny_obj_loader.h">
+      <Filter>Private</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

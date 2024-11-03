@@ -94,6 +94,8 @@ namespace vz
 			archive >> specularColor_;
 			archive >> emissiveColor_;
 			archive >> phongFactors_;
+			archive >> metalness_;
+			archive >> roughness_;
 			archive >> alphaRef_;
 			archive >> u32_data;
 			engineStencilRef_ = static_cast<StencilRef>(u32_data);
@@ -127,6 +129,8 @@ namespace vz
 			archive << specularColor_;
 			archive << emissiveColor_;
 			archive << phongFactors_;
+			archive << metalness_;
+			archive << roughness_;
 			archive << alphaRef_;
 			archive << SCU32(engineStencilRef_);
 

@@ -77,6 +77,16 @@ namespace vz
 		}
 		return &parts_[slot];
 	}
+
+	Primitive* GeometryComponent::GetMutablePrimitive(const size_t slot)
+	{
+		if (slot >= parts_.size()) {
+			backlog::post("slot is over # of parts!", backlog::LogLevel::Error);
+			return nullptr;
+		}
+		return &parts_[slot];
+	}
+
 }
 
 namespace vz
@@ -258,11 +268,11 @@ namespace vz
 #define AUTO_RENDER_DATA GeometryComponent* geometry = compfactory::GetGeometryComponent(recentBelongingGeometry_);\
 	if (geometry && autoUpdateRenderData) geometry->UpdateRenderData();
 
-	void Primitive::ComputeNormals(COMPUTE_NORMALS computeMode)
+	void Primitive::ComputeNormals(NormalComputeMethod computeMode)
 	{
 		// Start recalculating normals:
 
-		if (computeMode != COMPUTE_NORMALS::COMPUTE_NORMALS_SMOOTH_FAST)
+		if (computeMode != NormalComputeMethod::COMPUTE_NORMALS_SMOOTH_FAST)
 		{
 			// Compute hard surface normals:
 
@@ -342,10 +352,10 @@ namespace vz
 
 		switch (computeMode)
 		{
-		case COMPUTE_NORMALS::COMPUTE_NORMALS_HARD:
+		case NormalComputeMethod::COMPUTE_NORMALS_HARD:
 			break;
 
-		case COMPUTE_NORMALS::COMPUTE_NORMALS_SMOOTH:
+		case NormalComputeMethod::COMPUTE_NORMALS_SMOOTH:
 		{
 			// Compute smooth surface normals:
 
@@ -497,7 +507,7 @@ namespace vz
 		}
 		break;
 
-		case COMPUTE_NORMALS::COMPUTE_NORMALS_SMOOTH_FAST:
+		case NormalComputeMethod::COMPUTE_NORMALS_SMOOTH_FAST:
 		{
 
 			std::vector<size_t> vtx_counter(vertexPositions_.size(), 0);

@@ -101,6 +101,14 @@ namespace vz
 
 		compfactory::SetSceneComponentsDirty(entity_);
 	}
+	void HierarchyComponent::SetParent(const Entity entityParent)
+	{
+		HierarchyComponent* parent_hierarchy = compfactory::GetHierarchyComponent(entityParent);
+		if (parent_hierarchy)
+		{
+			SetParent(parent_hierarchy->GetVUID());
+		}
+	}
 	VUID HierarchyComponent::GetParent() const
 	{
 		return vuidParentHierarchy_;

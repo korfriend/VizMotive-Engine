@@ -316,6 +316,7 @@ namespace vz
 		HierarchyComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::HIERARCHY, entity, vuid) {}
 
 		inline void SetParent(const VUID vuidParent);
+		inline void SetParent(const Entity entityParent);
 		inline VUID GetParent() const;
 		inline Entity GetParentEntity() const;
 
@@ -426,6 +427,8 @@ namespace vz
 		XMFLOAT4 emissiveColor_ = XMFLOAT4(1, 1, 1, 0);
 
 		XMFLOAT4 phongFactors_ = XMFLOAT4(0.2f, 1, 1, 1);	// only used for ShaderType::PHONG
+		float metalness_ = 0.f; // only used for ShaderType::PBR
+		float roughness_ = 0.f; // only used for ShaderType::PBR
 
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 		VUID volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
@@ -446,6 +449,8 @@ namespace vz
 		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; }
 		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
+		inline void SetMatalness(const float metalness) { metalness_ = metalness; isDirty_ = true; }
+		inline void SetRoughness(const float roughness) { roughness_ = roughness; isDirty_ = true; }
 		inline void EnableWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; }
 		inline void SetCastShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; }
 		inline void SetReceiveShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; }
@@ -471,13 +476,11 @@ namespace vz
 		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
 
 		inline float GetAlphaRef() const { return alphaRef_; }
+		inline float GetMatalness() const { return metalness_; }
+		inline float GetRoughness() const { return roughness_; }
 		inline BlendMode GetBlendMode() const { return blendMode_; }
-		inline VUID GetTextureVUID(const size_t slot) const { 
-			if (slot >= SCU32(TextureSlot::TEXTURESLOT_COUNT)) return INVALID_VUID; return textureComponents_[slot];
-		}
-		inline VUID GetVolumeTextureVUID(const size_t slot) const {
-			if (slot >= SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)) return INVALID_VUID; return volumeComponents_[slot];
-		}
+		inline VUID GetTextureVUID(const TextureSlot slot) const { return textureComponents_[SCU32(slot)]; }
+		inline VUID GetVolumeTextureVUID(const VolumeTextureSlot slot) const { return volumeComponents_[SCU32(slot)]; }
 		inline const XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
 
@@ -500,7 +503,7 @@ namespace vz
 			TRIANGLES = 3,    //!< triangles
 			TRIANGLE_STRIP = 4     //!< triangle strip
 		};
-		enum class COMPUTE_NORMALS : uint8_t {
+		enum class NormalComputeMethod : uint8_t {
 			COMPUTE_NORMALS_HARD,		// hard face normals, can result in additional vertices generated
 			COMPUTE_NORMALS_SMOOTH,		// smooth per vertex normals, this can remove/simplify geometry, but slow
 			COMPUTE_NORMALS_SMOOTH_FAST	// average normals, vertex count will be unchanged, fast
@@ -569,6 +572,13 @@ namespace vz
 			inline const std::vector<XMFLOAT2>& GetVtxUVSet0() const { assert(isValid_[SCU32(BufferDefinition::UVSET0)]); return vertexUVset0_; }
 			inline const std::vector<XMFLOAT2>& GetVtxUVSet1() const { assert(isValid_[SCU32(BufferDefinition::UVSET1)]); return vertexUVset1_; }
 			inline const std::vector<uint32_t>& GetVtxColors() const { assert(isValid_[SCU32(BufferDefinition::COLOR)]); return vertexColors_; }
+			inline std::vector<XMFLOAT3>& GetMutableVtxPositions() { assert(isValid_[SCU32(BufferDefinition::POSITION)]); return vertexPositions_; }
+			inline std::vector<uint32_t>& GetMutableIdxPrimives() { assert(isValid_[SCU32(BufferDefinition::INDICES)]); return indexPrimitives_; }
+			inline std::vector<XMFLOAT3>& GetMutableVtxNormals() { assert(isValid_[SCU32(BufferDefinition::NORMAL)]); return vertexNormals_; }
+			inline std::vector<XMFLOAT4>& GetMutableVtxTangents() { assert(isValid_[SCU32(BufferDefinition::TANGENT)]); return vertexTangents_; }
+			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet0() { assert(isValid_[SCU32(BufferDefinition::UVSET0)]); return vertexUVset0_; }
+			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet1() { assert(isValid_[SCU32(BufferDefinition::UVSET1)]); return vertexUVset1_; }
+			inline std::vector<uint32_t>& GetMutableVtxColors() { assert(isValid_[SCU32(BufferDefinition::COLOR)]); return vertexColors_; }
 
 			inline size_t GetNumVertices() const { return vertexPositions_.size(); }
 			inline size_t GetNumIndices() const { return indexPrimitives_.size(); }
@@ -589,7 +599,7 @@ namespace vz
 			void SetIdxPrimives(std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, SCU32(BufferDefinition::INDICES)) }
 
 			// Helpers for adding useful attributes to Primitive
-			void ComputeNormals(COMPUTE_NORMALS computeMode);
+			void ComputeNormals(NormalComputeMethod computeMode);
 			void FlipCulling();
 			void FlipNormals();
 			// These are to replace memory-stored positions
@@ -623,6 +633,7 @@ namespace vz
 		void MovePrimitiveFrom(Primitive&& primitive, const size_t slot);
 		void CopyPrimitiveFrom(const Primitive& primitive, const size_t slot);
 		const Primitive* GetPrimitive(const size_t slot) const;
+		Primitive* GetMutablePrimitive(const size_t slot);
 		const std::vector<Primitive>& GetPrimitives() const { return parts_; }
 		size_t GetNumParts() const { return parts_.size(); }
 		void SetTessellationFactor(const float tessllationFactor) { tessellationFactor_ = tessllationFactor; }
@@ -1073,4 +1084,6 @@ namespace vz::compfactory
 	CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
 	CORE_EXPORT Entity GetFirstEntityByName(const std::string& name);
+
+	CORE_EXPORT size_t Destroy(const Entity entity);
 }
