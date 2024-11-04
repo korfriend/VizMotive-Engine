@@ -246,6 +246,7 @@ namespace vz
 			arraySize_ = texture.desc.array_size;
 			stride_ = graphics::GetFormatStride(texture.desc.format);
 			textureType_ = TextureType::Texture3D;
+			volFormat_ = volFormat;
 			hasRenderData_ = true;
 		}
 		// 
