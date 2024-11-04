@@ -659,13 +659,16 @@ namespace vz
 		float range = 0;
 		float range_rcp = 0;
 		float numBins = 0;
+		float numBins_1 = 0;
 
 		void CreateHistogram(const float minValue, const float maxValue, const size_t numBins)
 		{
+			assert(numBins > 0 && maxValue > minValue);
 			histogram.assign(numBins, 0);
 			this->minValue = minValue;
 			this->maxValue = maxValue;
 			this->numBins = (float)numBins;
+			this->numBins_1 = (float)(numBins - 1);
 			range = maxValue - minValue;
 			range_rcp = 1.f / range;
 		}
@@ -673,7 +676,7 @@ namespace vz
 		{
 			float normal_v = (v - minValue) * range_rcp;
 			if (normal_v < 0 || normal_v > 1) return;
-			size_t index = (size_t)(normal_v * numBins) - 1;
+			size_t index = (size_t)(normal_v * numBins_1);
 			histogram[index]++;
 		}
 	};
