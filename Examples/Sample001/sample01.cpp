@@ -161,6 +161,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
 	actor_test->SetGeometry(geometry_test);
 	actor_test->SetMaterial(material_test, 0);
+    glm::fvec3 s(30.f);
+    actor_test->SetScale(__FP s);
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
 	glm::fvec3 light_p(0, 0, 100);
@@ -171,6 +173,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
 	vzm::AppendSceneCompVidTo(root_actor_vid, scene->GetVID());
+    renderer->Render(scene, cam);
 
     // Main loop
     bool done = false;
@@ -214,6 +217,11 @@ int main(int, char**)
 // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    vzm::VzRenderer* renderer = nullptr;
+    if (vzm::IsValidEngineLib())
+    {
+        renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
+    }
     switch (msg)
     {
     case WM_CLOSE:
@@ -248,19 +256,17 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_SIZE:
     {
-        RECT rc;
-        GetClientRect(hWnd, &rc);
-        //UINT width = rc.right - rc.left;
-        //UINT height = rc.bottom - rc.top;
-        //renderer->
-        //if (is_valid)
-        //{
-        //    cc->SetViewport(w, h);
-        //    renderer->SetCanvas(width, height, 96.f, hWnd);
-        //    float zNearP, zFarP, fovInDegree;
-        //    camera->GetPerspectiveProjection(&zNearP, &zFarP, &fovInDegree, nullptr);
-        //    camera->SetPerspectiveProjection(zNearP, zFarP, fovInDegree, (float)w / (float)h);
-        //}
+        if (renderer)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			UINT width = rc.right - rc.left;
+			UINT height = rc.bottom - rc.top;
+			renderer->ResizeCanvas(width, height);
+			//vzm::VzBaseComp* scene = vzm::GetFirstComponentByName("my scene");
+			//vzm::VzBaseComp* cam = vzm::GetFirstComponentByName("my camera");
+            //renderer->Render(scene, cam);
+        }
         break;
     }
     case WM_DESTROY:

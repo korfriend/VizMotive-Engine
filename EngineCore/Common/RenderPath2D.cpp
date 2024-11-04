@@ -6,9 +6,10 @@ namespace vz
 
 	void RenderPath2D::DeleteGPUResources(const bool resizableOnly)
 	{
+		//swapChain_ = {}; // this causes a crash!
+		rtRenderFinal_ = {};
 		if (!resizableOnly)
 		{
-			swapChain_ = {};
 		}
 	}
 
@@ -37,7 +38,6 @@ namespace vz
 					desc.format = Format::R10G10B10A2_UNORM;
 				}
 			}
-			swapChain_ = {}; // this code is not necessary but explicitly clear the resource here
 
 			desc.width = width_;
 			desc.height = height_;

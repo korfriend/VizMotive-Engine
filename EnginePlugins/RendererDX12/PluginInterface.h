@@ -34,7 +34,8 @@ namespace vz
 		graphics::Shader& shader,
 		const std::string& filename,
 		graphics::ShaderModel minshadermodel,
-		const std::vector<std::string>& permutation_defines);
+		const std::vector<std::string>& permutation_defines
+	);
 	extern "C" DX12_EXPORT bool LoadShaders();
 
 }

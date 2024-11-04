@@ -156,6 +156,11 @@ namespace vzm
 		return true;
 	}
 
+	bool IsValidEngineLib()
+	{
+		return initialized;
+	}
+
 	VzScene* NewScene(const std::string& name)
 	{
 		CHECK_API_VALIDITY(nullptr);

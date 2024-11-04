@@ -8,6 +8,7 @@ namespace vzm
 		VzRenderer(const VID vid, const std::string& originFrom)
 			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::RENDERER) {}
 		void SetCanvas(const uint32_t w, const uint32_t h, const float dpi, void* window = nullptr);
+		void ResizeCanvas(const uint32_t w, const uint32_t h); // preserves dpi and window handler
 		void GetCanvas(uint32_t* VZ_NULLABLE w, uint32_t* VZ_NULLABLE h, float* VZ_NULLABLE dpi, void** VZ_NULLABLE window = nullptr);
 
 		void SetViewport(const float x, const float y, const float w, const float h);

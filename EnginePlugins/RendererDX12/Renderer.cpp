@@ -3433,10 +3433,11 @@ namespace vz
 
 	bool GRenderPath3DDetails::ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight)
 	{
-		if (canvasWidth_ == canvasWidth || canvasHeight_ == canvasHeight)
+		if (canvasWidth_ == canvasWidth && canvasHeight_ == canvasHeight)
 		{
 			return true;
 		}
+		firstFrame = true;
 
 		canvasWidth_ = canvasWidth;
 		canvasHeight_ = canvasHeight;
@@ -3544,7 +3545,7 @@ namespace vz
 			desc.format = Format::R32_FLOAT;
 			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			desc.sample_count = 1;
-			desc.mip_levels = 5;
+			desc.mip_levels = std::min(5u, (uint32_t)std::log2(std::max(desc.width, desc.height))); //5;
 			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy);
 			device->SetName(&depthBuffer_Copy, "depthBuffer_Copy");
 			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy1);
@@ -3569,7 +3570,8 @@ namespace vz
 			desc.format = Format::R32_FLOAT;
 			desc.width = internalResolution.x;
 			desc.height = internalResolution.y;
-			desc.mip_levels = 5;
+			//desc.mip_levels = 5;
+			desc.mip_levels = std::min(5u, (uint32_t)std::log2(std::max(desc.width, desc.height)));
 			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
 			device->CreateTexture(&desc, nullptr, &rtLinearDepth);
 			device->SetName(&rtLinearDepth, "rtLinearDepth");
@@ -3602,8 +3604,6 @@ namespace vz
 		}
 		CreateTiledLightResources(tiledLightResources, internalResolution);
 		//CreateScreenSpaceShadowResources(screenspaceshadowResources, internalResolution);
-
-		firstFrame = true;
 
 		return true;
 	}
