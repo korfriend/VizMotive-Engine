@@ -85,6 +85,33 @@ namespace vz
 {
 #define GETTER_RES(RES, RET) Resource* RES = resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); return RET; };
 
+	TextureComponent::TextureType getTextureType(const graphics::Texture& texture)
+	{
+		TextureComponent::TextureType tType = TextureComponent::TextureType::Undefined;
+		if (texture.desc.width > 0 && texture.desc.width <= TEXTURE_MAX_RESOLUTION)
+		{
+			tType = TextureComponent::TextureType::Texture1D;
+			if (texture.desc.height > 1)
+			{
+				tType = TextureComponent::TextureType::Texture2D;
+				if (texture.desc.depth > 1)
+				{
+					tType = TextureComponent::TextureType::Texture3D;
+					assert(texture.desc.array_size == 1);
+				}
+				else if (texture.desc.array_size > 1)
+				{
+					tType = TextureComponent::TextureType::Texture2D_Array;
+				}
+			}
+		}
+		if (texture.desc.width > TEXTURE_MAX_RESOLUTION)
+		{
+			tType = TextureComponent::TextureType::Buffer;
+		}
+		return tType;
+	}
+
 	bool TextureComponent::IsValid() const
 	{
 		GETTER_RES(resource, false);
@@ -132,6 +159,8 @@ namespace vz
 			depth_ = texture.desc.depth;
 			arraySize_ = texture.desc.array_size;
 			stride_ = graphics::GetFormatStride(texture.desc.format);
+			textureType_ = getTextureType(texture);
+			hasRenderData_ = true;
 		}
 		return resource.IsValid();
 	}
@@ -216,6 +245,8 @@ namespace vz
 			depth_ = texture.desc.depth;
 			arraySize_ = texture.desc.array_size;
 			stride_ = graphics::GetFormatStride(texture.desc.format);
+			textureType_ = TextureType::Texture3D;
+			hasRenderData_ = true;
 		}
 		// 
 

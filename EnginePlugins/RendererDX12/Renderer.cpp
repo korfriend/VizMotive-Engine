@@ -241,9 +241,7 @@ namespace vz::renderer
 			view.visibleRenderables.resize(renderable_loop);
 			jobsystem::Dispatch(ctx, renderable_loop, groupSize, [&](jobsystem::JobArgs args) {
 
-				const std::vector<Entity>& renderable_entities = scene_Gdetails->renderableEntities;
-				Entity entity = renderable_entities[args.jobIndex];
-				const RenderableComponent& renderable = *compfactory::GetRenderableComponent(entity);
+				const RenderableComponent& renderable = *scene_Gdetails->renderableComponents[args.jobIndex];
 				//assert(!renderable.IsDirty());
 
 				// Setup stream compaction:
@@ -2135,10 +2133,9 @@ namespace vz
 		BindCommonResources(cmd);
 
 		// Wetmaps will be initialized:
-		const std::vector<Entity> renderable_entities = scene_Gdetails->renderableEntities;
 		for (uint32_t renderableIndex = 0; renderableIndex < view.scene->GetRenderableCount(); ++renderableIndex)
 		{
-			const GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(renderable_entities[renderableIndex]);
+			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderableIndex];
 			if (!renderable.IsRenderable())
 			{
 				continue;
@@ -2229,9 +2226,7 @@ namespace vz
 			for (uint32_t instanceIndex : view.visibleRenderables)
 			{
 				const GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[instanceIndex];
-
-				Entity entity = scene_Gdetails->renderableEntities[instanceIndex];
-				GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(entity);
+				GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 
 				int queryIndex = occlusion_result.occlusionQueries[query_write];
 				if (queryIndex >= 0)
@@ -2256,8 +2251,7 @@ namespace vz
 
 			for (uint32_t lightIndex : view.visibleLights)
 			{
-				Entity entity = scene_Gdetails->lightEntities[lightIndex];
-				const LightComponent& light = *compfactory::GetLightComponent(entity);
+				const LightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
 
 				if (light.occlusionquery >= 0)
 				{
@@ -2362,10 +2356,8 @@ namespace vz
 			{
 				if (occlusion && scene_Gdetails->occlusionResultsObjects[instanceIndex].IsOccluded())
 					continue;
-
 				
-				Entity renderable_entity = scene_Gdetails->renderableEntities[instanceIndex];
-				const GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(renderable_entity);
+				const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 				if (!renderable.IsRenderable())
 					continue;
 				if (foreground != renderable.IsForeground())
@@ -2995,14 +2987,12 @@ namespace vz
 			{
 				if (instancedBatch.instanceCount == 0)
 					return;
-				Entity geometry_entity = scene_Gdetails->geometryEntities[instancedBatch.geometryIndex];
-				GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geometry_entity);
+				GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[instancedBatch.geometryIndex];
 
 				if (!geometry.HasRenderData())
 					return;
 
-				Entity renderable_entity = scene_Gdetails->renderableEntities[instancedBatch.renderableIndex];
-				GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(renderable_entity);
+				GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instancedBatch.renderableIndex];
 
 				bool forceAlphaTestForDithering = instancedBatch.forceAlphatestForDithering != 0;
 
@@ -3028,7 +3018,7 @@ namespace vz
 					GBuffers& part_buffer = *(GBuffers*)geometry.GetGBuffer(part_index);
 
 					uint32_t material_index = instancedBatch.materialIndices[part_index];
-					const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(scene_Gdetails->materialEntities[material_index]);
+					const GMaterialComponent& material = *scene_Gdetails->materialComponents[material_index];
 
 					
 					if (material.GetAlphaRef() < 1)
@@ -3180,8 +3170,7 @@ namespace vz
 		{
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
-			Entity renderable_entity = scene_Gdetails->renderableEntities[renderable_index];
-			const GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(renderable_entity);
+			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
 			assert(renderable.IsRenderable());
 
 			// TODO.. 
