@@ -332,7 +332,7 @@ Entity ImportModel_OBJ(const std::string& fileName,
 	}
 	else
 	{
-		helper::messageBox("OBJ import failed! Check backlog for errors!", "Error!");
+		backlog::post("OBJ import failed! Check backlog for errors!", backlog::LogLevel::Error);
 	}
 
 	return root_entity;

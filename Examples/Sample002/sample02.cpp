@@ -196,26 +196,31 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // Main loop
     bool done = false;
-    while (!done)
-    {
-        // Poll and handle messages (inputs, window resize, etc.)
-        // See the WndProc() function below for our to dispatch events to the Win32 backend.
-        MSG msg;
-        while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
-        {
-            ::TranslateMessage(&msg);
-            ::DispatchMessage(&msg);
-            if (msg.message == WM_QUIT) {
-                done = true;
-            }
-            else
-            {
-                renderer->Render(scene, cam);
-            }
-        }
-        if (done)
-            break;
-    }
+	while (!done)
+	{
+		// Poll and handle messages (inputs, window resize, etc.)
+		// See the WndProc() function below for our to dispatch events to the Win32 backend.
+		MSG msg;
+		while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
+		{
+			::TranslateMessage(&msg);
+			::DispatchMessage(&msg);
+			if (msg.message == WM_QUIT)
+			{
+				done = true;
+			}
+		}
+
+		if (done)
+			break;
+		static float x_rot = 1.f / 180.f * 3.14f;
+		p = glm::rotateX(p, x_rot);
+		at = glm::rotateX(at, x_rot);
+		u = glm::rotateX(u, x_rot);
+		//x_rot += 1.f / 180.f * 3.14f;
+		cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
+		renderer->Render(scene, cam);
+	}
     vzm::DeinitEngineLib();
 
     ReleaseDC(hwnd, hdc);
