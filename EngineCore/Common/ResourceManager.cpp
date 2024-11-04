@@ -205,6 +205,7 @@ namespace vz
 			return ret;
 		}
 
+		// https://wickedengine.net/2022/11/graphics-api-secrets-format-casting/
 		Format getTextureFormatSRGB(Format format)
 		{
 			if (graphicsPackage.API == "DX12")
