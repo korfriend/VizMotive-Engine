@@ -121,7 +121,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //  Entity is an ID for ECS-based components (internal implementation)
 
 	vzm::VzScene* scene = vzm::NewScene("my scene");
-
+    //scene->LoadIBL("../../../VisualStudio/samples/assets/ibl/lightroom_14b");
+    //
+    //vzm::VzActor* actor = vzm::LoadTestModelIntoActor("my test model");
+    //glm::fvec3 euler(3.14 / 10, 3.14 / 7, 3.14 / 5);
+    //actor->SetRotation(__FP euler);
+    //std::vector<vzm::VzActor*> loaded_actors;
+    //vzm::VzActor* actor_axis = vzm::LoadModelFileIntoActors("../assets/xyz.obj", loaded_actors);
+    //glm::fvec3 scale(3.f);
+    //actor_axis->SetScale(__FP scale);
+    //
     vzm::VzRenderer* renderer = vzm::NewRenderer("my renderer");
     renderer->SetCanvas(w, h, dpi, hwnd);
     float clear_color[4] = { 1.f, 1.f, 0.f, 1.f };
@@ -159,8 +168,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
-	actor_test->SetGeometry(geometry_test);
-	actor_test->SetMaterial(material_test, 0);
+	//actor_test->SetGeometry(geometry_test);
+    //actor_test->SetMaterial(material_test, 0);
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
 	glm::fvec3 light_p(0, 0, 100);
@@ -168,9 +177,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     glm::fvec3 light_euler(0, 180, 0);
     light_test->SetEulerAngleZXYInDegree(__FP light_euler);
 
+
+    // Actor New
+    // Geometry New
+    // Actor to Scene
+    // Scene Update (Geometry to GPU)
+    // Graphics Pipeline
+    // Material ...
+	// Draw it
+
 	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
 	vzm::AppendSceneCompVidTo(root_actor_vid, scene->GetVID());
+
+	//vzm::AppendSceneCompTo(actor_axis, actor);
+	//vzm::AppendSceneCompTo(light, scene);
+	//vzm::AppendSceneCompTo(cam, scene);
 
     // Main loop
     bool done = false;
@@ -214,10 +236,28 @@ int main(int, char**)
 // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    //VID vid_scene = vzm::GetFirstVidByName("my scene");
+    //VID vid_renderer = vzm::GetFirstVidByName("my renderer");
+    //VID vid_camera = vzm::GetFirstVidByName("my camera");
+    //vzm::VzScene* scene = (vzm::VzScene*)vzm::GetVzComponent(vid_scene);
+    //vzm::VzRenderer* renderer = (vzm::VzRenderer*)vzm::GetVzComponent(vid_renderer);
+    //vzm::VzCamera* camera = (vzm::VzCamera*)vzm::GetVzComponent(vid_camera);
+    //vzm::VzCamera::Controller* cc = nullptr;
+    //bool is_valid = false;
+    //uint32_t w = 0, h = 0;
+    //if (camera && renderer)
+    //{
+    //    cc = camera->GetController();
+    //    renderer->GetCanvas(&w, &h, nullptr);
+    //    is_valid = w > 0 && h > 0;
+    //}
+
     switch (msg)
     {
     case WM_CLOSE:
     {
+        //vzm::RemoveComponent(vid_camera);
+        //vzm::ReleaseWindowHandlerTasks(hWnd);
         break;
     }
     case WM_KEYDOWN:
@@ -231,19 +271,42 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_LBUTTONDOWN:
     case WM_RBUTTONDOWN:
     {
+		//if (is_valid) {
+		//    int x = GET_X_LPARAM(lParam);
+		//    int y = h - GET_Y_LPARAM(lParam);
+		//    //glm::fvec3 p, v, u;
+		//    //camera->GetWorldPose((float*)&p, (float*)&v, (float*)&u);
+		//    //*(glm::fvec3*)cc->orbitHomePosition = p;
+		//    //cc->UpdateControllerSettings();
+		//    cc->GrabBegin(x, y, msg == WM_RBUTTONDOWN);
+		//}
         break;
     }
     case WM_MOUSEMOVE:
     {
+        //if (is_valid) {
+        //    int x = GET_X_LPARAM(lParam);
+        //    int y = h - GET_Y_LPARAM(lParam);
+        //    cc->GrabDrag(x, y);
+        //}
         break;
     }
     case WM_LBUTTONUP:
     case WM_RBUTTONUP:
     {
+        //if (cc) {
+        //    cc->GrabEnd();
+        //}
         break;
     }
     case WM_MOUSEWHEEL:
     {
+        //if (is_valid) {
+        //    int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+        //    int x = GET_X_LPARAM(lParam);
+        //    int y = h - GET_Y_LPARAM(lParam);
+        //    cc->Scroll(x, y, -(float)zDelta);
+        //}
         break;
     }
     case WM_SIZE:
@@ -252,7 +315,6 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         GetClientRect(hWnd, &rc);
         //UINT width = rc.right - rc.left;
         //UINT height = rc.bottom - rc.top;
-        //renderer->
         //if (is_valid)
         //{
         //    cc->SetViewport(w, h);

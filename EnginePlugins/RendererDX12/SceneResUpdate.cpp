@@ -17,10 +17,9 @@ namespace vz
 
 	void GSceneDetails::RunPrimtiveUpdateSystem(jobsystem::context& ctx)
 	{
-		jobsystem::Dispatch(ctx, (uint32_t)geometryEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+		jobsystem::Dispatch(ctx, (uint32_t)geometryComponents.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-			Entity entity = geometryEntities[args.jobIndex];
-			GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(entity);
+			GGeometryComponent& geometry = *geometryComponents[args.jobIndex];
 
 			const std::vector<Primitive>& primitives = geometry.GetPrimitives();
 
@@ -89,10 +88,9 @@ namespace vz
 	{
 		isWetmapProcessingRequired = false;
 
-		jobsystem::Dispatch(ctx, (uint32_t)materialEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+		jobsystem::Dispatch(ctx, (uint32_t)materialComponents.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-			Entity entity = materialEntities[args.jobIndex];
-			GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(entity);
+			GMaterialComponent& material = *materialComponents[args.jobIndex];
 
 			if (material.IsOutlineEnabled())
 			{
@@ -272,16 +270,15 @@ namespace vz
 	}
 	void GSceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
 	{
-		size_t num_renderables = renderableEntities.size();
+		size_t num_renderables = renderableComponents.size();
 		matrixRenderables.resize(num_renderables);
 		matrixRenderablesPrev.resize(num_renderables);
 		occlusionResultsObjects.resize(num_renderables);
 		// GPUs
 		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-			Entity entity = renderableEntities[args.jobIndex];
-			GRenderableComponent& renderable = *(GRenderableComponent*)compfactory::GetRenderableComponent(entity);
-			TransformComponent* transform = compfactory::GetTransformComponent(entity);
+			GRenderableComponent& renderable = *renderableComponents[args.jobIndex];
+			TransformComponent* transform = compfactory::GetTransformComponent(renderable.GetEntity());
 
 			// Update occlusion culling status:
 			OcclusionResult& occlusion_result = occlusionResultsObjects[args.jobIndex];
@@ -335,7 +332,7 @@ namespace vz
 
 				size_t num_parts = primitives.size();
 
-				renderable.renderableIndex = Scene::GetIndex(renderableEntities, entity);
+				renderable.renderableIndex = Scene::GetIndex(renderableEntities, renderable.GetEntity());
 				renderable.geometryIndex = Scene::GetIndex(geometryEntities, geo_entity);
 
 				renderable.materialIndices.assign(num_parts, ~0u);
@@ -404,7 +401,7 @@ namespace vz
 
 				const geometrics::AABB& aabb = renderable.GetAABB();
 
-				inst.uid = entity;
+				inst.uid = renderable.GetEntity();
 				inst.baseGeometryOffset = geometry.geometryOffset;
 				inst.resLookupOffset = renderable.resLookupOffset;
 				inst.geometryOffset = inst.baseGeometryOffset;// inst.baseGeometryOffset + first_part;
@@ -432,16 +429,32 @@ namespace vz
 		device = GetGraphicsDevice();
 
 		renderableEntities = scene_->GetRenderableEntities();
-		size_t num_renderables = renderableEntities.size();
+		renderableComponents.resize(renderableEntities.size());
+		size_t num_renderables = renderableComponents.size();
+		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			renderableComponents[args.jobIndex] = (GRenderableComponent*)compfactory::GetRenderableComponent(renderableEntities[args.jobIndex]);
+			});
 
 		lightEntities = scene_->GetLightEntities();
-		size_t num_lights = lightEntities.size();
+		lightComponents.resize(lightEntities.size());
+		size_t num_lights = lightComponents.size();
+		jobsystem::Dispatch(ctx, (uint32_t)num_lights, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			lightComponents[args.jobIndex] = (GLightComponent*)compfactory::GetLightComponent(lightEntities[args.jobIndex]);
+			});
 
 		materialEntities = scene_->ScanMaterialEntities();
-		size_t num_materials = materialEntities.size();
+		materialComponents.resize(materialEntities.size());
+		size_t num_materials = materialComponents.size();
+		jobsystem::Dispatch(ctx, (uint32_t)num_materials, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			materialComponents[args.jobIndex] = (GMaterialComponent*)compfactory::GetMaterialComponent(materialEntities[args.jobIndex]);
+			});
 
 		geometryEntities = scene_->ScanGeometryEntities();
-		size_t num_geometries = geometryEntities.size();
+		geometryComponents.resize(geometryEntities.size());
+		size_t num_geometries = geometryComponents.size();
+		jobsystem::Dispatch(ctx, (uint32_t)num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			geometryComponents[args.jobIndex] = (GGeometryComponent*)compfactory::GetGeometryComponent(geometryEntities[args.jobIndex]);
+			});
 
 		uint32_t pingpong_buffer_index = device->GetBufferIndex();
 
@@ -579,14 +592,14 @@ namespace vz
 			// Scan mesh subset counts and skinning data sizes to allocate GPU geometry data:
 			geometryAllocator.store(0u);
 			jobsystem::Dispatch(ctx, (uint32_t)num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-				GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(geometryEntities[args.jobIndex]);
+				GGeometryComponent* geometry = geometryComponents[args.jobIndex];
 				geometry->geometryOffset = geometryAllocator.fetch_add((uint32_t)geometry->GetNumParts());
 				});
 
 			// Scan renderable's materials 
 			instanceResLookupAllocator.store(0u);
 			jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-				GRenderableComponent* renderable = (GRenderableComponent*)compfactory::GetRenderableComponent(renderableEntities[args.jobIndex]);
+				GRenderableComponent* renderable = renderableComponents[args.jobIndex];
 				if (!renderable->IsRenderable())
 				{
 					return;

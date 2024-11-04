@@ -380,7 +380,13 @@ namespace vz
 		// * This renderer plugin is based on Bindless Graphics 
 		//	(https://developer.download.nvidia.com/opengl/tutorials/bindless_graphics.pdf)
 
+		// cached attributes and components, which are safe in a single frame
 		float deltaTime = 0.f;
+		std::vector<GRenderableComponent*> renderableComponents; // cached (non enclosing for jobsystem)
+		std::vector<GLightComponent*> lightComponents; // cached (non enclosing for jobsystem)
+		std::vector<GGeometryComponent*> geometryComponents; // cached (non enclosing for jobsystem)
+		std::vector<GMaterialComponent*> materialComponents; // cached (non enclosing for jobsystem)
+
 		std::vector<Entity> renderableEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> lightEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> geometryEntities; // cached (non enclosing for jobsystem)
