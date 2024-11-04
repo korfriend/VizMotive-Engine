@@ -22,6 +22,23 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
+	void VzRenderer::ResizeCanvas(const uint32_t w, const uint32_t h)
+	{
+		GET_RENDERPATH(renderer, );
+		renderer->SetCanvas(w, h, renderer->GetDPI(), renderer->GetWindow());
+
+		if (renderer->camera)
+		{
+			float z_near, z_far;
+			//float width, height;
+			//renderer->camera->GetWidthHeight(&width, &height);
+			renderer->camera->GetNearFar(&z_near, &z_far);
+			renderer->camera->SetPerspective((float)w/(float)h, 1.f, z_near, z_far, renderer->camera->GetFovVertical());;
+		}
+
+		UpdateTimeStamp();
+	}
+
 	void VzRenderer::GetCanvas(uint32_t* VZ_NULLABLE w, uint32_t* VZ_NULLABLE h, float* VZ_NULLABLE dpi, void** VZ_NULLABLE window)
 	{
 		GET_RENDERPATH(renderer, );

@@ -17,6 +17,8 @@
 #define CORE_EXPORT __attribute__((visibility("default")))
 #endif
 
+#define PLUGIN_EXPORT CORE_EXPORT
+
 using GpuHandler = uint32_t;
 using Entity = uint32_t;
 using VUID = uint64_t;
@@ -973,22 +975,22 @@ namespace vz
 		// Non-serialized attributes:
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);
 
-		void SetDirty() { isDirty_ = true; }
-		bool IsDirty() const { return isDirty_; }
-		uint8_t GetVisibleLayerMask() const { return visibleLayerMask_; }
-		void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); }
+		inline void SetDirty() { isDirty_ = true; }
+		inline bool IsDirty() const { return isDirty_; }
+		inline uint8_t GetVisibleLayerMask() const { return visibleLayerMask_; }
+		inline void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); }
 
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
-		bool SetWorldLookAtFromHierarchyTransforms();
-		void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up) {
+		inline bool SetWorldLookAtFromHierarchyTransforms();
+		inline void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up) {
 			eye_ = eye; at_ = at; up_ = up; isDirty_ = true;
 			timeStampSetter_ = TimerNow;
 		}
-		void SetWorldLookTo(const XMFLOAT3& eye, const XMFLOAT3& view, const XMFLOAT3& up) {
+		inline void SetWorldLookTo(const XMFLOAT3& eye, const XMFLOAT3& view, const XMFLOAT3& up) {
 			eye_ = eye; XMStoreFloat3(&at_, XMLoadFloat3(&eye) + XMLoadFloat3(&view)); up_ = up; isDirty_ = true;
 			timeStampSetter_ = TimerNow;
 		}
-		void SetPerspective(float width, float height, float nearP, float farP, float fovY = XM_PI / 3.0f) {
+		inline void SetPerspective(float width, float height, float nearP, float farP, float fovY = XM_PI / 3.0f) {
 			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY; 
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}
@@ -996,28 +998,28 @@ namespace vz
 		// update view matrix using camera extrinsics such as eye_, at_, and up_ set by the above setters
 		// update proj matrix using camera intrinsics
 		// update view-proj and their inverse matrices using the updated view and proj matrices
-		void UpdateMatrix();
+		inline void UpdateMatrix();
 
-		const XMFLOAT3& GetWorldEye() const { return eye_; }
-		const XMFLOAT3& GetWorldAt() const { return at_; }
-		const XMFLOAT3& GetWorldUp() const { return up_; }
-		const XMFLOAT3X3& GetWorldRotation() const { return rotationMatrix_; }
-		const XMFLOAT4X4& GetView() const { return view_; }
-		const XMFLOAT4X4& GetProjection() const { return projection_; }
-		const XMFLOAT4X4& GetViewProjection() const { return viewProjection_; }
-		const XMFLOAT4X4& GetInvView() const { return invView_; }
-		const XMFLOAT4X4& GetInvProjection() const { return invProjection_; }
-		const XMFLOAT4X4& GetInvViewProjection() const { return invViewProjection_; }
-		const geometrics::Frustum& GetFrustum() const { return frustum_; }
+		inline const XMFLOAT3& GetWorldEye() const { return eye_; }
+		inline const XMFLOAT3& GetWorldAt() const { return at_; }
+		inline const XMFLOAT3& GetWorldUp() const { return up_; }
+		inline const XMFLOAT3X3& GetWorldRotation() const { return rotationMatrix_; }
+		inline const XMFLOAT4X4& GetView() const { return view_; }
+		inline const XMFLOAT4X4& GetProjection() const { return projection_; }
+		inline const XMFLOAT4X4& GetViewProjection() const { return viewProjection_; }
+		inline const XMFLOAT4X4& GetInvView() const { return invView_; }
+		inline const XMFLOAT4X4& GetInvProjection() const { return invProjection_; }
+		inline const XMFLOAT4X4& GetInvViewProjection() const { return invViewProjection_; }
+		inline const geometrics::Frustum& GetFrustum() const { return frustum_; }
 
-		Projection GetProjectionType() const { return projectionType_; }
-		float GetFovVertical() const { return fovY_; }
-		float GetFocalLength() const { return focalLength_; }
-		float GetApertureSize() const { return apertureSize_; }
-		XMFLOAT2 GetApertureShape() const { return apertureShape_; }
+		inline Projection GetProjectionType() const { return projectionType_; }
+		inline float GetFovVertical() const { return fovY_; }
+		inline float GetFocalLength() const { return focalLength_; }
+		inline float GetApertureSize() const { return apertureSize_; }
+		inline XMFLOAT2 GetApertureShape() const { return apertureShape_; }
 
-		void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
-		void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }
+		inline void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
+		inline void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 

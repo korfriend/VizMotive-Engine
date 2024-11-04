@@ -14,6 +14,7 @@ namespace vzm
 	//  - paired with DeinitEngineLib()
 	API_EXPORT bool InitEngineLib(const vzm::ParamMap<std::string>& arguments = vzm::ParamMap<std::string>());
 	API_EXPORT bool DeinitEngineLib();
+	API_EXPORT bool IsValidEngineLib();
 	
 	// Create new scene and return scene (NOT a scene item) ID, a scene 
 	//  - return zero in case of failure (the name is already registered or overflow VID)

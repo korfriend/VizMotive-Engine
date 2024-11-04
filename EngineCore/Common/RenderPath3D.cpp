@@ -41,9 +41,8 @@ namespace vz
 	void RenderPath3D::ResizeResources()
 	{
 		RenderPath3D::DeleteGPUResources(true);
-		handlerRenderPath3D_->ResizeCanvas(width_, height_);
-
 		RenderPath2D::ResizeResources();
+		handlerRenderPath3D_->ResizeCanvas(width_, height_);
 
 		//viewport
 		if (!useManualSetViewport)
@@ -95,8 +94,10 @@ namespace vz
 			return;
 		}
 
-		if (UpdateResizedCanvas())
+		bool is_resized = UpdateResizedCanvas();
+		if (is_resized)
 		{
+			//graphics::GetDevice()->WaitForGPU();
 			ResizeResources(); // call RenderPath2D::ResizeResources();
 			// since IsCanvasResized() updates the canvas size,
 			//	resizing sources does not happen redundantly 
