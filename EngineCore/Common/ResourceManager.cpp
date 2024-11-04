@@ -1081,7 +1081,8 @@ namespace vz
 		)
 		{
 			std::string wildcard_file_ext = helper::toUpper(name.substr(name.find_last_of("#") + 1));
-			if (wildcard_file_ext != "DCM")
+			std::string ext = helper::toUpper(helper::GetExtensionFromFileName(name));
+			if (wildcard_file_ext != "DCM" && ext != "DCM")
 			{
 				return Resource();
 			}
