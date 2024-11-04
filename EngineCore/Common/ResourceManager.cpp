@@ -205,6 +205,18 @@ namespace vz
 			return ret;
 		}
 
+		Format getTextureFormatSRGB(Format format)
+		{
+			if (graphicsPackage.API == "DX12")
+			{
+				format = GetFormatSRGB(format);
+			}
+			else 
+			{
+				assert(graphicsPackage.API == "DX11");
+			}
+			return format;
+		}
 		bool loadResourceDirectly(
 			const std::string& name,
 			Flags flags,
@@ -365,7 +377,7 @@ namespace vz
 								success = device->CreateTexture(&desc, InitData.data(), &resource->texture);
 								device->SetName(&resource->texture, name.c_str());
 
-								Format srgb_format = GetFormatSRGB(desc.format);
+								Format srgb_format = getTextureFormatSRGB(desc.format);
 								if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 								{
 									resource->srgb_subresource = device->CreateSubresource(
@@ -496,7 +508,7 @@ namespace vz
 										success = device->CreateTexture(&desc, InitData.data(), &resource->texture);
 										device->SetName(&resource->texture, name.c_str());
 
-										Format srgb_format = GetFormatSRGB(desc.format);
+										Format srgb_format = getTextureFormatSRGB(desc.format);
 										if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 										{
 											resource->srgb_subresource = device->CreateSubresource(
@@ -692,7 +704,7 @@ namespace vz
 						success = device->CreateTexture(&desc, initdata + mip_offset, &resource->texture);
 						device->SetName(&resource->texture, name.c_str());
 
-						Format srgb_format = GetFormatSRGB(desc.format);
+						Format srgb_format = getTextureFormatSRGB(desc.format);
 						if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 						{
 							resource->srgb_subresource = device->CreateSubresource(
@@ -991,7 +1003,7 @@ namespace vz
 							}
 
 							// This part must be AFTER mip level subresource creation:
-							Format srgb_format = GetFormatSRGB(desc.format);
+							Format srgb_format = getTextureFormatSRGB(desc.format);
 							if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 							{
 								resource->srgb_subresource = device->CreateSubresource(
@@ -1034,7 +1046,7 @@ namespace vz
 								device->SetName(&resource->texture, name.c_str());
 
 								// This part must be AFTER mip level subresource creation:
-								Format srgb_format = GetFormatSRGB(desc.format);
+								Format srgb_format = getTextureFormatSRGB(desc.format);
 								if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 								{
 									resource->srgb_subresource = device->CreateSubresource(
@@ -1405,7 +1417,7 @@ namespace vz
 					);
 					resource->srgb_subresource = -1;
 
-					Format srgb_format = GetFormatSRGB(desc.format);
+					Format srgb_format = getTextureFormatSRGB(desc.format);
 					if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 					{
 						resource->srgb_subresource = device->CreateSubresource(
@@ -1537,7 +1549,7 @@ namespace vz
 						assert(success);
 						device->SetName(&replace.texture, resource->filename.c_str());
 
-						Format srgb_format = GetFormatSRGB(desc.format);
+						Format srgb_format = getTextureFormatSRGB(desc.format);
 						if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 						{
 							replace.srgb_subresource = device->CreateSubresource(
