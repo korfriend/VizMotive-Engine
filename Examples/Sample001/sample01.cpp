@@ -133,6 +133,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     glm::fvec3 at(0, 0, -4);
 	glm::fvec3 u(0, 1, 0);
     cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
+
+    cam->SetPosition(__FP p);
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
     ActorVID root_actor_vid = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
@@ -173,7 +175,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
 	vzm::AppendSceneCompVidTo(root_actor_vid, scene->GetVID());
-    renderer->Render(scene, cam);
+	//vzm::AppendSceneCompTo(cam, scene);
 
     // Main loop
     bool done = false;
@@ -186,16 +188,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         {
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
-            if (msg.message == WM_QUIT) {
+            if (msg.message == WM_QUIT)
+            {
                 done = true;
             }
-            else
-            {
-                renderer->Render(scene, cam);
-            }
         }
-        if (done)
-            break;
+
+		if (done)
+			break;
+		static float x_rot = 1.f / 180.f * 3.14f;
+		p = glm::rotateX(p, x_rot);
+		at = glm::rotateX(at, x_rot);
+		u = glm::rotateX(u, x_rot);
+		//x_rot += 1.f / 180.f * 3.14f;
+		cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
+		renderer->Render(scene, cam);
     }
     vzm::DeinitEngineLib();
 
