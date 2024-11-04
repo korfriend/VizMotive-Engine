@@ -109,7 +109,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::ParamMap<std::string> arguments;
 	//arguments.SetString("API", "DX11");
 	arguments.SetString("GPU_VALIDATION", "VERBOSE");
-	arguments.SetParam("MAX_THREADS", 1u);
+	arguments.SetParam("MAX_THREADS", 1u); // ~0u
     if (!vzm::InitEngineLib(arguments)) {
         std::cerr << "Failed to initialize engine library." << std::endl;
         return -1;
@@ -200,7 +200,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		p = glm::rotateX(p, x_rot);
 		at = glm::rotateX(at, x_rot);
 		u = glm::rotateX(u, x_rot);
-		//x_rot += 1.f / 180.f * 3.14f;
 		cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
 		renderer->Render(scene, cam);
     }
