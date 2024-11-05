@@ -203,7 +203,8 @@ namespace vz
 	{
 		if (compfactory::ContainRenderableComponent(entity))
 		{
-			if (!lookupRenderables_.contains(entity))
+			if (lookupRenderables_.count(entity) == 0)
+			//if (!lookupRenderables_.contains(entity))
 			{
 				lookupRenderables_[entity] = renderables_.size();
 				renderables_.push_back(entity);
@@ -213,7 +214,8 @@ namespace vz
 		}
 		if (compfactory::ContainLightComponent(entity))
 		{
-			if (!lookupLights_.contains(entity))
+			if (lookupLights_.count(entity) == 0)
+			//if (!lookupLights_.contains(entity))
 			{
 				lookupLights_[entity] = renderables_.size();
 				lights_.push_back(entity);
@@ -299,7 +301,8 @@ namespace vz
 
 	bool Scene::HasEntity(const Entity entity) const noexcept
 	{
-		return lookupLights_.contains(entity) || lookupRenderables_.contains(entity);
+		return lookupLights_.count(entity) > 0 || lookupRenderables_.count(entity) > 0;
+		//return lookupLights_.contains(entity) || lookupRenderables_.contains(entity);
 	}
 
 	void Scene::Serialize(vz::Archive& archive)

@@ -635,6 +635,8 @@ namespace vz
 		void CopyPrimitivesFrom(const std::vector<Primitive>& primitives);
 		void MovePrimitiveFrom(Primitive&& primitive, const size_t slot);
 		void CopyPrimitiveFrom(const Primitive& primitive, const size_t slot);
+		void AddMovePrimitiveFrom(Primitive&& primitive);
+		void AddCopyPrimitiveFrom(const Primitive& primitive);
 		const Primitive* GetPrimitive(const size_t slot) const;
 		Primitive* GetMutablePrimitive(const size_t slot);
 		const std::vector<Primitive>& GetPrimitives() const { return parts_; }

@@ -323,7 +323,7 @@ namespace vz::compfactory
 				if (entry.first == "NAME")
 				{
 					NameComponent* name_comp = nameManager.GetComponent(entity);
-					assert(lookupName2Entities.contains(name_comp->name));
+					assert(lookupName2Entities.count(name_comp->name) > 0);
 					lookupName2Entities[name_comp->name].erase(entity);
 				}
 

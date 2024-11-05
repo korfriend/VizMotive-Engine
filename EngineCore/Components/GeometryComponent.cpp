@@ -69,6 +69,20 @@ namespace vz
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
+	void GeometryComponent::AddMovePrimitiveFrom(Primitive&& primitive)
+	{
+		parts_.push_back(std::move(primitive));
+		parts_.back().recentBelongingGeometry_ = entity_;
+		isDirty_ = true;
+		timeStampSetter_ = TimerNow;
+	}
+	void GeometryComponent::AddCopyPrimitiveFrom(const Primitive& primitive)
+	{
+		parts_.push_back(primitive);
+		parts_.back().recentBelongingGeometry_ = entity_;
+		isDirty_ = true;
+		timeStampSetter_ = TimerNow;
+	}
 	const Primitive* GeometryComponent::GetPrimitive(const size_t slot) const
 	{
 		if (slot >= parts_.size()) {

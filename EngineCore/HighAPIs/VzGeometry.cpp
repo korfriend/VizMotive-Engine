@@ -25,9 +25,9 @@ namespace vzm
 
 		std::vector<XMFLOAT3> normals;
 		normals.reserve(3);
-		normals.push_back(XMFLOAT3(0, 0, -1));
-		normals.push_back(XMFLOAT3(0, 0, -1));
-		normals.push_back(XMFLOAT3(0, 0, -1));
+		normals.push_back(XMFLOAT3(0, 0, 1));
+		normals.push_back(XMFLOAT3(0, 0, 1));
+		normals.push_back(XMFLOAT3(0, 0, 1));
 
 		std::vector<uint32_t> indexPrimitives = {0, 1, 2};
 
