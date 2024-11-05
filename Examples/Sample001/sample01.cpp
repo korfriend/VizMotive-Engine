@@ -135,7 +135,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
-    vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+	vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+    root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
 
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MakeTestQuadWithUVs();
@@ -161,12 +162,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
-	//actor_test->SetGeometry(geometry_test);
-	//actor_test->SetMaterial(material_test, 0);
-    actor_test->SetScale({ 30.f, 30.f, 30.f });
+	actor_test->SetScale({ 2.f, 2.f, 2.f });
+	actor_test->SetPosition({ 0, 0, -1.f });
 
 	vzm::VzActor* actor_test2 = vzm::NewActor("my actor2");
 	actor_test2->SetGeometry(geometry_test2);
+    actor_test2->SetPosition({ 0, -2, 0 });
     vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
 	for (size_t i = 0, n = geometry_test2->GetNumParts(); i < n; ++i)
 	{
@@ -183,6 +184,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     light_test->SetPosition({ 0.f, 0.f, 100.f });
     light_test->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
+	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(actor_test2, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
 	vzm::AppendSceneCompTo(root_obj_actor, scene);
@@ -207,11 +209,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		if (done)
 			break;
-		//static float x_rot = 1.f / 180.f * 3.14f;
-		//p = glm::rotateX(p, x_rot);
-		//at = glm::rotateX(at, x_rot);
-		//u = glm::rotateX(u, x_rot);
-		//cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
+		static float x_rot = 1.f / 180.f * 3.14f;
+		p = glm::rotateX(p, x_rot);
+		at = glm::rotateX(at, x_rot);
+		u = glm::rotateX(u, x_rot);
+		cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
 		renderer->Render(scene, cam);
     }
     vzm::DeinitEngineLib();
