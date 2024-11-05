@@ -135,7 +135,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
-    ActorVID root_actor_vid = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+    vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
 
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MakeTestQuadWithUVs();
@@ -185,7 +185,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::AppendSceneCompTo(actor_test2, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
-	vzm::AppendSceneCompVidTo(root_actor_vid, scene->GetVID());
+	vzm::AppendSceneCompTo(root_obj_actor, scene);
 	//vzm::AppendSceneCompTo(cam, scene);
 
     // Main loop
