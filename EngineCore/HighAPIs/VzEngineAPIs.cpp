@@ -210,21 +210,21 @@ namespace vzm
 		case COMPONENT_TYPE::ACTOR:
 			compfactory::CreateRenderableComponent(entity);
 			{
-				auto it = vzcomp::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewSceneComponent"));
+				auto it = vzcomp::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewActor"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::LIGHT:
 			compfactory::CreateLightComponent(entity);
 			{
-				auto it = vzcomp::lights.emplace(vid, std::make_unique<VzLight>(vid, "vzm::NewSceneComponent"));
+				auto it = vzcomp::lights.emplace(vid, std::make_unique<VzLight>(vid, "vzm::NewLight"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::CAMERA:
 			compfactory::CreateCameraComponent(entity);
 			{
-				auto it = vzcomp::cameras.emplace(vid, std::make_unique<VzCamera>(vid, "vzm::NewSceneComponent"));
+				auto it = vzcomp::cameras.emplace(vid, std::make_unique<VzCamera>(vid, "vzm::NewCamera"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
@@ -292,28 +292,28 @@ namespace vzm
 		case COMPONENT_TYPE::GEOMETRY:
 			compfactory::CreateGeometryComponent(entity);
 			{
-				auto it = vzcomp::geometries.emplace(vid, std::make_unique<VzGeometry>(vid, "vzm::NewResComponent"));
+				auto it = vzcomp::geometries.emplace(vid, std::make_unique<VzGeometry>(vid, "vzm::NewGeometry"));
 				hlcomp = (VzGeometry*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::MATERIAL:
 			compfactory::CreateMaterialComponent(entity);
 			{
-				auto it = vzcomp::materials.emplace(vid, std::make_unique<VzMaterial>(vid, "vzm::NewResComponent"));
+				auto it = vzcomp::materials.emplace(vid, std::make_unique<VzMaterial>(vid, "vzm::NewMaterial"));
 				hlcomp = (VzMaterial*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::TEXTURE:
 			compfactory::CreateTextureComponent(entity);
 			{
-				auto it = vzcomp::textures.emplace(vid, std::make_unique<VzTexture>(vid, "vzm::NewResComponent"));
+				auto it = vzcomp::textures.emplace(vid, std::make_unique<VzTexture>(vid, "vzm::NewTexture"));
 				hlcomp = (VzTexture*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::VOLUME:
 			compfactory::CreateVolumeComponent(entity);
 			{
-				auto it = vzcomp::volumes.emplace(vid, std::make_unique<VzVolume>(vid, "vzm::NewResComponent"));
+				auto it = vzcomp::volumes.emplace(vid, std::make_unique<VzVolume>(vid, "vzm::NewVolume"));
 				hlcomp = (VzVolume*)it.first->second.get();
 			}
 			break;

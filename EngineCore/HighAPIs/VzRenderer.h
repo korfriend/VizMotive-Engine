@@ -18,8 +18,8 @@ namespace vzm
 
 		void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits);
 
-		void SetClearColor(const float color[4]);
-		void GetClearColor(float color[4]) const;
+		void SetClearColor(const vfloat4& color);
+		void GetClearColor(vfloat4& color) const;
 
 		void SetAllowHDR(const bool enable);
 		bool GetAllowHDR() const;

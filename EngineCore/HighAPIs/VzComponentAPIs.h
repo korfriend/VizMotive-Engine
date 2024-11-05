@@ -17,6 +17,9 @@
 #endif
 
 #define __FP (float*)&
+#define __FC3 *(vfloat3*)&
+#define __FC4 *(vfloat4*)&
+#define __FC44 *(vfloat4x4*)&
 
 #if defined(__clang__)
 #define VZ_NONNULL _Nonnull
@@ -63,6 +66,10 @@ constexpr float VZ_PIDIV2 = 1.570796327f;
 constexpr float VZ_PIDIV4 = 0.785398163f;
 
 using uint = uint32_t;
+
+struct vfloat3 { float x, y, z; };
+struct vfloat4 { float x, y, z, w; };
+struct vfloat4x4 { float m[4][4]; };
 
 namespace vzm
 {
@@ -195,27 +202,27 @@ namespace vzm
 		bool IsMatrixAutoUpdate();
 		void SetMatrixAutoUpdate(const bool enable);
 
-		void GetWorldPosition(float v[3]);
-		void GetWorldRotation(float v[4]);
-		void GetWorldScale(float v[3]);
-        void GetWorldForward(float v[3]);
-        void GetWorldRight(float v[3]);
-        void GetWorldUp(float v[3]);
-        void GetWorldMatrix(float mat[16], const bool rowMajor = false);
+		void GetWorldPosition(vfloat3& v);
+		void GetWorldRotation(vfloat4& v);
+		void GetWorldScale(vfloat3& v);
+        void GetWorldForward(vfloat3& v);
+        void GetWorldRight(vfloat3& v);
+        void GetWorldUp(vfloat3& v);
+        void GetWorldMatrix(vfloat4x4& mat, const bool rowMajor = false);
 
         // local
-		void GetPosition(float v[3]);
-		void GetRotation(float v[4]);
-		void GetScale(float v[3]);
-        void GetLocalMatrix(float mat[16], const bool rowMajor = false);
+		void GetPosition(vfloat3& v);
+		void GetRotation(vfloat4& v);
+		void GetScale(vfloat3& v);
+        void GetLocalMatrix(vfloat4x4& mat, const bool rowMajor = false);
 
 		// local transforms
-		void SetPosition(const float v[3]);
-		void SetScale(const float v[3]);
-		void SetEulerAngleZXY(const float v[3]); // ROLL->PITCH->YAW (mainly used CG-convention) 
-		void SetEulerAngleZXYInDegree(const float v[3]); // ROLL->PITCH->YAW (mainly used CG-convention) 
-		void SetQuaternion(const float v[4]);
-        void SetMatrix(const float value[16], const bool rowMajor = false);
+		void SetPosition(const vfloat3& v);
+		void SetScale(const vfloat3& v);
+		void SetEulerAngleZXY(const vfloat3& v); // ROLL->PITCH->YAW (mainly used CG-convention) 
+		void SetEulerAngleZXYInDegree(const vfloat3& v); // ROLL->PITCH->YAW (mainly used CG-convention) 
+		void SetQuaternion(const vfloat4& v);
+        void SetMatrix(const vfloat4x4& mat, const bool rowMajor = false);
 
 		void UpdateMatrix();	// local matrix
 		void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
