@@ -685,6 +685,8 @@ namespace vzm
 		CHECK_API_VALIDITY(false);
 		jobsystem::ShutDown();
 
+		graphicsDevice->WaitForGPU();
+
 		// high-level apis handle engine components via functions defined in vzcomp namespace
 		vzcomp::DestroyAll();	// here, after-shutdown drives a single threaded process
 
