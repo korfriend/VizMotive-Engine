@@ -10,5 +10,6 @@ namespace vzm
 
 		void MakeTestTriangle();
 		void MakeTestQuadWithUVs();
+		size_t GetNumParts() const;
 	};
 }

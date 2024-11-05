@@ -15,34 +15,38 @@ namespace vzm
 	{
 		GET_GEO_COMP(geometry, );
 
-		GeometryComponent::Primitive prim;
+		float x_offsets[3] = {-4.f, 0, 4.f};
+		for (size_t i = 0; i < 3; ++i)
+		{
+			GeometryComponent::Primitive prim;
 
-		std::vector<XMFLOAT3> vertexPositions;
-		vertexPositions.reserve(3);
-		vertexPositions.push_back(XMFLOAT3(0, 1, 0));
-		vertexPositions.push_back(XMFLOAT3(1, -0.3f, 0));
-		vertexPositions.push_back(XMFLOAT3(-1, -0.3f, 0));
+			std::vector<XMFLOAT3> vertexPositions;
+			vertexPositions.reserve(3);
+			vertexPositions.push_back(XMFLOAT3(x_offsets[i] + 0, 1, 0));
+			vertexPositions.push_back(XMFLOAT3(x_offsets[i] + 1, -0.3f, 0));
+			vertexPositions.push_back(XMFLOAT3(x_offsets[i] + -1, -0.3f, 0));
 
-		std::vector<XMFLOAT3> normals;
-		normals.reserve(3);
-		normals.push_back(XMFLOAT3(0, 0, 1));
-		normals.push_back(XMFLOAT3(0, 0, 1));
-		normals.push_back(XMFLOAT3(0, 0, 1));
+			std::vector<XMFLOAT3> normals;
+			normals.reserve(3);
+			normals.push_back(XMFLOAT3(0, 0, -1));
+			normals.push_back(XMFLOAT3(0, 0, -1));
+			normals.push_back(XMFLOAT3(0, 0, -1));
 
-		std::vector<uint32_t> indexPrimitives = {0, 1, 2};
+			std::vector<uint32_t> indexPrimitives = { 0, 1, 2 };
 
-		prim.SetVtxPositions(vertexPositions, true);
-		prim.SetVtxNormals(normals, true);
-		prim.SetIdxPrimives(indexPrimitives, true);
-	
-		geometrics::AABB aabb;
-		aabb._min = XMFLOAT3(-1.f, -1.f, -1.f);
-		aabb._max = XMFLOAT3( 1.f,  1.f,  1.f);
+			prim.SetVtxPositions(vertexPositions, true);
+			prim.SetVtxNormals(normals, true);
+			prim.SetIdxPrimives(indexPrimitives, true);
 
-		prim.SetAABB(aabb);
-		prim.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
+			geometrics::AABB aabb;
+			aabb._min = XMFLOAT3(-1.f, -1.f, -1.f);
+			aabb._max = XMFLOAT3(1.f, 1.f, 1.f);
 
-		geometry->MovePrimitiveFrom(std::move(prim), 0);
+			prim.SetAABB(aabb);
+			prim.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
+
+			geometry->AddMovePrimitiveFrom(std::move(prim));
+		}
 		geometry->UpdateRenderData();
 		UpdateTimeStamp();
 	}
@@ -91,5 +95,11 @@ namespace vzm
 		geometry->MovePrimitiveFrom(std::move(prim), 0);
 		geometry->UpdateRenderData();
 		UpdateTimeStamp();
+	}
+
+	size_t VzGeometry::GetNumParts() const
+	{
+		GET_GEO_COMP(geometry, 0);
+		return geometry->GetNumParts();
 	}
 }

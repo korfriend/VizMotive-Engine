@@ -621,9 +621,9 @@ namespace vzm
 	}
 
 
-	ActorVID LoadModelFile(const std::string& filename)
+	VzActor* LoadModelFile(const std::string& filename)
 	{
-		CHECK_API_VALIDITY(INVALID_VID);
+		CHECK_API_VALIDITY(nullptr);
 		typedef Entity(*PI_Function)(const std::string& fileName,
 			std::vector<Entity>& actors,
 			std::vector<Entity>& cameras, // obj does not include camera
@@ -637,7 +637,7 @@ namespace vzm
 		if (lpdll_function == nullptr)
 		{
 			backlog::post("vzm::LoadModelFile >> Invalid plugin function!", backlog::LogLevel::Error);
-			return INVALID_VID;
+			return nullptr;
 		}
 		std::vector<Entity> actors;
 		std::vector<Entity> cameras; // obj does not include camera
@@ -656,9 +656,10 @@ namespace vzm
 		for (Entity vid : materials) REGISTER_HLCOMP(VzMaterial, materials, vid);
 		for (Entity vid : textures) REGISTER_HLCOMP(VzTexture, textures, vid);
 
-		return root_entity;
+		auto it = vzcomp::actors.find(root_entity);
+		assert(it != vzcomp::actors.end());
+		return it->second.get();
 	}
-
 
 	bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io)
 	{

@@ -128,7 +128,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //renderer->SetVisibleLayerMask(0x4, 0x4);
     //
     vzm::VzCamera* cam = vzm::NewCamera("my camera");
-    glm::fvec3 p(0, 0, 100);
+    glm::fvec3 p(0, 0, 10);
     glm::fvec3 at(0, 0, -4);
 	glm::fvec3 u(0, 1, 0);
     cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
@@ -138,11 +138,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     ActorVID root_actor_vid = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
 
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
-	//geometry_test->MakeTestTriangle();
 	geometry_test->MakeTestQuadWithUVs();
 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
     material_test->SetShaderType(vzm::ShaderType::PBR);
     material_test->SetDoubleSided(true);
+
+	vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my triangles");
+	geometry_test2->MakeTestTriangle();
 
 	vzm::VzTexture* texture = vzm::NewTexture("my texture");
     texture->LoadImageFile("../Assets/testimage_2ns.jpg");
@@ -159,16 +161,29 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
-	actor_test->SetGeometry(geometry_test);
-	actor_test->SetMaterial(material_test, 0);
+	//actor_test->SetGeometry(geometry_test);
+	//actor_test->SetMaterial(material_test, 0);
     actor_test->SetScale({ 30.f, 30.f, 30.f });
+
+	vzm::VzActor* actor_test2 = vzm::NewActor("my actor2");
+	actor_test2->SetGeometry(geometry_test2);
+    vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
+	for (size_t i = 0, n = geometry_test2->GetNumParts(); i < n; ++i)
+	{
+		vzm::VzMaterial* material = vzm::NewMaterial("my test2's material " + i);
+        actor_test2->SetMaterial(material, i);
+		material->SetShaderType(vzm::ShaderType::PBR);
+		material->SetDoubleSided(true);
+        material->SetBaseColor(colors[i]);
+	}
+    assert(actor_test2->IsRenderable());
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
     light_test->SetLightIntensity(5.f);
     light_test->SetPosition({ 0.f, 0.f, 100.f });
     light_test->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
-	vzm::AppendSceneCompTo(actor_test, scene);
+	vzm::AppendSceneCompTo(actor_test2, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
 	vzm::AppendSceneCompVidTo(root_actor_vid, scene->GetVID());
 	//vzm::AppendSceneCompTo(cam, scene);
@@ -192,11 +207,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		if (done)
 			break;
-		static float x_rot = 1.f / 180.f * 3.14f;
-		p = glm::rotateX(p, x_rot);
-		at = glm::rotateX(at, x_rot);
-		u = glm::rotateX(u, x_rot);
-		cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
+		//static float x_rot = 1.f / 180.f * 3.14f;
+		//p = glm::rotateX(p, x_rot);
+		//at = glm::rotateX(at, x_rot);
+		//u = glm::rotateX(u, x_rot);
+		//cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
 		renderer->Render(scene, cam);
     }
     vzm::DeinitEngineLib();
