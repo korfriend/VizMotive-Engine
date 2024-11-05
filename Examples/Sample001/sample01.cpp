@@ -124,17 +124,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     vzm::VzRenderer* renderer = vzm::NewRenderer("my renderer");
     renderer->SetCanvas(w, h, dpi, hwnd);
-    float clear_color[4] = { 1.f, 1.f, 0.f, 1.f };
-    renderer->SetClearColor(clear_color);
+    renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
     //renderer->SetVisibleLayerMask(0x4, 0x4);
     //
     vzm::VzCamera* cam = vzm::NewCamera("my camera");
     glm::fvec3 p(0, 0, 100);
     glm::fvec3 at(0, 0, -4);
 	glm::fvec3 u(0, 1, 0);
-    cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
+    cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
 
-    cam->SetPosition(__FP p);
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
     ActorVID root_actor_vid = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
@@ -163,15 +161,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
 	actor_test->SetGeometry(geometry_test);
 	actor_test->SetMaterial(material_test, 0);
-    glm::fvec3 s(30.f);
-    actor_test->SetScale(__FP s);
+    actor_test->SetScale({ 30.f, 30.f, 30.f });
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
     light_test->SetLightIntensity(5.f);
-	glm::fvec3 light_p(0, 0, 100);
-    light_test->SetPosition(__FP light_p);
-    glm::fvec3 light_euler(0, 180, 0);
-    light_test->SetEulerAngleZXYInDegree(__FP light_euler);
+    light_test->SetPosition({ 0.f, 0.f, 100.f });
+    light_test->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
 	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
@@ -201,7 +196,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		p = glm::rotateX(p, x_rot);
 		at = glm::rotateX(at, x_rot);
 		u = glm::rotateX(u, x_rot);
-		cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
+		cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
 		renderer->Render(scene, cam);
     }
     vzm::DeinitEngineLib();

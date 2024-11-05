@@ -88,17 +88,17 @@ namespace vzm
 		// add visibleMask(uint8_t) to RenderPath3D
 	}
 
-	void VzRenderer::SetClearColor(const float color[4])
+	void VzRenderer::SetClearColor(const vfloat4& color)
 	{
 		GET_RENDERPATH(renderer, );
-		memcpy(renderer->clearColor, color, sizeof(float) * 4);
+		memcpy(renderer->clearColor, &color, sizeof(float) * 4);
 		UpdateTimeStamp();
 	}
 
-	void VzRenderer::GetClearColor(float color[4]) const
+	void VzRenderer::GetClearColor(vfloat4& color) const
 	{
 		GET_RENDERPATH(renderer, );
-		memcpy(color, renderer->clearColor, sizeof(float) * 4);
+		memcpy(&color, renderer->clearColor, sizeof(float) * 4);
 	}
 
 	void VzRenderer::SetAllowHDR(const bool enable)
