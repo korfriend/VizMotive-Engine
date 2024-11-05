@@ -167,6 +167,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     actor_test->SetScale(__FP s);
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
+    light_test->SetLightIntensity(5.f);
 	glm::fvec3 light_p(0, 0, 100);
     light_test->SetPosition(__FP light_p);
     glm::fvec3 light_euler(0, 180, 0);

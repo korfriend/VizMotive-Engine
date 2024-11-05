@@ -62,10 +62,10 @@ namespace vzm
 
 		std::vector<XMFLOAT3> normals;
 		normals.reserve(4);
-		normals.push_back(XMFLOAT3(0, 0, -1));
-		normals.push_back(XMFLOAT3(0, 0, -1));
-		normals.push_back(XMFLOAT3(0, 0, -1));
-		normals.push_back(XMFLOAT3(0, 0, -1));
+		normals.push_back(XMFLOAT3(0, 0, 1));
+		normals.push_back(XMFLOAT3(0, 0, 1));
+		normals.push_back(XMFLOAT3(0, 0, 1));
+		normals.push_back(XMFLOAT3(0, 0, 1));
 
 		std::vector<XMFLOAT2> uvs0;
 		uvs0.reserve(4);

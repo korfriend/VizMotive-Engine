@@ -7,5 +7,7 @@ namespace vzm
 	{
 		VzLight(const VID vid, const std::string& originFrom)
 			: VzSceneComp(vid, originFrom, COMPONENT_TYPE::LIGHT) {}
+
+		void SetLightIntensity(const float intensity);
 	};
 }

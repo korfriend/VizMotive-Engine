@@ -185,7 +185,7 @@ namespace vz
 		}
 
 		/**
-		 * Read/write scene components (renderbles and lights), make sure their VUID-based components are serialized first
+		 * Read/write scene components (renderables and lights), make sure their VUID-based components are serialized first
 		 */
 		inline void Serialize(vz::Archive& archive);
 	};
@@ -224,7 +224,7 @@ namespace vz
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
 		Entity GetEntity() const { return entity_; }
 		VUID GetVUID() const { return vuid_; }
-		//bool IsLocked() const { return isLocked_; }
+		//bool IsLocked() const { return isLocked_.load(); }
 		//void TryLock() { isLocked_ = { true }; }
 
 		virtual void Serialize(vz::Archive& archive, const uint64_t version) = 0;
@@ -308,7 +308,10 @@ namespace vz
 	{
 	protected:
 		VUID vuidParentHierarchy_ = INVALID_VUID;
-		std::unordered_set<VUID> children_;
+		// this is supposed to be automatically updated when
+		//	1. adding or removing a child or
+		//	2. changing its parent
+		std::unordered_set<VUID> children_;	
 
 		// Non-serialized attributes
 		std::vector<VUID> childrenCache_;
@@ -324,7 +327,7 @@ namespace vz
 
 		inline void AddChild(const VUID vuidChild);
 		inline void RemoveChild(const VUID vuidChild);
-		inline std::vector<VUID> GetChildren() { if (children_.size() != childrenCache_.size()) updateChildren(); return childrenCache_; }
+		inline const std::vector<VUID>& GetChildren() { if (children_.size() != childrenCache_.size()) updateChildren(); return childrenCache_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -876,7 +879,10 @@ namespace vz
 
 		XMFLOAT3 color_ = XMFLOAT3(1, 1, 1);
 		float range_ = 10.0f;
-		float intensity_ = 1.0f; // Brightness of light in. The units that this is defined in depend on the type of light. Point and spot lights use luminous intensity in candela (lm/sr) while directional lights use illuminance in lux (lm/m2). https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual
+		// Brightness of light in. The units that this is defined in depend on the type of light. 
+		// Point and spot lights use luminous intensity in candela (lm/sr) while directional lights use illuminance in lux (lm/m2). 
+		//  refer to: https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual
+		float intensity_ = 1.0f; 
 		
 		// spotlight only
 		float radius_ = 0.25; 
@@ -903,13 +909,19 @@ namespace vz
 		XMFLOAT3 direction = XMFLOAT3(0, 1, 0);
 		XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);
 		XMFLOAT3 scale = XMFLOAT3(1, 1, 1);
-		
-		inline void SetDirty() { isDirty_ = true; }
+
 		inline bool IsDirty() const { return isDirty_; }
+
+		inline void SetDirty() { isDirty_ = true; }
 		inline void SetLightColor(XMFLOAT3 color) { color_ = color; timeStampSetter_ = TimerNow; }
+		inline void SetRange(const float range) { range_ = range; isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetRadius(const float radius) { radius_ = radius; }
+		inline void SetLength(const float length) { length_ = length; }
+		inline void SetLightType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
+		inline void SetLightIntensity(const float intensity) { intensity_ = intensity; }
+
 		inline XMFLOAT3 GetLightColor() const { return color_; }
 		inline float GetLightIntensity() const { return intensity_; }
-		inline void SetRange(const float range) { range_ = range; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline float GetRange() const
 		{
 			float retval = range_;
@@ -917,13 +929,11 @@ namespace vz
 			retval = std::min(retval, 65504.0f); // clamp to 16-bit float max value
 			return retval;
 		}
-		inline void SetRadius(const float radius) { radius_ = radius; }
 		inline float GetRadius() const { return radius_; }
-		inline void SetLength(const float length) { length_ = length; }
 		inline float GetLength() const { return length_; }
 		inline const geometrics::AABB& GetAABB() const { return aabb_; }
 		inline LightType GetLightType() const { return type_; }
-		inline void SetLightType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
+
 		inline bool IsInactive() const { return intensity_ == 0 || range_ == 0; }
 
 		inline void Update();	// if there is a transform entity, make sure the transform is updated!
