@@ -21,7 +21,7 @@ namespace vzm
 
 namespace vzm
 {
-	bool VzActor::IsRenderable()
+	bool VzActor::IsRenderable() const
 	{
 		GET_RENDERABLE_COMP(renderable, false);
 		return renderable->IsRenderable();
@@ -54,17 +54,17 @@ namespace vzm
 		assert(0 && "TODO");
 		UpdateTimeStamp();
 	}
-	std::vector<MaterialVID> VzActor::GetMaterials()
+	std::vector<MaterialVID> VzActor::GetMaterials() const
 	{
 		GET_RENDERABLE_COMP(renderable, std::vector<MaterialVID>());
 		return renderable->GetMaterials();
 	}
-	MaterialVID VzActor::GetMaterial(const int slot)
+	MaterialVID VzActor::GetMaterial(const int slot) const
 	{
 		GET_RENDERABLE_COMP(renderable, INVALID_VID);
 		return renderable->GetMaterial(slot);
 	}
-	GeometryVID VzActor::GetGeometry()
+	GeometryVID VzActor::GetGeometry() const
 	{
 		GET_RENDERABLE_COMP(renderable, INVALID_VID);
 		return renderable->GetGeometry();

@@ -16,7 +16,7 @@ namespace vzm
 		VzActor(const VID vid, const std::string& originFrom)
 			: VzBaseActor(vid, originFrom, COMPONENT_TYPE::ACTOR) {}
 
-		bool IsRenderable();
+		bool IsRenderable() const;
 
 		void SetGeometry(const GeometryVID vid);
 		void SetGeometry(const VzBaseComp* geometry) { SetGeometry(geometry->GetVID()); }
@@ -28,8 +28,8 @@ namespace vzm
 		void SetCastShadows(const bool enabled);
 		void SetReceiveShadows(const bool enabled);
 
-		std::vector<MaterialVID> GetMaterials();
-		MaterialVID GetMaterial(const int slot = 0);
-		GeometryVID GetGeometry();
+		std::vector<MaterialVID> GetMaterials() const;
+		MaterialVID GetMaterial(const int slot = 0) const;
+		GeometryVID GetGeometry() const;
 	};
 }

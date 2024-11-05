@@ -41,6 +41,18 @@ namespace vzm
 		material->SetDoubleSided(enabled);
 	}
 
+	void VzMaterial::SetBaseColor(const vfloat4& color)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetBaseColor(*(XMFLOAT4*)&color);
+	}
+
+	vfloat4 VzMaterial::GetBaseColor() const
+	{
+		GET_MATERIAL_COMP(material, {});
+		return __FC4 material->GetBaseColor();
+	}
+
 	bool VzMaterial::IsDoubleSided() const
 	{
 		GET_MATERIAL_COMP(material, false);
