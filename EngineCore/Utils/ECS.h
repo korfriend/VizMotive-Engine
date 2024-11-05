@@ -81,7 +81,7 @@ namespace vz::ecs
 		}
 		inline void Add(VUID vuid, Entity entity)
 		{
-			assert(!vuidEntityMap_.contains(vuid));
+			assert(vuidEntityMap_.count(vuid) > 0);
 			vuidEntityMap_[vuid] = entity;
 			std::vector<VUID>& vuids = entityVuidsMap_[entity];
 			vuids.push_back(vuid);
