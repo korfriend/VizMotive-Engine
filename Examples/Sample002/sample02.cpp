@@ -133,15 +133,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //
     vzm::VzRenderer* renderer = vzm::NewRenderer("my renderer");
     renderer->SetCanvas(w, h, dpi, hwnd);
-    float clear_color[4] = { 1.f, 1.f, 0.f, 1.f };
-    renderer->SetClearColor(clear_color);
+    renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
     //renderer->SetVisibleLayerMask(0x4, 0x4);
     //
     vzm::VzCamera* cam = vzm::NewCamera("my camera");
     glm::fvec3 p(0, 0, 100);
     glm::fvec3 at(0, 0, -4);
 	glm::fvec3 u(0, 1, 0);
-    cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
+    cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
     ActorVID root_actor_vid = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
@@ -172,10 +171,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //actor_test->SetMaterial(material_test, 0);
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
-	glm::fvec3 light_p(0, 0, 100);
-    light_test->SetPosition(__FP light_p);
-    glm::fvec3 light_euler(0, 180, 0);
-    light_test->SetEulerAngleZXYInDegree(__FP light_euler);
+    light_test->SetPosition({ 0, 0, 100 });
+    light_test->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
 
     // Actor New
@@ -218,7 +215,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		at = glm::rotateX(at, x_rot);
 		u = glm::rotateX(u, x_rot);
 		//x_rot += 1.f / 180.f * 3.14f;
-		cam->SetWorldPose((float*)&p, (float*)&at, (float*)&u);
+		cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
 		renderer->Render(scene, cam);
 	}
     vzm::DeinitEngineLib();
@@ -280,7 +277,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		//    int x = GET_X_LPARAM(lParam);
 		//    int y = h - GET_Y_LPARAM(lParam);
 		//    //glm::fvec3 p, v, u;
-		//    //camera->GetWorldPose((float*)&p, (float*)&v, (float*)&u);
+		//    //camera->GetWorldPose(__FC3 p, __FC3 v, __FC3 u);
 		//    //*(glm::fvec3*)cc->orbitHomePosition = p;
 		//    //cc->UpdateControllerSettings();
 		//    cc->GrabBegin(x, y, msg == WM_RBUTTONDOWN);
