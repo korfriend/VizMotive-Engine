@@ -1,6 +1,7 @@
 #pragma once
 #include "Libs/Math.h"
 
+#include <sstream>
 #include <iostream>
 #include <fstream>
 #include <filesystem>

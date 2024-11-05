@@ -7,6 +7,8 @@
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
 
+#include <unordered_map>
+
 using namespace std;
 using namespace vz;
 
@@ -284,8 +286,8 @@ Entity ImportModel_OBJ(const std::string& fileName,
 					}
 
 					int material_index = std::max(0, shape.mesh.material_ids[i / 3]); // this indexes the material library
-					//if (registered_materialIndices.count(materialIndex) == 0)
-					if (!registered_materialIndices.contains(material_index))
+					if (registered_materialIndices.count(material_index) == 0)
+					//if (!registered_materialIndices.contains(material_index))	// c++ 20
 					{
 						size_t part_index = mesh.GetNumParts();
 						registered_materialIndices[material_index] = (int)part_index;
@@ -315,8 +317,8 @@ Entity ImportModel_OBJ(const std::string& fileName,
 					helper::hash_combine(vertex_hash, index.texcoord_index);
 					helper::hash_combine(vertex_hash, material_index);
 
-					//if (unique_vertices.count(vertex_hash) == 0)
-					if (!unique_vertices.contains(vertex_hash))
+					if (unique_vertices.count(vertex_hash) == 0)
+					//if (!unique_vertices.contains(vertex_hash)) c++ 20
 					{
 						unique_vertices[vertex_hash] = (uint32_t)vertex_positions->size();
 						vertex_positions->push_back(pos);
