@@ -258,7 +258,7 @@ namespace vzm
 	VzActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
 	{
 		CHECK_API_VALIDITY(nullptr);
-		return NewActor(name, geometry->GetVID(), material->GetVID(), parentVid);
+		return NewActor(name, geometry? geometry->GetVID() : 0u, material? material->GetVID() : 0u, parentVid);
 	}
 	VzLight* NewLight(const std::string& name, const VID parentVid)
 	{

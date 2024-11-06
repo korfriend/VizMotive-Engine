@@ -1222,7 +1222,7 @@ namespace vz
 			Format format = static_cast<Format>(texFormat);
 			size_t stride = GetFormatStride(format);
 			uint64_t timestamp = (uint64_t)TimeDurationCount(TimerNow, resManagerTimerBegin);
-			size_t memorysize = (size_t)(w * h * 1) * stride;
+			size_t memorysize = (size_t)(w * h * d) * stride;
 
 			if (resource == nullptr || resource->timestamp < timestamp)
 			{
@@ -1268,7 +1268,7 @@ namespace vz
 				desc.bind_flags = BindFlag::SHADER_RESOURCE;
 				desc.width = w;
 				desc.height = h;
-				desc.depth = 1;
+				desc.depth = d;
 				desc.mip_levels = 1;
 				desc.array_size = 1;
 				desc.format = format;

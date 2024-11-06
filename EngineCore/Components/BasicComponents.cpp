@@ -279,12 +279,47 @@ namespace vz
 {
 #define MAX_MATERIAL_SLOT 10000
 
-	bool checkMeshRenderable(const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
+	// return 0 : NOT renderable
+	// return 1 : Mesh renderable
+	// return 2 : Volume renderable
+	inline int checkIsRenderable(const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
 	{
+		int ret = 0;
 		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(compfactory::GetEntityByVUID(vuidGeo));
-		if (geo_comp == nullptr) return false;		
-		return geo_comp->GetNumParts() == vuidMaterials.size() && geo_comp->GetNumParts() > 0;
+		if (geo_comp == nullptr)
+		{
+			if (vuidMaterials.size() == 1)
+			{
+				MaterialComponent* material = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuidMaterials[0]));
+				if (material)
+				{
+					VUID vuid0 = material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_DENSITYMAP);
+					VUID vuid1 = material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF);
+					bool hasRenderableVolume = compfactory::ContainVolumeComponent(compfactory::GetEntityByVUID(vuid0));
+					bool hasLookupTable = compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid1));
+					ret = (hasRenderableVolume && hasLookupTable) ? 2 : 0;
+				}
+			}
+		}
+		else
+		{
+			ret = (geo_comp->GetNumParts() == vuidMaterials.size() && geo_comp->GetNumParts() > 0) ? 1 : 0;
+		}
+		return ret;
 	}
+
+	void RenderableComponent::updateRenderableFlags()
+	{
+		switch (checkIsRenderable(vuidGeometry_, vuidMaterials_))
+		{
+		case 0: flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE); flags_ &= ~SCU32(RenderableFlags::VOLUME_RENDERABLE); break;
+		case 1: flags_ |= SCU32(RenderableFlags::MESH_RENDERABLE); flags_ &= ~SCU32(RenderableFlags::VOLUME_RENDERABLE); break;
+		case 2: flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE); flags_ |= SCU32(RenderableFlags::VOLUME_RENDERABLE); break;
+		default:
+			break;
+		}
+	}
+
 	void RenderableComponent::SetGeometry(const Entity geometryEntity)
 	{
 		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(geometryEntity);
@@ -297,15 +332,9 @@ namespace vz
 		GRenderableComponent* downcast = (GRenderableComponent*)this;
 
 		vuidGeometry_ = geo_comp->GetVUID();
-		if (geo_comp->GetNumParts() == vuidMaterials_.size() && compfactory::GetTransformComponent(entity_)
-			&& geo_comp->GetNumParts() > 0)
-		{
-			flags_ |= SCU32(RenderableFlags::MESH_RENDERABLE);
-		}
-		else
-		{
-			flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE);
-		}
+
+		Update();
+
 		timeStampSetter_ = TimerNow;
 	}
 	void RenderableComponent::SetMaterial(const Entity materialEntity, const size_t slot)
@@ -326,30 +355,10 @@ namespace vz
 				memcpy(&vuidMaterials_[0], &vuidMaterials_temp[0], sizeof(VUID) * vuidMaterials_temp.size());
 			}
 		}
+
 		vuidMaterials_[slot] = mat_comp->GetVUID();
-		if (checkMeshRenderable(vuidGeometry_, vuidMaterials_))
-		{
-			flags_ |= SCU32(RenderableFlags::MESH_RENDERABLE);
-		}
-		else
-		{
-			flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE);
-			flags_ &= ~SCU32(RenderableFlags::VOLUME_RENDERABLE);
-
-			if (vuidMaterials_.size() == 1)
-			{
-				MaterialComponent* material = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuidMaterials_[0]));
-				if (material)
-				{
-					VUID vuid0 = material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_DENSITYMAP);
-					VUID vuid1 = material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF);
-					if(compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid0))
-						&& compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid0)))
-
-						flags_ |= SCU32(RenderableFlags::VOLUME_RENDERABLE);
-				}
-			}
-		}
+		
+		Update();
 
 		timeStampSetter_ = TimerNow;
 	}
@@ -363,14 +372,8 @@ namespace vz
 			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materials[i]);
 			vuidMaterials_.push_back(mat_comp->GetVUID());
 		}
-		if (checkMeshRenderable(vuidGeometry_, vuidMaterials_))
-		{
-			flags_ |= SCU32(RenderableFlags::MESH_RENDERABLE);
-		}
-		else
-		{
-			flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE);
-		}
+
+		Update();
 
 		timeStampSetter_ = TimerNow;
 	}
@@ -390,22 +393,40 @@ namespace vz
 
 	void RenderableComponent::Update()
 	{
+		updateRenderableFlags();
+
 		// compute AABB
 		Entity geometry_entity = compfactory::GetEntityByVUID(vuidGeometry_);
 		GeometryComponent* geometry = compfactory::GetGeometryComponent(geometry_entity);
 		TransformComponent* transform = compfactory::GetTransformComponent(entity_);
-		if (geometry == nullptr || transform == nullptr)
+		if (IsVolumeRenderable())
 		{
-			return;
+			MaterialComponent* volume_material = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuidMaterials_[0]));
+			assert(volume_material);
+			VUID volume_vuid = volume_material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_DENSITYMAP);
+			VolumeComponent* volume = compfactory::GetVolumeComponent(compfactory::GetEntityByVUID(volume_vuid));
+
+			XMFLOAT4X4 world = transform->GetWorldMatrix();
+			XMMATRIX W = XMLoadFloat4x4(&world);
+			aabb_ = volume->ComputeAABB().transform(W);
 		}
-		if (geometry->GetNumParts() == 0)
+		else
 		{
-			return;
+			if (geometry == nullptr || transform == nullptr)
+			{
+				return;
+			}
+			if (geometry->GetNumParts() == 0)
+			{
+				return;
+			}
+
+			XMFLOAT4X4 world = transform->GetWorldMatrix();
+			XMMATRIX W = XMLoadFloat4x4(&world);
+			aabb_ = geometry->GetAABB().transform(W);
 		}
 
-		XMFLOAT4X4 world = transform->GetWorldMatrix();
-		XMMATRIX W = XMLoadFloat4x4(&world);
-		aabb_ = geometry->GetAABB().transform(W);
+		timeStampSetter_ = TimerNow;
 		isDirty_ = false;
 	}
 }

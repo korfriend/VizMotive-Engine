@@ -32,6 +32,13 @@ namespace vzm
 
 			VOLUME_TEXTURESLOT_COUNT
 		};
+		enum class LookupTableSlot : uint32_t
+		{
+			LOOKUP_COLOR,
+			LOOKUP_OTF,
+
+			LOOKUPTABLE_COUNT
+		};
 
 		enum class ShaderType : uint32_t
 		{
@@ -49,6 +56,8 @@ namespace vzm
 		void SetTexture(const VzResource* res, const TextureSlot slot) { SetTexture(res->GetVID(), slot); }
 		void SetVolumeTexture(const VID vid, const VolumeTextureSlot slot);
 		void SetVolumeTexture(const VzResource* res, const VolumeTextureSlot slot) { SetVolumeTexture(res->GetVID(), slot); }
+		void SetLookupTable(const VID vid, const LookupTableSlot slot);
+		void SetLookupTable(const VzResource* res, const LookupTableSlot slot) { SetLookupTable(res->GetVID(), slot); }
 
 		void SetShaderType(const ShaderType shaderType);
 		ShaderType GetShaderType() const;
@@ -59,5 +68,6 @@ namespace vzm
 	};
 	using TextureSlot = VzMaterial::TextureSlot;
 	using VolumeTextureSlot = VzMaterial::VolumeTextureSlot;
+	using LookupTableSlot = VzMaterial::LookupTableSlot;
 	using ShaderType = VzMaterial::ShaderType;
 }
