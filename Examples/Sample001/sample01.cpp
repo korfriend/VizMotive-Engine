@@ -179,6 +179,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	}
     assert(actor_test2->IsRenderable());
 
+	vzm::VzMaterial* material_test3 = vzm::NewMaterial("my material 3");
+	vzm::VzTexture* tex_otf_test3 = vzm::NewTexture("my material 3's OTF");
+    std::vector<uint8_t> otf_array(1024 * 4);
+    tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 2, 1);
+	
+    vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
+
+	material_test3->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
+	material_test3->SetLookupTable(tex_otf_test3, vzm::LookupTableSlot::LOOKUP_OTF);
+
 	vzm::VzLight* light_test = vzm::NewLight("my light");
     light_test->SetLightIntensity(5.f);
     light_test->SetPosition({ 0.f, 0.f, 100.f });
@@ -186,6 +196,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(actor_test2, scene);
+	vzm::AppendSceneCompTo(actor_test3, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
 	vzm::AppendSceneCompTo(root_obj_actor, scene);
 	//vzm::AppendSceneCompTo(cam, scene);

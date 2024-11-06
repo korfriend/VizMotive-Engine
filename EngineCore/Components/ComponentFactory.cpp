@@ -252,6 +252,10 @@ namespace vz::compfactory
 	{
 		return textureManager.Contains(entity);
 	}
+	bool ContainVolumeComponent(const Entity entity)
+	{
+		return volumeManager.Contains(entity);
+	}
 		
 	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components)
 	{

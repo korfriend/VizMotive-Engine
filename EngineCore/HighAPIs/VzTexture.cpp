@@ -16,6 +16,13 @@ namespace vzm
 		GET_TEXTURE_COMP(texture, false);
 		return texture->LoadImageFile(fileName);
 	}
+
+	bool VzTexture::LoadMemory(const std::string& name, const std::vector<uint8_t>& data, const TextureFormat textureFormat,
+		const uint32_t w, const uint32_t h, const uint32_t d)
+	{
+		GET_TEXTURE_COMP(texture, false);
+		return texture->LoadMemory(name, data, static_cast<TextureComponent::TextureFormat>(textureFormat), w, h, d);
+	}
 	//std::string GetImageFileName();
 	//void SetMinFilter(const SamplerMinFilter filter);
 	//void SetMagFilter(const SamplerMagFilter filter);

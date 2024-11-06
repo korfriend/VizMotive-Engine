@@ -116,7 +116,7 @@ namespace vz
 			}
 
 			archive >> u32_data;
-			assert(u32_data <= SCU32(LookupTableSlot::LOOKUP_COUNT));
+			assert(u32_data <= SCU32(LookupTableSlot::LOOKUPTABLE_COUNT));
 			for (uint32_t i = 0, n = u32_data; i < n; ++i)
 			{
 				archive >> lookupComponents_[i];
@@ -153,7 +153,7 @@ namespace vz
 			{
 				archive << volumeComponents_[i];
 			}
-			tex_slot_count = SCU32(LookupTableSlot::LOOKUP_COUNT);
+			tex_slot_count = SCU32(LookupTableSlot::LOOKUPTABLE_COUNT);
 			archive << tex_slot_count;
 			for (uint32_t i = 0; i < tex_slot_count; ++i)
 			{

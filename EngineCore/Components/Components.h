@@ -388,7 +388,7 @@ namespace vz
 			LOOKUP_COLOR,
 			LOOKUP_OTF,
 
-			LOOKUP_COUNT
+			LOOKUPTABLE_COUNT
 		};
 		enum class VolumeTextureSlot : uint32_t
 		{
@@ -444,7 +444,7 @@ namespace vz
 
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 		VUID volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
-		VUID lookupComponents_[SCU32(LookupTableSlot::LOOKUP_COUNT)] = {};
+		VUID lookupComponents_[SCU32(LookupTableSlot::LOOKUPTABLE_COUNT)] = {};
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 
@@ -887,6 +887,8 @@ namespace vz
 		const Histogram& GetHistogram() const { return histogram_; }
 		inline XMFLOAT4X4 GetAlign() const { return matAlign_; }
 
+		inline geometrics::AABB ComputeAABB() const;
+
 		bool LoadVolume(const std::string& fileName, const std::vector<uint8_t>& volData, 
 			const uint32_t w, const uint32_t h, const uint32_t d, const VolumeFormat volFormat);
 
@@ -927,6 +929,8 @@ namespace vz
 		//		- transformComponent, geometryComponent, and material components (with their referencing textureComponents)
 		bool isDirty_ = true;
 		geometrics::AABB aabb_; // world AABB
+
+		void updateRenderableFlags();
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
@@ -1198,6 +1202,7 @@ namespace vz::compfactory
 	CORE_EXPORT inline bool ContainLightComponent(const Entity entity);
 	CORE_EXPORT inline bool ContainCameraComponent(const Entity entity);
 	CORE_EXPORT inline bool ContainTextureComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainVolumeComponent(const Entity entity);
 
 	CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component

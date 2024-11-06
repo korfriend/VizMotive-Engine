@@ -254,6 +254,17 @@ namespace vz
 		XMStoreFloat4x4(&matAlign_, mat_rs2os);
 	}
 
+	geometrics::AABB VolumeComponent::ComputeAABB() const
+	{
+		XMFLOAT3 volume_size((float)width_, (float)height_, (float)depth_);
+		XMVECTOR volume_box_max_v = XMLoadFloat3(&volume_size) * XMLoadFloat3(&voxelSize_) * 0.5f;
+		XMFLOAT3 volume_box_max;
+		XMStoreFloat3(&volume_box_max, volume_box_max_v);
+		geometrics::AABB aabb;
+		aabb._max = volume_box_max;
+		aabb._min = XMFLOAT3(-volume_box_max.x, -volume_box_max.y, -volume_box_max.z);
+		return aabb;
+	}
 	bool VolumeComponent::LoadVolume(const std::string& fileName, const std::vector<uint8_t>& volData,
 		const uint32_t w, const uint32_t h, const uint32_t d, const VolumeFormat volFormat)
 	{

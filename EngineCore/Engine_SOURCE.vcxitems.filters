@@ -37,9 +37,6 @@
     <Filter Include="HighAPIs %28API_EXPORT%29">
       <UniqueIdentifier>{5ff741b1-0d48-48b3-a433-ad3c209a02ce}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Components\APIs %28CORE_EXPORT%29">
-      <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ThirdParty\meshoptimizer">
       <UniqueIdentifier>{1845c6fe-c447-47a6-aad9-0b8b888b445f}</UniqueIdentifier>
     </Filter>
@@ -54,6 +51,12 @@
     </Filter>
     <Filter Include="HighAPIs %28API_EXPORT%29\Public %28APIs%29\Components">
       <UniqueIdentifier>{3dec64ff-fb3f-42f3-ae98-269b75258a1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components\Public %28CORE_EXPORT%29 APIs">
+      <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components\Private">
+      <UniqueIdentifier>{25f62d85-dbd6-488d-99fd-3156f75a2a66}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -146,10 +149,10 @@
       <Filter>Common\Backend</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
-      <Filter>Components\APIs %28CORE_EXPORT%29</Filter>
+      <Filter>Components\Public %28CORE_EXPORT%29 APIs</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h">
-      <Filter>Components\APIs %28CORE_EXPORT%29</Filter>
+      <Filter>Components\Public %28CORE_EXPORT%29 APIs</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Geometrics.h">
       <Filter>Libs %28header only%29</Filter>
@@ -233,7 +236,7 @@
       <Filter>Common\Backend</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h">
-      <Filter>Components</Filter>
+      <Filter>Components\Private</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -255,29 +258,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\basisu_common.cpp">
       <Filter>ThirdParty</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp">
-      <Filter>Components</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
-      <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Canvas.cpp">
       <Filter>Common</Filter>
@@ -374,6 +356,27 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.cpp">
       <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp">
+      <Filter>Components\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp">
+      <Filter>Components\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp">
+      <Filter>Components\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp">
+      <Filter>Components\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp">
+      <Filter>Components\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
+      <Filter>Components\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp">
+      <Filter>Components\Private</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

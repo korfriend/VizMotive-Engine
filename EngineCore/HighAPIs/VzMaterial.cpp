@@ -23,6 +23,12 @@ namespace vzm
 		material->SetVolumeTexture(vid, static_cast<MaterialComponent::VolumeTextureSlot>(slot));
 	}
 
+	void VzMaterial::SetLookupTable(const VID vid, const LookupTableSlot slot)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetLookupTable(vid, static_cast<MaterialComponent::LookupTableSlot>(slot));
+	}
+
 	void VzMaterial::SetShaderType(const ShaderType shaderType)
 	{
 		GET_MATERIAL_COMP(material, );
