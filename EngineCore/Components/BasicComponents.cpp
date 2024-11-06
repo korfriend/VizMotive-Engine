@@ -279,10 +279,10 @@ namespace vz
 {
 #define MAX_MATERIAL_SLOT 10000
 
-	bool checkValidity(const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
+	bool checkMeshRenderable(const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
 	{
 		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(compfactory::GetEntityByVUID(vuidGeo));
-		if (geo_comp == nullptr) return false;
+		if (geo_comp == nullptr) return false;		
 		return geo_comp->GetNumParts() == vuidMaterials.size() && geo_comp->GetNumParts() > 0;
 	}
 	void RenderableComponent::SetGeometry(const Entity geometryEntity)
@@ -300,11 +300,11 @@ namespace vz
 		if (geo_comp->GetNumParts() == vuidMaterials_.size() && compfactory::GetTransformComponent(entity_)
 			&& geo_comp->GetNumParts() > 0)
 		{
-			flags_ |= SCU32(RenderableFlags::RENDERABLE);
+			flags_ |= SCU32(RenderableFlags::MESH_RENDERABLE);
 		}
 		else
 		{
-			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
+			flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE);
 		}
 		timeStampSetter_ = TimerNow;
 	}
@@ -327,13 +327,28 @@ namespace vz
 			}
 		}
 		vuidMaterials_[slot] = mat_comp->GetVUID();
-		if (checkValidity(vuidGeometry_, vuidMaterials_))
+		if (checkMeshRenderable(vuidGeometry_, vuidMaterials_))
 		{
-			flags_ |= SCU32(RenderableFlags::RENDERABLE);
+			flags_ |= SCU32(RenderableFlags::MESH_RENDERABLE);
 		}
 		else
 		{
-			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
+			flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE);
+			flags_ &= ~SCU32(RenderableFlags::VOLUME_RENDERABLE);
+
+			if (vuidMaterials_.size() == 1)
+			{
+				MaterialComponent* material = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuidMaterials_[0]));
+				if (material)
+				{
+					VUID vuid0 = material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_DENSITYMAP);
+					VUID vuid1 = material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF);
+					if(compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid0))
+						&& compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid0)))
+
+						flags_ |= SCU32(RenderableFlags::VOLUME_RENDERABLE);
+				}
+			}
 		}
 
 		timeStampSetter_ = TimerNow;
@@ -348,13 +363,13 @@ namespace vz
 			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materials[i]);
 			vuidMaterials_.push_back(mat_comp->GetVUID());
 		}
-		if (checkValidity(vuidGeometry_, vuidMaterials_))
+		if (checkMeshRenderable(vuidGeometry_, vuidMaterials_))
 		{
-			flags_ |= SCU32(RenderableFlags::RENDERABLE);
+			flags_ |= SCU32(RenderableFlags::MESH_RENDERABLE);
 		}
 		else
 		{
-			flags_ &= ~SCU32(RenderableFlags::RENDERABLE);
+			flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE);
 		}
 
 		timeStampSetter_ = TimerNow;

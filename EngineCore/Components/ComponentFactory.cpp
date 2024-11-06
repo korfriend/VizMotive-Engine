@@ -248,7 +248,11 @@ namespace vz::compfactory
 	{
 		return cameraManager.Contains(entity);
 	}
-
+	bool ContainTextureComponent(const Entity entity)
+	{
+		return textureManager.Contains(entity);
+	}
+		
 	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components)
 	{
 		components.clear();

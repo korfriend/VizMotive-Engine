@@ -135,7 +135,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
-	vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+    vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
     root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
 
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");

@@ -143,7 +143,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
-    ActorVID root_actor_vid = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+   vzm::VzActor* root_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
 
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	//geometry_test->MakeTestTriangle();
@@ -185,7 +185,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
-	vzm::AppendSceneCompVidTo(root_actor_vid, scene->GetVID());
+	vzm::AppendSceneCompTo(root_actor, scene);
 
 	//vzm::AppendSceneCompTo(actor_axis, actor);
 	//vzm::AppendSceneCompTo(light, scene);

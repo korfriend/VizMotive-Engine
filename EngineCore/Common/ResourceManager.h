@@ -91,8 +91,15 @@ namespace vz
 		Resource LoadVolume(
 			const std::string& name,
 			Flags flags,
-			const uint8_t* filedata,
+			const uint8_t* data,
 			const uint32_t w, const uint32_t h, const uint32_t d, const VolumeComponent::VolumeFormat volFormat
+		);
+
+		Resource LoadMemory(
+			const std::string& name,
+			Flags flags,
+			const uint8_t* data,
+			const uint32_t w, const uint32_t h, const uint32_t d, const TextureComponent::TextureFormat texFormat
 		);
 
 		// Check if a resource is currently loaded

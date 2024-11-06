@@ -147,6 +147,7 @@ namespace vz
 
 	namespace resourcemanager
 	{
+		static TimeStamp resManagerTimerBegin = std::chrono::high_resolution_clock::now();
 		static std::mutex locker;
 		static std::unordered_map<std::string, std::weak_ptr<ResourceInternal>> resources;
 		static Mode mode = Mode::NO_EMBEDDING;
@@ -1089,7 +1090,7 @@ namespace vz
 		Resource LoadVolume(
 			const std::string& name,
 			Flags flags,
-			const uint8_t* filedata,
+			const uint8_t* data,
 			const uint32_t w, const uint32_t h, const uint32_t d, const VolumeComponent::VolumeFormat volFormat
 		)
 		{
@@ -1104,16 +1105,9 @@ namespace vz
 			std::weak_ptr<ResourceInternal>& weak_resource = resources[name];
 			std::shared_ptr<ResourceInternal> resource = weak_resource.lock();
 
-			static bool basis_init = false; // within lock!
-			if (!basis_init)
-			{
-				basis_init = true;
-				basist::basisu_transcoder_init();
-			}
-
 			size_t stride = SCU32(volFormat);
-			uint64_t timestamp = helper::FileTimestamp(name);
-			size_t filesize = (size_t)(w * h * d) * stride;
+			uint64_t timestamp = (uint64_t)TimeDurationCount(TimerNow, resManagerTimerBegin);
+			size_t memorysize = (size_t)(w * h * d) * stride;
 
 			if (resource == nullptr || resource->timestamp < timestamp)
 			{
@@ -1121,16 +1115,16 @@ namespace vz
 				resources[name] = resource;
 				resource->filename = name;
 				resource->container_filename = name;
-				resource->container_filesize = filesize;
+				resource->container_filesize = memorysize;
 				resource->container_fileoffset = 0;
 				resource->dataType = "DCM";
 				
-				if (filedata != nullptr && resource->filedata.empty() && has_flag(flags, Flags::IMPORT_RETAIN_FILEDATA))
+				if (data != nullptr && resource->filedata.empty() && has_flag(flags, Flags::IMPORT_RETAIN_FILEDATA))
 				{
 					// resource was loaded with external filedata, and we want to retain filedata
 					//	this must also happen when using IMPORT_DELAY!
-					resource->filedata.resize(filesize);
-					std::memcpy(resource->filedata.data(), filedata, filesize);
+					resource->filedata.resize(memorysize);
+					std::memcpy(resource->filedata.data(), data, memorysize);
 				}
 			}
 			else
@@ -1146,7 +1140,7 @@ namespace vz
 
 			locker.unlock();
 
-			assert(filedata != nullptr && filesize != 0);
+			assert(data != nullptr && memorysize != 0);
 
 			flags |= resource->flags;
 
@@ -1186,7 +1180,113 @@ namespace vz
 				SubresourceData initdata;
 
 				// we need heap allocation for initdata (normally, volume is large data)
-				initdata.data_ptr = filedata;
+				initdata.data_ptr = data;
+				initdata.row_pitch = w * stride;
+				initdata.slice_pitch = initdata.row_pitch * h;
+
+				GraphicsDevice* device = vz::graphics::GetDevice();
+				success = device->CreateTexture(&desc, &initdata, &resource->texture);
+				device->SetName(&resource->texture, name.c_str());
+
+				resource->srgb_subresource = device->CreateSubresource(
+					&resource->texture, SubresourceType::SRV, 0, -1, 0, -1
+				);
+
+				success &= resource->srgb_subresource >= 0;
+			}
+
+			if (success)
+			{
+				resource->flags = flags;
+				resource->timestamp = timestamp;
+
+				Resource retVal;
+				retVal.internal_state = resource;
+				return retVal;
+			}
+			return Resource();
+		}
+
+
+		Resource LoadMemory(
+			const std::string& name,
+			Flags flags,
+			const uint8_t* data,
+			const uint32_t w, const uint32_t h, const uint32_t d, const TextureComponent::TextureFormat texFormat
+		)
+		{
+			locker.lock();
+			std::weak_ptr<ResourceInternal>& weak_resource = resources[name];
+			std::shared_ptr<ResourceInternal> resource = weak_resource.lock();
+
+			Format format = static_cast<Format>(texFormat);
+			size_t stride = GetFormatStride(format);
+			uint64_t timestamp = (uint64_t)TimeDurationCount(TimerNow, resManagerTimerBegin);
+			size_t memorysize = (size_t)(w * h * 1) * stride;
+
+			if (resource == nullptr || resource->timestamp < timestamp)
+			{
+				resource = std::make_shared<ResourceInternal>();
+				resources[name] = resource;
+				resource->filename = name;
+				resource->container_filename = name;
+				resource->container_filesize = memorysize;
+				resource->container_fileoffset = 0;
+				resource->dataType = "CUSTOM";
+
+				if (data != nullptr && resource->filedata.empty() && has_flag(flags, Flags::IMPORT_RETAIN_FILEDATA))
+				{
+					// resource was loaded with external filedata, and we want to retain filedata
+					//	this must also happen when using IMPORT_DELAY!
+					resource->filedata.resize(memorysize);
+					std::memcpy(resource->filedata.data(), data, memorysize);
+				}
+			}
+			else
+			{
+				Resource retVal;
+				retVal.internal_state = resource;
+				locker.unlock();
+				return retVal;
+			}
+
+			resource->flags &= ~Flags::IMPORT_DELAY;	// Flags::IMPORT_DELAY is not allowed
+			resource->flags &= ~Flags::STREAMING;	// Flags::STREAMING is not allowed
+
+			locker.unlock();
+
+			assert(data != nullptr && memorysize != 0);
+
+			flags |= resource->flags;
+
+			bool success = false;
+
+			// load process : refers to loadResourceDirectly(name, flags, filedata, filesize, resource.get())
+			{
+				TextureDesc desc;
+				desc.array_size = 1;
+				desc.bind_flags = BindFlag::SHADER_RESOURCE;
+				desc.width = w;
+				desc.height = h;
+				desc.depth = 1;
+				desc.mip_levels = 1;
+				desc.array_size = 1;
+				desc.format = format;
+				desc.layout = ResourceState::SHADER_RESOURCE;
+
+				//if (desc.mip_levels == 1 || desc.depth > 1 || desc.array_size > 1)
+				//{
+				//	// don't allow streaming for single mip, array and 3D textures
+				//	flags &= ~Flags::STREAMING;
+				//}
+
+				desc.type = desc.depth > 1 ? TextureDesc::Type::TEXTURE_3D : 
+					(desc.height > 1 ? TextureDesc::Type::TEXTURE_2D : TextureDesc::Type::TEXTURE_1D);
+
+				SubresourceData initdata;
+
+				// we need heap allocation for initdata (normally, volume is large data)
+				initdata.data_ptr = data;
 				initdata.row_pitch = w * stride;
 				initdata.slice_pitch = initdata.row_pitch * h;
 

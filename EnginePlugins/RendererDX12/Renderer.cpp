@@ -268,7 +268,7 @@ namespace vz::renderer
 
 					if (view.flags & View::ALLOW_OCCLUSION_CULLING)
 					{
-						if (renderable.IsRenderable() && occlusion_result.occlusionQueries[scene_Gdetails->queryheapIdx] < 0)
+						if (renderable.IsMeshRenderable() && occlusion_result.occlusionQueries[scene_Gdetails->queryheapIdx] < 0)
 						{
 							if (aabb.intersects(view.camera->GetWorldEye()))
 							{
@@ -2136,7 +2136,7 @@ namespace vz
 		for (uint32_t renderableIndex = 0; renderableIndex < view.scene->GetRenderableCount(); ++renderableIndex)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderableIndex];
-			if (!renderable.IsRenderable())
+			if (!renderable.IsMeshRenderable())
 			{
 				continue;
 			}
@@ -2358,7 +2358,7 @@ namespace vz
 					continue;
 				
 				const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
-				if (!renderable.IsRenderable())
+				if (!renderable.IsMeshRenderable())
 					continue;
 				if (foreground != renderable.IsForeground())
 					continue;
@@ -3171,7 +3171,7 @@ namespace vz
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
-			assert(renderable.IsRenderable());
+			assert(renderable.IsMeshRenderable());
 
 			// TODO.. 
 			//	to implement multi-instancing

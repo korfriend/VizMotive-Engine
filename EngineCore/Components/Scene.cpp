@@ -89,7 +89,7 @@ namespace vz
 			{
 				renderable->Update();	// AABB
 
-				if (renderable->IsRenderable())
+				if (renderable->IsMeshRenderable())
 				{
 					AABB aabb = renderable->GetAABB();
 
