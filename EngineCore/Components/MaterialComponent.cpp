@@ -24,6 +24,17 @@ namespace vz
 		}
 		volumeComponents_[SCU32(volumetextureSlot)] = volume->GetVUID();
 	}
+
+	void MaterialComponent::SetLookupTable(const Entity lookuptextureEntity, const LookupTableSlot lookuptextureSlot)
+	{
+		TextureComponent* texture = compfactory::GetTextureComponent(lookuptextureEntity);
+		if (texture == nullptr)
+		{
+			backlog::post("MaterialComponent::SetLookupTable >> Invalid texture entity!!", backlog::LogLevel::Warn);
+			return;
+		}
+		lookupComponents_[SCU32(lookuptextureSlot)] = texture->GetVUID();
+	}
 }
 
 namespace vz

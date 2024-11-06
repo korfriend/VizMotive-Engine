@@ -128,18 +128,18 @@ namespace vz
 		GETTER_RES(resource, -1);
 		return resource->GetFontStyle();
 	}
-	void TextureComponent::CopyFromData(const std::vector<uint8_t>& filedata)
+	void TextureComponent::CopyFromData(const std::vector<uint8_t>& data)
 	{
 		GETTER_RES(resource, );
-		assert(resource->GetFileData().size() == filedata.size());
-		resource->CopyFromData(filedata);
+		assert(resource->GetFileData().size() == data.size());
+		resource->CopyFromData(data);
 		resource->SetOutdated();
 	}
-	void TextureComponent::MoveFromData(std::vector<uint8_t>&& filedata)
+	void TextureComponent::MoveFromData(std::vector<uint8_t>&& data)
 	{
 		GETTER_RES(resource, );
-		assert(resource->GetFileData().size() == filedata.size());
-		resource->MoveFromData(std::move(filedata));
+		assert(resource->GetFileData().size() == data.size());
+		resource->MoveFromData(std::move(data));
 		resource->SetOutdated();
 	}
 
@@ -160,6 +160,39 @@ namespace vz
 			arraySize_ = texture.desc.array_size;
 			stride_ = graphics::GetFormatStride(texture.desc.format);
 			textureType_ = getTextureType(texture);
+			textureFormat_ = static_cast<TextureFormat>(texture.desc.format);
+			hasRenderData_ = true;
+		}
+		return resource.IsValid();
+	}
+
+	bool TextureComponent::LoadMemory(const std::string& name,
+		const std::vector<uint8_t>& data, const TextureFormat textureFormat,
+		const uint32_t w, const uint32_t h, const uint32_t d)
+	{
+		if (resourcemanager::Contains(name))
+		{
+			backlog::post("do not allow the same key for resource manager for TextureComponent::LoadMemory", backlog::LogLevel::Error);
+			assert(0 && resourcemanager::Contains(name) && "do not allow the same key for resource manager for TextureComponent::LoadMemory");
+			return false;
+		}
+
+		resource_ = std::make_shared<Resource>(
+			resourcemanager::LoadMemory(name, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, data.data(), w, h, d, textureFormat)
+		);
+
+		resName_ = name;
+		Resource& resource = *resource_.get();
+		if (resource.IsValid())
+		{
+			graphics::Texture texture = resource.GetTexture();
+			width_ = texture.desc.width;
+			height_ = texture.desc.height;
+			depth_ = texture.desc.depth;
+			arraySize_ = texture.desc.array_size;
+			stride_ = graphics::GetFormatStride(texture.desc.format);
+			textureType_ = getTextureType(texture);
+			textureFormat_ = static_cast<TextureFormat>(texture.desc.format);
 			hasRenderData_ = true;
 		}
 		return resource.IsValid();
@@ -247,6 +280,19 @@ namespace vz
 			stride_ = graphics::GetFormatStride(texture.desc.format);
 			textureType_ = TextureType::Texture3D;
 			volFormat_ = volFormat;
+
+			switch (volFormat)
+			{
+			case VolumeFormat::UINT8:
+				textureFormat_ = TextureFormat::R8_UNORM; break;
+			case VolumeFormat::UINT16:
+				textureFormat_ = TextureFormat::R16_UNORM; break;
+			case VolumeFormat::FLOAT:
+				textureFormat_ = TextureFormat::R32_FLOAT; break;
+			default:
+				assert(0);
+			}
+
 			hasRenderData_ = true;
 		}
 		// 

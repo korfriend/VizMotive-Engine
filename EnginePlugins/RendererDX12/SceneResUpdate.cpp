@@ -303,7 +303,7 @@ namespace vz
 
 			renderable.renderFlags = 0u;
 			renderable.renderableIndex = ~0u;
-			if (renderable.IsRenderable())
+			if (renderable.IsMeshRenderable())
 			{
 				// These will only be valid for a single frame:
 				Entity geo_entity = renderable.GetGeometry();
@@ -600,7 +600,7 @@ namespace vz
 			instanceResLookupAllocator.store(0u);
 			jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 				GRenderableComponent* renderable = renderableComponents[args.jobIndex];
-				if (!renderable->IsRenderable())
+				if (!renderable->IsMeshRenderable())
 				{
 					return;
 				}

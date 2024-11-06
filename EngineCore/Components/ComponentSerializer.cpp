@@ -115,6 +115,13 @@ namespace vz
 				archive >> volumeComponents_[i];
 			}
 
+			archive >> u32_data;
+			assert(u32_data <= SCU32(LookupTableSlot::LOOKUP_COUNT));
+			for (uint32_t i = 0, n = u32_data; i < n; ++i)
+			{
+				archive >> lookupComponents_[i];
+			}
+
 			archive >> texMulAdd_;
 			isDirty_ = true;
 		}
@@ -146,6 +153,13 @@ namespace vz
 			{
 				archive << volumeComponents_[i];
 			}
+			tex_slot_count = SCU32(LookupTableSlot::LOOKUP_COUNT);
+			archive << tex_slot_count;
+			for (uint32_t i = 0; i < tex_slot_count; ++i)
+			{
+				archive << lookupComponents_[i];
+			}
+
 			archive << texMulAdd_;
 		}
 	}
@@ -219,6 +233,9 @@ namespace vz
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 
 			archive >> u8_data;
+			textureType_ = static_cast<TextureType>(u8_data);
+			archive >> u8_data;
+			textureFormat_ = static_cast<TextureFormat>(u8_data);
 			archive >> width_;
 			archive >> height_;
 			archive >> depth_;
@@ -230,6 +247,8 @@ namespace vz
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
+			archive << SCU8(textureType_);
+			archive << SCU8(textureFormat_);
 			archive << width_;
 			archive << height_;
 			archive << depth_;

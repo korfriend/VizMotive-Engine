@@ -27,7 +27,7 @@ inline constexpr VUID INVALID_VUID = 0;
 using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimeDurationCount(A, B) std::chrono::duration_cast<std::chrono::duration<double>>(A - B).count()
 #define TimerNow std::chrono::high_resolution_clock::now()
-#define TimerMin std::chrono::high_resolution_clock::time_point::min();
+#define TimerMin std::chrono::high_resolution_clock::time_point::min()
 #define SETVISIBLEMASK(MASK, LAYERBITS, MASKBITS) MASK = (MASK & ~LAYERBITS) | (MASKBITS & LAYERBITS);
 
 namespace vz
@@ -383,6 +383,13 @@ namespace vz
 
 			TEXTURESLOT_COUNT
 		};
+		enum class LookupTableSlot : uint32_t
+		{
+			LOOKUP_COLOR,
+			LOOKUP_OTF,
+
+			LOOKUP_COUNT
+		};
 		enum class VolumeTextureSlot : uint32_t
 		{
 			VOLUME_DENSITYMAP, // this is used for volume rendering
@@ -437,6 +444,7 @@ namespace vz
 
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 		VUID volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
+		VUID lookupComponents_[SCU32(LookupTableSlot::LOOKUP_COUNT)] = {};
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 
@@ -464,6 +472,7 @@ namespace vz
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
+		inline void SetLookupTable(const Entity lookuptextureEntity, const LookupTableSlot lookuptextureSlot);
 
 		inline bool IsDirty() const { return isDirty_; }
 		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
@@ -486,6 +495,7 @@ namespace vz
 		inline BlendMode GetBlendMode() const { return blendMode_; }
 		inline VUID GetTextureVUID(const TextureSlot slot) const { return textureComponents_[SCU32(slot)]; }
 		inline VUID GetVolumeTextureVUID(const VolumeTextureSlot slot) const { return volumeComponents_[SCU32(slot)]; }
+		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return lookupComponents_[SCU32(slot)]; }
 		inline const XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
 
@@ -543,6 +553,11 @@ namespace vz
 			XMFLOAT2 uvRangeMax_ = XMFLOAT2(1, 1);
 			std::shared_ptr<void> bufferHandle_;	// 'void' refers to GGeometryComponent::GBuffer
 			Entity recentBelongingGeometry_ = INVALID_ENTITY;
+
+			// BVH...
+			// OpenMesh-based data structures for acceleration / editing
+
+			//std::shared_ptr<Resource> internalBlock_;
 
 			void updateGpuEssentials(); // supposed to be called in GeometryComponent
 
@@ -703,8 +718,90 @@ namespace vz
 			Texture3D,
 			Texture2D_Array, // TODO
 		};
+		// the same as graphics::Format
+		enum class TextureFormat : uint8_t
+		{
+			UNKNOWN,
+
+			R32G32B32A32_FLOAT,
+			R32G32B32A32_UINT,
+			R32G32B32A32_SINT,
+
+			R32G32B32_FLOAT,
+			R32G32B32_UINT,
+			R32G32B32_SINT,
+
+			R16G16B16A16_FLOAT,
+			R16G16B16A16_UNORM,
+			R16G16B16A16_UINT,
+			R16G16B16A16_SNORM,
+			R16G16B16A16_SINT,
+
+			R32G32_FLOAT,
+			R32G32_UINT,
+			R32G32_SINT,
+			D32_FLOAT_S8X24_UINT,	// depth (32-bit) + stencil (8-bit) | SRV: R32_FLOAT (default or depth aspect), R8_UINT (stencil aspect)
+
+			R10G10B10A2_UNORM,
+			R10G10B10A2_UINT,
+			R11G11B10_FLOAT,
+			R8G8B8A8_UNORM,
+			R8G8B8A8_UNORM_SRGB,
+			R8G8B8A8_UINT,
+			R8G8B8A8_SNORM,
+			R8G8B8A8_SINT,
+			B8G8R8A8_UNORM,
+			B8G8R8A8_UNORM_SRGB,
+			R16G16_FLOAT,
+			R16G16_UNORM,
+			R16G16_UINT,
+			R16G16_SNORM,
+			R16G16_SINT,
+			D32_FLOAT,				// depth (32-bit) | SRV: R32_FLOAT
+			R32_FLOAT,
+			R32_UINT,
+			R32_SINT,
+			D24_UNORM_S8_UINT,		// depth (24-bit) + stencil (8-bit) | SRV: R24_INTERNAL (default or depth aspect), R8_UINT (stencil aspect)
+			R9G9B9E5_SHAREDEXP,
+
+			R8G8_UNORM,
+			R8G8_UINT,
+			R8G8_SNORM,
+			R8G8_SINT,
+			R16_FLOAT,
+			D16_UNORM,				// depth (16-bit) | SRV: R16_UNORM
+			R16_UNORM,
+			R16_UINT,
+			R16_SNORM,
+			R16_SINT,
+
+			R8_UNORM,
+			R8_UINT,
+			R8_SNORM,
+			R8_SINT,
+
+			// Formats that are not usable in render pass must be below because formats in render pass must be encodable as 6 bits:
+
+			BC1_UNORM,			// Three color channels (5 bits:6 bits:5 bits), with 0 or 1 bit(s) of alpha
+			BC1_UNORM_SRGB,		// Three color channels (5 bits:6 bits:5 bits), with 0 or 1 bit(s) of alpha
+			BC2_UNORM,			// Three color channels (5 bits:6 bits:5 bits), with 4 bits of alpha
+			BC2_UNORM_SRGB,		// Three color channels (5 bits:6 bits:5 bits), with 4 bits of alpha
+			BC3_UNORM,			// Three color channels (5 bits:6 bits:5 bits) with 8 bits of alpha
+			BC3_UNORM_SRGB,		// Three color channels (5 bits:6 bits:5 bits) with 8 bits of alpha
+			BC4_UNORM,			// One color channel (8 bits)
+			BC4_SNORM,			// One color channel (8 bits)
+			BC5_UNORM,			// Two color channels (8 bits:8 bits)
+			BC5_SNORM,			// Two color channels (8 bits:8 bits)
+			BC6H_UF16,			// Three color channels (16 bits:16 bits:16 bits) in "half" floating point
+			BC6H_SF16,			// Three color channels (16 bits:16 bits:16 bits) in "half" floating point
+			BC7_UNORM,			// Three color channels (4 to 7 bits per channel) with 0 to 8 bits of alpha
+			BC7_UNORM_SRGB,		// Three color channels (4 to 7 bits per channel) with 0 to 8 bits of alpha
+
+			NV12,				// video YUV420; SRV Luminance aspect: R8_UNORM, SRV Chrominance aspect: R8G8_UNORM
+		};
 	protected:
 		TextureType textureType_ = TextureType::Undefined;
+		TextureFormat textureFormat_ = TextureFormat::UNKNOWN;
 		uint32_t width_ = 0;
 		uint32_t height_ = 0;
 		uint32_t depth_ = 0;
@@ -740,6 +837,9 @@ namespace vz
 		void MoveFromData(std::vector<uint8_t>&& data);
 
 		bool LoadImageFile(const std::string& fileName);
+		bool LoadMemory(const std::string& name, 
+			const std::vector<uint8_t>& data, const TextureFormat textureFormat,
+			const uint32_t w, const uint32_t h, const uint32_t d);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -804,11 +904,12 @@ namespace vz
 		enum class RenderableFlags : uint32_t
 		{
 			EMPTY = 0,
-			RENDERABLE = 1 << 0,
+			MESH_RENDERABLE = 1 << 0,
 			REQUEST_PLANAR_REFLECTION = 1 << 4,
 			LIGHTMAP_RENDER_REQUEST = 1 << 5,
 			LIGHTMAP_DISABLE_BLOCK_COMPRESSION = 1 << 6,
 			FOREGROUND = 1 << 7,
+			VOLUME_RENDERABLE = 1 << 8,
 		};
 		uint32_t flags_ = SCU32(RenderableFlags::EMPTY);
 
@@ -831,7 +932,8 @@ namespace vz
 
 		void SetDirty() { isDirty_ = true; }
 		bool IsDirty() const { return isDirty_; }
-		bool IsRenderable() const { return flags_ & SCU32(RenderableFlags::RENDERABLE); }
+		bool IsMeshRenderable() const { return flags_ & SCU32(RenderableFlags::MESH_RENDERABLE); }
+		bool IsVolumeRenderable() const { return flags_ & SCU32(RenderableFlags::VOLUME_RENDERABLE); }
 
 		void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
 		bool IsForeground() const { return flags_ & SCU32(RenderableFlags::FOREGROUND); }
@@ -1095,6 +1197,7 @@ namespace vz::compfactory
 	CORE_EXPORT inline bool ContainRenderableComponent(const Entity entity);
 	CORE_EXPORT inline bool ContainLightComponent(const Entity entity);
 	CORE_EXPORT inline bool ContainCameraComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainTextureComponent(const Entity entity);
 
 	CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
