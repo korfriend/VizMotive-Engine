@@ -1,5 +1,6 @@
 #include "Backlog.h"
 #include "Helpers.h"
+#include "Platform.h"
 
 #include "../includes/spdlog/spdlog.h"
 #include "../includes/spdlog/sinks/basic_file_sink.h"
@@ -8,6 +9,8 @@
 #include <filesystem>
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
+#include <shlobj.h>
+#include <codecvt>
 #ifdef _DEBUG
 #pragma comment(lib,"spdlogd.lib")
 #else
@@ -33,7 +36,17 @@ namespace vz::backlog
 	void intialize()
 	{
 		std::string log_path = helper::GetTempDirectoryPath();
-		std::string log_file_path = log_path + "vzEngine.txt";
+
+#ifdef PLATFORM_WINDOWS_DESKTOP
+		char path[2048];
+		HRESULT result = SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, path);
+		if (result == S_OK)
+		{
+			log_path = std::string(path) + "/";
+		}
+#endif
+
+		std::string log_file_path = log_path + "vzEngine.log";
 
 		apiLogger->set_level(spdlog::level::trace);
 
@@ -60,7 +73,7 @@ namespace vz::backlog
 		{
 			intialize();
 		}
-		switch (logLevel)
+		switch (level)
 		{
 		case LogLevel::Trace:
 			apiLogger->trace(input); break;

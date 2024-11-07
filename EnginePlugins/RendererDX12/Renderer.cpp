@@ -47,7 +47,7 @@ namespace vz::renderer
 	const float giBoost = 1.f;
 	const float renderingSpeed = 1.f;
 	const bool isOcclusionCullingEnabled = false;
-	const bool isWetmapProcessingEnabled = true;
+	const bool isWetmapRefreshEnabled = false;
 	const bool isFreezeCullingCameraEnabled = false;
 	const bool isSceneUpdateEnabled = true;
 	const bool isTemporalAAEnabled = false;
@@ -1326,6 +1326,10 @@ namespace vz
 
 	void GRenderPath3DDetails::ProcessDeferredTextureRequests(CommandList cmd)
 	{
+		if (rcommon::deferredMIPGens.size() + rcommon::deferredBCQueue.size() == 0)
+		{
+			return;
+		}
 		// TODO: paint texture...
 		rcommon::deferredMIPGenLock.lock();
 		for (auto& it : rcommon::deferredMIPGens)
@@ -3775,6 +3779,8 @@ namespace vz
 		profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
 
 		device->SubmitCommandLists();
+		//device->WaitForGPU();
+		//jobsystem::WaitAllJobs();
 
 		return true;
 	}
@@ -3909,6 +3915,9 @@ namespace vz
 			device->RenderPassEnd(cmd);
 
 			});
+
+		jobsystem::Wait(ctx);	// need to wait until the preparing and prepass tasks are finished
+		//------------------
 
 		// Main camera compute effects:
 		//	(async compute, parallel to "shadow maps" and "update textures",
@@ -4417,6 +4426,8 @@ namespace vz
 			device->EventEnd(cmd);
 			});
 
+		jobsystem::Wait(ctx);
+
 		// Transparents, post processes, etc:
 		cmd = device->BeginCommandList();
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
@@ -4446,7 +4457,7 @@ namespace vz
 			}
 		});
 
-		if (isWetmapProcessingEnabled)
+		if (isWetmapRefreshEnabled)
 		{
 			CommandList wetmap_cmd = device->BeginCommandList(QUEUE_COMPUTE);
 			device->WaitCommandList(wetmap_cmd, cmd); // wait for transparents, it will be scheduled with late frame (GUI, etc)

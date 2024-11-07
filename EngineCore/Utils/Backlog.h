@@ -24,7 +24,7 @@ namespace vz::backlog
 
 	extern "C" UTIL_EXPORT void clear();
 
-	extern "C" UTIL_EXPORT void post(const std::string& input, LogLevel level = LogLevel::Trace);
+	extern "C" UTIL_EXPORT void post(const std::string& input, LogLevel level = LogLevel::Info);
 
 	extern "C" UTIL_EXPORT void setLogLevel(LogLevel newLevel);
 
