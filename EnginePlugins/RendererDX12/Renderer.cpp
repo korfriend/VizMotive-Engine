@@ -47,6 +47,7 @@ namespace vz::renderer
 	const float giBoost = 1.f;
 	const float renderingSpeed = 1.f;
 	const bool isOcclusionCullingEnabled = false;
+	const bool isWetmapProcessingEnabled = true;
 	const bool isFreezeCullingCameraEnabled = false;
 	const bool isSceneUpdateEnabled = true;
 	const bool isTemporalAAEnabled = false;
@@ -930,15 +931,6 @@ namespace vz::renderer
 	{
 		graphics::GPUBuffer luminance;
 	};
-
-
-	struct WetmapPush
-	{
-		int wetmap;
-		uint padding;
-		uint geometryOffset;
-		float rain_amount;
-	};
 	// Direct reference to a renderable instance:
 	struct RenderBatch
 	{
@@ -1065,8 +1057,9 @@ namespace vz
 	static thread_local std::vector<GPUBarrier> barrierStack;
 	static constexpr float foregroundDepthRange = 0.01f;
 
-	using GBuffers = GGeometryComponent::GBuffers;
+	using GPrimBuffers = GGeometryComponent::GPrimBuffers;
 	using Primitive = GeometryComponent::Primitive;
+	using GPrimEffectBuffers = GRenderableComponent::GPrimEffectBuffers;
 
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
@@ -1113,6 +1106,8 @@ namespace vz
 		graphics::Texture depthBuffer_Copy; // used for shader resource, single sample
 		graphics::Texture depthBuffer_Copy1; // used for disocclusion check
 
+		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
+
 		ViewResources viewResources;	// dynamic allocation
 
 		// ---------- GRenderPath3D's internal impl.: -----------------
@@ -1134,6 +1129,7 @@ namespace vz
 		void UpdateRenderDataAsync(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
 
 		void RefreshLightmaps(const Scene& scene, CommandList cmd);
+		void RefreshWetmaps(const View& vis, CommandList cmd);
 		
 		void TextureStreamingReadbackCopy(const Scene& scene, graphics::CommandList cmd);
 
@@ -1346,6 +1342,7 @@ namespace vz
 		rcommon::deferredBCQueue.clear();
 		rcommon::deferredMIPGenLock.unlock();
 	}
+
 	void GRenderPath3DDetails::Postprocess_Blur_Gaussian(
 		const Texture& input,
 		const Texture& temp,
@@ -1943,6 +1940,10 @@ namespace vz
 		//  * shadercam.reflection_plane : Scene's property
 
 		shadercam.options = SHADERCAMERA_OPTION_NONE;//camera.shadercamera_options;
+		//if (camera.IsOrtho())
+		//{
+		//	shadercam.options |= SHADERCAMERA_OPTION_ORTHO;
+		//}
 
 		shadercam.view_projection = camera.GetViewProjection();
 		shadercam.view = camera.GetView();
@@ -1951,6 +1952,7 @@ namespace vz
 		shadercam.inverse_view = camera.GetInvView();
 		shadercam.inverse_projection = camera.GetInvProjection();
 		shadercam.inverse_view_projection = camera.GetInvViewProjection();
+		XMMATRIX invVP = XMLoadFloat4x4(&shadercam.inverse_view_projection);
 		shadercam.forward = camera.GetWorldAt();
 		shadercam.up = camera.GetWorldUp();
 		camera.GetNearFar(&shadercam.z_near, &shadercam.z_far);
@@ -1967,6 +1969,15 @@ namespace vz
 		{
 			shadercam.frustum.planes[i] = cam_frustum.planes[i];
 		}
+		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[0], XMVector3TransformCoord(XMVectorSet(-1, 1, 1, 1), invVP));
+		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[1], XMVector3TransformCoord(XMVectorSet(1, 1, 1, 1), invVP));
+		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[2], XMVector3TransformCoord(XMVectorSet(-1, -1, 1, 1), invVP));
+		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[3], XMVector3TransformCoord(XMVectorSet(1, -1, 1, 1), invVP));
+
+		XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[0], XMVector3TransformCoord(XMVectorSet(-1, 1, 0, 1), invVP));
+		XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[1], XMVector3TransformCoord(XMVectorSet(1, 1, 0, 1), invVP));
+		XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[2], XMVector3TransformCoord(XMVectorSet(-1, -1, 0, 1), invVP));
+		XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[3], XMVector3TransformCoord(XMVectorSet(1, -1, 0, 1), invVP));
 
 		shadercam.temporalaa_jitter = camera.jitter;
 		shadercam.temporalaa_jitter_prev = cameraPrevious.jitter;
@@ -2133,7 +2144,7 @@ namespace vz
 		BindCommonResources(cmd);
 
 		// Wetmaps will be initialized:
-		for (uint32_t renderableIndex = 0; renderableIndex < view.scene->GetRenderableCount(); ++renderableIndex)
+		for (uint32_t renderableIndex = 0, n = (uint32_t)view.scene->GetRenderableCount(); renderableIndex < n; ++renderableIndex)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderableIndex];
 			if (!renderable.IsMeshRenderable())
@@ -2155,15 +2166,15 @@ namespace vz
 				{
 					continue;
 				}
-				const GRenderableComponent::GBufferBasedRes& buffer_based_res = renderable.bufferEffects[part_index];
+				const GPrimEffectBuffers& prim_effect_buffers = renderable.bufferEffects[part_index];
 
-				if (buffer_based_res.wetmapCleared || !buffer_based_res.wetmapBuffer.IsValid())
+				if (prim_effect_buffers.wetmapCleared || !prim_effect_buffers.wetmapBuffer.IsValid())
 				{
 					continue;
 				}
-				device->ClearUAV(&buffer_based_res.wetmapBuffer, 0, cmd);
-				barrierStack.push_back(GPUBarrier::Buffer(&buffer_based_res.wetmapBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
-				buffer_based_res.wetmapCleared = true;
+				device->ClearUAV(&prim_effect_buffers.wetmapBuffer, 0, cmd);
+				barrierStack.push_back(GPUBarrier::Buffer(&prim_effect_buffers.wetmapBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
+				prim_effect_buffers.wetmapCleared = true;
 			}
 		}
 		BarrierStackFlush(cmd);
@@ -2496,6 +2507,57 @@ namespace vz
 			profiler::EndRange(range);
 		}
 		/**/
+	}
+
+	void GRenderPath3DDetails::RefreshWetmaps(const View& view, CommandList cmd)
+	{
+		return; // this will be useful for wetmap simulation for rainny weather...
+
+		device->EventBegin("RefreshWetmaps", cmd);
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
+
+		BindCommonResources(cmd);
+		device->BindComputeShader(&rcommon::shaders[CSTYPE_WETMAP_UPDATE], cmd);
+
+		WetmapPush push = {};
+		push.wet_amount = 1.f;
+
+		// Note: every object wetmap is updated, not just visible
+		for (uint32_t renderableIndex = 0, n = (uint32_t)view.scene->GetRenderableCount(); renderableIndex < n; ++renderableIndex)
+		{
+			push.instanceIndex = renderableIndex;
+			GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderableIndex];
+
+			if (!renderable.IsMeshRenderable())
+			{
+				continue;
+			}
+
+			Entity geometry_entity = renderable.GetGeometry();
+			GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geometry_entity);
+
+			
+			std::vector<Entity> materials = renderable.GetMaterials();
+			for (size_t part_index = 0, n = renderable.bufferEffects.size(); part_index < n; ++part_index)
+			{
+				GPrimEffectBuffers& prim_effect_buffers = renderable.bufferEffects[part_index];
+				GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(materials[part_index]);
+				if (!material.IsWetmapEnabled() && prim_effect_buffers.wetmapBuffer.IsValid())
+					continue;
+				uint32_t vertex_count = uint32_t(prim_effect_buffers.wetmapBuffer.desc.size 
+					/ GetFormatStride(prim_effect_buffers.wetmapBuffer.desc.format));
+				push.wetmap = device->GetDescriptorIndex(&prim_effect_buffers.wetmapBuffer, SubresourceType::UAV);
+				if (push.wetmap < 0)
+					continue;
+
+				push.subsetIndex = part_index;;
+
+				device->PushConstants(&push, sizeof(push), cmd);
+				device->Dispatch((vertex_count + 63u) / 64u, 1, 1, cmd);
+			}
+		}
+
+		device->EventEnd(cmd);
 	}
 
 	void GRenderPath3DDetails::TextureStreamingReadbackCopy(const Scene& scene, graphics::CommandList cmd)
@@ -3015,7 +3077,7 @@ namespace vz
 				for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 				{
 					const Primitive& part = parts[part_index];
-					GBuffers& part_buffer = *(GBuffers*)geometry.GetGBuffer(part_index);
+					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGBuffer(part_index);
 
 					uint32_t material_index = instancedBatch.materialIndices[part_index];
 					const GMaterialComponent& material = *scene_Gdetails->materialComponents[material_index];
@@ -3723,6 +3785,7 @@ namespace vz
 
 		jobsystem::context ctx;
 
+		// Preparing the frame:
 		CommandList cmd = device->BeginCommandList();
 		device->WaitQueue(cmd, QUEUE_COMPUTE); // sync to prev frame compute (disallow prev frame overlapping a compute task into updating global scene resources for this frame)
 		ProcessDeferredTextureRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
@@ -3759,6 +3822,11 @@ namespace vz
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderDataAsync(viewMain, frameCB, cmd);
 
+			// UpdateRaytracingAccelerationStructures
+			// ComputeSkyAtmosphere
+			// SurfelGI
+			// DDGI
+
 			});
 
 		static const uint32_t drawscene_regular_flags = 
@@ -3766,19 +3834,14 @@ namespace vz
 			renderer::DRAWSCENE_TESSELLATION |
 			renderer::DRAWSCENE_OCCLUSIONCULLING;
 
-		// Camera depth prepass + occlusion culling:
+		// Main camera depth prepass:
 		cmd = device->BeginCommandList();
 		CommandList cmd_maincamera_prepass = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 
-			if (renderer::isOcclusionCullingEnabled)
-			{
-				OcclusionCulling_Reset(viewMain, cmd); // must be outside renderpass!
-			}
-
-			// TODO
+			// Mesh Shader
 			//if (reprojectedDepth.IsValid())
 			//{
 			//	renderer::ComputeReprojectedDepthPyramid(
@@ -3843,17 +3906,7 @@ namespace vz
 			profiler::EndRange(range);
 			device->EventEnd(cmd);
 
-			if (isOcclusionCullingEnabled)
-			{
-				OcclusionCulling_Render(*camera, viewMain, cmd);
-			}
-
 			device->RenderPassEnd(cmd);
-
-			if (isOcclusionCullingEnabled)
-			{
-				OcclusionCulling_Resolve(viewMain, cmd); // must be outside renderpass!
-			}
 
 			});
 
@@ -3922,7 +3975,7 @@ namespace vz
 			//		cmd
 			//	);
 			//}
-			//
+			
 			//RenderAO(cmd);
 
 			//if (renderer::GetVariableRateShadingClassification() && device->CheckCapability(GraphicsDeviceCapability::VARIABLE_RATE_SHADING_TIER2))
@@ -3933,9 +3986,9 @@ namespace vz
 			//		cmd
 			//	);
 			//}
-			//
+			
 			//RenderSSR(cmd);
-			//
+			
 			//RenderSSGI(cmd);
 
 			//if (renderer::GetScreenSpaceShadowsEnabled())
@@ -3964,6 +4017,48 @@ namespace vz
 			//}
 
 			});
+
+		// Occlusion culling:
+		CommandList cmd_occlusionculling;
+		if (renderer::isOcclusionCullingEnabled)
+		{
+			cmd = device->BeginCommandList();
+			cmd_occlusionculling = cmd;
+			jobsystem::Execute(ctx, [this, &cmd](jobsystem::JobArgs args) {
+
+				device->EventBegin("Occlusion Culling", cmd);
+				ScopedGPUProfiling("Occlusion Culling", &cmd);
+
+				BindCameraCB(
+					*camera,
+					cameraPrevious,
+					cameraReflection,
+					cmd
+				);
+
+				OcclusionCulling_Reset(viewMain, cmd); // must be outside renderpass!
+								
+				RenderPassImage rp[] = {
+					RenderPassImage::DepthStencil(&depthBufferMain),
+				};
+				device->RenderPassBegin(rp, arraysize(rp), cmd);
+				
+				device->BindScissorRects(1, &scissor, cmd);
+				
+				Viewport vp;
+				vp.width = (float)depthBufferMain.GetDesc().width;
+				vp.height = (float)depthBufferMain.GetDesc().height;
+				device->BindViewports(1, &vp, cmd);
+				
+				OcclusionCulling_Render(*camera, viewMain, cmd);
+
+				device->RenderPassEnd(cmd);
+
+				OcclusionCulling_Resolve(viewMain, cmd); // must be outside renderpass!
+
+				device->EventEnd(cmd);
+				});
+		}
 		
 		// Shadow maps:
 		if (isShadowsEnabled)
@@ -4349,13 +4444,23 @@ namespace vz
 				};
 				device->Barrier(barriers, arraysize(barriers), cmd);
 			}
-			});
+		});
+
+		if (isWetmapProcessingEnabled)
+		{
+			CommandList wetmap_cmd = device->BeginCommandList(QUEUE_COMPUTE);
+			device->WaitCommandList(wetmap_cmd, cmd); // wait for transparents, it will be scheduled with late frame (GUI, etc)
+			// Note: GPU processing of this compute task can overlap with beginning of the next frame because no one is waiting for it
+			jobsystem::Execute(ctx, [this, wetmap_cmd](jobsystem::JobArgs args) {
+				RefreshWetmaps(viewMain, wetmap_cmd);
+				});
+		}
 
 		cmd = device->BeginCommandList();
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 			RenderPostprocessChain(cmd);
 			TextureStreamingReadbackCopy(*scene, cmd);
-			});
+		});
 
 		jobsystem::Wait(ctx);
 

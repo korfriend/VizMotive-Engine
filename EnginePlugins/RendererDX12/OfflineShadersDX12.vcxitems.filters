@@ -277,5 +277,8 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blockcompressCS_BC6H.hlsl">
       <Filter>Pipeline Shaders\CS</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\wetmap_updateCS.hlsl">
+      <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

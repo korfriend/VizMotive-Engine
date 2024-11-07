@@ -109,7 +109,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::ParamMap<std::string> arguments;
 	//arguments.SetString("API", "DX11");
 	arguments.SetString("GPU_VALIDATION", "VERBOSE");
-	arguments.SetParam("MAX_THREADS", 1u); // ~0u
+	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
     if (!vzm::InitEngineLib(arguments)) {
         std::cerr << "Failed to initialize engine library." << std::endl;
         return -1;
@@ -135,8 +135,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
 
-    vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
-    root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
+    //vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+    //root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
 
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MakeTestQuadWithUVs();
@@ -148,18 +148,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	geometry_test2->MakeTestTriangle();
 
 	vzm::VzTexture* texture = vzm::NewTexture("my texture");
-    texture->LoadImageFile("../Assets/testimage_2ns.jpg");
+    //texture->LoadImageFile("../Assets/testimage_2ns.jpg");
 
     vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
 	{
-		vzm::ParamMap<std::string> io;
-		io.SetParam("filename", std::string("d:/aaa.dcm"));
-		io.SetParam("volume texture entity", volume->GetVID());
-		vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
+		//vzm::ParamMap<std::string> io;
+		//io.SetParam("filename", std::string("d:/aaa.dcm"));
+		//io.SetParam("volume texture entity", volume->GetVID());
+		//vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
     }
 
-    material_test->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
-    material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
+    //material_test->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
+    //material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
 	actor_test->SetScale({ 2.f, 2.f, 2.f });
@@ -177,29 +177,27 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		material->SetDoubleSided(true);
         material->SetBaseColor(colors[i]);
 	}
-    assert(actor_test2->IsRenderable());
 
 	vzm::VzMaterial* material_test3 = vzm::NewMaterial("my material 3");
 	vzm::VzTexture* tex_otf_test3 = vzm::NewTexture("my material 3's OTF");
     std::vector<uint8_t> otf_array(1024 * 4);
-    tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 2, 1);
+    //tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 2, 1);
 	
     vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
 
-	material_test3->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
-	material_test3->SetLookupTable(tex_otf_test3, vzm::LookupTableSlot::LOOKUP_OTF);
+	//material_test3->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
+	//material_test3->SetLookupTable(tex_otf_test3, vzm::LookupTableSlot::LOOKUP_OTF);
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
     light_test->SetLightIntensity(5.f);
     light_test->SetPosition({ 0.f, 0.f, 100.f });
     light_test->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
-	vzm::AppendSceneCompTo(actor_test, scene);
+	//vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(actor_test2, scene);
-	vzm::AppendSceneCompTo(actor_test3, scene);
-	vzm::AppendSceneCompTo(light_test, scene);
-	vzm::AppendSceneCompTo(root_obj_actor, scene);
-	//vzm::AppendSceneCompTo(cam, scene);
+	//vzm::AppendSceneCompTo(actor_test3, scene);
+	//vzm::AppendSceneCompTo(light_test, scene);
+	//vzm::AppendSceneCompTo(root_obj_actor, scene);
 
     // Main loop
     bool done = false;
@@ -220,11 +218,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		if (done)
 			break;
-		static float x_rot = 1.f / 180.f * 3.14f;
-		p = glm::rotateX(p, x_rot);
-		at = glm::rotateX(at, x_rot);
-		u = glm::rotateX(u, x_rot);
-		cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
+		//static float x_rot = 1.f / 180.f * 3.14f;
+		//p = glm::rotateX(p, x_rot);
+		//at = glm::rotateX(at, x_rot);
+		//u = glm::rotateX(u, x_rot);
+		//cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
 		renderer->Render(scene, cam);
     }
     vzm::DeinitEngineLib();
