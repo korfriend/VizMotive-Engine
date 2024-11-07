@@ -2,6 +2,7 @@
 #include "Common/Backend/GRendererInterface.h"
 #include "Components/GComponents.h"
 #include "Utils/Profiler.h"
+//#include "Utils/Jobsystem.h"
 
 namespace vz
 {
@@ -69,21 +70,25 @@ namespace vz
 
 		if (camera == nullptr || scene == nullptr) return;
 
-		scene->Update(dt);
+		//jobsystem::context ctx;
+		//jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
+			scene->Update(dt);
 
-		// RenderPath3D code //
-		// Camera Updates
-		{
-			HierarchyComponent* hier = compfactory::GetHierarchyComponent(camera->GetEntity());
-			if (hier->GetParentEntity() != INVALID_ENTITY)
+			// RenderPath3D code //
+			// Camera Updates
 			{
-				camera->SetWorldLookAtFromHierarchyTransforms();
+				HierarchyComponent* hier = compfactory::GetHierarchyComponent(camera->GetEntity());
+				if (hier->GetParentEntity() != INVALID_ENTITY)
+				{
+					camera->SetWorldLookAtFromHierarchyTransforms();
+				}
+				if (camera->IsDirty())
+				{
+					camera->UpdateMatrix();
+				}
 			}
-			if (camera->IsDirty())
-			{
-				camera->UpdateMatrix();
-			}
-		}
+		//});
+		//jobsystem::Wait(ctx);
 	}
 	
 	void RenderPath3D::Render(const float dt)

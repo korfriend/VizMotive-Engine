@@ -269,7 +269,10 @@ namespace vz
 		}
 		else
 		{
-			if (isDirty_) UpdateMatrix();
+			if (isDirty_)
+			{
+				UpdateMatrix();
+			}
 			SetWorldMatrix(local_);
 		}
 	}
@@ -538,6 +541,11 @@ namespace vz
 		XMVECTOR _Eye = XMLoadFloat3(&eye_);
 		XMVECTOR _At = XMLoadFloat3(&at_);
 		XMVECTOR _Up = XMLoadFloat3(&up_);
+
+		XMVECTOR _Dir = _At - _Eye;
+		XMVECTOR _Right = XMVector3Cross(_Dir, _Up);
+		_Up = XMVector3Cross(_Right, _Dir);
+		_Up = XMVector3Normalize(_Up);
 
 		XMMATRIX _V = VZMatrixLookAt(_Eye, _At, _Up);
 		XMStoreFloat4x4(&view_, _V);

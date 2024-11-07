@@ -38,7 +38,7 @@ namespace vz
 					desc.format = Format::R10G10B10A2_UNORM;
 				}
 			}
-
+			desc.vsync = true;
 			desc.width = width_;
 			desc.height = height_;
 			desc.allow_hdr = allowHDR;

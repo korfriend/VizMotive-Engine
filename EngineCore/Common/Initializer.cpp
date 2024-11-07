@@ -42,8 +42,8 @@ namespace vz::initializer
 		initializationStarted.store(true);
 
 		std::string ss;
-		ss += "\n[initializer] Initializing Engine, please wait...\n";
-		ss += "Version: ";
+		ss += "[initializer] Initializing Engine, please wait...\n";
+		ss += "\tVersion: ";
 		ss += vz::version::GetVersionString();
 		backlog::post(ss);
 
@@ -60,17 +60,14 @@ namespace vz::initializer
 		//	backlog::post("\nNo embedded shaders found, shaders will be compiled at runtime if needed.\n\tShader source path: " + renderer::GetShaderSourcePath() + "\n\tShader binary path: " + renderer::GetShaderPath());
 		//}
 
-		backlog::post("");
 		jobsystem::Initialize(numMaxThreads);
-
-		backlog::post("");
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { graphicsPackage.pluginInitRenderer(); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });
 		
 		// take a new thread and wait the above jobs (asynchronously)
 		std::thread([] {
 			jobsystem::Wait(ctx);
-			backlog::post("\n[initializer] Engine Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)");
+			backlog::post("[initializer] Engine Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)");
 			}).detach();
 	}
 
