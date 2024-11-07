@@ -226,9 +226,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h">
       <Filter>Utils\Src</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
-      <Filter>Utils\Src</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\meshoptimizer.h">
       <Filter>ThirdParty\meshoptimizer</Filter>
     </ClInclude>
@@ -237,6 +234,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h">
       <Filter>Components\Private</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
+      <Filter>Utils\Src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -195,6 +195,47 @@ namespace vz::compfactory
 		RETURN_GET_COMP(CameraComponent, cameraManager, entity);
 	}
 
+	NameComponent* GetNameComponentByVUID(const VUID vuid)
+	{
+		return GetNameComponent(GetEntityByVUID(vuid));
+	}
+	TransformComponent* GetTransformComponentByVUID(const VUID vuid)
+	{
+		return GetTransformComponent(GetEntityByVUID(vuid));
+	}
+	HierarchyComponent* GetHierarchyComponentByVUID(const VUID vuid)
+	{
+		return GetHierarchyComponent(GetEntityByVUID(vuid));
+	}
+	MaterialComponent* GetMaterialComponentByVUID(const VUID vuid)
+	{
+		return GetMaterialComponent(GetEntityByVUID(vuid));
+	}
+	GeometryComponent* GetGeometryComponentByVUID(const VUID vuid)
+	{
+		return GetGeometryComponent(GetEntityByVUID(vuid));
+	}
+	TextureComponent* GetTextureComponentByVUID(const VUID vuid)
+	{
+		return GetTextureComponent(GetEntityByVUID(vuid));
+	}
+	VolumeComponent* GetVolumeComponentByVUID(const VUID vuid)
+	{
+		return GetVolumeComponent(GetEntityByVUID(vuid));
+	}
+	RenderableComponent* GetRenderableComponentByVUID(const VUID vuid)
+	{
+		return GetRenderableComponent(GetEntityByVUID(vuid));
+	}
+	LightComponent* GetLightComponentByVUID(const VUID vuid)
+	{
+		return GetLightComponent(GetEntityByVUID(vuid));
+	}
+	CameraComponent* GetCameraComponentByVUID(const VUID vuid)
+	{
+		return GetCameraComponent(GetEntityByVUID(vuid));
+	}
+
 #define GET_COMPONENTS(T, TM) comps.clear(); size_t n = entities.size(); comps.reserve(n); \
 	for (size_t i = 0; i < n; ++i) { T* comp = TM.GetComponent(entities[i]); assert(comp); comps.push_back(comp); } \
 	return comps.size();

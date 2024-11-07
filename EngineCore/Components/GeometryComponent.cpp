@@ -667,7 +667,7 @@ namespace vz
 
 namespace vz
 {
-	using GBuffers = GGeometryComponent::GBuffers;
+	using GBuffers = GGeometryComponent::GPrimBuffers;
 
 	void GGeometryComponent::DeleteRenderData()
 	{

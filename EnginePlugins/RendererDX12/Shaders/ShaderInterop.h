@@ -785,6 +785,13 @@ struct alignas(16) ShaderInstanceResLookup
 	}
 };
 
+struct WetmapPush
+{
+	int wetmap;
+	uint instanceIndex;
+	uint subsetIndex;
+	float wet_amount;
+};
 struct MeshPushConstants
 {
 	uint geometryIndex;
@@ -1271,6 +1278,31 @@ enum SHADERCAMERA_OPTIONS
 	SHADERCAMERA_OPTION_USE_SHADOW_MASK = 1 << 0,
 	SHADERCAMERA_OPTION_ORTHO = 1 << 1,
 };
+struct alignas(16) ShaderFrustumCorners
+{
+	// topleft, topright, bottomleft, bottomright
+	float4 cornersNEAR[4];
+	float4 cornersFAR[4];
+
+#ifndef __cplusplus
+	inline float3 screen_to_nearplane(float2 uv)
+	{
+		float3 posTOP = lerp(cornersNEAR[0], cornersNEAR[1], uv.x).xyz;
+		float3 posBOTTOM = lerp(cornersNEAR[2], cornersNEAR[3], uv.x).xyz;
+		return lerp(posTOP, posBOTTOM, uv.y).xyz;
+	}
+	inline float3 screen_to_farplane(float2 uv)
+	{
+		float3 posTOP = lerp(cornersFAR[0], cornersFAR[1], uv.x).xyz;
+		float3 posBOTTOM = lerp(cornersFAR[2], cornersFAR[3], uv.x).xyz;
+		return lerp(posTOP, posBOTTOM, uv.y).xyz;
+	}
+	inline float3 screen_to_world(float2 uv, float lineardepthNormalized)
+	{
+		return lerp(screen_to_nearplane(uv), screen_to_farplane(uv), lineardepthNormalized).xyz;
+	}
+#endif // __cplusplus
+};
 struct alignas(16) ShaderCamera
 {
 	float4x4	view_projection;
@@ -1299,6 +1331,7 @@ struct alignas(16) ShaderCamera
 	float4x4	inverse_view_projection;
 
 	ShaderFrustum frustum;
+	ShaderFrustumCorners frustum_corners;
 
 	float2		temporalaa_jitter;
 	float2		temporalaa_jitter_prev;

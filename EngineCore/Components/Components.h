@@ -1188,6 +1188,17 @@ namespace vz::compfactory
 	CORE_EXPORT inline LightComponent* GetLightComponent(const Entity entity);
 	CORE_EXPORT inline CameraComponent* GetCameraComponent(const Entity entity);
 
+	CORE_EXPORT inline NameComponent* GetNameComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline TransformComponent* GetTransformComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline HierarchyComponent* GetHierarchyComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline MaterialComponent* GetMaterialComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline GeometryComponent* GetGeometryComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline TextureComponent* GetTextureComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline VolumeComponent* GetVolumeComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline RenderableComponent* GetRenderableComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline LightComponent* GetLightComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline CameraComponent* GetCameraComponentByVUID(const VUID vuid);
+
 	CORE_EXPORT inline size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
 	CORE_EXPORT inline size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
 	CORE_EXPORT inline size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps);

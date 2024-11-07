@@ -50,3 +50,5 @@ dxc -T cs_6_0 ./CS/blockcompressCS_BC4.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC5.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC6H.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC6H_cubemap.hlsl -spirv
+
+dxc -T cs_6_0 ./CS/wetmap_updateCS.hlsl -spirv

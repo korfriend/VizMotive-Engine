@@ -10,7 +10,7 @@
 
 // QoL macros, allows writing just ScopedXxxProfiling without needing to declare a variable manually
 #define ScopedCPUProfiling(name) vz::profiler::ScopedRangeCPU VZ_PROFILER_CONCAT(_vz_profiler_cpu_range,__LINE__)(name)
-#define ScopedGPUProfiling(name, cmd) wi::profiler::ScopedRangeGPU VZ_PROFILER_CONCAT(_vz_profiler_gpu_range,__LINE__)(name, cmd)
+#define ScopedGPUProfiling(name, cmd) vz::profiler::ScopedRangeGPU VZ_PROFILER_CONCAT(_vz_profiler_gpu_range,__LINE__)(name, cmd)
 
 // same as ScopedXxxProfiling, just will automatically use the function name as name, should only be used at the beginning of a function
 #define ScopedCPUProfilingF ScopedCPUProfiling(__FUNCTION__)

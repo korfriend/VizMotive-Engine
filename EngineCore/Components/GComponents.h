@@ -62,7 +62,7 @@ namespace vz
 	{
 		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
 
-		struct GBuffers
+		struct GPrimBuffers
 		{
 			uint32_t slot = 0;
 
@@ -115,7 +115,7 @@ namespace vz
 			return graphics::GetIndexBufferFormat((uint32_t)parts_[slot].GetNumIndices());
 		}
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
-		GBuffers* GetGBuffer(const size_t slot) { return (GBuffers*)parts_[slot].bufferHandle_.get(); }
+		GPrimBuffers* GetGBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
 		void UpdateRenderData() override;
 		void DeleteRenderData() override;
 		void UpdateStreamoutRenderData();
@@ -341,7 +341,7 @@ namespace vz
 		GRenderableComponent(const Entity entity, const VUID vuid = 0) : RenderableComponent(entity, vuid) {}
 
 		// ----- buffer-based resources -----
-		struct GBufferBasedRes
+		struct GPrimEffectBuffers
 		{
 			graphics::GPUBuffer wetmapBuffer;
 			graphics::GPUBuffer AOBuffer;
@@ -361,7 +361,7 @@ namespace vz
 				vbAO = {};
 			}
 		};
-		std::vector<GBufferBasedRes> bufferEffects;	// the same number of GBuffers
+		std::vector<GPrimEffectBuffers> bufferEffects;	// the same number of GBuffers
 		
 		// --- these will only be valid for a single frame: (supposed to be updated dynamically) ---
 		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
