@@ -3779,8 +3779,6 @@ namespace vz
 		profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
 
 		device->SubmitCommandLists();
-		//device->WaitForGPU();
-		//jobsystem::WaitAllJobs();
 
 		return true;
 	}
