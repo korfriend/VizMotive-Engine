@@ -214,9 +214,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h">
       <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
-      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h">
       <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
     </ClInclude>
@@ -237,6 +234,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
       <Filter>Utils\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
+      <Filter>Utils\Header Only</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

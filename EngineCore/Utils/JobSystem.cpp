@@ -175,7 +175,22 @@ namespace vz::jobsystem
 		{
 			if (!alreadyShutDown)
 			{
-				ShutDown();
+				//ShutDown();
+				for (auto& x : resources)
+				{
+					x.jobQueuePerThread.reset();
+					x.threads.clear();
+					x.numThreads = 0;
+				}
+			}
+			else
+			{
+				for (auto& x : resources)
+				{
+					x.jobQueuePerThread.reset();
+					x.threads.clear();
+					x.numThreads = 0;
+				}
 			}
 		}
 	} static internal_state;

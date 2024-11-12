@@ -13,7 +13,8 @@ namespace vz
 
 	bool Initialize(ValidationMode validationMode, GPUPreference preference)
 	{
-		assert(vz::GetComponentVersion() == vz::COMPONENT_INTERFACE_VERSION);
+		std::string version = vz::GetComponentVersion();
+		assert(version == vz::COMPONENT_INTERFACE_VERSION);
 
 		//renderer::SetShaderPath(renderer::GetShaderPath() + "hlsl6/");
 		graphicsDevice = std::make_unique<GraphicsDevice_DX12>(validationMode, preference);

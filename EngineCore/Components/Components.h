@@ -80,6 +80,8 @@ namespace vz
 		// Non-serialized attributes:
 		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
 		std::unordered_map<Entity, size_t> lookupLights_;
+		std::vector<Entity> materials_;
+		std::vector<Entity> geometries_;
 
 		geometrics::AABB aabb_;
 
@@ -165,8 +167,14 @@ namespace vz
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
 
 		// requires scanning process
-		inline std::vector<Entity> ScanGeometryEntities() const noexcept;
-		inline std::vector<Entity> ScanMaterialEntities() const noexcept;
+		inline size_t ScanGeometryEntities() noexcept;
+		inline size_t ScanMaterialEntities() noexcept;
+		inline void GetGeometryEntities(Entity* entitiesData, size_t numEntities) const noexcept {
+			memcpy(entitiesData, geometries_.data(), sizeof(Entity) * numEntities);
+		}
+		inline void GetMaterialEntities(Entity* entitiesData, size_t numEntities) const noexcept {
+			memcpy(entitiesData, materials_.data(), sizeof(Entity) * numEntities);
+		}
 
 		inline const geometrics::AABB& GetAABB() const { return aabb_; }
 
@@ -232,13 +240,13 @@ namespace vz
 
 	struct CORE_EXPORT NameComponent : ComponentBase
 	{
+	protected:
+		std::string name_;
+	public:
 		NameComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::NAME, entity, vuid) {}
 
-		std::string name;
-
-		inline void operator=(const std::string& str) { name = str; }
-		inline void operator=(std::string&& str) { name = std::move(str); }
-		inline bool operator==(const std::string& str) const { return name.compare(str) == 0; }
+		inline void SetName(const std::string& name);
+		inline std::string GetName() const { return name_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -957,6 +965,8 @@ namespace vz
 		Entity GetGeometry() const;
 		Entity GetMaterial(const size_t slot) const;
 		std::vector<Entity> GetMaterials() const;
+		size_t GetNumParts() const;
+		size_t GetMaterials(Entity* entities) const;
 		void Update();
 		geometrics::AABB GetAABB() const { return aabb_; }
 		void Serialize(vz::Archive& archive, const uint64_t version) override;

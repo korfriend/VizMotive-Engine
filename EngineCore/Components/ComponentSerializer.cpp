@@ -14,13 +14,15 @@ namespace vz
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 
+			std::string name;
 			archive >> name;
+			SetName(name);
 		}
 		else
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 			
-			archive << name;
+			archive << name_;
 		}
 	}
 

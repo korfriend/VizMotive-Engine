@@ -83,8 +83,7 @@ namespace vz::compfactory
 	{
 		ENTITY_UPDATE(entity_update);
 		NameComponent* comp = &nameManager.Create(entity_update);
-		comp->name = name;
-		lookupName2Entities[name].insert(entity);
+		comp->SetName(name);
 		return comp;
 	}
 	TransformComponent* CreateTransformComponent(const Entity entity)
@@ -372,8 +371,8 @@ namespace vz::compfactory
 				if (entry.first == "NAME")
 				{
 					NameComponent* name_comp = nameManager.GetComponent(entity);
-					assert(lookupName2Entities.count(name_comp->name) > 0);
-					lookupName2Entities[name_comp->name].erase(entity);
+					assert(lookupName2Entities.count(name_comp->GetName()) > 0);
+					lookupName2Entities[name_comp->GetName()].erase(entity);
 				}
 
 				num_destroyed++;

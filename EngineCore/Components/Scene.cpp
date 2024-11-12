@@ -265,9 +265,9 @@ namespace vz
 		}
 	}
 
-	std::vector<Entity> Scene::ScanGeometryEntities() const noexcept
+	size_t Scene::ScanGeometryEntities() noexcept
 	{
-		std::vector<Entity> geometries;
+		geometries_.clear();
 		for (auto& ett : renderables_)
 		{
 			RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
@@ -277,26 +277,26 @@ namespace vz
 				GeometryComponent* geometry = compfactory::GetGeometryComponent(entity);
 				if (geometry)
 				{
-					geometries.push_back(entity);
-				}	
+					geometries_.push_back(entity);
+				}
 			}
 		}
-		return geometries;
+		return geometries_.size();
 	}
 
-	std::vector<Entity> Scene::ScanMaterialEntities() const noexcept
+	size_t Scene::ScanMaterialEntities() noexcept
 	{
-		std::vector<Entity> materials;
+		materials_.clear();
 		for (auto& ett : renderables_)
 		{
 			RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
 			if (renderable)
 			{
 				std::vector<Entity> renderable_materials = renderable->GetMaterials();
-				materials.insert(materials.end(), renderable_materials.begin(), renderable_materials.end());
+				materials_.insert(materials_.end(), renderable_materials.begin(), renderable_materials.end());
 			}
 		}
-		return materials;
+		return materials_.size();
 	}
 
 	bool Scene::HasEntity(const Entity entity) const noexcept

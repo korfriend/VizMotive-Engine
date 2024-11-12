@@ -20,6 +20,10 @@
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+[Dd]ebug_MT/
+[Dd]ebugPublic_MT/
+[Rr]elease_MT/
+[Rr]eleases_MT/
 x64/
 x86/
 bld/
@@ -44,6 +48,10 @@ bin/X64_Release/*.lib
 bin/X64_Debug/*.lib
 bin/X64_Release/*.ini
 bin/X64_Debug/*.ini
+bin/X64_Release_MT/*.lib
+bin/X64_Debug_MT/*.lib
+bin/X64_Release_MT/*.ini
+bin/X64_Debug_MT/*.ini
 
 # Visual Studio 2015 cache/options directory
 .vs/
@@ -288,4 +296,3 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
-/bin/x64_Debug_MT
