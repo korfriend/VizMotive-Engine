@@ -2540,8 +2540,9 @@ namespace vz
 			Entity geometry_entity = renderable.GetGeometry();
 			GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geometry_entity);
 
-			
-			std::vector<Entity> materials = renderable.GetMaterials();
+			std::vector<Entity> materials(renderable.GetNumParts());
+			assert(renderable.GetNumParts() == renderable.bufferEffects.size());
+			renderable.GetMaterials(materials.data());
 			for (size_t part_index = 0, n = renderable.bufferEffects.size(); part_index < n; ++part_index)
 			{
 				GPrimEffectBuffers& prim_effect_buffers = renderable.bufferEffects[part_index];
@@ -3253,16 +3254,17 @@ namespace vz
 				BatchDrawingFlush();
 
 				instancedBatch = {};
-				instancedBatch.geometryIndex = geometry_index;	
-				instancedBatch.renderableIndex = renderable_index; 
+				instancedBatch.geometryIndex = geometry_index;
+				instancedBatch.renderableIndex = renderable_index;
 				instancedBatch.instanceCount = 0;	// rendering camera count..
 				instancedBatch.dataOffset = (uint32_t)(instances.offset + instanceCount * sizeof(ShaderMeshInstancePointer));
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
 				instancedBatch.lod = renderable.lod;
-				std::vector<Entity> materials = renderable.GetMaterials();
+				std::vector<Entity> materials(renderable.GetNumParts());
+				size_t n = renderable.GetMaterials(materials.data());
 				instancedBatch.materialIndices.resize(materials.size());
-				for (size_t i = 0, n = materials.size(); i < n; ++i)
+				for (size_t i = 0; i < n; ++i)
 				{
 					instancedBatch.materialIndices[i] = Scene::GetIndex(scene_Gdetails->materialEntities, materials[i]);
 				}
@@ -3400,50 +3402,49 @@ namespace vz
 		{
 			// Bloom and eye adaption is not part of post process "chain",
 			//	because they will be applied to the screen in tonemap
-			/*
-			if (getEyeAdaptionEnabled())
-			{
-				renderer::ComputeLuminance(
-					luminanceResources,
-					rt_first == nullptr ? *rt_read : *rt_first,
-					cmd,
-					getEyeAdaptionRate(),
-					getEyeAdaptionKey()
-				);
-			}
-			if (getBloomEnabled())
-			{
-				renderer::ComputeBloom(
-					bloomResources,
-					rt_first == nullptr ? *rt_read : *rt_first,
-					cmd,
-					getBloomThreshold(),
-					getExposure(),
-					getEyeAdaptionEnabled() ? &luminanceResources.luminance : nullptr
-				);
-			}
-
-			renderer::Postprocess_Tonemap(
-				rt_first == nullptr ? *rt_read : *rt_first,
-				*rt_write,
-				cmd,
-				getExposure(),
-				getBrightness(),
-				getContrast(),
-				getSaturation(),
-				getDitherEnabled(),
-				getColorGradingEnabled() ? (scene->weather.colorGradingMap.IsValid() ? &scene->weather.colorGradingMap.GetTexture() : nullptr) : nullptr,
-				&rtParticleDistortion,
-				getEyeAdaptionEnabled() ? &luminanceResources.luminance : nullptr,
-				getBloomEnabled() ? &bloomResources.texture_bloom : nullptr,
-				colorspace,
-				getTonemap(),
-				&distortion_overlay
-			);
-
-			rt_first = nullptr;
-			std::swap(rt_read, rt_write);
-			/**/
+			
+			//if (getEyeAdaptionEnabled())
+			//{
+			//	renderer::ComputeLuminance(
+			//		luminanceResources,
+			//		rt_first == nullptr ? *rt_read : *rt_first,
+			//		cmd,
+			//		getEyeAdaptionRate(),
+			//		getEyeAdaptionKey()
+			//	);
+			//}
+			//if (getBloomEnabled())
+			//{
+			//	renderer::ComputeBloom(
+			//		bloomResources,
+			//		rt_first == nullptr ? *rt_read : *rt_first,
+			//		cmd,
+			//		getBloomThreshold(),
+			//		getExposure(),
+			//		getEyeAdaptionEnabled() ? &luminanceResources.luminance : nullptr
+			//	);
+			//}
+			//
+			//renderer::Postprocess_Tonemap(
+			//	rt_first == nullptr ? *rt_read : *rt_first,
+			//	*rt_write,
+			//	cmd,
+			//	getExposure(),
+			//	getBrightness(),
+			//	getContrast(),
+			//	getSaturation(),
+			//	getDitherEnabled(),
+			//	getColorGradingEnabled() ? (scene->weather.colorGradingMap.IsValid() ? &scene->weather.colorGradingMap.GetTexture() : nullptr) : nullptr,
+			//	&rtParticleDistortion,
+			//	getEyeAdaptionEnabled() ? &luminanceResources.luminance : nullptr,
+			//	getBloomEnabled() ? &bloomResources.texture_bloom : nullptr,
+			//	colorspace,
+			//	getTonemap(),
+			//	&distortion_overlay
+			//);
+			//
+			//rt_first = nullptr;
+			//std::swap(rt_read, rt_write);
 		}
 
 		// 3.) LDR post process chain
@@ -4439,9 +4440,9 @@ namespace vz
 			BindCommonResources(cmd);
 
 			//RenderLightShafts(cmd);
-			//
+			
 			//RenderVolumetrics(cmd);
-			//
+			
 			//RenderTransparents(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
@@ -4464,6 +4465,9 @@ namespace vz
 				RefreshWetmaps(viewMain, wetmap_cmd);
 				});
 		}
+
+		// wait here!
+		//RenderDVR(cmd);
 
 		cmd = device->BeginCommandList();
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {

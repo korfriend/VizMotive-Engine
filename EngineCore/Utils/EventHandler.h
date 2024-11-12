@@ -32,4 +32,6 @@ namespace vz::eventhandler
 	{
 		FireEvent(EVENT_SET_VSYNC, enabled ? 1ull : 0ull);
 	}
+
+	void Destroy();
 }

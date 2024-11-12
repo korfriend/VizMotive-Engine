@@ -63,6 +63,29 @@ namespace vz
 
 namespace vz
 {
+	namespace compfactory
+	{
+		extern std::unordered_map<std::string, std::unordered_set<Entity>> lookupName2Entities;
+	}
+
+	void NameComponent::SetName(const std::string& name)
+	{
+		auto it = compfactory::lookupName2Entities.find(name_);
+		if (it != compfactory::lookupName2Entities.end()) 
+		{
+			it->second.erase(entity_);
+			if (it->second.size() == 0)
+			{
+				compfactory::lookupName2Entities.erase(name_);
+			}
+		}
+
+		compfactory::lookupName2Entities[name].insert(entity_);
+		name_ = name;
+	}
+}
+namespace vz
+{
 	void HierarchyComponent::updateChildren() 
 	{
 		childrenCache_.clear(); 
@@ -383,15 +406,37 @@ namespace vz
 
 	Entity RenderableComponent::GetGeometry() const { return compfactory::GetEntityByVUID(vuidGeometry_); }
 	Entity RenderableComponent::GetMaterial(const size_t slot) const { return slot >= vuidMaterials_.size() ? INVALID_ENTITY : compfactory::GetEntityByVUID(vuidMaterials_[slot]); }
+
 	std::vector<Entity> RenderableComponent::GetMaterials() const
 	{
 		size_t n = vuidMaterials_.size();
+		//entities.resize(n);
 		std::vector<Entity> entities(n);
 		for (size_t i = 0; i < n; ++i)
 		{
 			entities[i] = compfactory::GetEntityByVUID(vuidMaterials_[i]);
 		}
 		return entities;
+	}
+
+	size_t RenderableComponent::GetNumParts() const
+	{
+		GeometryComponent* geometry = compfactory::GetGeometryComponentByVUID(vuidGeometry_);
+		if (geometry == nullptr)
+		{
+			return 0;
+		}
+		return geometry->GetNumParts();
+	}
+
+	size_t RenderableComponent::GetMaterials(Entity* entities) const
+	{
+		size_t n = vuidMaterials_.size();
+		for (size_t i = 0; i < n; ++i)
+		{
+			entities[i] = compfactory::GetEntityByVUID(vuidMaterials_[i]);
+		}
+		return n;
 	}
 
 	void RenderableComponent::Update()

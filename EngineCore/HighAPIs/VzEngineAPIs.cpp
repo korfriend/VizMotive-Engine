@@ -9,6 +9,14 @@
 #include "Common/Backend/GBackendDevice.h"
 #include "Common/Backend/GRendererInterface.h"
 
+#include "Common/ResourceManager.h"
+#ifdef PLATFORM_WINDOWS_DESKTOP
+#if defined(_DEBUG) && defined(_MT_LEAK_CHECK)
+//#define _CRTDBG_MAP_ALLOC
+//#include <crtdbg.h>
+#endif
+#endif
+
 namespace vz
 {
 	GraphicsPackage graphicsPackage;
@@ -111,6 +119,11 @@ namespace vzm
 
 	bool InitEngineLib(const vzm::ParamMap<std::string>& arguments)
 	{
+#ifdef PLATFORM_WINDOWS_DESKTOP
+#if defined(_DEBUG) //&& defined(_MT_LEAK_CHECK)
+		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+#endif
 		if (initialized)
 		{
 			backlog::post("Already initialized!", backlog::LogLevel::Warn);
@@ -604,7 +617,7 @@ namespace vzm
 	{
 		CHECK_API_VALIDITY("");
 		NameComponent* name_comp = compfactory::GetNameComponent(vid);
-		return name_comp ? name_comp->name : "";
+		return name_comp ? name_comp->GetName() : "";
 	}
 
 	VzBaseComp* GetComponent(const VID vid)
@@ -685,13 +698,16 @@ namespace vzm
 	{
 		CHECK_API_VALIDITY(false);
 		jobsystem::ShutDown();
-
 		graphicsDevice->WaitForGPU();
 
 		// high-level apis handle engine components via functions defined in vzcomp namespace
 		vzcomp::DestroyAll();	// here, after-shutdown drives a single threaded process
 
 		graphicsPackage.pluginDeinitializer();
+		
+		backlog::Destroy();
+		eventhandler::Destroy();
+
 		return true;
 	}
 }

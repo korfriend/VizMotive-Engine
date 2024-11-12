@@ -76,8 +76,11 @@ namespace vzm
     template <typename ID> struct ParamMap {
     protected:
         std::string __PM_VERSION = "LIBI_2.0";
-        std::unordered_map<ID, std::any> __params;
-    public:
+		std::unordered_map<ID, std::any> __params;
+	public:
+		~ParamMap() {
+			__params.clear();
+		}
 		std::unordered_map<ID, std::any>& GetMap() { return __params; }
         bool FindParam(const ID& param_name) {
             auto it = __params.find(param_name);

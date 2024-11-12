@@ -61,6 +61,11 @@ namespace vz::backlog
 
 		isInitialized = true;
 	}
+	
+	void Destroy()
+	{
+		apiLogger.reset();
+	}
 
 	void clear()
 	{

@@ -14,12 +14,12 @@ namespace vzm
 	std::string VzBaseComp::GetName()
 	{
 		GET_NAME_COMP(comp, "");
-		return comp->name;
+		return comp->GetName();
 	}
 	void VzBaseComp::SetName(const std::string& name)
 	{
 		GET_NAME_COMP(comp, );
-		comp->name = name;
+		comp->SetName(name);
 		UpdateTimeStamp();
 	}
 }

@@ -92,4 +92,9 @@ namespace vz::eventhandler
 			}
 		}
 	}
+
+	void Destroy()
+	{
+		manager.reset();
+	}
 }

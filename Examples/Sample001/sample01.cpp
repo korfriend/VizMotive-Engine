@@ -1,4 +1,7 @@
 // Filament highlevel APIs
+#define _CRTDBG_MAP_ALLOC
+#include <cstdlib>
+#include <crtdbg.h>
 #include "HighAPIs/VzEngineAPIs.h"
 
 #include <iostream>
@@ -106,40 +109,40 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     uint32_t h = rc.bottom - rc.top;
     float dpi = 96.f;
 
-	vzm::ParamMap<std::string> arguments;
-	//arguments.SetString("API", "DX11");
-	arguments.SetString("GPU_VALIDATION", "VERBOSE");
-	//arguments.SetParam("MAX_THREADS", 1u); // ~0u
-	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
+    vzm::ParamMap<std::string> arguments;
+    //arguments.SetString("API", "DX11");
+    arguments.SetString("GPU_VALIDATION", "VERBOSE");
+    //arguments.SetParam("MAX_THREADS", 1u); // ~0u
+    arguments.SetParam("MAX_THREADS", ~0u); // ~0u
     if (!vzm::InitEngineLib(arguments)) {
         std::cerr << "Failed to initialize engine library." << std::endl;
         return -1;
     }
-
+    
     // Here, VID is same to the Entity that refers to the ECS-based components
     //  The different btw. VID and Entity is
     //  VID is an ID for node-based components (kind of abstraction)
     //  Entity is an ID for ECS-based components (internal implementation)
-
+    
 	vzm::VzScene* scene = vzm::NewScene("my scene");
 
     vzm::VzRenderer* renderer = vzm::NewRenderer("my renderer");
     renderer->SetCanvas(w, h, dpi, hwnd);
     renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
     //renderer->SetVisibleLayerMask(0x4, 0x4);
-    //
+    
     vzm::VzCamera* cam = vzm::NewCamera("my camera");
 	glm::fvec3 p(0, 0, 10);
 	glm::fvec3 at(0, 0, -4);
 	glm::fvec3 v(0, 0, -1);
 	glm::fvec3 u(0, 1, 0);
     cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
-
+    
     cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
-
+    
     vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
     root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
-
+    
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MakeTestQuadWithUVs();
 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
@@ -159,7 +162,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		io.SetParam("volume texture entity", volume->GetVID());
 		vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
     }
-
+    
     material_test->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
     material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
@@ -169,23 +172,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::VzActor* actor_test2 = vzm::NewActor("my actor2");
 	actor_test2->SetGeometry(geometry_test2);
-    actor_test2->SetPosition({ 0, -2, 0 });
-    vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
+	actor_test2->SetPosition({ 0, -2, 0 });
+	vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
 	for (size_t i = 0, n = geometry_test2->GetNumParts(); i < n; ++i)
 	{
 		vzm::VzMaterial* material = vzm::NewMaterial("my test2's material " + i);
-        actor_test2->SetMaterial(material, i);
+		actor_test2->SetMaterial(material, i);
 		material->SetShaderType(vzm::ShaderType::PBR);
 		material->SetDoubleSided(true);
-        material->SetBaseColor(colors[i]);
+		material->SetBaseColor(colors[i]);
 	}
 
 	vzm::VzMaterial* material_test3 = vzm::NewMaterial("my material 3");
 	vzm::VzTexture* tex_otf_test3 = vzm::NewTexture("my material 3's OTF");
-    std::vector<uint8_t> otf_array(1024 * 4);
-    tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 2, 1);
-	
-    vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
+	std::vector<uint8_t> otf_array(1024 * 4);
+	tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 2, 1);
+
+	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
 
 	material_test3->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
 	material_test3->SetLookupTable(tex_otf_test3, vzm::LookupTableSlot::LOOKUP_OTF);
@@ -200,7 +203,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::AppendSceneCompTo(actor_test3, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
 	vzm::AppendSceneCompTo(root_obj_actor, scene);
-
+    
     // Main loop
     bool done = false;
     while (!done)
@@ -222,14 +225,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			break;
 		static float x_rot = glm::radians<float>(2);
 		p = glm::rotateX(p, x_rot);
-        v = glm::rotateX(v, x_rot);
+		v = glm::rotateX(v, x_rot);
 		u = glm::rotateX(u, x_rot);
 		cam->SetWorldPose(__FC3 p, __FC3 v, __FC3 u);
 		renderer->Render(scene, cam);
     }
     vzm::DeinitEngineLib();
 
-    ReleaseDC(hwnd, hdc);
+    ReleaseDC(hwnd, hdc); 
 
     return 0;
 }
@@ -247,11 +250,11 @@ int main(int, char**)
 // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    vzm::VzRenderer* renderer = nullptr;
-    if (vzm::IsValidEngineLib())
-    {
-        renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
-    }
+    //vzm::VzRenderer* renderer = nullptr;
+    //if (vzm::IsValidEngineLib())
+    //{
+    //    renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
+    //}
     switch (msg)
     {
     case WM_CLOSE:
@@ -260,12 +263,12 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_KEYDOWN:
         switch (wParam) {
-        case 'R': vzm::ReloadShader(); 
-            break;
+        //case 'R': vzm::ReloadShader(); 
+        //    break;
         default:
             break;
-        }
-        return 0;
+		}
+		return 0;
     case WM_LBUTTONDOWN:
     case WM_RBUTTONDOWN:
     {
@@ -286,17 +289,17 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_SIZE:
     {
-        if (renderer)
-		{
-			RECT rc;
-			GetClientRect(hWnd, &rc);
-			UINT width = rc.right - rc.left;
-			UINT height = rc.bottom - rc.top;
-			renderer->ResizeCanvas(width, height);
-			//vzm::VzBaseComp* scene = vzm::GetFirstComponentByName("my scene");
-			//vzm::VzBaseComp* cam = vzm::GetFirstComponentByName("my camera");
-            //renderer->Render(scene, cam);
-        }
+        //if (renderer)
+		//{
+		//	RECT rc;
+		//	GetClientRect(hWnd, &rc);
+		//	UINT width = rc.right - rc.left;
+		//	UINT height = rc.bottom - rc.top;
+		//	renderer->ResizeCanvas(width, height);
+		//	//vzm::VzBaseComp* scene = vzm::GetFirstComponentByName("my scene");
+		//	//vzm::VzBaseComp* cam = vzm::GetFirstComponentByName("my camera");
+        //    //renderer->Render(scene, cam);
+        //}
         break;
     }
     case WM_DESTROY:
