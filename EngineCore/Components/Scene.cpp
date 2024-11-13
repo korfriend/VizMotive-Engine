@@ -142,7 +142,10 @@ namespace vz
 		// TODO:
 		// * need to consider the scene update time (timestamp)
 		//		to avoid unnecessary execution of update systems
-		
+
+		scanGeometryEntities();
+		scanMaterialEntities();
+
 		{
 			// CHECK if skipping is available
 			// check all renderables update time (and their components) //
@@ -265,7 +268,7 @@ namespace vz
 		}
 	}
 
-	size_t Scene::ScanGeometryEntities() noexcept
+	size_t Scene::scanGeometryEntities() noexcept
 	{
 		geometries_.clear();
 		for (auto& ett : renderables_)
@@ -284,7 +287,7 @@ namespace vz
 		return geometries_.size();
 	}
 
-	size_t Scene::ScanMaterialEntities() noexcept
+	size_t Scene::scanMaterialEntities() noexcept
 	{
 		materials_.clear();
 		for (auto& ett : renderables_)
