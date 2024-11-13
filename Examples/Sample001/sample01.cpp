@@ -1,7 +1,4 @@
 // Filament highlevel APIs
-#define _CRTDBG_MAP_ALLOC
-#include <cstdlib>
-#include <crtdbg.h>
 #include "HighAPIs/VzEngineAPIs.h"
 
 #include <iostream>
