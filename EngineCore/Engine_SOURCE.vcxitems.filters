@@ -378,6 +378,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp">
       <Filter>Components\Private</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.cpp">
+      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl">

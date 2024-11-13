@@ -67,6 +67,7 @@ constexpr float VZ_PIDIV4 = 0.785398163f;
 
 using uint = uint32_t;
 
+struct vfloat2 { float x, y; };
 struct vfloat3 { float x, y, z; };
 struct vfloat4 { float x, y, z, w; };
 struct vfloat4x4 { float m[4][4]; };
