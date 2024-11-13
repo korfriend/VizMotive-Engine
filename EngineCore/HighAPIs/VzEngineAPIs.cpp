@@ -9,14 +9,6 @@
 #include "Common/Backend/GBackendDevice.h"
 #include "Common/Backend/GRendererInterface.h"
 
-#include "Common/ResourceManager.h"
-#ifdef PLATFORM_WINDOWS_DESKTOP
-#if defined(_DEBUG) && defined(_MT_LEAK_CHECK)
-//#define _CRTDBG_MAP_ALLOC
-//#include <crtdbg.h>
-#endif
-#endif
-
 namespace vz
 {
 	GraphicsPackage graphicsPackage;
@@ -120,7 +112,7 @@ namespace vzm
 	bool InitEngineLib(const vzm::ParamMap<std::string>& arguments)
 	{
 #ifdef PLATFORM_WINDOWS_DESKTOP
-#if defined(_DEBUG) //&& defined(_MT_LEAK_CHECK)
+#if defined(_DEBUG) && defined(_MT_LEAK_CHECK)
 		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 #endif

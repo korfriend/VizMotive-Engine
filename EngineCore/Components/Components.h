@@ -170,12 +170,8 @@ namespace vz
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
 
 		// requires scanning process
-		inline std::vector<Entity> GetGeometryEntities() const noexcept {
-			return geometries_;
-		}
-		inline std::vector<Entity> GetMaterialEntities() const noexcept {
-			return materials_;
-		}
+		inline std::vector<Entity> GetGeometryEntities() const noexcept { return geometries_; }
+		inline std::vector<Entity> GetMaterialEntities() const noexcept { return materials_; }
 
 		inline const geometrics::AABB& GetAABB() const { return aabb_; }
 
