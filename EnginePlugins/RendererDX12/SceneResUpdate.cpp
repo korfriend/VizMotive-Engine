@@ -443,18 +443,14 @@ namespace vz
 			lightComponents[args.jobIndex] = (GLightComponent*)compfactory::GetLightComponent(lightEntities[args.jobIndex]);
 			});
 
-		//scene_->ScanMaterialEntities(materialEntities);
-		materialEntities.resize(scene_->ScanMaterialEntities());
-		scene_->GetMaterialEntities(materialEntities.data(), materialEntities.size());
+		materialEntities = scene_->GetMaterialEntities();
 		materialComponents.resize(materialEntities.size());
 		size_t num_materials = materialComponents.size();
 		jobsystem::Dispatch(ctx, (uint32_t)num_materials, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 			materialComponents[args.jobIndex] = (GMaterialComponent*)compfactory::GetMaterialComponent(materialEntities[args.jobIndex]);
 			});
 
-		//scene_->ScanGeometryEntities(geometryEntities);
-		geometryEntities.resize(scene_->ScanGeometryEntities());
-		scene_->GetGeometryEntities(geometryEntities.data(), geometryEntities.size());
+		geometryEntities = scene_->GetGeometryEntities();
 		geometryComponents.resize(geometryEntities.size());
 		size_t num_geometries = geometryComponents.size();
 		jobsystem::Dispatch(ctx, (uint32_t)num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {

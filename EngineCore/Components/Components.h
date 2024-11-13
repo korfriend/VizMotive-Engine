@@ -96,6 +96,9 @@ namespace vz
 
 		GScene* handlerScene_ = nullptr;
 
+		inline size_t scanGeometryEntities() noexcept;
+		inline size_t scanMaterialEntities() noexcept;
+
 	public:
 		Scene(const Entity entity, const std::string& name);
 		~Scene();
@@ -167,13 +170,11 @@ namespace vz
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
 
 		// requires scanning process
-		inline size_t ScanGeometryEntities() noexcept;
-		inline size_t ScanMaterialEntities() noexcept;
-		inline void GetGeometryEntities(Entity* entitiesData, size_t numEntities) const noexcept {
-			memcpy(entitiesData, geometries_.data(), sizeof(Entity) * numEntities);
+		inline std::vector<Entity> GetGeometryEntities() const noexcept {
+			return geometries_;
 		}
-		inline void GetMaterialEntities(Entity* entitiesData, size_t numEntities) const noexcept {
-			memcpy(entitiesData, materials_.data(), sizeof(Entity) * numEntities);
+		inline std::vector<Entity> GetMaterialEntities() const noexcept {
+			return materials_;
 		}
 
 		inline const geometrics::AABB& GetAABB() const { return aabb_; }
