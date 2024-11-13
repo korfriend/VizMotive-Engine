@@ -118,45 +118,45 @@ namespace vzm
 		struct ArcBall
 		{
 		private:
-			XMVECTOR __posArcballCenter;   // Rotation Center
-			float __radius;   // Arcball Radius
-			float __activatedRadius;  // Min(m_dRadius, Center2EyeLength - );
+			XMVECTOR posArcballCenter_;   // Rotation Center
+			float radius_;   // Arcball Radius
+			float activatedRadius_;  // Min(m_dRadius, Center2EyeLength - );
 
-			XMVECTOR __posOnSurfaceStart;
+			XMVECTOR posOnSurfaceStart_;
 
 			// Statics 
-			XMMATRIX __matSS2WS;
-			XMVECTOR __vecView;
-			XMVECTOR __posCam;
+			XMMATRIX matSS2WS_;
+			XMVECTOR vecView_;
+			XMVECTOR posCam_;
 
-			CameraState __camStateSetInStart;
+			CameraState camStateSetInStart_;
 
-			bool __isPerspective = false;
-			float __np = 0.1f;
+			bool isPerspective_ = false;
+			float np_ = 0.1f;
 
-			bool __isTrackBall = true; // Otherwise, Plane Coordinate
-			bool __isStateSet = false;
-			bool __isStartArcball = false;
-			bool __isFixRotationAxis = false;
-			XMVECTOR __rotAxis;
+			bool isTrackBall_ = true; // Otherwise, Plane Coordinate
+			bool isStateSet_ = false;
+			bool isStartArcball_ = false;
+			bool isFixRotationAxis_ = false;
+			XMVECTOR rotAxis_;
 
-			float __trackballSensitive = 10;
+			float trackballSensitive_ = 10;
 
-			XMVECTOR ComputeTargetPoint(const float dPointX, const float dPointY)
+			XMVECTOR computeTargetPoint(const float dPointX, const float dPointY)
 			{
 				XMVECTOR posOnSurface;
 
 				// ==> Make Function
 				// Get Near Plane's Position
 				XMVECTOR posPointSS = XMVectorSet(dPointX, dPointY, 0, 1);
-				XMVECTOR posPointWS = XMVector3TransformCoord(posPointSS, __matSS2WS);
+				XMVECTOR posPointWS = XMVector3TransformCoord(posPointSS, matSS2WS_);
 
-				XMVECTOR vecRayDir = __vecView;
+				XMVECTOR vecRayDir = vecView_;
 
-				if (__isTrackBall)
+				if (isTrackBall_)
 				{
 					// Use Planar Coordinate
-					if (!__isPerspective && __np < 0.1f) //float.Epsilon
+					if (!isPerspective_ && np_ < 0.1f) //float.Epsilon
 					{
 						posPointWS = posPointWS + XMVectorScale(vecRayDir, 0.1f);   // <== Think
 					}
@@ -166,23 +166,23 @@ namespace vzm
 				else
 				{
 					// Use Sphere Coordinate
-					if (__isPerspective)
+					if (isPerspective_)
 					{
-						vecRayDir = posPointWS - __posCam;
+						vecRayDir = posPointWS - posCam_;
 					}
 
 					// Center as B, Ray as A + tv
-					// B = m_d3PosArcballCenter
-					// A = d3PosPointWS, v = v3VecRayDir
+					// B = posArcballCenter_
+					// A = posPointWS, v = v3VecRayDir
 
 					// 1st compute A - B = (a`, b`, c`)
-					XMVECTOR v3BA = posPointWS - __posArcballCenter;
+					XMVECTOR v3BA = posPointWS - posArcballCenter_;
 					// 2nd compute v*v = a^2 + b^2 + c^2
 					float dDotVV = XMVectorGetX(XMVector3Dot(vecRayDir, vecRayDir));
 					// 3rd compute (A - B)*v = a`a + b`b + c`c
 					float dDotBAV = XMVectorGetX(XMVector3Dot(v3BA, vecRayDir));
 					// if there's cross then, 4th compute sqrt for min t
-					float dDet = dDotBAV * dDotBAV - dDotVV * (XMVectorGetX(XMVector3Dot(v3BA, v3BA)) - __activatedRadius * __activatedRadius);
+					float dDet = dDotBAV * dDotBAV - dDotVV * (XMVectorGetX(XMVector3Dot(v3BA, v3BA)) - activatedRadius_ * activatedRadius_);
 					float dT;
 
 					if (dDet >= 0)
@@ -200,48 +200,48 @@ namespace vzm
 				return posOnSurface;
 			}
 		public:
-			bool __is_set_stage;
-			float __start_x, __start_y;
+			bool IsSetStage() const { return isStateSet_; }
+			float startX, startY;
 
-			ArcBall() { __is_set_stage = false; };
+			ArcBall() {};
 			~ArcBall() = default;
 
 			void SetArcBallMovingStyle(const bool bIsTrackBall)
 			{
-				__isTrackBall = bIsTrackBall;
+				isTrackBall_ = bIsTrackBall;
 			}
 
-			XMVECTOR GetCenterStage() { return __posArcballCenter; };
+			XMVECTOR GetCenterStage() { return posArcballCenter_; };
 
 			void FitArcballToSphere(const XMVECTOR& posArcballCenter, const float radius)
 			{
-				__posArcballCenter = posArcballCenter;
-				__radius = radius;
-				__isStateSet = true;
+				posArcballCenter_ = posArcballCenter;
+				radius_ = radius;
+				isStateSet_ = true;
 			}
 
 			void StartArcball(const float pointX, const float pointY, const CameraState& arcballCamState, float tackballSensitive = 10)
 			{
-				if (!__isStateSet)
+				if (!isStateSet_)
 					return;
-				__isStartArcball = true;
-				__trackballSensitive = tackballSensitive;
+				isStartArcball_ = true;
+				trackballSensitive_ = tackballSensitive;
 
-				__start_x = pointX;
-				__start_y = pointY;
+				startX = pointX;
+				startY = pointY;
 
 				// Start Setting
-				__matSS2WS = arcballCamState.matSS2WS;
+				matSS2WS_ = arcballCamState.matSS2WS;
 
 				// VXCameraState
-				__camStateSetInStart = arcballCamState;
-				__isPerspective = arcballCamState.isPerspective;
-				__np = arcballCamState.np;
-				__posCam = XMLoadFloat3(&arcballCamState.posCamera);
-				__vecView = XMLoadFloat3(&arcballCamState.vecView);
+				camStateSetInStart_ = arcballCamState;
+				isPerspective_ = arcballCamState.isPerspective;
+				np_ = arcballCamState.np;
+				posCam_ = XMLoadFloat3(&arcballCamState.posCamera);
+				vecView_ = XMLoadFloat3(&arcballCamState.vecView);
 
-				XMVECTOR vecCam2Center = __posArcballCenter - __posCam;
-				__activatedRadius = std::min(__radius, XMVectorGetX(XMVector3Length(vecCam2Center)) * 0.8f);
+				XMVECTOR vecCam2Center = posArcballCenter_ - posCam_;
+				activatedRadius_ = std::min(radius_, XMVectorGetX(XMVector3Length(vecCam2Center)) * 0.8f);
 
 				if (arcballCamState.isPerspective)
 				{
@@ -252,50 +252,50 @@ namespace vzm
 					}
 				}
 
-				__posOnSurfaceStart = ComputeTargetPoint(pointX, pointY);
+				posOnSurfaceStart_ = computeTargetPoint(pointX, pointY);
 			}
 
 			void FixRotationAxis(const XMVECTOR& rotationAxis)
 			{
-				__isFixRotationAxis = true;
-				__rotAxis = rotationAxis;
+				isFixRotationAxis_ = true;
+				rotAxis_ = rotationAxis;
 			}
 
 			void FreeRotationAxis()
 			{
-				__isFixRotationAxis = false;
+				isFixRotationAxis_ = false;
 			}
 
 			CameraState GetCameraStateSetInStart()
 			{
-				return __camStateSetInStart;
+				return camStateSetInStart_;
 			}
 
 			float MoveArcball(XMMATRIX& matRotatedWS, const float pointX, const float pointY, const bool isReverseDir)
 			{
 				matRotatedWS = XMMatrixIdentity(); // identity
 
-				if (!__isStartArcball)
+				if (!isStartArcball_)
 					return 0;
 
-				XMVECTOR posOnSurfaceEnd = ComputeTargetPoint(pointX, pointY);
+				XMVECTOR posOnSurfaceEnd = computeTargetPoint(pointX, pointY);
 
-				XMVECTOR vecCenter3SurfStart = __posOnSurfaceStart - __posArcballCenter;
-				XMVECTOR vecCenter3SurfEnd = posOnSurfaceEnd - __posArcballCenter;
+				XMVECTOR vecCenter3SurfStart = posOnSurfaceStart_ - posArcballCenter_;
+				XMVECTOR vecCenter3SurfEnd = posOnSurfaceEnd - posArcballCenter_;
 
 				vecCenter3SurfStart = XMVector3Normalize(vecCenter3SurfStart);
 				vecCenter3SurfEnd = XMVector3Normalize(vecCenter3SurfEnd);
 
 				XMVECTOR rotDir = XMVector3Cross(vecCenter3SurfStart, vecCenter3SurfEnd);
 				bool isInvert = false;
-				if (__isFixRotationAxis)
+				if (isFixRotationAxis_)
 				{
-					if (XMVectorGetX(XMVector3Dot(rotDir, __rotAxis)) >= 0)
-						rotDir = __rotAxis;
+					if (XMVectorGetX(XMVector3Dot(rotDir, rotAxis_)) >= 0)
+						rotDir = rotAxis_;
 					else
 					{
 						isInvert = true;
-						rotDir = -__rotAxis;
+						rotDir = -rotAxis_;
 					}
 				}
 
@@ -305,23 +305,23 @@ namespace vzm
 					return 0;
 
 				float angle = 0;
-				if (__isTrackBall)
+				if (isTrackBall_)
 				{
 					rotDir = XMVector3Normalize(rotDir);
-					float circumference = XM_PI * 2.0f * __radius;
+					float circumference = XM_PI * 2.0f * radius_;
 
-					XMVECTOR vecStart2End = posOnSurfaceEnd - __posOnSurfaceStart;
+					XMVECTOR vecStart2End = posOnSurfaceEnd - posOnSurfaceStart_;
 
-					if (__isFixRotationAxis)
+					if (isFixRotationAxis_)
 					{
 						vecStart2End =
 							vecStart2End - XMVectorGetX(XMVector3Dot(vecStart2End, rotDir)) * rotDir;
 					}
 
-					angle = XMVectorGetX(XMVector3Length(vecStart2End)) / circumference * __trackballSensitive;
-					if (__isPerspective)
+					angle = XMVectorGetX(XMVector3Length(vecStart2End)) / circumference * trackballSensitive_;
+					if (isPerspective_)
 					{
-						angle *= XMVectorGetX(XMVector3Length(__posCam - __posArcballCenter)) / __np; //500
+						angle *= XMVectorGetX(XMVector3Length(posCam_ - posArcballCenter_)) / np_; //500
 					}
 				}
 				else
@@ -332,8 +332,8 @@ namespace vzm
 				if (angle == 0) return 0;
 
 				XMMATRIX mat_rot = XMMatrixRotationAxis(rotDir, angle);
-				XMMATRIX mat_trs_1 = XMMatrixTranslationFromVector(__posArcballCenter);
-				XMMATRIX mat_trs_0 = XMMatrixTranslationFromVector(-__posArcballCenter);
+				XMMATRIX mat_trs_1 = XMMatrixTranslationFromVector(posArcballCenter_);
+				XMMATRIX mat_trs_0 = XMMatrixTranslationFromVector(-posArcballCenter_);
 
 				matRotatedWS = mat_trs_0 * mat_rot * mat_trs_1;
 
@@ -349,6 +349,7 @@ namespace vzm
 		CamVID cameraVid = INVALID_VID;
 		RendererVID rendererVid = INVALID_VID;
 		std::unique_ptr<arcball::ArcBall> arcball_ = std::make_unique<arcball::ArcBall>();
+		VzCamera* vzCamera = nullptr;
 
 		~OrbitalControlDetail() { arcball_.reset(); }
 
@@ -365,6 +366,7 @@ namespace vzm
 		orbitControl_ = make_unique<OrbitalControlDetail>();
 		OrbitalControlDetail* orbitControl_detail = (OrbitalControlDetail*)orbitControl_.get();
 		orbitControl_detail->cameraVid = vid;
+		orbitControl_detail->vzCamera = this;
 	}
 
 	void OrbitalControlDetail::Initialize(const RendererVID rendererVid, const vfloat3 stageCenter, const float stageRadius)
@@ -372,9 +374,8 @@ namespace vzm
 		this->rendererVid = rendererVid;
 
 		arcball::ArcBall& arc_ball = *(arcball::ArcBall*)arcball_.get();
-		XMVECTOR _stage_center = XMLoadFloat3((XMFLOAT3*)&stageCenter);
-		arc_ball.FitArcballToSphere(_stage_center, stageRadius);
-		arc_ball.__is_set_stage = true;
+		XMVECTOR stage_center = XMLoadFloat3((XMFLOAT3*)&stageCenter);
+		arc_ball.FitArcballToSphere(stage_center, stageRadius);
 	}
 	void compute_screen_matrix(XMMATRIX& ps2ss, const float w, const float h)
 	{
@@ -388,7 +389,7 @@ namespace vzm
 	bool OrbitalControlDetail::Start(const vfloat2 pos, const float sensitivity)
 	{
 		arcball::ArcBall& arc_ball = *(arcball::ArcBall*)arcball_.get();
-		if (!arc_ball.__is_set_stage)
+		if (!arc_ball.IsSetStage())
 		{
 			backlog::post("OrbitalControl::Start >> Not intialized!", backlog::LogLevel::Error);
 			return false;
@@ -436,7 +437,7 @@ namespace vzm
 	bool OrbitalControlDetail::Move(const vfloat2 pos)
 	{
 		arcball::ArcBall& arc_ball = *(arcball::ArcBall*)arcball_.get();
-		if (!arc_ball.__is_set_stage)
+		if (!arc_ball.IsSetStage())
 		{
 			backlog::post("OrbitalControl::Start >> Not intialized!", backlog::LogLevel::Error);
 			return false;
@@ -446,24 +447,23 @@ namespace vzm
 		arc_ball.MoveArcball(mat_tr, (float)pos.x, (float)pos.y, true);
 
 		arcball::CameraState cam_pose_begin = arc_ball.GetCameraStateSetInStart();
-		XMVECTOR vEye = XMVector3TransformCoord(XMLoadFloat3(&cam_pose_begin.posCamera), mat_tr);
-		XMVECTOR vView = XMVector3TransformNormal(XMLoadFloat3(&cam_pose_begin.vecView), mat_tr);
-		XMVECTOR vUp = XMVector3TransformNormal(XMLoadFloat3(&cam_pose_begin.vecUp), mat_tr);
+		XMVECTOR eye_v = XMVector3TransformCoord(XMLoadFloat3(&cam_pose_begin.posCamera), mat_tr);
+		XMVECTOR view_v = XMVector3TransformNormal(XMLoadFloat3(&cam_pose_begin.vecView), mat_tr);
+		XMVECTOR up_v = XMVector3TransformNormal(XMLoadFloat3(&cam_pose_begin.vecUp), mat_tr);
 
 		// Set Pose //...
-		//VmCamera* vCam = sceneManager.GetVmComp<VmCamera>(cameraVid_);
-		//XMFLOAT3 pos, view, up;
-		//XMStoreFloat3(&pos, vEye);
-		//XMStoreFloat3(&view, XMVector3Normalize(vView));
-		//XMStoreFloat3(&up, XMVector3Normalize(vUp));
-		//vCam->SetPose(__FP pos, __FP view, __FP up);
+		XMFLOAT3 eye, view, up;
+		XMStoreFloat3(&eye, eye_v);
+		XMStoreFloat3(&view, XMVector3Normalize(view_v));
+		XMStoreFloat3(&up, XMVector3Normalize(up_v));
+		vzCamera->SetWorldPose(__FC3 eye, __FC3 view, __FC3 up);
 
 		return true;
 	}
 	bool OrbitalControlDetail::PanMove(const vfloat2 pos)
 	{
 		arcball::ArcBall& arc_ball = *(arcball::ArcBall*)arcball_.get();
-		if (!arc_ball.__is_set_stage)
+		if (!arc_ball.IsSetStage())
 		{
 			backlog::post("OrbitalControl::Start >> Not intialized!", backlog::LogLevel::Error);
 			return false;
@@ -474,52 +474,50 @@ namespace vzm
 		XMMATRIX& mat_ws2ss = cam_pose_begin.matWS2SS;
 		XMMATRIX& mat_ss2ws = cam_pose_begin.matSS2WS;
 
-		//VmCamera* vCam = sceneManager.GetVmComp<VmCamera>(cameraVid_);
-
 		if (!cam_pose_begin.isPerspective)
 		{
 			XMVECTOR pos_eye_ws = XMLoadFloat3(&cam_pose_begin.posCamera);
 			XMVECTOR pos_eye_ss = XMVector3TransformCoord(pos_eye_ws, mat_ws2ss);
 
-			XMFLOAT3 v = XMFLOAT3((float)pos.x - arc_ball.__start_x, (float)pos.y - arc_ball.__start_y, 0);
+			XMFLOAT3 v = XMFLOAT3((float)pos.x - arc_ball.startX, (float)pos.y - arc_ball.startY, 0);
 			XMVECTOR diff_ss = XMLoadFloat3(&v);
 
 			pos_eye_ss = pos_eye_ss - diff_ss; // Think Panning! reverse camera moving
 			pos_eye_ws = XMVector3TransformCoord(pos_eye_ss, mat_ss2ws);
 
-			XMFLOAT3 pos;
-			XMStoreFloat3(&pos, pos_eye_ws);
-			//vCam->SetPose(__FP pos, __FP cam_pose_begin.vecView, __FP cam_pose_begin.vecUp);
+			XMFLOAT3 eye;
+			XMStoreFloat3(&eye, pos_eye_ws);
+			vzCamera->SetWorldPose(__FC3 eye, __FC3 cam_pose_begin.vecView, __FC3 cam_pose_begin.vecUp);
 		}
 		else
 		{
 			XMFLOAT3 f = XMFLOAT3((float)pos.x, (float)pos.y, 0);
 			XMVECTOR pos_cur_ss = XMLoadFloat3(&f);
-			f = XMFLOAT3(arc_ball.__start_x, arc_ball.__start_y, 0);
+			f = XMFLOAT3(arc_ball.startX, arc_ball.startY, 0);
 			XMVECTOR pos_old_ss = XMLoadFloat3(&f);
 			XMVECTOR pos_cur_ws = XMVector3TransformCoord(pos_cur_ss, mat_ss2ws);
 			XMVECTOR pos_old_ws = XMVector3TransformCoord(pos_old_ss, mat_ss2ws);
 			XMVECTOR diff_ws = pos_cur_ws - pos_old_ws;
 
-			//if (XMVectorGetX(XMVector3Length(diff_ws)) < DBL_EPSILON)
-			//{
-			//	vCam->SetPose(__FP cam_pose_begin.posCamera, __FP cam_pose_begin.vecView, __FP cam_pose_begin.vecUp);
-			//	return true;
-			//}
-			//
-			////cout << "-----0> " << glm::length(diff_ws) << endl;
-			////cout << "-----1> " << pos.x << ", " << pos.y << endl;
-			////cout << "-----2> " << arc_ball.__start_x << ", " << arc_ball.__start_y << endl;
-			//XMVECTOR pos_center_ws = arc_ball.GetCenterStage();
-			//XMVECTOR vec_eye2center_ws = pos_center_ws - XMLoadFloat3(&cam_pose_begin.posCamera);
-			//
-			//float panningCorrected = XMVectorGetX(XMVector3Length(diff_ws)) * XMVectorGetX(XMVector3Length(vec_eye2center_ws)) / cam_pose_begin.np;
-			//
-			//diff_ws = XMVector3Normalize(diff_ws);
-			//XMVECTOR v = XMLoadFloat3(&cam_pose_begin.posCamera) - XMVectorScale(diff_ws, panningCorrected);
-			//XMFLOAT3 pos;
-			//XMStoreFloat3(&pos, v);
-			//vCam->SetPose(__FP pos, __FP cam_pose_begin.vecView, __FP cam_pose_begin.vecUp);
+			if (XMVectorGetX(XMVector3Length(diff_ws)) < DBL_EPSILON)
+			{
+				vzCamera->SetWorldPose(__FC3 cam_pose_begin.posCamera, __FC3 cam_pose_begin.vecView, __FC3 cam_pose_begin.vecUp);
+				return true;
+			}
+
+			//cout << "-----0> " << glm::length(diff_ws) << endl;
+			//cout << "-----1> " << pos.x << ", " << pos.y << endl;
+			//cout << "-----2> " << arc_ball.__start_x << ", " << arc_ball.__start_y << endl;
+			XMVECTOR pos_center_ws = arc_ball.GetCenterStage();
+			XMVECTOR vec_eye2center_ws = pos_center_ws - XMLoadFloat3(&cam_pose_begin.posCamera);
+
+			float panningCorrected = XMVectorGetX(XMVector3Length(diff_ws)) * XMVectorGetX(XMVector3Length(vec_eye2center_ws)) / cam_pose_begin.np;
+
+			diff_ws = XMVector3Normalize(diff_ws);
+			XMVECTOR v = XMLoadFloat3(&cam_pose_begin.posCamera) - XMVectorScale(diff_ws, panningCorrected);
+			XMFLOAT3 eye;
+			XMStoreFloat3(&eye, v);
+			vzCamera->SetWorldPose(__FC3 eye, __FC3 cam_pose_begin.vecView, __FC3 cam_pose_begin.vecUp);
 		}
 		return true;
 	}

@@ -3751,7 +3751,7 @@ namespace vz
 		viewport_composite.height = (float)canvasHeight_;
 		device->BindViewports(1, &viewport, cmd);
 
-		if (colorspace_conversion_required)
+		if (colorspace_conversion_required || !swapChain_.IsValid())
 		{
 			graphics::RenderPassImage rp[] = {
 				graphics::RenderPassImage::RenderTarget(&rtRenderFinal_, graphics::RenderPassImage::LoadOp::CLEAR),

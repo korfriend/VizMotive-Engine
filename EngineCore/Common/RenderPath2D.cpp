@@ -4,6 +4,14 @@ namespace vz
 {
 	using namespace graphics;
 
+	void* RenderPath::GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex)
+	{
+		return graphicsDevice_->OpenSharedResource(device2, srvDescHeap2, descriptorIndex, &rtRenderFinal_);
+	}
+}
+
+namespace vz
+{
 	void RenderPath2D::DeleteGPUResources(const bool resizableOnly)
 	{
 		//swapChain_ = {}; // this causes a crash!

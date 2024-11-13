@@ -69,9 +69,6 @@ namespace vzm
 	//  - return root-node actor (empty)
 	API_EXPORT VzActor* LoadModelFile(const std::string& filename);
 	API_EXPORT float GetAsyncLoadProgress();
-	// Get a graphics render target view 
-	//  - Must belong to the internal scene
-	API_EXPORT void* GetGraphicsSharedRenderTarget();
 
 	API_EXPORT bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io);
 

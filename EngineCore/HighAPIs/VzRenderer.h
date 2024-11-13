@@ -26,5 +26,8 @@ namespace vzm
 
 		bool Render(const VID vidScene, const VID vidCam);
 		bool Render(const VzBaseComp* scene, const VzBaseComp* camera) { return Render(scene->GetVID(), camera->GetVID()); };
+
+		// the render target resource must be fenced before calling the next Render()
+		void* GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, uint32_t* w, uint32_t* h);
 	};
 }

@@ -17,6 +17,7 @@
 #endif
 
 #define __FP (float*)&
+#define __FC2 *(vfloat2*)&
 #define __FC3 *(vfloat3*)&
 #define __FC4 *(vfloat4*)&
 #define __FC44 *(vfloat4x4*)&
