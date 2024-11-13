@@ -60,6 +60,10 @@ namespace vz
 			return false;
 		};
 
+		//const graphics::Texture& GetFinalRenderTarget() const { return rtRenderFinal_; }
+		//const graphics::SwapChain& GetSwapChain() const { return swapChain_; }
+		void* GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex);
+
 		virtual void DeleteGPUResources(const bool resizableOnly) = 0;
 		virtual void ResizeResources() = 0;
 		virtual void Update(const float dt) = 0;

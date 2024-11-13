@@ -13,7 +13,7 @@
 #include <dxgi1_4.h>
 
 #include <tchar.h>
-#include <shellscalingapi.h>
+//#include <shellscalingapi.h>
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
@@ -31,6 +31,7 @@
 #pragma comment(lib, "dxguid.lib")
 #endif
 
+/*
 // Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
 void EnableDpiAwareness() {
     // Windows 10에서 사용할 수 있는 DPI 인식 설정
@@ -60,7 +61,7 @@ void EnableDpiAwareness() {
         FreeLibrary(hUser32);
     }
 }
-
+/**/
 struct FrameContext
 {
 	ID3D12CommandAllocator* CommandAllocator;
@@ -104,8 +105,6 @@ int main(int, char**)
 	::RegisterClassExW(&wc);
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
-	vzm::InitEngineLib();
-
 		// Initialize Direct3D
 	if (!CreateDeviceD3D(hwnd))
 	{
@@ -136,6 +135,15 @@ int main(int, char**)
 		g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
 		g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
+	vzm::ParamMap<std::string> arguments;
+	//arguments.SetString("API", "DX11");
+	arguments.SetString("GPU_VALIDATION", "VERBOSE");
+	//arguments.SetParam("MAX_THREADS", 1u); // ~0u
+	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
+	if (!vzm::InitEngineLib(arguments)) {
+		std::cerr << "Failed to initialize engine library." << std::endl;
+		return -1;
+	}
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
 	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
@@ -144,7 +152,7 @@ int main(int, char**)
 	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
 	// - Read 'docs/FONTS.md' for more instructions and details.
 	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-	//io.Fonts->AddFontDefault();
+	io.Fonts->AddFontDefault();
 	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
@@ -178,14 +186,14 @@ int main(int, char**)
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-
 		using namespace vzm;
-		/*
+		
 		{
 			static VzScene* scene = nullptr;
-			static VID sid = 0, sid_file = 0, cid = 0, cid_ani = 0;
-			static VID eid = 0, lid = 0, ani_id = 0, aid_body = 0;
+			static VzCamera* camera = nullptr;
+			static VzRenderer* renderer = nullptr;
 			static ImVec2 wh(512, 512);
+			/*
 			if (scene == nullptr)
 			{
 				scene = NewScene("my scene");
@@ -197,100 +205,25 @@ int main(int, char**)
 
 				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 
-				VzRenderer* renderer = NewRenderer("my renderer");
+				renderer = NewRenderer("my renderer");
 				renderer->SetCanvas(canvas_size.x, canvas_size.y, 96.f, nullptr);
 				renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
 
-				VzCamera* cam = NewCamera("my camera");
-				vzm::VmCamera* vCam;
-				cid = vzm::NewSceneComponent(vzm::COMPONENT_TYPE::CAMERA, sid, "my camera", 0, CMPP(vCam));
-				vCam->SetCanvasSize(wh.x, wh.y, 96.f);
+				camera = NewCamera("my camera");
 				glm::fvec3 pos(0, 2, 2), up(0, 1, 0), at(0, 0, 0);
 				glm::fvec3 view = at - pos;
-				vCam->SetPose(__FP pos, __FP view, __FP up);
-				vCam->SetPerspectiveProjection(0.1f, 5000.f, glm::pi<float>() * 0.25f, 1.f);
-				vCam->SetToDrawGridHelper(true);
-
-				auto callbackLoadModel = [&](VID sceneVid, VID rootVid)
-					{
-						sid_file = sceneVid;
-						callbackLoadModel_Finished = true;
-					};
+				camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+				camera->SetPerspectiveProjection(0.1f, 5000.f, glm::pi<float>() * 0.25f, 1.f);
 
 				//callbackLoadModel(vzm::LoadMeshModel("D:\\data\\car_gltf\\ioniq.gltf", "my file scene", "my gltf root"));
-				vzm::LoadFileIntoNewSceneAsync("D:\\data\\car_gltf\\ioniq.gltf", "my file scene", "my gltf root", callbackLoadModel);
+				//vzm::LoadFileIntoNewSceneAsync("D:\\data\\car_gltf\\ioniq.gltf", "my file scene", "my gltf root", callbackLoadModel);
 				//vzm::LoadMeshModel("D:\\VisMotive\\data\\obj files\\skull\\12140_Skull_v3_L2.obj", "my file scene", "my obj");
 				//vzm::LoadFileIntoNewSceneAsync("D:\\data\\showroom1\\car_action_08.gltf", "my file scene", "my gltf root", callbackLoadModel);
 
 			}
 
-			if (sid_file != INVALID_VID)
-			{
-				vzm::MergeScenes(sid_file, sid);
-				sid_file = INVALID_VID;
-
-				std::vector<VID> camIds;
-				vzm::GetSceneCompoenentVids(vzm::COMPONENT_TYPE::CAMERA, sid, camIds);
-				for (VID id : camIds)
-				{
-					if (id != cid)
-					{
-						vzm::VmCamera* vCam = (vzm::VmCamera*)vzm::GetComponent(vzm::COMPONENT_TYPE::CAMERA, cid);
-						vzm::VmCamera* vCamNew = (vzm::VmCamera*)vzm::GetComponent(vzm::COMPONENT_TYPE::CAMERA, id);
-						glm::fvec3 pos, up, view;
-						vCamNew->GetPose(__FP pos, __FP view, __FP up);
-						vCam->SetPose(__FP pos, __FP view, __FP up);
-						vCamNew->SetCanvasSize(wh.x, wh.y, 96.f);
-
-						float zNearP, zFarP, fovY, aspectRatio;
-						vCamNew->GetPerspectiveProjection(&zNearP, &zFarP, &fovY, &aspectRatio);
-						vCam->SetPerspectiveProjection(zNearP, zFarP, fovY, aspectRatio);
-						cid_ani = id;
-						break;
-					}
-				}
-
-				VID aid_backTire = vzm::GetFirstVidByName("back_tire_d");
-				if (aid_backTire != INVALID_VID)
-				{
-					eid = vzm::NewSceneComponent(vzm::COMPONENT_TYPE::EMITTER, sid, "grapicar emitter", aid_backTire);
-					vzm::VmEmitter* vEmitter = (vzm::VmEmitter*)vzm::GetComponent(vzm::COMPONENT_TYPE::EMITTER, eid);
-					VID mid = vzm::GetFirstVidByName("back_tire");
-					vEmitter->SetMeshVid(mid);
-
-					// add plane collider
-					vzm::VmCollider* collider = nullptr;
-					VID colliderId = vzm::NewSceneComponent(vzm::COMPONENT_TYPE::COLLIDER, sid, "road collider", 0, CMPP(collider));
-					collider->SetGPUEnabled(true);
-					collider->SetRadius(1000.f);
-					collider->SetShape(vzm::VmCollider::Shape::Plane);
-				}
-
-
-				std::vector<VID> aniComponentes;
-				if (vzm::GetSceneCompoenentVids(vzm::COMPONENT_TYPE::ANIMATION, sid, aniComponentes) > 0u)
-				{
-					ani_id = aniComponentes[0];
-				}
-
-				aid_body = vzm::GetFirstVidByName("body_m");
-			}
-
-			auto aniComp = (vzm::VmAnimation*)vzm::GetComponent(vzm::COMPONENT_TYPE::ANIMATION, ani_id);
-			glm::fvec3 at(0);
-			if (aniComp && callbackLoadModel_Finished)
-			{
-				auto camComp = vzm::GetComponent(vzm::COMPONENT_TYPE::BASE, cid);
-				if (camComp->GetParentVid() != aid_body)
-				{
-					vzm::AppendComponentTo(cid, aid_body);
-				}
-
-				vzm::VmBaseComponent* bodyBase = vzm::GetComponent(vzm::COMPONENT_TYPE::BASE, aid_body);
-				bodyBase->GetWorldPosition(__FP at);
-			}
-
-			ImGui::Begin("Arcball Viewer");
+			/*
+			ImGui::Begin("3D Viewer");
 			{
 				static ImVec2 prevWindowSize = ImVec2(0, 0);
 				ImVec2 curWindowSize = ImGui::GetWindowSize();
@@ -303,98 +236,81 @@ int main(int, char**)
 
 				if (resized)
 				{
-					vzm::VmCamera* vCam = (vzm::VmCamera*)vzm::GetComponent(vzm::COMPONENT_TYPE::CAMERA, cid);
 					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 					canvas_size.y = std::max(canvas_size.y, 1.f);
-					vCam->SetCanvasSize(canvas_size.x, canvas_size.y, 96.f);
+					renderer->ResizeCanvas(canvas_size.x, canvas_size.y);
 					wh = canvas_size;
 				}
-				ImVec2 winPos = ImGui::GetWindowPos();
-				ImVec2 curItemPos = ImGui::GetCursorPos();
+				ImVec2 win_pos = ImGui::GetWindowPos();
+				ImVec2 cur_item_pos = ImGui::GetCursorPos();
 				ImGui::InvisibleButton("render window", wh, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 				ImGui::SetItemAllowOverlap();
 
 				bool is_hovered = ImGui::IsItemHovered(); // Hovered
 				bool is_active = ImGui::IsItemActive();   // Held
 
-				vzm::VmCamera* vCam = (vzm::VmCamera*)vzm::GetComponent(vzm::COMPONENT_TYPE::CAMERA, cid);
-				if (aniComp) is_hovered = is_hovered && !aniComp->IsPlaying();
 				if (is_hovered && !resized)
 				{
-					static glm::fvec2 __prevMousePos(0);
+					static glm::fvec2 prevMousePos(0);
 					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
-					glm::fvec2 s_pos = *(glm::fvec2*)&curItemPos;
-					glm::fvec2 w_pos = *(glm::fvec2*)&winPos;
+					glm::fvec2 s_pos = *(glm::fvec2*)&cur_item_pos;
+					glm::fvec2 w_pos = *(glm::fvec2*)&win_pos;
 					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
 					glm::fvec2 pos_ss = m_pos;
 
-					orbitControl.SetTargetCam(cid, __FP at, 2.f);
+					OrbitalControl* orbit_control = camera->GetOrbitControl();
+					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 2.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
 						float np, fp;
-						vCam->GetPerspectiveProjection(&np, &fp, NULL, NULL);
-						orbitControl.Start(__FP pos_ss);
+						camera->GetPerspectiveProjection(&np, &fp, NULL, NULL);
+						orbit_control->Start(__FC2 pos_ss);
 					}
 					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f))
-						&& glm::length2(__prevMousePos - m_pos) > 0)
+						&& glm::length2(prevMousePos - m_pos) > 0)
 					{
 						if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-							orbitControl.PanMove(__FP pos_ss);
+							orbit_control->PanMove(__FC2 pos_ss);
 						else
-							orbitControl.Move(__FP pos_ss);
+							orbit_control->Move(__FC2 pos_ss);
 					}
 					else if (io.MouseWheel != 0)
 					{
 						glm::fvec3 pos, view, up;
-						vCam->GetPose(__FP pos, __FP view, __FP up);
+						camera->GetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 						if (io.MouseWheel > 0)
 							pos += 0.2f * view;
 						else
 							pos -= 0.2f * view;
-						vCam->SetPose(__FP pos, __FP view, __FP up);
+						camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 					}
-					__prevMousePos = pos_ss;
+					prevMousePos = pos_ss;
 				}
 
-				ImGui::SetCursorPos(curItemPos);
+				ImGui::SetCursorPos(cur_item_pos);
 
-				vzm::Render(cid, true);
+				//renderer->Render(scene, camera);
 
 				uint32_t w, h;
-				ImTextureID texId = vzm::GetGraphicsSharedRenderTarget(cid, g_pd3dDevice, g_pd3dSrvDescHeap, 1, &w, &h);
+				//ImTextureID texId = renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, &w, &h);
 				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
-				ImGui::Image(texId, ImVec2((float)w, (float)h));
+				//ImGui::Image(texId, ImVec2((float)w, (float)h));
 			}
 			ImGui::End();
 
+			/**/
 			ImGui::Begin("Controls");
 			{
-				if (ImGui::Button("Shader Reload"))
-				{
-					vzm::ReloadShader();
-				}
+				//if (ImGui::Button("Shader Reload"))
+				//{
+				//	vzm::ReloadShader();
+				//}
 
-				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+				//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			}
-			ImGui::End();
-
-			ImGui::Begin("Info");
-			ImVec2 curWindowSize3 = ImGui::GetWindowSize();
-			if (curWindowSize3.x * curWindowSize3.y == 0)
-			{
-				ImGui::SetWindowSize(ImVec2(0, 0));
-				curWindowSize3 = ImGui::GetWindowSize();
-			}
-			VID canvasVis = vzm::DisplayEngineProfiling(curWindowSize3.x, curWindowSize3.y);
-			// Note that we pass the GPU SRV handle here, *not* the CPU handle. We're passing the internal pointer value, cast to an ImTextureID
-			uint32_t w, h;
-			ImTextureID texId = vzm::GetGraphicsSharedRenderTarget(canvasVis, g_pd3dDevice, g_pd3dSrvDescHeap, 3, &w, &h);
-			// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
-			ImGui::Image(texId, ImVec2((float)w, (float)h));
 			ImGui::End();
 		}
-		/**/
 		// Rendering
 		ImGui::Render();
 
