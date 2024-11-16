@@ -22,7 +22,7 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
-	void VzRenderer::ResizeCanvas(const uint32_t w, const uint32_t h)
+	void VzRenderer::ResizeCanvas(const uint32_t w, const uint32_t h, const CamVID vidCam)
 	{
 		GET_RENDERPATH(renderer, );
 
@@ -30,14 +30,25 @@ namespace vzm
 		uint32_t h1 = std::max(h, 1u);
 		renderer->SetCanvas(w1, h1, renderer->GetDPI(), renderer->GetWindow());
 
+		auto resizeCamera = [](CameraComponent* camera, const uint32_t w, const uint32_t h)
+			{
+				float z_near, z_far;
+				camera->GetNearFar(&z_near, &z_far);
+				camera->SetPerspective(
+					(float)w / (float)h,
+					1.f, z_near, z_far, camera->GetFovVertical()
+				);
+			};
+
 		if (renderer->camera)
 		{
-			float z_near, z_far;
-			renderer->camera->GetNearFar(&z_near, &z_far);
-			renderer->camera->SetPerspective(
-				(float)w1/(float)h1, 
-				1.f, z_near, z_far, renderer->camera->GetFovVertical()
-			);
+			resizeCamera(renderer->camera, w1, h1);
+		}
+
+		CameraComponent* user_camera = compfactory::GetCameraComponent(vidCam);
+		if (user_camera && user_camera != renderer->camera)
+		{
+			resizeCamera(user_camera, w1, h1);
 		}
 
 		UpdateTimeStamp();
@@ -112,7 +123,7 @@ namespace vzm
 		return renderer->allowHDR;
 	}
 
-	bool VzRenderer::Render(const VID vidScene, const VID vidCam)
+	bool VzRenderer::Render(const SceneVID vidScene, const CamVID vidCam)
 	{
 		GET_RENDERPATH(renderer, false);
 

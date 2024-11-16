@@ -6,7 +6,17 @@ namespace vz
 
 	void* RenderPath::GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex)
 	{
-		return graphicsDevice_->OpenSharedResource(device2, srvDescHeap2, descriptorIndex, &rtRenderFinal_);
+		if (!resShared_.IsValid())
+		{
+			if (!graphicsDevice_->OpenSharedResource(device2, srvDescHeap2, descriptorIndex, &rtRenderFinal_,
+				sharedHandleDescriptorPtr_, resShared_))
+			{
+				backlog::post("Failure to OpenSharedResource!", backlog::LogLevel::Error);
+				return nullptr;
+			}
+		}
+
+		return (void*)sharedHandleDescriptorPtr_;
 	}
 }
 
@@ -16,6 +26,8 @@ namespace vz
 	{
 		//swapChain_ = {}; // this causes a crash!
 		rtRenderFinal_ = {};
+		resShared_ = {};
+		sharedHandleDescriptorPtr_ = 0u;
 		if (!resizableOnly)
 		{
 		}

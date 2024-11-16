@@ -138,7 +138,7 @@ namespace vzm
 			validationMode = graphics::ValidationMode::Verbose;
 		}
 #ifdef _DEBUG
-		validationMode = graphics::ValidationMode::Verbose;
+		//validationMode = graphics::ValidationMode::Verbose;
 #endif
 		graphics::GPUPreference preferenceMode = graphics::GPUPreference::Discrete;
 		std::string preference = arguments.GetString("GPU_PREFERENCE", "DISCRETE");
@@ -155,8 +155,8 @@ namespace vzm
 		// engine core initializer
 		uint32_t num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
 		initializer::SetMaxThreadCount(num_max_threads);
-		//initializer::InitializeComponentsAsync();	// involving jobsystem initializer
-		initializer::InitializeComponentsImmediate();	// involving jobsystem initializer
+		initializer::InitializeComponentsAsync();	// involving jobsystem initializer
+		//initializer::InitializeComponentsImmediate();	// involving jobsystem initializer
 		
 		initialized = true;
 		return true;
@@ -698,8 +698,12 @@ namespace vzm
 
 		graphicsPackage.pluginDeinitializer();
 		
-		backlog::Destroy();
 		eventhandler::Destroy();
+
+		backlog::post("=======================", backlog::LogLevel::Info);
+		backlog::post("Engine Finished Bye ^^!", backlog::LogLevel::Info);
+		backlog::post("=======================", backlog::LogLevel::Info);
+		backlog::Destroy();
 
 		return true;
 	}

@@ -403,6 +403,12 @@ namespace vzm
 			backlog::post("Invalid Camera", backlog::LogLevel::Error);
 			return false;
 		}
+		float canvas_w = (float)canvas->GetLogicalWidth();
+		float canvas_h = (float)canvas->GetLogicalHeight();
+		if (pos.x < 0 || pos.y < 0 || pos.x >= canvas_w || pos.y >= canvas_h)
+		{
+			return false;
+		}
 
 		// Orbital Camera
 		// we assume the transform->world is not dirty state
@@ -426,7 +432,7 @@ namespace vzm
 
 		float aspect = w / h;
 		cs2ps = VZMatrixPerspectiveFov(XM_PIDIV4, aspect, cam_pose.np, fp);
-		compute_screen_matrix(ps2ss, (float)canvas->GetLogicalWidth(), (float)canvas->GetLogicalHeight());
+		compute_screen_matrix(ps2ss, canvas_w, canvas_h);
 		cam_pose.matWS2SS = ws2cs * cs2ps * ps2ss;
 		cam_pose.matSS2WS = XMMatrixInverse(NULL, cam_pose.matWS2SS);
 

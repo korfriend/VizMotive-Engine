@@ -5147,38 +5147,35 @@ std::mutex queue_locker;
 		return -1;
 	}
 
-	// DOJO adds for offscreen rendering option
-	void* GraphicsDevice_DX12::OpenSharedResource(const void* _device2, const void* _srv_desc_heap2, const int descriptor_index, Texture* texture)
+	bool GraphicsDevice_DX12::OpenSharedResource(
+		const void* device2, const void* srvDescHeap2, const int descriptorIndex, const Texture* textureShared,
+		uint64_t& gpuDesciptorHandlerPtr, GPUResource& sharedRes
+	)
 	{
-		if (texture->shared_handle == nullptr)
+		if (textureShared->shared_handle == nullptr)
 		{
-			return nullptr;
+			return false;
 		}
 
-		ID3D12Device* device2 = (ID3D12Device*)_device2;
-		UINT handle_increment_gpu2 = device2->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		ID3D12Device* device_another = (ID3D12Device*)device2;
 
-		struct Res {
-			ComPtr<ID3D12Resource> shared_texture;
-			UINT64 shared_srv_ptr = 0;
-			void* old_shared_handle = nullptr; // do not release this!
-		};
-		static std::unordered_map<void*, std::unordered_map<Texture*, Res>> devResMap;
-		std::unordered_map<Texture*, Res>& texResMap = devResMap[device2];
-		Res& _res = texResMap[texture];
-		if (texture->shared_handle == _res.old_shared_handle)
-		{
-			return (void*)_res.shared_srv_ptr;
-		}
+		auto internal_state = std::make_shared<Resource_DX12>();
+		internal_state->allocationhandler = allocationhandler;
+		sharedRes = {};
+		sharedRes.internal_state = internal_state;
+		sharedRes.type = GPUResource::Type::TEXTURE;
+		sharedRes.mapped_data = nullptr;
+		sharedRes.mapped_size = 0;
 
-		HRESULT hr = device2->OpenSharedHandle(texture->shared_handle, PPV_ARGS(_res.shared_texture));
+		//auto internal_state = to_internal(sharedRes);
+		HRESULT hr = device_another->OpenSharedHandle(textureShared->shared_handle, PPV_ARGS(internal_state->resource));
 		if (FAILED(hr)) {
-			return nullptr;
+			return false;
 		}
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-		srv_desc.Format = _ConvertFormat(texture->desc.format);
-		if (texture->desc.sample_count > 1)
+		srv_desc.Format = _ConvertFormat(textureShared->desc.format);
+		if (textureShared->desc.sample_count > 1)
 		{
 			srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
 		}
@@ -5194,16 +5191,18 @@ std::mutex queue_locker;
 		// Normally your engine will have some sort of allocator for these - here we assume that there's an SRV descriptor heap in
 		// g_pd3dSrvDescHeap with at least two descriptors allocated, and descriptor 1 is unused
 
-		ID3D12DescriptorHeap* srv_desc_heap2 = (ID3D12DescriptorHeap*)_srv_desc_heap2;
+		UINT handle_increment_gpu2 = device_another->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		ID3D12DescriptorHeap* srv_desc_heap2 = (ID3D12DescriptorHeap*)srvDescHeap2;
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu_descriptor_handler = srv_desc_heap2->GetCPUDescriptorHandleForHeapStart();
-		cpu_descriptor_handler.ptr += (handle_increment_gpu2 * descriptor_index);
-		device2->CreateShaderResourceView(_res.shared_texture.Get(), &srv_desc, cpu_descriptor_handler);
+		cpu_descriptor_handler.ptr += (handle_increment_gpu2 * descriptorIndex);
+		device_another->CreateShaderResourceView(internal_state->resource.Get(), &srv_desc, cpu_descriptor_handler);
 
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handler = srv_desc_heap2->GetGPUDescriptorHandleForHeapStart();
-		gpu_descriptor_handler.ptr += (handle_increment_gpu2 * descriptor_index);
-		_res.shared_srv_ptr = gpu_descriptor_handler.ptr;
-		_res.old_shared_handle = texture->shared_handle;
-		return (void*)gpu_descriptor_handler.ptr;
+		gpu_descriptor_handler.ptr += (handle_increment_gpu2 * descriptorIndex);
+		
+		gpuDesciptorHandlerPtr = gpu_descriptor_handler.ptr;
+		return true;
 	}
 
 
