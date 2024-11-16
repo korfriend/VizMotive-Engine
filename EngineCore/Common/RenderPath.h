@@ -17,6 +17,8 @@ namespace vz
 		// swapChain_ and rtRenderFinal_ are exclusive!
 		graphics::SwapChain swapChain_;	// handled in RenderPath2D
 		graphics::Texture rtRenderFinal_; // handled in RenderPath2D
+		graphics::GPUResource resShared_;
+		uint64_t sharedHandleDescriptorPtr_ = 0u;
 
 
 		// resize check variables

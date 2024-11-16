@@ -12,6 +12,8 @@ namespace vzm
 {
 	// This must be called before using engine APIs
 	//  - paired with DeinitEngineLib()
+	//  - "GPU_VALIDATION" note: only one debug_layer is available 
+	//		unless the other device previously created will be removed unexpectedly!
 	API_EXPORT bool InitEngineLib(const vzm::ParamMap<std::string>& arguments = vzm::ParamMap<std::string>());
 	API_EXPORT bool DeinitEngineLib();
 	API_EXPORT bool IsValidEngineLib();

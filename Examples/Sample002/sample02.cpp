@@ -13,7 +13,7 @@
 #include <dxgi1_4.h>
 
 #include <tchar.h>
-//#include <shellscalingapi.h>
+#include <shellscalingapi.h>
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
@@ -96,17 +96,62 @@ void WaitForLastSubmittedFrame();
 FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+// Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
+void EnableDpiAwareness() {
+	// Windows 10에서 사용할 수 있는 DPI 인식 설정
+	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
+	if (hUser32) {
+		typedef BOOL(WINAPI* SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
+		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
+			(SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+
+		if (SetProcessDpiAwarenessContextFunc) {
+			SetProcessDpiAwarenessContextFunc(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+		}
+		else {
+			// Windows 8.1에서 사용할 수 있는 DPI 인식 설정
+			HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
+			if (hShcore) {
+				typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
+				SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
+					(SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
+
+				if (SetProcessDpiAwarenessFunc) {
+					SetProcessDpiAwarenessFunc(PROCESS_PER_MONITOR_DPI_AWARE);
+				}
+				FreeLibrary(hShcore);
+			}
+		}
+		FreeLibrary(hUser32);
+	}
+}
+
 // Main code
+DXGI_SWAP_CHAIN_DESC1 sd;
+
 int main(int, char**)
 {
+	// DPI 인식을 활성화
+	EnableDpiAwareness();
+
 	// Create application window
 	//ImGui_ImplWin32_EnableDpiAwareness();
 	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
 	::RegisterClassExW(&wc);
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
-		// Initialize Direct3D
-	if (!CreateDeviceD3D(hwnd))
+	vzm::ParamMap<std::string> arguments;
+	//arguments.SetString("API", "DX11");
+	arguments.SetString("GPU_VALIDATION", "VERBOSE");
+	//arguments.SetParam("MAX_THREADS", 1u); // ~0u
+	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
+	if (!vzm::InitEngineLib(arguments)) {
+		std::cerr << "Failed to initialize engine library." << std::endl;
+		return -1;
+	}
+
+	// Initialize Direct3D
+	if (!CreateDeviceD3D(hwnd)) // calls pdx12Debug->EnableDebugLayer();
 	{
 		CleanupDeviceD3D();
 		::UnregisterClassW(wc.lpszClassName, wc.hInstance);
@@ -131,19 +176,10 @@ int main(int, char**)
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hwnd);
 	ImGui_ImplDX12_Init(g_pd3dDevice, NUM_FRAMES_IN_FLIGHT,
-		DXGI_FORMAT_R11G11B10_FLOAT, g_pd3dSrvDescHeap,
+		sd.Format, g_pd3dSrvDescHeap, //DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
 		g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
 		g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
-	vzm::ParamMap<std::string> arguments;
-	//arguments.SetString("API", "DX11");
-	arguments.SetString("GPU_VALIDATION", "VERBOSE");
-	//arguments.SetParam("MAX_THREADS", 1u); // ~0u
-	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
-	if (!vzm::InitEngineLib(arguments)) {
-		std::cerr << "Failed to initialize engine library." << std::endl;
-		return -1;
-	}
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
 	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
@@ -152,13 +188,77 @@ int main(int, char**)
 	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
 	// - Read 'docs/FONTS.md' for more instructions and details.
 	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-	io.Fonts->AddFontDefault();
+	//io.Fonts->AddFontDefault();
 	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
 	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
 	//IM_ASSERT(font != nullptr);
+
+	using namespace vzm;
+	VzScene* scene = nullptr;
+	VzCamera* camera = nullptr;
+	VzRenderer* renderer = nullptr;
+	ImVec2 wh(512, 512);
+	{
+		scene = NewScene("my scene");
+
+		VzLight* light = NewLight("my light");
+		light->SetLightIntensity(5.f);
+		light->SetPosition({ 0.f, 0.f, 100.f });
+		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
+
+		renderer = NewRenderer("my renderer");
+		renderer->SetCanvas(1, 1, 96.f, nullptr);
+		renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
+
+		camera = NewCamera("my camera");
+		glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
+		glm::fvec3 view = at - pos;
+		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+
+		//callbackLoadModel(vzm::LoadMeshModel("D:\\data\\car_gltf\\ioniq.gltf", "my file scene", "my gltf root"));
+		//vzm::LoadFileIntoNewSceneAsync("D:\\data\\car_gltf\\ioniq.gltf", "my file scene", "my gltf root", callbackLoadModel);
+		//vzm::LoadMeshModel("D:\\VisMotive\\data\\obj files\\skull\\12140_Skull_v3_L2.obj", "my file scene", "my obj");
+		//vzm::LoadFileIntoNewSceneAsync("D:\\data\\showroom1\\car_action_08.gltf", "my file scene", "my gltf root", callbackLoadModel);
+
+		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
+		geometry_test->MakeTestQuadWithUVs();
+		vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
+		material_test->SetShaderType(vzm::ShaderType::PBR);
+		material_test->SetDoubleSided(true);
+
+		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my triangles");
+		geometry_test2->MakeTestTriangle();
+
+		vzm::VzTexture* texture = vzm::NewTexture("my texture");
+		texture->LoadImageFile("../Assets/testimage_2ns.jpg");
+		material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
+
+		vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
+		actor_test->SetScale({ 2.f, 2.f, 2.f });
+		actor_test->SetPosition({ 0, 0, -1.f });
+
+		vzm::VzActor* actor_test2 = vzm::NewActor("my actor2");
+		actor_test2->SetGeometry(geometry_test2);
+		actor_test2->SetPosition({ 0, -2, 0 });
+		vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
+		for (size_t i = 0, n = geometry_test2->GetNumParts(); i < n; ++i)
+		{
+			vzm::VzMaterial* material = vzm::NewMaterial("my test2's material " + i);
+			actor_test2->SetMaterial(material, i);
+			material->SetShaderType(vzm::ShaderType::PBR);
+			material->SetDoubleSided(true);
+			material->SetBaseColor(colors[i]);
+		}
+
+		vzm::AppendSceneCompTo(actor_test, scene);
+		vzm::AppendSceneCompTo(actor_test2, scene);
+		//vzm::AppendSceneCompTo(actor_test3, scene);
+		vzm::AppendSceneCompTo(light, scene);
+	}
 
 	// Our state
 	bool show_demo_window = true;
@@ -186,43 +286,9 @@ int main(int, char**)
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+
 		using namespace vzm;
-		
 		{
-			static VzScene* scene = nullptr;
-			static VzCamera* camera = nullptr;
-			static VzRenderer* renderer = nullptr;
-			static ImVec2 wh(512, 512);
-			/*
-			if (scene == nullptr)
-			{
-				scene = NewScene("my scene");
-
-				VzLight* light = NewLight("my light");
-				light->SetLightIntensity(5.f);
-				light->SetPosition({ 0.f, 0.f, 100.f });
-				light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
-
-				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-
-				renderer = NewRenderer("my renderer");
-				renderer->SetCanvas(canvas_size.x, canvas_size.y, 96.f, nullptr);
-				renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
-
-				camera = NewCamera("my camera");
-				glm::fvec3 pos(0, 2, 2), up(0, 1, 0), at(0, 0, 0);
-				glm::fvec3 view = at - pos;
-				camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-				camera->SetPerspectiveProjection(0.1f, 5000.f, glm::pi<float>() * 0.25f, 1.f);
-
-				//callbackLoadModel(vzm::LoadMeshModel("D:\\data\\car_gltf\\ioniq.gltf", "my file scene", "my gltf root"));
-				//vzm::LoadFileIntoNewSceneAsync("D:\\data\\car_gltf\\ioniq.gltf", "my file scene", "my gltf root", callbackLoadModel);
-				//vzm::LoadMeshModel("D:\\VisMotive\\data\\obj files\\skull\\12140_Skull_v3_L2.obj", "my file scene", "my obj");
-				//vzm::LoadFileIntoNewSceneAsync("D:\\data\\showroom1\\car_action_08.gltf", "my file scene", "my gltf root", callbackLoadModel);
-
-			}
-
-			/*
 			ImGui::Begin("3D Viewer");
 			{
 				static ImVec2 prevWindowSize = ImVec2(0, 0);
@@ -238,7 +304,7 @@ int main(int, char**)
 				{
 					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 					canvas_size.y = std::max(canvas_size.y, 1.f);
-					renderer->ResizeCanvas(canvas_size.x, canvas_size.y);
+					renderer->ResizeCanvas(canvas_size.x, canvas_size.y, camera->GetVID());
 					wh = canvas_size;
 				}
 				ImVec2 win_pos = ImGui::GetWindowPos();
@@ -290,27 +356,29 @@ int main(int, char**)
 
 				ImGui::SetCursorPos(cur_item_pos);
 
-				//renderer->Render(scene, camera);
+				renderer->Render(scene, camera);
 
 				uint32_t w, h;
-				//ImTextureID texId = renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, &w, &h);
+				ImTextureID texId = renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, &w, &h);
 				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
-				//ImGui::Image(texId, ImVec2((float)w, (float)h));
+				ImGui::Image(texId, ImVec2((float)w, (float)h));
 			}
+			/**/
 			ImGui::End();
 
-			/**/
 			ImGui::Begin("Controls");
 			{
-				//if (ImGui::Button("Shader Reload"))
-				//{
-				//	vzm::ReloadShader();
-				//}
+				if (ImGui::Button("Shader Reload"))
+				{
+					vzm::ReloadShader();
+				}
 
-				//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			}
 			ImGui::End();
+
 		}
+
 		// Rendering
 		ImGui::Render();
 
@@ -367,17 +435,15 @@ int main(int, char**)
 }
 
 // Helper functions
-
 bool CreateDeviceD3D(HWND hWnd)
 {
 	// Setup swap chain
-	DXGI_SWAP_CHAIN_DESC1 sd;
 	{
 		ZeroMemory(&sd, sizeof(sd));
 		sd.BufferCount = NUM_BACK_BUFFERS;
 		sd.Width = 0;
 		sd.Height = 0;
-		sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		sd.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 		sd.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		sd.SampleDesc.Count = 1;
