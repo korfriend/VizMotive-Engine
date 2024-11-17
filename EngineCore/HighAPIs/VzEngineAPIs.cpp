@@ -626,7 +626,6 @@ namespace vzm
 		return vzcomp::Destroy(vid);	// jobsystem
 	}
 
-
 	VzActor* LoadModelFile(const std::string& filename)
 	{
 		CHECK_API_VALIDITY(nullptr);
@@ -639,7 +638,7 @@ namespace vzm
 			std::vector<Entity>& textures
 			);
 
-		PI_Function lpdll_function = platform::LoadModule<PI_Function>("MeshIO", "ImportModel_OBJ");
+		PI_Function lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_OBJ");
 		if (lpdll_function == nullptr)
 		{
 			backlog::post("vzm::LoadModelFile >> Invalid plugin function!", backlog::LogLevel::Error);

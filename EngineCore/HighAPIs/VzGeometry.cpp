@@ -1,6 +1,8 @@
 #include "VzEngineAPIs.h"
 #include "Components/Components.h"
 #include "Utils/Backlog.h"
+#include "Utils/Platform.h"
+#include "Utils/Helpers.h"
 
 using namespace vz;
 using namespace std;
@@ -95,6 +97,33 @@ namespace vzm
 		geometry->MovePrimitiveFrom(std::move(prim), 0);
 		geometry->UpdateRenderData();
 		UpdateTimeStamp();
+	}
+
+	bool VzGeometry::LoadGeometryFile(const std::string& filename)
+	{
+		std::string ext = helper::toUpper(helper::GetExtensionFromFileName(filename));
+		if (ext != "STL")
+		{
+			backlog::post("LoadGeometryFile dose not support " + ext + " file!", backlog::LogLevel::Error);
+			return false;
+		}
+
+		typedef Entity(*PI_Function)(const std::string& fileName, vz::GeometryComponent* geometry);
+
+
+		PI_Function lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_STL");
+		if (lpdll_function == nullptr)
+		{
+			backlog::post("vzm::LoadModelFile >> Invalid plugin function!", backlog::LogLevel::Error);
+			return false;
+		}
+		GET_GEO_COMP(geometry, false);
+		if (lpdll_function(filename, geometry))
+		{
+			geometry->UpdateRenderData();
+			return true;
+		}
+		return false;
 	}
 
 	size_t VzGeometry::GetNumParts() const

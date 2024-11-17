@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="AssetIO.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelImporter_OBJ.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelImporter_STL.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AssetIO.h">
+      <Filter>Pubilic</Filter>
+    </ClInclude>
+    <ClInclude Include="tiny_obj_loader.h">
+      <Filter>Private</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Pubilic">
+      <UniqueIdentifier>{d856a98a-6f9d-422a-963e-c2521bd4af4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Private">
+      <UniqueIdentifier>{06080ab6-214a-4fa8-8ea6-6f0462fe36c1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

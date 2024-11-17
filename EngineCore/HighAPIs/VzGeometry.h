@@ -10,6 +10,10 @@ namespace vzm
 
 		void MakeTestTriangle();
 		void MakeTestQuadWithUVs();
+		
+		// STL
+		bool LoadGeometryFile(const std::string& filename);
+
 		size_t GetNumParts() const;
 	};
 }
