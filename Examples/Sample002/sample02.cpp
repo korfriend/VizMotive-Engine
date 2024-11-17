@@ -255,11 +255,12 @@ int main(int, char**)
 		}
 
 		vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
-		geometry_test->LoadGeometryFile("../Assets/stl_files/Anchorpin.stl");
+		geometry_stl->LoadGeometryFile("../Assets/stl_files/Anchorpin.stl");
 		vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
-		material_test->SetShaderType(vzm::ShaderType::PBR);
-		material_test->SetDoubleSided(true);
+		material_stl->SetShaderType(vzm::ShaderType::PBR);
+		material_stl->SetDoubleSided(true);
 		vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
+		actor_test3->SetScale({ 0.3f, 0.3f, 0.3f });
 
 		vzm::AppendSceneCompTo(actor_test, scene);
 		vzm::AppendSceneCompTo(actor_test2, scene);
