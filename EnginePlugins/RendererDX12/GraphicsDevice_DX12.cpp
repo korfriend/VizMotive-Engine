@@ -2422,7 +2422,7 @@ std::mutex queue_locker;
 #ifdef _DEBUG
 				d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
 				d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
-				//d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+				d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
 #endif
 
 				std::vector<D3D12_MESSAGE_SEVERITY> enabledSeverities;
@@ -3753,7 +3753,7 @@ std::mutex queue_locker;
 				hr = allocationhandler->allocator->CreateResource(
 					&allocationDesc,
 					&resourcedesc,
-					resourceState,
+					resourcedesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS? D3D12_RESOURCE_STATE_COMMON : resourceState,
 					useClearValue ? &optimizedClearValue : nullptr,
 					&internal_state->allocation,
 					PPV_ARGS(internal_state->resource)
