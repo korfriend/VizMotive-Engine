@@ -110,7 +110,6 @@ namespace vzm
 
 		typedef Entity(*PI_Function)(const std::string& fileName, vz::GeometryComponent* geometry);
 
-
 		PI_Function lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_STL");
 		if (lpdll_function == nullptr)
 		{
