@@ -170,10 +170,12 @@ namespace vzm
 
 		bool ret = Render(vidScene, vidCam);
 
+		size_t num_picked_positions = camera->pickedPositions.size();
+		ret &= num_picked_positions > 0;
+
 		// output setting
 		if (ret)
 		{
-			size_t num_picked_positions = camera->pickedPositions.size();
 			worldPositions.resize(num_picked_positions);
 			vids.resize(num_picked_positions);
 			memcpy(worldPositions.data(), camera->pickedPositions.data(), sizeof(XMFLOAT3) * num_picked_positions);
