@@ -15,7 +15,7 @@ bool ImportModel_STL(const std::string& fileName, vz::GeometryComponent* geometr
 	Assimp::Importer importer;
 
 	// dummy
-	std::vector<Entity> dummy;
+	//std::vector<Entity> dummy;
 
 	// import STL 
 	const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate | aiProcess_GenNormals);

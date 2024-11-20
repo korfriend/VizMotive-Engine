@@ -32,12 +32,13 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241104";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241118";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
 	struct GScene;
+	struct Resource;
 
 	struct CORE_EXPORT Scene
 	{
@@ -68,6 +69,8 @@ namespace vz
 		// Scene lights (Skybox or Weather something...)
 		XMFLOAT3 ambient_ = XMFLOAT3(0.25f, 0.25f, 0.25f);
 
+		std::string skyMapName_;	// resourcemanager's key
+		std::string colorGradingMapName_; // resourcemanager's key
 
 		// Instead of Entity, VUID is stored by serialization
 		//	the index is same to the streaming index
@@ -82,6 +85,10 @@ namespace vz
 		std::unordered_map<Entity, size_t> lookupLights_;
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
+
+		uint32_t most_important_light_index = ~0u;
+		std::shared_ptr<Resource> skyMap_;
+		std::shared_ptr<Resource> colorGradingMap_;
 
 		geometrics::AABB aabb_;
 
@@ -112,6 +119,8 @@ namespace vz
 
 		inline void SetAmbient(const XMFLOAT3& ambient) { ambient_ = ambient; }
 		inline XMFLOAT3 GetAmbient() const { return ambient_; }
+
+		inline bool LoadIBL(const std::string& filename); // to skyMap_
 
 		inline void Update(const float dt);
 
@@ -705,7 +714,6 @@ namespace vz
 			histogram[index]++;
 		}
 	};
-	struct Resource;
 	struct GTextureInterface;
 	constexpr size_t TEXTURE_MAX_RESOLUTION = 4096;
 	struct CORE_EXPORT TextureComponent : ComponentBase

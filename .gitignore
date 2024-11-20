@@ -53,7 +53,8 @@ bin/X64_Debug_MT/*.lib
 bin/X64_Release_MT/*.ini
 bin/X64_Debug_MT/*.ini
 
-!./Examples/Assets/**/*.obj
+!Examples/Assets/**/*.obj
+!Examples/Assets/models/**/*.obj
 
 # Visual Studio 2015 cache/options directory
 .vs/

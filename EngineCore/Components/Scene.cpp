@@ -6,6 +6,7 @@
 #include "Common/Archive.h"
 #include "Libs/Geometrics.h"
 #include "Common/Backend/GRendererInterface.h"
+#include "Common/ResourceManager.h"
 
 #include <cstdint>
 #include <atomic>
@@ -319,6 +320,8 @@ namespace vz
 			archive >> name_;
 
 			archive >> ambient_;
+			archive >> skyMapName_;
+			archive >> colorGradingMapName_;
 
 			size_t num_renderables;
 			archive >> num_renderables;
@@ -348,6 +351,8 @@ namespace vz
 			archive << name_;
 
 			archive << ambient_;
+			archive << skyMapName_;
+			archive << colorGradingMapName_;
 
 			archive << renderables_.size();
 			for (Entity entity : renderables_)
@@ -364,6 +369,20 @@ namespace vz
 				archive << comp->GetVUID();
 			}
 		}
+	}
+}
+
+namespace vz
+{
+	bool Scene::LoadIBL(const std::string& filename)
+	{
+		skyMap_ = std::make_shared<Resource>(
+			resourcemanager::Load(filename, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA | resourcemanager::Flags::STREAMING)
+		);
+
+		skyMapName_ = filename;
+		Resource& resource = *skyMap_.get();
+		return resource.IsValid();
 	}
 }
 
