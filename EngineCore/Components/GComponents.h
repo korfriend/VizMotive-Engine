@@ -386,6 +386,12 @@ namespace vz
 	struct CORE_EXPORT GCameraComponent : CameraComponent
 	{
 		GCameraComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(entity, vuid) {}
+
+		// temporal attributes for picking process 
+		bool isPickingMode = false;
+		XMFLOAT2 posPickOnScreen = {};
+		std::vector<Entity> pickedRenderables;
+		std::vector<XMFLOAT3> pickedPositions;
 	};
 
 	struct CORE_EXPORT GLightComponent : LightComponent

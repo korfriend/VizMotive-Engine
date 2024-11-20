@@ -1,5 +1,5 @@
 #include "VzEngineAPIs.h"
-#include "Components/Components.h"
+#include "Components/GComponents.h"
 #include "Common/RenderPath3D.h"
 #include "Utils/Backlog.h"
 #include "Utils/Helpers.h"
@@ -153,6 +153,28 @@ namespace vzm
 
 		renderer->frameCount++;
 
+		return true;
+	}
+
+	bool VzRenderer::PickingList(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids)
+	{
+		GET_RENDERPATH(renderer, false);
+
+		GCameraComponent* camera = (GCameraComponent*)compfactory::GetCameraComponent(vidCam);
+		if (camera == nullptr)
+		{
+			return false;
+		}
+		camera->isPickingMode = true;
+		camera->posPickOnScreen = *(XMFLOAT2*)&pos;
+
+		// output setting
+		camera->isPickingMode = false;
+		size_t num_picked_positions = camera->pickedPositions.size();
+		worldPositions.resize(num_picked_positions);
+		vids.resize(num_picked_positions);
+		memcpy(worldPositions.data(), camera->pickedPositions.data(), sizeof(XMFLOAT3) * num_picked_positions);
+		memcpy(vids.data(), camera->pickedRenderables.data(), sizeof(Entity) * num_picked_positions);
 		return true;
 	}
 
