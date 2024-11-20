@@ -27,8 +27,19 @@ namespace vzm
 		bool Render(const SceneVID vidScene, const CamVID vidCam);
 		bool Render(const VzScene* scene, const VzCamera* camera) { return Render(scene->GetVID(), camera->GetVID()); };
 
-		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2 pos, vfloat3& worldPosition, ActorVID& vid);
-		bool PickingList(const VzScene* scene, const VzCamera* camera, const vfloat2 pos, std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids);
+		bool PickingList(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids);
+		bool PickingList(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids) {
+			return PickingList(scene->GetVID(), camera->GetVID(), pos, worldPositions, vids);
+		}
+		bool Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, vfloat3& worldPosition, ActorVID& vid) {
+			std::vector<vfloat3> worldPositions; std::vector<ActorVID> vids;
+			if (!PickingList(vidScene, vidCam, pos, worldPositions, vids)) return false;
+			worldPosition = worldPositions[0]; vid = vids[0];
+			return true;
+		}
+		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, vfloat3& worldPosition, ActorVID& vid) {
+			return Picking(scene->GetVID(), camera->GetVID(), pos, worldPosition, vid);
+		}
 
 		// the render target resource must be fenced before calling the next Render()
 		void* GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, uint32_t* w, uint32_t* h);
