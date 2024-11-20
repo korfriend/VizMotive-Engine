@@ -27,6 +27,9 @@ namespace vzm
 		bool Render(const SceneVID vidScene, const CamVID vidCam);
 		bool Render(const VzScene* scene, const VzCamera* camera) { return Render(scene->GetVID(), camera->GetVID()); };
 
+		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2 pos, vfloat3& worldPosition, ActorVID& vid);
+		bool PickingList(const VzScene* scene, const VzCamera* camera, const vfloat2 pos, std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids);
+
 		// the render target resource must be fenced before calling the next Render()
 		void* GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, uint32_t* w, uint32_t* h);
 	};
