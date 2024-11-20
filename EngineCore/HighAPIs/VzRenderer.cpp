@@ -168,14 +168,23 @@ namespace vzm
 		camera->isPickingMode = true;
 		camera->posPickOnScreen = *(XMFLOAT2*)&pos;
 
+		bool ret = Render(vidScene, vidCam);
+
 		// output setting
+		if (ret)
+		{
+			size_t num_picked_positions = camera->pickedPositions.size();
+			worldPositions.resize(num_picked_positions);
+			vids.resize(num_picked_positions);
+			memcpy(worldPositions.data(), camera->pickedPositions.data(), sizeof(XMFLOAT3) * num_picked_positions);
+			memcpy(vids.data(), camera->pickedRenderables.data(), sizeof(Entity) * num_picked_positions);
+		}
+
 		camera->isPickingMode = false;
-		size_t num_picked_positions = camera->pickedPositions.size();
-		worldPositions.resize(num_picked_positions);
-		vids.resize(num_picked_positions);
-		memcpy(worldPositions.data(), camera->pickedPositions.data(), sizeof(XMFLOAT3) * num_picked_positions);
-		memcpy(vids.data(), camera->pickedRenderables.data(), sizeof(Entity) * num_picked_positions);
-		return true;
+		camera->pickedPositions = {};
+		camera->pickedRenderables = {};
+
+		return ret;
 	}
 
 	void* VzRenderer::GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, uint32_t* w, uint32_t* h)
