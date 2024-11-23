@@ -3688,6 +3688,8 @@ namespace vz
 
 		device->EventBegin("Composition", cmd);
 		//image::Draw(&rtPostprocess, fx, cmd);
+		//fx.enableDepthTest();
+		//image::Draw(&rtPrimitiveID_render, fx, cmd);
 		image::Draw(&rtMain, fx, cmd);
 		device->EventEnd(cmd);
 

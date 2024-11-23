@@ -348,6 +348,11 @@ namespace vz::shader
 		const std::vector<std::string>& permutation_defines
 	)
 	{
+		if (device == nullptr)
+		{
+			return false;
+		}
+
 		std::string shaderbinaryfilename = SHADERPATH + filename;
 		std::string shadersourcepath = SHADERSOURCEPATH;
 		switch (stage)
@@ -362,6 +367,7 @@ namespace vz::shader
 		case vz::graphics::ShaderStage::CS: shadersourcepath += "CS/"; break;
 		default:
 			assert(0);
+			return false;
 		}
 		
 		// dependency naming convention
@@ -382,21 +388,18 @@ namespace vz::shader
 			shaderbinaryfilename += "." + ext;
 		}
 
-		if (device != nullptr)
-		{
 #ifdef SHADERDUMP_ENABLED
-			// Loading shader from precompiled dump:
-			auto it = shaderdump::shadersDump.find(shaderbinaryfilename);
-			if (it != shaderdump::shadersDump.end())
-			{
-				return device->CreateShader(stage, it->second.data, it->second.size, &shader);
-			}
-			else
-			{
-				backlog::post("shader dump doesn't contain shader: " + shaderbinaryfilename, backlog::LogLevel::Error);
-			}
-#endif // SHADERDUMP_ENABLED
+		// Loading shader from precompiled dump:
+		auto it = shaderdump::shadersDump.find(shaderbinaryfilename);
+		if (it != shaderdump::shadersDump.end())
+		{
+			return device->CreateShader(stage, it->second.data, it->second.size, &shader);
 		}
+		else
+		{
+			backlog::post("shader dump doesn't contain shader: " + shaderbinaryfilename, backlog::LogLevel::Error);
+		}
+#endif // SHADERDUMP_ENABLED
 		
 		shadercompiler::RegisterShader(shaderbinaryfilename);
 
@@ -467,6 +470,15 @@ namespace vz::shader
 
 		jobsystem::Wait(CTX_renderPS);
 		CTX_renderPS.priority = jobsystem::Priority::Low;
+		for (uint32_t renderPass = 0; renderPass < RENDERPASS_COUNT; ++renderPass)
+		{
+			for (uint32_t mesh_shader = 0; mesh_shader <= MESH_SHADER_PSO_COUNT; ++mesh_shader)
+			{
+				jobsystem::Wait(rcommon::CTX_renderPSO[renderPass][mesh_shader]);
+			}
+		}
+		SHADER_ERRORS.store(0);
+		SHADER_MISSING.store(0);
 
 		jobsystem::context ctx;
 		

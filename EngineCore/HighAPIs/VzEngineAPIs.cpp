@@ -684,6 +684,7 @@ namespace vzm
 	{
 		CHECK_API_VALIDITY(;);
 		eventhandler::FireEvent(eventhandler::EVENT_RELOAD_SHADERS, 0);
+		graphicsDevice->ClearPipelineStateCache();
 	}
 
 	bool DeinitEngineLib()

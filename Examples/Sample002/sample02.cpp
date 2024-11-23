@@ -1,6 +1,7 @@
 // Filament highlevel APIs
 #include "HighAPIs/VzEngineAPIs.h"
 #include "Utils/Backlog.h"
+#include "Utils/EventHandler.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -657,6 +658,16 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	switch (msg)
 	{
+	case WM_KEYDOWN:
+		switch (wParam) {
+		case 'R':
+			//vz::eventhandler::FireEvent(1, 0);
+			vzm::ReloadShader();
+			    break;
+		default:
+			break;
+		}
+		return 0;
 	case WM_SIZE:
 		if (g_pd3dDevice != nullptr && wParam != SIZE_MINIMIZED)
 		{

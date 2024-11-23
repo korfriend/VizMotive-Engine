@@ -35,7 +35,7 @@
 #define TEXTURE_SLOT_NONUNIFORM
 #endif // TERRAINBLENDED
 
-#include "../Globals.hlsli"
+#include "../globals.hlsli"
 #include "brdf.hlsli"
 #include "lightingHF.hlsli"
 //#include "skyAtmosphere.hlsli"
@@ -78,6 +78,7 @@ inline ShaderMaterial GetMaterial()
 //#define OBJECTSHADER_USE_DITHERING				- shader will use dithered transparency
 //#define OBJECTSHADER_USE_UVSETS					- shader will sample textures with uv sets
 //#define OBJECTSHADER_USE_NORMAL					- shader will use normals
+//#define OBJECTSHADER_USE_WETMAP					- shader will use wetmap
 //#define OBJECTSHADER_USE_TANGENT					- shader will use tangents, normal mapping
 //#define OBJECTSHADER_USE_EMISSIVE					- shader will use emissive
 //#define OBJECTSHADER_USE_RENDERTARGETARRAYINDEX	- shader will use dynamic render target slice selection
@@ -85,17 +86,21 @@ inline ShaderMaterial GetMaterial()
 //#define OBJECTSHADER_USE_NOCAMERA					- shader will not use camera space transform
 //#define OBJECTSHADER_USE_INSTANCEINDEX			- shader will use instance ID
 //#define OBJECTSHADER_USE_CAMERAINDEX				- shader will use camera ID
+
+//#define OBJECTSHADER_USE_AO						- shader will use ambient occlusion
+//#define OBJECTSHADER_USE_ATLAS					- shader will use atlas
+//#define OBJECTSHADER_USE_POSITION3D				- shader will use world space positions
+
+
 //#define OBJECTSHADER_USE_COMMON					- shader will use atlas, ambient occlusion, wetmap
 
 
 #ifdef OBJECTSHADER_LAYOUT_SHADOW
-#define OBJECTSHADER_USE_CAMERAINDEX
 #endif // OBJECTSHADER_LAYOUT_SHADOW
 
 #ifdef OBJECTSHADER_LAYOUT_SHADOW_TEX
 #define OBJECTSHADER_USE_INSTANCEINDEX
 #define OBJECTSHADER_USE_UVSETS
-#define OBJECTSHADER_USE_CAMERAINDEX
 #endif // OBJECTSHADER_LAYOUT_SHADOW_TEX
 
 #ifdef OBJECTSHADER_LAYOUT_PREPASS
@@ -113,12 +118,15 @@ inline ShaderMaterial GetMaterial()
 #ifdef OBJECTSHADER_LAYOUT_COMMON
 #define OBJECTSHADER_USE_CLIPPLANE
 #define OBJECTSHADER_USE_UVSETS
+#define OBJECTSHADER_USE_ATLAS
 #define OBJECTSHADER_USE_COLOR
 #define OBJECTSHADER_USE_NORMAL
+#define OBJECTSHADER_USE_AO
+#define OBJECTSHADER_USE_WETMAP
 #define OBJECTSHADER_USE_TANGENT
+#define OBJECTSHADER_USE_POSITION3D
 #define OBJECTSHADER_USE_EMISSIVE
 #define OBJECTSHADER_USE_INSTANCEINDEX
-#define OBJECTSHADER_USE_COMMON
 #endif // OBJECTSHADER_LAYOUT_COMMON
 
 struct VertexInput
@@ -152,7 +160,7 @@ struct VertexInput
 	half2 GetAtlasUV()
 	{
 		[branch]
-		if (GetMesh().vb_atl < 0)
+        if (GetMesh().vb_atl < 0)
 			return 0;
 		return (half2)bindless_buffers_float2[GetMesh().vb_atl][vertexID];
 	}
@@ -165,12 +173,12 @@ struct VertexInput
 		return (half4)bindless_buffers_float4[GetMesh().vb_col][vertexID];
 	}
 	
-	half3 GetNormal()
+	float3 GetNormal()
 	{
 		[branch]
 		if (GetMesh().vb_nor < 0)
 			return 0;
-		return (half3)bindless_buffers_float4[GetMesh().vb_nor][vertexID].xyz;
+		return bindless_buffers_float4[GetMesh().vb_nor][vertexID].xyz;
 	}
 
 	half4 GetTangent()
@@ -190,7 +198,7 @@ struct VertexInput
 		inst.Init();
 		return inst;
 	}
-
+	
 	ShaderInstanceResLookup GetInstRes()
     {
         if (push.instBufferResIndex >= 0)
@@ -201,27 +209,27 @@ struct VertexInput
         return instRes;
     }
 
-
 	half GetVertexAO()
-	{
+	{		
 		[branch]
-		if (GetInstRes().vb_ao < 0)
+        if (GetInstRes().vb_ao < 0)
 			return 1;
-		return (half)bindless_buffers_float[NonUniformResourceIndex(GetInstRes().vb_ao)][vertexID];
-	}
+        return (half) bindless_buffers_float[GetInstRes().vb_ao][vertexID];
+    }
 
 	half GetWetmap()
-	{
+    {
 		//[branch]
-		//if (GetInstRes().vb_wetmap < 0)
-		//	return 0;
-		//return (half)bindless_buffers_float[NonUniformResourceIndex(GetInstRes().vb_wetmap)][vertexID];
-
+        //if (GetInstRes().vb_wetmap < 0)
+        //    return 0;
+        //return (half) bindless_buffers_float[GetInstRes().vb_wetmap][vertexID];
+		
 		// There is something seriously bad with AMD driver's shader compiler as the above commented version works incorrectly and this works correctly but only for wetmap
+
 		[branch]
-		if (GetInstRes().vb_wetmap >= 0)
-			return (half)bindless_buffers_float[NonUniformResourceIndex(GetInstRes().vb_wetmap)][vertexID];
-		return 0;
+        if (GetInstRes().vb_wetmap >= 0)
+            return (half) bindless_buffers_float[GetInstRes().vb_wetmap][vertexID];
+        return 0;
 	}
 };
 
@@ -232,7 +240,7 @@ struct VertexSurface
 	float4 uvsets;
 	half2 atlas;
 	half4 color;
-	half3 normal;
+	float3 normal;
 	half4 tangent;
 	half ao;
 	half wet;
@@ -261,7 +269,7 @@ struct VertexSurface
 			ao = 1;
 		}
 
-		normal = rotate_vector(normal, (half4)input.GetInstance().quaternion);
+		normal = rotate_vector(normal, input.GetInstance().quaternion);
 		normal = any(normal) ? normalize(normal) : 0;
 
 		tangent = input.GetTangent();
@@ -289,7 +297,7 @@ struct VertexSurface
 
 struct PixelInput
 {
-	precise float4 pos : SV_Position;
+	precise float4 pos : SV_POSITION;
 
 #ifdef OBJECTSHADER_USE_CLIPPLANE
 	float clip : SV_ClipDistance0;
@@ -298,10 +306,6 @@ struct PixelInput
 #if defined(OBJECTSHADER_USE_INSTANCEINDEX) || defined(OBJECTSHADER_USE_DITHERING)
 	uint instanceIndex_dither : INSTANCEINDEX_DITHER;
 #endif // OBJECTSHADER_USE_INSTANCEINDEX || OBJECTSHADER_USE_DITHERING
-
-#ifdef OBJECTSHADER_USE_CAMERAINDEX
-	uint cameraIndex : CAMERAINDEX;
-#endif // OBJECTSHADER_USE_CAMERAINDEX
 
 #ifdef OBJECTSHADER_USE_UVSETS
 	float4 uvsets : UVSETS;
@@ -316,22 +320,42 @@ struct PixelInput
 #endif // OBJECTSHADER_USE_TANGENT
 
 #ifdef OBJECTSHADER_USE_NORMAL
-	float3 nor : NORMAL; // Note: normal is half precision per-vertex, but interpolated at full precision intentionally!
+	float3 nor : NORMAL;
 #endif // OBJECTSHADER_USE_NORMAL
 
-#ifdef OBJECTSHADER_USE_COMMON
-	half4 atl_ao_wet : COMMON;
-#endif // OBJECTSHADER_USE_COMMON
+#ifdef OBJECTSHADER_USE_ATLAS
+	half2 atl : ATLAS;
+#endif // OBJECTSHADER_USE_ATLAS
+
+#ifdef OBJECTSHADER_USE_POSITION3D
+	float3 pos3D : WORLDPOSITION;
+#endif // OBJECTSHADER_USE_POSITION3D
+
+#ifdef OBJECTSHADER_USE_AO
+	half ao : AMBIENT_OCCLUSION;
+#endif // OBJECTSHADER_USE_AO
+
+#ifdef OBJECTSHADER_USE_WETMAP
+	half wet : WET;
+#endif // OBJECTSHADER_USE_WETMAP
 
 #ifndef OBJECTSHADER_COMPILE_MS
 #ifdef OBJECTSHADER_USE_RENDERTARGETARRAYINDEX
+#ifdef VPRT_EMULATION
+	uint RTIndex : RTINDEX;
+#else
 	uint RTIndex : SV_RenderTargetArrayIndex;
+#endif // VPRT_EMULATION
 #endif // OBJECTSHADER_USE_RENDERTARGETARRAYINDEX
 #endif // OBJECTSHADER_COMPILE_MS
 
 #ifndef OBJECTSHADER_COMPILE_MS
 #ifdef OBJECTSHADER_USE_VIEWPORTARRAYINDEX
+#ifdef VPRT_EMULATION
+	uint VPIndex : VPINDEX;
+#else
 	uint VPIndex : SV_ViewportArrayIndex;
+#endif // VPRT_EMULATION
 #endif // OBJECTSHADER_USE_VIEWPORTARRAYINDEX
 #endif // OBJECTSHADER_COMPILE_MS
 
@@ -355,28 +379,6 @@ struct PixelInput
 		return uvsets;
 	}
 #endif // OBJECTSHADER_USE_UVSETS
-
-	inline float3 GetPos3D()
-	{
-#ifdef OBJECTSHADER_USE_CAMERAINDEX
-		ShaderCamera camera = GetCamera(cameraIndex);
-#else
-		ShaderCamera camera = GetCamera();
-#endif // OBJECTSHADER_USE_CAMERAINDEX
-
-		return camera.screen_to_world(pos);
-	}
-
-	inline float3 GetViewVector()
-	{
-#ifdef OBJECTSHADER_USE_CAMERAINDEX
-		ShaderCamera camera = GetCamera(cameraIndex);
-#else
-		ShaderCamera camera = GetCamera();
-#endif // OBJECTSHADER_USE_CAMERAINDEX
-
-		return camera.screen_to_nearplane(pos) - GetPos3D(); // ortho support, cannot use cameraPos!
-	}
 };
 
 PixelInput vertex_to_pixel_export(VertexInput input)
@@ -388,20 +390,12 @@ PixelInput vertex_to_pixel_export(VertexInput input)
 	
 	Out.pos = surface.position;
 
-#ifdef OBJECTSHADER_USE_CAMERAINDEX
-	const uint cameraIndex = input.GetInstancePointer().GetCameraIndex();
-#else
-	const uint cameraIndex = 0;
-#endif // OBJECTSHADER_USE_CAMERAINDEX
-
-	ShaderCamera camera = GetCamera(cameraIndex);
-
 #ifndef OBJECTSHADER_USE_NOCAMERA
-	Out.pos = mul(camera.view_projection, Out.pos);
+	Out.pos = mul(GetCamera().view_projection, Out.pos);
 #endif // OBJECTSHADER_USE_NOCAMERA
 
 #ifdef OBJECTSHADER_USE_CLIPPLANE
-	Out.clip = dot(surface.position, camera.clip_plane);
+	Out.clip = dot(surface.position, GetCamera().clip_plane);
 #endif // OBJECTSHADER_USE_CLIPPLANE
 
 #if defined(OBJECTSHADER_USE_INSTANCEINDEX) || defined(OBJECTSHADER_USE_DITHERING)
@@ -414,9 +408,9 @@ PixelInput vertex_to_pixel_export(VertexInput input)
 #endif // OBJECTSHADER_USE_DITHERING
 #endif // OBJECTSHADER_USE_INSTANCEINDEX || OBJECTSHADER_USE_DITHERING
 
-#ifdef OBJECTSHADER_USE_CAMERAINDEX
-	Out.cameraIndex = cameraIndex;
-#endif // OBJECTSHADER_USE_CAMERAINDEX
+#ifdef OBJECTSHADER_USE_POSITION3D
+	Out.pos3D = surface.position.xyz;
+#endif // OBJECTSHADER_USE_POSITION3D
 
 #ifdef OBJECTSHADER_USE_COLOR
 	Out.color = surface.color;
@@ -426,28 +420,44 @@ PixelInput vertex_to_pixel_export(VertexInput input)
 	Out.uvsets = surface.uvsets;
 #endif // OBJECTSHADER_USE_UVSETS
 
+#ifdef OBJECTSHADER_USE_ATLAS
+	Out.atl = surface.atlas;
+#endif // OBJECTSHADER_USE_ATLAS
+
 #ifdef OBJECTSHADER_USE_NORMAL
 	Out.nor = surface.normal;
 #endif // OBJECTSHADER_USE_NORMAL
 
-#ifdef OBJECTSHADER_USE_COMMON
-	Out.atl_ao_wet = half4(surface.atlas, surface.ao, surface.wet);
-#endif // OBJECTSHADER_USE_COMMON
+#ifdef OBJECTSHADER_USE_AO
+	Out.ao = surface.ao;
+#endif // OBJECTSHADER_USE_AO
+
+#ifdef OBJECTSHADER_USE_WETMAP
+	Out.wet = surface.wet;
+#endif // OBJECTSHADER_USE_WETMAP
 
 #ifdef OBJECTSHADER_USE_TANGENT
 	Out.tan = surface.tangent;
 #endif // OBJECTSHADER_USE_TANGENT
 
 #ifdef OBJECTSHADER_USE_RENDERTARGETARRAYINDEX
+	const uint frustum_index = input.GetInstancePointer().GetCameraIndex();
 #ifndef OBJECTSHADER_COMPILE_MS
-	Out.RTIndex = camera.output_index;
+	Out.RTIndex = GetCamera(frustum_index).output_index;
 #endif // OBJECTSHADER_COMPILE_MS
+#ifndef OBJECTSHADER_USE_NOCAMERA
+	Out.pos = mul(GetCamera(frustum_index).view_projection, surface.position);
+#endif // OBJECTSHADER_USE_NOCAMERA
 #endif // OBJECTSHADER_USE_RENDERTARGETARRAYINDEX
 
 #ifdef OBJECTSHADER_USE_VIEWPORTARRAYINDEX
+	const uint frustum_index = input.GetInstancePointer().GetCameraIndex();
 #ifndef OBJECTSHADER_COMPILE_MS
-	Out.VPIndex = camera.output_index;
+	Out.VPIndex = GetCamera(frustum_index).output_index;
 #endif // OBJECTSHADER_COMPILE_MS
+#ifndef OBJECTSHADER_USE_NOCAMERA
+	Out.pos = mul(GetCamera(frustum_index).view_projection, surface.position);
+#endif // OBJECTSHADER_USE_NOCAMERA
 #endif // OBJECTSHADER_USE_VIEWPORTARRAYINDEX
 
 	return Out;
@@ -502,22 +512,9 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 
 // Pixel shader base:
 {
-#ifdef OBJECTSHADER_USE_CAMERAINDEX
-	ShaderCamera camera = GetCamera(input.cameraIndex);
-#else
-	ShaderCamera camera = GetCamera();
-#endif // OBJECTSHADER_USE_CAMERAINDEX
-
 	const uint2 pixel = input.pos.xy; // no longer pixel center!
-	const float2 ScreenCoord = input.pos.xy * camera.internal_resolution_rcp; // use pixel center!
-	
-	Surface surface;
-	surface.init();
-	surface.P = input.GetPos3D();
-	surface.V = input.GetViewVector();
-	float dist = length(surface.V);
-	surface.V /= dist;
-	
+	const float2 ScreenCoord = input.pos.xy * GetCamera().internal_resolution_rcp; // use pixel center!
+
 #ifdef OBJECTSHADER_USE_UVSETS
 	float4 uvsets = input.GetUVSets();
 #endif // OBJECTSHADER_USE_UVSETS
@@ -531,7 +528,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #ifndef ENVMAPRENDERING
 #ifdef OBJECTSHADER_USE_DITHERING
 	// apply dithering:
-	clip(dither(pixel + GetTemporalAASampleRotation()) - (1 - input.GetDither()));
+	clip(dither((min16uint2) pixel + GetTemporalAASampleRotation()) - (1 - input.GetDither()));
 #endif // OBJECTSHADER_USE_DITHERING
 #endif // DISABLE_ALPHATEST
 #endif // TRANSPARENT
@@ -543,6 +540,9 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 
 	ShaderMaterial material = GetMaterial();
 
+	Surface surface;
+	surface.init();
+
 
 #ifdef OBJECTSHADER_USE_NORMAL
 	if (is_frontface == false)
@@ -552,9 +552,16 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	surface.N = normalize(input.nor);
 #endif // OBJECTSHADER_USE_NORMAL
 
-#ifdef OBJECTSHADER_USE_COMMON
-	surface.occlusion = input.atl_ao_wet.z;
-#endif // OBJECTSHADER_USE_COMMON
+#ifdef OBJECTSHADER_USE_AO
+	surface.occlusion = input.ao;
+#endif // OBJECTSHADER_USE_AO
+
+#ifdef OBJECTSHADER_USE_POSITION3D
+	surface.P = input.pos3D;
+	surface.V = GetCamera().position - surface.P;
+	float dist = length(surface.V);
+	surface.V /= dist;
+#endif // OBJECTSHADER_USE_POSITION3D
 
 #ifdef OBJECTSHADER_USE_TANGENT
 	if (is_frontface == false)
@@ -602,6 +609,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	if (material.textures[BASECOLORMAP].IsValid() && (GetFrame().options & OPTION_BIT_DISABLE_ALBEDO_MAPS) == 0)
 #endif // PREPASS
 	{
+		//surface.baseColor *= (half4)material.textures[BASECOLORMAP].SampleLevel(sampler_objectshader, uvsets, 0);
 		surface.baseColor *= (half4)material.textures[BASECOLORMAP].Sample(sampler_objectshader, uvsets);
 	}
 	
@@ -611,7 +619,6 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 		surface.baseColor.a *= (half)material.textures[TRANSPARENCYMAP].Sample(sampler_objectshader, uvsets).r;
 	}
 #endif // OBJECTSHADER_USE_UVSETS
-
 
 #ifdef OBJECTSHADER_USE_COLOR
 	surface.baseColor *= input.color;
@@ -701,7 +708,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 					float terrain_height = lerp(terrain.min_height, terrain.max_height, terrain_height0);
 					float object_height = surface.P.y;
 					float diff = (object_height - terrain_height) * material.GetTerrainBlendRcp();
-					float blend = 1 - sqr(saturate(diff));
+					float blend = 1 - pow(saturate(diff), 2);
 					//blend *= lerp(1, saturate((noise_gradient_3D(surface.P * 2) * 0.5 + 0.5) * 2), saturate(diff));
 					//terrain_uv = lerp(saturate(inverse_lerp(chunk_min, chunk_max, surface.P.xz - surface.N.xz * diff)), terrain_uv, saturate(surface.N.y)); // uv stretching improvement: stretch in normal direction if normal gets horizontal
 					ShaderMaterial terrain_material = load_material(chunk.materialID);
@@ -776,15 +783,14 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	
 	
 
-#ifdef OBJECTSHADER_USE_COMMON
-	half wet = input.atl_ao_wet.w;
-	if(wet > 0)
+#ifdef OBJECTSHADER_USE_WETMAP
+	if(input.wet > 0)
 	{
-		surface.albedo = lerp(surface.albedo, 0, wet);
-		surface.roughness = clamp(surface.roughness * sqr(1 - wet), 0.01, 1);
-		surface.N = normalize(lerp(surface.N, input.nor, wet));
+		surface.albedo = lerp(surface.albedo, 0, input.wet);
+		surface.roughness = clamp(surface.roughness * sqr(1 - input.wet), 0.01, 1);
+		surface.N = normalize(lerp(surface.N, input.nor, input.wet));
 	}
-#endif // OBJECTSHADER_USE_COMMON
+#endif // OBJECTSHADER_USE_WETMAP
 
 
 #ifdef OBJECTSHADER_USE_UVSETS
@@ -802,9 +808,9 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #ifndef TRANSPARENT
 #ifndef CARTOON
 	[branch]
-	if (camera.texture_ao_index >= 0)
+	if (GetCamera().texture_ao_index >= 0)
 	{
-		surface.occlusion *= (half)bindless_textures_float[camera.texture_ao_index].SampleLevel(sampler_linear_clamp, ScreenCoord, 0).r;
+		surface.occlusion *= (half)bindless_textures_float[GetCamera().texture_ao_index].SampleLevel(sampler_linear_clamp, ScreenCoord, 0).r;
 	}
 #endif // CARTOON
 #endif // TRANSPARENT
@@ -898,7 +904,6 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 
 	Lighting lighting;
 	lighting.create(0, 0, ambient, 0);
-
 	
 	half4 color = surface.baseColor;
 
@@ -916,28 +921,28 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 		bumpColor1 = 2 * (half2)texture_normalmap.Sample(sampler_objectshader, UV_normalMap + material.texMulAdd.zw).rg - 1;
 	}
 	[branch]
-	if (camera.texture_waterriples_index >= 0)
+	if (GetCamera().texture_waterriples_index >= 0)
 	{
-		bumpColor2 = (half2)bindless_textures_float2[camera.texture_waterriples_index].SampleLevel(sampler_linear_clamp, ScreenCoord, 0).rg;
+		bumpColor2 = (half2)bindless_textures_float2[GetCamera().texture_waterriples_index].SampleLevel(sampler_linear_clamp, ScreenCoord, 0).rg;
 	}
 	surface.bumpColor = half3(bumpColor0 + bumpColor1 + bumpColor2, 1)  * material.GetRefraction();
 	surface.N = normalize(lerp(surface.N, mul(normalize(surface.bumpColor), TBN), material.GetNormalMapStrength()));
 	surface.bumpColor.rg *= material.GetNormalMapStrength();
 
 	[branch]
-	if (camera.texture_reflection_index >= 0)
+	if (GetCamera().texture_reflection_index >= 0)
 	{
 		//REFLECTION
-		float4 reflectionUV = mul(camera.reflection_view_projection, float4(surface.P, 1));
+		float4 reflectionUV = mul(GetCamera().reflection_view_projection, float4(surface.P, 1));
 		reflectionUV.xy /= reflectionUV.w;
 		reflectionUV.xy = clipspace_to_uv(reflectionUV.xy) + surface.bumpColor.rg;
-		half3 reflectiveColor = (half3)bindless_textures[camera.texture_reflection_index].SampleLevel(sampler_linear_mirror, reflectionUV.xy, 0).rgb;
+		half3 reflectiveColor = (half3)bindless_textures[GetCamera().texture_reflection_index].SampleLevel(sampler_linear_mirror, reflectionUV.xy, 0).rgb;
 		[branch]
-		if(camera.texture_reflection_depth_index >= 0)
+		if(GetCamera().texture_reflection_depth_index >= 0)
 		{
-			float reflectiveDepth = bindless_textures[camera.texture_reflection_depth_index].SampleLevel(sampler_point_clamp, reflectionUV.xy, 0).r;
-			float3 reflectivePosition = reconstruct_position(reflectionUV.xy, reflectiveDepth, camera.reflection_inverse_view_projection);
-			float4 water_plane = camera.reflection_plane;
+			float reflectiveDepth = bindless_textures[GetCamera().texture_reflection_depth_index].SampleLevel(sampler_point_clamp, reflectionUV.xy, 0).r;
+			float3 reflectivePosition = reconstruct_position(reflectionUV.xy, reflectiveDepth, GetCamera().reflection_inverse_view_projection);
+			float4 water_plane = GetCamera().reflection_plane;
 			float water_depth = -dot(float4(reflectivePosition, 1), water_plane);
 			reflectiveColor.rgb = lerp(color.rgb, reflectiveColor.rgb, saturate(exp(-water_depth * color.a)));
 		}
@@ -963,19 +968,19 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #endif // OBJECTSHADER_USE_UVSETS
 
 		[branch]
-		if (camera.texture_refraction_index >= 0)
+		if (GetCamera().texture_refraction_index >= 0)
 		{
-			Texture2D texture_refraction = bindless_textures[camera.texture_refraction_index];
+			Texture2D texture_refraction = bindless_textures[GetCamera().texture_refraction_index];
 			float2 size;
 			float mipLevels;
 			texture_refraction.GetDimensions(0, size.x, size.y, mipLevels);
-			const float2 normal2D = mul((float3x3)camera.view, surface.N.xyz).xy;
+			const float2 normal2D = mul((float3x3)GetCamera().view, surface.N.xyz).xy;
 			float2 perturbatedRefrTexCoords = ScreenCoord.xy + normal2D * lerp(material.GetRefraction(), 0.1, material.GetCloak());
 			float mip = lerp(surface.roughness, 0.1, material.GetCloak()) * mipLevels;
-			float chromatic = material.GetChromaticAberration() / size;
-			half refractiveColorR = texture_refraction.SampleLevel(sampler_linear_clamp, perturbatedRefrTexCoords + float2(1, 1) * chromatic, mip).r;
-			half refractiveColorG = texture_refraction.SampleLevel(sampler_linear_clamp, perturbatedRefrTexCoords + float2(0, 0) * chromatic, mip).g;
-			half refractiveColorB = texture_refraction.SampleLevel(sampler_linear_clamp, perturbatedRefrTexCoords - float2(1, 1) * chromatic, mip).b;
+			float2 chromatic = material.GetChromaticAberration() / size;
+			half refractiveColorR = (half)texture_refraction.SampleLevel(sampler_linear_clamp, perturbatedRefrTexCoords + float2(1, 1) * chromatic, mip).r;
+			half refractiveColorG = (half)texture_refraction.SampleLevel(sampler_linear_clamp, perturbatedRefrTexCoords + float2(0, 0) * chromatic, mip).g;
+			half refractiveColorB = (half)texture_refraction.SampleLevel(sampler_linear_clamp, perturbatedRefrTexCoords - float2(1, 1) * chromatic, mip).b;
 			half3 refractiveColor = half3(refractiveColorR, refractiveColorG, refractiveColorB);
 			surface.refraction.rgb = lerp(surface.albedo, 1, material.GetCloak()) * refractiveColor.rgb;
 			surface.refraction.a = surface.transmission;
@@ -984,21 +989,21 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #endif // TRANSPARENT
 
 
-#ifdef OBJECTSHADER_USE_COMMON
-	LightMapping(meshinstance.lightmap, input.atl_ao_wet.xy, lighting, surface);
-#endif // OBJECTSHADER_USE_COMMON
+#ifdef OBJECTSHADER_USE_ATLAS
+	LightMapping(meshinstance.lightmap, input.atl, lighting, surface);
+#endif // OBJECTSHADER_USE_ATLAS
 
 
 #ifdef PLANARREFLECTION
 	lighting.indirect.specular += PlanarReflection(surface, surface.bumpColor.rg) * surface.F;
 #endif
 
-
 #ifdef FORWARD
 	ForwardLighting(surface, lighting);
 #endif // FORWARD
 
-
+// https://google.github.io/filament/Filament.html
+// the same asdouble Filament Forward+ rendering
 #ifdef TILEDFORWARD
 	TiledLighting(surface, lighting, flat_tile_index);
 #endif // TILEDFORWARD
@@ -1009,15 +1014,15 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #ifndef TRANSPARENT
 #ifndef CARTOON
 	[branch]
-	if (camera.texture_ssr_index >= 0)
+	if (GetCamera().texture_ssr_index >= 0)
 	{
-		half4 ssr = (half4)bindless_textures[camera.texture_ssr_index].SampleLevel(sampler_linear_clamp, ScreenCoord, 0);
+		half4 ssr = (half4)bindless_textures[GetCamera().texture_ssr_index].SampleLevel(sampler_linear_clamp, ScreenCoord, 0);
 		lighting.indirect.specular = lerp(lighting.indirect.specular, ssr.rgb * surface.F, ssr.a);
 	}
 	[branch]
-	if (camera.texture_ssgi_index >= 0)
+	if (GetCamera().texture_ssgi_index >= 0)
 	{
-		surface.ssgi = (half3)bindless_textures[camera.texture_ssgi_index].SampleLevel(sampler_linear_clamp, ScreenCoord, 0).rgb;
+		surface.ssgi = (half3)bindless_textures[GetCamera().texture_ssgi_index].SampleLevel(sampler_linear_clamp, ScreenCoord, 0).rgb;
 	}
 #endif // CARTOON
 #endif // TRANSPARENT
@@ -1026,12 +1031,12 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 
 #ifdef WATER
 	[branch]
-	if (camera.texture_refraction_index >= 0)
+	if (GetCamera().texture_refraction_index >= 0)
 	{
 		// Water refraction:
-		float4 water_plane = camera.reflection_plane;
-		const float camera_above_water = dot(float4(camera.position, 1), water_plane) < 0; 
-		Texture2D texture_refraction = bindless_textures[camera.texture_refraction_index];
+		float4 water_plane = GetCamera().reflection_plane;
+		const float camera_above_water = dot(float4(GetCamera().position, 1), water_plane) < 0; 
+		Texture2D texture_refraction = bindless_textures[GetCamera().texture_refraction_index];
 		// First sample using full perturbation:
 		float2 refraction_uv = ScreenCoord.xy + surface.bumpColor.rg;
 		float refraction_depth = find_max_depth(refraction_uv, 2, 2);
@@ -1068,12 +1073,6 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	ApplyLighting(surface, lighting, color);
 
 
-#ifdef OBJECTSHADER_USE_INSTANCEINDEX
-	half4 rimHighlight = meshinstance.GetRimHighlight();
-	color.rgb += rimHighlight.rgb * pow(1 - surface.NdotV, rimHighlight.w);
-#endif // OBJECTSHADER_USE_INSTANCEINDEX
-
-
 #ifdef UNLIT
 	color = surface.baseColor;
 #endif // UNLIT
@@ -1086,22 +1085,23 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #endif // TRANSPARENT
 
 
+#ifdef OBJECTSHADER_USE_POSITION3D
 	ApplyFog(dist, surface.V, color);
+#endif // OBJECTSHADER_USE_POSITION3D
 
-	color.rgb = mul(saturationMatrix(material.GetSaturation()), color.rgb);
 
 	color = saturateMediump(color);
 
 
 	// end point:
 #ifdef PREPASS
-	coverage = AlphaToCoverage(color.a, material.GetAlphaTest() + meshinstance.GetAlphaTest(), input.pos); // opaque soft alpha test (temporal AA, etc)
+	coverage = 0;//AlphaToCoverage(color.a, material.GetAlphaTest() + meshinstance.GetAlphaTest(), input.pos); // opaque soft alpha test (temporal AA, etc)
 #ifndef DEPTHONLY
 	PrimitiveID prim;
-	prim.primitiveIndex = primitiveID;
-	prim.instanceIndex = input.GetInstanceIndex();
-	prim.subsetIndex = push.geometryIndex - meshinstance.geometryOffset;
-	return prim.pack();
+	prim.primitiveIndex = 0;//primitiveID;
+	prim.instanceIndex = 0;//input.GetInstanceIndex();
+	prim.subsetIndex = 0;//push.geometryIndex - meshinstance.geometryOffset;
+	return 0;//prim.pack();
 #endif // DEPTHONLY
 #else
 	return color;

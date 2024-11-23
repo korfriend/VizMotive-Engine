@@ -375,6 +375,8 @@ namespace vz
 			PBR,
 			UNLIT,
 
+			//WATER,
+
 			COUNT	// UPDATE ShaderInterop.h's SHADERTYPE_BIN_COUNT when modifying ShaderType elements
 		};
 		enum class TextureSlot : uint32_t
@@ -455,6 +457,7 @@ namespace vz
 		XMFLOAT4 phongFactors_ = XMFLOAT4(0.2f, 1, 1, 1);	// only used for ShaderType::PHONG
 		float metalness_ = 0.f; // only used for ShaderType::PBR
 		float roughness_ = 0.f; // only used for ShaderType::PBR
+		float saturate_ = 1.f;
 
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 		VUID volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
@@ -473,6 +476,7 @@ namespace vz
 		inline const XMFLOAT4& GetEmissiveColor() const { return emissiveColor_; }	// w is emissive strength
 
 		inline void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; }
+		inline void SetSaturate(const float saturate) { saturate_ = saturate; }
 		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; }
 		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
@@ -504,6 +508,7 @@ namespace vz
 		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
 
 		inline float GetAlphaRef() const { return alphaRef_; }
+		inline float GetSaturate() const { return saturate_; }
 		inline float GetMatalness() const { return metalness_; }
 		inline float GetRoughness() const { return roughness_; }
 		inline BlendMode GetBlendMode() const { return blendMode_; }
@@ -936,6 +941,8 @@ namespace vz
 		XMFLOAT3 visibleCenter_ = XMFLOAT3(0, 0, 0);
 		float visibleRadius_ = 0;
 		float fadeDistance_ = std::numeric_limits<float>::max();
+		XMFLOAT4 rimHighlightColor_ = XMFLOAT4(1, 1, 1, 0);
+		float rimHighlightFalloff_ = 8;
 
 		// Non-serialized attributes:
 		//	dirty check can be considered by the following components
@@ -967,6 +974,9 @@ namespace vz
 		float GetFadeDistance() const { return fadeDistance_; }
 		float GetVisibleRadius() const { return visibleRadius_; }
 		XMFLOAT3 GetVisibleCenter() const { return visibleCenter_; }
+		XMFLOAT4 GetRimHighLightColor() const { return rimHighlightColor_; }
+		float GetRimHighLightFalloff() const { return rimHighlightFalloff_; }
+
 		Entity GetGeometry() const;
 		Entity GetMaterial(const size_t slot) const;
 		std::vector<Entity> GetMaterials() const;

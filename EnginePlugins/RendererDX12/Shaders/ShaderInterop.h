@@ -260,8 +260,7 @@ struct alignas(16) ShaderMeshInstance
 	uint resLookupOffset;
 
 	uint meshletOffset; // offset in the global meshlet buffer for first subset (for LOD0)
-	uint padding0;
-	uint padding1;
+	uint2 rimHighlight;
 	uint padding2;
 
 	float3 aabbCenter;
@@ -298,6 +297,7 @@ struct alignas(16) ShaderMeshInstance
 		lightmap = -1;
 		
 		quaternion = float4(0, 0, 0, 1);
+		rimHighlight = uint2(0, 0);
 		transform.Init();
 		transformPrev.Init();
 		transformRaw.Init();
@@ -317,6 +317,7 @@ struct alignas(16) ShaderMeshInstance
 	inline half3 GetEmissive() { return unpack_half3(emissive); }
 	inline half GetAlphaTest() { return unpack_half2(alphaTest_size).x; }
 	inline half GetSize() { return unpack_half2(alphaTest_size).y; }
+	inline half4 GetRimHighlight() { return unpack_half4(rimHighlight); }
 #endif // __cplusplus
 };
 
@@ -550,7 +551,7 @@ struct alignas(16) ShaderMaterial
 	uint2 subsurfaceScattering_inv;
 
 	uint2 specular_chromatic;
-	uint2 sheenColor;
+	uint2 sheenColor_saturation;
 
 	float4 texMulAdd;
 
@@ -579,7 +580,7 @@ struct alignas(16) ShaderMaterial
 		subsurfaceScattering_inv = uint2(0, 0);
 
 		specular_chromatic = uint2(0, 0);
-		sheenColor = uint2(0, 0);
+		sheenColor_saturation = uint2(0, 0);
 
 		texMulAdd = float4(1, 1, 0, 0);
 
@@ -611,7 +612,8 @@ struct alignas(16) ShaderMaterial
 	inline half GetCloak() { return unpack_half4(emissive_cloak).a; }
 	inline half3 GetSpecular() { return unpack_half3(specular_chromatic); }
 	inline half GetChromaticAberration() { return unpack_half4(specular_chromatic).w; }
-	inline half3 GetSheenColor() { return unpack_half3(sheenColor); }
+	inline half3 GetSheenColor() { return unpack_half3(sheenColor_saturation); }
+	inline half GetSaturation() { return unpack_half4(sheenColor_saturation).w; }
 	inline half GetRoughness() { return unpack_half4(roughness_reflectance_metalness_refraction).x; }
 	inline half GetReflectance() { return unpack_half4(roughness_reflectance_metalness_refraction).y; }
 	inline half GetMetalness() { return unpack_half4(roughness_reflectance_metalness_refraction).z; }
@@ -1480,6 +1482,29 @@ struct alignas(16) ShaderCamera
 	inline bool is_pixel_inside_scissor(uint2 pixel)
 	{
 		return pixel.x >= scissor.x && pixel.x <= scissor.z && pixel.y >= scissor.y && pixel.y <= scissor.w;
+	}
+
+	inline bool IsOrtho() { return options & SHADERCAMERA_OPTION_ORTHO; }
+
+	inline float3 screen_to_nearplane(float4 svposition)
+	{
+		const float2 ScreenCoord = svposition.xy * internal_resolution_rcp;
+		return frustum_corners.screen_to_nearplane(ScreenCoord);
+	}
+	inline float3 screen_to_farplane(float4 svposition)
+	{
+		const float2 ScreenCoord = svposition.xy * internal_resolution_rcp;
+		return frustum_corners.screen_to_farplane(ScreenCoord);
+	}
+
+	// Convert raw screen coordinate from rasterizer to world position
+	//	Note: svposition is the SV_Position system value, the .w component can be different in different compilers
+	//	You need to ensure that the .w component is used for linear depth (Vulkan: -fvk-use-dx-position-w, Xbox: in case VRS, there is complication with this, read documentation)
+	inline float3 screen_to_world(float4 svposition)
+	{
+		const float2 ScreenCoord = svposition.xy * internal_resolution_rcp;
+		const float z = IsOrtho() ? (1 - svposition.z) : ((svposition.w - z_near) * z_range_rcp);
+		return frustum_corners.screen_to_world(ScreenCoord, z);
 	}
 #endif // __cplusplus
 };

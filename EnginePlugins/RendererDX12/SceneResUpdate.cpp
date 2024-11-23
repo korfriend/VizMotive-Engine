@@ -154,7 +154,15 @@ namespace vz
 					shader_material.subsurfaceScattering = pack_half4(sss);
 					shader_material.subsurfaceScattering_inv = pack_half4(sss_inv);
 
-					shader_material.sheenColor = pack_half3(XMFLOAT3(sheenColor.x, sheenColor.y, sheenColor.z));
+					//if (material.GetShaderType() == MaterialComponent::ShaderType::Water)
+					//{
+					//	shader_material.sheenColor_saturation = pack_half4(XMFLOAT4(1 - extinctionColor.x, 1 - extinctionColor.y, 1 - extinctionColor.z, saturation));
+					//}
+					//else
+					{
+						shader_material.sheenColor_saturation = pack_half4(XMFLOAT4(sheenColor.x, sheenColor.y, sheenColor.z, material.GetSaturate()));
+					}
+
 					shader_material.transmission_sheenroughness_clearcoat_clearcoatroughness = pack_half4(transmission, sheenRoughness, clearcoat, clearcoatRoughness);
 					float _anisotropy_strength = 0;
 					float _anisotropy_rotation_sin = 0;
@@ -415,6 +423,9 @@ namespace vz
 
 				inst.alphaTest_size = math::pack_half2(XMFLOAT2(0, size));
 				//inst.SetUserStencilRef(renderable.userStencilRef);
+				XMFLOAT4 rimHighlightColor = renderable.GetRimHighLightColor();
+				float rimHighlightFalloff = renderable.GetRimHighLightFalloff();
+				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
 
 				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 			}

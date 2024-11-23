@@ -99,6 +99,8 @@ namespace vz
 			archive >> metalness_;
 			archive >> roughness_;
 			archive >> alphaRef_;
+			archive >> saturate_;
+
 			archive >> u32_data;
 			engineStencilRef_ = static_cast<StencilRef>(u32_data);
 
@@ -141,6 +143,8 @@ namespace vz
 			archive << metalness_;
 			archive << roughness_;
 			archive << alphaRef_;
+			archive << saturate_;
+
 			archive << SCU32(engineStencilRef_);
 
 			uint32_t tex_slot_count = SCU32(TextureSlot::TEXTURESLOT_COUNT);
@@ -316,6 +320,8 @@ namespace vz
 			archive >> fadeDistance_;
 			archive >> visibleCenter_;
 			archive >> visibleRadius_;
+			archive >> rimHighlightColor_;
+			archive >> rimHighlightFalloff_;
 
 			uint32_t u32_data;
 			archive >> u32_data;
@@ -334,6 +340,8 @@ namespace vz
 			archive << fadeDistance_;
 			archive << visibleCenter_;
 			archive << visibleRadius_;
+			archive << rimHighlightColor_;
+			archive << rimHighlightFalloff_;
 
 			archive << vuidMaterials_.size();
 			for (size_t i = 0, n = vuidMaterials_.size(); i < n; ++i)

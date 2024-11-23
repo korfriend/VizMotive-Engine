@@ -682,6 +682,7 @@ namespace vz::image
 		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_ANISO_MIRROR]);
 
 		static eventhandler::Handle handle = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
+		//static eventhandler::Handle handle_dev = eventhandler::Subscribe(1, [](uint64_t userdata) { LoadShaders(); });
 		LoadShaders();
 
 		backlog::post("image Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)");

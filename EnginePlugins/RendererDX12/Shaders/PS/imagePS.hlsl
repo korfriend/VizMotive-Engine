@@ -100,5 +100,22 @@ float4 main(VertextoPixel input) : SV_TARGET
 		color.a *= (half)angular;
 	}
 
+	// just for debug //
+	//[branch]
+	//if (image.angular_softness_scale > 0)
+	{
+		Texture2D texture = bindless_textures[image.texture_base_index];
+		uint primitive_id = texture.Load(int3(input.pos.xy, 0)).r;
+
+		//Texture2D texture = bindless_textures[image.texture_base_index];
+		//float primitive_id = texture.Sample(sam, uvsets).r;
+		//color = half4!(primitive_id % 3) / 3.f, (primitive_id % 5) / 5.f, (primitive_id % 4) / 4.f, 1);
+		if (primitive_id != 0)
+		{
+		//	color = float4(1, 1, 1, 1);
+		}
+	}
+
+
 	return color;
 }
