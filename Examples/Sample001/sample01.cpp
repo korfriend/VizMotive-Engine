@@ -182,7 +182,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::VzMaterial* material_test3 = vzm::NewMaterial("my material 3");
 	vzm::VzTexture* tex_otf_test3 = vzm::NewTexture("my material 3's OTF");
-	std::vector<uint8_t> otf_array(1024 * 4);
+	std::vector<uint8_t> otf_array(1024 * 2 * 4);
 	tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 2, 1);
 
 	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
@@ -260,8 +260,8 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_KEYDOWN:
         switch (wParam) {
-        //case 'R': vzm::ReloadShader(); 
-        //    break;
+        case 'R': vzm::ReloadShader(); 
+            break;
         default:
             break;
 		}

@@ -145,7 +145,7 @@ struct SurfaceToLight
 		NdotL_sss = (NdotL_sss + surface.sss.rgb) * surface.sss_inv.rgb;
 #endif // CARTOON
 
-        NdotL = (half3)saturate((float3) NdotL);
+        NdotL = (half)saturate((float) NdotL);
         NdotL_sss = (half3) saturate((float3) NdotL_sss);
     }
 };

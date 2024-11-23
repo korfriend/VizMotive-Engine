@@ -74,6 +74,7 @@ TestResult.xml
 [Rr]eleasePS/
 dlldata.c
 
+*.cso
 *.dll
 NPTrackingToolsx64*.dll
 opencv_world330*.dll
