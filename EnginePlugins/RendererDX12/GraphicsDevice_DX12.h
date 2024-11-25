@@ -290,7 +290,7 @@ namespace vz::graphics
 
 		// DOJO adds for offscreen rendering option
 		bool OpenSharedResource(const void* device2, const void* srvDescHeap2, const int descriptorIndex, const Texture* textureShared,
-			uint64_t& gpuDesciptorHandlerPtr, GPUResource& sharedRes) override;
+			uint64_t& gpuDesciptorHandlerPtr, GPUResource& sharedRes, void** backendResPtr) override;
 
 		int GetDescriptorIndex(const GPUResource* resource, SubresourceType type, int subresource = -1) const override;
 		int GetDescriptorIndex(const Sampler* sampler) const override;

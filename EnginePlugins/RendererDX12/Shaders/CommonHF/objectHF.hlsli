@@ -1092,6 +1092,8 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 
 	color = saturateMediump(color);
 
+	// note: there are some dead code for computing color when PREPASS rendering mode runs
+	// 	these code will be removed when compiling the shader code as an optimizing process by shader compilers
 
 	// end point:
 #ifdef PREPASS
@@ -1101,7 +1103,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	prim.primitiveIndex = primitiveID;
 	prim.instanceIndex = input.GetInstanceIndex();
 	prim.subsetIndex = push.geometryIndex - meshinstance.geometryOffset;
-	return prim.pack();
+	return 1;//prim.pack();
 #endif // DEPTHONLY
 #else
 	return color;

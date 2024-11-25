@@ -5149,7 +5149,7 @@ std::mutex queue_locker;
 
 	bool GraphicsDevice_DX12::OpenSharedResource(
 		const void* device2, const void* srvDescHeap2, const int descriptorIndex, const Texture* textureShared,
-		uint64_t& gpuDesciptorHandlerPtr, GPUResource& sharedRes
+		uint64_t& gpuDesciptorHandlerPtr, GPUResource& sharedRes, void** backendResPtr
 	)
 	{
 		if (textureShared->shared_handle == nullptr)
@@ -5172,6 +5172,8 @@ std::mutex queue_locker;
 		if (FAILED(hr)) {
 			return false;
 		}
+
+		*backendResPtr = internal_state->resource.Get();
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 		srv_desc.Format = _ConvertFormat(textureShared->desc.format);
