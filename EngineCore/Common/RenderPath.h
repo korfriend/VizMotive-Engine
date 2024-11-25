@@ -64,7 +64,7 @@ namespace vz
 
 		//const graphics::Texture& GetFinalRenderTarget() const { return rtRenderFinal_; }
 		//const graphics::SwapChain& GetSwapChain() const { return swapChain_; }
-		void* GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex);
+		bool GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex, uint64_t& descriptorHandle, void** resPtr);
 
 		virtual void DeleteGPUResources(const bool resizableOnly) = 0;
 		virtual void ResizeResources() = 0;

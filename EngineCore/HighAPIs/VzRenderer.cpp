@@ -189,9 +189,9 @@ namespace vzm
 		return ret;
 	}
 
-	void* VzRenderer::GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, uint32_t* w, uint32_t* h)
+	bool VzRenderer::GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, SharedResourceTarget& resTarget, uint32_t* w, uint32_t* h)
 	{
-		GET_RENDERPATH(renderer, nullptr);
+		GET_RENDERPATH(renderer, false);
 
 		if (w) *w = renderer->GetPhysicalWidth();
 		if (h) *h = renderer->GetPhysicalHeight();
@@ -200,6 +200,9 @@ namespace vzm
 		//return graphicsDevice->OpenSharedResource(graphicsDev2, const_cast<wi::graphics::Texture*>(&renderer->GetRenderResult()));
 		//return graphicsDevice->OpenSharedResource(graphicsDev2, &renderer->rtPostprocess);
 
-		return renderer->GetSharedRendertargetView(graphicsDev2, srvDescHeap2, descriptorIndex);
+		resTarget = {};
+		bool ret = renderer->GetSharedRendertargetView(graphicsDev2, srvDescHeap2, descriptorIndex, resTarget.descriptorHandle, &resTarget.resourcePtr);
+
+		return ret;
 	}
 }

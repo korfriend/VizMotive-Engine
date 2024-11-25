@@ -42,6 +42,11 @@ namespace vzm
 		}
 
 		// the render target resource must be fenced before calling the next Render()
-		void* GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, uint32_t* w, uint32_t* h);
+		struct SharedResourceTarget
+		{
+			void* resourcePtr = nullptr;
+			uint64_t descriptorHandle = 0u; // DX12 and Vulkan only
+		};
+		bool GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, SharedResourceTarget& resTarget, uint32_t* w, uint32_t* h);
 	};
 }

@@ -745,7 +745,7 @@ namespace vz::shader
 		jobsystem::Wait(ctx);
 
 		//for (uint32_t renderPass = 0; renderPass < RENDERPASS_COUNT; ++renderPass)
-		for (uint32_t renderPass = 0; renderPass <= RENDERPASS_PREPASS; ++renderPass)
+		for (uint32_t renderPass = 0; renderPass <= RENDERPASS_PREPASS_DEPTHONLY; ++renderPass)
 		{
 			const uint32_t mesh_shader = 0;
 			//for (uint32_t mesh_shader = 0; mesh_shader <= (device->CheckCapability(GraphicsDeviceCapability::MESH_SHADER) ? 1u : 0u); ++mesh_shader)

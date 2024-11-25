@@ -4,18 +4,19 @@ namespace vz
 {
 	using namespace graphics;
 
-	void* RenderPath::GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex)
+	bool RenderPath::GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex, uint64_t& descriptorHandle, void** resPtr)
 	{
 		if (!resShared_.IsValid())
 		{
 			if (!graphicsDevice_->OpenSharedResource(device2, srvDescHeap2, descriptorIndex, &rtRenderFinal_,
-				sharedHandleDescriptorPtr_, resShared_))
+				sharedHandleDescriptorPtr_, resShared_, resPtr))
 			{
 				backlog::post("Failure to OpenSharedResource!", backlog::LogLevel::Error);
-				return nullptr;
+				return false;
 			}
 		}
 
+		descriptorHandle = sharedHandleDescriptorPtr_;
 		return (void*)sharedHandleDescriptorPtr_;
 	}
 }

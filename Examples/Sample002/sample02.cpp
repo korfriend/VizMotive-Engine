@@ -368,7 +368,9 @@ int main(int, char**)
 				renderer->Render(scene, camera);
 
 				uint32_t w, h;
-				ImTextureID texId = renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, &w, &h);
+				VzRenderer::SharedResourceTarget srt;
+				renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, srt , &w, &h);
+				ImTextureID texId = (ImTextureID)srt.descriptorHandle;
 				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 				ImGui::Image(texId, ImVec2((float)w, (float)h));
 			}

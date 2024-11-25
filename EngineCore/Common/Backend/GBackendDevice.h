@@ -87,7 +87,7 @@ namespace vz::graphics
 
 		// DOJO adds for offscreen rendering option
 		virtual bool OpenSharedResource(const void* device2, const void* srvDescHeap2, const int descriptorIndex, const Texture* textureShared,
-			uint64_t& gpuDesciptorHandlerPtr, GPUResource& sharedRes) = 0;
+			uint64_t& gpuDesciptorHandlerPtr, GPUResource& sharedRes, void** backendResPtr) = 0;
 
 		virtual void DeleteSubresources(GPUResource* resource) = 0;
 
