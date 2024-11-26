@@ -60,8 +60,18 @@ namespace vz::image
 			ANGULAR_DOUBLESIDED = 1 << 10,
 			ANGULAR_INVERSE = 1 << 11,
 			DISTORTION_MASK = 1 << 12,
+			
+			DEBUG_TEST = 1 << 13,
 		};
+
+		enum DEBUG_BUFFER
+		{
+			NO_DEBUG = 0,
+			PRIMITIVE = 1,
+		};
+
 		uint32_t _flags = EMPTY;
+		uint32_t _debugBuffer = NO_DEBUG;
 
 		XMFLOAT3 pos = XMFLOAT3(0, 0, 0);
 		XMFLOAT2 siz = XMFLOAT2(1, 1);
@@ -119,6 +129,8 @@ namespace vz::image
 		//	If you don't set this per image, then image::SetBackground() will be used instead
 		constexpr void setBackgroundMap(const graphics::Texture* tex) { backgroundMap = tex; }
 
+		constexpr void setDebugBuffer(const DEBUG_BUFFER debugBuffer) { _debugBuffer = debugBuffer; }
+
 		constexpr bool isDrawRectEnabled() const { return _flags & DRAWRECT; }
 		constexpr bool isDrawRect2Enabled() const { return _flags & DRAWRECT2; }
 		constexpr bool isMirrorEnabled() const { return _flags & MIRROR; }
@@ -132,7 +144,9 @@ namespace vz::image
 		constexpr bool isAngularSoftnessDoubleSided() const { return _flags & ANGULAR_DOUBLESIDED; }
 		constexpr bool isAngularSoftnessInverse() const { return _flags & ANGULAR_INVERSE; }
 		constexpr bool isDistortionMaskEnabled() const { return _flags & DISTORTION_MASK; }
+		constexpr bool isDebugTestEnabled() const { return _flags & DEBUG_TEST; }
 
+		constexpr void enableDebugTest() { _flags |= DEBUG_TEST; }
 		// enables draw rectangle for base texture (cutout texture outside draw rectangle)
 		constexpr void enableDrawRect(const XMFLOAT4& rect) { _flags |= DRAWRECT; drawRect = rect; }
 		// enables draw rectangle for mask texture (cutout texture outside draw rectangle)
@@ -157,6 +171,7 @@ namespace vz::image
 		// Mask texture RG will be used for distortion of screen UVs for background image, A will be used as opacity
 		constexpr void enableDistortionMask() { _flags |= DISTORTION_MASK; }
 
+		constexpr void disableDebugTest() { _flags &= ~DEBUG_TEST; }
 		// disable draw rectangle for base texture (whole texture will be drawn, no cutout)
 		constexpr void disableDrawRect() { _flags &= ~DRAWRECT; }
 		// disable draw rectangle for mask texture (whole texture will be drawn, no cutout)

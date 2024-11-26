@@ -247,11 +247,11 @@ int main(int, char**)
 // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    //vzm::VzRenderer* renderer = nullptr;
-    //if (vzm::IsValidEngineLib())
-    //{
-    //    renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
-    //}
+	vzm::VzRenderer* renderer = nullptr;
+	if (vzm::IsValidEngineLib())
+	{
+		renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
+	}
     switch (msg)
     {
     case WM_CLOSE:
@@ -259,9 +259,13 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
     }
     case WM_KEYDOWN:
-        switch (wParam) {
-        case 'R': vzm::ReloadShader(); 
-            break;
+		switch (wParam) {
+		case 'R': vzm::ReloadShader();
+			break;
+		case '0': renderer->ShowDebugBuffer("NONE");
+			break;
+		case '1': renderer->ShowDebugBuffer("PRIMITIVE_ID");
+			break;
         default:
             break;
 		}
@@ -286,17 +290,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_SIZE:
     {
-        //if (renderer)
-		//{
-		//	RECT rc;
-		//	GetClientRect(hWnd, &rc);
-		//	UINT width = rc.right - rc.left;
-		//	UINT height = rc.bottom - rc.top;
-		//	renderer->ResizeCanvas(width, height);
-		//	//vzm::VzBaseComp* scene = vzm::GetFirstComponentByName("my scene");
-		//	//vzm::VzBaseComp* cam = vzm::GetFirstComponentByName("my camera");
-        //    //renderer->Render(scene, cam);
-        //}
+        if (renderer)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			UINT width = rc.right - rc.left;
+			UINT height = rc.bottom - rc.top;
+			renderer->ResizeCanvas(width, height);
+        }
         break;
     }
     case WM_DESTROY:

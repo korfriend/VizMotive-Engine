@@ -16,6 +16,7 @@ namespace vz::image
 	static Sampler samplers[SAMPLER_COUNT];
 	static Shader vertexShader;
 	static Shader pixelShader;
+	static Shader debugShader;
 	static BlendState blendStates[BLENDMODE_COUNT];
 	static RasterizerState rasterizerState;
 	enum DEPTH_TEST_MODE
@@ -33,6 +34,7 @@ namespace vz::image
 	};
 
 	static PipelineState imagePSO[BLENDMODE_COUNT][STENCILMODE_COUNT][STENCILREFMODE_COUNT][DEPTH_TEST_MODE_COUNT][STRIP_MODE_COUNT];
+	static PipelineState debugPSO;
 	
 	static thread_local Texture backgroundTexture;
 
@@ -406,7 +408,15 @@ namespace vz::image
 		}
 		device->BindStencilRef(stencilRef, cmd);
 
-		device->BindPipelineState(&imagePSO[SCU32(params.blendFlag)][params.stencilComp][params.stencilRefMode][params.isDepthTestEnabled()][strip_mode], cmd);
+		if (params.isDebugTestEnabled())
+		{
+			image.sampler_index = params._debugBuffer;
+			device->BindPipelineState(&debugPSO, cmd);
+		}
+		else
+		{
+			device->BindPipelineState(&imagePSO[SCU32(params.blendFlag)][params.stencilComp][params.stencilRefMode][params.isDepthTestEnabled()][strip_mode], cmd);
+		}
 
 		device->BindDynamicConstantBuffer(image, CBSLOT_IMAGE, cmd);
 
@@ -436,6 +446,7 @@ namespace vz::image
 	{
 		shader::LoadShader(ShaderStage::VS, vertexShader, "imageVS.cso");
 		shader::LoadShader(ShaderStage::PS, pixelShader, "imagePS.cso");
+		shader::LoadShader(ShaderStage::PS, debugShader, "debugPS.cso");
 
 		GraphicsDevice* device = graphics::GetDevice();
 
@@ -473,6 +484,12 @@ namespace vz::image
 				}
 			}
 		}
+
+		desc.ps = &debugShader;
+		desc.bs = &blendStates[BLENDMODE_OPAQUE];
+		desc.dss = &depthStencilStates[STENCILMODE_ALWAYS][STENCILREFMODE_ALL][DEPTH_TEST_OFF];
+		desc.pt = PrimitiveTopology::TRIANGLESTRIP;
+		device->CreatePipelineState(&desc, &debugPSO);
 	}
 
 	void Initialize()
@@ -709,11 +726,14 @@ namespace vz::image
 			}
 		}
 
+		debugPSO = {};
+
 		for (int i = 0; i < SAMPLER_COUNT; i++)
 		{
 			samplers[i] = {};
 		}
 		vertexShader = {};
 		pixelShader = {};
+		debugShader = {};
 	}
 }

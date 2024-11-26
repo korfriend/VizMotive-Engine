@@ -38,5 +38,7 @@ namespace vz
 		void Update(const float dt) override;
 		void Render(const float dt) override;
 		void Compose() override;
+
+		void ShowDebugBuffer(const std::string& debugMode = "NONE");
 	};
 }

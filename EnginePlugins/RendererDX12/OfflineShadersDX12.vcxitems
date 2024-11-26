@@ -40,6 +40,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Postprocess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Raytracing.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_SurfelGI.h" />
@@ -77,6 +78,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\view_resolveCS_MSAA.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\wetmap_updateCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\debugPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\imagePS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\meshPS_debug.hlsl" />

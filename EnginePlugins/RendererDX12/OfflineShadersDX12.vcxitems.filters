@@ -119,6 +119,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\compressonator\bcn_common_kernel.h">
       <Filter>Libs\compressonator</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Image.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl">
@@ -279,6 +282,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\wetmap_updateCS.hlsl">
       <Filter>Pipeline Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\debugPS.hlsl">
+      <Filter>Pipeline Shaders\PS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
