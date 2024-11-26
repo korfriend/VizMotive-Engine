@@ -11,8 +11,14 @@ namespace vz
 
 	struct GRenderPath3D
 	{
-		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241012";
+		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241127";
 		// this will be a component of vz::RenderPath3D
+
+		enum class DEBUG_BUFFER
+		{
+			NONE = 0,
+			PRIMITIVE_ID,
+		};
 	protected:
 		graphics::Viewport& viewport_;
 		graphics::SwapChain& swapChain_;
@@ -29,6 +35,7 @@ namespace vz
 
 		Scene* scene = nullptr;
 		CameraComponent* camera = nullptr;
+		DEBUG_BUFFER debugMode = DEBUG_BUFFER::NONE;
 
 		graphics::Viewport viewport;
 		graphics::Rect scissor;

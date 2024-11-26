@@ -137,4 +137,18 @@ namespace vz
 	{
 
 	}
+
+	void RenderPath3D::ShowDebugBuffer(const std::string& debugMode)
+	{
+		using DEBUG_BUFFER = GRenderPath3D::DEBUG_BUFFER;
+
+		if (debugMode == "PRIMITIVE_ID")
+		{
+			handlerRenderPath3D_->debugMode = DEBUG_BUFFER::PRIMITIVE_ID;
+		}
+		else
+		{
+			handlerRenderPath3D_->debugMode = DEBUG_BUFFER::NONE;
+		}
+	}
 }

@@ -1103,7 +1103,8 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	prim.primitiveIndex = primitiveID;
 	prim.instanceIndex = input.GetInstanceIndex();
 	prim.subsetIndex = push.geometryIndex - meshinstance.geometryOffset;
-	return 1;//prim.pack();
+	coverage = 0xFFFFFFFF;
+	return prim.pack();
 #endif // DEPTHONLY
 #else
 	return color;

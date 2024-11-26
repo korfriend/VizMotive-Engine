@@ -1100,6 +1100,7 @@ namespace vz
 		graphics::Texture rtMain_render; // can be MSAA
 		graphics::Texture rtPrimitiveID;
 		graphics::Texture rtPrimitiveID_render; // can be MSAA
+		graphics::Texture rtPrimitiveID_debug; // test
 
 		graphics::Texture depthBufferMain; // used for depth-testing, can be MSAA
 		graphics::Texture rtLinearDepth; // linear depth result + mipchain (max filter)
@@ -3553,6 +3554,11 @@ namespace vz
 			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
 			desc.misc_flags = ResourceMiscFlag::ALIASING_TEXTURE_RT_DS;
 			device->CreateTexture(&desc, nullptr, &rtPrimitiveID);
+			if (debugMode == DEBUG_BUFFER::PRIMITIVE_ID)
+			{
+				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_debug);
+				device->SetName(&rtPrimitiveID_debug, "rtPrimitiveID_debug");
+			}
 			device->SetName(&rtPrimitiveID, "rtPrimitiveID");
 
 			if (msaaSampleCount > 1)
@@ -3687,10 +3693,45 @@ namespace vz
 		fx.enableFullScreen();
 
 		device->EventBegin("Composition", cmd);
-		//image::Draw(&rtPostprocess, fx, cmd);
-		//fx.enableDepthTest();
-		//image::Draw(&rtPrimitiveID_render, fx, cmd);
-		image::Draw(&rtMain, fx, cmd);
+
+		if (debugMode != DEBUG_BUFFER::NONE)
+		{
+			XMUINT2 internalResolution(canvasWidth_, canvasHeight_);
+			fx.enableDebugTest();
+			fx.setDebugBuffer(static_cast<image::Params::DEBUG_BUFFER>(debugMode));
+			switch (debugMode)
+			{
+			case DEBUG_BUFFER::PRIMITIVE_ID:
+				if (!rtPrimitiveID_debug.IsValid())
+				{
+					TextureDesc desc;
+					desc.format = FORMAT_idbuffer;
+					desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
+					if (msaaSampleCount > 1)
+					{
+						desc.bind_flags |= BindFlag::UNORDERED_ACCESS;
+					}
+					desc.width = internalResolution.x;
+					desc.height = internalResolution.y;
+					desc.sample_count = 1;
+					desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+					desc.misc_flags = ResourceMiscFlag::ALIASING_TEXTURE_RT_DS;
+					device->CreateTexture(&desc, nullptr, &rtPrimitiveID_debug);
+					device->SetName(&rtPrimitiveID_debug, "rtPrimitiveID_debug");
+				}
+				image::Draw(&rtPrimitiveID_debug, fx, cmd);
+				break;
+			case DEBUG_BUFFER::NONE:
+			default:
+				assert(0);
+				break;
+			}
+		}
+		else
+		{
+			rtPrimitiveID_debug = {};
+			image::Draw(&rtMain, fx, cmd);
+		}
 		device->EventEnd(cmd);
 
 		if (
@@ -3914,6 +3955,25 @@ namespace vz
 			device->EventEnd(cmd);
 
 			device->RenderPassEnd(cmd);
+
+			if (debugMode == DEBUG_BUFFER::PRIMITIVE_ID && rtPrimitiveID_debug.IsValid())
+			{
+				GPUBarrier barriers1[] = {
+					GPUBarrier::Image(&rtPrimitiveID_render, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_SRC),
+					GPUBarrier::Image(&rtPrimitiveID_debug, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_DST),
+				};
+				device->Barrier(barriers1, arraysize(barriers1), cmd);
+				device->CopyTexture(
+					&rtPrimitiveID_debug, 0, 0, 0, 0, 0,
+					&rtPrimitiveID_render, 0, 0,
+					cmd
+				);
+				GPUBarrier barriers2[] = {
+					GPUBarrier::Image(&rtPrimitiveID_render, ResourceState::COPY_SRC, ResourceState::SHADER_RESOURCE_COMPUTE),
+					GPUBarrier::Image(&rtPrimitiveID_debug, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE_COMPUTE),
+				};
+				device->Barrier(barriers2, arraysize(barriers2), cmd);
+			}
 
 			});
 
@@ -4500,7 +4560,8 @@ namespace vz
 		rtMain = {};
 		rtMain_render = {};
 		rtPrimitiveID = {};
-		rtPrimitiveID_render = {};
+		rtPrimitiveID_render = {}; 
+		rtPrimitiveID_debug = {};
 		
 		depthBufferMain = {};
 		rtLinearDepth = {};

@@ -48,5 +48,10 @@ namespace vzm
 			uint64_t descriptorHandle = 0u; // DX12 and Vulkan only
 		};
 		bool GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, SharedResourceTarget& resTarget, uint32_t* w, uint32_t* h);
+
+		// just for dev. mode
+		// "NONE" : original
+		// "PRIMITIVE_ID"
+		void ShowDebugBuffer(const std::string& debugMode = "NONE");
 	};
 }

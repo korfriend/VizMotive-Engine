@@ -205,4 +205,10 @@ namespace vzm
 
 		return ret;
 	}
+
+	void VzRenderer::ShowDebugBuffer(const std::string& debugMode)
+	{
+		GET_RENDERPATH(renderer, );
+		renderer->ShowDebugBuffer(debugMode);
+	}
 }
