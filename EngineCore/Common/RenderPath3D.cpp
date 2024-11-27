@@ -2,7 +2,7 @@
 #include "Common/Backend/GRendererInterface.h"
 #include "Components/GComponents.h"
 #include "Utils/Profiler.h"
-//#include "Utils/Jobsystem.h"
+#include "Utils/Jobsystem.h"
 
 namespace vz
 {
@@ -70,8 +70,11 @@ namespace vz
 
 		if (camera == nullptr || scene == nullptr) return;
 
-		//jobsystem::context ctx;
-		//jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
+		jobsystem::context ctx;
+		jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
+
+			// Update the target Scene of this RenderPath 
+			//	this involves Animation updates
 			scene->Update(dt);
 
 			// RenderPath3D code //
@@ -87,8 +90,8 @@ namespace vz
 					camera->UpdateMatrix();
 				}
 			}
-		//});
-		//jobsystem::Wait(ctx);
+			});
+		jobsystem::Wait(ctx);
 	}
 	
 	void RenderPath3D::Render(const float dt)
