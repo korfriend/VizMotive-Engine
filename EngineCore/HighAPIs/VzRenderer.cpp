@@ -135,12 +135,6 @@ namespace vzm
 			return false;
 		}
 
-		if (((GCameraComponent*)renderer->camera)->isPickingMode)
-		{
-			renderer->Render(0); // just for picking process
-			return;
-		}
-
 		float dt = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
 		const float target_deltaTime = 1.0f / renderer->targetFrameRate;
 		if (renderer->framerateLock && dt < target_deltaTime)
@@ -171,13 +165,22 @@ namespace vzm
 		{
 			return false;
 		}
+
+		renderer->scene = Scene::GetScene(vidScene);
+		renderer->camera = compfactory::GetCameraComponent(vidCam);
+
+		if (!renderer->scene || !renderer->camera)
+		{
+			return false;
+		}
+
 		camera->isPickingMode = true;
 		camera->posPickOnScreen = *(XMFLOAT2*)&pos;
 
-		bool ret = Render(vidScene, vidCam);
+		renderer->Render(0); // just for picking process
 
 		size_t num_picked_positions = camera->pickedPositions.size();
-		ret &= num_picked_positions > 0;
+		bool ret = num_picked_positions > 0;
 
 		// output setting
 		if (ret)
