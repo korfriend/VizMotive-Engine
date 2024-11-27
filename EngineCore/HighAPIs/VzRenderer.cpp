@@ -135,6 +135,12 @@ namespace vzm
 			return false;
 		}
 
+		if (((GCameraComponent*)renderer->camera)->isPickingMode)
+		{
+			renderer->Render(0); // just for picking process
+			return;
+		}
+
 		float dt = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
 		const float target_deltaTime = 1.0f / renderer->targetFrameRate;
 		if (renderer->framerateLock && dt < target_deltaTime)
