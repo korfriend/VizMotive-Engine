@@ -1107,6 +1107,7 @@ namespace vz
 		bool isDirty_ = true;
 		XMFLOAT3 eye_ = XMFLOAT3(0, 0, 0);
 		XMFLOAT3 at_ = XMFLOAT3(0, 0, 1);
+		XMFLOAT3 forward_ = XMFLOAT3(0, 0, 1); // viewing direction
 		XMFLOAT3 up_ = XMFLOAT3(0, 1, 0);
 		XMFLOAT3X3 rotationMatrix_ = math::IDENTITY_MATRIX33;
 		XMFLOAT4X4 view_, projection_, viewProjection_;
@@ -1129,11 +1130,13 @@ namespace vz
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
 		inline bool SetWorldLookAtFromHierarchyTransforms();
 		inline void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up) {
-			eye_ = eye; at_ = at; up_ = up; isDirty_ = true;
+			eye_ = eye; at_ = at; up_ = up; XMStoreFloat3(&forward_, XMLoadFloat3(&at) - XMLoadFloat3(&eye));
+			isDirty_ = true;
 			timeStampSetter_ = TimerNow;
 		}
 		inline void SetWorldLookTo(const XMFLOAT3& eye, const XMFLOAT3& view, const XMFLOAT3& up) {
-			eye_ = eye; XMStoreFloat3(&at_, XMLoadFloat3(&eye) + XMLoadFloat3(&view)); up_ = up; isDirty_ = true;
+			eye_ = eye; XMStoreFloat3(&at_, XMLoadFloat3(&eye) + XMLoadFloat3(&view)); up_ = up; forward_ = view;
+			isDirty_ = true;
 			timeStampSetter_ = TimerNow;
 		}
 		inline void SetPerspective(float width, float height, float nearP, float farP, float fovY = XM_PI / 3.0f) {
@@ -1148,6 +1151,7 @@ namespace vz
 
 		inline const XMFLOAT3& GetWorldEye() const { return eye_; }
 		inline const XMFLOAT3& GetWorldAt() const { return at_; }
+		inline const XMFLOAT3& GetWorldForward() const { return forward_; }
 		inline const XMFLOAT3& GetWorldUp() const { return up_; }
 		inline const XMFLOAT3X3& GetWorldRotation() const { return rotationMatrix_; }
 		inline const XMFLOAT4X4& GetView() const { return view_; }

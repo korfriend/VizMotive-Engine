@@ -1323,6 +1323,20 @@ namespace vz
 		{
 			viewResources = {};
 		}
+
+		// Keep a copy of last frame's depth buffer for temporal disocclusion checks, so swap with current one every frame:
+		std::swap(depthBuffer_Copy, depthBuffer_Copy1);
+
+		viewResources.depthbuffer = &depthBuffer_Copy;
+		viewResources.lineardepth = &rtLinearDepth;
+		if (msaaSampleCount > 1)
+		{
+			viewResources.primitiveID_resolved = &rtPrimitiveID;
+		}
+		else
+		{
+			viewResources.primitiveID_resolved = nullptr;
+		}
 	}
 
 	void GRenderPath3DDetails::ProcessDeferredTextureRequests(CommandList cmd)
@@ -1958,7 +1972,7 @@ namespace vz
 		shadercam.inverse_projection = camera.GetInvProjection();
 		shadercam.inverse_view_projection = camera.GetInvViewProjection();
 		XMMATRIX invVP = XMLoadFloat4x4(&shadercam.inverse_view_projection);
-		shadercam.forward = camera.GetWorldAt();
+		shadercam.forward = camera.GetWorldForward();
 		shadercam.up = camera.GetWorldUp();
 		camera.GetNearFar(&shadercam.z_near, &shadercam.z_far);
 		shadercam.z_near_rcp = 1.0f / std::max(0.0001f, shadercam.z_near);
@@ -2020,12 +2034,12 @@ namespace vz
 		shadercam.visibility_tilecount = GetViewTileCount(shadercam.internal_resolution);
 		shadercam.visibility_tilecount_flat = shadercam.visibility_tilecount.x * shadercam.visibility_tilecount.y;
 
-		//shadercam.texture_primitiveID_index = camera.texture_primitiveID_index;
-		//shadercam.texture_depth_index = camera.texture_depth_index;
-		//shadercam.texture_lineardepth_index = camera.texture_lineardepth_index;
+		shadercam.texture_primitiveID_index = device->GetDescriptorIndex(&rtPrimitiveID, SubresourceType::SRV);
+		shadercam.texture_depth_index = device->GetDescriptorIndex(&depthBuffer_Copy, SubresourceType::SRV);
+		shadercam.texture_lineardepth_index = device->GetDescriptorIndex(&rtLinearDepth, SubresourceType::SRV);
 		//shadercam.texture_velocity_index = camera.texture_velocity_index;
-		//shadercam.texture_normal_index = camera.texture_normal_index;
-		//shadercam.texture_roughness_index = camera.texture_roughness_index;
+		shadercam.texture_normal_index = device->GetDescriptorIndex(&viewResources.texture_normals, SubresourceType::SRV);
+		shadercam.texture_roughness_index = device->GetDescriptorIndex(&viewResources.texture_roughness, SubresourceType::SRV);
 		shadercam.buffer_entitytiles_index = device->GetDescriptorIndex(&tiledLightResources.entityTiles, SubresourceType::SRV);
 		//shadercam.texture_reflection_index = camera.texture_reflection_index;
 		//shadercam.texture_reflection_depth_index = camera.texture_reflection_depth_index;
@@ -2675,7 +2689,7 @@ namespace vz
 		{
 			GPUBufferDesc desc;
 			desc.stride = sizeof(ShaderTypeBin);
-			desc.size = desc.stride * SCU32(MaterialComponent::ShaderType::COUNT);
+			desc.size = desc.stride * (SCU32(MaterialComponent::ShaderType::COUNT) + 1); // +1 for sky
 			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED | ResourceMiscFlag::INDIRECT_ARGS;
 			bool success = device->CreateBuffer(&desc, nullptr, &res.bins);
@@ -2683,7 +2697,7 @@ namespace vz
 			device->SetName(&res.bins, "res.bins");
 
 			desc.stride = sizeof(ViewTile);
-			desc.size = desc.stride * res.tile_count.x * res.tile_count.y * SCU32(MaterialComponent::ShaderType::COUNT);
+			desc.size = desc.stride * res.tile_count.x * res.tile_count.y * (SCU32(MaterialComponent::ShaderType::COUNT) + 1); // +1 for sky
 			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
 			success = device->CreateBuffer(&desc, nullptr, &res.binned_tiles);
@@ -3581,7 +3595,8 @@ namespace vz
 			desc.width = internalResolution.x;
 			desc.height = internalResolution.y;
 			assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtPrimitiveID.desc)); // Aliased check
-			device->CreateTexture(&desc, nullptr, &rtPostprocess, &rtPrimitiveID); // Aliased!
+			//device->CreateTexture(&desc, nullptr, &rtPostprocess, &rtPrimitiveID); // Aliased!
+			device->CreateTexture(&desc, nullptr, &rtPostprocess); // Aliased!
 			device->SetName(&rtPostprocess, "rtPostprocess");
 		}
 		if (device->CheckCapability(GraphicsDeviceCapability::VARIABLE_RATE_SHADING_TIER2) &&
@@ -3702,6 +3717,7 @@ namespace vz
 			switch (debugMode)
 			{
 			case DEBUG_BUFFER::PRIMITIVE_ID:
+			case DEBUG_BUFFER::INSTANCE_ID:
 				if (!rtPrimitiveID_debug.IsValid())
 				{
 					TextureDesc desc;
@@ -3720,6 +3736,21 @@ namespace vz
 					device->SetName(&rtPrimitiveID_debug, "rtPrimitiveID_debug");
 				}
 				image::Draw(&rtPrimitiveID_debug, fx, cmd);
+				break;
+			case DEBUG_BUFFER::LINEAR_DEPTH:
+				//{
+				//	GPUBarrier barriers[] = {
+				//		GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::SHADER_RESOURCE),
+				//	};
+				//	device->Barrier(barriers, arraysize(barriers), cmd);
+				//}
+				image::Draw(&rtLinearDepth, fx, cmd);
+				//{
+				//	GPUBarrier barriers[] = {
+				//		GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
+				//	};
+				//	device->Barrier(barriers, arraysize(barriers), cmd);
+				//}
 				break;
 			case DEBUG_BUFFER::NONE:
 			default:
@@ -3846,10 +3877,10 @@ namespace vz
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderData(viewMain, frameCB, cmd);
 
-			uint32_t num_barriers = 2;
+			uint32_t num_barriers = 1;
 			GPUBarrier barriers[] = {
 				GPUBarrier::Image(&debugUAV, debugUAV.desc.layout, ResourceState::UNORDERED_ACCESS),
-				GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID),
+				//GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID),
 				GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE), // prepares transition for discard in dx12
 			};
 			if (viewShadingInCS)
@@ -4533,7 +4564,7 @@ namespace vz
 
 		cmd = device->BeginCommandList();
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
-			RenderPostprocessChain(cmd);
+			//RenderPostprocessChain(cmd);
 			TextureStreamingReadbackCopy(*scene, cmd);
 		});
 

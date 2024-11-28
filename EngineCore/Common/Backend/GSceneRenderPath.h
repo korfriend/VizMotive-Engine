@@ -18,6 +18,8 @@ namespace vz
 		{
 			NONE = 0,
 			PRIMITIVE_ID,
+			INSTANCE_ID,
+			LINEAR_DEPTH,
 		};
 	protected:
 		graphics::Viewport& viewport_;

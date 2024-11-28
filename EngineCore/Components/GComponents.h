@@ -104,12 +104,17 @@ namespace vz
 				soTangent = {};
 				soPre = {};
 			}
-
 		};
 
 		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
 
 		uint32_t geometryOffset = 0; // (including # of parts)
+
+		// ----- Meshlet -----
+		bool isMeshletEnabled = false;
+		uint32_t meshletOffset = ~0u; // base
+		uint32_t meshletCount = 0;
+		// --------------------
 
 		inline graphics::IndexBufferFormat GetIndexFormat(const size_t slot) const
 		{

@@ -247,7 +247,7 @@ struct alignas(16) ShaderTransform
 	}
 };
 
-struct alignas(16) ShaderMeshInstance
+struct alignas(16) ShaderMeshInstance	// mesh renderable
 {
 	uint uid;	// using entity
 	uint flags;	// high 8 bits: user stencilRef (same as visibility-layered mask)
@@ -257,11 +257,11 @@ struct alignas(16) ShaderMeshInstance
 	uint geometryOffset; // offset of all geometries for currently active LOD (geomtryPartIndex applied by LODs)
 	uint geometryCount; // number of all geometries in currently active LOD
 	uint baseGeometryOffset;	// offset of all geometries of the instance (if no LODs, then it is equal to geometryOffset)
-	uint resLookupOffset;
+	uint baseGeometryCount;		// number of all geometries of the instance (if no LODs, then it is equal to geometryCount)
 
 	uint meshletOffset; // offset in the global meshlet buffer for first subset (for LOD0)
 	uint2 rimHighlight;
-	uint padding2;
+	uint resLookupOffset;
 
 	float3 aabbCenter;
 	float aabbRadius;
@@ -662,10 +662,11 @@ struct alignas(16) ShaderGeometry
 	int vb_pre;
 	int vb_atl;
 
-	uint meshletOffset; // offset of this subset in meshlets (locally within the mesh) --> to ShaderInstanceResLookup?!
-	uint padding0;
-	uint padding1;
-	uint padding2;
+	// meshShader for meshlet : TODO (future feature)
+	int vb_clu; 
+	int vb_bou; 
+	uint meshletOffset; // for loading bindless ShaderMeshlet
+	uint meshletCount;  // for parallelism implemented in meshlet_prepareCS.hlsl
 
 	float3 aabb_min;
 	uint flags;
@@ -686,8 +687,11 @@ struct alignas(16) ShaderGeometry
 		vb_col = -1;
 		vb_pre = -1;
 		vb_atl = -1;
+		vb_clu = -1;
+		vb_bou = -1;
 
 		meshletOffset = ~0u;
+		meshletCount = 0;
 
 		aabb_min = float3(0, 0, 0);
 		flags = 0;
@@ -707,10 +711,11 @@ inline uint triangle_count_to_meshlet_count(uint triangleCount)
 }
 struct alignas(16) ShaderMeshlet
 {
-	uint instanceIndex;
+	//uint instanceIndex; // we do not use meshlet as a component of a renderable, only one meshlet per a geometry part
 	uint geometryIndex;
 	uint primitiveOffset; // either direct triangle offset within index buffer, or masked cluster index for clustered geo
-	uint padding;
+	uint padding0;
+	uint padding1;
 };
 
 struct ShaderClusterTriangle

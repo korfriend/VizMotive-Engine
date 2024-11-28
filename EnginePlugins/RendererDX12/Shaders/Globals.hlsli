@@ -465,42 +465,43 @@ struct PrimitiveID
     bool maybe_clustered;
 
 	// These packing methods require meshlet data, and pack into 32 bits:
-    inline uint pack()
-    {
-		// 25 bit meshletIndex
-		// 7  bit meshletPrimitiveIndex
-        ShaderMeshInstance inst = load_instance(instanceIndex);
-        ShaderGeometry geometry = load_geometry(inst.geometryOffset + subsetIndex);
-        uint meshletIndex = inst.meshletOffset + geometry.meshletOffset + primitiveIndex / MESHLET_TRIANGLE_COUNT;
-        meshletIndex += 1; // indicate that it is valid
-        meshletIndex &= ~0u >> 7u; // mask 25 active bits
-        uint meshletPrimitiveIndex = primitiveIndex % MESHLET_TRIANGLE_COUNT;
-        meshletPrimitiveIndex &= 0x7F; // mask 7 active bits
-        meshletPrimitiveIndex <<= 25u;
-        return meshletPrimitiveIndex | meshletIndex;
-    }
-    inline void unpack(uint value)
-    {
-        uint meshletIndex = value & (~0u >> 7u);
-        meshletIndex -= 1; // remove valid check
-        uint meshletPrimitiveIndex = (value >> 25u) & 0x7F;
-        ShaderMeshlet meshlet = load_meshlet(meshletIndex);
-        ShaderMeshInstance inst = load_instance(meshlet.instanceIndex);
-        primitiveIndex = meshlet.primitiveOffset + meshletPrimitiveIndex;
-        instanceIndex = meshlet.instanceIndex;
-        subsetIndex = meshlet.geometryIndex - inst.geometryOffset;
-        maybe_clustered = true;
-    }
+    //inline uint pack()
+    //{
+	//	// 25 bit meshletIndex
+	//	// 7  bit meshletPrimitiveIndex
+    //    ShaderMeshInstance inst = load_instance(instanceIndex);
+    //    ShaderGeometry geometry = load_geometry(inst.geometryOffset + subsetIndex);
+    //    uint meshletIndex = inst.meshletOffset + geometry.meshletOffset + primitiveIndex / MESHLET_TRIANGLE_COUNT;
+    //    meshletIndex += 1; // indicate that it is valid
+    //    meshletIndex &= ~0u >> 7u; // mask 25 active bits
+    //    uint meshletPrimitiveIndex = primitiveIndex % MESHLET_TRIANGLE_COUNT;
+    //    meshletPrimitiveIndex &= 0x7F; // mask 7 active bits
+    //    meshletPrimitiveIndex <<= 25u;
+    //    return meshletPrimitiveIndex | meshletIndex;
+    //}
+    //inline void unpack(uint value)
+    //{
+    //    uint meshletIndex = value & (~0u >> 7u);
+    //    meshletIndex -= 1; // remove valid check
+    //    uint meshletPrimitiveIndex = (value >> 25u) & 0x7F;
+    //    ShaderMeshlet meshlet = load_meshlet(meshletIndex);
+    //    ShaderMeshInstance inst = load_instance(meshlet.instanceIndex);
+    //    primitiveIndex = meshlet.primitiveOffset + meshletPrimitiveIndex;
+    //    instanceIndex = meshlet.instanceIndex;
+    //    subsetIndex = meshlet.geometryIndex - inst.geometryOffset;
+    //    maybe_clustered = true; 
+    //    primitiveIndex = value & (~0u >> 7u);
+    //}
 
 	// These packing methods don't need meshlets, but they are packed into 64 bits:
-    uint2 pack2()
+    inline uint2 pack2()
     {
 		// 32 bit primitiveIndex + 1 valid check
 		// 24 bit instanceIndex
 		// 8  bit subsetIndex
         return uint2(primitiveIndex + 1, (instanceIndex & 0xFFFFFF) | ((subsetIndex & 0xFF) << 24u));
     }
-    void unpack2(uint2 value)
+    inline void unpack2(uint2 value)
     {
         primitiveIndex = value.x - 1; // remove valid check
         instanceIndex = value.y & 0xFFFFFF;
@@ -508,7 +509,7 @@ struct PrimitiveID
         maybe_clustered = false;
     }
 
-    uint3 tri()
+    inline uint3 tri()
     {
         ShaderMeshInstance inst = load_instance(instanceIndex);
         ShaderGeometry geometry = load_geometry(inst.geometryOffset + subsetIndex);
@@ -529,18 +530,18 @@ struct PrimitiveID
         uint i2 = indexBuffer[startIndex + 2];
         return uint3(i0, i1, i2);
     }
-    uint i0()
-    {
-        return tri().x;
-    }
-    uint i1()
-    {
-        return tri().y;
-    }
-    uint i2()
-    {
-        return tri().z;
-    }
+    //uint i0()
+    //{
+    //    return tri().x;
+    //}
+    //uint i1()
+    //{
+    //    return tri().y;
+    //}
+    //uint i2()
+    //{
+    //    return tri().z;
+    //}
 };
 
 #define texture_random64x64 bindless_textures[GetFrame().texture_random64x64_index]

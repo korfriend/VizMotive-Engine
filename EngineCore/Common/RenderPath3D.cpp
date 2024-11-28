@@ -141,17 +141,29 @@ namespace vz
 
 	}
 
+	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {
+		for (char c : str) {
+			hash ^= static_cast<size_t>(c);
+			hash *= 1099511628211ULL;
+		}
+		return hash;
+	}
+
 	void RenderPath3D::ShowDebugBuffer(const std::string& debugMode)
 	{
 		using DEBUG_BUFFER = GRenderPath3D::DEBUG_BUFFER;
 
-		if (debugMode == "PRIMITIVE_ID")
+		constexpr static size_t HASH_PRIMITIVE_ID = FNV1aHash("PRIMITIVE_ID"); // target at rtPrimitiveID
+		constexpr static size_t HASH_INSTANCE_ID = FNV1aHash("INSTANCE_ID");   // target at rtPrimitiveID
+		constexpr static size_t HASH_LINEAR_DEPTH = FNV1aHash("LINEAR_DEPTH"); // target at rtLinearDepth
+
+		size_t hash_debug = FNV1aHash(debugMode);
+		switch (hash_debug)
 		{
-			handlerRenderPath3D_->debugMode = DEBUG_BUFFER::PRIMITIVE_ID;
-		}
-		else
-		{
-			handlerRenderPath3D_->debugMode = DEBUG_BUFFER::NONE;
+		case HASH_PRIMITIVE_ID: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::PRIMITIVE_ID; break;
+		case HASH_INSTANCE_ID: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::INSTANCE_ID; break;
+		case HASH_LINEAR_DEPTH: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::LINEAR_DEPTH; break;
+		default: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::NONE; break;
 		}
 	}
 }
