@@ -493,7 +493,7 @@ PixelInput main(VertexInput input)
 #ifdef DEPTHONLY
 void main(PixelInput input, in uint primitiveID : SV_PrimitiveID, out uint coverage : SV_Coverage)
 #else
-uint main(PixelInput input, in uint primitiveID : SV_PrimitiveID, out uint coverage : SV_Coverage) : SV_Target
+uint2 main(PixelInput input, in uint primitiveID : SV_PrimitiveID, out uint coverage : SV_Coverage) : SV_Target
 #endif // DEPTHONLY
 #else
 float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
@@ -1103,8 +1103,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	prim.primitiveIndex = primitiveID;
 	prim.instanceIndex = input.GetInstanceIndex();
 	prim.subsetIndex = push.geometryIndex - meshinstance.geometryOffset;
-	coverage = 0xFFFFFFFF;
-	return prim.pack();
+	return prim.pack2();
 #endif // DEPTHONLY
 #else
 	return color;

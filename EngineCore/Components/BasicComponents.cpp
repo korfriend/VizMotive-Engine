@@ -569,6 +569,7 @@ namespace vz
 		XMFLOAT3 z_axis = vz::math::GetForward(mat_world);
 		XMVECTOR _At = XMLoadFloat3(&eye_) - XMLoadFloat3(&z_axis);
 		XMStoreFloat3(&at_, _At);
+		XMStoreFloat3(&forward_, XMVector3Normalize(-XMLoadFloat3(&z_axis)));
 
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;

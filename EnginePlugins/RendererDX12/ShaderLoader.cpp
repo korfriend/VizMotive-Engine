@@ -562,6 +562,7 @@ namespace vz::shader
 		
 			});
 
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_MESHLET_PREPARE], "meshlet_prepareCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_VIEW_RESOLVE], "view_resolveCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_VIEW_RESOLVE_MSAA], "view_resolveCS_MSAA.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_LIGHTCULLING], "lightCullingCS.cso"); });

@@ -348,9 +348,10 @@ struct Surface
 
         layerMask = material.layerMask;// & inst.layerMask;
 
-		i0 = prim.i0();
-		i1 = prim.i1();
-		i2 = prim.i2();
+		uint3 indices = prim.tri();
+		i0 = indices.x; //prim.i0();
+		i1 = indices.y; //prim.i1();
+		i2 = indices.z; //prim.i2();
 
 		Buffer<float4> buf = bindless_buffers_float4[NonUniformResourceIndex(geometry.vb_pos_w)];
 		data0 = buf[i0];
@@ -1017,11 +1018,12 @@ struct Surface
 			pre2 = data2.xyz;
 		}
 
+		float4x4 world = inst.transformPrev.GetMatrix();
 #ifdef SURFACE_LOAD_ENABLE_WIND
 		// Need interpolated wind transform:
-		pre0 = mul(inst.transformPrev.GetMatrix(), float4(pre0, 1)).xyz;
-		pre1 = mul(inst.transformPrev.GetMatrix(), float4(pre1, 1)).xyz;
-		pre2 = mul(inst.transformPrev.GetMatrix(), float4(pre2, 1)).xyz;
+		pre0 = mul(world, float4(pre0, 1)).xyz;
+		pre1 = mul(world, float4(pre1, 1)).xyz;
+		pre2 = mul(world, float4(pre2, 1)).xyz;
 		
 		[branch]
 		if (material.IsUsingWind())
@@ -1034,7 +1036,7 @@ struct Surface
 #else
 		// Simplified matrix transform is allowed without wind:
 		pre = attribute_at_bary(pre0, pre1, pre2, bary);
-		pre = mul(inst.transformPrev.GetMatrix(), float4(pre, 1)).xyz;
+		pre = mul(world, float4(pre, 1)).xyz;
 #endif // SURFACE_LOAD_ENABLE_WIND
 
 		update();
@@ -1051,16 +1053,17 @@ struct Surface
 		float3 p1 = data1.xyz;
 		float3 p2 = data2.xyz;
 
+		float4x4 world = inst.transform.GetMatrix();
 #ifdef SURFACE_LOAD_QUAD_DERIVATIVES
-		float3 P0 = mul(inst.transform.GetMatrix(), float4(p0, 1)).xyz;
-		float3 P1 = mul(inst.transform.GetMatrix(), float4(p1, 1)).xyz;
-		float3 P2 = mul(inst.transform.GetMatrix(), float4(p2, 1)).xyz;
+		float3 P0 = mul(world, float4(p0, 1)).xyz;
+		float3 P1 = mul(world, float4(p1, 1)).xyz;
+		float3 P2 = mul(world, float4(p2, 1)).xyz;
 		P = attribute_at_bary(P0, P1, P2, bary);
 		P_dx = P - attribute_at_bary(P0, P1, P2, bary_quad_x);
 		P_dy = P - attribute_at_bary(P0, P1, P2, bary_quad_y);
 #else
 		P = attribute_at_bary(p0, p1, p2, bary);
-		P = mul(inst.transform.GetMatrix(), float4(P, 1)).xyz;
+		P = mul(world, float4(P, 1)).xyz;
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 
 		load_internal();
@@ -1074,9 +1077,11 @@ struct Surface
 		float3 p0 = data0.xyz;
 		float3 p1 = data1.xyz;
 		float3 p2 = data2.xyz;
-		float3 P0 = mul(inst.transform.GetMatrix(), float4(p0, 1)).xyz;
-		float3 P1 = mul(inst.transform.GetMatrix(), float4(p1, 1)).xyz;
-		float3 P2 = mul(inst.transform.GetMatrix(), float4(p2, 1)).xyz;
+		
+		float4x4 world = inst.transform.GetMatrix();
+		float3 P0 = mul(world, float4(p0, 1)).xyz;
+		float3 P1 = mul(world, float4(p1, 1)).xyz;
+		float3 P2 = mul(world, float4(p2, 1)).xyz;
 		P = worldPosition;
 
 		bary = compute_barycentrics(P, P0, P1, P2);
@@ -1092,9 +1097,11 @@ struct Surface
 		float3 p0 = data0.xyz;
 		float3 p1 = data1.xyz;
 		float3 p2 = data2.xyz;
-		float3 P0 = mul(inst.transform.GetMatrix(), float4(p0, 1)).xyz;
-		float3 P1 = mul(inst.transform.GetMatrix(), float4(p1, 1)).xyz;
-		float3 P2 = mul(inst.transform.GetMatrix(), float4(p2, 1)).xyz;
+
+		float4x4 world = inst.transform.GetMatrix();
+		float3 P0 = mul(world, float4(p0, 1)).xyz;
+		float3 P1 = mul(world, float4(p1, 1)).xyz;
+		float3 P2 = mul(world, float4(p2, 1)).xyz;
 
 #ifdef SURFACE_LOAD_ENABLE_WIND
 		[branch]
@@ -1128,9 +1135,11 @@ struct Surface
 		float3 p0 = data0.xyz;
 		float3 p1 = data1.xyz;
 		float3 p2 = data2.xyz;
-		float3 P0 = mul(inst.transform.GetMatrix(), float4(p0, 1)).xyz;
-		float3 P1 = mul(inst.transform.GetMatrix(), float4(p1, 1)).xyz;
-		float3 P2 = mul(inst.transform.GetMatrix(), float4(p2, 1)).xyz;
+
+		float4x4 world = inst.transform.GetMatrix();
+		float3 P0 = mul(world, float4(p0, 1)).xyz;
+		float3 P1 = mul(world, float4(p1, 1)).xyz;
+		float3 P2 = mul(world, float4(p2, 1)).xyz;
 
 #ifdef SURFACE_LOAD_ENABLE_WIND
 		[branch]

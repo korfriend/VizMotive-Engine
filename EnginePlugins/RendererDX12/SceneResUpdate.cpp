@@ -18,11 +18,14 @@ namespace vz
 
 	void GSceneDetails::RunPrimtiveUpdateSystem(jobsystem::context& ctx)
 	{
+		meshletAllocator.store(0u);
+
 		jobsystem::Dispatch(ctx, (uint32_t)geometryComponents.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			GGeometryComponent& geometry = *geometryComponents[args.jobIndex];
 
 			const std::vector<Primitive>& primitives = geometry.GetPrimitives();
+			geometry.meshletCount = 0;
 
 			float tessealation_factor = geometry.GetTessellationFactor();
 			for (size_t part_index = 0, n = primitives.size(); part_index < n; ++part_index)
@@ -68,16 +71,36 @@ namespace vz
 					{
 						shader_geometry_part.vb_tan = prim_buffer.vbTangent.descriptor_srv;
 					}
+
 					shader_geometry_part.vb_col = prim_buffer.vbColor.descriptor_srv;
 					shader_geometry_part.vb_uvs = prim_buffer.vbUVs.descriptor_srv;
 					shader_geometry_part.vb_pre = prim_buffer.soPre.descriptor_srv;
+
+					// --- mesh shader : TODO ---
+					shader_geometry_part.vb_clu = -1;
+					shader_geometry_part.vb_bou = -1;
+
+					if (geometry.isMeshletEnabled)
+					{
+						//shader_geometry_part.meshletOffset = mesh.cluster_ranges[subsetIndex].clusterOffset;
+					}
+					else
+					{
+						geometry.meshletCount = triangle_count_to_meshlet_count(primitive.GetNumIndices() / 3u);
+					}
+					geometry.meshletOffset = meshletAllocator.load();
+					meshletAllocator.fetch_add(geometry.meshletCount);
+
+					shader_geometry_part.meshletCount = geometry.meshletCount;
+					shader_geometry_part.meshletOffset = geometry.meshletOffset;
+					// --------------------------
+
 					shader_geometry_part.aabb_min = primitive.GetAABB()._min;
 					shader_geometry_part.aabb_max = primitive.GetAABB()._max;
 					shader_geometry_part.uv_range_min = primitive.GetUVRangeMin();
 					shader_geometry_part.uv_range_max = primitive.GetUVRangeMax();
 					shader_geometry_part.tessellation_factor = tessealation_factor;
 
-					//shader_geometry.meshletCount += subsetGeometry.meshletCount;
 					std::memcpy(geometryArrayMapped + geometry.geometryOffset + part_index, &shader_geometry_part, sizeof(shader_geometry_part));
 
 				}
@@ -283,6 +306,7 @@ namespace vz
 		matrixRenderables.resize(num_renderables);
 		matrixRenderablesPrev.resize(num_renderables);
 		occlusionResultsObjects.resize(num_renderables);
+
 		// GPUs
 		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
@@ -411,10 +435,14 @@ namespace vz
 				const geometrics::AABB& aabb = renderable.GetAABB();
 
 				inst.uid = renderable.GetEntity();
+
+				// TODO : applying adaptive LOD 
 				inst.baseGeometryOffset = geometry.geometryOffset;
+				inst.baseGeometryCount = geometry.GetNumParts();
 				inst.resLookupOffset = renderable.resLookupOffset;
 				inst.geometryOffset = inst.baseGeometryOffset;// inst.baseGeometryOffset + first_part;
 				inst.geometryCount = (uint)num_parts;;//last_part - first_part;
+				inst.meshletOffset = geometry.meshletOffset;
 
 				inst.aabbCenter = aabb.getCenter();	
 				inst.aabbRadius = aabb.getRadius();
@@ -706,12 +734,19 @@ namespace vz
 
 		jobsystem::Wait(ctx); // dependencies
 
-		// Merge parallel bounds computation (depends on object update system):
-		//bounds = AABB();
-		//for (auto& group_bound : parallel_bounds)
-		//{
-		//	bounds = AABB::Merge(bounds, group_bound);
-		//}
+		// Meshlet buffer:
+		uint32_t meshletCount = meshletAllocator.load();
+		if (meshletBuffer.desc.size < meshletCount * sizeof(ShaderMeshlet))
+		{
+			GPUBufferDesc desc;
+			desc.stride = sizeof(ShaderMeshlet);
+			desc.size = desc.stride * meshletCount * 2; // *2 to grow fast
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+			bool success = device->CreateBuffer(&desc, nullptr, &meshletBuffer);
+			assert(success);
+			device->SetName(&meshletBuffer, "meshletBuffer");
+		}
 
 		//BVH.Update(*this); // scene
 
@@ -725,7 +760,6 @@ namespace vz
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 			shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
-			shaderscene.meshletbuffer = -1;
 		}
 		else
 		{
@@ -733,8 +767,8 @@ namespace vz
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryBuffer, SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialBuffer, SubresourceType::SRV);
 			shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupBuffer, SubresourceType::SRV);
-			shaderscene.meshletbuffer = -1;
-		}
+		}			
+		shaderscene.meshletbuffer = device->GetDescriptorIndex(&meshletBuffer, SubresourceType::SRV);
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
 		//if (weather.skyMap.IsValid())
 		//{
@@ -813,6 +847,7 @@ namespace vz
 		instanceBuffer = {};
 		geometryBuffer = {};
 		materialBuffer = {};
+		meshletBuffer = {};
 		textureStreamingFeedbackBuffer = {};
 		instanceResLookupBuffer = {};
 		queryHeap = {};

@@ -135,7 +135,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	glm::fvec3 u(0, 1, 0);
     cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
     
-    cam->SetPerspectiveProjection(0.1f, 1000.f, 45.f, (float)w / (float)h);
+    cam->SetPerspectiveProjection(0.1f, 100.f, 45.f, (float)w / (float)h);
     
     vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
     root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
@@ -195,9 +195,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     light_test->SetPosition({ 0.f, 0.f, 100.f });
     light_test->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
-	vzm::AppendSceneCompTo(actor_test, scene);
-	vzm::AppendSceneCompTo(actor_test2, scene);
-	vzm::AppendSceneCompTo(actor_test3, scene);
+	//vzm::AppendSceneCompTo(actor_test, scene);
+	//vzm::AppendSceneCompTo(actor_test2, scene);
+	//vzm::AppendSceneCompTo(actor_test3, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
 	vzm::AppendSceneCompTo(root_obj_actor, scene);
     
@@ -265,6 +265,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case '0': renderer->ShowDebugBuffer("NONE");
 			break;
 		case '1': renderer->ShowDebugBuffer("PRIMITIVE_ID");
+			break;
+		case '5': renderer->ShowDebugBuffer("INSTANCE_ID");
+			break;
+		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
 			break;
         default:
             break;

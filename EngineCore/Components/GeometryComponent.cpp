@@ -665,6 +665,52 @@ namespace vz
 	//}
 }
 
+using uint = uint32_t;
+using float3 = XMFLOAT3;
+using uint3 = XMUINT3;
+static const uint MESHLET_VERTEX_COUNT = 64u;
+static const uint MESHLET_TRIANGLE_COUNT = 124u;
+// the following structures that defines meshlet clusters MUST BE same to the structures defined in ShaderInteropXXX.h
+struct ShaderClusterTriangle
+{
+	uint raw;
+	void Init(uint i0, uint i1, uint i2, uint flags = 0u)
+	{
+		raw = 0;
+		raw |= i0 & 0xFF;
+		raw |= (i1 & 0xFF) << 8u;
+		raw |= (i2 & 0xFF) << 16u;
+		raw |= (flags & 0xFF) << 24u;
+	}
+	uint i0() { return raw & 0xFF; }
+	uint i1() { return (raw >> 8u) & 0xFF; }
+	uint i2() { return (raw >> 16u) & 0xFF; }
+	uint3 tri() { return uint3(i0(), i1(), i2()); }
+	uint flags() { return raw >> 24u; }
+};
+struct alignas(16) ShaderCluster
+{
+	uint triangleCount;
+	uint vertexCount;
+	uint padding0;
+	uint padding1;
+
+	uint vertices[MESHLET_VERTEX_COUNT];
+	ShaderClusterTriangle triangles[MESHLET_TRIANGLE_COUNT];
+};
+struct alignas(16) ShaderSphere
+{
+	float3 center;
+	float radius;
+};
+struct alignas(16) ShaderClusterBounds
+{
+	ShaderSphere sphere;
+
+	float3 cone_axis;
+	float cone_cutoff;
+};
+
 namespace vz
 {
 	using GBuffers = GGeometryComponent::GPrimBuffers;
@@ -914,6 +960,118 @@ namespace vz
 				vb_col.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_col.offset, vb_col.size, &Vertex_COL::FORMAT);
 				vb_col.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_col.subresource_srv);
 			}
+		}
+
+		std::vector<ShaderCluster> clusters;
+		std::vector<ShaderClusterBounds> cluster_bounds;
+
+		if (isMeshletEnabled)
+		{
+			// TODO
+			/*
+			const size_t max_vertices = MESHLET_VERTEX_COUNT;
+			const size_t max_triangles = MESHLET_TRIANGLE_COUNT;
+			const float cone_weight = 0.5f;
+
+			const uint32_t lod_count = GetLODCount();
+			for (uint32_t lod = 0; lod < lod_count; ++lod)
+			{
+				uint32_t first_subset = 0;
+				uint32_t last_subset = 0;
+				GetLODSubsetRange(lod, first_subset, last_subset);
+				for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
+				{
+					const MeshSubset& subset = subsets[subsetIndex];
+					SubsetClusterRange& meshlet_range = cluster_ranges.emplace_back();
+
+					if (subset.indexCount == 0)
+						continue;
+
+					size_t max_meshlets = meshopt_buildMeshletsBound(subset.indexCount, max_vertices, max_triangles);
+					std::vector<meshopt_Meshlet> meshopt_meshlets(max_meshlets);
+					std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
+					std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles * 3);
+
+					size_t meshlet_count = meshopt_buildMeshlets(
+						meshopt_meshlets.data(),
+						meshlet_vertices.data(),
+						meshlet_triangles.data(),
+						&indices[subset.indexOffset],
+						subset.indexCount,
+						&vertex_positions[0].x,
+						vertex_positions.size(),
+						sizeof(XMFLOAT3),
+						max_vertices,
+						max_triangles,
+						cone_weight
+					);
+
+					clusters.reserve(clusters.size() + meshlet_count);
+					cluster_bounds.reserve(cluster_bounds.size() + meshlet_count);
+
+					meshlet_range.clusterOffset = (uint32_t)clusters.size();
+					meshlet_range.clusterCount = (uint32_t)meshlet_count;
+
+					const meshopt_Meshlet& last = meshopt_meshlets[meshlet_count - 1];
+
+					meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
+					meshlet_triangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
+					meshopt_meshlets.resize(meshlet_count);
+
+					for (size_t i = 0; i < meshopt_meshlets.size(); ++i)
+					{
+						const meshopt_Meshlet& meshlet = meshopt_meshlets[i];
+						meshopt_optimizeMeshlet(
+							&meshlet_vertices[meshlet.vertex_offset],
+							&meshlet_triangles[meshlet.triangle_offset],
+							meshlet.triangle_count,
+							meshlet.vertex_count
+						);
+
+						meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+							&meshlet_vertices[meshlet.vertex_offset],
+							&meshlet_triangles[meshlet.triangle_offset],
+							meshlet.triangle_count,
+							&vertex_positions[0].x,
+							vertex_positions.size(),
+							sizeof(XMFLOAT3)
+						);
+
+						ShaderClusterBounds& clusterbound = cluster_bounds.emplace_back();
+						clusterbound.sphere.center.x = bounds.center[0];
+						clusterbound.sphere.center.y = bounds.center[1];
+						clusterbound.sphere.center.z = bounds.center[2];
+						clusterbound.sphere.radius = bounds.radius;
+						clusterbound.cone_axis.x = -bounds.cone_axis[0];
+						clusterbound.cone_axis.y = -bounds.cone_axis[1];
+						clusterbound.cone_axis.z = -bounds.cone_axis[2];
+						clusterbound.cone_cutoff = bounds.cone_cutoff;
+
+						ShaderCluster& cluster = clusters.emplace_back();
+						cluster.vertexCount = meshlet.vertex_count;
+						cluster.triangleCount = meshlet.triangle_count;
+						for (size_t tri = 0; tri < meshlet.triangle_count; ++tri)
+						{
+							cluster.triangles[tri].init(
+								meshlet_triangles[meshlet.triangle_offset + tri * 3 + 0],
+								meshlet_triangles[meshlet.triangle_offset + tri * 3 + 1],
+								meshlet_triangles[meshlet.triangle_offset + tri * 3 + 2]
+							);
+						}
+						for (size_t vert = 0; vert < meshlet.vertex_count; ++vert)
+						{
+							cluster.vertices[vert] = meshlet_vertices[meshlet.vertex_offset + vert];
+						}
+					}
+				}
+			}
+
+			bd.size = AlignTo(bd.size, sizeof(ShaderCluster));
+			bd.size = AlignTo(bd.size + clusters.size() * sizeof(ShaderCluster), alignment);
+
+			bd.size = AlignTo(bd.size, sizeof(ShaderClusterBounds));
+			bd.size = AlignTo(bd.size + cluster_bounds.size() * sizeof(ShaderClusterBounds), alignment);
+			/**/
 		}
 
 		hasRenderData_ = true;
