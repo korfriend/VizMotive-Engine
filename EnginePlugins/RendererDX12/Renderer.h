@@ -21,7 +21,7 @@ namespace vz
 	//	will be used across different combinations of scenes and cameras
 	constexpr Format FORMAT_depthbufferMain = Format::D32_FLOAT_S8X24_UINT;
 	constexpr Format FORMAT_rendertargetMain = Format::R11G11B10_FLOAT;
-	constexpr Format FORMAT_idbuffer = Format::R32G32_UINT;
+	constexpr Format FORMAT_idbuffer = Format::R32_UINT;
 	constexpr Format FORMAT_rendertargetShadowmap = Format::R16G16B16A16_FLOAT;
 	constexpr Format FORMAT_depthbufferShadowmap = Format::D16_UNORM;
 	constexpr Format FORMAT_rendertargetEnvprobe = Format::R11G11B10_FLOAT;

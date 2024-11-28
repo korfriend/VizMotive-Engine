@@ -4,9 +4,11 @@
 #include "../CommonHF/raytracingHF.hlsli"
 
 #ifdef VIEW_MSAA
-Texture2DMS<uint2> input_primitiveID : register(t0);
+Texture2DMS<uint> input_primitiveID_1 : register(t0);
+Texture2DMS<uint> input_primitiveID_2 : register(t1);
 #else
-Texture2D<uint2> input_primitiveID : register(t0);
+Texture2D<uint> input_primitiveID_1 : register(t0);
+Texture2D<uint> input_primitiveID_2 : register(t1);
 #endif // VIEW_MSAA
 
 groupshared uint local_bin_mask;
@@ -29,7 +31,8 @@ RWTexture2D<float> output_lineardepth_mip3 : register(u11);
 RWTexture2D<float> output_lineardepth_mip4 : register(u12);
 
 #ifdef VIEW_MSAA
-RWTexture2D<uint2> output_primitiveID : register(u13);
+RWTexture2D<uint> output_primitiveID_1 : register(u13);
+RWTexture2D<uint> output_primitiveID_2 : register(u14);
 #endif // VIEW_MSAA
 
 [numthreads(VISIBILITY_BLOCKSIZE, VISIBILITY_BLOCKSIZE, 1)]
@@ -54,17 +57,15 @@ void main(uint2 Gid : SV_GroupID, uint groupIndex : SV_GroupIndex)
 	const float2 clipspace = uv_to_clipspace(uv);
 	RayDesc ray = CreateCameraRay(clipspace);
 	
-	// here, we are using meshlet datastructure to reduce primitiveID texture size
-	// 	use R32_FLOAT instead of R32G32_FLOAT (incluing MIPs)
-	//	note: ShaderMeshlet buffer represents 128-subdivided regions that cover the entire screen
 #ifdef VIEW_MSAA
-	uint2 primitiveID = input_primitiveID.Load(pixel, 0);
+	uint2 primitiveID = uint2(input_primitiveID_1.Load(pixel, 0), input_primitiveID_2.Load(pixel, 0));
 #else
-	uint2 primitiveID = input_primitiveID[pixel];
+	uint2 primitiveID = uint2(input_primitiveID_1[pixel], input_primitiveID_2[pixel]);
 #endif // VIEW_MSAA
 
 #ifdef VIEW_MSAA
-	output_primitiveID[pixel] = primitiveID;
+	output_primitiveID_1[pixel] = primitiveID.x;
+	output_primitiveID_2[pixel] = primitiveID.y;
 #endif // VIEW_MSAA
 
 	float depth = 1; // invalid

@@ -658,6 +658,12 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
 
+	vzm::VzRenderer* renderer = nullptr;
+	if (vzm::IsValidEngineLib())
+	{
+		renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
+	}
+
 	switch (msg)
 	{
 	case WM_KEYDOWN:
@@ -665,7 +671,15 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case 'R':
 			//vz::eventhandler::FireEvent(1, 0);
 			vzm::ReloadShader();
-			    break;
+			break;
+		case '0': renderer->ShowDebugBuffer("NONE");
+			break;
+		case '1': renderer->ShowDebugBuffer("PRIMITIVE_ID");
+			break;
+		case '2': renderer->ShowDebugBuffer("INSTANCE_ID");
+			break;
+		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
+			break;
 		default:
 			break;
 		}

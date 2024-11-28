@@ -1370,7 +1370,8 @@ struct alignas(16) ShaderCamera
 	uint options;	// SHADERCAMERA_OPTIONS
 
 	int texture_rtdiffuse_index;
-	int texture_primitiveID_index;
+	int texture_primitiveID_1_index;
+	int texture_primitiveID_2_index;
 	int texture_depth_index;
 	int texture_lineardepth_index;
 
@@ -1442,7 +1443,8 @@ struct alignas(16) ShaderCamera
 		visibility_tilecount_flat = {};
 
 		texture_rtdiffuse_index = -1;
-		texture_primitiveID_index = -1;
+		texture_primitiveID_1_index = -1;
+		texture_primitiveID_2_index = -1;
 		texture_depth_index = -1;
 		texture_lineardepth_index = -1;
 		texture_velocity_index = -1;

@@ -484,6 +484,14 @@ PixelInput main(VertexInput input)
 #pragma PSSL_target_output_format (target 0 FMT_32_R)
 #endif // __PSSL__ && PREPASS
 
+#ifdef PREPASS
+struct PSOutput
+{
+    uint out0 : SV_Target0;
+    uint out1 : SV_Target1;
+};
+#endif // PREPASS
+
 #ifdef EARLY_DEPTH_STENCIL
 [earlydepthstencil]
 #endif // EARLY_DEPTH_STENCIL
@@ -493,7 +501,7 @@ PixelInput main(VertexInput input)
 #ifdef DEPTHONLY
 void main(PixelInput input, in uint primitiveID : SV_PrimitiveID, out uint coverage : SV_Coverage)
 #else
-uint2 main(PixelInput input, in uint primitiveID : SV_PrimitiveID, out uint coverage : SV_Coverage) : SV_Target
+PSOutput main(PixelInput input, in uint primitiveID : SV_PrimitiveID, out uint coverage : SV_Coverage)
 #endif // DEPTHONLY
 #else
 float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
@@ -1103,7 +1111,11 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	prim.primitiveIndex = primitiveID;
 	prim.instanceIndex = input.GetInstanceIndex();
 	prim.subsetIndex = push.geometryIndex - meshinstance.geometryOffset;
-	return prim.pack2();
+	uint2 packed_prim = prim.pack2(); 
+	PSOutput output;
+	output.out0 = packed_prim.x;
+	output.out1 = packed_prim.y;
+	return output;
 #endif // DEPTHONLY
 #else
 	return color;

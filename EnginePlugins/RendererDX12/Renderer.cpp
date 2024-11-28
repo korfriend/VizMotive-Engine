@@ -135,7 +135,8 @@ namespace vz::renderer
 		// You can request any of these extra outputs to be written by VisibilityResolve:
 		const graphics::Texture* depthbuffer = nullptr; // depth buffer that matches with post projection
 		const graphics::Texture* lineardepth = nullptr; // depth buffer in linear space in [0,1] range
-		const graphics::Texture* primitiveID_resolved = nullptr; // resolved from MSAA texture_visibility input
+		const graphics::Texture* primitiveID_1_resolved = nullptr; // resolved from MSAA texture_visibility input
+		const graphics::Texture* primitiveID_2_resolved = nullptr; // resolved from MSAA texture_visibility input
 
 		inline bool IsValid() const { return bins.IsValid(); }
 	};
@@ -1098,8 +1099,10 @@ namespace vz
 
 		graphics::Texture rtMain;
 		graphics::Texture rtMain_render; // can be MSAA
-		graphics::Texture rtPrimitiveID;
-		graphics::Texture rtPrimitiveID_render; // can be MSAA
+		graphics::Texture rtPrimitiveID_1;	// aliasing to rtPostprocess
+		graphics::Texture rtPrimitiveID_2;	// aliasing to ???
+		graphics::Texture rtPrimitiveID_1_render; // can be MSAA
+		graphics::Texture rtPrimitiveID_2_render; // can be MSAA
 		graphics::Texture rtPrimitiveID_debug; // test
 
 		graphics::Texture depthBufferMain; // used for depth-testing, can be MSAA
@@ -1158,7 +1161,7 @@ namespace vz
 		void ComputeTiledLightCulling(const TiledLightResources& res, const View& vis, const Texture& debugUAV, CommandList cmd);
 		
 		void CreateViewResources(ViewResources& res, XMUINT2 resolution);
-		void View_Prepare(const ViewResources& res, const Texture& input_primitiveID, CommandList cmd); // input_primitiveID can be MSAA
+		void View_Prepare(const ViewResources& res, const Texture& input_primitiveID_1, const Texture& input_primitiveID_2, CommandList cmd); // input_primitiveID can be MSAA
 		// SURFACE need to be checked whether it requires FORWARD or DEFERRED
 		void View_Surface(const ViewResources& res, const Texture& output, CommandList cmd); 
 		void View_Surface_Reduced(const ViewResources& res, CommandList cmd);
@@ -1331,11 +1334,13 @@ namespace vz
 		viewResources.lineardepth = &rtLinearDepth;
 		if (msaaSampleCount > 1)
 		{
-			viewResources.primitiveID_resolved = &rtPrimitiveID;
+			viewResources.primitiveID_1_resolved = &rtPrimitiveID_1;
+			viewResources.primitiveID_2_resolved = &rtPrimitiveID_2;
 		}
 		else
 		{
-			viewResources.primitiveID_resolved = nullptr;
+			viewResources.primitiveID_1_resolved = nullptr;
+			viewResources.primitiveID_2_resolved = nullptr;
 		}
 	}
 
@@ -2034,7 +2039,8 @@ namespace vz
 		shadercam.visibility_tilecount = GetViewTileCount(shadercam.internal_resolution);
 		shadercam.visibility_tilecount_flat = shadercam.visibility_tilecount.x * shadercam.visibility_tilecount.y;
 
-		shadercam.texture_primitiveID_index = device->GetDescriptorIndex(&rtPrimitiveID, SubresourceType::SRV);
+		shadercam.texture_primitiveID_1_index = device->GetDescriptorIndex(&rtPrimitiveID_1, SubresourceType::SRV);
+		shadercam.texture_primitiveID_2_index = device->GetDescriptorIndex(&rtPrimitiveID_2, SubresourceType::SRV);
 		shadercam.texture_depth_index = device->GetDescriptorIndex(&depthBuffer_Copy, SubresourceType::SRV);
 		shadercam.texture_lineardepth_index = device->GetDescriptorIndex(&rtLinearDepth, SubresourceType::SRV);
 		//shadercam.texture_velocity_index = camera.texture_velocity_index;
@@ -2729,7 +2735,8 @@ namespace vz
 
 	void GRenderPath3DDetails::View_Prepare(
 		const ViewResources& res,
-		const Texture& input_primitiveID, // can be MSAA
+		const Texture& input_primitiveID_1, // can be MSAA
+		const Texture& input_primitiveID_2, // can be MSAA
 		CommandList cmd
 	)
 	{
@@ -2739,7 +2746,7 @@ namespace vz
 		BindCommonResources(cmd);
 
 		// Note: the tile_count here must be valid whether the VisibilityResources was created or not!
-		XMUINT2 tile_count = GetViewTileCount(XMUINT2(input_primitiveID.desc.width, input_primitiveID.desc.height));
+		XMUINT2 tile_count = GetViewTileCount(XMUINT2(input_primitiveID_1.desc.width, input_primitiveID_1.desc.height));
 
 		// Beginning barriers, clears:
 		if (res.IsValid())
@@ -2764,9 +2771,10 @@ namespace vz
 		//	Binning classification
 		{
 			device->EventBegin("Resolve", cmd);
-			const bool msaa = input_primitiveID.GetDesc().sample_count > 1;
+			const bool msaa = input_primitiveID_1.GetDesc().sample_count > 1;
 
-			device->BindResource(&input_primitiveID, 0, cmd);
+			device->BindResource(&input_primitiveID_1, 0, cmd);
+			device->BindResource(&input_primitiveID_2, 1, cmd);
 
 			GPUResource unbind;
 
@@ -2815,14 +2823,17 @@ namespace vz
 				device->BindUAV(&unbind, 11, cmd);
 				device->BindUAV(&unbind, 12, cmd);
 			}
-			if (res.primitiveID_resolved)
+			if (res.primitiveID_1_resolved)
 			{
-				device->BindUAV(res.primitiveID_resolved, 13, cmd);
-				barrierStack.push_back(GPUBarrier::Image(res.primitiveID_resolved, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
+				device->BindUAV(res.primitiveID_1_resolved, 13, cmd);
+				device->BindUAV(res.primitiveID_2_resolved, 14, cmd);
+				barrierStack.push_back(GPUBarrier::Image(res.primitiveID_1_resolved, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
+				barrierStack.push_back(GPUBarrier::Image(res.primitiveID_2_resolved, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
 			}
 			else
 			{
 				device->BindUAV(&unbind, 13, cmd);
+				device->BindUAV(&unbind, 14, cmd);
 			}
 			BarrierStackFlush(cmd);
 
@@ -2843,9 +2854,10 @@ namespace vz
 			{
 				barrierStack.push_back(GPUBarrier::Image(res.lineardepth, ResourceState::UNORDERED_ACCESS, res.lineardepth->desc.layout));
 			}
-			if (res.primitiveID_resolved)
+			if (res.primitiveID_1_resolved)
 			{
-				barrierStack.push_back(GPUBarrier::Image(res.primitiveID_resolved, ResourceState::UNORDERED_ACCESS, res.primitiveID_resolved->desc.layout));
+				barrierStack.push_back(GPUBarrier::Image(res.primitiveID_1_resolved, ResourceState::UNORDERED_ACCESS, res.primitiveID_1_resolved->desc.layout));
+				barrierStack.push_back(GPUBarrier::Image(res.primitiveID_2_resolved, ResourceState::UNORDERED_ACCESS, res.primitiveID_2_resolved->desc.layout));
 			}
 			if (res.IsValid())
 			{
@@ -3334,7 +3346,7 @@ namespace vz
 		// rtPostprocess aliasing transition:
 		{
 			GPUBarrier barriers[] = {
-				GPUBarrier::Aliasing(&rtPrimitiveID, &rtPostprocess),
+				GPUBarrier::Aliasing(&rtPrimitiveID_1, &rtPostprocess),
 				GPUBarrier::Image(&rtPostprocess, rtPostprocess.desc.layout, ResourceState::UNORDERED_ACCESS),
 			};
 			device->Barrier(barriers, arraysize(barriers), cmd);
@@ -3567,25 +3579,30 @@ namespace vz
 			desc.sample_count = 1;
 			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
 			desc.misc_flags = ResourceMiscFlag::ALIASING_TEXTURE_RT_DS;
-			device->CreateTexture(&desc, nullptr, &rtPrimitiveID);
+			device->CreateTexture(&desc, nullptr, &rtPrimitiveID_1);
+			device->CreateTexture(&desc, nullptr, &rtPrimitiveID_2);
 			if (debugMode == DEBUG_BUFFER::PRIMITIVE_ID)
 			{
+				desc.misc_flags = ResourceMiscFlag::NONE;
 				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_debug);
 				device->SetName(&rtPrimitiveID_debug, "rtPrimitiveID_debug");
 			}
-			device->SetName(&rtPrimitiveID, "rtPrimitiveID");
+			device->SetName(&rtPrimitiveID_1, "rtPrimitiveID_1");
+			device->SetName(&rtPrimitiveID_2, "rtPrimitiveID_2");
 
 			if (msaaSampleCount > 1)
 			{
 				desc.sample_count = msaaSampleCount;
 				desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
 				desc.misc_flags = ResourceMiscFlag::NONE;
-				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_render);
-				device->SetName(&rtPrimitiveID_render, "rtPrimitiveID_render");
+				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_1_render);
+				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_2_render);
+				device->SetName(&rtPrimitiveID_1_render, "rtPrimitiveID_1_render");
 			}
 			else
 			{
-				rtPrimitiveID_render = rtPrimitiveID;
+				rtPrimitiveID_1_render = rtPrimitiveID_1;
+				rtPrimitiveID_2_render = rtPrimitiveID_2;
 			}
 		}
 		{ // rtPostprocess
@@ -3594,9 +3611,9 @@ namespace vz
 			desc.format = FORMAT_rendertargetMain;
 			desc.width = internalResolution.x;
 			desc.height = internalResolution.y;
-			assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtPrimitiveID.desc)); // Aliased check
-			//device->CreateTexture(&desc, nullptr, &rtPostprocess, &rtPrimitiveID); // Aliased!
-			device->CreateTexture(&desc, nullptr, &rtPostprocess); // Aliased!
+			// the same size of format is recommended. the following condition (less equal) will cause some unexpected behavior.
+			assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtPrimitiveID_1.desc)); // Aliased check
+			device->CreateTexture(&desc, nullptr, &rtPostprocess, &rtPrimitiveID_1); // Aliased!
 			device->SetName(&rtPostprocess, "rtPostprocess");
 		}
 		if (device->CheckCapability(GraphicsDeviceCapability::VARIABLE_RATE_SHADING_TIER2) &&
@@ -3877,10 +3894,10 @@ namespace vz
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderData(viewMain, frameCB, cmd);
 
-			uint32_t num_barriers = 1;
+			uint32_t num_barriers = 2;
 			GPUBarrier barriers[] = {
 				GPUBarrier::Image(&debugUAV, debugUAV.desc.layout, ResourceState::UNORDERED_ACCESS),
-				//GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID),
+				GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1),
 				GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE), // prepares transition for discard in dx12
 			};
 			if (viewShadingInCS)
@@ -3941,7 +3958,14 @@ namespace vz
 					ResourceState::DEPTHSTENCIL
 				),
 				RenderPassImage::RenderTarget(
-					&rtPrimitiveID_render,
+					&rtPrimitiveID_1_render,
+					RenderPassImage::LoadOp::CLEAR,
+					RenderPassImage::StoreOp::STORE,
+					ResourceState::SHADER_RESOURCE_COMPUTE,
+					ResourceState::SHADER_RESOURCE_COMPUTE
+				),
+				RenderPassImage::RenderTarget(
+					&rtPrimitiveID_2_render,
 					RenderPassImage::LoadOp::CLEAR,
 					RenderPassImage::StoreOp::STORE,
 					ResourceState::SHADER_RESOURCE_COMPUTE,
@@ -3987,20 +4011,22 @@ namespace vz
 
 			device->RenderPassEnd(cmd);
 
-			if (debugMode == DEBUG_BUFFER::PRIMITIVE_ID && rtPrimitiveID_debug.IsValid())
+			if ((debugMode == DEBUG_BUFFER::PRIMITIVE_ID || debugMode == DEBUG_BUFFER::INSTANCE_ID)
+				&& rtPrimitiveID_debug.IsValid())
 			{
+				graphics::Texture& rtSrc = debugMode == DEBUG_BUFFER::PRIMITIVE_ID ? rtPrimitiveID_1_render : rtPrimitiveID_2_render;
 				GPUBarrier barriers1[] = {
-					GPUBarrier::Image(&rtPrimitiveID_render, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_SRC),
+					GPUBarrier::Image(&rtSrc, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_SRC),
 					GPUBarrier::Image(&rtPrimitiveID_debug, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_DST),
 				};
 				device->Barrier(barriers1, arraysize(barriers1), cmd);
 				device->CopyTexture(
 					&rtPrimitiveID_debug, 0, 0, 0, 0, 0,
-					&rtPrimitiveID_render, 0, 0,
+					&rtSrc, 0, 0,
 					cmd
 				);
 				GPUBarrier barriers2[] = {
-					GPUBarrier::Image(&rtPrimitiveID_render, ResourceState::COPY_SRC, ResourceState::SHADER_RESOURCE_COMPUTE),
+					GPUBarrier::Image(&rtSrc, ResourceState::COPY_SRC, ResourceState::SHADER_RESOURCE_COMPUTE),
 					GPUBarrier::Image(&rtPrimitiveID_debug, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE_COMPUTE),
 				};
 				device->Barrier(barriers2, arraysize(barriers2), cmd);
@@ -4030,7 +4056,8 @@ namespace vz
 
 			View_Prepare(
 				viewResources,
-				rtPrimitiveID_render,
+				rtPrimitiveID_1_render,
+				rtPrimitiveID_2_render,
 				cmd
 			);
 
@@ -4590,8 +4617,10 @@ namespace vz
 
 		rtMain = {};
 		rtMain_render = {};
-		rtPrimitiveID = {};
-		rtPrimitiveID_render = {}; 
+		rtPrimitiveID_1 = {};
+		rtPrimitiveID_2 = {};
+		rtPrimitiveID_1_render = {};
+		rtPrimitiveID_2_render = {};
 		rtPrimitiveID_debug = {};
 		
 		depthBufferMain = {};
