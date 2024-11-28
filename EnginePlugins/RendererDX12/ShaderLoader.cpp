@@ -936,8 +936,17 @@ namespace vz::shader
 											}
 											else
 											{
-												renderpass_info.rt_count = 1;
-												renderpass_info.rt_formats[0] = renderPass == RENDERPASS_MAIN ? FORMAT_rendertargetMain : FORMAT_idbuffer;
+												if (renderPass == RENDERPASS_MAIN)
+												{
+													renderpass_info.rt_count = 1;
+													renderpass_info.rt_formats[0] = FORMAT_rendertargetMain;
+												}
+												else 
+												{
+													renderpass_info.rt_count = 2;
+													renderpass_info.rt_formats[0] = FORMAT_idbuffer;
+													renderpass_info.rt_formats[1] = FORMAT_idbuffer;
+												}
 											}
 											renderpass_info.ds_format = FORMAT_depthbufferMain;
 											const uint32_t msaa_support[] = { 1,2,4,8 };

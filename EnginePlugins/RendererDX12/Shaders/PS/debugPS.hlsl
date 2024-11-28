@@ -53,21 +53,21 @@ float4 main(VertextoPixel input) : SV_TARGET
 	switch (image.sampler_index)
 	{
 		case PRIMITIVE_ID:
+		{
+			uint primitive_id = asuint(texture.Load(int3(input.pos.xy, 0)).r);
+			if (primitive_id > 0) {
+				color.rgb = IntToRGB_UNORM2(primitive_id - 1);
+			}
+		} break;
 		case INSTANCE_ID:
 		{
-			uint2 primitive_id = asuint(texture.Load(int3(input.pos.xy, 0)).rg);
-			PrimitiveID prim;
-			prim.unpack2(primitive_id);
-				
-			if (primitive_id.x > 0) {
-				if (image.sampler_index == PRIMITIVE_ID)
-				{
-					color.rgb = IntToRGB_UNORM2(prim.primitiveIndex);
-				}
-				else
-				{
-					color.rgb = IntToRGB_UNORM2(prim.instanceIndex);
-				}
+			uint instance_id = asuint(texture.Load(int3(input.pos.xy, 0)).r);
+			
+			uint instance_index = instance_id & 0xFFFFFF;
+			uint part_index = (instance_id >> 24u) & 0xFF;
+
+			if (instance_id > 0) {
+				color.rgb = IntToRGB_UNORM2((instance_index - 1) * 100 + part_index);
 			}
 		} break;
 		case LINEAR_DEPTH:

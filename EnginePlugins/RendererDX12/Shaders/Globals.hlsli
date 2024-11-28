@@ -496,15 +496,17 @@ struct PrimitiveID
 	// These packing methods don't need meshlets, but they are packed into 64 bits:
     inline uint2 pack2()
     {
-		// 32 bit primitiveIndex + 1 valid check
+        // + 1 valid check
+		// 32 bit primitiveIndex 
 		// 24 bit instanceIndex
 		// 8  bit subsetIndex
-        return uint2(primitiveIndex + 1, (instanceIndex & 0xFFFFFF) | ((subsetIndex & 0xFF) << 24u));
+        return uint2(primitiveIndex + 1, ((instanceIndex + 1) & 0xFFFFFF) | ((subsetIndex & 0xFF) << 24u));
     }
     inline void unpack2(uint2 value)
     {
-        primitiveIndex = value.x - 1; // remove valid check
-        instanceIndex = value.y & 0xFFFFFF;
+        // -1 remove valid check
+        primitiveIndex = value.x - 1; 
+        instanceIndex = (value.y - 1) & 0xFFFFFF;
         subsetIndex = (value.y >> 24u) & 0xFF;
         maybe_clustered = false;
     }
