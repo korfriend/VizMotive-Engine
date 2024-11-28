@@ -245,6 +245,9 @@ namespace vz::graphics
 
 		virtual RenderPassInfo GetRenderPassInfo(CommandList cmd) = 0;
 
+		virtual void Map(GPUResource* resource) = 0;
+		virtual void Unmap(GPUResource* resource) = 0;
+
 		// Some useful helpers:
 
 		bool CreateBuffer(const GPUBufferDesc* desc, const void* initial_data, GPUBuffer* buffer, const GPUResource* alias = nullptr, uint64_t alias_offset = 0ull) const
