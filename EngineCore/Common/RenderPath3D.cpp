@@ -70,8 +70,8 @@ namespace vz
 
 		if (camera == nullptr || scene == nullptr) return;
 
-		jobsystem::context ctx;
-		jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
+		//jobsystem::context ctx;
+		//jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
 
 			// Update the target Scene of this RenderPath 
 			//	this involves Animation updates
@@ -85,13 +85,14 @@ namespace vz
 				{
 					camera->SetWorldLookAtFromHierarchyTransforms();
 				}
-				if (camera->IsDirty())
-				{
-					camera->UpdateMatrix();
-				}
+				// this is supposed to be updated during the rendering performed by the renderer plugin 
+				//if (camera->IsDirty())
+				//{
+				//	camera->UpdateMatrix();
+				//}
 			}
-			});
-		jobsystem::Wait(ctx);
+	//		});
+	//	jobsystem::Wait(ctx);
 	}
 	
 	void RenderPath3D::Render(const float dt)
