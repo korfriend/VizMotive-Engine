@@ -42,7 +42,7 @@ namespace vz
 		uint64_t frameCount = 0;
 		float deltaTimeAccumulator = 0;
 		float targetFrameRate = 60;
-		bool frameskip = true;
+		bool frameskip = false;
 		bool framerateLock = false;
 		vz::Timer timer;
 

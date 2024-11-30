@@ -1075,7 +1075,6 @@ namespace vz
 		mutable bool firstFrame = true;
 
 		FrameCB frameCB = {};
-		CameraCB cameraCB = {};
 		// separate graphics pipelines for the combination of special rendering effects
 		renderer::View viewMain;
 		renderer::View viewReflection;
@@ -1110,6 +1109,8 @@ namespace vz
 		graphics::Texture depthBuffer_Copy; // used for shader resource, single sample
 		graphics::Texture depthBuffer_Copy1; // used for disocclusion check
 
+		mutable const graphics::Texture* lastPostprocessRT = &rtPostprocess;
+
 		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
 
 		ViewResources viewResources;	// dynamic allocation
@@ -1127,7 +1128,7 @@ namespace vz
 		// call renderer::UpdatePerFrameData to update :
 		//	1. viewMain
 		//	2. frameCB
-		void UpdateViewRes(const float dt);
+		void UpdateProcess(const float dt);
 		// Updates the GPU state according to the previously called UpdatePerFrameData()
 		void UpdateRenderData(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
 		void UpdateRenderDataAsync(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
@@ -1171,7 +1172,7 @@ namespace vz
 
 		void RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
 		void RenderPostprocessChain(CommandList cmd);
-		bool RenderProcess(const float dt);
+		bool RenderProcess();
 		void Compose(CommandList cmd);
 
 		// ---------- Post Processings ----------
@@ -1195,7 +1196,7 @@ namespace vz
 
 namespace vz
 {
-	void GRenderPath3DDetails::UpdateViewRes(const float dt)
+	void GRenderPath3DDetails::UpdateProcess(const float dt)
 	{
 		// Frustum culling for main camera:
 		viewMain.layerMask = ~0;
@@ -1267,8 +1268,9 @@ namespace vz
 			temporalAAResources = {};
 		}
 
-		// for updating Jitters
+		// the given CameraComponent
 		viewMain.camera->UpdateMatrix();
+
 		if (viewMain.isPlanarReflectionVisible)
 		{
 			cameraReflection.UpdateMatrix();
@@ -1952,10 +1954,13 @@ namespace vz
 		device->EventEnd(cmd);
 	}
 
+	// note : this function is supposed to be called in jobsystem
+	//	so, the internal parameters must not be declared outside the function (e.g., member parameter)
 	void GRenderPath3DDetails::BindCameraCB(const CameraComponent& camera, const CameraComponent& cameraPrevious, const CameraComponent& cameraReflection, CommandList cmd)
 	{
-		cameraCB.Init();
-		ShaderCamera& shadercam = cameraCB.cameras[0];
+		CameraCB* cameraCB = new CameraCB();
+		cameraCB->Init();
+		ShaderCamera& shadercam = cameraCB->cameras[0];
 
 		// NOTE:
 		//  the following parameters need to be set according to 
@@ -2062,7 +2067,8 @@ namespace vz
 		//shadercam.texture_vxgi_specular_index = camera.texture_vxgi_specular_index;
 		//shadercam.texture_reprojected_depth_index = camera.texture_reprojected_depth_index;
 		
-		device->BindDynamicConstantBuffer(cameraCB, CBSLOT_RENDERER_CAMERA, cmd);
+		device->BindDynamicConstantBuffer(*cameraCB, CBSLOT_RENDERER_CAMERA, cmd);
+		delete cameraCB;
 	}
 	void GRenderPath3DDetails::UpdateRenderData(const View& view, const FrameCB& frameCB, CommandList cmd)
 	{
@@ -3497,26 +3503,26 @@ namespace vz
 
 				std::swap(rt_read, rt_write);
 			}
+			/**/
 
 			lastPostprocessRT = rt_read;
 
 			// GUI Background blurring:
-			{
-				auto range = profiler::BeginRangeGPU("GUI Background Blur", cmd);
-				device->EventBegin("GUI Background Blur", cmd);
-				renderer::Postprocess_Downsample4x(*rt_read, rtGUIBlurredBackground[0], cmd);
-				renderer::Postprocess_Downsample4x(rtGUIBlurredBackground[0], rtGUIBlurredBackground[2], cmd);
-				renderer::Postprocess_Blur_Gaussian(rtGUIBlurredBackground[2], rtGUIBlurredBackground[1], rtGUIBlurredBackground[2], cmd, -1, -1, true);
-				device->EventEnd(cmd);
-				profiler::EndRange(range);
-			}
-
-			if (rtFSR[0].IsValid() && getFSREnabled())
-			{
-				renderer::Postprocess_FSR(*rt_read, rtFSR[1], rtFSR[0], cmd, getFSRSharpness());
-				lastPostprocessRT = &rtFSR[0];
-			}
-			/**/
+			//{
+			//	auto range = profiler::BeginRangeGPU("GUI Background Blur", cmd);
+			//	device->EventBegin("GUI Background Blur", cmd);
+			//	renderer::Postprocess_Downsample4x(*rt_read, rtGUIBlurredBackground[0], cmd);
+			//	renderer::Postprocess_Downsample4x(rtGUIBlurredBackground[0], rtGUIBlurredBackground[2], cmd);
+			//	renderer::Postprocess_Blur_Gaussian(rtGUIBlurredBackground[2], rtGUIBlurredBackground[1], rtGUIBlurredBackground[2], cmd, -1, -1, true);
+			//	device->EventEnd(cmd);
+			//	profiler::EndRange(range);
+			//}
+			//
+			//if (rtFSR[0].IsValid() && getFSREnabled())
+			//{
+			//	renderer::Postprocess_FSR(*rt_read, rtFSR[1], rtFSR[0], cmd, getFSRSharpness());
+			//	lastPostprocessRT = &rtFSR[0];
+			//}
 		}
 	}
 }
@@ -3778,7 +3784,7 @@ namespace vz
 		else
 		{
 			rtPrimitiveID_debug = {};
-			image::Draw(&rtMain, fx, cmd);
+			image::Draw(lastPostprocessRT, fx, cmd);
 		}
 		device->EventEnd(cmd);
 
@@ -3832,7 +3838,9 @@ namespace vz
 
 		// ----- main render process -----
 		auto range = profiler::BeginRangeCPU("Render");
-		RenderProcess(dt);	// rtMain...
+
+		UpdateProcess(dt);
+		RenderProcess();
 		profiler::EndRange(range);
 
 		graphics::CommandList cmd = device->BeginCommandList();
@@ -3875,10 +3883,8 @@ namespace vz
 		return true;
 	}
 
-	bool GRenderPath3DDetails::RenderProcess(const float dt)
+	bool GRenderPath3DDetails::RenderProcess()
 	{
-		UpdateViewRes(dt);
-
 		jobsystem::context ctx;
 
 		// Preparing the frame:
@@ -4034,9 +4040,6 @@ namespace vz
 
 			});
 
-		jobsystem::Wait(ctx);	// need to wait until the preparing and prepass tasks are finished
-		//------------------
-
 		// Main camera compute effects:
 		//	(async compute, parallel to "shadow maps" and "update textures",
 		//	must finish before "main scene opaque color pass")
@@ -4145,7 +4148,7 @@ namespace vz
 			//}
 
 			});
-
+		
 		// Occlusion culling:
 		CommandList cmd_occlusionculling;
 		if (renderer::isOcclusionCullingEnabled)
@@ -4499,8 +4502,7 @@ namespace vz
 
 			if (!viewShadingInCS)
 			{
-				CommandList cmd_tmp = cmd;
-				auto range = profiler::BeginRangeGPU("Opaque Scene", &cmd_tmp);
+				auto range = profiler::BeginRangeGPU("Opaque Scene", (CommandList*)&cmd);
 
 				// Foreground:
 				vp.min_depth = 1 - foregroundDepthRange;
@@ -4544,8 +4546,6 @@ namespace vz
 
 			device->EventEnd(cmd);
 			});
-
-		jobsystem::Wait(ctx);
 
 		// Transparents, post processes, etc:
 		cmd = device->BeginCommandList();
@@ -4591,7 +4591,7 @@ namespace vz
 
 		cmd = device->BeginCommandList();
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
-			//RenderPostprocessChain(cmd);
+			RenderPostprocessChain(cmd);
 			TextureStreamingReadbackCopy(*scene, cmd);
 		});
 
