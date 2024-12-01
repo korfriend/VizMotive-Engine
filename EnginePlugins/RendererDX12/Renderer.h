@@ -369,6 +369,14 @@ namespace vz
 		const Sampler* GetSampler(SAMPLERTYPES id);
 
 		constexpr uint32_t CombineStencilrefs(StencilRef engineStencilRef, uint8_t userStencilRef);
+
+		namespace options
+		{
+			void SetOcclusionCullingEnabled(bool enabled);
+			bool IsOcclusionCullingEnabled();
+			void SetFreezeCullingCameraEnabled(bool enabled);
+			bool IsFreezeCullingCameraEnabled();
+		}
 	}
 
 	struct GSceneDetails : GScene
@@ -398,8 +406,8 @@ namespace vz
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
 
-		const bool occlusionQueryEnabled = false;
-		const bool cameraFreezeCullingEnabled = false;
+		//const bool occlusionQueryEnabled = false;
+		//const bool cameraFreezeCullingEnabled = false;
 		bool isWetmapProcessingRequired = false;
 
 		ShaderScene shaderscene = {};

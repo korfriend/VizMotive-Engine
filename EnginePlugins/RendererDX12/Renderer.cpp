@@ -44,22 +44,31 @@ namespace vz::rcommon
 
 namespace vz::renderer
 {
-	const float giBoost = 1.f;
-	const float renderingSpeed = 1.f;
-	const bool isOcclusionCullingEnabled = false;
-	const bool isWetmapRefreshEnabled = false;
-	const bool isFreezeCullingCameraEnabled = false;
-	const bool isSceneUpdateEnabled = true;
-	const bool isTemporalAAEnabled = false;
-	const bool isTessellationEnabled = false;
-	const bool isFSREnabled = false;
-	const bool isWireRender = false;
-	const bool isDebugLightCulling = false;
-	const bool isAdvancedLightCulling = false;
-	const bool isMeshShaderAllowed = false;
-	const bool isShadowsEnabled = false;
-	const bool isVariableRateShadingClassification = false;
-	const bool isSurfelGIDebugEnabled = false;
+	float giBoost = 1.f;
+	float renderingSpeed = 1.f;
+	bool isOcclusionCullingEnabled = true;
+	bool isWetmapRefreshEnabled = false;
+	bool isFreezeCullingCameraEnabled = false;
+	bool isSceneUpdateEnabled = true;
+	bool isTemporalAAEnabled = false;
+	bool isTessellationEnabled = false;
+	bool isFSREnabled = false;
+	bool isWireRender = false;
+	bool isDebugLightCulling = false;
+	bool isAdvancedLightCulling = false;
+	bool isMeshShaderAllowed = false;
+	bool isShadowsEnabled = false;
+	bool isVariableRateShadingClassification = false;
+	bool isSurfelGIDebugEnabled = false;
+
+	namespace options
+	{
+		void SetOcclusionCullingEnabled(bool enabled) { isOcclusionCullingEnabled = enabled; }
+		bool IsOcclusionCullingEnabled() { return isOcclusionCullingEnabled; }
+		void SetFreezeCullingCameraEnabled(bool enabled) { isFreezeCullingCameraEnabled = enabled; }
+		bool IsFreezeCullingCameraEnabled() { return isFreezeCullingCameraEnabled; }
+	}
+
 
 	using namespace geometrics;
 
@@ -4047,7 +4056,6 @@ namespace vz
 		device->WaitCommandList(cmd, cmd_maincamera_prepass);
 
 		CommandList cmd_maincamera_compute_effects = cmd;
-		
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(
@@ -4155,18 +4163,18 @@ namespace vz
 		{
 			cmd = device->BeginCommandList();
 			cmd_occlusionculling = cmd;
-			jobsystem::Execute(ctx, [this, &cmd](jobsystem::JobArgs args) {
+			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 				device->EventBegin("Occlusion Culling", cmd);
-				ScopedGPUProfiling("Occlusion Culling", &cmd);
-
+				ScopedGPUProfiling("Occlusion Culling", (CommandList*)&cmd);
+				
 				BindCameraCB(
 					*camera,
 					cameraPrevious,
 					cameraReflection,
 					cmd
 				);
-
+				
 				OcclusionCulling_Reset(viewMain, cmd); // must be outside renderpass!
 								
 				RenderPassImage rp[] = {
@@ -4182,7 +4190,7 @@ namespace vz
 				device->BindViewports(1, &vp, cmd);
 				
 				OcclusionCulling_Render(*camera, viewMain, cmd);
-
+				
 				device->RenderPassEnd(cmd);
 
 				OcclusionCulling_Resolve(viewMain, cmd); // must be outside renderpass!
