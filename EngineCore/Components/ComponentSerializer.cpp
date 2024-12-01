@@ -397,6 +397,14 @@ namespace vz
 			projectionType_ = static_cast<Projection>(u8_data);
 
 			archive >> visibleLayerMask_;
+
+			archive >> exposure_;
+			archive >> brightness_;
+			archive >> contrast_;
+			archive >> saturation_;
+			archive >> eyeAdaptionEnabled_;
+			archive >> bloomEnabled_;
+			archive >> hdrCalibration_;
 		}
 		else
 		{
@@ -413,6 +421,14 @@ namespace vz
 			archive << height_;
 			archive << static_cast<uint8_t>(projectionType_);
 			archive << visibleLayerMask_;
+
+			archive << exposure_;
+			archive << brightness_;
+			archive << contrast_;
+			archive << saturation_;
+			archive << eyeAdaptionEnabled_;
+			archive << bloomEnabled_;
+			archive << hdrCalibration_;
 		}
 	}
 }

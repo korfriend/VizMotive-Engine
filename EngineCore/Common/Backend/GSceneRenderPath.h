@@ -11,15 +11,21 @@ namespace vz
 
 	struct GRenderPath3D
 	{
-		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241127";
+		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241201";
 		// this will be a component of vz::RenderPath3D
 
+		enum class Tonemap
+		{
+			Reinhard,
+			ACES
+		};
 		enum class DEBUG_BUFFER
 		{
 			NONE = 0,
 			PRIMITIVE_ID,
 			INSTANCE_ID,
 			LINEAR_DEPTH,
+			WITHOUT_POSTPROCESSING,
 		};
 	protected:
 		graphics::Viewport& viewport_;
@@ -41,6 +47,8 @@ namespace vz
 
 		graphics::Viewport viewport;
 		graphics::Rect scissor;
+		graphics::ColorSpace colorspace = graphics::ColorSpace::SRGB;
+		Tonemap tonemap = Tonemap::ACES;
 		uint32_t msaaSampleCount = 1;
 
 		virtual bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) = 0; // must delete all canvas-related resources and re-create

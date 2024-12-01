@@ -24,6 +24,8 @@ namespace vz::rcommon
 	Sampler				samplers[SAMPLER_COUNT];
 	Texture				textures[TEXTYPE_COUNT];
 
+	GPUBuffer			luminanceDummy;
+
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	PipelineState		PSO_wireframe;
 	PipelineState		PSO_occlusionquery;
@@ -60,6 +62,7 @@ namespace vz::renderer
 	bool isShadowsEnabled = false;
 	bool isVariableRateShadingClassification = false;
 	bool isSurfelGIDebugEnabled = false;
+	bool isColorGradingEnabled = false;
 
 	namespace options
 	{
@@ -941,6 +944,11 @@ namespace vz::renderer
 	{
 		graphics::GPUBuffer luminance;
 	};
+	struct BloomResources
+	{
+		graphics::Texture texture_bloom;
+		graphics::Texture texture_temp;
+	};
 	// Direct reference to a renderable instance:
 	struct RenderBatch
 	{
@@ -1096,7 +1104,8 @@ namespace vz
 		TemporalAAResources temporalAAResources; // dynamic allocation
 		TiledLightResources tiledLightResources;
 		//TiledLightResources tiledLightResources_planarReflection; // dynamic allocation
-		//LuminanceResources luminanceResources; // dynamic allocation
+		LuminanceResources luminanceResources; // dynamic allocation
+		BloomResources bloomResources;
 
 		graphics::Texture rtShadingRate; // UINT8 shading rate per tile
 
@@ -1117,6 +1126,12 @@ namespace vz
 		graphics::Texture rtLinearDepth; // linear depth result + mipchain (max filter)
 		graphics::Texture depthBuffer_Copy; // used for shader resource, single sample
 		graphics::Texture depthBuffer_Copy1; // used for disocclusion check
+
+		graphics::Texture rtParticleDistortion_render = {};
+		graphics::Texture rtParticleDistortion = {};
+
+		graphics::Texture distortion_overlay; // optional full screen distortion from an asset
+
 
 		mutable const graphics::Texture* lastPostprocessRT = &rtPostprocess;
 
@@ -1194,6 +1209,25 @@ namespace vz
 			int mip_src,
 			int mip_dst,
 			bool wide
+		);
+
+		void Postprocess_Tonemap(
+			const Texture& input,
+			const Texture& output,
+			CommandList cmd,
+			float exposure,
+			float brightness,
+			float contrast,
+			float saturation,
+			bool dither,
+			const Texture* texture_colorgradinglut,
+			const Texture* texture_distortion,
+			const GPUBuffer* buffer_luminance,
+			const Texture* texture_bloom,
+			ColorSpace display_colorspace,
+			Tonemap tonemap,
+			const Texture* texture_distortion_overlay,
+			float hdr_calibration
 		);
 
 		// ---------- GRenderPath3D's interfaces: -----------------
@@ -1275,6 +1309,82 @@ namespace vz
 			camera->jitter = XMFLOAT2(0, 0);
 			cameraReflection.jitter = XMFLOAT2(0, 0);
 			temporalAAResources = {};
+		}
+
+		//TODO 
+		if (false && !rtParticleDistortion.IsValid()) // rtAO or scene has waterRipples
+		{
+			TextureDesc desc;
+			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
+			desc.format = Format::R16G16_FLOAT;
+			desc.width = internalResolution.x;
+			desc.height = internalResolution.y;
+			desc.sample_count = 1;
+			desc.misc_flags = ResourceMiscFlag::ALIASING_TEXTURE_RT_DS;
+			device->CreateTexture(&desc, nullptr, &rtParticleDistortion);
+			device->SetName(&rtParticleDistortion, "rtParticleDistortion");
+			if (msaaSampleCount > 1)
+			{
+				desc.sample_count = msaaSampleCount;
+				desc.misc_flags = ResourceMiscFlag::NONE;
+				device->CreateTexture(&desc, nullptr, &rtParticleDistortion_render);
+				device->SetName(&rtParticleDistortion_render, "rtParticleDistortion_render");
+			}
+			else
+			{
+				rtParticleDistortion_render = rtParticleDistortion;
+			}
+		}
+		else
+		{
+			rtParticleDistortion = {};
+			rtParticleDistortion_render = {};
+		}
+
+		if (false && !luminanceResources.luminance.IsValid())
+		{
+			float values[LUMINANCE_NUM_HISTOGRAM_BINS + 1 + 1] = {}; // 1 exposure + 1 luminance value + histogram
+			GPUBufferDesc desc;
+			desc.size = sizeof(values);
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+			device->CreateBuffer(&desc, values, &luminanceResources.luminance);
+			device->SetName(&luminanceResources.luminance, "luminance");
+		}
+		else
+		{
+			luminanceResources = {};
+		}
+
+		if (false && !bloomResources.texture_bloom.IsValid())
+		{
+			TextureDesc desc;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.format = Format::R11G11B10_FLOAT;
+			desc.width = internalResolution.x / 4;
+			desc.height = internalResolution.y / 4;
+			desc.mip_levels = std::min(5u, (uint32_t)std::log2(std::max(desc.width, desc.height)));
+			device->CreateTexture(&desc, nullptr, &bloomResources.texture_bloom);
+			device->SetName(&bloomResources.texture_bloom, "bloom.texture_bloom");
+			device->CreateTexture(&desc, nullptr, &bloomResources.texture_temp);
+			device->SetName(&bloomResources.texture_temp, "bloom.texture_temp");
+
+			for (uint32_t i = 0; i < bloomResources.texture_bloom.desc.mip_levels; ++i)
+			{
+				int subresource_index;
+				subresource_index = device->CreateSubresource(&bloomResources.texture_bloom, SubresourceType::SRV, 0, 1, i, 1);
+				assert(subresource_index == i);
+				subresource_index = device->CreateSubresource(&bloomResources.texture_temp, SubresourceType::SRV, 0, 1, i, 1);
+				assert(subresource_index == i);
+				subresource_index = device->CreateSubresource(&bloomResources.texture_bloom, SubresourceType::UAV, 0, 1, i, 1);
+				assert(subresource_index == i);
+				subresource_index = device->CreateSubresource(&bloomResources.texture_temp, SubresourceType::UAV, 0, 1, i, 1);
+				assert(subresource_index == i);
+			}
+		}
+		else
+		{
+			bloomResources = {};
 		}
 
 		// the given CameraComponent
@@ -2446,6 +2556,106 @@ namespace vz
 
 namespace vz
 {
+	void GRenderPath3DDetails::Postprocess_Tonemap(
+		const Texture& input,
+		const Texture& output,
+		CommandList cmd,
+		float exposure,
+		float brightness,
+		float contrast,
+		float saturation,
+		bool dither,
+		const Texture* texture_colorgradinglut,
+		const Texture* texture_distortion,
+		const GPUBuffer* buffer_luminance,
+		const Texture* texture_bloom,
+		ColorSpace display_colorspace,
+		Tonemap tonemap,
+		const Texture* texture_distortion_overlay,
+		float hdr_calibration
+	)
+	{
+		if (!input.IsValid() || !output.IsValid())
+		{
+			assert(0);
+			return;
+		}
+
+		device->EventBegin("Postprocess_Tonemap", cmd);
+
+		{
+			GPUBarrier barriers[] = {
+				GPUBarrier::Image(&output, output.desc.layout, ResourceState::UNORDERED_ACCESS),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+		}
+
+		device->ClearUAV(&output, 0, cmd);
+
+		{
+			GPUBarrier barriers[] = {
+				GPUBarrier::Memory(&output),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+		}
+
+		device->BindComputeShader(&rcommon::shaders[CSTYPE_POSTPROCESS_TONEMAP], cmd);
+
+		const TextureDesc& desc = output.GetDesc();
+
+		assert(texture_colorgradinglut == nullptr || texture_colorgradinglut->desc.type == TextureDesc::Type::TEXTURE_3D); // This must be a 3D lut
+
+		XMHALF4 exposure_brightness_contrast_saturation = XMHALF4(exposure, brightness, contrast, saturation);
+
+		PushConstantsTonemap tonemap_push = {};
+		tonemap_push.resolution_rcp.x = 1.0f / desc.width;
+		tonemap_push.resolution_rcp.y = 1.0f / desc.height;
+		tonemap_push.exposure_brightness_contrast_saturation.x = uint(exposure_brightness_contrast_saturation.v);
+		tonemap_push.exposure_brightness_contrast_saturation.y = uint(exposure_brightness_contrast_saturation.v >> 32ull);
+		tonemap_push.flags_hdrcalibration = 0;
+		if (dither)
+		{
+			tonemap_push.flags_hdrcalibration |= TONEMAP_FLAG_DITHER;
+		}
+		if (tonemap == Tonemap::ACES)
+		{
+			tonemap_push.flags_hdrcalibration |= TONEMAP_FLAG_ACES;
+		}
+		if (display_colorspace == ColorSpace::SRGB)
+		{
+			tonemap_push.flags_hdrcalibration |= TONEMAP_FLAG_SRGB;
+		}
+		tonemap_push.flags_hdrcalibration |= XMConvertFloatToHalf(hdr_calibration) << 16u;
+		tonemap_push.texture_input = device->GetDescriptorIndex(&input, SubresourceType::SRV);
+		tonemap_push.buffer_input_luminance = device->GetDescriptorIndex((buffer_luminance == nullptr) ? &rcommon::luminanceDummy : buffer_luminance, SubresourceType::SRV);
+		tonemap_push.texture_input_distortion = device->GetDescriptorIndex(texture_distortion, SubresourceType::SRV);
+		tonemap_push.texture_input_distortion_overlay = device->GetDescriptorIndex(texture_distortion_overlay, SubresourceType::SRV);
+		tonemap_push.texture_colorgrade_lookuptable = device->GetDescriptorIndex(texture_colorgradinglut, SubresourceType::SRV);
+		tonemap_push.texture_bloom = device->GetDescriptorIndex(texture_bloom, SubresourceType::SRV);
+		tonemap_push.texture_output = device->GetDescriptorIndex(&output, SubresourceType::UAV);
+		device->PushConstants(&tonemap_push, sizeof(tonemap_push), cmd);
+
+		device->Dispatch(
+			(desc.width + POSTPROCESS_BLOCKSIZE - 1) / POSTPROCESS_BLOCKSIZE,
+			(desc.height + POSTPROCESS_BLOCKSIZE - 1) / POSTPROCESS_BLOCKSIZE,
+			1,
+			cmd
+		);
+
+		{
+			GPUBarrier barriers[] = {
+				GPUBarrier::Image(&output, ResourceState::UNORDERED_ACCESS, output.desc.layout),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+		}
+
+
+		device->EventEnd(cmd);
+	}
+}
+
+namespace vz
+{
 	void GRenderPath3DDetails::RefreshLightmaps(const Scene& scene, CommandList cmd)
 	{
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();
@@ -3466,27 +3676,28 @@ namespace vz
 			//		getEyeAdaptionEnabled() ? &luminanceResources.luminance : nullptr
 			//	);
 			//}
-			//
-			//renderer::Postprocess_Tonemap(
-			//	rt_first == nullptr ? *rt_read : *rt_first,
-			//	*rt_write,
-			//	cmd,
-			//	getExposure(),
-			//	getBrightness(),
-			//	getContrast(),
-			//	getSaturation(),
-			//	getDitherEnabled(),
-			//	getColorGradingEnabled() ? (scene->weather.colorGradingMap.IsValid() ? &scene->weather.colorGradingMap.GetTexture() : nullptr) : nullptr,
-			//	&rtParticleDistortion,
-			//	getEyeAdaptionEnabled() ? &luminanceResources.luminance : nullptr,
-			//	getBloomEnabled() ? &bloomResources.texture_bloom : nullptr,
-			//	colorspace,
-			//	getTonemap(),
-			//	&distortion_overlay
-			//);
-			//
-			//rt_first = nullptr;
-			//std::swap(rt_read, rt_write);
+			
+			Postprocess_Tonemap(
+				rt_first == nullptr ? *rt_read : *rt_first,
+				*rt_write,
+				cmd,
+				camera->GetSensorExposure(),
+				camera->GetSensorBrightness(),
+				camera->GetSensorContrast(),
+				camera->GetSensorSaturation(),
+				false, //getDitherEnabled(),
+				isColorGradingEnabled ? (const graphics::Texture*)scene->GetTextureGradientMap() : nullptr,
+				&rtParticleDistortion,
+				camera->IsSensorEyeAdaptationEnabled() ? &luminanceResources.luminance : nullptr,
+				camera->IsSensorBloomEnabled() ? &bloomResources.texture_bloom : nullptr,
+				colorspace,
+				tonemap,
+				&distortion_overlay,
+				camera->GetSensorHdrCalibration()
+			);
+
+			rt_first = nullptr;
+			std::swap(rt_read, rt_write);
 		}
 
 		// 3.) LDR post process chain
@@ -3770,19 +3981,10 @@ namespace vz
 				image::Draw(&rtPrimitiveID_debug, fx, cmd);
 				break;
 			case DEBUG_BUFFER::LINEAR_DEPTH:
-				//{
-				//	GPUBarrier barriers[] = {
-				//		GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::SHADER_RESOURCE),
-				//	};
-				//	device->Barrier(barriers, arraysize(barriers), cmd);
-				//}
 				image::Draw(&rtLinearDepth, fx, cmd);
-				//{
-				//	GPUBarrier barriers[] = {
-				//		GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
-				//	};
-				//	device->Barrier(barriers, arraysize(barriers), cmd);
-				//}
+				break;
+			case DEBUG_BUFFER::WITHOUT_POSTPROCESSING:
+				image::Draw(&rtMain, fx, cmd);
 				break;
 			case DEBUG_BUFFER::NONE:
 			default:
@@ -4616,7 +4818,8 @@ namespace vz
 		temporalAAResources = {};
 		tiledLightResources = {};
 		//tiledLightResources_planarReflection = {};
-		//luminanceResources = {};
+		luminanceResources = {};
+		bloomResources = {};
 
 		rtShadingRate = {};
 
@@ -4637,6 +4840,11 @@ namespace vz
 		depthBuffer_Copy1 = {};
 
 		viewResources = {};
+
+		rtParticleDistortion_render = {};
+		rtParticleDistortion = {};
+
+		distortion_overlay = {};
 
 		return true;
 	}

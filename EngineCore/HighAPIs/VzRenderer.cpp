@@ -123,6 +123,11 @@ namespace vzm
 		return renderer->allowHDR;
 	}
 
+	void VzRenderer::SetTonemap(const Tonemap tonemap)
+	{
+		GET_RENDERPATH(renderer, );
+	}
+
 	bool VzRenderer::Render(const SceneVID vidScene, const CamVID vidCam)
 	{
 		GET_RENDERPATH(renderer, false);

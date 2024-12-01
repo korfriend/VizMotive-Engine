@@ -86,7 +86,6 @@ namespace vz
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
 
-		uint32_t most_important_light_index = ~0u;
 		std::shared_ptr<Resource> skyMap_;
 		std::shared_ptr<Resource> colorGradingMap_;
 
@@ -109,6 +108,10 @@ namespace vz
 	public:
 		Scene(const Entity entity, const std::string& name);
 		~Scene();
+
+		uint32_t mostImportantLightIndex = ~0u;
+		const void* GetTextureSkyMap() const;			// return the pointer of graphics::Texture
+		const void* GetTextureGradientMap() const;	// return the pointer of graphics::Texture
 
 		void SetDirty() { isDirty_ = true; }
 		bool IsDirty() const { return isDirty_; }
@@ -1093,6 +1096,17 @@ namespace vz
 		float apertureSize_ = 0;
 		XMFLOAT2 apertureShape_ = XMFLOAT2(1, 1);
 
+		// camera lens/sensor settings: used for the postprocess chain
+		//  note: resolution and colorspace settings are involved in renderer (RenderPath3D)
+		float exposure_ = 1.f;
+		float brightness_ = 0.f;
+		float contrast_ = 1.f;
+		float saturation_ = 1.f;
+		float hdrCalibration_ = 1.f;
+
+		bool eyeAdaptionEnabled_ = false;
+		bool bloomEnabled_ = false;
+
 		// These parameters are used differently depending on the projection mode.
 		// 1. orthogonal : image plane's width and height
 		// 2. perspective : computing aspect (W / H) ratio, i.e., (width_, height_) := (aspectRatio, 1.f)
@@ -1170,6 +1184,23 @@ namespace vz
 
 		inline void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
 		inline void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }
+
+		// camera lens and sensor setting
+		inline void SensorExposure(const float exposure) { exposure_ = exposure; timeStampSetter_ = TimerNow; }
+		inline void SensorBrightness(const float brightness) { brightness_ = brightness; timeStampSetter_ = TimerNow; }
+		inline void SensorContrast(const float contrast) { contrast_ = contrast; timeStampSetter_ = TimerNow; }
+		inline void SensorSaturation(const float saturation) { saturation_ = saturation; timeStampSetter_ = TimerNow; }
+		inline void SensorEyeAdaptationEnabled(const bool eyeAdaptionEnabled) { eyeAdaptionEnabled_ = eyeAdaptionEnabled; timeStampSetter_ = TimerNow; }
+		inline void SensorBloomEnabled(const bool bloomEnabled) { bloomEnabled_ = bloomEnabled; timeStampSetter_ = TimerNow; }
+		inline void SensorHdrCalibration(const float hdrCalibration) { hdrCalibration_ = hdrCalibration; timeStampSetter_ = TimerNow; }
+
+		float GetSensorExposure() const { return exposure_; }
+		float GetSensorBrightness() const { return brightness_; }
+		float GetSensorContrast() const { return contrast_; }
+		float GetSensorSaturation() const { return saturation_; }
+		bool IsSensorEyeAdaptationEnabled() const { return eyeAdaptionEnabled_; }
+		bool IsSensorBloomEnabled() const { return bloomEnabled_; }
+		float GetSensorHdrCalibration() const { return hdrCalibration_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 

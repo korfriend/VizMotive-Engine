@@ -3,6 +3,7 @@
 #define PRIMITIVE_ID 1
 #define INSTANCE_ID 2
 #define LINEAR_DEPTH 3
+#define WITHOUT_POSTPROCESSING 4
 
 uint ImprovedHash(uint value) {
     value ^= (value >> 21);
@@ -74,6 +75,10 @@ float4 main(VertextoPixel input) : SV_TARGET
 		{
 			float linear_depth = texture.Load(int3(input.pos.xy, 0)).r;
 			color = float4((float3)linear_depth * 8.f, 1);
+		} break;
+		case WITHOUT_POSTPROCESSING:
+		{
+			color = texture.Load(int3(input.pos.xy, 0));
 		} break;
 	}	
 
