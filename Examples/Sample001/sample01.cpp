@@ -262,13 +262,13 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		switch (wParam) {
 		case 'R': vzm::ReloadShader();
 			break;
-		case '0': renderer->ShowDebugBuffer("NONE");
+		case '`': renderer->ShowDebugBuffer("NONE");
 			break;
 		case '1': renderer->ShowDebugBuffer("PRIMITIVE_ID");
 			break;
 		case '2': renderer->ShowDebugBuffer("INSTANCE_ID");
 			break;
-		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
+		case '0': renderer->ShowDebugBuffer("LINEAR_DEPTH");
 			break;
         default:
             break;

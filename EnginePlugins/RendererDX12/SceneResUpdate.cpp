@@ -315,7 +315,7 @@ namespace vz
 
 			// Update occlusion culling status:
 			OcclusionResult& occlusion_result = occlusionResultsObjects[args.jobIndex];
-			if (!cameraFreezeCullingEnabled)
+			if (!renderer::options::IsFreezeCullingCameraEnabled())
 			{
 				occlusion_result.occlusionHistory <<= 1u; // advance history by 1 frame
 				int query_id = occlusion_result.occlusionQueries[queryheapIdx];
@@ -587,7 +587,7 @@ namespace vz
 
 			// 4. Occlusion culling read: (Non Thread Task)
 			//	per each MeshInstance
-			if (occlusionQueryEnabled && !cameraFreezeCullingEnabled)
+			if (renderer::options::IsOcclusionCullingEnabled() && !renderer::options::IsFreezeCullingCameraEnabled())
 			{
 				uint32_t min_query_count = instanceArraySize + num_lights;
 				if (queryHeap.desc.query_count < min_query_count)
