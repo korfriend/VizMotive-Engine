@@ -337,7 +337,13 @@ namespace vz
 
 	struct CORE_EXPORT GVolumeComponent : VolumeComponent, GTextureInterface
 	{
+	private:
+		graphics::Texture volumeMinMaxBlocks_ = {};
+		XMUINT3 blockSize_ = {};
+	public:
 		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(entity) {}
+
+		void UpdateVolumeMinMaxBlocks(const XMUINT3 blockSize);
 	};
 
 	// scene 

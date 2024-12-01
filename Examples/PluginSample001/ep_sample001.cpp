@@ -1,5 +1,7 @@
 #include "ep_sample001.h"
 
+#include "Components/GComponents.h"
+
 using namespace vz;
 
 bool ImportDicom(std::unordered_map<std::string, std::any>& io)
@@ -31,6 +33,8 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 
 	volume->LoadVolume("my volume #dcm", data, volume_w, volume_h, volume_d, VolumeComponent::VolumeFormat::UINT16);
 	volume->SetVoxelSize({ 0.2f , 0.2f , 0.2f });
+
+	((GVolumeComponent*)volume)->UpdateVolumeMinMaxBlocks({8, 8, 8});
 
 	//pointer..
 
