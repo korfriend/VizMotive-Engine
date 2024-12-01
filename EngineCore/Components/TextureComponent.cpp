@@ -322,9 +322,163 @@ namespace vz
 
 namespace vz
 {
+	void GVolumeComponent::UpdateVolumeMinMaxBlocks(const XMUINT3 blockSize)
+	{
+		GETTER_RES(resource, );
+
+		if (!IsValid())
+		{
+			backlog::post("UpdateVolumeMinMaxBlocks requires a valid texture", backlog::LogLevel::Error);
+			return;
+		}
+
+		blockSize_ = blockSize;
+		volumeMinMaxBlocks_ = {};
+
+		const uint8_t* vol_data = resource_->GetFileData().data();
+
+		using uint = uint32_t;
+
+		uint modX = width_ % blockSize_.x;
+		uint modY = height_ % blockSize_.y;
+		uint modZ = depth_ % blockSize_.z;
+		uint num_blocksX = width_ / blockSize_.x + (modX != 0);
+		uint num_blocksY = height_ / blockSize_.y + (modY != 0);
+		uint num_blocksZ = depth_ / blockSize_.z + (modZ != 0);
+
+		uint xy = num_blocksX * num_blocksY;
+
+		uint num_blocksXY = num_blocksX * num_blocksY;
+		uint num_blocksXYZ = num_blocksXY * num_blocksZ;
+
+		// MinMax Block Setting
+		uint stride = graphics::GetFormatStride(static_cast<graphics::Format>(textureFormat_));
+
+		std::vector<uint8_t> blocks(num_blocksXYZ * stride * 2); // here, 2 refers min and max
+		uint8_t* block_data = blocks.data();
+		XMUINT3 blk_idx = XMUINT3(0, 0, 0);
+		for (uint z = 0; z < depth_; z += blockSize_.z, blk_idx.z++)
+		{
+			blk_idx.y = 0;
+			for (uint y = 0; y < height_; y += blockSize_.y, blk_idx.y++)
+			{
+				blk_idx.x = 0;
+				for (uint x = 0; x < width_; x += blockSize_.x, blk_idx.x++)
+				{
+					float min_v = FLT_MAX;		// Min
+					float max_v = -FLT_MAX;		// Max
+
+					XMUINT3 boundary_size = blockSize_;
+					if (width_ < x + blockSize_.x)
+						boundary_size.x = modX;
+					if (height_ < y + blockSize_.y)
+						boundary_size.y = modY;
+					if (depth_ < z + blockSize_.z)
+						boundary_size.y = modZ;
+
+					XMUINT3 start_index = XMUINT3(0, 0, 0);
+					XMUINT3 end_index = boundary_size;
+					if (blk_idx.x > 0)
+						start_index.x = -1;
+					if (blk_idx.y > 0)
+						start_index.y = -1;
+					if (blk_idx.z > 0)
+						start_index.z = -1;
+					if (blk_idx.x == num_blocksX - 1)
+						end_index.x += -1;
+					if (blk_idx.y == num_blocksY - 1)
+						end_index.y += -1;
+					if (blk_idx.z == num_blocksZ - 1)
+						end_index.z += -1;
+					for (uint sub_z = start_index.z; sub_z <= end_index.z; sub_z++)
+					{
+						for (uint sub_y = start_index.y; sub_y <= end_index.y; sub_y++)
+						{
+							for (uint sub_x = start_index.x; sub_x <= end_index.x; sub_x++)
+							{
+								float v = 0;
+								uint addr = (z + sub_z) * num_blocksXY + (y + sub_y) * num_blocksX + x + sub_x;
+								switch (volFormat_)
+								{
+								case VolumeFormat::UINT8: v = (float)vol_data[addr]; break;
+								case VolumeFormat::UINT16: v = (float)((uint16_t*)vol_data)[addr]; break;
+								case VolumeFormat::FLOAT: v = ((float*)vol_data)[addr]; break;
+								default: assert(0);
+								}
+
+								if (v < min_v)
+									min_v = v;
+								if (v > max_v)
+									max_v = v;
+							}
+						}
+					}
+
+					uint block_x = x / blockSize_.x;
+					uint block_y = y / blockSize_.y;
+					uint block_z = z / blockSize_.z;
+					uint block_addr = block_z * num_blocksXY + block_y * num_blocksX + block_x;
+
+					switch (volFormat_)
+					{
+					case VolumeFormat::UINT8: 
+						((uint16_t*)block_data)[block_addr] = (uint8_t)min_v | (((uint8_t)max_v) << 8); break;
+					case VolumeFormat::UINT16: 
+						((uint32_t*)block_data)[block_addr] = (uint16_t)min_v | (((uint16_t)max_v) << 16); break;
+					case VolumeFormat::FLOAT: 
+						((XMFLOAT2*)block_data)[block_addr] = XMFLOAT2(min_v, max_v); break;
+					default: assert(0);
+					}
+				}
+			}
+		}
+
+		using namespace graphics;
+		{
+			GraphicsDevice* device = graphics::GetDevice();
+
+			TextureDesc desc;
+			desc.array_size = 1;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE;
+			desc.width = num_blocksX;
+			desc.height = num_blocksY;
+			desc.depth = num_blocksZ;
+			desc.mip_levels = 1;
+			desc.array_size = 1;
+			switch (volFormat_)
+			{
+			case VolumeComponent::VolumeFormat::UINT8:
+				desc.format = Format::R8G8_UNORM; break;
+			case VolumeComponent::VolumeFormat::UINT16:
+				desc.format = Format::R16G16_UNORM; break;
+			case VolumeComponent::VolumeFormat::FLOAT:
+				desc.format = Format::R32G32_FLOAT; break;
+			default:
+				assert(0);
+				break;
+			}
+			desc.layout = ResourceState::SHADER_RESOURCE;
+
+			uint block_stride = GetFormatStride(desc.format);
+			SubresourceData initdata;
+			initdata.data_ptr = block_data;
+			initdata.row_pitch = num_blocksX * block_stride;
+			initdata.slice_pitch = initdata.row_pitch * num_blocksY;
+
+			bool success = device->CreateTexture(&desc, &initdata, &volumeMinMaxBlocks_);
+			device->SetName(&volumeMinMaxBlocks_, "volumeMinMaxBlocks_");
+			success &= device->CreateSubresource(&volumeMinMaxBlocks_, SubresourceType::SRV, 0, -1, 0, -1) >= 0;
+
+			assert(success);
+		}
+	}
+}
+
+namespace vz
+{
 #define GETTER_RES_GTI(RES, RET) TextureComponent* texture = compfactory::GetTextureComponent(texureEntity_); \
-Resource* RES = texture->resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); \
-return RET; };
+	Resource* RES = texture->resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); \
+	return RET; };
 
 	int GTextureInterface::GetSparseResidencymapDescriptor() const
 	{

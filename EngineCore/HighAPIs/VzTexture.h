@@ -109,6 +109,5 @@ namespace vzm
 	{
 		VzVolume(const VID vid, const std::string& originFrom)
 			: VzTexture(vid, originFrom) { type_ = COMPONENT_TYPE::VOLUME; }
-
 	};
 }
