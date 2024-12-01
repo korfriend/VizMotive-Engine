@@ -19,6 +19,7 @@
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\blockCompress.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\cullingShaderHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\dvrHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\fogHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\imageHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\lightingHF.hlsli" />
@@ -40,6 +41,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DVR.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Postprocess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Raytracing.h" />
@@ -63,6 +65,8 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_float4CS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_unorm1CS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\blur_gaussian_wide_unorm4CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\dvrCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\dvrSurfaceCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain2DCS_float4.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain2DCS_unorm4.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\generateMIPChain3DCS_float4.hlsl" />

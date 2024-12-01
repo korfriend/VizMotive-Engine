@@ -74,7 +74,7 @@ float4 main(VertextoPixel input) : SV_TARGET
 		case LINEAR_DEPTH:
 		{
 			float linear_depth = texture.Load(int3(input.pos.xy, 0)).r;
-			color = float4((float3)linear_depth * 8.f, 1);
+			color = float4((float3)linear_depth * 7.f, 1);
 		} break;
 		case WITHOUT_POSTPROCESSING:
 		{
