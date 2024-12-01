@@ -9,6 +9,11 @@ namespace vz
 {
 	class RenderPath : public Canvas
 	{
+		enum class Tonemap
+		{
+			Reinhard,
+			ACES
+		};
 	protected:
 		graphics::ColorSpace colorSpace_ = graphics::ColorSpace::SRGB;
 		uint32_t msaaSampleCount_ = 1;
@@ -36,6 +41,7 @@ namespace vz
 		}
 		virtual ~RenderPath() = default;
 
+		Tonemap tonemap = Tonemap::ACES;
 		float clearColor[4] = {};
 
 		// framerate controllers

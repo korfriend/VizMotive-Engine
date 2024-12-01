@@ -374,7 +374,7 @@ int main(int, char**)
 				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 				ImGui::Image(texId, ImVec2((float)w, (float)h));
 			}
-			/**/
+
 			ImGui::End();
 
 			ImGui::Begin("Controls");
@@ -679,6 +679,8 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case '2': renderer->ShowDebugBuffer("INSTANCE_ID");
 			break;
 		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
+			break;
+		case '4': renderer->ShowDebugBuffer("NO_POSTPROCESSING");
 			break;
 		default:
 			break;

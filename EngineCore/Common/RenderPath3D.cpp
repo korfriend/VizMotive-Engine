@@ -132,6 +132,8 @@ namespace vz
 		handlerRenderPath3D_->camera = camera;
 		handlerRenderPath3D_->viewport = viewport;
 		handlerRenderPath3D_->scissor = scissor;
+		handlerRenderPath3D_->colorspace = colorSpace_;
+		handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
 		handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
 
 		handlerRenderPath3D_->Render(dt);
@@ -157,6 +159,7 @@ namespace vz
 		constexpr static size_t HASH_PRIMITIVE_ID = FNV1aHash("PRIMITIVE_ID"); // target at rtPrimitiveID
 		constexpr static size_t HASH_INSTANCE_ID = FNV1aHash("INSTANCE_ID");   // target at rtPrimitiveID
 		constexpr static size_t HASH_LINEAR_DEPTH = FNV1aHash("LINEAR_DEPTH"); // target at rtLinearDepth
+		constexpr static size_t HASH_WITHOUT_POSTPROCESSING = FNV1aHash("WITHOUT_POSTPROCESSING"); // target at rtMain
 
 		size_t hash_debug = FNV1aHash(debugMode);
 		switch (hash_debug)
@@ -164,6 +167,7 @@ namespace vz
 		case HASH_PRIMITIVE_ID: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::PRIMITIVE_ID; break;
 		case HASH_INSTANCE_ID: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::INSTANCE_ID; break;
 		case HASH_LINEAR_DEPTH: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::LINEAR_DEPTH; break;
+		case HASH_WITHOUT_POSTPROCESSING: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::WITHOUT_POSTPROCESSING; break;
 		default: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::NONE; break;
 		}
 	}

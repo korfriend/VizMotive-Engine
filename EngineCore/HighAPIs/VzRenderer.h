@@ -5,6 +5,13 @@ namespace vzm
 {
 	struct API_EXPORT VzRenderer : VzBaseComp
 	{
+		// Tone mapping HDR -> LDR
+		enum class Tonemap
+		{
+			Reinhard,
+			ACES
+		};
+
 		VzRenderer(const VID vid, const std::string& originFrom)
 			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::RENDERER) {}
 		void SetCanvas(const uint32_t w, const uint32_t h, const float dpi, void* window = nullptr);
@@ -23,6 +30,8 @@ namespace vzm
 
 		void SetAllowHDR(const bool enable);
 		bool GetAllowHDR() const;
+
+		void SetTonemap(const Tonemap tonemap);
 
 		bool Render(const SceneVID vidScene, const CamVID vidCam);
 		bool Render(const VzScene* scene, const VzCamera* camera) { return Render(scene->GetVID(), camera->GetVID()); };

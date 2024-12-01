@@ -53,3 +53,5 @@ dxc -T cs_6_0 ./CS/blockcompressCS_BC6H.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC6H_cubemap.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/wetmap_updateCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/meshlet_prepareCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv

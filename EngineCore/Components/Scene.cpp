@@ -388,6 +388,20 @@ namespace vz
 
 namespace vz
 {
+	const void* Scene::GetTextureSkyMap() const
+	{
+		Resource& resource = *skyMap_.get();
+		return &resource.GetTexture();
+	}
+	const void* Scene::GetTextureGradientMap() const
+	{
+		Resource& resource = *colorGradingMap_.get();
+		return &resource.GetTexture();
+	}
+}
+
+namespace vz
+{
 	static std::unordered_map<Entity, std::unique_ptr<SceneDetails>> scenes;
 
 	Scene* Scene::GetScene(const Entity entity) {
