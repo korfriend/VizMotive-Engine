@@ -382,6 +382,14 @@ namespace vz
 
 			COUNT	// UPDATE ShaderInterop.h's SHADERTYPE_BIN_COUNT when modifying ShaderType elements
 		};
+		enum class DirectVolumeShaderType : uint32_t
+		{
+			DEFAULT = 0,
+			//MULTI_OTF_DEFAULT,
+			//ALPHA_MODULATION,
+			//MULTI_OTF_ALPHA_MODULATION,
+			COUNT
+		};
 		enum class TextureSlot : uint32_t
 		{
 			BASECOLORMAP = 0,
@@ -411,8 +419,8 @@ namespace vz
 		};
 		enum class VolumeTextureSlot : uint32_t
 		{
-			VOLUME_DENSITYMAP, // this is used for volume rendering
-			VOLUME_SEMANTICMAP, 
+			VOLUME_MAIN_MAP, // this is used for volume rendering
+			VOLUME_SEMANTIC_MAP, 
 
 			VOLUME_TEXTURESLOT_COUNT
 		};
@@ -451,6 +459,7 @@ namespace vz
 		ShaderType shaderType_ = ShaderType::PHONG;
 		BlendMode blendMode_ = BlendMode::BLENDMODE_OPAQUE;
 		StencilRef engineStencilRef_ = StencilRef::STENCILREF_DEFAULT;
+		DirectVolumeShaderType dvrShaderType_ = DirectVolumeShaderType::DEFAULT;
 
 		float alphaRef_ = 1.f;
 		XMFLOAT4 baseColor_ = XMFLOAT4(1, 1, 1, 1);
@@ -889,30 +898,38 @@ namespace vz
 
 		Histogram histogram_;
 
-		XMFLOAT4X4 matAlign_ = math::IDENTITY_MATRIX; // VS to real-sized aligned space
+		XMFLOAT4X4 matVS2OS_ = math::IDENTITY_MATRIX; // VS to real-sized aligned space
+		XMFLOAT4X4 matOS2VS_ = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 matVS2TS_ = math::IDENTITY_MATRIX; // VS to texture space
+		XMFLOAT4X4 matTS2VS_ = math::IDENTITY_MATRIX; 
 
-		// sampler 
+		// Non-serialized attributes:
+		bool isDirty_ = true; // for matAlign_
 	public:
 		VolumeComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid) {}
 
-		inline void SetVoxelSize(const XMFLOAT3& voxelSize) { voxelSize_ = voxelSize; }
+		inline bool IsValidVolume() const;
+		inline void SetVoxelSize(const XMFLOAT3& voxelSize) { voxelSize_ = voxelSize; isDirty_ = true; }
 		inline void SetStoredMinMax(const XMFLOAT2 minMax) { storedMinMax_ = minMax; }
 		inline void SetOriginalMinMax(const XMFLOAT2 minMax) { originalMinMax_ = minMax; }
-		inline void SetAlign(const XMFLOAT3& axisVolX, const XMFLOAT3& axisVolY, const bool isRHS);
 
-		inline XMFLOAT3 GetVoxelSize() const { return voxelSize_; }
+		inline const XMFLOAT3& GetVoxelSize() const { return voxelSize_; }
 		inline float GetMinVoxelSize() const { return std::min({ voxelSize_.x, voxelSize_.y, voxelSize_.z }); }
 		inline VolumeFormat GetVolumeFormat() const { return volFormat_; }
-		inline XMFLOAT2 GetStoredMinMax() const { return storedMinMax_; }
-		inline XMFLOAT2 GetOriginalMinMax() const { return originalMinMax_; }
+		inline const XMFLOAT2& GetStoredMinMax() const { return storedMinMax_; }
+		inline const XMFLOAT2& GetOriginalMinMax() const { return originalMinMax_; }
 		const Histogram& GetHistogram() const { return histogram_; }
-		inline XMFLOAT4X4 GetAlign() const { return matAlign_; }
+		inline const XMFLOAT4X4& GetMatrixVS2OS() const { return matVS2OS_; }
+		inline const XMFLOAT4X4& GetMatrixOS2VS() const { return matOS2VS_; }
+		inline const XMFLOAT4X4& GetMatrixVS2TS() const { return matVS2TS_; }
+		inline const XMFLOAT4X4& GetMatrixTS2VS() const { return matTS2VS_; }
 
 		inline geometrics::AABB ComputeAABB() const;
 
 		bool LoadVolume(const std::string& fileName, const std::vector<uint8_t>& volData, 
 			const uint32_t w, const uint32_t h, const uint32_t d, const VolumeFormat volFormat);
 
+		void UpdateAlignmentMatrix(const XMFLOAT3& axisVolX, const XMFLOAT3& axisVolY, const bool isRHS);
 		void UpdateHistogram(const float minValue, const float maxValue, const size_t numBins);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;

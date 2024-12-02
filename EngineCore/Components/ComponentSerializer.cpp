@@ -104,6 +104,9 @@ namespace vz
 			archive >> u32_data;
 			engineStencilRef_ = static_cast<StencilRef>(u32_data);
 
+			archive >> u32_data;
+			dvrShaderType_ = static_cast<DirectVolumeShaderType>(u32_data);
+
 			// need to check version 
 			archive >> u32_data;
 			assert(u32_data <= SCU32(TextureSlot::TEXTURESLOT_COUNT));
@@ -146,6 +149,7 @@ namespace vz
 			archive << saturate_;
 
 			archive << SCU32(engineStencilRef_);
+			archive << SCU32(dvrShaderType_);
 
 			uint32_t tex_slot_count = SCU32(TextureSlot::TEXTURESLOT_COUNT);
 			archive << tex_slot_count;
@@ -278,7 +282,10 @@ namespace vz
 			volFormat_ = static_cast<VolumeFormat>(u8_data);
 			archive >> storedMinMax_;
 			archive >> originalMinMax_;
-			archive >> matAlign_;
+			archive >> matVS2OS_;
+			archive >> matOS2VS_;
+			archive >> matVS2TS_;
+			archive >> matTS2VS_;
 
 			archive >> histogram_.minValue;
 			archive >> histogram_.maxValue;
@@ -295,7 +302,10 @@ namespace vz
 			archive << SCU8(volFormat_);
 			archive << storedMinMax_;
 			archive << originalMinMax_;
-			archive << matAlign_;
+			archive << matVS2OS_;
+			archive << matOS2VS_;
+			archive << matVS2TS_;
+			archive << matTS2VS_;
 
 			archive << histogram_.minValue;
 			archive << histogram_.maxValue;

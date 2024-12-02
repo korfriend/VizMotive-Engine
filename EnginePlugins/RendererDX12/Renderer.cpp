@@ -13,6 +13,8 @@
 
 #include "ThirdParty/RectPacker.h"
 
+#include "Shaders/ShaderInterop_DVR.h"
+
 namespace vz::rcommon
 {
 	InputLayout			inputLayouts[ILTYPE_COUNT];
@@ -915,7 +917,6 @@ namespace vz::renderer
 		DRAWSCENE_OCCLUSIONCULLING = 1 << 2, // enable skipping objects based on occlusion culling results
 		DRAWSCENE_TESSELLATION = 1 << 3, // enable tessellation
 		DRAWSCENE_FOREGROUND_ONLY = 1 << 4, // only include objects that are tagged as foreground
-		DRAWSCENE_DVR = 1 << 5, // only include objects that are tagged as foreground
 	};
 
 	struct MIPGEN_OPTIONS
@@ -1114,10 +1115,16 @@ namespace vz
 		graphics::Texture debugUAV; // debug UAV can be used by some shaders...
 		graphics::Texture rtPostprocess; // ping-pong with main scene RT in post-process chain
 
+
+		// temporal rt textures ... we need to reduce these textures (reuse others!!)
+		graphics::Texture rtDvrDepth; // aliased to rtPrimitiveID_2
+		//graphics::Texture rtCounter; // aliased to rtPrimitiveID_1 ??
+
+
 		graphics::Texture rtMain;
 		graphics::Texture rtMain_render; // can be MSAA
 		graphics::Texture rtPrimitiveID_1;	// aliasing to rtPostprocess
-		graphics::Texture rtPrimitiveID_2;	// aliasing to ???
+		graphics::Texture rtPrimitiveID_2;	// aliasing to rtDvrProcess
 		graphics::Texture rtPrimitiveID_1_render; // can be MSAA
 		graphics::Texture rtPrimitiveID_2_render; // can be MSAA
 		graphics::Texture rtPrimitiveID_debug; // test
@@ -1195,7 +1202,9 @@ namespace vz
 		void DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags);
 
 		void RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
+		void RenderDirectVolumes(CommandList cmd);
 		void RenderPostprocessChain(CommandList cmd);
+		
 		bool RenderProcess();
 		void Compose(CommandList cmd);
 
@@ -2480,6 +2489,129 @@ namespace vz
 		}
 	}
 
+	void GRenderPath3DDetails::RenderDirectVolumes(CommandList cmd)
+	{
+		if (viewMain.visibleRenderables.empty())
+			return;
+
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)viewMain.scene->GetGSceneHandle();
+
+		device->EventBegin("Direct Volume Render", cmd);
+		auto range = profiler::BeginRangeGPU("DrawDirectVolume", &cmd);
+
+		BindCommonResources(cmd);
+
+		uint32_t filterMask = GMaterialComponent::FILTER_VOLUME;
+
+		// Note: the tile_count here must be valid whether the ViewResources was created or not!
+		XMUINT2 tile_count = GetViewTileCount(XMUINT2(rtDvrDepth.desc.width, rtDvrDepth.desc.height));
+
+		GPUResource unbind;
+
+		static thread_local RenderQueue renderQueue;
+		renderQueue.init();
+		for (uint32_t instanceIndex : viewMain.visibleRenderables)
+		{
+			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
+			if (!renderable.IsVolumeRenderable())
+				continue;
+			if (!(viewMain.camera->GetVisibleLayerMask() & renderable.GetVisibleMask()))
+				continue;
+			if ((renderable.materialFilterFlags & filterMask) == 0)
+				continue;
+
+			const float distance = math::Distance(viewMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
+			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
+				continue;
+
+			renderQueue.add(renderable.geometryIndex, instanceIndex, distance, renderable.sortBits);
+		}
+		if (!renderQueue.empty())
+		{
+			// We use a policy where the closer it is to the front, the higher the priority.
+			renderQueue.sort_opaque();
+			//renderQueue.sort_transparent();
+		}
+
+		uint32_t instanceCount = 0;
+		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
+		{
+			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
+			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
+			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
+			assert(renderable.IsVolumeRenderable());
+
+			GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
+			assert(material);
+
+			GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
+				material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
+			assert(volume);
+			assert(volume->IsValidVolume());
+
+			GTextureComponent* otf = (GTextureComponent*)compfactory::GetTextureComponentByVUID(
+				material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
+			assert(otf);
+
+			TransformComponent* transform = compfactory::GetTransformComponent(renderable.GetEntity());
+			const XMFLOAT4X4& mat_os2ws = transform->GetWorldMatrix();
+			XMMATRIX xmat_os2ws = XMLoadFloat4x4(&mat_os2ws);
+			XMMATRIX xmat_ws2os = XMMatrixInverse(NULL, xmat_os2ws);
+			XMMATRIX xmat_os2vs = XMLoadFloat4x4(&volume->GetMatrixOS2VS());
+			XMMATRIX xmat_vs2ts = XMLoadFloat4x4(&volume->GetMatrixVS2TS());
+			XMMATRIX xmat_ws2ts = xmat_ws2os * xmat_os2vs * xmat_vs2ts;
+
+			const XMFLOAT3& vox_size = volume->GetVoxelSize();
+			VolumePushConstants push;
+			XMStoreFloat4x4(&push.mat_ws2ts, xmat_ws2ts);
+			//push.mat_alignedvbox_ws2bs; // no clip
+			push.flags = 0u;
+			push.sample_dist = std::min(std::min(vox_size.x, vox_size.y), vox_size.z);
+			assert(push.sample_dist > 0);
+			const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
+			push.sample_range = min_max_stored_v.y - min_max_stored_v.x;
+			push.mask_sample_range = 255;
+			push.main_visible_min_sample = 100.f;
+			push.sculpt_index = -1;
+			push.id2multiotf_convert = 0;
+			push.opacity_correction = 1.f;
+			const XMUINT3& block_pitch = volume->GetBlockPitch();
+			XMFLOAT3 vol_size = XMFLOAT3((float)volume->GetWidth(), (float)volume->GetHeight(), (float)volume->GetDepth());
+			push.singleblock_size_ts = XMFLOAT3((float)block_pitch.x / vol_size.x, 
+				(float)block_pitch.y / vol_size.y, (float)block_pitch.z / vol_size.z);
+
+			device->BindResource(&volume->GetTexture(), 0, cmd);
+			device->BindResource(&volume->GetBlockTexture(), 1, cmd);
+			device->BindResource(&unbind, 2, cmd);
+			device->BindResource(&otf->GetTexture(), 3, cmd);
+			device->BindResource(&unbind, 4, cmd);
+
+			device->BindUAV(&rtMain, 0, cmd);
+			device->BindUAV(&rtDvrDepth, 1, cmd);
+			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
+
+			BarrierStackFlush(cmd);
+			device->BindComputeShader(&rcommon::shaders[CSTYPE_DVR_DEFAULT], cmd);
+
+			device->Dispatch(
+				tile_count.x,
+				tile_count.y,
+				1,
+				cmd
+			);
+
+			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
+			barrierStack.push_back(GPUBarrier::Image(&rtDvrDepth, ResourceState::UNORDERED_ACCESS, rtDvrDepth.desc.layout));
+			BarrierStackFlush(cmd);
+
+			break; // TODO: at this moment, just a single volume is supported!
+		}
+
+
+		device->EventEnd(cmd);
+	}
+
 	void GRenderPath3DDetails::DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags)
 	{
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
@@ -2970,7 +3102,7 @@ namespace vz
 
 		BindCommonResources(cmd);
 
-		// Note: the tile_count here must be valid whether the VisibilityResources was created or not!
+		// Note: the tile_count here must be valid whether the ViewResources was created or not!
 		XMUINT2 tile_count = GetViewTileCount(XMUINT2(input_primitiveID_1.desc.width, input_primitiveID_1.desc.height));
 
 		// Beginning barriers, clears:
@@ -3841,6 +3973,17 @@ namespace vz
 			assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtPrimitiveID_1.desc)); // Aliased check
 			device->CreateTexture(&desc, nullptr, &rtPostprocess, &rtPrimitiveID_1); // Aliased!
 			device->SetName(&rtPostprocess, "rtPostprocess");
+		}
+		{ // rtDvrDepth
+			TextureDesc desc;
+			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.format = Format::R32_FLOAT;;
+			desc.width = internalResolution.x;
+			desc.height = internalResolution.y;
+			// the same size of format is recommended. the following condition (less equal) will cause some unexpected behavior.
+			assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtPrimitiveID_2.desc)); // Aliased check
+			device->CreateTexture(&desc, nullptr, &rtDvrDepth, &rtPrimitiveID_2); // Aliased!
+			device->SetName(&rtDvrDepth, "rtDvrDepth");
 		}
 		if (device->CheckCapability(GraphicsDeviceCapability::VARIABLE_RATE_SHADING_TIER2) &&
 			isVariableRateShadingClassification)
@@ -4775,6 +4918,8 @@ namespace vz
 			
 			//RenderTransparents(cmd);
 
+			RenderDirectVolumes(cmd);
+
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{
 				GPUBarrier barriers[] = {
@@ -4795,9 +4940,6 @@ namespace vz
 				RefreshWetmaps(viewMain, wetmap_cmd);
 				});
 		}
-
-		// wait here!
-		//RenderDVR(cmd);
 
 		cmd = device->BeginCommandList();
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
@@ -4845,6 +4987,8 @@ namespace vz
 		rtParticleDistortion = {};
 
 		distortion_overlay = {};
+
+		rtDvrDepth = {};
 
 		return true;
 	}
