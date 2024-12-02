@@ -2589,7 +2589,7 @@ namespace vz
 			device->BindUAV(&rtMain, 0, cmd);
 			device->BindUAV(&rtDvrDepth, 1, cmd);
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 			BarrierStackFlush(cmd);
 			device->BindComputeShader(&rcommon::shaders[CSTYPE_DVR_DEFAULT], cmd);
@@ -2602,7 +2602,7 @@ namespace vz
 			);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
-			barrierStack.push_back(GPUBarrier::Image(&rtDvrDepth, ResourceState::UNORDERED_ACCESS, rtDvrDepth.desc.layout));
+			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			BarrierStackFlush(cmd);
 
 			break; // TODO: at this moment, just a single volume is supported!
@@ -4918,7 +4918,7 @@ namespace vz
 			
 			//RenderTransparents(cmd);
 
-			RenderDirectVolumes(cmd);
+			//RenderDirectVolumes(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{
