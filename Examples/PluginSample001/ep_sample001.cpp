@@ -33,6 +33,7 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 
 	volume->LoadVolume("my volume #dcm", data, volume_w, volume_h, volume_d, VolumeComponent::VolumeFormat::UINT16);
 	volume->SetVoxelSize({ 0.2f , 0.2f , 0.2f });
+	volume->UpdateAlignmentMatrix({ 1, 0, 0 }, { 0, 1, 0 }, true);
 
 	((GVolumeComponent*)volume)->UpdateVolumeMinMaxBlocks({8, 8, 8});
 

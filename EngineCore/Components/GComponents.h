@@ -339,11 +339,13 @@ namespace vz
 	{
 	private:
 		graphics::Texture volumeMinMaxBlocks_ = {};
-		XMUINT3 blockSize_ = {};
+		XMUINT3 blockPitch_ = {}; // single block
 	public:
 		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(entity) {}
 
 		void UpdateVolumeMinMaxBlocks(const XMUINT3 blockSize);
+		const graphics::Texture& GetBlockTexture() const { return volumeMinMaxBlocks_; };
+		const XMUINT3& GetBlockPitch() const { return blockPitch_; }
 	};
 
 	// scene 

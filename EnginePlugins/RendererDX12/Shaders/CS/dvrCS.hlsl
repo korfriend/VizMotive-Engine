@@ -1,46 +1,64 @@
-#include "../Globals.hlsli"
-#include "../ShaderInterop.h"
-#include "../CommonHF/surfaceHF.hlsli"
-#include "../CommonHF/raytracingHF.hlsli"
+#include "../CommonHF/dvrHF.hlsli"
 
-#ifdef VIEW_MSAA
-Texture2DMS<uint> input_primitiveID_1 : register(t0);
-Texture2DMS<uint> input_primitiveID_2 : register(t1);
-#else
-Texture2D<uint> input_primitiveID_1 : register(t0);
-Texture2D<uint> input_primitiveID_2 : register(t1);
-#endif // VIEW_MSAA
-
-groupshared uint local_bin_mask;
-groupshared uint local_bin_execution_mask_0[SHADERTYPE_BIN_COUNT + 1];
-groupshared uint local_bin_execution_mask_1[SHADERTYPE_BIN_COUNT + 1];
-
-RWStructuredBuffer<ShaderTypeBin> output_bins : register(u0);
-RWStructuredBuffer<ViewTile> output_binned_tiles : register(u1);
-
-RWTexture2D<float> output_depth_mip0 : register(u3);
-RWTexture2D<float> output_depth_mip1 : register(u4);
-RWTexture2D<float> output_depth_mip2 : register(u5);
-RWTexture2D<float> output_depth_mip3 : register(u6);
-RWTexture2D<float> output_depth_mip4 : register(u7);
-
-RWTexture2D<float> output_lineardepth_mip0 : register(u8);
-RWTexture2D<float> output_lineardepth_mip1 : register(u9);
-RWTexture2D<float> output_lineardepth_mip2 : register(u10);
-RWTexture2D<float> output_lineardepth_mip3 : register(u11);
-RWTexture2D<float> output_lineardepth_mip4 : register(u12);
-
-#ifdef VIEW_MSAA
-RWTexture2D<uint> output_primitiveID_1 : register(u13);
-RWTexture2D<uint> output_primitiveID_2 : register(u14);
-#endif // VIEW_MSAA
+RWTexture2D<unorm float4> inout_color : register(u0);
+RWTexture2D<float> inout_linear_depth : register(u1);
 
 [numthreads(DVR_BLOCKSIZE, DVR_BLOCKSIZE, 1)]
-void main(uint2 Gid : SV_GroupID, uint groupIndex : SV_GroupIndex)
-{
-    float4 vis_out = 0;
-	float depth_out = FLT_MAX;
+void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
+{	
+    ShaderCamera camera = GetCamera();
 
-    // mesh layers ... from PrimitiveID map
-    // volume layers ... from depth map
+	const uint2 pixel = DTid.xy;
+	const bool pixel_valid = (pixel.x < camera.internal_resolution.x) && (pixel.y < camera.internal_resolution.y);
+    if (!pixel_valid)
+    {
+        return;
+    }
+
+	const float2 uv = ((float2)pixel + 0.5) * camera.internal_resolution_rcp;
+	const float2 clipspace = uv_to_clipspace(uv);
+	RayDesc ray = CreateCameraRay(clipspace);
+
+    // sample_dist (in world space scale)
+    
+	// Ray Intersection for Clipping Box //
+	float2 hits_t = ComputeVBoxHits(ray.Origin, ray.Direction, volume.flags, volume.mat_alignedvbox_ws2bs, volume.clip_box);
+	// 1st Exit in the case that there is no ray-intersecting boundary in the volume box
+	hits_t.y = min(camera.z_far, hits_t.y); // only available in orthogonal view (thickness slicer)
+	int num_ray_samples = (int)((hits_t.y - hits_t.x) / volume.sample_dist + 0.5f);
+	if (num_ray_samples <= 0)
+		return;
+
+    int hit_step = -1;
+	float3 pos_start_ws = ray.Origin + ray.Direction * hits_t.x;
+    float3 dir_sample_ws = ray.Direction * volume.sample_dist;
+	SearchForemostSurface(hit_step, pos_start_ws, dir_sample_ws, num_ray_samples);
+	if (hit_step < 0)
+		return;
+	
+	float3 pos_hit_ws = pos_start_ws + dir_sample_ws * (float)hit_step;
+	if (hit_step > 0) {
+		RefineSurface(pos_hit_ws, pos_hit_ws, dir_sample_ws, ITERATION_REFINESURFACE);
+		pos_hit_ws -= dir_sample_ws;
+		if (dot(pos_hit_ws - pos_start_ws, dir_sample_ws) <= 0)
+			pos_hit_ws = pos_start_ws;
+	}
+
+	float depth_hit = length(pos_hit_ws - ray.Origin);
+
+	if (BitCheck(volume.flags, APPLY_JITTERING))
+	{
+		RNG rng;
+		rng.init(uint2(pixel), GetFrameCount());
+		// additional feature : https://koreascience.kr/article/JAKO201324947256830.pdf
+		depth_hit -= rng.next_float() * volume.sample_dist;
+	}
+
+	uint dvr_hit_enc = length(pos_hit_ws - pos_start_ws) < volume.sample_dist ? DVR_SURFACE_ON_CLIPPLANE : DVR_SURFACE_OUTSIDE_CLIPPLANE;
+
+    if (dvr_hit_enc != DVR_SURFACE_OUTSIDE_VOLUME)
+    {
+        inout_color[DTid.xy] = float4(1, 0, 0, 1);
+        inout_linear_depth[DTid.xy] = depth_hit * GetCamera().z_far_rcp;
+    }
 }

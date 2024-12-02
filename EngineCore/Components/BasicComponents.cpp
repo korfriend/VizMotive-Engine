@@ -319,7 +319,7 @@ namespace vz
 				MaterialComponent* material = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuidMaterials[0]));
 				if (material)
 				{
-					VUID vuid0 = material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_DENSITYMAP);
+					VUID vuid0 = material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP);
 					VUID vuid1 = material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF);
 					bool hasRenderableVolume = compfactory::ContainVolumeComponent(compfactory::GetEntityByVUID(vuid0));
 					bool hasLookupTable = compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid1));
@@ -451,7 +451,7 @@ namespace vz
 		{
 			MaterialComponent* volume_material = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuidMaterials_[0]));
 			assert(volume_material);
-			VUID volume_vuid = volume_material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_DENSITYMAP);
+			VUID volume_vuid = volume_material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP);
 			VolumeComponent* volume = compfactory::GetVolumeComponent(compfactory::GetEntityByVUID(volume_vuid));
 
 			XMFLOAT4X4 world = transform->GetWorldMatrix();

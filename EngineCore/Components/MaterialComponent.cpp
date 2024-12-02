@@ -67,14 +67,21 @@ namespace vz
 
 	uint32_t GMaterialComponent::GetFilterMaskFlags() const
 	{
+		uint32_t filter_mask_flags = 0;
 		if (baseColor_.w < 0.99f)
 		{
-			return FILTER_TRANSPARENT;
+			filter_mask_flags |= FILTER_TRANSPARENT;
 		}
 		if (blendMode_ == BlendMode::BLENDMODE_OPAQUE)
 		{
-			return FILTER_OPAQUE;
+			filter_mask_flags |= FILTER_OPAQUE;
 		}
-		return FILTER_TRANSPARENT;
+		VolumeComponent* volume = compfactory::GetVolumeComponentByVUID(volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_MAIN_MAP)]);
+		if (volume)
+		{
+			filter_mask_flags |= FILTER_VOLUME;
+		}
+
+		return filter_mask_flags;
 	}
 }	

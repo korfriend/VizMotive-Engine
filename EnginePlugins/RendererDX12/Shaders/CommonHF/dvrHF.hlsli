@@ -7,7 +7,7 @@
 
 PUSHCONSTANT(volume, VolumePushConstants);
 
-const float SAMPLE_LEVEL_TEST = 0;
+static const float SAMPLE_LEVEL_TEST = 0;
 
 Texture3D input_volume : register(t0);
 Texture3D input_volume_blocks : register(t1);
@@ -167,14 +167,14 @@ struct BlockSkip
 	float blk_value;
 	int num_skip_steps;
 };
-BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 volume_blocks_ts, const Texture3D vol_blocks)
+BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const Texture3D vol_blocks)
 {
 	BlockSkip blk_v = (BlockSkip)0;
-	int3 blk_id = pos_start_ts / volume_blocks_ts;
+	int3 blk_id = pos_start_ts / singleblock_size_ts;
 	blk_v.blk_value = vol_blocks.Load(int4(blk_id, 0)).r;
 
-	float3 pos_min_ts = float3(blk_id.x * volume_blocks_ts.x, blk_id.y * volume_blocks_ts.y, blk_id.z * volume_blocks_ts.z);
-	float3 pos_max_ts = pos_min_ts + volume_blocks_ts;
+	float3 pos_min_ts = float3(blk_id.x * singleblock_size_ts.x, blk_id.y * singleblock_size_ts.y, blk_id.z * singleblock_size_ts.z);
+	float3 pos_max_ts = pos_min_ts + singleblock_size_ts;
 	float2 hits_t = ComputeAaBbHits(pos_start_ts, pos_min_ts, pos_max_ts, vec_sample_ts);
 	float dist_skip_ts = hits_t.y - hits_t.x;
 	
@@ -184,7 +184,7 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 };
 
 #define LOAD_BLOCK_INFO(BLK, P, V, N, I) \
-    BlockSkip BLK = ComputeBlockSkip(P, V, volume.volume_blocks_ts, input_volume_blocks);\
+    BlockSkip BLK = ComputeBlockSkip(P, V, volume.singleblock_size_ts, input_volume_blocks);\
     BLK.num_skip_steps = min(BLK.num_skip_steps, N - I - 1);
 
 float4 ApplyOTF(const in float sample_v, const in Texture2D<float4> otf, const in float opacity_correction, const in int id)
@@ -340,7 +340,7 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
             {
                 float3 pos_sample_blk_ts = pos_ray_start_ts + dir_sample_ts * (float) (i + k);
 				[branch]
-                if (Sample_Volume_And_Check(sample_v, pos_sample_blk_ts, min_valid_v))
+                if (Sample_Volume_And_Check(sample_v, pos_sample_blk_ts, volume.main_visible_min_sample))
                 {
 					step = i + k;
 					i = num_ray_samples;
@@ -358,3 +358,38 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
         //i -= 1;
     }
 }
+
+void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, const float3 dir_sample_ws, const int num_refinement)
+{
+    float3 pos_sample_ts = TransformPoint(pos_sample_ws, volume.mat_ws2ts);
+    float3 dir_sample_ts = TransformVector(dir_sample_ws, volume.mat_ws2ts);
+    float t0 = 0, t1 = 1;
+    
+	// Interval bisection
+    float3 pos_bis_s_ts = pos_sample_ts - dir_sample_ts;
+    float3 pos_bis_e_ts = pos_sample_ts;
+    
+	[loop]
+    for (int j = 0; j < num_refinement; j++)
+    {
+        float3 pos_bis_ts = (pos_bis_s_ts + pos_bis_e_ts) * 0.5f;
+        float t = (t0 + t1) * 0.5f;
+        float _sample_v = 0;
+        if (Sample_Volume_And_Check(_sample_v, pos_bis_ts, volume.main_visible_min_sample))
+        {
+            pos_bis_e_ts = pos_bis_ts;
+            t1 = t;
+        }
+        else
+        {
+            pos_bis_s_ts = pos_bis_ts;
+            t0 = t;
+        }
+    }
+
+    pos_refined_ws = pos_sample_ws + dir_sample_ws * (t1 - 1.f);
+}
+
+static const uint DVR_SURFACE_OUTSIDE_VOLUME = 0u;
+static const uint DVR_SURFACE_OUTSIDE_CLIPPLANE = 1u;
+static const uint DVR_SURFACE_ON_CLIPPLANE = 2u;

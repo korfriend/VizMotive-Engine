@@ -238,20 +238,53 @@ namespace vz
 		}
 	}
 
-	void VolumeComponent::SetAlign(const XMFLOAT3& axisVolX, const XMFLOAT3& axisVolY, const bool isRHS)
+	void VolumeComponent::UpdateAlignmentMatrix(const XMFLOAT3& axisVolX, const XMFLOAT3& axisVolY, const bool isRHS)
 	{
+		if (!isDirty_ || !IsValid() || voxelSize_.x * voxelSize_.y * voxelSize_.z == 0)
+		{
+			return;
+		}
+
 		XMVECTOR vec_axisy_os = XMLoadFloat3(&axisVolX);
 		XMVECTOR vec_axisx_os = XMLoadFloat3(&axisVolY);
 		XMVECTOR z_vec_rhs = XMVector3Cross(vec_axisy_os, vec_axisx_os); // note the z-dir in lookat
 		XMVECTOR origin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-		XMMATRIX mat_t = VZMatrixLookTo(origin, z_vec_rhs, vec_axisy_os);
-		XMMATRIX mat_rs2os = XMMatrixInverse(nullptr, mat_t);
+		XMMATRIX mat_lookat = VZMatrixLookTo(origin, z_vec_rhs, vec_axisy_os);
+		XMMATRIX mat_r = XMMatrixInverse(nullptr, mat_lookat); // orientation for rs2os 
 		if (!isRHS)
 		{
 			XMMATRIX matInverseZ = XMMatrixScaling(1.f, 1.f, -1.f);
-			mat_rs2os = matInverseZ * mat_rs2os;
+			mat_r = matInverseZ * mat_r;
 		}
-		XMStoreFloat4x4(&matAlign_, mat_rs2os);
+		XMFLOAT3 vol_size = { (float)width_, (float)height_, (float)depth_ };
+		XMMATRIX mat_s = XMMatrixScaling(voxelSize_.x, voxelSize_.y, voxelSize_.z);
+		XMFLOAT3 pos_min_vs = XMFLOAT3(-0.5f, -0.5f, -0.5f);
+		XMFLOAT3 pos_max_vs = XMFLOAT3(vol_size.x - 0.5f, vol_size.y - 0.5f, vol_size.z - 0.5f);
+		XMVECTOR vpos_min_vs = XMLoadFloat3(&pos_min_vs);
+		XMVECTOR vpos_max_vs = XMLoadFloat3(&pos_max_vs);
+		XMVECTOR vpos_min_os = XMVector3TransformCoord(vpos_min_vs, mat_s);
+		XMVECTOR vpos_max_os = XMVector3TransformCoord(vpos_max_vs, mat_s);
+		XMVECTOR vtranslate = -(vpos_min_os + vpos_max_os) * 0.5;
+		XMFLOAT3 translate_pos;
+		XMStoreFloat3(&translate_pos, vtranslate);
+		XMMATRIX mat_t = XMMatrixTranslation(translate_pos.x, translate_pos.y, translate_pos.z);
+
+		XMMATRIX mat_vs2os = mat_s * mat_r * mat_t;
+		XMStoreFloat4x4(&matVS2OS_, mat_vs2os);
+
+		XMMATRIX mat_os2vs = XMMatrixInverse(NULL, mat_vs2os);
+		XMStoreFloat4x4(&matOS2VS_, mat_os2vs);
+
+		// for texture space
+		mat_t = XMMatrixTranslation(0.5f, 0.5f, 0.5f);
+		mat_s = XMMatrixScaling(1.f / vol_size.x, 1.f / vol_size.y, 1.f / vol_size.z);
+		XMMATRIX mat_vs2ts = mat_t * mat_s;
+		XMStoreFloat4x4(&matVS2TS_, mat_vs2ts);
+
+		XMMATRIX mat_ts2vs = XMMatrixInverse(NULL, mat_vs2ts);
+		XMStoreFloat4x4(&matTS2VS_, mat_ts2vs);
+
+		isDirty_ = false;
 	}
 
 	geometrics::AABB VolumeComponent::ComputeAABB() const
@@ -265,6 +298,13 @@ namespace vz
 		aabb._min = XMFLOAT3(-volume_box_max.x, -volume_box_max.y, -volume_box_max.z);
 		return aabb;
 	}
+
+
+	bool VolumeComponent::IsValidVolume() const
+	{
+		return !isDirty_ && voxelSize_.x > 0 && voxelSize_.y > 0 && voxelSize_.z > 0 && IsValid();
+	}
+
 	bool VolumeComponent::LoadVolume(const std::string& fileName, const std::vector<uint8_t>& volData,
 		const uint32_t w, const uint32_t h, const uint32_t d, const VolumeFormat volFormat)
 	{
@@ -306,6 +346,8 @@ namespace vz
 
 			hasRenderData_ = true;
 		}
+
+		isDirty_ = true;
 		// 
 
 		//SetVolumeSize(const uint32_t w, const uint32_t h, const uint32_t d);
@@ -332,19 +374,19 @@ namespace vz
 			return;
 		}
 
-		blockSize_ = blockSize;
+		blockPitch_ = blockSize;
 		volumeMinMaxBlocks_ = {};
 
 		const uint8_t* vol_data = resource_->GetFileData().data();
 
 		using uint = uint32_t;
 
-		uint modX = width_ % blockSize_.x;
-		uint modY = height_ % blockSize_.y;
-		uint modZ = depth_ % blockSize_.z;
-		uint num_blocksX = width_ / blockSize_.x + (modX != 0);
-		uint num_blocksY = height_ / blockSize_.y + (modY != 0);
-		uint num_blocksZ = depth_ / blockSize_.z + (modZ != 0);
+		uint modX = width_ % blockPitch_.x;
+		uint modY = height_ % blockPitch_.y;
+		uint modZ = depth_ % blockPitch_.z;
+		uint num_blocksX = width_ / blockPitch_.x + (modX != 0);
+		uint num_blocksY = height_ / blockPitch_.y + (modY != 0);
+		uint num_blocksZ = depth_ / blockPitch_.z + (modZ != 0);
 
 		uint xy = num_blocksX * num_blocksY;
 
@@ -357,23 +399,23 @@ namespace vz
 		std::vector<uint8_t> blocks(num_blocksXYZ * stride * 2); // here, 2 refers min and max
 		uint8_t* block_data = blocks.data();
 		XMUINT3 blk_idx = XMUINT3(0, 0, 0);
-		for (uint z = 0; z < depth_; z += blockSize_.z, blk_idx.z++)
+		for (uint z = 0; z < depth_; z += blockPitch_.z, blk_idx.z++)
 		{
 			blk_idx.y = 0;
-			for (uint y = 0; y < height_; y += blockSize_.y, blk_idx.y++)
+			for (uint y = 0; y < height_; y += blockPitch_.y, blk_idx.y++)
 			{
 				blk_idx.x = 0;
-				for (uint x = 0; x < width_; x += blockSize_.x, blk_idx.x++)
+				for (uint x = 0; x < width_; x += blockPitch_.x, blk_idx.x++)
 				{
 					float min_v = FLT_MAX;		// Min
 					float max_v = -FLT_MAX;		// Max
 
-					XMUINT3 boundary_size = blockSize_;
-					if (width_ < x + blockSize_.x)
+					XMUINT3 boundary_size = blockPitch_;
+					if (width_ < x + blockPitch_.x)
 						boundary_size.x = modX;
-					if (height_ < y + blockSize_.y)
+					if (height_ < y + blockPitch_.y)
 						boundary_size.y = modY;
-					if (depth_ < z + blockSize_.z)
+					if (depth_ < z + blockPitch_.z)
 						boundary_size.y = modZ;
 
 					XMUINT3 start_index = XMUINT3(0, 0, 0);
@@ -414,9 +456,9 @@ namespace vz
 						}
 					}
 
-					uint block_x = x / blockSize_.x;
-					uint block_y = y / blockSize_.y;
-					uint block_z = z / blockSize_.z;
+					uint block_x = x / blockPitch_.x;
+					uint block_y = y / blockPitch_.y;
+					uint block_z = z / blockPitch_.z;
 					uint block_addr = block_z * num_blocksXY + block_y * num_blocksX + block_x;
 
 					switch (volFormat_)

@@ -457,6 +457,12 @@ namespace vz
 
 				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 			}
+			else if (renderable.IsVolumeRenderable())
+			{
+				const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
+				renderable.materialFilterFlags |= material.GetFilterMaskFlags();
+				renderable.renderFlags |= material.GetRenderFlags();
+			}
 
 			});
 	}
