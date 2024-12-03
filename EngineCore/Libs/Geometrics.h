@@ -34,6 +34,7 @@ namespace vz::geometrics
 		inline AABB transform(const XMMATRIX& mat) const;
 		inline AABB transform(const XMFLOAT4X4& mat) const;
 		inline XMFLOAT3 getCenter() const;
+		inline XMFLOAT3 getWidth() const;
 		inline XMFLOAT3 getHalfWidth() const;
 		inline XMMATRIX getAsBoxMatrix() const;
 		inline XMMATRIX getUnormRemapMatrix() const;
@@ -294,6 +295,10 @@ namespace vz::geometrics
 	XMFLOAT3 AABB::getCenter() const
 	{
 		return XMFLOAT3((_min.x + _max.x) * 0.5f, (_min.y + _max.y) * 0.5f, (_min.z + _max.z) * 0.5f);
+	}
+	XMFLOAT3 AABB::getWidth() const
+	{
+		return XMFLOAT3(abs(_max.x - _min.x), abs(_max.y - _min.y), abs(_max.z - _min.z));
 	}
 	XMFLOAT3 AABB::getHalfWidth() const
 	{

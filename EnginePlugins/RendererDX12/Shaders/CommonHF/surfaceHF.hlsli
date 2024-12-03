@@ -340,7 +340,7 @@ struct Surface
 		if (geometry.vb_pos_w < 0)
 			return false;
 		
-        instResLookup = load_instResLookup(inst.resLookupOffset + prim.subsetIndex);
+        instResLookup = load_instResLookup(inst.resLookupIndex + prim.subsetIndex);
 		
         material = load_material(instResLookup.materialIndex);
 		

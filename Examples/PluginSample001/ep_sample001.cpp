@@ -21,13 +21,13 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 	if (volume == nullptr) return false;
 	
 	// TODO
-	uint32_t volume_w = 516;
-	uint32_t volume_h = 516;
-	uint32_t volume_d = 516;
+	uint32_t volume_w = 64;
+	uint32_t volume_h = 64;
+	uint32_t volume_d = 64;
 
-	float voxel_x = 0.2f;
-	float voxel_y = 0.2f;
-	float voxel_z = 0.2f;
+	float voxel_x = 0.02f;
+	float voxel_y = 0.02f;
+	float voxel_z = 0.02f;
 
 	std::vector<uint8_t> data(volume_w * volume_h * volume_d * 2);
 

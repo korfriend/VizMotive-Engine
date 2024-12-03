@@ -940,7 +940,6 @@ namespace vz
 	// scene 
 	struct CORE_EXPORT RenderableComponent : ComponentBase
 	{
-	private:
 		enum class RenderableFlags : uint32_t
 		{
 			EMPTY = 0,
@@ -950,7 +949,11 @@ namespace vz
 			LIGHTMAP_DISABLE_BLOCK_COMPRESSION = 1 << 6,
 			FOREGROUND = 1 << 7,
 			VOLUME_RENDERABLE = 1 << 8,
+			CLIP_BOX = 1 << 9,
+			CLIP_PLANE = 1 << 10,
+			JITTER_SAMPLE = 1 << 11,
 		};
+	private:
 		uint32_t flags_ = SCU32(RenderableFlags::EMPTY);
 
 		uint8_t visibleLayerMask_ = 0x7;
@@ -981,6 +984,8 @@ namespace vz
 
 		void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
 		bool IsForeground() const { return flags_ & SCU32(RenderableFlags::FOREGROUND); }
+
+		uint32_t GetFlags() const { return flags_; }
 
 		void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; }
 		void SetVisibleRadius(const float radius) { visibleRadius_ = radius; }

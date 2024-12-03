@@ -7,12 +7,18 @@
 #include "Utils/JobSystem.h"
 #include "Shaders/ShaderInterop.h"
 #include "Shaders/ShaderInterop_Postprocess.h"
+#include "Shaders/ShaderInterop_DVR.h"
 
 using namespace vz::graphics;
 
 static_assert(SHADERTYPE_BIN_COUNT == SCU32(vz::MaterialComponent::ShaderType::COUNT));
 static_assert(TEXTURESLOT_COUNT == SCU32(vz::MaterialComponent::TextureSlot::TEXTURESLOT_COUNT));
 static_assert(VOLUME_TEXTURESLOT_COUNT == SCU32(vz::MaterialComponent::VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT));
+
+//RenderableComponent::RenderableFlags
+static_assert(INST_CLIPBOX == SCU32(vz::RenderableComponent::RenderableFlags::CLIP_BOX));
+static_assert(INST_CLIPPLANE == SCU32(vz::RenderableComponent::RenderableFlags::CLIP_PLANE));
+static_assert(INST_JITTERING == SCU32(vz::RenderableComponent::RenderableFlags::JITTER_SAMPLE));
 
 //----- global constants -----
 namespace vz
@@ -421,7 +427,7 @@ namespace vz
 		graphics::GraphicsDevice* device = nullptr;
 		// Instances (parts) for bindless renderables:
 		//	contains in order:
-		//		1) renderables (normal meshes)
+		//		1) renderables (general meshes and volumes)
 		size_t instanceArraySize = 0;
 		graphics::GPUBuffer instanceUploadBuffer[graphics::GraphicsDevice::GetBufferCount()]; // dynamic GPU-usage
 		graphics::GPUBuffer instanceBuffer = {};	// default GPU-usage
