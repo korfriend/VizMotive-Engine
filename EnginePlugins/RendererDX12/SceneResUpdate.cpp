@@ -410,7 +410,7 @@ namespace vz
 					sort_bits.bits.blendmode |= 1 << SCU32(material.GetBlendMode());
 					sort_bits.bits.alphatest |= material.IsAlphaTestEnabled();
 
-					std::memcpy(instanceResLookupMapped + renderable.resLookupOffset + part_index, 
+					std::memcpy(instanceResLookupMapped + renderable.resLookupIndex + part_index, 
 						&inst_res_lookup, sizeof(ShaderInstanceResLookup));
 				}
 
@@ -435,14 +435,23 @@ namespace vz
 				const geometrics::AABB& aabb = renderable.GetAABB();
 
 				inst.uid = renderable.GetEntity();
+				inst.fadeDistance = renderable.GetFadeDistance();
+				inst.flags = renderable.GetFlags();
+				
+				//inst.emissive
+				//inst.color
+				//inst.lightmap
 
 				// TODO : applying adaptive LOD 
 				inst.baseGeometryOffset = geometry.geometryOffset;
 				inst.baseGeometryCount = geometry.GetNumParts();
-				inst.resLookupOffset = renderable.resLookupOffset;
+				inst.resLookupIndex = renderable.resLookupIndex;
 				inst.geometryOffset = inst.baseGeometryOffset;// inst.baseGeometryOffset + first_part;
 				inst.geometryCount = (uint)num_parts;;//last_part - first_part;
 				inst.meshletOffset = geometry.meshletOffset;
+				
+				// TODO: clipper setting
+				inst.clipIndex = -1;
 
 				inst.aabbCenter = aabb.getCenter();	
 				inst.aabbRadius = aabb.getRadius();
@@ -460,8 +469,101 @@ namespace vz
 			else if (renderable.IsVolumeRenderable())
 			{
 				const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
-				renderable.materialFilterFlags |= material.GetFilterMaskFlags();
-				renderable.renderFlags |= material.GetRenderFlags();
+				GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
+					material.GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
+				assert(volume);
+				assert(volume->IsValidVolume());
+				GTextureComponent* otf = (GTextureComponent*)compfactory::GetTextureComponentByVUID(
+					material.GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
+				assert(otf);
+
+				union SortBits
+				{
+					struct
+					{
+						uint32_t shadertype : SCU32(MaterialComponent::ShaderType::COUNT);
+						uint32_t sort_priority : 4;
+					} bits;
+					uint32_t value;
+				};
+				static_assert(sizeof(SortBits) == sizeof(uint32_t));
+
+				SortBits sort_bits;
+				sort_bits.bits.sort_priority = renderable.sortPriority;
+
+				renderable.renderableIndex = Scene::GetIndex(renderableEntities, renderable.GetEntity());
+				renderable.geometryIndex = ~0u;
+
+				renderable.materialIndices.assign(1, ~0u); // volume renderable has a single material that has volume texture
+				
+				ShaderMeshInstance inst; // this will be loaded as VolumeInstance
+				inst.Init();
+
+				//inst.emissive
+				//inst.color
+				//inst.lightmap
+				// 
+				// common attributes
+				inst.uid = renderable.GetEntity();
+				inst.fadeDistance = renderable.GetFadeDistance();
+				inst.flags = renderable.GetFlags();
+
+				const geometrics::AABB& aabb = renderable.GetAABB();
+				inst.aabbCenter = aabb.getCenter();
+				inst.aabbRadius = aabb.getRadius();				
+				XMFLOAT4 rimHighlightColor = renderable.GetRimHighLightColor();
+				float rimHighlightFalloff = renderable.GetRimHighLightFalloff();
+				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
+
+				// TODO: clipper setting
+				inst.clipIndex = -1;
+				//inst.quaternion = ?? decompose of W and assign R to it
+
+				// ----- volume attributes -----
+				const XMFLOAT4X4& mat_os2ws = transform->GetWorldMatrix();
+				XMMATRIX xmat_os2ws = XMLoadFloat4x4(&mat_os2ws);
+				XMMATRIX xmat_ws2os = XMMatrixInverse(NULL, xmat_os2ws);
+				XMMATRIX xmat_os2vs = XMLoadFloat4x4(&volume->GetMatrixOS2VS());
+				XMMATRIX xmat_vs2ts = XMLoadFloat4x4(&volume->GetMatrixVS2TS());
+				XMMATRIX xmat_ws2ts = xmat_ws2os * xmat_os2vs * xmat_vs2ts;
+
+				XMFLOAT4X4 mat_ws2ts;
+				XMStoreFloat4x4(&mat_ws2ts, xmat_ws2ts);
+
+				XMFLOAT4X4 world_matrix_prev = matrixRenderables[args.jobIndex];
+				matrixRenderablesPrev[args.jobIndex] = world_matrix_prev;
+				matrixRenderables[args.jobIndex] = mat_ws2ts;
+
+				inst.transform.Create(mat_ws2ts);
+				inst.transformPrev.Create(world_matrix_prev);
+
+				const geometrics::AABB& aabb_vol = volume->ComputeAABB();
+				XMFLOAT3 aabb_size = aabb_vol.getWidth();
+				XMMATRIX xmat_s = XMMatrixScaling(1.f / aabb_size.x, 1.f / aabb_size.y, 1.f / aabb_size.z);
+				XMMATRIX xmat_alignedvbox_ws2bs = xmat_ws2os * xmat_s;
+				XMFLOAT4X4 mat_alignedvbox_ws2bs;
+				XMStoreFloat4x4(&mat_alignedvbox_ws2bs, xmat_alignedvbox_ws2bs);
+				inst.transformRaw.Create(mat_alignedvbox_ws2bs);
+
+				inst.resLookupIndex = Scene::GetIndex(materialEntities, material.GetEntity());
+				const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
+				float value_range = min_max_stored_v.y - min_max_stored_v.x;
+				inst.geometryOffset = *(uint*)&value_range;
+				float mask_value_range = 255.f;
+				inst.geometryCount = *(uint*)&mask_value_range;
+				float mask_unormid_otf_map = mask_value_range / (otf->GetHeight() > 1? otf->GetHeight() - 1 : 1.f);
+				inst.baseGeometryOffset = *(uint*)&mask_unormid_otf_map;
+
+				const Texture vol_texture = volume->GetTexture();
+				int texture_volume_blocks = device->GetDescriptorIndex(&vol_texture, SubresourceType::SRV);
+				inst.meshletOffset = *(uint*)&texture_volume_blocks;
+				const XMFLOAT3& vox_size = volume->GetVoxelSize();
+				float sample_dist = std::min(std::min(vox_size.x, vox_size.y), vox_size.z);
+				inst.alphaTest_size = *(uint*)&sample_dist;
+
+				renderable.sortBits = sort_bits.value;
+				
+				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 			}
 
 			});
@@ -651,7 +753,7 @@ namespace vz
 					return;
 				}
 				size_t num_parts = compfactory::GetGeometryComponent(renderable->GetGeometry())->GetNumParts();
-				renderable->resLookupOffset = instanceResLookupAllocator.fetch_add((uint32_t)num_parts);
+				renderable->resLookupIndex = instanceResLookupAllocator.fetch_add((uint32_t)num_parts);
 				});
 
 			// initialize ShaderRenderable 

@@ -274,7 +274,7 @@ static const uint DESCRIPTOR_SET_BINDLESS_ACCELERATION_STRUCTURE = 7;
 #else
 SamplerState bindless_samplers[] : register(space1);
 Texture2D bindless_textures[] : register(space2);
-ByteAddressBuffer bindless_buffers[] : register(space3);
+ByteAddressBuffer bindless_buffers[] : register(space3); //  mapped to buffers allocated by device->AllocateGPU(alloc_size, cmd);
 Buffer<uint> bindless_buffers_uint[] : register(space4);
 Buffer<uint2> bindless_buffers_uint2[] : register(space5);
 Buffer<uint3> bindless_buffers_uint3[] : register(space6);

@@ -9,13 +9,76 @@ PUSHCONSTANT(volume, VolumePushConstants);
 
 static const float SAMPLE_LEVEL_TEST = 0;
 
-Texture3D input_volume : register(t0);
-Texture3D input_volume_blocks : register(t1);
-Texture3D input_volume_mask : register(t2);
+//Texture3D input_volume : register(t0);
+//Texture3D input_volume_blocks : register(t1);
+//Texture3D input_volume_mask : register(t2);
+//
+//// use 1024 or 2048 resolution
+//Texture2D<float4> input_otf : register(t3); // input_volume 
+//Texture2D<float4> input_mask_colorcode : register(t4);  // input_volume_mask
 
-// use 1024 or 2048 resolution
-Texture2D<float4> input_otf : register(t3); // input_volume 
-Texture2D<float4> input_mask_colorcode : register(t4);  // input_volume_mask
+// No need to be aligned by 16 bits 
+struct VolumeInstance
+{
+	float4x4 mat_ws2ts;				// aliased from ShaderMeshInstance::transform
+	float4x4 mat_alignedvbox_ws2bs; // aliased from ShaderMeshInstance::transformRaw
+ 
+	uint materialIndex;				// aliased from ShaderMeshInstance::resLookupIndex
+	float value_range;				// aliased from ShaderMeshInstance::geometryOffset
+	float mask_value_range;		// aliased from ShaderMeshInstance::geometryCount
+    float mask_unormid_otf_map; // aliased from ShaderMeshInstance::baseGeometryOffset
+
+	// we can texture_volume and texture_volume_mask from ShaderMaterial
+	int texture_volume_blocks;		// aliased from ShaderMeshInstance::meshletOffset
+	float sample_dist;				// WS unit, aliased from ShaderMeshInstance::alphaTest_size
+
+	// the remaining stuffs can be used as the same purpose of ShaderMeshInstance's attributes
+	uint uid;
+	uint flags;
+	uint clipIndex;
+	float3 aabbCenter;
+	float aabbRadius;
+	float fadeDistance;
+	uint2 emissive;
+	uint color;
+	int lightmap;
+	uint2 rimHighlight;
+	//float4 quaternion;
+
+#ifndef __cplusplus
+    void Init()
+    {
+        materialIndex = ~0u;
+        flags = 0u;
+        texture_volume_blocks = -1;
+    }
+	void Load(ShaderMeshInstance meshInst)
+	{
+		mat_ws2ts = meshInst.transform.GetMatrix();
+		mat_alignedvbox_ws2bs = meshInst.transformRaw.GetMatrix();
+
+		materialIndex = meshInst.resLookupIndex;
+		value_range = asfloat(meshInst.geometryOffset);
+		mask_value_range = asfloat(meshInst.geometryCount);
+        mask_unormid_otf_map = asfloat(meshInst.baseGeometryOffset);
+
+		texture_volume_blocks = asint(meshInst.meshletOffset);
+		sample_dist = asfloat(meshInst.alphaTest_size);
+
+		// the same attrobutes to ShaderMeshInstance
+		uid = meshInst.uid;
+		flags = meshInst.flags;
+		clipIndex = meshInst.clipIndex;
+		aabbCenter = meshInst.aabbCenter;
+		aabbRadius = meshInst.aabbRadius;
+		fadeDistance = meshInst.fadeDistance;
+		emissive = meshInst.emissive;
+		color = meshInst.color;
+		lightmap = meshInst.lightmap;
+		rimHighlight = meshInst.rimHighlight;
+	}
+#endif
+};
 
 inline float3 TransformPoint(in float3 pos_src, in float4x4 matT)
 {
@@ -109,21 +172,21 @@ float2 ComputePlaneHits(const in float prev_t, const in float next_t, const in f
 	return hits_t;
 }
 
-bool IsInsideClipBound(const in float3 pos, const in uint flags, const in ClipBox clip_box)
+bool IsInsideClipBound(const in float3 pos, const in uint flags, const in ShaderClipper clipper)
 {
 	// Custom Clip Plane //
-	if (flags & 0x1)
+	if (flags & INST_CLIPPLANE)
 	{
         float3 pos_clipplane, vec_clipplane;
-        clip_box.GetCliPlane(pos_clipplane, vec_clipplane);
+        clipper.GetCliPlane(pos_clipplane, vec_clipplane);
 		float3 ph = pos - pos_clipplane;
 		if (dot(ph, vec_clipplane) > 0)
 			return false;
 	}
 	
-	if (flags & 0x2)
+	if (flags & INST_CLIPBOX)
 	{
-		if (!IsInsideClipBox(pos, clip_box.mat_clipbox_ws2bs))
+		if (!IsInsideClipBox(pos, clipper.transformClibBox.GetMatrix()))
 			return false;
 	}
 	return true;
@@ -131,7 +194,7 @@ bool IsInsideClipBound(const in float3 pos, const in uint flags, const in ClipBo
 
 float2 ComputeVBoxHits(const in float3 pos_start, const in float3 vec_dir, const in uint flags, 
     const in float4x4 mat_vbox_2bs, 
-    const in ClipBox clip_box)
+    const in ShaderClipper clipper)
 {
 	// Compute VObject Box Enter and Exit //
 	float2 hits_t = ComputeClipBoxHits(pos_start, vec_dir, mat_vbox_2bs);
@@ -139,10 +202,10 @@ float2 ComputeVBoxHits(const in float3 pos_start, const in float3 vec_dir, const
 	if (hits_t.y > hits_t.x)
 	{
 		// Custom Clip Plane //
-		if (flags & 0x1)
+		if (flags & INST_CLIPPLANE)
 		{
             float3 pos_clipplane, vec_clipplane;
-            clip_box.GetCliPlane(pos_clipplane, vec_clipplane);
+            clipper.GetCliPlane(pos_clipplane, vec_clipplane);
 
 			float2 hits_clipplane_t = ComputePlaneHits(hits_t.x, hits_t.y, pos_clipplane, vec_clipplane, pos_start, vec_dir);
 
@@ -150,9 +213,9 @@ float2 ComputeVBoxHits(const in float3 pos_start, const in float3 vec_dir, const
 			hits_t.y = min(hits_t.y, hits_clipplane_t.y);
 		}
 
-		if (flags & 0x2)
+		if (flags & INST_CLIPBOX)
 		{
-			float2 hits_clipbox_t = ComputeClipBoxHits(pos_start, vec_dir, clip_box.mat_clipbox_ws2bs);
+			float2 hits_clipbox_t = ComputeClipBoxHits(pos_start, vec_dir, clipper.transformClibBox.GetMatrix());
 
 			hits_t.x = max(hits_t.x, hits_clipbox_t.x);
 			hits_t.y = min(hits_t.y, hits_clipbox_t.y);
@@ -183,46 +246,49 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 	return blk_v;
 };
 
-#define LOAD_BLOCK_INFO(BLK, P, V, N, I) \
-    BlockSkip BLK = ComputeBlockSkip(P, V, volume.singleblock_size_ts, input_volume_blocks);\
+#define LOAD_BLOCK_INFO(BLK, P, V, N, I, VOL_BLOCK_TEX) \
+    BlockSkip BLK = ComputeBlockSkip(P, V, volume.singleblock_size_ts, VOL_BLOCK_TEX);\
     BLK.num_skip_steps = min(BLK.num_skip_steps, N - I - 1);
 
-float4 ApplyOTF(const in float sample_v, const in Texture2D<float4> otf, const in float opacity_correction, const in int id)
+float4 ApplyOTF(const in Texture2D otf, const in float sample_v, const in float idv)
 {
-	float4 color = otf.SampleLevel(sampler_point_wrap, float2(sample_v, id * volume.id2multiotf_convert), 0);
-	color.rgb *= color.a * opacity_correction; // associated color
+	float4 color = otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
+	color.rgb *= color.a * volume.opacity_correction; // associated color
 	return color;
 }
 
 
-float4 ApplyPreintOTF(const float sample_v, float sample_v_prev, const in Texture2D<float4> otf, const float opacity_correction, const in int id)
+float4 ApplyPreintOTF(const in Texture2D otf, const float sample_v, float sample_v_prev, const in float idv)
 {
 	float4 color = (float4)0;
 
-	if (sample_v == sample_v_prev) sample_v_prev += 1 / volume.sample_range;
-
+    if (sample_v == sample_v_prev)
+    {
+        sample_v_prev -= 1.f / volume.value_range;
+    }
 	int diff = sample_v - sample_v_prev;
 
 	float diff_rcp = 1.f / (float)diff;
 
-	float4 color0 = otf.SampleLevel(sampler_point_wrap, float2(sample_v_prev, id * volume.id2multiotf_convert), 0);
-	float4 color1 = otf.SampleLevel(sampler_point_wrap, float2(sample_v, id * volume.id2multiotf_convert), 0);
+	float4 color0 = otf.SampleLevel(sampler_point_wrap, float2(sample_v_prev, idv), 0);
+	float4 color1 = otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
 
 	color.rgb = (color1.rgb - color0.rgb) * diff_rcp;
-	color.a = (color1.a - color1.a) * diff_rcp * opacity_correction;
+	color.a = (color1.a - color1.a) * diff_rcp * volume.opacity_correction;
 	color.rgb *= color.a; // associate color
 	return color;
 }
 
 // Sample_Volume_And_Check for SearchForemostSurface
 // Vis_Volume_And_Check for raycast-rendering
-#ifdef POST_INTERPOLATION
-bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample)
+#ifdef POST_INTERPOLATION // do not support mask volume
+bool Sample_Volume_And_Check(const in Texture3D volume_main, inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample)
 {
-	sample_v = input_volume.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
+	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 	return sample_v > visible_min_value;
 }
-bool Vis_Volume_And_Check(inout float4 color, const float3 pos_sample_ts)
+bool Vis_Volume_And_Check(const in Texture3D volume_main, const in Texture2D otf, 
+	inout float4 color, const float3 pos_sample_ts)
 {
 	float3 pos_vs = float3(pos_sample_ts.x * g_cbVobj.vol_size.x - 0.5f, 
 		pos_sample_ts.y * g_cbVobj.vol_size.y - 0.5f, 
@@ -230,14 +296,14 @@ bool Vis_Volume_And_Check(inout float4 color, const float3 pos_sample_ts)
 	int3 idx_vs = int3(pos_vs);
 
 	float samples[8];
-	samples[0] = input_volume.Load(int4(idx_vs, SAMPLE_LEVEL_TEST)).r;
-	samples[1] = input_volume.Load(int4(idx_vs + int3(1, 0, 0), SAMPLE_LEVEL_TEST)).r;
-	samples[2] = input_volume.Load(int4(idx_vs + int3(0, 1, 0), SAMPLE_LEVEL_TEST)).r;
-	samples[3] = input_volume.Load(int4(idx_vs + int3(1, 1, 0), SAMPLE_LEVEL_TEST)).r;
-	samples[4] = input_volume.Load(int4(idx_vs + int3(0, 0, 1), SAMPLE_LEVEL_TEST)).r;
-	samples[5] = input_volume.Load(int4(idx_vs + int3(1, 0, 1), SAMPLE_LEVEL_TEST)).r;
-	samples[6] = input_volume.Load(int4(idx_vs + int3(0, 1, 1), SAMPLE_LEVEL_TEST)).r;
-	samples[7] = input_volume.Load(int4(idx_vs + int3(1, 1, 1), SAMPLE_LEVEL_TEST)).r;
+	samples[0] = volume_main.Load(int4(idx_vs, SAMPLE_LEVEL_TEST)).r;
+	samples[1] = volume_main.Load(int4(idx_vs + int3(1, 0, 0), SAMPLE_LEVEL_TEST)).r;
+	samples[2] = volume_main.Load(int4(idx_vs + int3(0, 1, 0), SAMPLE_LEVEL_TEST)).r;
+	samples[3] = volume_main.Load(int4(idx_vs + int3(1, 1, 0), SAMPLE_LEVEL_TEST)).r;
+	samples[4] = volume_main.Load(int4(idx_vs + int3(0, 0, 1), SAMPLE_LEVEL_TEST)).r;
+	samples[5] = volume_main.Load(int4(idx_vs + int3(1, 0, 1), SAMPLE_LEVEL_TEST)).r;
+	samples[6] = volume_main.Load(int4(idx_vs + int3(0, 1, 1), SAMPLE_LEVEL_TEST)).r;
+	samples[7] = volume_main.Load(int4(idx_vs + int3(1, 1, 1), SAMPLE_LEVEL_TEST)).r;
 
 	float3 f3InterpolateRatio = pos_vs - idx_vs;
 
@@ -254,72 +320,77 @@ bool Vis_Volume_And_Check(inout float4 color, const float3 pos_sample_ts)
 	color = (float4)0;
 	[unroll]
 	for (int m = 0; m < 8; m++) {
-		float4 vis = ApplyOTF(samples[m], input_otf, volume.opacity_correction, 0);
+		float4 vis = ApplyOTF(otf, samples[m], volume.opacity_correction, 0);
 		color += vis * fInterpolateWeights[m];
 	}
 	return color.a >= FLT_OPACITY_MIN;
 }
 #else
-bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample)
+bool Sample_Volume_And_Check(const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture2D otf, 
+	inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample)
 {
-	sample_v = input_volume.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
+	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 
 #ifdef SCULPT_MASK
-	int mask_vint = (int)(input_volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, 0).r * volume.mask_sample_range + 0.5f);
-    return sample_v >= visible_min_sample && (mask_vint == 0 || mask_vint > volume.sculpt_value);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, 0).r * volume.mask_value_range + 0.5f);
+    return sample_v >= visible_min_sample && (sculpt_step == 0 || sculpt_step > volume.sculptStep);
 #else 
     return sample_v >= visible_min_sample;
 #endif // SCULPT_MASK
 }
 
-bool Vis_Volume_And_Check(inout float4 color, inout float sample_v, const float3 pos_sample_ts)
+bool Vis_Volume_And_Check(const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture2D otf, 
+	inout float4 color, inout float sample_v, const float3 pos_sample_ts)
 {
-	sample_v = input_volume.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
+	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 #ifdef OTF_MASK
-	int mask_vint = (int)(input_volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * volume.mask_sample_range + 0.5f);
-	color = ApplyOTF(sample_v, input_otf, volume.opacity_correction, mask_vint);
+	float id = volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
+	color = ApplyOTF(otf, sample_v, id * volume.mask_unormid_otf_map);
 	return color.a >= FLT_OPACITY_MIN;
 #else
 #ifdef SCULPT_MASK
-	int mask_vint = (int)(input_volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * volume.mask_sample_range + 0.5f);
-    color = ApplyOTF(sample_v, input_otf, volume.opacity_correction, 0);
-    return color.a >= FLT_OPACITY_MIN && (mask_vint == 0 || mask_vint > volume.sculpt_value);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * volume.mask_value_range + 0.5f);
+    color = ApplyOTF(otf, sample_v, 0);
+    return color.a >= FLT_OPACITY_MIN && (mask_vint == 0 || sculpt_step > volume.sculptStep);
 #else 
-    color = ApplyOTF(sample_v, input_otf, volume.opacity_correction, 0);
+    color = ApplyOTF(otf, sample_v, 0);
     return color.a >= FLT_OPACITY_MIN;
 #endif // SCULPT_MASK
 #endif // OTF_MASK
 }
 
-bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float sample_prev, const float3 pos_sample_ts)
+bool Vis_Volume_And_Check_Slab(const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture2D otf, 
+	inout float4 color, inout float sample_v, float sample_prev, const float3 pos_sample_ts)
 {
-	sample_v = input_volume.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
+	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 
 #if OTF_MASK==1
-	int mask_vint = (int)(input_volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * volume.mask_sample_range + 0.5f);
-	color = ApplyPreintOTF(sample_v, sample_prev, input_otf, volume.opacity_correction, mask_vint);
+	float id = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
+	color = ApplyPreintOTF(otf, sample_v, sample_prev, id * volume.mask_unormid_otf_map);
 	return color.a >= FLT_OPACITY_MIN;
 #elif SCULPT_MASK == 1
-	int mask_vint = (int)(input_volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * volume.mask_sample_range + 0.5f);
-    color = ApplyPreintOTF(sample_v, sample_prev, input_otf, volume.opacity_correction, 0);
-    return color.a >= FLT_OPACITY_MIN && (mask_vint == 0 || mask_vint > volume.sculpt_value);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * volume.mask_value_range + 0.5f);
+    color = ApplyPreintOTF(otf, sample_v, sample_prev, 0);
+    return color.a >= FLT_OPACITY_MIN && (sculpt_step == 0 || sculpt_step > volume.sculptStep);
 #else 
-    color = ApplyPreintOTF(sample_v, sample_prev, input_otf, volume.opacity_correction, 0);
+    color = ApplyPreintOTF(otf, sample_v, sample_prev, 0);
     return color.a >= FLT_OPACITY_MIN;
 #endif
 }
 #endif // POST_INTERPOLATION
 
-void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const float3 dir_sample_ws, const int num_ray_samples)
+void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const float3 dir_sample_ws, const int num_ray_samples,
+	const float4x4 mat_ws2ts, const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture3D volume_blocks)
 {
     step = -1;
     float sample_v = 0;
 
-    float3 pos_ray_start_ts = TransformPoint(pos_ray_start_ws, volume.mat_ws2ts);
-    float3 dir_sample_ts = TransformVector(dir_sample_ws, volume.mat_ws2ts);
+    float3 pos_ray_start_ts = TransformPoint(pos_ray_start_ws, mat_ws2ts);
+    float3 dir_sample_ts = TransformVector(dir_sample_ws, mat_ws2ts);
     
+    Texture2D dummy_tex;
 	[branch]
-    if (Sample_Volume_And_Check(sample_v, pos_ray_start_ts, volume.main_visible_min_sample))
+    if (Sample_Volume_And_Check(volume_main, volume_mask, dummy_tex, sample_v, pos_ray_start_ts, volume.main_visible_min_sample))
     {
         step = 0;
         return;
@@ -330,7 +401,7 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     {
         float3 pos_sample_ts = pos_ray_start_ts + dir_sample_ts * (float) i;
 
-        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, i)
+        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, i, volume_blocks)
 			
 		[branch]
         if (blkSkip.blk_value > 0)
@@ -340,7 +411,7 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
             {
                 float3 pos_sample_blk_ts = pos_ray_start_ts + dir_sample_ts * (float) (i + k);
 				[branch]
-                if (Sample_Volume_And_Check(sample_v, pos_sample_blk_ts, volume.main_visible_min_sample))
+                if (Sample_Volume_And_Check(volume_main, volume_mask, dummy_tex, sample_v, pos_sample_blk_ts, volume.main_visible_min_sample))
                 {
 					step = i + k;
 					i = num_ray_samples;
@@ -359,23 +430,25 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     }
 }
 
-void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, const float3 dir_sample_ws, const int num_refinement)
+void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, const float3 dir_sample_ws, const int num_refinement,
+	const float4x4 mat_ws2ts, const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture3D volume_blocks)
 {
-    float3 pos_sample_ts = TransformPoint(pos_sample_ws, volume.mat_ws2ts);
-    float3 dir_sample_ts = TransformVector(dir_sample_ws, volume.mat_ws2ts);
+    float3 pos_sample_ts = TransformPoint(pos_sample_ws, mat_ws2ts);
+    float3 dir_sample_ts = TransformVector(dir_sample_ws, mat_ws2ts);
     float t0 = 0, t1 = 1;
     
 	// Interval bisection
     float3 pos_bis_s_ts = pos_sample_ts - dir_sample_ts;
     float3 pos_bis_e_ts = pos_sample_ts;
     
+    Texture2D dummy_tex;
 	[loop]
     for (int j = 0; j < num_refinement; j++)
     {
         float3 pos_bis_ts = (pos_bis_s_ts + pos_bis_e_ts) * 0.5f;
         float t = (t0 + t1) * 0.5f;
         float _sample_v = 0;
-        if (Sample_Volume_And_Check(_sample_v, pos_bis_ts, volume.main_visible_min_sample))
+        if (Sample_Volume_And_Check(volume_main, volume_mask, dummy_tex, _sample_v, pos_bis_ts, volume.main_visible_min_sample))
         {
             pos_bis_e_ts = pos_bis_ts;
             t1 = t;
@@ -393,3 +466,17 @@ void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, cons
 static const uint DVR_SURFACE_OUTSIDE_VOLUME = 0u;
 static const uint DVR_SURFACE_OUTSIDE_CLIPPLANE = 1u;
 static const uint DVR_SURFACE_ON_CLIPPLANE = 2u;
+
+VolumeInstance GetVolumeInstance()
+{
+    if (volume.instanceIndex >= 0)
+    {
+        ShaderMeshInstance mesh_instance = load_instance(volume.instanceIndex);
+        VolumeInstance vol_instance;
+        vol_instance.Load(mesh_instance);
+        return vol_instance;
+    }
+    VolumeInstance inst;
+    inst.Init(); // texture_volume_blocks = -1;
+    return inst;
+}

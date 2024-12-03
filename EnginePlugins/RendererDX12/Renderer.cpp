@@ -13,8 +13,6 @@
 
 #include "ThirdParty/RectPacker.h"
 
-#include "Shaders/ShaderInterop_DVR.h"
-
 namespace vz::rcommon
 {
 	InputLayout			inputLayouts[ILTYPE_COUNT];
@@ -2553,32 +2551,33 @@ namespace vz
 				material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
 			assert(otf);
 
-			TransformComponent* transform = compfactory::GetTransformComponent(renderable.GetEntity());
-			const XMFLOAT4X4& mat_os2ws = transform->GetWorldMatrix();
-			XMMATRIX xmat_os2ws = XMLoadFloat4x4(&mat_os2ws);
-			XMMATRIX xmat_ws2os = XMMatrixInverse(NULL, xmat_os2ws);
-			XMMATRIX xmat_os2vs = XMLoadFloat4x4(&volume->GetMatrixOS2VS());
-			XMMATRIX xmat_vs2ts = XMLoadFloat4x4(&volume->GetMatrixVS2TS());
-			XMMATRIX xmat_ws2ts = xmat_ws2os * xmat_os2vs * xmat_vs2ts;
+			VolumePushConstants volume_push;
+			{
+				TransformComponent* transform = compfactory::GetTransformComponent(renderable.GetEntity());
+				const XMFLOAT4X4& mat_os2ws = transform->GetWorldMatrix();
+				XMMATRIX xmat_os2ws = XMLoadFloat4x4(&mat_os2ws);
+				XMMATRIX xmat_ws2os = XMMatrixInverse(NULL, xmat_os2ws);
+				XMMATRIX xmat_os2vs = XMLoadFloat4x4(&volume->GetMatrixOS2VS());
+				XMMATRIX xmat_vs2ts = XMLoadFloat4x4(&volume->GetMatrixVS2TS());
+				XMMATRIX xmat_ws2ts = xmat_ws2os * xmat_os2vs * xmat_vs2ts;
 
-			const XMFLOAT3& vox_size = volume->GetVoxelSize();
-			VolumePushConstants push;
-			XMStoreFloat4x4(&push.mat_ws2ts, xmat_ws2ts);
-			//push.mat_alignedvbox_ws2bs; // no clip
-			push.flags = 0u;
-			push.sample_dist = std::min(std::min(vox_size.x, vox_size.y), vox_size.z);
-			assert(push.sample_dist > 0);
-			const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
-			push.sample_range = min_max_stored_v.y - min_max_stored_v.x;
-			push.mask_sample_range = 255;
-			push.main_visible_min_sample = 100.f;
-			push.sculpt_index = -1;
-			push.id2multiotf_convert = 0;
-			push.opacity_correction = 1.f;
-			const XMUINT3& block_pitch = volume->GetBlockPitch();
-			XMFLOAT3 vol_size = XMFLOAT3((float)volume->GetWidth(), (float)volume->GetHeight(), (float)volume->GetDepth());
-			push.singleblock_size_ts = XMFLOAT3((float)block_pitch.x / vol_size.x, 
-				(float)block_pitch.y / vol_size.y, (float)block_pitch.z / vol_size.z);
+				const XMFLOAT3& vox_size = volume->GetVoxelSize();
+				volume_push.instanceIndex = batch.instanceIndex;
+				volume_push.sculptStep = -1;
+				volume_push.opacity_correction = 1.f;
+				volume_push.main_visible_min_sample = 0.2f;
+
+				const XMUINT3& block_pitch = volume->GetBlockPitch();
+				XMFLOAT3 vol_size = XMFLOAT3((float)volume->GetWidth(), (float)volume->GetHeight(), (float)volume->GetDepth());
+				volume_push.singleblock_size_ts = XMFLOAT3((float)block_pitch.x / vol_size.x,
+					(float)block_pitch.y / vol_size.y, (float)block_pitch.z / vol_size.z);
+
+				volume_push.mask_value_range = 255.f;
+				const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
+				volume_push.value_range = min_max_stored_v.y - min_max_stored_v.x;
+				float mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
+				volume_push.mask_unormid_otf_map = *(uint*)&mask_unormid_otf_map;
+			}
 
 			device->BindResource(&volume->GetTexture(), 0, cmd);
 			device->BindResource(&volume->GetBlockTexture(), 1, cmd);
@@ -2588,11 +2587,13 @@ namespace vz
 
 			device->BindUAV(&rtMain, 0, cmd);
 			device->BindUAV(&rtDvrDepth, 1, cmd);
+
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-
 			BarrierStackFlush(cmd);
+
 			device->BindComputeShader(&rcommon::shaders[CSTYPE_DVR_DEFAULT], cmd);
+			device->PushConstants(&volume_push, sizeof(VolumePushConstants), cmd);
 
 			device->Dispatch(
 				tile_count.x,
@@ -3575,7 +3576,7 @@ namespace vz
 					MeshPushConstants push;
 					push.geometryIndex = geometry.geometryOffset + part_index;
 					push.materialIndex = material_index;
-					push.instBufferResIndex = renderable.resLookupOffset + part_index;
+					push.instBufferResIndex = renderable.resLookupIndex + part_index;
 					push.instances = instanceBufferDescriptorIndex;
 					push.instance_offset = (uint)instancedBatch.dataOffset;
 
@@ -4918,7 +4919,7 @@ namespace vz
 			
 			//RenderTransparents(cmd);
 
-			//RenderDirectVolumes(cmd);
+			RenderDirectVolumes(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{

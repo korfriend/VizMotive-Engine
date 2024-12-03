@@ -55,4 +55,4 @@ dxc -T cs_6_0 ./CS/wetmap_updateCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/meshlet_prepareCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv
 
-dxc -T cs_6_0 ./CS/dvrPrepassCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/dvrCS.hlsl -spirv

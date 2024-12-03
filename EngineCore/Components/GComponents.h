@@ -388,7 +388,7 @@ namespace vz
 		uint32_t sortBits = 0;
 		uint8_t lod = 0;
 
-		uint32_t resLookupOffset = ~0u; // refer to geometryOffset defined in GGeometryComponent
+		uint32_t resLookupIndex = ~0u; // refer to geometryOffset defined in GGeometryComponent
 
 		//----- determined by associated materials -----
 		mutable uint32_t materialFilterFlags = 0u;

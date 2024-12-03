@@ -106,9 +106,6 @@ static const uint32_t SHADERTYPE_BIN_COUNT = 3;
 #define CBSLOT_MSAO								4
 #define CBSLOT_FSR								4
 
-#define CBSLOT_RENDERER_FRAME	0
-#define CBSLOT_RENDERER_CAMERA	1
-
 #include "ShaderInterop_VXGI.h"
 
 static const uint SHADER_ENTITY_COUNT = 256;
@@ -183,10 +180,18 @@ enum TEXTURESLOT
 	TEXTURESLOT_COUNT
 };
 
+enum LOOKUPSLOT
+{
+	LOOKUP_COLOR,
+	LOOKUP_OTF,
+
+	LOOKUPTABLE_COUNT
+};
+
 enum VOLUNMETEXTURESLOT
 {
-	VOLUME_DENSITYMAP, // this is used for volume rendering
-	VOLUME_SEMANTICMAP,
+	VOLUME_MAIN_MAP, // this is used for volume rendering
+	VOLUME_SEMANTIC_MAP,
 
 	VOLUME_TEXTURESLOT_COUNT
 };
@@ -247,6 +252,12 @@ struct alignas(16) ShaderTransform
 	}
 };
 
+
+//RenderableComponent::RenderableFlags
+static const uint INST_CLIPBOX = 1 << 9;
+static const uint INST_CLIPPLANE = 1 << 10;
+static const uint INST_JITTERING = 1 << 11;
+
 struct alignas(16) ShaderMeshInstance	// mesh renderable
 {
 	uint uid;	// using entity
@@ -261,12 +272,12 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 
 	uint meshletOffset; // offset in the global meshlet buffer for first subset (for LOD0)
 	uint2 rimHighlight;
-	uint resLookupOffset;
+	uint resLookupIndex;
 
 	float3 aabbCenter;
 	float aabbRadius;
 
-	// renderable-special 
+	// renderable-special per a renderable instance
 	//	determined by flags (use_renderable_attributes)
 	uint2 emissive;
 	uint color;
@@ -277,6 +288,11 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 	ShaderTransform transformPrev;
 	ShaderTransform transformRaw; // without quantization remapping applied
 
+	uint clipIndex;
+	uint padding0;
+	uint padding1;
+	uint padding2;
+
 	void Init()
 	{
 		uid = 0;
@@ -286,8 +302,9 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 
 		geometryOffset = baseGeometryOffset = 0;
 		geometryCount = 0;
-		resLookupOffset = ~0u;
+		resLookupIndex = ~0u;
 		meshletOffset = ~0u;
+		clipIndex = ~0u;
 
 		aabbCenter = float3(0, 0, 0);
 		aabbRadius = 0;
@@ -566,6 +583,7 @@ struct alignas(16) ShaderMaterial
 	uint4 userdata;
 
 	ShaderTextureSlot textures[TEXTURESLOT_COUNT];
+	ShaderTextureSlot lookup_textures[LOOKUPTABLE_COUNT];
 	ShaderTextureSlot volume_textures[VOLUME_TEXTURESLOT_COUNT];
 
 	void Init()
@@ -597,6 +615,10 @@ struct alignas(16) ShaderMaterial
 		for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
 		{
 			textures[i].Init();
+		}
+		for (int i = 0; i < LOOKUPTABLE_COUNT; ++i)
+		{
+			lookup_textures[i].Init();
 		}
 		for (int i = 0; i < VOLUME_TEXTURESLOT_COUNT; ++i)
 		{
@@ -777,6 +799,7 @@ struct ShaderMeshInstancePointer
 };
 
 // buffer's element (not constant buffer)
+//  combination of material + vb instances for each geometry instance
 struct alignas(16) ShaderInstanceResLookup
 {
 	uint materialIndex;
@@ -1310,6 +1333,21 @@ struct alignas(16) ShaderFrustumCorners
 	}
 #endif // __cplusplus
 };
+
+struct alignas(16) ShaderClipper
+{
+	ShaderTransform transformClibBox; // WS to Clip Box Space (BS)
+	float4 clipPlane;
+
+#ifndef __cplusplus
+	void GetCliPlane(out float3 pos, out float3 vec)
+	{
+		vec = normalize(clipPlane.xyz);
+		pos = clipPlane.xyz * (-clipPlane.w) / dot(clipPlane.xyz, clipPlane.xyz);
+	}
+#endif
+};
+
 struct alignas(16) ShaderCamera
 {
 	float4x4	view_projection;
