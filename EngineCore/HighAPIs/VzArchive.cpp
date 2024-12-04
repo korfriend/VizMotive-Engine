@@ -24,7 +24,7 @@ namespace vzm
 		switch (comp->GetType())
 		{
 		case COMPONENT_TYPE::CAMERA:
-			// name, transform, hierarchy, camera
+			// name, hierarchy, transform, camera
 		{
 			NameComponent* name = compfactory::GetNameComponent(entity);
 			TransformComponent* transform = compfactory::GetTransformComponent(entity);
@@ -32,8 +32,8 @@ namespace vzm
 			CameraComponent* camera = compfactory::GetCameraComponent(entity);
 			assert(name && transform && hierarchy && camera);
 			name->Serialize(*archive, 0);
-			transform->Serialize(*archive, 0);
 			hierarchy->Serialize(*archive, 0);
+			transform->Serialize(*archive, 0);
 			camera->Serialize(*archive, 0);
 		} break;
 

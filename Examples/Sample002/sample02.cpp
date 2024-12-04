@@ -267,6 +267,9 @@ int main(int, char**)
 		vzm::AppendSceneCompTo(actor_test2, scene);
 		vzm::AppendSceneCompTo(actor_test3, scene);
 		vzm::AppendSceneCompTo(light, scene);
+
+		VzArchive* archive = vzm::NewArchive("test archive");
+		archive->Store(camera);
 	}
 
 	// Our state
@@ -681,6 +684,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
 			break;
 		case '4': renderer->ShowDebugBuffer("NO_POSTPROCESSING");
+			break;
+		case 'M': 
+		{
+			using namespace vzm;
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
+			archive->Load(camera);
+		}
 			break;
 		default:
 			break;
