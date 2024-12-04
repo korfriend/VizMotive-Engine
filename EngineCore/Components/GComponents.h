@@ -402,9 +402,37 @@ namespace vz
 
 		// temporal attributes for picking process 
 		bool isPickingMode = false;
-		XMFLOAT2 posPickOnScreen = {};
-		std::vector<Entity> pickedRenderables;
-		std::vector<XMFLOAT3> pickedPositions;
+		struct PickingIO
+		{
+		private:
+			XMFLOAT2 posPickOnScreen_ = {};
+			std::vector<Entity> pickedRenderables_;
+			std::vector<XMFLOAT3> pickedPositions_;
+			std::vector<int> pickedPritmiveIDs_;	// if no value, then set to -1
+			std::vector<int> pickedMaskValueIDs_;	// if no value, then set to -1
+		public:
+			void SetScreenPos(const XMFLOAT2& pos) { posPickOnScreen_ = pos; }
+			const XMFLOAT2& GetScreenPos() const { return posPickOnScreen_; }
+			void AddPickingInfo(const Entity entity, const XMFLOAT3& posWS, const int primitiveID, const int maskValue)
+			{
+				pickedRenderables_.push_back(entity);
+				pickedPositions_.push_back(posWS);
+				pickedPritmiveIDs_.push_back(primitiveID);
+				pickedMaskValueIDs_.push_back(maskValue);
+			}
+			void Clear() 
+			{
+				pickedRenderables_.clear();
+				pickedPositions_.clear();
+				pickedPritmiveIDs_.clear();
+				pickedMaskValueIDs_.clear();
+			}
+			const Entity* DataEntities() const { return pickedRenderables_.data(); }
+			const XMFLOAT3* DataPositions() const { return pickedPositions_.data(); }
+			const int* DataPrimitiveIDs() const { return pickedPritmiveIDs_.data(); }
+			const int* DataMaskValues() const { return pickedMaskValueIDs_.data(); }
+			size_t NumPickedPositions() const { return pickedPositions_.size(); }
+		} pickingIO;
 	};
 
 	struct CORE_EXPORT GLightComponent : LightComponent

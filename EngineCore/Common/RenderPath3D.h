@@ -20,6 +20,14 @@ namespace vz
 	protected:
 		GRenderPath3D* handlerRenderPath3D_ = nullptr;
 
+		graphics::Viewport viewport_;
+		graphics::Rect scissor_;
+
+		XMFLOAT4X4 matScreen_;
+		XMFLOAT4X4 matScreenInv_;
+
+		void updateViewportTransforms();
+
 	public:
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
 		~RenderPath3D();
@@ -29,8 +37,11 @@ namespace vz
 
 		bool useManualSetViewport = false;
 		bool useManualSetScissor = false;
-		graphics::Viewport viewport;
-		graphics::Rect scissor;
+
+		const graphics::Viewport& GetViewport() const { return viewport_; }
+		void SetViewport(const graphics::Viewport& vp) {
+			viewport_ = vp; updateViewportTransforms();
+		}
 
 		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;
@@ -38,7 +49,13 @@ namespace vz
 		void Update(const float dt) override;
 		void Render(const float dt) override;
 		void Compose() override;
+		
+		void GetViewportTransforms(XMFLOAT4X4* matScreen, XMFLOAT4X4* matScreenInv) const {
+			if (matScreen) *matScreen = matScreen_;
+			if (matScreenInv) *matScreenInv = matScreenInv_;
+		}
 
 		void ShowDebugBuffer(const std::string& debugMode = "NONE");
+
 	};
 }

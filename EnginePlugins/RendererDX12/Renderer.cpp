@@ -4164,6 +4164,12 @@ namespace vz
 			return false;
 		}
 
+		if (((GCameraComponent*)camera)->isPickingMode)
+		{
+			// TODO
+			return true;
+		}
+
 		profiler::BeginFrame();
 		// color space check
 		bool colorspace_conversion_required = false;
@@ -4919,7 +4925,7 @@ namespace vz
 			
 			//RenderTransparents(cmd);
 
-			RenderDirectVolumes(cmd);
+			//RenderDirectVolumes(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{
