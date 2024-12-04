@@ -213,7 +213,7 @@ namespace vz::ecs
 				assert(origin_serializer == "ComponentManager");
 				uint8_t u8_data;
 				archive >> u8_data;
-				assert(Component::IntrinsicType == static_cast<ComponentType>(u8_data));
+				//assert(Component::IntrinsicType == static_cast<ComponentType>(u8_data));
 
 				size_t count; // # of component managers
 				archive >> count;

@@ -21,6 +21,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	VolumeInstance vol_instance = GetVolumeInstance();
 	ShaderClipper clipper; // TODO
+	clipper.Init();
 
     // sample_dist (in world space scale)
     
@@ -50,13 +51,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	float3 pos_start_ws = ray.Origin + ray.Direction * hits_t.x;
     float3 dir_sample_ws = ray.Direction * vol_instance.sample_dist;
 
-	SearchForemostSurface(hit_step, pos_start_ws, dir_sample_ws, num_ray_samples, vol_instance.mat_ws2ts, volume_main, volume_mask, volume_blocks);
+	SearchForemostSurface(hit_step, pos_start_ws, dir_sample_ws, num_ray_samples, vol_instance.mat_ws2ts, volume_main, volume_blocks
+#if defined(OTF_MASK) || defined(SCULPT_MASK)
+			, volume_mask
+#endif
+		);
+
 	if (hit_step < 0)
 		return;
+	inout_color[DTid.xy] = float4(0, 1, 0, 1);
 	
 	float3 pos_hit_ws = pos_start_ws + dir_sample_ws * (float)hit_step;
 	if (hit_step > 0) {
-		RefineSurface(pos_hit_ws, pos_hit_ws, dir_sample_ws, ITERATION_REFINESURFACE, vol_instance.mat_ws2ts, volume_main, volume_mask, volume_blocks);
+		RefineSurface(pos_hit_ws, pos_hit_ws, dir_sample_ws, ITERATION_REFINESURFACE, vol_instance.mat_ws2ts, volume_main, volume_blocks
+#if defined(OTF_MASK) || defined(SCULPT_MASK)
+				, volume_mask
+#endif				
+			);
 		pos_hit_ws -= dir_sample_ws;
 		if (dot(pos_hit_ws - pos_start_ws, dir_sample_ws) <= 0)
 			pos_hit_ws = pos_start_ws;

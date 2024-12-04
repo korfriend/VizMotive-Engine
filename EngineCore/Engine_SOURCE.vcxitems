@@ -33,7 +33,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h" />
@@ -92,6 +91,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp" />

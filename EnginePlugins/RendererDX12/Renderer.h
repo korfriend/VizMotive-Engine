@@ -409,6 +409,9 @@ namespace vz
 		std::vector<GGeometryComponent*> geometryComponents; // cached (non enclosing for jobsystem)
 		std::vector<GMaterialComponent*> materialComponents; // cached (non enclosing for jobsystem)
 
+		std::vector<GRenderableComponent*> renderableComponents_mesh; // cached (non enclosing for jobsystem)
+		std::vector<GRenderableComponent*> renderableComponents_volume; // cached (non enclosing for jobsystem)
+
 		std::vector<Entity> renderableEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> lightEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> geometryEntities; // cached (non enclosing for jobsystem)
