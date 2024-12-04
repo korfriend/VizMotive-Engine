@@ -269,13 +269,13 @@ namespace vz
 		XMFLOAT3 scale_ = XMFLOAT3(1, 1, 1);
 		XMFLOAT4 rotation_ = XMFLOAT4(0, 0, 0, 1);	// this is a quaternion
 		XMFLOAT3 position_ = XMFLOAT3(0, 0, 0);
+		XMFLOAT4X4 local_ = math::IDENTITY_MATRIX;
 		
 		// Non-serialized attributes:
 		bool isDirty_ = true; // local check
 		// The local matrix can be computed from local scale, rotation, translation 
 		//	- by calling UpdateMatrix()
 		//	- or by isDirty_ := false and letting the TransformUpdateSystem handle the updating
-		XMFLOAT4X4 local_ = math::IDENTITY_MATRIX;
 
 		// check timeStampWorldUpdate_ and global timeStamp
 		TimeStamp timeStampWorldUpdate_ = TimerMin;
@@ -1165,13 +1165,10 @@ namespace vz
 
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
 		inline bool SetWorldLookAtFromHierarchyTransforms();
-		inline void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up) {
-			eye_ = eye; at_ = at; up_ = up; XMStoreFloat3(&forward_, XMLoadFloat3(&at) - XMLoadFloat3(&eye));
-			isDirty_ = true;
-			timeStampSetter_ = TimerNow;
-		}
+		inline void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up);
 		inline void SetWorldLookTo(const XMFLOAT3& eye, const XMFLOAT3& view, const XMFLOAT3& up) {
 			eye_ = eye; XMStoreFloat3(&at_, XMLoadFloat3(&eye) + XMLoadFloat3(&view)); up_ = up; forward_ = view;
+			SetWorldLookAt(eye_, at_, up_);
 			isDirty_ = true;
 			timeStampSetter_ = TimerNow;
 		}

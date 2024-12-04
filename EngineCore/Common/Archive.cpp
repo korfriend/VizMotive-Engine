@@ -56,7 +56,7 @@ namespace vz
 	// this should always be only INCREMENTED and only if a new serialization is implemeted somewhere!
 	static constexpr uint64_t __archiveVersion = 0;
 	// this is the version number of which below the archive is not compatible with the current version
-	static constexpr uint64_t __archiveVersionBarrier = 1;
+	static constexpr uint64_t __archiveVersionBarrier = 0;
 
 	// version history is logged in ArchiveVersionHistory.txt file!
 
@@ -112,13 +112,13 @@ namespace vz
 			(*this) >> version;
 			if (version < __archiveVersionBarrier)
 			{
-				vz::helper::messageBox("File is not supported!\nReason: The archive version (" + std::to_string(version) + ") is no longer supported! This is likely because trying to open a file that was created by a version of Wicked Engine that is too old.", "Error!");
+				backlog::post("File is not supported!\nReason: The archive version (" + std::to_string(version) + ") is no longer supported! This is likely because trying to open a file that was created by a version of Wicked Engine that is too old.", backlog::LogLevel::Error);
 				Close();
 				return;
 			}
 			if (version > __archiveVersion)
 			{
-				vz::helper::messageBox("File is not supported!\nReason: The archive version (" + std::to_string(version) + ") is higher than the program's (" + std::to_string(__archiveVersion) + ")!\nThis is likely due to trying to open an Archive file that was not created by Wicked Engine.", "Error!");
+				backlog::post("File is not supported!\nReason: The archive version (" + std::to_string(version) + ") is higher than the program's (" + std::to_string(__archiveVersion) + ")!\nThis is likely due to trying to open an Archive file that was not created by Wicked Engine.", backlog::LogLevel::Error);
 				Close();
 				return;
 			}

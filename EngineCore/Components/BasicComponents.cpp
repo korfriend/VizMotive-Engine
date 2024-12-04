@@ -238,20 +238,29 @@ namespace vz
 
 	void TransformComponent::UpdateMatrix()
 	{
+		isDirty_ = false;
+
 		if (!isMatrixAutoUpdate_)
 		{
-			// use local_
+			XMMATRIX xL = XMLoadFloat4x4(&local_);
+			XMVECTOR S, R, T;
+			XMMatrixDecompose(&S, &R, &T, xL);
+			XMStoreFloat3(&position_, T);
+			XMStoreFloat4(&rotation_, R);
+			XMStoreFloat3(&scale_, S);
 			return;
 		}
-		XMVECTOR S_local = XMLoadFloat3(&scale_);
-		XMVECTOR R_local = XMLoadFloat4(&rotation_);
-		XMVECTOR T_local = XMLoadFloat3(&position_);
-		XMStoreFloat4x4(&local_, 
-			XMMatrixScalingFromVector(S_local) *
-			XMMatrixRotationQuaternion(R_local) *
-			XMMatrixTranslationFromVector(T_local));
+		else
+		{
+			XMVECTOR S_local = XMLoadFloat3(&scale_);
+			XMVECTOR R_local = XMLoadFloat4(&rotation_);
+			XMVECTOR T_local = XMLoadFloat3(&position_);
+			XMStoreFloat4x4(&local_,
+				XMMatrixScalingFromVector(S_local) *
+				XMMatrixRotationQuaternion(R_local) *
+				XMMatrixTranslationFromVector(T_local));
+		}
 
-		isDirty_ = false;
 		timeStampSetter_ = TimerNow;
 
 		compfactory::SetSceneComponentsDirty(entity_);
@@ -575,6 +584,52 @@ namespace vz
 		timeStampSetter_ = TimerNow;
 		return true;
 	}
+
+	void CameraComponent::SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up)
+	{
+		eye_ = eye; at_ = at; up_ = up; XMStoreFloat3(&forward_, XMLoadFloat3(&at) - XMLoadFloat3(&eye));
+		isDirty_ = true;
+
+		TransformComponent* tr_comp = compfactory::GetTransformComponent(entity_);
+		if (tr_comp)
+		{
+			XMVECTOR _Eye = XMLoadFloat3(&eye_);
+			XMVECTOR _At = XMLoadFloat3(&at_);
+			XMVECTOR _Up = XMLoadFloat3(&up_);
+
+			XMVECTOR _Dir = _At - _Eye;
+			XMVECTOR _Right = XMVector3Cross(_Dir, _Up);
+			_Up = XMVector3Cross(_Right, _Dir);
+			_Up = XMVector3Normalize(_Up);
+
+			XMMATRIX _V = VZMatrixLookAt(_Eye, _At, _Up);	// world
+			XMMATRIX world = XMMatrixInverse(NULL, _V);
+
+			XMMATRIX parent2ws = XMMatrixIdentity();
+			HierarchyComponent* parent = compfactory::GetHierarchyComponent(entity_);
+			while (parent)
+			{
+				TransformComponent* transform_parent = compfactory::GetTransformComponent(compfactory::GetEntityByVUID(parent->GetParent()));
+				if (transform_parent)
+				{
+					if (transform_parent->IsDirty())
+						transform_parent->UpdateMatrix();
+					XMFLOAT4X4 local_f44 = transform_parent->GetLocalMatrix();
+					parent2ws *= XMLoadFloat4x4(&local_f44);
+				}
+				parent = compfactory::GetHierarchyComponent(compfactory::GetEntityByVUID(parent->GetParent()));
+			}
+
+			// world = X * P
+			XMMATRIX local = world * XMMatrixInverse(NULL, parent2ws);
+			XMFLOAT4X4 mat_local;
+			XMStoreFloat4x4(&mat_local, local);
+			tr_comp->SetMatrix(mat_local);
+		}
+		
+		timeStampSetter_ = TimerNow;
+	}
+
 	void CameraComponent::UpdateMatrix()
 	{
 		if (projectionType_ != Projection::CUSTOM_PROJECTION)

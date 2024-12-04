@@ -38,7 +38,9 @@ namespace vz
 			archive >> scale_;
 			archive >> rotation_;
 			archive >> position_;
+			archive >> local_;
 
+			timeStampWorldUpdate_ = TimerNow;
 			UpdateMatrix();
 		}
 		else
@@ -49,6 +51,7 @@ namespace vz
 			archive << scale_;
 			archive << rotation_;
 			archive << position_;
+			archive << local_;
 		}
 	}
 
@@ -415,6 +418,10 @@ namespace vz
 			archive >> eyeAdaptionEnabled_;
 			archive >> bloomEnabled_;
 			archive >> hdrCalibration_;
+
+			isDirty_ = true;
+			SetWorldLookAtFromHierarchyTransforms();
+			//UpdateMatrix();
 		}
 		else
 		{
