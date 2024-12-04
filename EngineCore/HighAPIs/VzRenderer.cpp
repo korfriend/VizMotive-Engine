@@ -66,31 +66,39 @@ namespace vzm
 	void VzRenderer::SetViewport(const float x, const float y, const float w, const float h)
 	{
 		GET_RENDERPATH(renderer, );
-		renderer->viewport.top_left_x = x;
-		renderer->viewport.top_left_y = y;
-		renderer->viewport.width = w;
-		renderer->viewport.height = h;
+
+		renderer->useManualSetViewport = true;
+
+		graphics::Viewport vp;
+		vp.top_left_x = x;
+		vp.top_left_y = y;
+		vp.width = w;
+		vp.height = h;
+		renderer->SetViewport(vp);
 	}
 
 	void VzRenderer::GetViewport(float* VZ_NULLABLE x, float* VZ_NULLABLE y, float* VZ_NULLABLE w, float* VZ_NULLABLE h)
 	{
 		GET_RENDERPATH(renderer, );
-		if (x) *x = renderer->viewport.top_left_x;
-		if (y) *y = renderer->viewport.top_left_y;
-		if (w) *w = renderer->viewport.width;
-		if (h) *h = renderer->viewport.height;
+		const graphics::Viewport& vp = renderer->GetViewport();
+		if (x) *x = vp.top_left_x;
+		if (y) *y = vp.top_left_y;
+		if (w) *w = vp.width;
+		if (h) *h = vp.height;
 	}
 
-	void VzRenderer::UseCanvasViewport()
+	void VzRenderer::UseCanvasAsViewport()
 	{
 		GET_RENDERPATH(renderer, );
 
 		renderer->useManualSetViewport = false;
 
-		renderer->viewport.top_left_x = 0;
-		renderer->viewport.top_left_y = 0;
-		renderer->viewport.width = (float)renderer->GetPhysicalWidth();
-		renderer->viewport.height = (float)renderer->GetPhysicalHeight();
+		graphics::Viewport vp;
+		vp.top_left_x = 0;
+		vp.top_left_y = 0;
+		vp.width = (float)renderer->GetPhysicalWidth();
+		vp.height = (float)renderer->GetPhysicalHeight();
+		renderer->SetViewport(vp);
 	}
 
 	void VzRenderer::SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits)
@@ -161,7 +169,9 @@ namespace vzm
 		return true;
 	}
 
-	bool VzRenderer::PickingList(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids)
+	bool VzRenderer::PickingList(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, 
+		std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids,
+		std::vector<int>& pritmitiveIDs, std::vector<int>& maskValues)
 	{
 		GET_RENDERPATH(renderer, false);
 
@@ -180,27 +190,66 @@ namespace vzm
 		}
 
 		camera->isPickingMode = true;
-		camera->posPickOnScreen = *(XMFLOAT2*)&pos;
+		camera->pickingIO.SetScreenPos(*(XMFLOAT2*)&pos);
 
 		renderer->Render(0); // just for picking process
 
-		size_t num_picked_positions = camera->pickedPositions.size();
+		size_t num_picked_positions = camera->pickingIO.NumPickedPositions();
 		bool ret = num_picked_positions > 0;
 
 		// output setting
 		if (ret)
 		{
-			worldPositions.resize(num_picked_positions);
 			vids.resize(num_picked_positions);
-			memcpy(worldPositions.data(), camera->pickedPositions.data(), sizeof(XMFLOAT3) * num_picked_positions);
-			memcpy(vids.data(), camera->pickedRenderables.data(), sizeof(Entity) * num_picked_positions);
+			worldPositions.resize(num_picked_positions);
+			pritmitiveIDs.resize(num_picked_positions);
+			maskValues.resize(num_picked_positions);
+			memcpy(vids.data(), camera->pickingIO.DataEntities(), sizeof(XMFLOAT3) * num_picked_positions);
+			memcpy(worldPositions.data(), camera->pickingIO.DataPositions(), sizeof(Entity) * num_picked_positions);
+			memcpy(pritmitiveIDs.data(), camera->pickingIO.DataPrimitiveIDs(), sizeof(Entity) * num_picked_positions);
+			memcpy(maskValues.data(), camera->pickingIO.DataPositions(), sizeof(Entity) * num_picked_positions);
 		}
 
 		camera->isPickingMode = false;
-		camera->pickedPositions = {};
-		camera->pickedRenderables = {};
+		camera->pickingIO.Clear();
 
 		return ret;
+	}
+
+	vfloat3 VzRenderer::UnprojToWorld(const vfloat2& posOnScreen, const VzCamera* camera)
+	{
+		GET_RENDERPATH(renderer, {});
+
+		CameraComponent* cam_component = nullptr;
+		if (camera != nullptr)
+		{
+			cam_component = compfactory::GetCameraComponent(camera->GetVID());
+		}
+		else
+		{
+			cam_component = renderer->camera;
+		}
+
+		if (cam_component == nullptr)
+		{
+			backlog::post("VzRenderer::Unproj >> Invalid camera!", backlog::LogLevel::Error);
+			return {};
+		}
+
+		const XMFLOAT4X4& inv_VP = cam_component->GetInvViewProjection();
+		XMFLOAT4X4 inv_screen;
+		renderer->GetViewportTransforms(nullptr, &inv_screen);
+
+		XMMATRIX xinv_screen = XMLoadFloat4x4(&inv_screen);
+		XMMATRIX xinv_VP = XMLoadFloat4x4(&inv_VP);
+		XMMATRIX xmat_screen2world = xinv_screen * xinv_VP;
+
+		XMFLOAT3 pos_ss3 = XMFLOAT3(posOnScreen.x, posOnScreen.y, 0);
+		XMVECTOR xpos_ss = XMLoadFloat3(&pos_ss3);
+		XMVECTOR xpos_ws = XMVector3TransformCoord(xpos_ss, xmat_screen2world);
+		vfloat3 pos_ws;
+		XMStoreFloat3((XMFLOAT3*)&pos_ws, xpos_ws);
+		return pos_ws;
 	}
 
 	bool VzRenderer::GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, SharedResourceTarget& resTarget, uint32_t* w, uint32_t* h)

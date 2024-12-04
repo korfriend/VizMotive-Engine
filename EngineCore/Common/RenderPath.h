@@ -23,6 +23,7 @@ namespace vz
 		graphics::SwapChain swapChain_;	// handled in RenderPath2D
 		graphics::Texture rtRenderFinal_; // handled in RenderPath2D
 		graphics::GPUResource resShared_;
+		void* resPtr_ = nullptr;
 		uint64_t sharedHandleDescriptorPtr_ = 0u;
 
 

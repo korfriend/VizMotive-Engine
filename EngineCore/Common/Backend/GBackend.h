@@ -418,6 +418,9 @@ namespace vz::graphics
 		SPARSE_TILE_POOL_TEXTURE_NON_RT_DS = ALIASING_TEXTURE_NON_RT_DS,
 		SPARSE_TILE_POOL_TEXTURE_RT_DS = ALIASING_TEXTURE_RT_DS,
 		SPARSE_TILE_POOL = ALIASING,
+
+		// DX11 wildcard flags
+		BUFFER_UAV_APPEND = 1 << 20
 	};
 
 	enum class GraphicsDeviceCapability

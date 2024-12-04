@@ -9,13 +9,13 @@ namespace vz
 		if (!resShared_.IsValid())
 		{
 			if (!graphicsDevice_->OpenSharedResource(device2, srvDescHeap2, descriptorIndex, &rtRenderFinal_,
-				sharedHandleDescriptorPtr_, resShared_, resPtr))
+				sharedHandleDescriptorPtr_, resShared_, &resPtr_))
 			{
 				backlog::post("Failure to OpenSharedResource!", backlog::LogLevel::Error);
 				return false;
 			}
 		}
-
+		if (resPtr) *resPtr = resPtr_;
 		descriptorHandle = sharedHandleDescriptorPtr_;
 		return (void*)sharedHandleDescriptorPtr_;
 	}

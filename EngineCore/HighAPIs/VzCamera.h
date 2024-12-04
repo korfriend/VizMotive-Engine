@@ -29,6 +29,14 @@ namespace vzm
 		float GetCullingFar() const;
 
 		OrbitalControl* GetOrbitControl() const { return orbitControl_.get(); }
+
+		// just for feasible test for archive (load/store component states)
+		struct VzArchive
+		{
+			int test;
+		};
+		void Load(const VzArchive& archive);
+		void Store(VzArchive& archive);
 	};
 
 	using OrbitalControl = VzCamera::OrbitalControl;

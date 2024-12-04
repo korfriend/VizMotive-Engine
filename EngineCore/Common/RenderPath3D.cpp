@@ -8,10 +8,52 @@ namespace vz
 {
 	extern GraphicsPackage graphicsPackage;
 
+	XMMATRIX CreateScreenToProjectionMatrix(const graphics::Viewport& viewport)
+	{
+		float scaleX = 2.0f / viewport.width;
+		float scaleY = 2.0f / viewport.height;
+		float scaleZ = 1.0f / (viewport.max_depth - viewport.min_depth);
+
+		float offsetX = -1.0f - (2.0f * viewport.top_left_x / viewport.width);
+		float offsetY = 1.0f - (2.0f * viewport.top_left_y / viewport.height);
+		float offsetZ = -viewport.min_depth * scaleZ;
+
+		return XMMatrixSet(
+			scaleX, 0.0f, 0.0f, 0.0f,
+			0.0f, scaleY, 0.0f, 0.0f,
+			0.0f, 0.0f, scaleZ, 0.0f,
+			offsetX, offsetY, offsetZ, 1.0f
+		);
+	}
+
+	XMMATRIX CreateProjectionToScreenMatrix(const graphics::Viewport& viewport)
+	{
+		float scaleX = viewport.width / 2.0f;
+		float scaleY = viewport.height / 2.0f;
+		float scaleZ = viewport.max_depth - viewport.min_depth;
+
+		float offsetX = viewport.top_left_x + scaleX;
+		float offsetY = viewport.top_left_y + scaleY;
+		float offsetZ = viewport.min_depth;
+
+		return XMMatrixSet(
+			scaleX, 0.0f, 0.0f, 0.0f,
+			0.0f, -scaleY, 0.0f, 0.0f,
+			0.0f, 0.0f, scaleZ, 0.0f,
+			offsetX, offsetY, offsetZ, 1.0f
+		);
+	}
+
+	void RenderPath3D::updateViewportTransforms()
+	{
+		XMStoreFloat4x4(&matScreen_, CreateProjectionToScreenMatrix(viewport_));
+		XMStoreFloat4x4(&matScreenInv_, CreateScreenToProjectionMatrix(viewport_));
+	}
+
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
 		: RenderPath2D(entity, graphicsDevice) 
 	{
-		handlerRenderPath3D_ = graphicsPackage.pluginNewGRenderPath3D(viewport, swapChain_, rtRenderFinal_);
+		handlerRenderPath3D_ = graphicsPackage.pluginNewGRenderPath3D(viewport_, swapChain_, rtRenderFinal_);
 		assert(handlerRenderPath3D_->version == GRenderPath3D::GRenderPath3D_INTERFACE_VERSION);
 
 		type_ = "RenderPath3D";
@@ -48,18 +90,18 @@ namespace vz
 		//viewport
 		if (!useManualSetViewport)
 		{
-			viewport.top_left_x = 0;
-			viewport.top_left_y = 0;
-			viewport.width = (float)width_;
-			viewport.height = (float)height_;
+			viewport_.top_left_x = 0;
+			viewport_.top_left_y = 0;
+			viewport_.width = (float)width_;
+			viewport_.height = (float)height_;
 		}
 		//scissor
 		if (!useManualSetScissor)
 		{
-			scissor.left = 0;
-			scissor.right = width_;
-			scissor.top = 0;
-			scissor.bottom = height_;
+			scissor_.left = 0;
+			scissor_.right = width_;
+			scissor_.top = 0;
+			scissor_.bottom = height_;
 		}
 	}
 
@@ -130,8 +172,8 @@ namespace vz
 		//	3. execute rendering pipelines
 		handlerRenderPath3D_->scene = scene;
 		handlerRenderPath3D_->camera = camera;
-		handlerRenderPath3D_->viewport = viewport;
-		handlerRenderPath3D_->scissor = scissor;
+		handlerRenderPath3D_->viewport = viewport_;
+		handlerRenderPath3D_->scissor = scissor_;
 		handlerRenderPath3D_->colorspace = colorSpace_;
 		handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
 		handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
