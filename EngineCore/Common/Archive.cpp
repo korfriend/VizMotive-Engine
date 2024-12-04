@@ -1,8 +1,55 @@
 #include "Archive.h"
 #include "Utils/Helpers.h"
 #include "Utils/Helpers2.h"
+#include "Utils/Backlog.h"
+#include "Utils/ECS.h"
 
 #include "ThirdParty/stb_image.h"
+
+
+namespace vz
+{
+	static std::unordered_map<Entity, std::unique_ptr<Archive>> archives;
+
+	Archive* Archive::GetArchive(const Entity entity) {
+		auto it = archives.find(entity);
+		return it != archives.end() ? it->second.get() : nullptr;
+	}
+	Archive* Archive::GetFirstArchiveByName(const std::string& name) {
+		for (auto& it : archives) {
+			if (it.second->GetArchiveName() == name) return it.second.get();
+		}
+		return nullptr;
+	}
+	Archive* Archive::CreateArchive(const std::string& name, const Entity entity)
+	{
+		Entity ett = entity;
+		if (entity == 0)
+		{
+			ett = ecs::CreateEntity();
+		}
+
+		archives[ett] = std::make_unique<Archive>(ett, name);
+		return archives[ett].get();
+	}
+	bool Archive::DestroyArchive(const Entity entity)
+	{
+		auto it = archives.find(entity);
+		if (it == archives.end())
+		{
+			backlog::post("Archive::DestroyArchive >> Invalid Entity! (" + std::to_string(entity) + ")", backlog::LogLevel::Error);
+			return false;
+		}
+		it->second.reset();
+		archives.erase(it);
+		return true;
+	}
+
+	void Archive::DestroyAll()
+	{
+		archives.clear();
+	}
+}
 
 namespace vz
 {
@@ -13,10 +60,10 @@ namespace vz
 
 	// version history is logged in ArchiveVersionHistory.txt file!
 
-	Archive::Archive()
-	{
-		CreateEmpty();
-	}
+	//Archive::Archive()
+	//{
+	//	CreateEmpty();
+	//}
 	Archive::Archive(const std::string& fileName, bool readMode)
 		: readMode(readMode), fileName(fileName)
 	{

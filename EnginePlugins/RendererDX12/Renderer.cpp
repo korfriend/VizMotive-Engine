@@ -98,6 +98,12 @@ namespace vz::renderer
 
 		Frustum frustum; // camera's frustum or special purposed frustum
 		std::vector<uint32_t> visibleRenderables; // index refers to the linear array of Scnee::renderables
+
+		// TODO: visibleRenderables into visibleMeshRenderables and visibleVolumeRenderables
+		//	and use them instead of visibleRenderables
+		std::vector<uint32_t> visibleMeshRenderables;
+		std::vector<uint32_t> visibleVolumeRenderables;
+
 		//std::vector<uint32_t> visibleDecals;
 		//std::vector<uint32_t> visibleEnvProbes;
 		//std::vector<uint32_t> visibleEmitters;
@@ -2493,6 +2499,10 @@ namespace vz
 			return;
 
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)viewMain.scene->GetGSceneHandle();
+		if (scene_Gdetails->renderableComponents_volume.empty())
+		{
+			return;
+		}
 
 		device->EventBegin("Direct Volume Render", cmd);
 		auto range = profiler::BeginRangeGPU("DrawDirectVolume", &cmd);
@@ -2575,15 +2585,14 @@ namespace vz
 				volume_push.mask_value_range = 255.f;
 				const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
 				volume_push.value_range = min_max_stored_v.y - min_max_stored_v.x;
-				float mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
-				volume_push.mask_unormid_otf_map = *(uint*)&mask_unormid_otf_map;
+				volume_push.mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
 			}
 
-			device->BindResource(&volume->GetTexture(), 0, cmd);
-			device->BindResource(&volume->GetBlockTexture(), 1, cmd);
-			device->BindResource(&unbind, 2, cmd);
-			device->BindResource(&otf->GetTexture(), 3, cmd);
-			device->BindResource(&unbind, 4, cmd);
+			//device->BindResource(&volume->GetTexture(), 0, cmd);
+			//device->BindResource(&volume->GetBlockTexture(), 1, cmd);
+			//device->BindResource(&unbind, 2, cmd);
+			//device->BindResource(&otf->GetTexture(), 3, cmd);
+			//device->BindResource(&unbind, 4, cmd);
 
 			device->BindUAV(&rtMain, 0, cmd);
 			device->BindUAV(&rtDvrDepth, 1, cmd);
@@ -4925,7 +4934,7 @@ namespace vz
 			
 			//RenderTransparents(cmd);
 
-			//RenderDirectVolumes(cmd);
+			RenderDirectVolumes(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{

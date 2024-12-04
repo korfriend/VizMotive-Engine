@@ -5,6 +5,8 @@
 
 #include <string>
 
+using Entity = uint32_t;
+
 namespace vz
 {
 	using VUID = uint64_t;
@@ -16,6 +18,13 @@ namespace vz
 	//	The data flow is always FIFO (first in, first out)
 	class Archive
 	{
+	public:
+		static Archive* GetArchive(const Entity entity);
+		static Archive* GetFirstArchiveByName(const std::string& name);
+		static Archive* CreateArchive(const std::string& name, const Entity entity = 0);
+		static bool DestroyArchive(const Entity entity);
+		static void DestroyAll();
+
 	private:
 		uint64_t version = 0; // the version number is used for maintaining backwards compatibility with earlier archive versions
 		bool readMode = false; // archive can be either read or write mode, but not both
@@ -27,6 +36,9 @@ namespace vz
 		std::string fileName; // save to this file on closing if not empty
 		std::string directory; // the directory part from the fileName
 
+		std::string name_; // achive name
+		Entity entity_ = 0u;
+
 		size_t thumbnail_data_size = 0;
 		const uint8_t* thumbnail_data_ptr = nullptr;
 
@@ -34,7 +46,9 @@ namespace vz
 
 	public:
 		// Create empty archive for writing
-		Archive();
+		Archive(Entity entity, const std::string& name) {
+			entity_ = entity; name_ = name; CreateEmpty();
+		};
 		Archive(const Archive&) = default;
 		Archive(Archive&&) = default;
 		// Create archive from a file.
@@ -47,6 +61,9 @@ namespace vz
 
 		Archive& operator=(const Archive&) = default;
 		Archive& operator=(Archive&&) = default;
+
+		const std::string GetArchiveName() const { return name_; }
+		const Entity GetArchiveEntity() const { return entity_; }
 
 		void WriteData(std::vector<uint8_t>& dest) const { dest.resize(pos); std::memcpy(dest.data(), data_ptr, pos); }
 		const uint8_t* GetData() const { return data_ptr; }

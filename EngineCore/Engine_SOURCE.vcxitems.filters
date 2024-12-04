@@ -187,9 +187,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.h">
       <Filter>HighAPIs %28API_EXPORT%29\Public %28APIs%29\Components</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h">
-      <Filter>HighAPIs %28API_EXPORT%29\Public %28APIs%29\Common</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -379,6 +376,9 @@
       <Filter>Components\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.cpp">
+      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.cpp">
       <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
     </ClCompile>
   </ItemGroup>

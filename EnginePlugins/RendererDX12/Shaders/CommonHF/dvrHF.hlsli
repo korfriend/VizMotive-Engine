@@ -246,10 +246,6 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 	return blk_v;
 };
 
-#define LOAD_BLOCK_INFO(BLK, P, V, N, I, VOL_BLOCK_TEX) \
-    BlockSkip BLK = ComputeBlockSkip(P, V, volume.singleblock_size_ts, VOL_BLOCK_TEX);\
-    BLK.num_skip_steps = min(BLK.num_skip_steps, N - I - 1);
-
 float4 ApplyOTF(const in Texture2D otf, const in float sample_v, const in float idv)
 {
 	float4 color = otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
@@ -257,7 +253,8 @@ float4 ApplyOTF(const in Texture2D otf, const in float sample_v, const in float 
 	return color;
 }
 
-
+// in this case, Texture2D is stored as R32G32B32A32_FLOAT 
+// 	the integration should be performed based on the float color of range [0,1]
 float4 ApplyPreintOTF(const in Texture2D otf, const float sample_v, float sample_v_prev, const in float idv)
 {
 	float4 color = (float4)0;
@@ -282,13 +279,14 @@ float4 ApplyPreintOTF(const in Texture2D otf, const float sample_v, float sample
 // Sample_Volume_And_Check for SearchForemostSurface
 // Vis_Volume_And_Check for raycast-rendering
 #ifdef POST_INTERPOLATION // do not support mask volume
-bool Sample_Volume_And_Check(const in Texture3D volume_main, inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample)
+bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample,
+	const in Texture3D volume_main)
 {
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 	return sample_v > visible_min_value;
 }
-bool Vis_Volume_And_Check(const in Texture3D volume_main, const in Texture2D otf, 
-	inout float4 color, const float3 pos_sample_ts)
+bool Vis_Volume_And_Check(inout float4 color, const float3 pos_sample_ts,
+	const in Texture3D volume_main, const in Texture2D otf)
 {
 	float3 pos_vs = float3(pos_sample_ts.x * g_cbVobj.vol_size.x - 0.5f, 
 		pos_sample_ts.y * g_cbVobj.vol_size.y - 0.5f, 
@@ -326,8 +324,12 @@ bool Vis_Volume_And_Check(const in Texture3D volume_main, const in Texture2D otf
 	return color.a >= FLT_OPACITY_MIN;
 }
 #else
-bool Sample_Volume_And_Check(const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture2D otf, 
-	inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample)
+bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample,
+	const in Texture3D volume_main
+#ifdef SCULPT_MASK
+	, const in Texture3D volume_mask
+#endif 
+	)
 {
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 
@@ -339,8 +341,12 @@ bool Sample_Volume_And_Check(const in Texture3D volume_main, const in Texture3D 
 #endif // SCULPT_MASK
 }
 
-bool Vis_Volume_And_Check(const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture2D otf, 
-	inout float4 color, inout float sample_v, const float3 pos_sample_ts)
+bool Vis_Volume_And_Check(inout float4 color, inout float sample_v, const float3 pos_sample_ts,
+	const in Texture3D volume_main, const in Texture2D otf
+#if defined(OTF_MASK) || defined(SCULPT_MASK)
+	, const in Texture3D volume_mask
+#endif
+	)
 {
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 #ifdef OTF_MASK
@@ -359,13 +365,17 @@ bool Vis_Volume_And_Check(const in Texture3D volume_main, const in Texture3D vol
 #endif // OTF_MASK
 }
 
-bool Vis_Volume_And_Check_Slab(const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture2D otf, 
-	inout float4 color, inout float sample_v, float sample_prev, const float3 pos_sample_ts)
+bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float sample_prev, const float3 pos_sample_ts,
+	const in Texture3D volume_main, const in Texture2D otf
+#if defined(OTF_MASK) || defined(SCULPT_MASK)
+	, const in Texture3D volume_mask
+#endif
+)
 {
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 
 #if OTF_MASK==1
-	float id = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
+	float id = volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 	color = ApplyPreintOTF(otf, sample_v, sample_prev, id * volume.mask_unormid_otf_map);
 	return color.a >= FLT_OPACITY_MIN;
 #elif SCULPT_MASK == 1
@@ -379,8 +389,17 @@ bool Vis_Volume_And_Check_Slab(const in Texture3D volume_main, const in Texture3
 }
 #endif // POST_INTERPOLATION
 
-void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const float3 dir_sample_ws, const int num_ray_samples,
-	const float4x4 mat_ws2ts, const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture3D volume_blocks)
+
+#define LOAD_BLOCK_INFO(BLK, P, V, N, I, VOL_BLOCK_TEX) \
+    BlockSkip BLK = ComputeBlockSkip(P, V, volume.singleblock_size_ts, VOL_BLOCK_TEX);\
+    BLK.num_skip_steps = min(BLK.num_skip_steps, N - I - 1);
+
+void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const float3 dir_sample_ws, const int num_ray_samples, const float4x4 mat_ws2ts,
+	const in Texture3D volume_main, const in Texture3D volume_blocks 
+#if defined(OTF_MASK) || defined(SCULPT_MASK)
+	, const in Texture3D volume_mask
+#endif
+	)
 {
     step = -1;
     float sample_v = 0;
@@ -388,9 +407,12 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     float3 pos_ray_start_ts = TransformPoint(pos_ray_start_ws, mat_ws2ts);
     float3 dir_sample_ts = TransformVector(dir_sample_ws, mat_ws2ts);
     
-    Texture2D dummy_tex;
 	[branch]
-    if (Sample_Volume_And_Check(volume_main, volume_mask, dummy_tex, sample_v, pos_ray_start_ts, volume.main_visible_min_sample))
+    if (Sample_Volume_And_Check(sample_v, pos_ray_start_ts, volume.main_visible_min_sample, volume_main
+#ifdef SCULPT_MASK
+		, volume_mask 
+#endif
+		))
     {
         step = 0;
         return;
@@ -411,7 +433,11 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
             {
                 float3 pos_sample_blk_ts = pos_ray_start_ts + dir_sample_ts * (float) (i + k);
 				[branch]
-                if (Sample_Volume_And_Check(volume_main, volume_mask, dummy_tex, sample_v, pos_sample_blk_ts, volume.main_visible_min_sample))
+                if (Sample_Volume_And_Check(sample_v, pos_sample_blk_ts, volume.main_visible_min_sample, volume_main
+#if defined(OTF_MASK) || defined(SCULPT_MASK)
+						, volume_mask
+#endif
+					))
                 {
 					step = i + k;
 					i = num_ray_samples;
@@ -430,8 +456,12 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     }
 }
 
-void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, const float3 dir_sample_ws, const int num_refinement,
-	const float4x4 mat_ws2ts, const in Texture3D volume_main, const in Texture3D volume_mask, const in Texture3D volume_blocks)
+void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, const float3 dir_sample_ws, const int num_refinement, const float4x4 mat_ws2ts, 
+	const in Texture3D volume_main, const in Texture3D volume_blocks
+#if defined(OTF_MASK) || defined(SCULPT_MASK)
+	, const in Texture3D volume_mask 
+#endif
+	)
 {
     float3 pos_sample_ts = TransformPoint(pos_sample_ws, mat_ws2ts);
     float3 dir_sample_ts = TransformVector(dir_sample_ws, mat_ws2ts);
@@ -440,15 +470,18 @@ void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, cons
 	// Interval bisection
     float3 pos_bis_s_ts = pos_sample_ts - dir_sample_ts;
     float3 pos_bis_e_ts = pos_sample_ts;
-    
-    Texture2D dummy_tex;
+	
 	[loop]
     for (int j = 0; j < num_refinement; j++)
     {
         float3 pos_bis_ts = (pos_bis_s_ts + pos_bis_e_ts) * 0.5f;
         float t = (t0 + t1) * 0.5f;
         float _sample_v = 0;
-        if (Sample_Volume_And_Check(volume_main, volume_mask, dummy_tex, _sample_v, pos_bis_ts, volume.main_visible_min_sample))
+        if (Sample_Volume_And_Check(_sample_v, pos_bis_ts, volume.main_visible_min_sample, volume_main
+#if defined(OTF_MASK) || defined(SCULPT_MASK)
+				, volume_mask 
+#endif
+			))
         {
             pos_bis_e_ts = pos_bis_ts;
             t1 = t;

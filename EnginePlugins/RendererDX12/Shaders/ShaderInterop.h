@@ -1339,6 +1339,12 @@ struct alignas(16) ShaderClipper
 	ShaderTransform transformClibBox; // WS to Clip Box Space (BS)
 	float4 clipPlane;
 
+	void Init()
+	{
+		transformClibBox.Init();
+		clipPlane = float4(0, 0, 0, 1);
+	}
+
 #ifndef __cplusplus
 	void GetCliPlane(out float3 pos, out float3 vec)
 	{

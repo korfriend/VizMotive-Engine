@@ -28,6 +28,8 @@ namespace vzm
 		// all are VzBaseComp (node-based)
 		std::unordered_map<VID, VzBaseComp*> lookup;
 
+		std::unordered_map<ArchiveVID, std::unique_ptr<VzArchive>> archives;
+
 		std::unordered_map<SceneVID, std::unique_ptr<VzScene>> scenes;
 		
 		std::unordered_map<RendererVID, std::unique_ptr<VzRenderer>> renderers;
@@ -61,10 +63,12 @@ namespace vzm
 
 				VzBaseComp* vcomp = it->second;
 				COMPONENT_TYPE comp_type = vcomp->GetType();
+				bool is_engine_component = true;
 				switch (comp_type)
 				{
-				case COMPONENT_TYPE::SCENE: scenes.erase(vid); Scene::DestroyScene(vid); break;
-				case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); break;
+				case COMPONENT_TYPE::ARCHIVE: archives.erase(vid); Archive::DestroyArchive(vid); is_engine_component = false;  break;
+				case COMPONENT_TYPE::SCENE: scenes.erase(vid); Scene::DestroyScene(vid); is_engine_component = false; break;
+				case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); is_engine_component = false; break;
 				case COMPONENT_TYPE::CAMERA: cameras.erase(vid); break;
 				case COMPONENT_TYPE::ACTOR: actors.erase(vid); break;
 				case COMPONENT_TYPE::LIGHT: lights.erase(vid); break;
@@ -75,7 +79,7 @@ namespace vzm
 					assert(0);
 				}
 
-				if (comp_type != COMPONENT_TYPE::SCENE && comp_type != COMPONENT_TYPE::RENDERER)
+				if (is_engine_component)
 				{
 					compfactory::Destroy(vid);
 					Scene::RemoveEntityForScenes(vid);
@@ -88,7 +92,8 @@ namespace vzm
 		void DestroyAll()
 		{
 			jobsystem::WaitAllJobs();
-
+			
+			archives.clear();
 			scenes.clear();
 			renderers.clear();
 			cameras.clear();
@@ -99,13 +104,11 @@ namespace vzm
 			textures.clear();
 			lookup.clear();
 
-			jobsystem::context ctx;
-			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
-				Scene::DestroyAll();
-				canvas::DestroyAll();
-				compfactory::DestroyAll();
-				});
-			jobsystem::Wait(ctx);
+			Archive::DestroyAll();
+			Scene::DestroyAll();
+
+			canvas::DestroyAll();
+			compfactory::DestroyAll();
 		}
 	}
 
@@ -165,6 +168,17 @@ namespace vzm
 	bool IsValidEngineLib()
 	{
 		return initialized;
+	}
+
+	VzArchive* NewArchive(const std::string& name)
+	{
+		CHECK_API_VALIDITY(nullptr);
+		Archive* archive = Archive::CreateArchive(name);
+		ArchiveVID vid = archive->GetArchiveEntity();
+		auto it = vzcomp::archives.emplace(vid, std::make_unique<VzArchive>(vid, "vzm::NewArchive"));
+		compfactory::CreateNameComponent(vid, name);
+		vzcomp::lookup[vid] = it.first->second.get();
+		return it.first->second.get();
 	}
 
 	VzScene* NewScene(const std::string& name)

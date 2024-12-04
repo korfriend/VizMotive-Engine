@@ -477,6 +477,9 @@ namespace vz
 					material.GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
 				assert(otf);
 
+				renderable.materialFilterFlags |= material.GetFilterMaskFlags();
+				renderable.renderFlags |= material.GetRenderFlags();
+
 				union SortBits
 				{
 					struct
@@ -567,6 +570,18 @@ namespace vz
 			}
 
 			});
+
+		for (GRenderableComponent* renderable : renderableComponents)
+		{
+			if (renderable->IsMeshRenderable())
+			{
+				renderableComponents_mesh.push_back(renderable);
+			}
+			else if (renderable->IsVolumeRenderable())
+			{
+				renderableComponents_volume.push_back(renderable);
+			}
+		}
 	}
 
 	bool GSceneDetails::Update(const float dt)
