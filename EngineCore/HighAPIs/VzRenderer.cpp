@@ -207,7 +207,7 @@ namespace vzm
 			memcpy(vids.data(), camera->pickingIO.DataEntities(), sizeof(XMFLOAT3) * num_picked_positions);
 			memcpy(worldPositions.data(), camera->pickingIO.DataPositions(), sizeof(Entity) * num_picked_positions);
 			memcpy(pritmitiveIDs.data(), camera->pickingIO.DataPrimitiveIDs(), sizeof(Entity) * num_picked_positions);
-			memcpy(maskValues.data(), camera->pickingIO.DataPositions(), sizeof(Entity) * num_picked_positions);
+			memcpy(maskValues.data(), camera->pickingIO.DataMaskValues(), sizeof(Entity) * num_picked_positions);
 		}
 
 		camera->isPickingMode = false;
