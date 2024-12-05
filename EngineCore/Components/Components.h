@@ -838,6 +838,9 @@ namespace vz
 		uint32_t arraySize_ = 0;
 		uint32_t stride_ = 0;
 
+		// Attributes for mapping table
+		XMFLOAT2 tableValidBeginEndX_ = {};
+
 		// file name or arbitrary name as an identifier used by resource manager
 		std::string resName_ = "";	
 
@@ -871,10 +874,14 @@ namespace vz
 			const std::vector<uint8_t>& data, const TextureFormat textureFormat,
 			const uint32_t w, const uint32_t h, const uint32_t d);
 
-		void Serialize(vz::Archive& archive, const uint64_t version) override;
+		const XMFLOAT2& GetTableValidBeginEndX() const { return tableValidBeginEndX_; }
+		const XMFLOAT2 GetTableValidBeginEndRatioX() const;
+		void SetTableValidBeginEndX(const XMFLOAT2& val) { tableValidBeginEndX_ = val; }
 
 		// GPU interfaces //
 		bool HasRenderData() const { return hasRenderData_; }
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 		friend struct GTextureInterface;

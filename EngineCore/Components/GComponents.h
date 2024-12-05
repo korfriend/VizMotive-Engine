@@ -341,6 +341,7 @@ namespace vz
 		std::vector<uint8_t> volumeMinMaxBlocksData_;
 		graphics::Texture volumeMinMaxBlocks_ = {};
 		XMUINT3 blockPitch_ = {}; // single block
+		XMUINT3 blocksSize_ = {};
 		std::unordered_map<Entity, graphics::GPUBuffer> visibleBitmaskBuffers_; // for blocks
 	public:
 		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(entity) {}
@@ -348,8 +349,9 @@ namespace vz
 		void UpdateVolumeMinMaxBlocks(const XMUINT3 blockSize);
 		const graphics::Texture& GetBlockTexture() const { return volumeMinMaxBlocks_; };
 		const XMUINT3& GetBlockPitch() const { return blockPitch_; }
+		const XMUINT3& GetBlocksSize() const { return blocksSize_; }
 
-		void UpdateVolumeVisibleBlocksBuffer(const Entity entityVisibleMap, const float low_v, const float high_v);
+		void UpdateVolumeVisibleBlocksBuffer(const Entity entityVisibleMap);
 		// a buffer that contains a bitmask array representing visible blocks
 		const graphics::GPUBuffer& GetVisibleBitmaskBuffer(const Entity entityVisibleMap) const;
 	};

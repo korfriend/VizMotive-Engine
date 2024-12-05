@@ -204,7 +204,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			i < 900 ? (uint8_t)((float)(i - 600) / 300.f * 255.f) : 255;
 
     }
-	tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 3, 1);
+	tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 3, 1, 300, 1024);
 
 	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
 

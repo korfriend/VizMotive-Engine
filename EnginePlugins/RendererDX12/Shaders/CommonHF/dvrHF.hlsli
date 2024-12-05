@@ -28,10 +28,11 @@ struct VolumeInstance
 	float mask_value_range;		// aliased from ShaderMeshInstance::geometryCount
     float mask_unormid_otf_map; // aliased from ShaderMeshInstance::baseGeometryOffset
 
+	int bitmaskbuffer;				// aliased from ShaderMeshInstance::baseGeometryCount
 	// we can texture_volume and texture_volume_mask from ShaderMaterial
 	int texture_volume_blocks;		// aliased from ShaderMeshInstance::meshletOffset
 	float sample_dist;				// WS unit, aliased from ShaderMeshInstance::alphaTest_size
-
+	
 	// the remaining stuffs can be used as the same purpose of ShaderMeshInstance's attributes
 	uint uid;
 	uint flags;
@@ -64,6 +65,8 @@ struct VolumeInstance
 
 		texture_volume_blocks = asint(meshInst.meshletOffset);
 		sample_dist = asfloat(meshInst.alphaTest_size);
+
+		bitmaskbuffer = asint(meshInst.baseGeometryCount);
 
 		// the same attrobutes to ShaderMeshInstance
 		uid = meshInst.uid;
@@ -227,14 +230,16 @@ float2 ComputeVBoxHits(const in float3 pos_start, const in float3 vec_dir, const
 
 struct BlockSkip
 {
-	float blk_value;
+	bool visible;
 	int num_skip_steps;
 };
-BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const Texture3D vol_blocks)
+BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const in Buffer<uint> buffer_bitmask)
 {
 	BlockSkip blk_v = (BlockSkip)0;
 	int3 blk_id = pos_start_ts / singleblock_size_ts;
-	blk_v.blk_value = vol_blocks.Load(int4(blk_id, 0)).r;
+	int bitmask_id =  blk_id.x + blk_id.y * volume.blocks_w + blk_id.z * volume.blocks_wh;
+	int mod = bitmask_id % 32;
+	blk_v.visible = (bool)(buffer_bitmask[bitmask_id / 32] & (0x1u << mod));
 
 	float3 pos_min_ts = float3(blk_id.x * singleblock_size_ts.x, blk_id.y * singleblock_size_ts.y, blk_id.z * singleblock_size_ts.z);
 	float3 pos_max_ts = pos_min_ts + singleblock_size_ts;
@@ -390,12 +395,12 @@ bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float s
 #endif // POST_INTERPOLATION
 
 
-#define LOAD_BLOCK_INFO(BLK, P, V, N, I, VOL_BLOCK_TEX) \
-    BlockSkip BLK = ComputeBlockSkip(P, V, volume.singleblock_size_ts, VOL_BLOCK_TEX);\
+#define LOAD_BLOCK_INFO(BLK, P, V, N, I, BIT_MASK_BUFFER) \
+    BlockSkip BLK = ComputeBlockSkip(P, V, volume.singleblock_size_ts, BIT_MASK_BUFFER);\
     BLK.num_skip_steps = min(BLK.num_skip_steps, N - I - 1);
 
 void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const float3 dir_sample_ws, const int num_ray_samples, const float4x4 mat_ws2ts,
-	const in Texture3D volume_main, const in Texture3D volume_blocks 
+	const in Texture3D volume_main, const in Buffer<uint> buffer_bitmask
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 	, const in Texture3D volume_mask
 #endif
@@ -423,11 +428,13 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     {
         float3 pos_sample_ts = pos_ray_start_ts + dir_sample_ts * (float) i;
 
-        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, i, volume_blocks)
+        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, i, buffer_bitmask)
 			
 		[branch]
-        if (blkSkip.blk_value > 0)
+        if (blkSkip.visible)
         {
+			step = 1;
+			break;
 	        [loop]
             for (int k = 0; k <= blkSkip.num_skip_steps; k++)
             {
@@ -457,7 +464,7 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
 }
 
 void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, const float3 dir_sample_ws, const int num_refinement, const float4x4 mat_ws2ts, 
-	const in Texture3D volume_main, const in Texture3D volume_blocks
+	const in Texture3D volume_main
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 	, const in Texture3D volume_mask 
 #endif

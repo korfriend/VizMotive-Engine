@@ -554,8 +554,12 @@ namespace vz
 				inst.geometryOffset = *(uint*)&value_range;
 				float mask_value_range = 255.f;
 				inst.geometryCount = *(uint*)&mask_value_range;
-				float mask_unormid_otf_map = mask_value_range / (otf->GetHeight() > 1? otf->GetHeight() - 1 : 1.f);
+				float mask_unormid_otf_map = mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
 				inst.baseGeometryOffset = *(uint*)&mask_unormid_otf_map;
+
+				const GPUBuffer& bitmask_buffer = volume->GetVisibleBitmaskBuffer(otf->GetEntity());
+				int bitmaskbuffer = device->GetDescriptorIndex(&bitmask_buffer, SubresourceType::SRV);
+				inst.baseGeometryCount = *(uint*)&bitmaskbuffer;
 
 				const Texture vol_texture = volume->GetBlockTexture();
 				int texture_volume_blocks = device->GetDescriptorIndex(&vol_texture, SubresourceType::SRV);

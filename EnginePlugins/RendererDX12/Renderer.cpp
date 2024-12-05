@@ -2560,22 +2560,26 @@ namespace vz
 			GTextureComponent* otf = (GTextureComponent*)compfactory::GetTextureComponentByVUID(
 				material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
 			assert(otf);
+			Entity entity_otf = otf->GetEntity();
+
+			if (!volume->GetBlockTexture().IsValid())
+			{
+				volume->UpdateVolumeMinMaxBlocks({ 8, 8, 8 });
+			}
+			XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
+			if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
+				|| volume->GetTimeStamp() < otf->GetTimeStamp())
+			{
+				volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
+			}
 
 			VolumePushConstants volume_push;
 			{
-				TransformComponent* transform = compfactory::GetTransformComponent(renderable.GetEntity());
-				const XMFLOAT4X4& mat_os2ws = transform->GetWorldMatrix();
-				XMMATRIX xmat_os2ws = XMLoadFloat4x4(&mat_os2ws);
-				XMMATRIX xmat_ws2os = XMMatrixInverse(NULL, xmat_os2ws);
-				XMMATRIX xmat_os2vs = XMLoadFloat4x4(&volume->GetMatrixOS2VS());
-				XMMATRIX xmat_vs2ts = XMLoadFloat4x4(&volume->GetMatrixVS2TS());
-				XMMATRIX xmat_ws2ts = xmat_ws2os * xmat_os2vs * xmat_vs2ts;
-
 				const XMFLOAT3& vox_size = volume->GetVoxelSize();
 				volume_push.instanceIndex = batch.instanceIndex;
 				volume_push.sculptStep = -1;
 				volume_push.opacity_correction = 1.f;
-				volume_push.main_visible_min_sample = 0.2f;
+				volume_push.main_visible_min_sample = tableValidBeginEndRatioX.x;
 
 				const XMUINT3& block_pitch = volume->GetBlockPitch();
 				XMFLOAT3 vol_size = XMFLOAT3((float)volume->GetWidth(), (float)volume->GetHeight(), (float)volume->GetDepth());
@@ -2587,16 +2591,10 @@ namespace vz
 				volume_push.value_range = min_max_stored_v.y - min_max_stored_v.x;
 				volume_push.mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
 
-				const GPUBuffer& bitmask_buffer = volume->GetVisibleBitmaskBuffer(otf->GetEntity());
-				volume_push.bitmaskbuffer = device->GetDescriptorIndex(&bitmask_buffer, SubresourceType::SRV);
-
+				const XMUINT3& blocks_size = volume->GetBlocksSize();
+				volume_push.blocks_w = blocks_size.x;
+				volume_push.blocks_wh = blocks_size.x * blocks_size.y;
 			}
-
-			//device->BindResource(&volume->GetTexture(), 0, cmd);
-			//device->BindResource(&volume->GetBlockTexture(), 1, cmd);
-			//device->BindResource(&unbind, 2, cmd);
-			//device->BindResource(&otf->GetTexture(), 3, cmd);
-			//device->BindResource(&unbind, 4, cmd);
 
 			device->BindUAV(&rtMain, 0, cmd);
 			device->BindUAV(&rtDvrDepth, 1, cmd);
@@ -4938,7 +4936,7 @@ namespace vz
 			
 			//RenderTransparents(cmd);
 
-			RenderDirectVolumes(cmd);
+			//RenderDirectVolumes(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{
