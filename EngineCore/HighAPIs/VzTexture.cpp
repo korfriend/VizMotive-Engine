@@ -14,13 +14,16 @@ namespace vzm
 	bool VzTexture::LoadImageFile(const std::string& fileName, const bool isLinear, const bool generateMIPs)
 	{
 		GET_TEXTURE_COMP(texture, false);
+		UpdateTimeStamp();
 		return texture->LoadImageFile(fileName);
 	}
 
 	bool VzTexture::LoadMemory(const std::string& name, const std::vector<uint8_t>& data, const TextureFormat textureFormat,
-		const uint32_t w, const uint32_t h, const uint32_t d)
+		const uint32_t w, const uint32_t h, const uint32_t d, const uint32_t tableValidBeginX, const uint32_t tableValidEndX)
 	{
 		GET_TEXTURE_COMP(texture, false);
+		UpdateTimeStamp();
+		texture->SetTableValidBeginEndX(XMFLOAT2((float)tableValidBeginX, (float)tableValidEndX));
 		return texture->LoadMemory(name, data, static_cast<TextureComponent::TextureFormat>(textureFormat), w, h, d);
 	}
 	//std::string GetImageFileName();

@@ -255,6 +255,7 @@ namespace vz
 			archive >> arraySize_;
 			archive >> resName_;
 			archive >> stride_;
+			archive >> tableValidBeginEndX_;
 		}
 		else
 		{
@@ -268,6 +269,7 @@ namespace vz
 			archive << arraySize_;
 			archive << resName_;
 			archive << stride_;
+			archive << tableValidBeginEndX_;
 		}
 	}
 

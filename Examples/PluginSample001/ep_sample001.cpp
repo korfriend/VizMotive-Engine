@@ -25,16 +25,16 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 	uint32_t volume_h = 64;
 	uint32_t volume_d = 64;
 
-	float voxel_x = 0.02f;
-	float voxel_y = 0.02f;
-	float voxel_z = 0.02f;
+	float voxel_x = 0.05f;
+	float voxel_y = 0.05f;
+	float voxel_z = 0.05f;
 
 	std::vector<uint8_t> data(volume_w * volume_h * volume_d * 2);
 
 	uint16_t* vol_data = (uint16_t*)data.data();
 	XMFLOAT3 center((float)volume_w * .5f, (float)volume_h * .5f, (float)volume_d * .5f);
 	XMVECTOR xcenter = XMLoadFloat3(&center);
-	float sigma = 15.5f;
+	float sigma = 0.7f;
 	float l = (float)volume_w;
 	float min_v = FLT_MAX;
 	float max_v = -FLT_MAX;
@@ -49,7 +49,7 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 
 				// distance to center
 				XMVECTOR distance_vec = XMVectorSubtract(xp, xcenter);
-				float distance = XMVectorGetX(XMVector3Length(distance_vec));
+				float distance = XMVectorGetX(XMVector3Length(distance_vec)) / 32.f;
 
 				// gaussian function
 				float gaussian_value = expf(-0.5f * (distance * distance) / (sigma * sigma));
@@ -65,13 +65,13 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 	}
 
 	volume->LoadVolume("my volume #dcm", data, volume_w, volume_h, volume_d, VolumeComponent::VolumeFormat::UINT16);
-	volume->SetVoxelSize({ 0.2f , 0.2f , 0.2f });
+	volume->SetVoxelSize({ voxel_x , voxel_y , voxel_z });
 	volume->SetStoredMinMax({ 0, 65535.f });
 	volume->SetOriginalMinMax({ 0, 1.f });
 	volume->UpdateAlignmentMatrix({ 1, 0, 0 }, { 0, 1, 0 }, true);
 	volume->UpdateHistogram(0, 65535, 4096);
 
-	((GVolumeComponent*)volume)->UpdateVolumeMinMaxBlocks({8, 8, 8});
+	((GVolumeComponent*)volume)->UpdateVolumeMinMaxBlocks({4, 4, 4});
 
 	//pointer..
 

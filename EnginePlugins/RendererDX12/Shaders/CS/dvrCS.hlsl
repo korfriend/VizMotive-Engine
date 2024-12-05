@@ -38,6 +38,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	int texture_index_volume_main = material.volume_textures[VOLUME_MAIN_MAP].texture_descriptor;
 	int texture_index_volume_mask = material.volume_textures[VOLUME_SEMANTIC_MAP].texture_descriptor;
 	int texture_index_otf = material.lookup_textures[LOOKUP_OTF].texture_descriptor;
+	int buffer_index_bitmask = vol_instance.bitmaskbuffer;
 
 	if (texture_index_volume_main < 0)
 		return;
@@ -47,30 +48,35 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	Texture3D volume_blocks = bindless_textures3D[vol_instance.texture_volume_blocks];
 	Texture2D otf = bindless_textures[texture_index_otf];
 
-    int hit_step = -1;
+	Buffer<uint> buffer_bitmask = bindless_buffers_uint[buffer_index_bitmask];
+    
+	int hit_step = -1;
 	float3 pos_start_ws = ray.Origin + ray.Direction * hits_t.x;
     float3 dir_sample_ws = ray.Direction * vol_instance.sample_dist;
 
-	SearchForemostSurface(hit_step, pos_start_ws, dir_sample_ws, num_ray_samples, vol_instance.mat_ws2ts, volume_main, volume_blocks
+	SearchForemostSurface(hit_step, pos_start_ws, dir_sample_ws, num_ray_samples, vol_instance.mat_ws2ts, volume_main, buffer_bitmask
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 			, volume_mask
 #endif
 		);
 
-	//float sample_v = volume_blocks.SampleLevel(sampler_linear_clamp, float3(0.5, 0.5, 0.5), SAMPLE_LEVEL_TEST).r;
-	//if (sample_v == 0)
+	//float sample_v = volume_main.SampleLevel(sampler_linear_clamp, float3(0.3, 0.3, 0.3), SAMPLE_LEVEL_TEST).r;
+	//if (sample_v < 0.1)
 	//	inout_color[DTid.xy] = float4(0, 0, 1, 1);
-	//else if (sample_v > 0.99)
+	//else if (sample_v > 0.3)
 	//	inout_color[DTid.xy] = float4(0, 1, 0, 1);
 	//else
 	//	inout_color[DTid.xy] = float4(1, 0, 0, 1);
-
+    //float3 pos_ray_start_ts = TransformVector(pos_start_ws, vol_instance.mat_ws2ts);
+	//inout_color[DTid.xy] = float4((float3)pos_ray_start_ts, 1);
+//return;
 	if (hit_step < 0)
 		return;
+	inout_color[DTid.xy] = float4(1, 0, 0, 1);
 	
 	float3 pos_hit_ws = pos_start_ws + dir_sample_ws * (float)hit_step;
 	if (hit_step > 0) {
-		RefineSurface(pos_hit_ws, pos_hit_ws, dir_sample_ws, ITERATION_REFINESURFACE, vol_instance.mat_ws2ts, volume_main, volume_blocks
+		RefineSurface(pos_hit_ws, pos_hit_ws, dir_sample_ws, ITERATION_REFINESURFACE, vol_instance.mat_ws2ts, volume_main
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 				, volume_mask
 #endif				
@@ -94,7 +100,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     if (dvr_hit_enc != DVR_SURFACE_OUTSIDE_VOLUME)
     {
-        inout_color[DTid.xy] = float4(1, 0, 0, 1);
+        //inout_color[DTid.xy] = float4(1, 0, 0, 1);
         inout_linear_depth[DTid.xy] = depth_hit * GetCamera().z_far_rcp;
     }
 }

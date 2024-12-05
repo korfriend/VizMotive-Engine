@@ -164,6 +164,7 @@ namespace vz
 			textureFormat_ = static_cast<TextureFormat>(texture.desc.format);
 			hasRenderData_ = true;
 		}
+		timeStampSetter_ = TimerNow;
 		return resource.IsValid();
 	}
 
@@ -196,7 +197,13 @@ namespace vz
 			textureFormat_ = static_cast<TextureFormat>(texture.desc.format);
 			hasRenderData_ = true;
 		}
+		timeStampSetter_ = TimerNow;
 		return resource.IsValid();
+	}
+
+	const XMFLOAT2 TextureComponent::GetTableValidBeginEndRatioX() const
+	{
+		return XMFLOAT2(tableValidBeginEndX_.x / (float)width_, tableValidBeginEndX_.y / (float)width_);
 	}
 }
 
@@ -246,11 +253,11 @@ namespace vz
 			return;
 		}
 
-		XMVECTOR vec_axisy_os = XMLoadFloat3(&axisVolX);
-		XMVECTOR vec_axisx_os = XMLoadFloat3(&axisVolY);
-		XMVECTOR z_vec_rhs = XMVector3Cross(vec_axisy_os, vec_axisx_os); // note the z-dir in lookat
+		XMVECTOR vec_axisx_os = XMLoadFloat3(&axisVolX);
+		XMVECTOR vec_axisy_os = XMLoadFloat3(&axisVolY);
+		XMVECTOR z_vec_rhs = XMVector3Cross(vec_axisx_os, vec_axisy_os); // note the z-dir in lookat
 		XMVECTOR origin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-		XMMATRIX mat_lookat = VZMatrixLookTo(origin, z_vec_rhs, vec_axisy_os);
+		XMMATRIX mat_lookat = VZMatrixLookTo(origin, -z_vec_rhs, vec_axisy_os); // os2rs
 		XMMATRIX mat_r = XMMatrixInverse(nullptr, mat_lookat); // orientation for rs2os 
 		if (!isRHS)
 		{
@@ -285,6 +292,7 @@ namespace vz
 		XMMATRIX mat_ts2vs = XMMatrixInverse(NULL, mat_vs2ts);
 		XMStoreFloat4x4(&matTS2VS_, mat_ts2vs);
 
+		timeStampSetter_ = TimerNow;
 		isDirty_ = false;
 	}
 
@@ -349,16 +357,8 @@ namespace vz
 		}
 
 		isDirty_ = true;
-		// 
 
-		//SetVolumeSize(const uint32_t w, const uint32_t h, const uint32_t d);
-		//SetDataType(const DataType dtype) { dataType_ = dtype; }
-		//SetVoxelSize(const XMFLOAT3 & voxelSize) { voxelSize_ = voxelSize; }
-		//SetOriginalDataType(const DataType originalDataType) { originalDataType_ = originalDataType; }
-		//SetStoredMinMax(const XMFLOAT2 minMax) { storedMinMax_ = minMax; }
-		//SetOriginalMinMax(const XMFLOAT2 minMax) { originalMinMax_ = minMax; }
-		//SetAlign(const XMFLOAT3 & axisVolX, const XMFLOAT3 & axisVolY, const bool isRHS);
-
+		timeStampSetter_ = TimerNow;
 		return resource.IsValid();
 	}
 }
@@ -388,6 +388,8 @@ namespace vz
 		uint num_blocksX = width_ / blockPitch_.x + (modX != 0);
 		uint num_blocksY = height_ / blockPitch_.y + (modY != 0);
 		uint num_blocksZ = depth_ / blockPitch_.z + (modZ != 0);
+
+		blocksSize_ = XMUINT3(num_blocksX, num_blocksY, num_blocksZ);
 
 		uint xy = num_blocksX * num_blocksY;
 
@@ -519,9 +521,10 @@ namespace vz
 
 			assert(success);
 		}
+		timeStampSetter_ = TimerNow;
 	}
 
-	void GVolumeComponent::UpdateVolumeVisibleBlocksBuffer(const Entity entityVisibleMap, const float low_v, const float high_v)
+	void GVolumeComponent::UpdateVolumeVisibleBlocksBuffer(const Entity entityVisibleMap)
 	{
 		GETTER_RES(resource, );
 
@@ -531,35 +534,50 @@ namespace vz
 			return;
 		}
 
-		GTextureComponent* otf_texture = (GTextureComponent*)compfactory::GetTextureComponent(entityVisibleMap);
-		if (!otf_texture)
-		{
-			backlog::post("Invalid entityVisibleMap", backlog::LogLevel::Error);
-			return;
-		}
-
 		static jobsystem::context ctx;
 		jobsystem::Wait(ctx);
 
 		using namespace graphics;
-		jobsystem::Execute(ctx, [this, entityVisibleMap, low_v, high_v](jobsystem::JobArgs args) {
+		jobsystem::Execute(ctx, [this, entityVisibleMap](jobsystem::JobArgs args) {
+
+			GTextureComponent* otf_texture = (GTextureComponent*)compfactory::GetTextureComponent(entityVisibleMap);
+			if (!otf_texture)
+			{
+				backlog::post("Invalid entityVisibleMap", backlog::LogLevel::Error);
+				return;
+			}
 
 			GPUBuffer& visible_block_buffer = visibleBitmaskBuffers_[entityVisibleMap];
 
-			uint modX = width_ % blockPitch_.x;
-			uint modY = height_ % blockPitch_.y;
-			uint modZ = depth_ % blockPitch_.z;
-			uint num_blocksX = width_ / blockPitch_.x + (modX != 0);
-			uint num_blocksY = height_ / blockPitch_.y + (modY != 0);
-			uint num_blocksZ = depth_ / blockPitch_.z + (modZ != 0);
+			uint num_blocksX = blocksSize_.x;
+			uint num_blocksY = blocksSize_.y;
+			uint num_blocksZ = blocksSize_.z;
 
 			GraphicsDevice* device = graphics::GetDevice();
 
 			size_t num_blocks = num_blocksX * num_blocksY * num_blocksZ;
-			size_t num_bits = num_blocks / 8 + 8; // last +8 for safe handling
-			std::vector<uint8_t> block_bitmask(num_bits, 0);
-			uint8_t* bitmask_data = block_bitmask.data();
+			size_t num_bits = num_blocks / 32 + 1; // last +1 for safe handling
+			std::vector<uint32_t> block_bitmask(num_bits, 0);
+			uint32_t* bitmask_data = block_bitmask.data();
 			uint8_t* block_data = volumeMinMaxBlocksData_.data();
+
+			XMFLOAT2 tableValidBeginEndX = otf_texture->GetTableValidBeginEndX();
+			float table_w = (float)otf_texture->GetWidth();
+			switch (volFormat_)
+			{
+			case VolumeFormat::UINT8:
+			{
+				tableValidBeginEndX.x = tableValidBeginEndX.x / table_w * 255.f;
+				tableValidBeginEndX.y = tableValidBeginEndX.y / table_w * 255.f;
+			} break;
+			case VolumeFormat::UINT16:
+			{
+				tableValidBeginEndX.x = tableValidBeginEndX.x / table_w * 65535.f;
+				tableValidBeginEndX.y = tableValidBeginEndX.y / table_w * 65535.f;
+			} break;
+			case VolumeFormat::FLOAT: break;
+			default: assert(0);
+			}
 
 			for (size_t i = 0; i < num_blocks; ++i)
 			{
@@ -588,18 +606,20 @@ namespace vz
 				default: assert(0);
 				}
 
-				bool is_visible = !(high_v < min_v || max_v < low_v); // overlap check!
+				bool is_visible = !(tableValidBeginEndX.y < min_v || max_v < tableValidBeginEndX.x); // overlap check!
 				if (is_visible)
 				{
-					uint mod = i % 8;
-					bitmask_data[i / 8] |= 0x1 << mod;
+					uint mod = i % 32;
+					bitmask_data[i / 32] |= 0x1 << mod;
 				}
 			}
 
 			GPUBufferDesc desc;
-			desc.size = num_bits;
+			desc.size = num_bits * 4;
 			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+			//desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+			desc.misc_flags = ResourceMiscFlag::NONE;
+			desc.format = Format::R32_UINT;
 			
 			bool success = device->CreateBuffer(&desc, bitmask_data, &visible_block_buffer);
 			assert(success);
@@ -620,6 +640,7 @@ namespace vz
 		{
 			visibleBitmaskBuffers_.erase(entity);
 		}
+		timeStampSetter_ = TimerNow;
 	}
 
 	const graphics::GPUBuffer& GVolumeComponent::GetVisibleBitmaskBuffer(const Entity entityVisibleMap) const
@@ -627,7 +648,8 @@ namespace vz
 		auto it = visibleBitmaskBuffers_.find(entityVisibleMap);
 		if (it == visibleBitmaskBuffers_.end())
 		{
-			return graphics::GPUBuffer();
+			static graphics::GPUBuffer invalid = graphics::GPUBuffer();
+			return invalid;
 		}
 		return it->second;
 	}

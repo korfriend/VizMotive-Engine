@@ -11,7 +11,6 @@ struct VolumePushConstants
 {
 	uint instanceIndex; // to get ShaderMeshInstance
 	int sculptStep;
-
 	// OTF
 	float opacity_correction;
 	float main_visible_min_sample;
@@ -21,8 +20,8 @@ struct VolumePushConstants
 
 	float value_range;
 	float mask_unormid_otf_map;
-	int bitmaskbuffer;
-	uint padding2;
+	uint blocks_w;
+	uint blocks_wh;
 };
 
 #endif // SHADERINTEROP_DVR_H

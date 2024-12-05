@@ -92,7 +92,7 @@ namespace vzm
 
 		bool LoadImageFile(const std::string& fileName, const bool isLinear = true, const bool generateMIPs = true);
 		bool LoadMemory(const std::string& name, const std::vector<uint8_t>& data, const TextureFormat textureFormat,
-			const uint32_t w, const uint32_t h, const uint32_t d);
+			const uint32_t w, const uint32_t h, const uint32_t d, const uint32_t tableValidBeginX = 0u, const uint32_t tableValidEndX = 0u);
 		//std::string GetImageFileName();
 		//// sampler
 		//void SetMinFilter(const SamplerMinFilter filter);
