@@ -235,6 +235,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
       <Filter>Utils\Header Only</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h">
+      <Filter>HighAPIs %28API_EXPORT%29\Public %28APIs%29\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">

@@ -201,17 +201,6 @@ namespace vzm
 		std::string GetName();
 		void SetName(const std::string& name);
 	};
-	struct API_EXPORT VzArchive : VzBaseComp
-	{
-		VzArchive(const VID vid, const std::string& originFrom)
-			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::ARCHIVE) {}
-
-		void Close();
-		void Load(const VID vid);
-		void Load(const VzBaseComp* comp) { Load(comp->GetVID()); }
-		void Store(const VID vid);
-		void Store(const VzBaseComp* comp) { Store(comp->GetVID()); }
-	};
     struct API_EXPORT VzSceneComp : VzBaseComp
     {
 		VzSceneComp(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
@@ -261,6 +250,7 @@ namespace vzm
 	};
 }
 
+#include "VzArchive.h"
 #include "VzActor.h"
 #include "VzCamera.h"
 #include "VzLight.h"
