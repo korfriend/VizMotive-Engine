@@ -2586,6 +2586,10 @@ namespace vz
 				const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
 				volume_push.value_range = min_max_stored_v.y - min_max_stored_v.x;
 				volume_push.mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
+
+				const GPUBuffer& bitmask_buffer = volume->GetVisibleBitmaskBuffer(otf->GetEntity());
+				volume_push.bitmaskbuffer = device->GetDescriptorIndex(&bitmask_buffer, SubresourceType::SRV);
+
 			}
 
 			//device->BindResource(&volume->GetTexture(), 0, cmd);

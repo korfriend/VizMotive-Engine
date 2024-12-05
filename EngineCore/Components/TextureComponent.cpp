@@ -2,6 +2,7 @@
 #include "Common/ResourceManager.h"
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
+#include "Utils/JobSystem.h"
 
 //enum class DataType : uint8_t
 //{
@@ -364,6 +365,8 @@ namespace vz
 
 namespace vz
 {
+	using uint = uint32_t;
+
 	void GVolumeComponent::UpdateVolumeMinMaxBlocks(const XMUINT3 blockSize)
 	{
 		GETTER_RES(resource, );
@@ -378,8 +381,6 @@ namespace vz
 		volumeMinMaxBlocks_ = {};
 
 		const uint8_t* vol_data = resource_->GetFileData().data();
-
-		using uint = uint32_t;
 
 		uint modX = width_ % blockPitch_.x;
 		uint modY = height_ % blockPitch_.y;
@@ -396,8 +397,8 @@ namespace vz
 		// MinMax Block Setting
 		uint stride = graphics::GetFormatStride(static_cast<graphics::Format>(textureFormat_));
 
-		std::vector<uint8_t> blocks(num_blocksXYZ * stride * 2); // here, 2 refers min and max
-		uint8_t* block_data = blocks.data();
+		volumeMinMaxBlocksData_.resize(num_blocksXYZ * stride * 2); // here, 2 refers min and max
+		uint8_t* block_data = volumeMinMaxBlocksData_.data();
 		XMUINT3 blk_idx = XMUINT3(0, 0, 0);
 		for (uint z = 0; z < depth_; z += blockPitch_.z, blk_idx.z++)
 		{
@@ -418,8 +419,12 @@ namespace vz
 					if (depth_ < z + blockPitch_.z)
 						boundary_size.y = modZ;
 
-					XMUINT3 start_index = XMUINT3(0, 0, 0);
-					XMUINT3 end_index = boundary_size;
+					// consider the trilinear sampling case: +1 and -1 for blk_idx
+					//	when trilinear sampling nearby a block boundary,
+					//	the sampled value within the block can be outside 
+					//		of the range of values within the block
+					XMINT3 start_index = XMINT3(0, 0, 0);
+					XMINT3 end_index = *(XMINT3*)&boundary_size;
 					if (blk_idx.x > 0)
 						start_index.x = -1;
 					if (blk_idx.y > 0)
@@ -432,11 +437,11 @@ namespace vz
 						end_index.y += -1;
 					if (blk_idx.z == num_blocksZ - 1)
 						end_index.z += -1;
-					for (uint sub_z = start_index.z; sub_z <= end_index.z; sub_z++)
+					for (int sub_z = start_index.z; sub_z <= end_index.z; sub_z++)
 					{
-						for (uint sub_y = start_index.y; sub_y <= end_index.y; sub_y++)
+						for (int sub_y = start_index.y; sub_y <= end_index.y; sub_y++)
 						{
-							for (uint sub_x = start_index.x; sub_x <= end_index.x; sub_x++)
+							for (int sub_x = start_index.x; sub_x <= end_index.x; sub_x++)
 							{
 								float v = 0;
 								uint addr = (z + sub_z) * num_blocksXY + (y + sub_y) * num_blocksX + x + sub_x;
@@ -500,6 +505,7 @@ namespace vz
 				break;
 			}
 			desc.layout = ResourceState::SHADER_RESOURCE;
+			desc.type = TextureDesc::Type::TEXTURE_3D;
 
 			uint block_stride = GetFormatStride(desc.format);
 			SubresourceData initdata;
@@ -513,6 +519,117 @@ namespace vz
 
 			assert(success);
 		}
+	}
+
+	void GVolumeComponent::UpdateVolumeVisibleBlocksBuffer(const Entity entityVisibleMap, const float low_v, const float high_v)
+	{
+		GETTER_RES(resource, );
+
+		if (!IsValid() || !volumeMinMaxBlocks_.IsValid())
+		{
+			backlog::post("UpdateVolumeMinMaxBlocks requires a valid textures (including minmaxBlocks)", backlog::LogLevel::Error);
+			return;
+		}
+
+		GTextureComponent* otf_texture = (GTextureComponent*)compfactory::GetTextureComponent(entityVisibleMap);
+		if (!otf_texture)
+		{
+			backlog::post("Invalid entityVisibleMap", backlog::LogLevel::Error);
+			return;
+		}
+
+		static jobsystem::context ctx;
+		jobsystem::Wait(ctx);
+
+		using namespace graphics;
+		jobsystem::Execute(ctx, [this, entityVisibleMap, low_v, high_v](jobsystem::JobArgs args) {
+
+			GPUBuffer& visible_block_buffer = visibleBitmaskBuffers_[entityVisibleMap];
+
+			uint modX = width_ % blockPitch_.x;
+			uint modY = height_ % blockPitch_.y;
+			uint modZ = depth_ % blockPitch_.z;
+			uint num_blocksX = width_ / blockPitch_.x + (modX != 0);
+			uint num_blocksY = height_ / blockPitch_.y + (modY != 0);
+			uint num_blocksZ = depth_ / blockPitch_.z + (modZ != 0);
+
+			GraphicsDevice* device = graphics::GetDevice();
+
+			size_t num_blocks = num_blocksX * num_blocksY * num_blocksZ;
+			size_t num_bits = num_blocks / 8 + 8; // last +8 for safe handling
+			std::vector<uint8_t> block_bitmask(num_bits, 0);
+			uint8_t* bitmask_data = block_bitmask.data();
+			uint8_t* block_data = volumeMinMaxBlocksData_.data();
+
+			for (size_t i = 0; i < num_blocks; ++i)
+			{
+				float min_v = 0, max_v = 0;
+
+				switch (volFormat_)
+				{
+				case VolumeFormat::UINT8:
+				{
+					uint16_t v = ((uint16_t*)block_data)[i];
+					min_v = (float)(v & 0xFF);
+					max_v = (float)(v >> 8);
+				} break;
+				case VolumeFormat::UINT16:
+				{
+					uint32_t v = ((uint32_t*)block_data)[i];
+					min_v = (float)(v & 0xFFFF);
+					max_v = (float)(v >> 16);
+				} break;
+				case VolumeFormat::FLOAT:
+				{
+					XMFLOAT2 v = ((XMFLOAT2*)block_data)[i];
+					min_v = v.x;
+					max_v = v.y; 
+				} break;
+				default: assert(0);
+				}
+
+				bool is_visible = !(high_v < min_v || max_v < low_v); // overlap check!
+				if (is_visible)
+				{
+					uint mod = i % 8;
+					bitmask_data[i / 8] |= 0x1 << mod;
+				}
+			}
+
+			GPUBufferDesc desc;
+			desc.size = num_bits;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+			
+			bool success = device->CreateBuffer(&desc, bitmask_data, &visible_block_buffer);
+			assert(success);
+			device->SetName(&visible_block_buffer, "GVolumeComponent::visible_block_buffer");
+			
+		});
+
+		// garbage collection
+		std::vector<Entity> invalid_entities;
+		for (auto& it : visibleBitmaskBuffers_)
+		{
+			if (!compfactory::ContainTextureComponent(it.first))
+			{
+				invalid_entities.push_back(it.first);
+			}
+		}
+		for (Entity entity : invalid_entities)
+		{
+			visibleBitmaskBuffers_.erase(entity);
+		}
+	}
+
+	const graphics::GPUBuffer& GVolumeComponent::GetVisibleBitmaskBuffer(const Entity entityVisibleMap) const
+	{
+		auto it = visibleBitmaskBuffers_.find(entityVisibleMap);
+		if (it == visibleBitmaskBuffers_.end())
+		{
+			return graphics::GPUBuffer();
+		}
+		return it->second;
 	}
 }
 
