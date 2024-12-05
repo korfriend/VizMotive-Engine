@@ -1,5 +1,6 @@
 #pragma once
 #include "GBackendDevice.h"
+#include "Libs/Math.h"
 
 #include <memory>
 #include <limits>
@@ -11,7 +12,7 @@ namespace vz
 
 	struct GRenderPath3D
 	{
-		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241201";
+		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20241205";
 		// this will be a component of vz::RenderPath3D
 
 		enum class Tonemap
@@ -44,6 +45,9 @@ namespace vz
 		Scene* scene = nullptr;
 		CameraComponent* camera = nullptr;
 		DEBUG_BUFFER debugMode = DEBUG_BUFFER::NONE;
+
+		XMFLOAT4X4 matToScreen = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 matToScreenInv = math::IDENTITY_MATRIX;
 
 		graphics::Viewport viewport;
 		graphics::Rect scissor;

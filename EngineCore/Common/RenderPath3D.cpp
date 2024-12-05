@@ -173,6 +173,10 @@ namespace vz
 		handlerRenderPath3D_->scene = scene;
 		handlerRenderPath3D_->camera = camera;
 		handlerRenderPath3D_->viewport = viewport_;
+
+		handlerRenderPath3D_->matToScreen = matScreen_;
+		handlerRenderPath3D_->matToScreenInv = matScreenInv_;
+
 		handlerRenderPath3D_->scissor = scissor_;
 		handlerRenderPath3D_->colorspace = colorSpace_;
 		handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
