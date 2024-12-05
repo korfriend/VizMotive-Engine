@@ -204,17 +204,10 @@ namespace vzm
 			worldPositions.resize(num_picked_positions);
 			pritmitiveIDs.resize(num_picked_positions);
 			maskValues.resize(num_picked_positions);
-<<<<<<< HEAD
 			memcpy(vids.data(), camera->pickingIO.DataEntities(), sizeof(Entity) * num_picked_positions);
 			memcpy(worldPositions.data(), camera->pickingIO.DataPositions(), sizeof(XMFLOAT3) * num_picked_positions);
 			memcpy(pritmitiveIDs.data(), camera->pickingIO.DataPrimitiveIDs(), sizeof(int) * num_picked_positions);
 			memcpy(maskValues.data(), camera->pickingIO.DataMaskValues(), sizeof(int) * num_picked_positions);
-=======
-			memcpy(vids.data(), camera->pickingIO.DataEntities(), sizeof(XMFLOAT3) * num_picked_positions);
-			memcpy(worldPositions.data(), camera->pickingIO.DataPositions(), sizeof(Entity) * num_picked_positions);
-			memcpy(pritmitiveIDs.data(), camera->pickingIO.DataPrimitiveIDs(), sizeof(Entity) * num_picked_positions);
-			memcpy(maskValues.data(), camera->pickingIO.DataMaskValues(), sizeof(Entity) * num_picked_positions);
->>>>>>> 7c97bea3655950b31eb4fce525bae85d8fb020d0
 		}
 
 		camera->isPickingMode = false;
