@@ -403,8 +403,17 @@ namespace vz
 			archive >> apertureSize_;
 			archive >> apertureShape_;
 
+			float cur_width = width_;
+			float cur_height = height_;
 			archive >> width_;
 			archive >> height_;
+			{
+				// correction for image ratio
+				float cur_ratio = cur_width / cur_height;
+				float loaded_ratio = width_ / height_;
+
+				width_ = cur_ratio * height_;
+			}
 
 			archive >> u8_data;
 			projectionType_ = static_cast<Projection>(u8_data);

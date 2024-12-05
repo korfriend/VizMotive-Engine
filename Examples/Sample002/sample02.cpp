@@ -685,6 +685,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case '4': renderer->ShowDebugBuffer("NO_POSTPROCESSING");
 			break;
+		case 'N':
+		{
+			using namespace vzm;
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
+			archive->Store(camera);
+		}
+		break;
 		case 'M': 
 		{
 			using namespace vzm;
