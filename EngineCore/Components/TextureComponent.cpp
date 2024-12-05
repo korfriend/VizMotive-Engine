@@ -392,9 +392,10 @@ namespace vz
 		blocksSize_ = XMUINT3(num_blocksX, num_blocksY, num_blocksZ);
 
 		uint xy = num_blocksX * num_blocksY;
-
+		
 		uint num_blocksXY = num_blocksX * num_blocksY;
 		uint num_blocksXYZ = num_blocksXY * num_blocksZ;
+		uint vol_wh = width_ * height_;
 
 		// MinMax Block Setting
 		uint stride = graphics::GetFormatStride(static_cast<graphics::Format>(textureFormat_));
@@ -446,7 +447,7 @@ namespace vz
 							for (int sub_x = start_index.x; sub_x <= end_index.x; sub_x++)
 							{
 								float v = 0;
-								uint addr = (z + sub_z) * num_blocksXY + (y + sub_y) * num_blocksX + x + sub_x;
+								uint addr = (z + sub_z) * vol_wh + (y + sub_y) * width_ + x + sub_x;
 								switch (volFormat_)
 								{
 								case VolumeFormat::UINT8: v = (float)vol_data[addr]; break;
@@ -579,27 +580,30 @@ namespace vz
 			default: assert(0);
 			}
 
-			for (size_t i = 0; i < num_blocks; ++i)
+			for (size_t b_z = 0; b_z < num_blocksZ; ++b_z)
+				for (size_t b_y = 0; b_y < num_blocksY; ++b_y)
+					for (size_t b_x = 0; b_x < num_blocksX; ++b_x)
 			{
 				float min_v = 0, max_v = 0;
 
+				int index = b_x + b_y * num_blocksX + b_z * num_blocksX * num_blocksY;
 				switch (volFormat_)
 				{
 				case VolumeFormat::UINT8:
 				{
-					uint16_t v = ((uint16_t*)block_data)[i];
+					uint16_t v = ((uint16_t*)block_data)[index];
 					min_v = (float)(v & 0xFF);
 					max_v = (float)(v >> 8);
 				} break;
 				case VolumeFormat::UINT16:
 				{
-					uint32_t v = ((uint32_t*)block_data)[i];
+					uint32_t v = ((uint32_t*)block_data)[index];
 					min_v = (float)(v & 0xFFFF);
 					max_v = (float)(v >> 16);
 				} break;
 				case VolumeFormat::FLOAT:
 				{
-					XMFLOAT2 v = ((XMFLOAT2*)block_data)[i];
+					XMFLOAT2 v = ((XMFLOAT2*)block_data)[index];
 					min_v = v.x;
 					max_v = v.y; 
 				} break;
@@ -609,8 +613,8 @@ namespace vz
 				bool is_visible = !(tableValidBeginEndX.y < min_v || max_v < tableValidBeginEndX.x); // overlap check!
 				if (is_visible)
 				{
-					uint mod = i % 32;
-					bitmask_data[i / 32] |= 0x1 << mod;
+					uint mod = index % 32;
+					bitmask_data[index / 32] |= 0x1 << mod;
 				}
 			}
 

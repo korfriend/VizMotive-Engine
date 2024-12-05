@@ -4936,7 +4936,7 @@ namespace vz
 			
 			//RenderTransparents(cmd);
 
-			//RenderDirectVolumes(cmd);
+			RenderDirectVolumes(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{
