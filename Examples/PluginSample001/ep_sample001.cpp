@@ -71,7 +71,7 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 	volume->UpdateAlignmentMatrix({ 1, 0, 0 }, { 0, 1, 0 }, true);
 	volume->UpdateHistogram(0, 65535, 4096);
 
-	((GVolumeComponent*)volume)->UpdateVolumeMinMaxBlocks({4, 4, 4});
+	((GVolumeComponent*)volume)->UpdateVolumeMinMaxBlocks({8, 8, 8});
 
 	//pointer..
 
