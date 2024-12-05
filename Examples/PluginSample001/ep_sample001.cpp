@@ -34,15 +34,17 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 	uint16_t* vol_data = (uint16_t*)data.data();
 	XMFLOAT3 center((float)volume_w * .5f, (float)volume_h * .5f, (float)volume_d * .5f);
 	XMVECTOR xcenter = XMLoadFloat3(&center);
-	float sigma = 1.5f;
+	float sigma = 15.5f;
 	float l = (float)volume_w;
+	float min_v = FLT_MAX;
+	float max_v = -FLT_MAX;
 	for (uint32_t z = 0; z < volume_d; z++)
 	{
 		for (uint32_t y = 0; y < volume_h; y++)
 		{
 			for (uint32_t x = 0; x < volume_w; x++)
 			{
-				XMFLOAT3 p((float)x * .5f, (float)y * .5f, (float)z * .5f);
+				XMFLOAT3 p((float)x, (float)y, (float)z);
 				XMVECTOR xp = XMLoadFloat3(&p);
 
 				// distance to center
@@ -52,6 +54,9 @@ bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 				// gaussian function
 				float gaussian_value = expf(-0.5f * (distance * distance) / (sigma * sigma));
 				uint16_t intensity = static_cast<uint16_t>(gaussian_value * 65535.0f);
+
+				min_v = std::min(min_v, (float)intensity);
+				max_v = std::max(max_v, (float)intensity);
 
 				// stored value based on gaussian function
 				vol_data[z * volume_h * volume_w + y * volume_w + x] = intensity;

@@ -557,7 +557,7 @@ namespace vz
 				float mask_unormid_otf_map = mask_value_range / (otf->GetHeight() > 1? otf->GetHeight() - 1 : 1.f);
 				inst.baseGeometryOffset = *(uint*)&mask_unormid_otf_map;
 
-				const Texture vol_texture = volume->GetTexture();
+				const Texture vol_texture = volume->GetBlockTexture();
 				int texture_volume_blocks = device->GetDescriptorIndex(&vol_texture, SubresourceType::SRV);
 				inst.meshletOffset = *(uint*)&texture_volume_blocks;
 				const XMFLOAT3& vox_size = volume->GetVoxelSize();

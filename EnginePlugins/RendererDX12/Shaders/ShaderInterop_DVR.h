@@ -21,7 +21,7 @@ struct VolumePushConstants
 
 	float value_range;
 	float mask_unormid_otf_map;
-	uint padding1;
+	int bitmaskbuffer;
 	uint padding2;
 };
 

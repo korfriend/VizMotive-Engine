@@ -57,9 +57,16 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 #endif
 		);
 
+	//float sample_v = volume_blocks.SampleLevel(sampler_linear_clamp, float3(0.5, 0.5, 0.5), SAMPLE_LEVEL_TEST).r;
+	//if (sample_v == 0)
+	//	inout_color[DTid.xy] = float4(0, 0, 1, 1);
+	//else if (sample_v > 0.99)
+	//	inout_color[DTid.xy] = float4(0, 1, 0, 1);
+	//else
+	//	inout_color[DTid.xy] = float4(1, 0, 0, 1);
+
 	if (hit_step < 0)
 		return;
-	inout_color[DTid.xy] = float4(0, 1, 0, 1);
 	
 	float3 pos_hit_ws = pos_start_ws + dir_sample_ws * (float)hit_step;
 	if (hit_step > 0) {

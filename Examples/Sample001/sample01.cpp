@@ -137,8 +137,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     
     cam->SetPerspectiveProjection(0.1f, 100.f, 45.f, (float)w / (float)h);
     
-    vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
-    root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
+	//vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+	//root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
     
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MakeTestQuadWithUVs();
@@ -220,7 +220,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::AppendSceneCompTo(actor_test2, scene);
 	vzm::AppendSceneCompTo(actor_test3, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
-	vzm::AppendSceneCompTo(root_obj_actor, scene);
+	//vzm::AppendSceneCompTo(root_obj_actor, scene);
     
     // Main loop
     bool done = false;
