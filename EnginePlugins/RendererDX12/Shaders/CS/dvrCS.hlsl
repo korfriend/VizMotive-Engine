@@ -93,8 +93,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     if (dvr_hit_enc != DVR_SURFACE_OUTSIDE_VOLUME)
     {
-		float4 color = inout_color[DTid.xy]; 
-		color.r = 0;
         inout_color[DTid.xy] = float4(1, 1, 1, 1);
         inout_linear_depth[DTid.xy] = linear_depth;
     }

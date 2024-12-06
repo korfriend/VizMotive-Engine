@@ -182,29 +182,30 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::VzMaterial* material_test3 = vzm::NewMaterial("my material 3");
 	vzm::VzTexture* tex_otf_test3 = vzm::NewTexture("my material 3's OTF");
-	std::vector<uint8_t> otf_array(1024 * 4 * 3);
-    for (size_t i = 0; i < 1024; i++)
+    const uint32_t otf_w = 256;
+	std::vector<uint8_t> otf_array(otf_w * 4 * 3);
+    for (size_t i = 0; i < otf_w; i++)
 	{
-		otf_array[(1024 * 4 * 0) + 4 * i + 0] = 255;
-		otf_array[(1024 * 4 * 0) + 4 * i + 1] = 0;
-		otf_array[(1024 * 4 * 0) + 4 * i + 2] = 0;
-		otf_array[(1024 * 4 * 0) + 4 * i + 3] = i < 300? 0 : 
-            i < 700? (uint8_t)((float)(i - 300) / 400.f * 255.f) : 255;
+		otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
+		otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
+		otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
+		otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < 180? 0 : 
+            i < 210? (uint8_t)((float)(i - 180) / 30.f * 255.f) : 255;
 
-		otf_array[(1024 * 4 * 1) + 4 * i + 0] = 0;
-		otf_array[(1024 * 4 * 1) + 4 * i + 1] = 255;
-		otf_array[(1024 * 4 * 1) + 4 * i + 2] = 0;
-		otf_array[(1024 * 4 * 1) + 4 * i + 3] = i < 100 ? 0 :
-			i < 600 ? (uint8_t)((float)(i - 100) / 500.f * 255.f) : 255;
+		otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
+		otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
+		otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
+		otf_array[(otf_w * 4 * 1) + 4 * i + 3] = i < 100 ? 0 :
+			i < 200 ? (uint8_t)((float)(i - 100) / 100.f * 255.f) : 255;
 
-		otf_array[(1024 * 4 * 2) + 4 * i + 0] = 0;
-		otf_array[(1024 * 4 * 2) + 4 * i + 1] = 0;
-		otf_array[(1024 * 4 * 2) + 4 * i + 2] = 255;
-		otf_array[(1024 * 4 * 2) + 4 * i + 3] = i < 600 ? 0 :
-			i < 900 ? (uint8_t)((float)(i - 600) / 300.f * 255.f) : 255;
+		otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
+		otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
+		otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
+		otf_array[(otf_w * 4 * 2) + 4 * i + 3] = i < 100 ? 0 :
+			i < 130 ? (uint8_t)((float)(i - 100) / 30.f * 255.f) : 255;
 
     }
-	tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 1024, 3, 1, 800, 1024);
+	tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 256, 3, 1, 180, 256);
 
 	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
 
