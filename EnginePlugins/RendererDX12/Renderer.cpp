@@ -1121,7 +1121,7 @@ namespace vz
 
 
 		// temporal rt textures ... we need to reduce these textures (reuse others!!)
-		graphics::Texture rtDvrDepth; // aliased to rtPrimitiveID_2
+		//graphics::Texture rtDvrDepth; // aliased to rtPrimitiveID_2
 		//graphics::Texture rtCounter; // aliased to rtPrimitiveID_1 ??
 
 
@@ -2512,7 +2512,7 @@ namespace vz
 		uint32_t filterMask = GMaterialComponent::FILTER_VOLUME;
 
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
-		XMUINT2 tile_count = GetViewTileCount(XMUINT2(rtDvrDepth.desc.width, rtDvrDepth.desc.height));
+		XMUINT2 tile_count = GetViewTileCount(XMUINT2(rtMain.desc.width, rtMain.desc.height));
 
 		GPUResource unbind;
 
@@ -2597,7 +2597,11 @@ namespace vz
 			}
 
 			device->BindUAV(&rtMain, 0, cmd);
-			device->BindUAV(&rtDvrDepth, 1, cmd);
+			device->BindUAV(&rtLinearDepth, 1, cmd, 0);
+			device->BindUAV(&rtLinearDepth, 2, cmd, 1);
+			device->BindUAV(&rtLinearDepth, 3, cmd, 2);
+			device->BindUAV(&rtLinearDepth, 4, cmd, 3);
+			device->BindUAV(&rtLinearDepth, 5, cmd, 4);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
@@ -3986,17 +3990,6 @@ namespace vz
 			device->CreateTexture(&desc, nullptr, &rtPostprocess, &rtPrimitiveID_1); // Aliased!
 			device->SetName(&rtPostprocess, "rtPostprocess");
 		}
-		{ // rtDvrDepth
-			TextureDesc desc;
-			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			desc.format = Format::R32_FLOAT;;
-			desc.width = internalResolution.x;
-			desc.height = internalResolution.y;
-			// the same size of format is recommended. the following condition (less equal) will cause some unexpected behavior.
-			assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtPrimitiveID_2.desc)); // Aliased check
-			device->CreateTexture(&desc, nullptr, &rtDvrDepth, &rtPrimitiveID_2); // Aliased!
-			device->SetName(&rtDvrDepth, "rtDvrDepth");
-		}
 		if (device->CheckCapability(GraphicsDeviceCapability::VARIABLE_RATE_SHADING_TIER2) &&
 			isVariableRateShadingClassification)
 		{ // rtShadingRate
@@ -5005,8 +4998,6 @@ namespace vz
 		rtParticleDistortion = {};
 
 		distortion_overlay = {};
-
-		rtDvrDepth = {};
 
 		return true;
 	}

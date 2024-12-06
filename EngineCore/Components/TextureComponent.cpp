@@ -420,7 +420,7 @@ namespace vz
 					if (height_ < y + blockPitch_.y)
 						boundary_size.y = modY;
 					if (depth_ < z + blockPitch_.z)
-						boundary_size.y = modZ;
+						boundary_size.z = modZ;
 
 					// consider the trilinear sampling case: +1 and -1 for blk_idx
 					//	when trilinear sampling nearby a block boundary,
@@ -434,20 +434,21 @@ namespace vz
 						start_index.y = -1;
 					if (blk_idx.z > 0)
 						start_index.z = -1;
-					if (blk_idx.x == num_blocksX - 1)
-						end_index.x += -1;
-					if (blk_idx.y == num_blocksY - 1)
-						end_index.y += -1;
-					if (blk_idx.z == num_blocksZ - 1)
-						end_index.z += -1;
-					for (int sub_z = start_index.z; sub_z <= end_index.z; sub_z++)
+					if (blk_idx.x < num_blocksX - 1)
+						end_index.x += 1;
+					if (blk_idx.y < num_blocksY - 1)
+						end_index.y += 1;
+					if (blk_idx.z < num_blocksZ - 1)
+						end_index.z += 1;
+					for (int sub_z = start_index.z; sub_z < end_index.z; sub_z++)
 					{
-						for (int sub_y = start_index.y; sub_y <= end_index.y; sub_y++)
+						for (int sub_y = start_index.y; sub_y < end_index.y; sub_y++)
 						{
-							for (int sub_x = start_index.x; sub_x <= end_index.x; sub_x++)
+							for (int sub_x = start_index.x; sub_x < end_index.x; sub_x++)
 							{
 								float v = 0;
 								uint addr = (z + sub_z) * vol_wh + (y + sub_y) * width_ + x + sub_x;
+
 								switch (volFormat_)
 								{
 								case VolumeFormat::UINT8: v = (float)vol_data[addr]; break;
@@ -464,10 +465,7 @@ namespace vz
 						}
 					}
 
-					uint block_x = x / blockPitch_.x;
-					uint block_y = y / blockPitch_.y;
-					uint block_z = z / blockPitch_.z;
-					uint block_addr = block_z * num_blocksXY + block_y * num_blocksX + block_x;
+					uint block_addr = blk_idx.z * num_blocksXY + blk_idx.y * num_blocksX + blk_idx.x;
 
 					switch (volFormat_)
 					{

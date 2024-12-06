@@ -135,7 +135,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	glm::fvec3 u(0, 1, 0);
     cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
     
-    cam->SetPerspectiveProjection(0.1f, 100.f, 45.f, (float)w / (float)h);
+    cam->SetPerspectiveProjection(1.f, 100.f, 45.f, (float)w / (float)h);
     
 	//vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
 	//root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });

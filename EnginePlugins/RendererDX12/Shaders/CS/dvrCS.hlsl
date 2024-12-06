@@ -60,19 +60,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 #endif
 		);
 
-	//float sample_v = volume_main.SampleLevel(sampler_linear_clamp, float3(0.3, 0.3, 0.3), SAMPLE_LEVEL_TEST).r;
-	//if (sample_v < 0.1)
-	//	inout_color[DTid.xy] = float4(0, 0, 1, 1);
-	//else if (sample_v > 0.3)
-	//	inout_color[DTid.xy] = float4(0, 1, 0, 1);
-	//else
-	//	inout_color[DTid.xy] = float4(1, 0, 0, 1);
-    //float3 pos_ray_start_ts = TransformVector(pos_start_ws, vol_instance.mat_ws2ts);
-	//inout_color[DTid.xy] = float4((float3)pos_ray_start_ts, 1);
-//return;
 	if (hit_step < 0)
 		return;
-	inout_color[DTid.xy] = float4(1, 0, 0, 1);
 	
 	float3 pos_hit_ws = pos_start_ws + dir_sample_ws * (float)hit_step;
 	if (hit_step > 0) {
@@ -86,21 +75,27 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			pos_hit_ws = pos_start_ws;
 	}
 
-	float depth_hit = length(pos_hit_ws - ray.Origin);
+	float3 ray_hit = pos_hit_ws - ray.Origin;
+	float z_hit = dot(ray_hit, GetCamera().forward);
+	float linear_depth = z_hit * GetCamera().z_far_rcp;
+	if (linear_depth >= inout_linear_depth[DTid.xy])
+		return;
 
 	if (BitCheck(vol_instance.flags, INST_JITTERING))
 	{
 		RNG rng;
 		rng.init(uint2(pixel), GetFrameCount());
 		// additional feature : https://koreascience.kr/article/JAKO201324947256830.pdf
-		depth_hit -= rng.next_float() * vol_instance.sample_dist;
+		pos_hit_ws -= rng.next_float() * vol_instance.sample_dist * ray.Direction;
 	}
 
 	uint dvr_hit_enc = length(pos_hit_ws - pos_start_ws) < vol_instance.sample_dist ? DVR_SURFACE_ON_CLIPPLANE : DVR_SURFACE_OUTSIDE_CLIPPLANE;
 
     if (dvr_hit_enc != DVR_SURFACE_OUTSIDE_VOLUME)
     {
-        //inout_color[DTid.xy] = float4(1, 0, 0, 1);
-        inout_linear_depth[DTid.xy] = depth_hit * GetCamera().z_far_rcp;
+		float4 color = inout_color[DTid.xy]; 
+		color.r = 0;
+        inout_color[DTid.xy] = float4(1, 1, 1, 1);
+        inout_linear_depth[DTid.xy] = linear_depth;
     }
 }
