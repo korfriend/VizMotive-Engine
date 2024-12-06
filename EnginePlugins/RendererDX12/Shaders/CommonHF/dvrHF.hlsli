@@ -433,10 +433,10 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
 		[branch]
         if (blkSkip.visible)
         {
-			step = 1;
-			break;
+			//step = 1;
+			//break;
 	        [loop]
-            for (int k = 0; k <= blkSkip.num_skip_steps; k++)
+            for (int k = 0; k < blkSkip.num_skip_steps; k++)
             {
                 float3 pos_sample_blk_ts = pos_ray_start_ts + dir_sample_ts * (float) (i + k);
 				[branch]
