@@ -28,8 +28,19 @@ namespace vz::jobsystem
 		uint32_t groupJobOffset;
 		uint32_t groupJobEnd;
 		uint32_t sharedmemory_size;
+
+		TimeStamp timeStamp;
+
 		inline void execute()
 		{
+			if (ctx->ignorePast)
+			{
+				if (ctx->timeStamp > timeStamp) {
+					AtomicAdd(&ctx->counter, -1);
+					return;
+				}
+			}
+
 			JobArgs args;
 			args.groupID = groupID;
 			if (sharedmemory_size > 0)
@@ -366,6 +377,7 @@ namespace vz::jobsystem
 		job.groupJobOffset = 0;
 		job.groupJobEnd = 1;
 		job.sharedmemory_size = 0;
+		job.timeStamp = ctx.timeStamp;
 
 		if (res.numThreads <= 1)
 		{

@@ -174,9 +174,10 @@ namespace vz
 	{
 		if (resourcemanager::Contains(name))
 		{
-			backlog::post("do not allow the same key for resource manager for TextureComponent::LoadMemory", backlog::LogLevel::Error);
-			assert(0 && resourcemanager::Contains(name) && "do not allow the same key for resource manager for TextureComponent::LoadMemory");
-			return false;
+			resourcemanager::Delete(name);
+			//backlog::post("do not allow the same key for resource manager for TextureComponent::LoadMemory", backlog::LogLevel::Error);
+			//assert(0 && resourcemanager::Contains(name) && "do not allow the same key for resource manager for TextureComponent::LoadMemory");
+			//return false;
 		}
 
 		resource_ = std::make_shared<Resource>(
@@ -534,7 +535,9 @@ namespace vz
 		}
 
 		static jobsystem::context ctx;
-		jobsystem::Wait(ctx);
+		ctx.ignorePast = true;
+		ctx.timeStamp = TimerNow;
+		//jobsystem::Wait(ctx);
 
 		using namespace graphics;
 		jobsystem::Execute(ctx, [this, entityVisibleMap](jobsystem::JobArgs args) {
@@ -623,6 +626,7 @@ namespace vz
 			desc.misc_flags = ResourceMiscFlag::NONE;
 			desc.format = Format::R32_UINT;
 			
+			visible_block_buffer = {};
 			bool success = device->CreateBuffer(&desc, bitmask_data, &visible_block_buffer);
 			assert(success);
 			device->SetName(&visible_block_buffer, "GVolumeComponent::visible_block_buffer");

@@ -247,6 +247,32 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		v = glm::rotateX(v, x_rot);
 		u = glm::rotateX(u, x_rot);
 		cam->SetWorldPose(__FC3 p, __FC3 v, __FC3 u);
+
+        static uint32_t index0 = 180, index1 = 210;
+        static bool add_index = true;
+        {
+            if (add_index)
+            {
+				index0++; index1++;
+                if (index0 == 255u) add_index = false;
+            }
+            else
+			{
+				index0--; index1--;
+				if (index0 == 10u) add_index = true;
+            }
+            
+			for (uint32_t i = 0; i < otf_w; i++)
+			{
+				otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
+				otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
+				otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
+				otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < index0 ? 0 :
+					i < index1 ? (uint8_t)((float)(i - index0) / (float)(index1 - index0) * 255.f) : 255;
+			}
+			//tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 256, 3, 1, index0, 256);
+        }
+
 		renderer->Render(scene, cam);
     }
     vzm::DeinitEngineLib();

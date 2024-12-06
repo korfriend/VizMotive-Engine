@@ -104,6 +104,7 @@ namespace vz
 
 		// Check if a resource is currently loaded
 		bool Contains(const std::string& name);
+		bool Delete(const std::string& name);
 		// Invalidate all resources
 		void Clear();
 
