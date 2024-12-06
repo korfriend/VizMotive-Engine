@@ -96,4 +96,15 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
         inout_color[DTid.xy] = float4(1, 1, 1, 1);
         inout_linear_depth[DTid.xy] = linear_depth;
     }
+
+	// TODO: PROGRESSIVE SCHEME
+	// light map can be updated asynch as long as it can be used as UAV
+	// 1. two types of UAVs : lightmap (using mesh's lightmap and ?!)
+
+	// dvr depth??
+	// inlinear depth , normal depth to ... tiled...
+	// dominant light 1 and light field for multiple lights
+	// tiled lighting?!
+	// ... light map ...
+
 }

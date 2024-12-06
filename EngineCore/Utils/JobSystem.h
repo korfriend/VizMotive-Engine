@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <atomic>
+#include <chrono>
 
 #ifndef UTIL_EXPORT
 #ifdef _WIN32
@@ -13,6 +14,8 @@
 
 namespace vz::jobsystem
 {
+	using TimeStamp = std::chrono::high_resolution_clock::time_point;
+
 	UTIL_EXPORT void Initialize(uint32_t maxThreadCount = ~0u);
 	UTIL_EXPORT void ShutDown();
 
@@ -39,6 +42,8 @@ namespace vz::jobsystem
 	{
 		volatile long counter = 0;
 		Priority priority = Priority::High;
+		bool ignorePast = false;
+		TimeStamp timeStamp = {};
 	};
 
 	UTIL_EXPORT uint32_t GetThreadCount(Priority priority = Priority::High);

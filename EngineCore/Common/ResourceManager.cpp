@@ -1442,6 +1442,15 @@ namespace vz
 			return result;
 		}
 
+		bool Delete(const std::string& name)
+		{
+			bool result = false;
+			locker.lock();
+			resources.erase(name);
+			locker.unlock();
+			return result;
+		}
+
 		void Clear()
 		{
 			locker.lock();
