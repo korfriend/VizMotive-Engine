@@ -11,11 +11,11 @@ namespace vz
 	XMMATRIX CreateScreenToProjectionMatrix(const graphics::Viewport& viewport)
 	{
 		float scaleX = 2.0f / viewport.width;
-		float scaleY = 2.0f / viewport.height;
+		float scaleY = -2.0f / viewport.height;
 		float scaleZ = 1.0f / (viewport.max_depth - viewport.min_depth);
 
 		float offsetX = -1.0f - (2.0f * viewport.top_left_x / viewport.width);
-		float offsetY = 1.0f - (2.0f * viewport.top_left_y / viewport.height);
+		float offsetY = 1.0f + (2.0f * viewport.top_left_y / viewport.height);
 		float offsetZ = -viewport.min_depth * scaleZ;
 
 		return XMMatrixSet(

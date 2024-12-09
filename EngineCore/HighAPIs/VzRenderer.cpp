@@ -244,7 +244,7 @@ namespace vzm
 		XMMATRIX xinv_VP = XMLoadFloat4x4(&inv_VP);
 		XMMATRIX xmat_screen2world = xinv_screen * xinv_VP;
 
-		XMFLOAT3 pos_ss3 = XMFLOAT3(posOnScreen.x, posOnScreen.y, 0);
+		XMFLOAT3 pos_ss3 = XMFLOAT3(posOnScreen.x, posOnScreen.y, 1.f); // consider reverse z
 		XMVECTOR xpos_ss = XMLoadFloat3(&pos_ss3);
 		XMVECTOR xpos_ws = XMVector3TransformCoord(xpos_ss, xmat_screen2world);
 		vfloat3 pos_ws;
