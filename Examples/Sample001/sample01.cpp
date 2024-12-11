@@ -78,6 +78,7 @@ HWND createNativeWindow(HINSTANCE hInstance, int nCmdShow, int width, int height
     return hwnd;
 }
 
+static bool test_create__ = true;
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
@@ -150,7 +151,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	geometry_test2->MakeTestTriangle();
 
 	vzm::VzTexture* texture = vzm::NewTexture("my texture");
-    texture->LoadImageFile("../Assets/testimage_2ns.jpg");
+    texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
 
     vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
 	{
@@ -205,7 +206,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			i < 130 ? (uint8_t)((float)(i - 100) / 30.f * 255.f) : 255;
 
     }
-	tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 256, 3, 1, 180, 256);
+	tex_otf_test3->CreateLookupTexture("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
+    tex_otf_test3->UpdateLookup(otf_array, 180, 255);
 
 	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
 
@@ -270,7 +272,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < index0 ? 0 :
 					i < index1 ? (uint8_t)((float)(i - index0) / (float)(index1 - index0) * 255.f) : 255;
 			}
-			//tex_otf_test3->LoadMemory("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, 256, 3, 1, index0, 256);
+            if (test_create__)
+			    tex_otf_test3->UpdateLookup(otf_array, index0, 256);
         }
 
 		renderer->Render(scene, cam);
@@ -319,6 +322,22 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
 			break;
 		case '4': renderer->ShowDebugBuffer("WITHOUT_POSTPROCESSING");
+			break;
+        case 'A':
+		{
+            test_create__ = !test_create__;
+
+			
+            vzm::VzActor* actor = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor3");
+            vzm::AppendSceneCompVidTo(actor->GetVID(), 0);
+		}
+        break;
+		case 'B':
+		{
+			vzm::VzTexture* texture = (vzm::VzTexture*)vzm::GetFirstComponentByName("my material 3's OTF");
+            vzm::RemoveComponent(texture);
+			//vzm::AppendSceneCompVidTo(actor->GetVID(), 0);
+		}
 			break;
         default:
             break;

@@ -439,9 +439,9 @@ namespace vz
 	}
 	void Scene::RemoveEntityForScenes(const Entity entity)
 	{
-		for (size_t i = 0, n = scenes.size(); i < n; ++i)
+		for (auto& it : scenes)
 		{
-			scenes[i]->Remove(entity);
+			it.second->Remove(entity);
 		}
 	}
 

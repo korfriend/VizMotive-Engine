@@ -52,40 +52,38 @@ namespace vzm
 			{
 				return false;
 			}
+
+			if (graphicsDevice)
+			{
+				graphicsDevice->WaitForGPU();
+			}
+
+			VzBaseComp* vcomp = it->second;
+			COMPONENT_TYPE comp_type = vcomp->GetType();
+			bool is_engine_component = true;
+			switch (comp_type)
+			{
+			case COMPONENT_TYPE::ARCHIVE: archives.erase(vid); Archive::DestroyArchive(vid); is_engine_component = false;  break;
+			case COMPONENT_TYPE::SCENE: scenes.erase(vid); Scene::DestroyScene(vid); is_engine_component = false; break;
+			case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); is_engine_component = false; break;
+			case COMPONENT_TYPE::CAMERA: cameras.erase(vid); break;
+			case COMPONENT_TYPE::ACTOR: actors.erase(vid); break;
+			case COMPONENT_TYPE::LIGHT: lights.erase(vid); break;
+			case COMPONENT_TYPE::GEOMETRY: geometries.erase(vid); break;
+			case COMPONENT_TYPE::MATERIAL: materials.erase(vid); break;
+			case COMPONENT_TYPE::TEXTURE: textures.erase(vid); break;
+			default:
+				assert(0);
+			}
+
 			lookup.erase(it);
 
-			jobsystem::context ctx;
-			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
-				if (graphicsDevice)
-				{
-					graphicsDevice->WaitForGPU();
-				}
+			if (is_engine_component)
+			{
+				compfactory::Destroy(vid);
+				Scene::RemoveEntityForScenes(vid);
+			}
 
-				VzBaseComp* vcomp = it->second;
-				COMPONENT_TYPE comp_type = vcomp->GetType();
-				bool is_engine_component = true;
-				switch (comp_type)
-				{
-				case COMPONENT_TYPE::ARCHIVE: archives.erase(vid); Archive::DestroyArchive(vid); is_engine_component = false;  break;
-				case COMPONENT_TYPE::SCENE: scenes.erase(vid); Scene::DestroyScene(vid); is_engine_component = false; break;
-				case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); is_engine_component = false; break;
-				case COMPONENT_TYPE::CAMERA: cameras.erase(vid); break;
-				case COMPONENT_TYPE::ACTOR: actors.erase(vid); break;
-				case COMPONENT_TYPE::LIGHT: lights.erase(vid); break;
-				case COMPONENT_TYPE::GEOMETRY: geometries.erase(vid); break;
-				case COMPONENT_TYPE::MATERIAL: materials.erase(vid); break;
-				case COMPONENT_TYPE::TEXTURE: textures.erase(vid); break;
-				default:
-					assert(0);
-				}
-
-				if (is_engine_component)
-				{
-					compfactory::Destroy(vid);
-					Scene::RemoveEntityForScenes(vid);
-				}
-			});
-			jobsystem::Wait(ctx);
 			return true;
 		}
 
@@ -548,19 +546,19 @@ namespace vzm
 			return parentVid;
 		}
 
-		SceneVID vis_scene = INVALID_VID;
-		auto itr = vzcomp::actors.find(parentVid);
-		auto itl = vzcomp::lights.find(parentVid);
-		auto itc = vzcomp::cameras.find(parentVid);
+		SceneVID vid_scene = INVALID_VID;
+		auto itr = vzcomp::actors.find(vid);
+		auto itl = vzcomp::lights.find(vid);
+		auto itc = vzcomp::cameras.find(vid);
 		if (itr != vzcomp::actors.end())
-			vis_scene = itr->second.get()->sceneVid;
+			vid_scene = itr->second.get()->sceneVid;
 		if (itl != vzcomp::lights.end())
-			vis_scene = itl->second.get()->sceneVid;
+			vid_scene = itl->second.get()->sceneVid;
 		if (itc != vzcomp::cameras.end())
-			vis_scene = itc->second.get()->sceneVid;
+			vid_scene = itc->second.get()->sceneVid;
 
-		assert(vis_scene);
-		return vis_scene;
+		//assert(vis_scene);
+		return vid_scene;
 	}
 
 	VzScene* AppendSceneCompTo(const VZ_NONNULL VzBaseComp* comp, const VZ_NONNULL VzBaseComp* parentComp)

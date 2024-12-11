@@ -99,7 +99,12 @@ namespace vz
 			const std::string& name,
 			Flags flags,
 			const uint8_t* data,
-			const uint32_t w, const uint32_t h, const uint32_t d, const TextureComponent::TextureFormat texFormat
+			const uint32_t w, const uint32_t h, const uint32_t d, const TextureComponent::TextureFormat texFormat,
+			const bool generateMIPs
+		);
+
+		bool UpdateTexture(
+			const std::string& name, const uint8_t* data
 		);
 
 		// Check if a resource is currently loaded

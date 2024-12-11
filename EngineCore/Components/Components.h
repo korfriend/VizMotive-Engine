@@ -873,6 +873,7 @@ namespace vz
 		bool LoadMemory(const std::string& name, 
 			const std::vector<uint8_t>& data, const TextureFormat textureFormat,
 			const uint32_t w, const uint32_t h, const uint32_t d);
+		bool UpdateMemory(const std::vector<uint8_t>& data);
 
 		const XMFLOAT2& GetTableValidBeginEndX() const { return tableValidBeginEndX_; }
 		const XMFLOAT2 GetTableValidBeginEndRatioX() const;

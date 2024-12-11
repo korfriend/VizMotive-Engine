@@ -32,3 +32,8 @@ namespace vz::backlog
 
 	void Destroy();
 };
+
+namespace vz
+{
+	using LogLevel = backlog::LogLevel;
+}

@@ -87,23 +87,41 @@ namespace vzm
 			NV12,				// video YUV420; SRV Luminance aspect: R8_UNORM, SRV Chrominance aspect: R8G8_UNORM
 		};
 
+		enum class SamplerType
+		{
+			SAMPLER_DEFAULT, // SAMPLER_LINEAR_CLAMP
+
+			SAMPLER_LINEAR_CLAMP,
+			SAMPLER_LINEAR_WRAP,
+			SAMPLER_LINEAR_MIRROR,
+			SAMPLER_POINT_CLAMP,
+			SAMPLER_POINT_WRAP,
+			SAMPLER_POINT_MIRROR,
+			SAMPLER_ANISO_CLAMP,
+			SAMPLER_ANISO_WRAP,
+			SAMPLER_ANISO_MIRROR,
+			SAMPLER_CMP_DEPTH,
+
+			SAMPLER_COUNT,
+		};
+
 		VzTexture(const VID vid, const std::string& originFrom)
 			: VzResource(vid, originFrom, COMPONENT_TYPE::TEXTURE) {}
 
-		bool LoadImageFile(const std::string& fileName, const bool isLinear = true, const bool generateMIPs = true);
-		bool LoadMemory(const std::string& name, const std::vector<uint8_t>& data, const TextureFormat textureFormat,
-			const uint32_t w, const uint32_t h, const uint32_t d, const uint32_t tableValidBeginX = 0u, const uint32_t tableValidEndX = 0u);
-		//std::string GetImageFileName();
-		//// sampler
-		//void SetMinFilter(const SamplerMinFilter filter);
-		//void SetMagFilter(const SamplerMagFilter filter);
-		//void SetWrapModeS(const SamplerWrapMode mode);
-		//void SetWrapModeT(const SamplerWrapMode mode);
-		//
-		//bool GenerateMIPs();
+		// generate MIPs as default except lookup
+		bool CreateTextureFromImageFile(const std::string& fileName);
+		bool CreateTextureFromMemory(const std::string& name, const std::vector<uint8_t>& data, const TextureFormat textureFormat, const uint32_t w, const uint32_t h, const uint32_t d);
+		bool CreateLookupTexture(const std::string& name, const std::vector<uint8_t>& data, const TextureFormat textureFormat, const uint32_t w, const uint32_t h, const uint32_t d = 1u);
+		bool IsValid() const;
+
+		bool UpdateLookup(const std::vector<uint8_t>& data, const uint32_t tableValidBeginX, const uint32_t tableValidEndX);
+
+		std::string GetResourceName() const;
+		void SetSamplerFilter(const SamplerType filter);
 	};
 
 	using TextureFormat = VzTexture::TextureFormat;
+	using SamplerType = VzTexture::SamplerType;
 
 	struct API_EXPORT VzVolume : VzTexture
 	{

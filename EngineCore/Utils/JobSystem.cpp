@@ -23,21 +23,31 @@ namespace vz::jobsystem
 	struct Job
 	{
 		std::function<void(JobArgs)> task;
-		context* ctx;
-		uint32_t groupID;
-		uint32_t groupJobOffset;
-		uint32_t groupJobEnd;
-		uint32_t sharedmemory_size;
-
-		TimeStamp timeStamp;
+		context* ctx = nullptr;
+		contextConcurrency* ctxConcurrency = nullptr;
+		uint32_t groupID = 0;
+		uint32_t groupJobOffset = 0;
+		uint32_t groupJobEnd = 0;
+		uint32_t sharedmemory_size = 0;
 
 		inline void execute()
 		{
-			if (ctx->ignorePast)
+			//if (ctx->ignorePast)
+			//{
+			//	if (ctx->timeStamp > timeStamp) {
+			//		AtomicAdd(&ctx->counter, -1);
+			//		return;
+			//	}
+			//}
+
+			static std::atomic<int> max_ctx_counter = 0;
+			static std::mutex locker;
 			{
-				if (ctx->timeStamp > timeStamp) {
-					AtomicAdd(&ctx->counter, -1);
-					return;
+				std::scoped_lock lock(locker);
+				if (ctx->counter > max_ctx_counter.load())
+				{
+					backlog::post("max_ctx_counter " + std::to_string(ctx->counter), LogLevel::Info);
+					max_ctx_counter = ctx->counter;
 				}
 			}
 
@@ -45,9 +55,7 @@ namespace vz::jobsystem
 			args.groupID = groupID;
 			if (sharedmemory_size > 0)
 			{
-				thread_local static std::vector<uint8_t> shared_allocation_data;
-				shared_allocation_data.reserve(sharedmemory_size);
-				args.sharedmemory = shared_allocation_data.data();
+				args.sharedmemory = _malloca(sharedmemory_size);
 			}
 			else
 			{
@@ -61,6 +69,11 @@ namespace vz::jobsystem
 				args.isFirstJobInGroup = (j == groupJobOffset);
 				args.isLastJobInGroup = (j == groupJobEnd - 1);
 				task(args);
+			}
+
+			if (args.sharedmemory)
+			{
+				_freea(args.sharedmemory);
 			}
 
 			AtomicAdd(&ctx->counter, -1);
@@ -88,11 +101,42 @@ namespace vz::jobsystem
 			return true;
 		}
 	};
+
+	struct JobConcurrentQueue
+	{
+		std::deque<Job> queue;
+		std::mutex locker;
+
+		int MAX_QUEUE = 5;
+
+		inline void push_back(const Job& item)
+		{
+			std::scoped_lock lock(locker);
+			queue.push_back(item);
+			if (queue.size() > MAX_QUEUE)
+			{
+				queue.pop_front();
+			}
+		}
+		inline bool pop_back(Job& item)
+		{
+			std::scoped_lock lock(locker);
+			if (queue.empty())
+			{
+				return false;
+			}
+			item = std::move(queue.back()); // get latest
+			queue.clear();
+			return true;
+		}
+	};
+
 	struct PriorityResources
 	{
 		uint32_t numThreads = 0;
 		std::vector<std::thread> threads;
 		std::unique_ptr<JobQueue[]> jobQueuePerThread;
+		std::unique_ptr<JobConcurrentQueue> jobConcurrentQueue;
 		std::atomic<uint32_t> nextQueue{ 0 };
 		std::condition_variable wakeCondition;
 		std::mutex wakeMutex;
@@ -111,6 +155,10 @@ namespace vz::jobsystem
 				}
 				startingQueue++; // go to next queue
 			}
+			//if (jobConcurrentQueue->pop_back(job))
+			//{
+			//	job.execute();
+			//}
 		}
 	};
 
@@ -244,8 +292,33 @@ namespace vz::jobsystem
 
 			for (uint32_t threadID = 0; threadID < res.numThreads; ++threadID)
 			{
-				std::thread& worker = res.threads.emplace_back([threadID, &res] {
+#ifdef PLATFORM_LINUX
+				std::thread& worker = res.threads.emplace_back([threadID, priority, &res] {
 
+					switch (priority) {
+					case Priority::Low:
+					case Priority::Streaming:
+						// from the sched(2) manpage:
+						// In the current [Linux 2.6.23+] implementation, each unit of
+						// difference in the nice values of two processes results in a
+						// factor of 1.25 in the degree to which the scheduler favors
+						// the higher priority process.
+						//
+						// so 3 would mean that other (prio 0) threads are around twice as important
+						if (setpriority(PRIO_PROCESS, 0, 3) != 0)
+						{
+							perror("setpriority");
+						}
+						break;
+					case Priority::High:
+						// nothing to do
+						break;
+					default:
+						assert(0);
+					}
+#else
+				std::thread& worker = res.threads.emplace_back([threadID, &res] {
+#endif
 					while (internal_state.alive.load())
 					{
 						res.work(threadID);
@@ -377,16 +450,45 @@ namespace vz::jobsystem
 		job.groupJobOffset = 0;
 		job.groupJobEnd = 1;
 		job.sharedmemory_size = 0;
-		job.timeStamp = ctx.timeStamp;
 
-		if (res.numThreads <= 1)
+		if (res.numThreads < 1)
 		{
 			// If job system is not yet initialized, or only has one threads, job will be executed immediately here instead of thread:
 			job.execute();
 			return;
 		}
 
+		//uint32_t target_thread = ctx.useFixedThread < 0 ? res.nextQueue.fetch_add(1) : (uint32_t)ctx.useFixedThread;
 		res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
+
+		res.wakeCondition.notify_one();
+	}
+
+	void ExecuteConcurrency(contextConcurrency& ctx, const std::function<void(JobArgs)>& task)
+	{
+		PriorityResources& res = internal_state.resources[int(Priority::High)];
+
+		// Context state is updated:
+		//AtomicAdd(&ctx.counter, 1);
+
+		Job job;
+		job.ctxConcurrency = &ctx;
+		job.task = task;
+		job.groupID = 0;
+		job.groupJobOffset = 0;
+		job.groupJobEnd = 1;
+		job.sharedmemory_size = 0;
+
+		if (res.numThreads < 1)
+		{
+			// If job system is not yet initialized, or only has one threads, job will be executed immediately here instead of thread:
+			job.execute();
+			return;
+		}
+
+		//uint32_t target_thread = ctx.useFixedThread < 0 ? res.nextQueue.fetch_add(1) : (uint32_t)ctx.useFixedThread;
+		res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
+
 		res.wakeCondition.notify_one();
 	}
 
@@ -415,9 +517,9 @@ namespace vz::jobsystem
 			job.groupJobOffset = groupID * groupSize;
 			job.groupJobEnd = std::min(job.groupJobOffset + groupSize, jobCount);
 
-			if (res.numThreads <= 1)
+			if (res.numThreads < 1)
 			{
-				// If job system is not yet initialized, or only has one threads, job will be executed immediately here instead of thread:
+				// If job system is not yet initialized, job will be executed immediately here instead of thread:
 				job.execute();
 			}
 			else
