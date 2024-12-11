@@ -16,6 +16,9 @@ namespace vz
 		typedef bool(*PI_InitRenderer)();
 		typedef void(*PI_AddDeferredMIPGen)(const graphics::Texture& texture, bool preserve_coverage);
 		typedef void(*PI_AddDeferredBlockCompression)(const graphics::Texture& texture_src, const graphics::Texture& texture_bc);
+		typedef void(*PI_AddDeferredTextureCopy)(const graphics::Texture& texture_src, const graphics::Texture& texture_dst, const bool mipGen);
+		typedef void(*PI_AddDeferredBufferUpdate)(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset);
+
 		typedef bool(*PI_LoadShader)(
 			graphics::ShaderStage stage,
 			graphics::Shader& shader,
@@ -33,6 +36,9 @@ namespace vz
 		PI_InitRenderer pluginInitRenderer = nullptr;
 		PI_LoadShader pluginLoadShader = nullptr;
 		PI_LoadShaders pluginLoadShaders = nullptr;
+
+		PI_AddDeferredTextureCopy pluginAddDeferredTextureCopy = nullptr;
+		PI_AddDeferredBufferUpdate pluginAddDeferredBufferUpdate = nullptr;
 
 		// optional 
 		PI_AddDeferredMIPGen pluginAddDeferredMIPGen = nullptr;
@@ -65,8 +71,11 @@ namespace vz
 
 			pluginAddDeferredMIPGen = platform::LoadModule<PI_AddDeferredMIPGen>(moduleName, "AddDeferredMIPGen");
 			pluginAddDeferredBlockCompression = platform::LoadModule<PI_AddDeferredBlockCompression>(moduleName, "AddDeferredBlockCompression");
+			pluginAddDeferredTextureCopy = platform::LoadModule<PI_AddDeferredTextureCopy>(moduleName, "AddDeferredTextureCopy");
+			pluginAddDeferredBufferUpdate = platform::LoadModule<PI_AddDeferredBufferUpdate>(moduleName, "AddDeferredBufferUpdate");
 
-			return pluginInitializer && pluginDeinitializer && pluginGetDev && pluginNewGRenderPath3D && pluginNewGScene && pluginInitRenderer && pluginLoadShader && pluginLoadShaders;
+			return pluginInitializer && pluginDeinitializer && pluginGetDev && pluginNewGRenderPath3D && pluginNewGScene && pluginInitRenderer && pluginLoadShader && pluginLoadShaders
+				&& pluginAddDeferredTextureCopy && pluginAddDeferredBufferUpdate;
 		}
 	};
 }

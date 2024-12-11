@@ -3,6 +3,7 @@
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
 #include "Utils/JobSystem.h"
+#include <thread>
 
 //enum class DataType : uint8_t
 //{
@@ -542,13 +543,13 @@ namespace vz
 			return;
 		}
 
-		static jobsystem::context ctx;
-		//ctx.ignorePast = true;
-		//ctx.timeStamp = TimerNow;
-		//jobsystem::Wait(ctx);
+		jobsystem::contextConcurrency ctx;
+		ctx.concurrentID = 1;
 
 		using namespace graphics;
-		//jobsystem::Execute(ctx, [this, entityVisibleMap](jobsystem::JobArgs args) {
+		GraphicsDevice* device = graphics::GetDevice();
+		CommandList cmd = device->BeginCommandList(); // QUEUE_GRAPHICS
+		jobsystem::ExecuteConcurrency(ctx, [this, entityVisibleMap, cmd, device](jobsystem::JobArgs args) {
 
 			GTextureComponent* otf_texture = (GTextureComponent*)compfactory::GetTextureComponent(entityVisibleMap);
 			if (!otf_texture)
@@ -557,18 +558,16 @@ namespace vz
 				return;
 			}
 
-			GPUBuffer& visible_block_buffer = visibleBitmaskBuffers_[entityVisibleMap];
+			GPUBlockBitmask& blobkBitmask = visibleBlockBitmasks_[entityVisibleMap];
 
 			uint num_blocksX = blocksSize_.x;
 			uint num_blocksY = blocksSize_.y;
 			uint num_blocksZ = blocksSize_.z;
 
-			GraphicsDevice* device = graphics::GetDevice();
-
 			size_t num_blocks = num_blocksX * num_blocksY * num_blocksZ;
 			size_t num_bits = num_blocks / 32 + 1; // last +1 for safe handling
-			std::vector<uint32_t> block_bitmask(num_bits, 0);
-			uint32_t* bitmask_data = block_bitmask.data();
+			blobkBitmask.bitmask.resize(num_bits);
+			uint32_t* bitmask_data = blobkBitmask.bitmask.data();
 			uint8_t* block_data = volumeMinMaxBlocksData_.data();
 
 			XMFLOAT2 tableValidBeginEndX = otf_texture->GetTableValidBeginEndX();
@@ -627,32 +626,28 @@ namespace vz
 				}
 			}
 
-			if (!visible_block_buffer.IsValid() || visible_block_buffer.GetDesc().size != num_bits * 4)
+			if (!blobkBitmask.bitmaskBuffer.IsValid() || blobkBitmask.bitmaskBuffer.GetDesc().size != num_bits * 4)
 			{
 				GPUBufferDesc desc;
 				desc.size = num_bits * 4;
+				desc.stride = 4;
 				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 				desc.misc_flags = ResourceMiscFlag::NONE;
 				desc.format = Format::R32_UINT;
 
-				bool success = device->CreateBuffer(&desc, bitmask_data, &visible_block_buffer);
+				bool success = device->CreateBuffer(&desc, bitmask_data, &blobkBitmask.bitmaskBuffer);
 				assert(success);
-				device->SetName(&visible_block_buffer, "GVolumeComponent::visible_block_buffer");
-
-				// USE UPDATEBUFFER!!
-				//static std::mutex locker;
-				//std::scoped_lock lock(locker);
+				device->SetName(&blobkBitmask.bitmaskBuffer, "GVolumeComponent::visible_block_buffer");
 			}
 			else
 			{
-				CommandList cmd = device->BeginCommandList(); // QUEUE_GRAPHICS
-				device->UpdateBuffer(&visible_block_buffer, bitmask_data, cmd);
+				resourcemanager::AddBufferUpdate(blobkBitmask.bitmaskBuffer, bitmask_data);
 			}
-		//});
+		});
 
 		// garbage collection
 		std::vector<Entity> invalid_entities;
-		for (auto& it : visibleBitmaskBuffers_)
+		for (auto& it : visibleBlockBitmasks_)
 		{
 			if (!compfactory::ContainTextureComponent(it.first))
 			{
@@ -661,20 +656,20 @@ namespace vz
 		}
 		for (Entity entity : invalid_entities)
 		{
-			visibleBitmaskBuffers_.erase(entity);
+			visibleBlockBitmasks_.erase(entity);
 		}
 		timeStampSetter_ = TimerNow;
 	}
 
 	const graphics::GPUBuffer& GVolumeComponent::GetVisibleBitmaskBuffer(const Entity entityVisibleMap) const
 	{
-		auto it = visibleBitmaskBuffers_.find(entityVisibleMap);
-		if (it == visibleBitmaskBuffers_.end())
+		auto it = visibleBlockBitmasks_.find(entityVisibleMap);
+		if (it == visibleBlockBitmasks_.end())
 		{
 			static graphics::GPUBuffer invalid = graphics::GPUBuffer();
 			return invalid;
 		}
-		return it->second;
+		return it->second.bitmaskBuffer;
 	}
 }
 

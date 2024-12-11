@@ -43,7 +43,7 @@ namespace vz::jobsystem
 
 	struct contextConcurrency
 	{
-		uint32_t useFixedThread = 0; // -1: no fixed, [0, numThreads - 1]
+		uint32_t concurrentID = 0;
 	};
 
 	UTIL_EXPORT uint32_t GetThreadCount(Priority priority = Priority::High);

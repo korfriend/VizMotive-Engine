@@ -36,7 +36,9 @@ namespace vz::rcommon
 	// progressive components
 	std::vector<std::pair<Texture, bool>> deferredMIPGens;
 	std::vector<std::pair<Texture, Texture>> deferredBCQueue; // BC : Block Compression
-	SpinLock deferredMIPGenLock;
+	std::vector<std::pair<Texture, Texture>> deferredTextureCopy;
+	std::vector<std::pair<GPUBuffer, std::pair<void*, size_t>>> deferredBufferUpdate;
+	SpinLock deferredResourceLock;
 }
 
 // TODO 
@@ -1480,25 +1482,60 @@ namespace vz
 
 	void GRenderPath3DDetails::ProcessDeferredTextureRequests(CommandList cmd)
 	{
-		if (rcommon::deferredMIPGens.size() + rcommon::deferredBCQueue.size() == 0)
+		if (rcommon::deferredMIPGens.size() + rcommon::deferredBCQueue.size()
+			+ rcommon::deferredBufferUpdate.size() + rcommon::deferredTextureCopy.size() == 0)
 		{
 			return;
 		}
+
 		// TODO: paint texture...
-		rcommon::deferredMIPGenLock.lock();
+		rcommon::deferredResourceLock.lock();
+
 		for (auto& it : rcommon::deferredMIPGens)
 		{
 			MIPGEN_OPTIONS mipopt;
 			mipopt.preserve_coverage = it.second;
 			GenerateMipChain(it.first, MIPGENFILTER_LINEAR, cmd, mipopt);
 		}
+
 		rcommon::deferredMIPGens.clear();
 		for (auto& it : rcommon::deferredBCQueue)
 		{
 			BlockCompress(it.first, it.second, cmd);
 		}
 		rcommon::deferredBCQueue.clear();
-		rcommon::deferredMIPGenLock.unlock();
+
+		for (auto& it : rcommon::deferredBufferUpdate)
+		{
+			GPUBuffer& buffer = it.first;
+			void* data = it.second.first;
+			size_t size = it.second.second;
+			
+			device->Barrier(GPUBarrier::Buffer(&buffer, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_DST), cmd);
+			device->UpdateBuffer(&buffer, data, cmd);
+			device->Barrier(GPUBarrier::Buffer(&buffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE_COMPUTE), cmd);
+		}
+		rcommon::deferredBufferUpdate.clear();
+
+		for (auto& it : rcommon::deferredTextureCopy)
+		{
+			Texture& src = it.first;
+			Texture& dst = it.second;
+			GPUBarrier barriers1[] = {
+				GPUBarrier::Image(&src, src.desc.layout, ResourceState::COPY_SRC),
+				GPUBarrier::Image(&dst, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_DST),
+			};
+			device->Barrier(barriers1, arraysize(barriers1), cmd);
+			device->CopyResource(&dst, &src, cmd);
+			GPUBarrier barriers2[] = {
+				GPUBarrier::Image(&src, ResourceState::COPY_SRC, src.desc.layout),
+				GPUBarrier::Image(&dst, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE_COMPUTE),
+			};
+			device->Barrier(barriers2, arraysize(barriers2), cmd);
+		}
+		rcommon::deferredTextureCopy.clear();
+
+		rcommon::deferredResourceLock.unlock();
 	}
 
 	void GRenderPath3DDetails::Postprocess_Blur_Gaussian(
@@ -5011,15 +5048,42 @@ namespace vz
 	}
 	void AddDeferredMIPGen(const Texture& texture, bool preserve_coverage)
 	{
-		rcommon::deferredMIPGenLock.lock();
+		rcommon::deferredResourceLock.lock();
 		rcommon::deferredMIPGens.push_back(std::make_pair(texture, preserve_coverage));
-		rcommon::deferredMIPGenLock.unlock();
+		rcommon::deferredResourceLock.unlock();
 	}
 	void AddDeferredBlockCompression(const graphics::Texture& texture_src, const graphics::Texture& texture_bc)
 	{
-		rcommon::deferredMIPGenLock.lock();
+		rcommon::deferredResourceLock.lock();
 		rcommon::deferredBCQueue.push_back(std::make_pair(texture_src, texture_bc));
-		rcommon::deferredMIPGenLock.unlock();
+		rcommon::deferredResourceLock.unlock();
+	}
+	void AddDeferredTextureCopy(const graphics::Texture& texture_src, const graphics::Texture& texture_dst, const bool mipGen)
+	{
+		if (!texture_src.IsValid() || texture_dst.IsValid())
+		{
+			return;
+		}
+		rcommon::deferredResourceLock.lock();
+		rcommon::deferredTextureCopy.push_back(std::make_pair(texture_src, texture_dst));
+		rcommon::deferredResourceLock.unlock();
+		std::vector<std::pair<Texture, Texture>> deferredTextureCopy;
+	}
+	void AddDeferredBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset)
+	{
+		if (!buffer.IsValid() || data == nullptr)
+		{
+			return;
+		}
+		size_t update_size = std::min(buffer.desc.size, size);
+		if (update_size == 0)
+		{
+			return;
+		}
+		uint8_t* data_ptr = (uint8_t*)data;
+		rcommon::deferredResourceLock.lock();
+		rcommon::deferredBufferUpdate.push_back(std::make_pair(buffer, std::make_pair(data_ptr + offset, update_size)));
+		rcommon::deferredResourceLock.unlock();
 	}
 }
 

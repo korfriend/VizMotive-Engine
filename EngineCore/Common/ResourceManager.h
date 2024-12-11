@@ -129,6 +129,9 @@ namespace vz
 		// Reload all resources that are outdated
 		void ReloadOutdatedResources();
 
+		//void AddTextureCopy(const graphics::Texture& texture_src, const graphics::Texture& texture_dst, const bool mipGen);
+		void AddBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size = ~0, const uint64_t offset = 0);
+
 		struct ResourceSerializer
 		{
 			std::vector<Resource> resources;

@@ -28,6 +28,11 @@ namespace vz::rcommon
 	extern PipelineState		PSO_occlusionquery;
 
 	extern std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
+
+	extern std::vector<std::pair<Texture, bool>> deferredMIPGens;
+	extern std::vector<std::pair<Texture, Texture>> deferredBCQueue; // BC : Block Compression
+	extern std::vector<std::pair<Texture, Texture>> deferredTextureCopy;
+	extern std::vector<std::pair<GPUBuffer, std::pair<void*, size_t>>> deferredBufferUpdate;
 }
 
 
@@ -466,6 +471,11 @@ namespace vz::initializer
 		ReleaseRenderRes(PSO_debug, DEBUGRENDERING_COUNT);
 		rcommon::PSO_wireframe = {};
 		rcommon::PSO_occlusionquery = {};
+
+		rcommon::deferredTextureCopy.clear();
+		rcommon::deferredBufferUpdate.clear();
+		rcommon::deferredBCQueue.clear();
+		rcommon::deferredMIPGens.clear();
 
 		for (size_t i = 0, n = (size_t)RENDERPASS_COUNT; i < n; ++i)
 		{

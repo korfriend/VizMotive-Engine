@@ -424,8 +424,6 @@ namespace vz::graphics
 		void Map(GPUResource* resource) override { assert(0 && "DX12 backed does not use Map APIs"); };
 		void Unmap(GPUResource* resource) override { assert(0 && "DX12 backed does not use Map APIs"); };
 
-		void UpdateTexture(const Texture* texture, const void* data, const size_t dataSize) override;
-
 		GPULinearAllocator& GetFrameAllocator(CommandList cmd) override
 		{
 			return GetCommandList(cmd).frame_allocators[GetBufferIndex()];
