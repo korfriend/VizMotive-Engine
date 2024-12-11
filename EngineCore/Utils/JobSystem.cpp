@@ -135,6 +135,7 @@ namespace vz::jobsystem
 		inline void push_back(const Job& item, const uint32_t concurrentID)
 		{
 			std::scoped_lock lock(locker);
+
 			std::deque<Job>& queue = mapQueue[concurrentID];
 			queue.push_back(item);
 			if (max_concurrent_queue_count.load() < queue.size())
@@ -151,19 +152,25 @@ namespace vz::jobsystem
 		{
 			std::scoped_lock lock(locker);
 
-			for (auto& it : mapQueue)
+			bool isPopped = false;
+			auto it = mapQueue.begin();
+			for (; it != mapQueue.end(); it++)
 			{
-				std::deque<Job>& queue = it.second;
+				std::deque<Job>& queue = it->second;
 				if (queue.empty())
 				{
 					continue;
 				}
 				item = std::move(queue.back()); // get latest
-				queue.clear();
-				return true;
+				isPopped = true;
+				//queue.clear();
+				break;
 			}
-			mapQueue.clear();
-			return false;
+			if (isPopped)
+			{
+				mapQueue.erase(it);
+			}
+			return isPopped;
 		}
 	};
 
@@ -172,7 +179,7 @@ namespace vz::jobsystem
 		uint32_t numThreads = 0;
 		std::vector<std::thread> threads;
 		std::unique_ptr<JobQueue[]> jobQueuePerThread;
-		std::unique_ptr<JobConcurrentQueue[]> jobConcurrentQueuePerThread;
+		std::unique_ptr<JobConcurrentQueue> jobConcurrentQueue; // all threads can access
 		std::atomic<uint32_t> nextQueue{ 0 };
 		std::condition_variable wakeCondition;
 		std::mutex wakeMutex;
@@ -199,8 +206,8 @@ namespace vz::jobsystem
 				startingQueue++; // go to next queue
 			}
 
-			JobConcurrentQueue& job_concurrent_queue = jobConcurrentQueuePerThread[0];
-			while (job_concurrent_queue.pop_back(job))
+			// while executing the popped job, other threads can steal the remaining jobs
+			while (jobConcurrentQueue->pop_back(job))
 			{
 				job.executeConcurrent();
 			}
@@ -244,7 +251,7 @@ namespace vz::jobsystem
 			for (auto& x : resources)
 			{
 				x.jobQueuePerThread.reset();
-				x.jobConcurrentQueuePerThread.reset();
+				x.jobConcurrentQueue.reset();
 				x.threads.clear();
 				x.numThreads = 0;
 			}
@@ -284,7 +291,7 @@ namespace vz::jobsystem
 				for (auto& x : resources)
 				{
 					x.jobQueuePerThread.reset();
-					x.jobConcurrentQueuePerThread.reset();					
+					x.jobConcurrentQueue.reset();
 					x.threads.clear();
 					x.numThreads = 0;
 				}
@@ -294,7 +301,7 @@ namespace vz::jobsystem
 				for (auto& x : resources)
 				{
 					x.jobQueuePerThread.reset();
-					x.jobConcurrentQueuePerThread.reset();
+					x.jobConcurrentQueue.reset();
 					x.threads.clear();
 					x.numThreads = 0;
 				}
@@ -336,7 +343,7 @@ namespace vz::jobsystem
 			}
 			res.numThreads = clamp(res.numThreads, 1u, maxThreadCount);
 			res.jobQueuePerThread.reset(new JobQueue[res.numThreads]);
-			res.jobConcurrentQueuePerThread.reset(new JobConcurrentQueue[res.numThreads]);
+			res.jobConcurrentQueue.reset(new JobConcurrentQueue);
 			res.threads.reserve(res.numThreads);
 
 			for (uint32_t threadID = 0; threadID < res.numThreads; ++threadID)
@@ -533,7 +540,7 @@ namespace vz::jobsystem
 		}
 
 		//res.jobConcurrentQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job, ctx.concurrentID);
-		res.jobConcurrentQueuePerThread[0].push_back(job, ctx.concurrentID);
+		res.jobConcurrentQueue->push_back(job, ctx.concurrentID);
 
 		res.wakeCondition.notify_one();
 	}
