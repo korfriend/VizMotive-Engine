@@ -342,7 +342,12 @@ namespace vz
 		graphics::Texture volumeMinMaxBlocks_ = {};
 		XMUINT3 blockPitch_ = {}; // single block
 		XMUINT3 blocksSize_ = {};
-		std::unordered_map<Entity, graphics::GPUBuffer> visibleBitmaskBuffers_; // for blocks
+		struct GPUBlockBitmask
+		{
+			graphics::GPUBuffer bitmaskBuffer;
+			std::vector<uint32_t> bitmask;
+		};
+		std::unordered_map<Entity, GPUBlockBitmask> visibleBlockBitmasks_; // for blocks
 	public:
 		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(entity) {}
 

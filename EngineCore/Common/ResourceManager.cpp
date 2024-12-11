@@ -1251,29 +1251,11 @@ namespace vz
 			}
 			else
 			{
-				device->UpdateTexture(&resource->textureUpdate, data, resource_internal->textureUpdate.mapped_size);
-
-				CommandList cmd = device->BeginCommandList();
-				GPUBarrier barriers1[] = {
-					GPUBarrier::Image(&resource->textureUpdate, resource->textureUpdate.desc.layout, ResourceState::COPY_SRC),
-					GPUBarrier::Image(&resource->texture, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_DST),
-				};
-				device->Barrier(barriers1, arraysize(barriers1), cmd);
-				device->CopyResource(
-					&resource->texture, 
-					&resource->textureUpdate, 
-					cmd
-				);
-				//device->CopyTexture(
-				//	&resource->texture, 0, 0, 0, 0, 0,
-				//	&resource->textureUpdate, 0, 0,
-				//	cmd
-				//);
-				GPUBarrier barriers2[] = {
-					GPUBarrier::Image(&resource->textureUpdate, ResourceState::COPY_SRC, resource->textureUpdate.desc.layout),
-					GPUBarrier::Image(&resource->texture, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE_COMPUTE),
-				};
-				device->Barrier(barriers2, arraysize(barriers2), cmd);
+				memcpy(resource->textureUpdate.mapped_data, data, resource_internal->textureUpdate.mapped_size);
+				if (graphicsPackage.pluginAddDeferredTextureCopy)
+				{
+					graphicsPackage.pluginAddDeferredTextureCopy(resource->textureUpdate, resource->texture, false);
+				}
 			}
 
 			return resource_internal->textureUpdate.IsValid();
@@ -1347,11 +1329,11 @@ namespace vz
 				desc.format = format;
 				desc.layout = ResourceState::SHADER_RESOURCE;
 
-				if (desc.mip_levels == 1 || desc.depth > 1 || desc.array_size > 1)
-				{
-					// don't allow streaming for single mip, array and 3D textures
-					flags &= ~Flags::STREAMING;
-				}
+				//if (desc.mip_levels == 1 || desc.depth > 1 || desc.array_size > 1)
+				//{
+				//	// don't allow streaming for single mip, array and 3D textures
+				//	flags &= ~Flags::STREAMING;
+				//}
 
 				desc.type = desc.depth > 1 ? TextureDesc::Type::TEXTURE_3D : 
 					(desc.height > 1 ? TextureDesc::Type::TEXTURE_2D : TextureDesc::Type::TEXTURE_1D);
@@ -1812,6 +1794,21 @@ namespace vz
 			}
 		}
 
+		//void AddTextureCopy(const graphics::Texture& texture_src, const graphics::Texture& texture_dst, const bool mipGen)
+		//{
+		//	if (graphicsPackage.pluginAddDeferredTextureCopy)
+		//	{
+		//		graphicsPackage.pluginAddDeferredTextureCopy(texture_src, texture_dst, true);
+		//	}
+		//}
+		void AddBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset)
+		{
+			if (graphicsPackage.pluginAddDeferredBufferUpdate)
+			{
+				graphicsPackage.pluginAddDeferredBufferUpdate(buffer, data, size, offset);
+			}
+		}
+
 		void Serialize_READ(vz::Archive& archive, ResourceSerializer& seri)
 		{
 			assert(archive.IsReadMode());
@@ -1945,7 +1942,6 @@ namespace vz
 			}
 			locker.unlock();
 		}
-
 	}
 
 }

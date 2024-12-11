@@ -29,17 +29,10 @@ namespace vz::jobsystem
 		uint32_t groupJobOffset = 0;
 		uint32_t groupJobEnd = 0;
 		uint32_t sharedmemory_size = 0;
+		uint32_t concurrentID = 0;
 
 		inline void execute()
 		{
-			//if (ctx->ignorePast)
-			//{
-			//	if (ctx->timeStamp > timeStamp) {
-			//		AtomicAdd(&ctx->counter, -1);
-			//		return;
-			//	}
-			//}
-
 			static std::atomic<int> max_ctx_counter = 0;
 			static std::mutex locker;
 			{
@@ -78,6 +71,34 @@ namespace vz::jobsystem
 
 			AtomicAdd(&ctx->counter, -1);
 		}
+
+		inline void executeConcurrent()
+		{
+			JobArgs args;
+			args.groupID = groupID;
+			if (sharedmemory_size > 0)
+			{
+				args.sharedmemory = _malloca(sharedmemory_size);
+			}
+			else
+			{
+				args.sharedmemory = nullptr;
+			}
+
+			for (uint32_t j = groupJobOffset; j < groupJobEnd; ++j)
+			{
+				args.jobIndex = j;
+				args.groupIndex = j - groupJobOffset;
+				args.isFirstJobInGroup = (j == groupJobOffset);
+				args.isLastJobInGroup = (j == groupJobEnd - 1);
+				task(args);
+			}
+
+			if (args.sharedmemory)
+			{
+				_freea(args.sharedmemory);
+			}
+		}
 	};
 	struct JobQueue
 	{
@@ -104,15 +125,23 @@ namespace vz::jobsystem
 
 	struct JobConcurrentQueue
 	{
-		std::deque<Job> queue;
+		std::unordered_map<uint32_t, std::deque<Job>> mapQueue;
 		std::mutex locker;
 
 		int MAX_QUEUE = 5;
 
-		inline void push_back(const Job& item)
+		inline static std::atomic_int max_concurrent_queue_count = 0u;
+
+		inline void push_back(const Job& item, const uint32_t concurrentID)
 		{
 			std::scoped_lock lock(locker);
+			std::deque<Job>& queue = mapQueue[concurrentID];
 			queue.push_back(item);
+			if (max_concurrent_queue_count.load() < queue.size())
+			{
+				max_concurrent_queue_count++;
+				backlog::post("max_concurrent_queue_count: " + std::to_string(max_concurrent_queue_count));
+			}
 			if (queue.size() > MAX_QUEUE)
 			{
 				queue.pop_front();
@@ -121,13 +150,20 @@ namespace vz::jobsystem
 		inline bool pop_back(Job& item)
 		{
 			std::scoped_lock lock(locker);
-			if (queue.empty())
+
+			for (auto& it : mapQueue)
 			{
-				return false;
+				std::deque<Job>& queue = it.second;
+				if (queue.empty())
+				{
+					continue;
+				}
+				item = std::move(queue.back()); // get latest
+				queue.clear();
+				return true;
 			}
-			item = std::move(queue.back()); // get latest
-			queue.clear();
-			return true;
+			mapQueue.clear();
+			return false;
 		}
 	};
 
@@ -136,7 +172,7 @@ namespace vz::jobsystem
 		uint32_t numThreads = 0;
 		std::vector<std::thread> threads;
 		std::unique_ptr<JobQueue[]> jobQueuePerThread;
-		std::unique_ptr<JobConcurrentQueue> jobConcurrentQueue;
+		std::unique_ptr<JobConcurrentQueue[]> jobConcurrentQueuePerThread;
 		std::atomic<uint32_t> nextQueue{ 0 };
 		std::condition_variable wakeCondition;
 		std::mutex wakeMutex;
@@ -148,17 +184,26 @@ namespace vz::jobsystem
 			Job job;
 			for (uint32_t i = 0; i < numThreads; ++i)
 			{
-				JobQueue& job_queue = jobQueuePerThread[startingQueue % numThreads];
+				uint32_t thread_id = startingQueue % numThreads;
+				JobQueue& job_queue = jobQueuePerThread[thread_id];
 				while (job_queue.pop_front(job))
 				{
 					job.execute();
 				}
+
+				//JobConcurrentQueue& job_concurrent_queue = jobConcurrentQueuePerThread[thread_id];
+				//while (job_concurrent_queue.pop_back(job))
+				//{
+				//	job.executeConcurrent();
+				//}
 				startingQueue++; // go to next queue
 			}
-			//if (jobConcurrentQueue->pop_back(job))
-			//{
-			//	job.execute();
-			//}
+
+			JobConcurrentQueue& job_concurrent_queue = jobConcurrentQueuePerThread[0];
+			while (job_concurrent_queue.pop_back(job))
+			{
+				job.executeConcurrent();
+			}
 		}
 	};
 
@@ -199,6 +244,7 @@ namespace vz::jobsystem
 			for (auto& x : resources)
 			{
 				x.jobQueuePerThread.reset();
+				x.jobConcurrentQueuePerThread.reset();
 				x.threads.clear();
 				x.numThreads = 0;
 			}
@@ -238,6 +284,7 @@ namespace vz::jobsystem
 				for (auto& x : resources)
 				{
 					x.jobQueuePerThread.reset();
+					x.jobConcurrentQueuePerThread.reset();					
 					x.threads.clear();
 					x.numThreads = 0;
 				}
@@ -247,6 +294,7 @@ namespace vz::jobsystem
 				for (auto& x : resources)
 				{
 					x.jobQueuePerThread.reset();
+					x.jobConcurrentQueuePerThread.reset();
 					x.threads.clear();
 					x.numThreads = 0;
 				}
@@ -288,6 +336,7 @@ namespace vz::jobsystem
 			}
 			res.numThreads = clamp(res.numThreads, 1u, maxThreadCount);
 			res.jobQueuePerThread.reset(new JobQueue[res.numThreads]);
+			res.jobConcurrentQueuePerThread.reset(new JobConcurrentQueue[res.numThreads]);
 			res.threads.reserve(res.numThreads);
 
 			for (uint32_t threadID = 0; threadID < res.numThreads; ++threadID)
@@ -458,7 +507,6 @@ namespace vz::jobsystem
 			return;
 		}
 
-		//uint32_t target_thread = ctx.useFixedThread < 0 ? res.nextQueue.fetch_add(1) : (uint32_t)ctx.useFixedThread;
 		res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
 
 		res.wakeCondition.notify_one();
@@ -466,10 +514,7 @@ namespace vz::jobsystem
 
 	void ExecuteConcurrency(contextConcurrency& ctx, const std::function<void(JobArgs)>& task)
 	{
-		PriorityResources& res = internal_state.resources[int(Priority::High)];
-
-		// Context state is updated:
-		//AtomicAdd(&ctx.counter, 1);
+		PriorityResources& res = internal_state.resources[int(Priority::Low)];
 
 		Job job;
 		job.ctxConcurrency = &ctx;
@@ -478,16 +523,17 @@ namespace vz::jobsystem
 		job.groupJobOffset = 0;
 		job.groupJobEnd = 1;
 		job.sharedmemory_size = 0;
+		job.concurrentID = ctx.concurrentID;
 
 		if (res.numThreads < 1)
 		{
 			// If job system is not yet initialized, or only has one threads, job will be executed immediately here instead of thread:
-			job.execute();
+			job.executeConcurrent();
 			return;
 		}
 
-		//uint32_t target_thread = ctx.useFixedThread < 0 ? res.nextQueue.fetch_add(1) : (uint32_t)ctx.useFixedThread;
-		res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
+		//res.jobConcurrentQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job, ctx.concurrentID);
+		res.jobConcurrentQueuePerThread[0].push_back(job, ctx.concurrentID);
 
 		res.wakeCondition.notify_one();
 	}
