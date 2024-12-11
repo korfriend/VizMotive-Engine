@@ -366,14 +366,18 @@ namespace vz::compfactory
 			}
 			if (is_contain)
 			{
-				comp_manager->Remove(entity);
-
 				if (entry.first == "NAME")
 				{
 					NameComponent* name_comp = nameManager.GetComponent(entity);
 					assert(lookupName2Entities.count(name_comp->GetName()) > 0);
-					lookupName2Entities[name_comp->GetName()].erase(entity);
+					auto& namelookup = lookupName2Entities[name_comp->GetName()];
+					namelookup.erase(entity);
+					if (namelookup.size() == 0)
+					{
+						lookupName2Entities.erase(name_comp->GetName());
+					}
 				}
+				comp_manager->Remove(entity);
 
 				num_destroyed++;
 			}

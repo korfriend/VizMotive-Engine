@@ -335,6 +335,11 @@ namespace vz::graphics
 			CopyBuffer(buffer, offset, &allocation.buffer, allocation.offset, size, cmd);
 		}
 
+		// Updates a Usage::DEFAULT texture data
+		//	Since it uses a GPU Copy operation, appropriate synchronization is expected
+		//	And it cannot be used inside a RenderPass
+		virtual void UpdateTexture(const Texture* texture, const void* data, const size_t dataSize) {}
+
 		// Helper util to bind a constant buffer with data for a specific command list:
 		//	This will be done on the CPU to an UPLOAD buffer, so this can be used inside a RenderPass
 		//	But this will be only visible on the command list it was bound to

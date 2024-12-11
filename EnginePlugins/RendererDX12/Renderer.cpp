@@ -4176,12 +4176,11 @@ namespace vz
 
 		profiler::BeginFrame();
 		// color space check
-		bool colorspace_conversion_required = false;
+		// if swapChain is invalid, rtRenderFinal_ is supposed to be valid!
 		if (swapChain_.IsValid())
 		{
 			ColorSpace colorspace = device->GetSwapChainColorSpace(&swapChain_);
-			colorspace_conversion_required = colorspace == ColorSpace::HDR10_ST2084;
-			if (colorspace_conversion_required)
+			if (colorspace == ColorSpace::HDR10_ST2084)
 			{
 				if (!rtRenderFinal_.IsValid())
 				{
@@ -4215,7 +4214,7 @@ namespace vz
 		viewport_composite.height = (float)canvasHeight_;
 		device->BindViewports(1, &viewport, cmd);
 
-		if (colorspace_conversion_required || !swapChain_.IsValid())
+		if (rtRenderFinal_.IsValid())
 		{
 			graphics::RenderPassImage rp[] = {
 				graphics::RenderPassImage::RenderTarget(&rtRenderFinal_, graphics::RenderPassImage::LoadOp::CLEAR),
@@ -4230,8 +4229,9 @@ namespace vz
 		Compose(cmd);
 		device->RenderPassEnd(cmd);
 
-		if (colorspace_conversion_required)
+		if (rtRenderFinal_.IsValid() && swapChain_.IsValid())
 		{
+			// colorspace == ColorSpace::HDR10_ST2084
 			// In HDR10, we perform a final mapping from linear to HDR10, into the swapchain
 			device->RenderPassBegin(&swapChain_, cmd);
 			image::Params fx;

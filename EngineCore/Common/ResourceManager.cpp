@@ -42,6 +42,7 @@ namespace vz
 	{
 		vz::resourcemanager::Flags flags = vz::resourcemanager::Flags::NONE;
 		vz::graphics::Texture texture;
+		vz::graphics::Texture textureUpdate;
 		// subresource refers to SRV, RTV, DSV, UAV, ... and indicates # of those, 
 		//		-1 means not yet allocated, 
 		int srgb_subresource = -1;	
@@ -63,6 +64,13 @@ namespace vz
 		StreamingTexture streaming_texture;
 		std::atomic<uint32_t> streaming_resolution{ 0 };
 		uint32_t streaming_unload_delay = 0;
+
+		~ResourceInternal()
+		{
+			//backlog::post("res(" + filename + ") has been removed", LogLevel::Info);
+			texture = {};
+			textureUpdate = {};
+		}
 	};
 
 	const std::vector<uint8_t>& Resource::GetFileData() const
@@ -142,6 +150,7 @@ namespace vz
 		}
 		ResourceInternal* resourceinternal = (ResourceInternal*)internal_state.get();
 		resourceinternal->texture = {};
+		resourceinternal->textureUpdate = {};
 		resourceinternal->srgb_subresource = -1;;
 	}
 
@@ -1208,11 +1217,75 @@ namespace vz
 		}
 
 
+		bool UpdateTexture(
+			const std::string& name, const uint8_t* data
+		)
+		{
+			if (resources.count(name) == 0)
+			{
+				backlog::post("There is no valid resource to be updated!", LogLevel::Error);
+				return false;
+			}
+
+			locker.lock();
+			std::shared_ptr<ResourceInternal> resource = resources[name].lock();
+			ResourceInternal* resource_internal = resource.get();
+			locker.unlock();
+
+			if (!resource_internal->texture.IsValid())
+			{
+				return false;
+			}
+
+			GraphicsDevice* device = vz::graphics::GetDevice();
+			if (!resource_internal->textureUpdate.IsValid())
+			{
+				TextureDesc desc = resource_internal->texture.GetDesc();
+				desc.bind_flags = BindFlag::NONE;
+				desc.usage = Usage::UPLOAD;
+				desc.misc_flags = ResourceMiscFlag::NONE;
+
+				bool success = device->CreateTexture(&desc, nullptr, &resource->textureUpdate);
+				std::string gpu_res_name = name + ":Upload";
+				device->SetName(&resource->texture, gpu_res_name.c_str());
+			}
+			else
+			{
+				device->UpdateTexture(&resource->textureUpdate, data, resource_internal->textureUpdate.mapped_size);
+
+				CommandList cmd = device->BeginCommandList();
+				GPUBarrier barriers1[] = {
+					GPUBarrier::Image(&resource->textureUpdate, resource->textureUpdate.desc.layout, ResourceState::COPY_SRC),
+					GPUBarrier::Image(&resource->texture, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_DST),
+				};
+				device->Barrier(barriers1, arraysize(barriers1), cmd);
+				device->CopyResource(
+					&resource->texture, 
+					&resource->textureUpdate, 
+					cmd
+				);
+				//device->CopyTexture(
+				//	&resource->texture, 0, 0, 0, 0, 0,
+				//	&resource->textureUpdate, 0, 0,
+				//	cmd
+				//);
+				GPUBarrier barriers2[] = {
+					GPUBarrier::Image(&resource->textureUpdate, ResourceState::COPY_SRC, resource->textureUpdate.desc.layout),
+					GPUBarrier::Image(&resource->texture, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE_COMPUTE),
+				};
+				device->Barrier(barriers2, arraysize(barriers2), cmd);
+			}
+
+			return resource_internal->textureUpdate.IsValid();
+		}
+
 		Resource LoadMemory(
 			const std::string& name,
 			Flags flags,
 			const uint8_t* data,
-			const uint32_t w, const uint32_t h, const uint32_t d, const TextureComponent::TextureFormat texFormat
+			const uint32_t w, const uint32_t h, const uint32_t d, const TextureComponent::TextureFormat texFormat,
+			const bool generateMIPs
+			
 		)
 		{
 			locker.lock();
@@ -1269,16 +1342,16 @@ namespace vz
 				desc.width = w;
 				desc.height = h;
 				desc.depth = d;
-				desc.mip_levels = 1;
+				desc.mip_levels = generateMIPs? GetMipCount(desc.width, desc.height, desc.depth) : 1;
 				desc.array_size = 1;
 				desc.format = format;
 				desc.layout = ResourceState::SHADER_RESOURCE;
 
-				//if (desc.mip_levels == 1 || desc.depth > 1 || desc.array_size > 1)
-				//{
-				//	// don't allow streaming for single mip, array and 3D textures
-				//	flags &= ~Flags::STREAMING;
-				//}
+				if (desc.mip_levels == 1 || desc.depth > 1 || desc.array_size > 1)
+				{
+					// don't allow streaming for single mip, array and 3D textures
+					flags &= ~Flags::STREAMING;
+				}
 
 				desc.type = desc.depth > 1 ? TextureDesc::Type::TEXTURE_3D : 
 					(desc.height > 1 ? TextureDesc::Type::TEXTURE_2D : TextureDesc::Type::TEXTURE_1D);
@@ -1323,6 +1396,7 @@ namespace vz
 		)
 		{
 			locker.lock();
+
 			std::weak_ptr<ResourceInternal>& weak_resource = resources[name];
 			std::shared_ptr<ResourceInternal> resource = weak_resource.lock();
 
@@ -1437,6 +1511,7 @@ namespace vz
 			{
 				auto resource = it->second.lock();
 				result = resource != nullptr;
+				result = true;
 			}
 			locker.unlock();
 			return result;
@@ -1507,7 +1582,7 @@ namespace vz
 					const float mip_offset = float(resource->streaming_texture.mip_count - desc.mip_levels);
 					float min_lod_clamp_absolute_next = resource->streaming_texture.min_lod_clamp_absolute - dt * streaming_fade_speed;
 					min_lod_clamp_absolute_next = std::max(mip_offset, min_lod_clamp_absolute_next);
-					if (vz::math::float_equal(min_lod_clamp_absolute_next, resource->streaming_texture.min_lod_clamp_absolute))
+					if (math::float_equal(min_lod_clamp_absolute_next, resource->streaming_texture.min_lod_clamp_absolute))
 						continue;
 					resource->streaming_texture.min_lod_clamp_absolute = min_lod_clamp_absolute_next;
 
@@ -1527,7 +1602,7 @@ namespace vz
 					);
 					resource->srgb_subresource = -1;
 
-					Format srgb_format = getTextureFormatSRGB(desc.format);
+					Format srgb_format = GetFormatSRGB(desc.format);
 					if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 					{
 						resource->srgb_subresource = device->CreateSubresource(
@@ -1545,7 +1620,7 @@ namespace vz
 			}
 
 			// If previous streaming jobs were not finished, we cancel this until next frame:
-			if (vz::jobsystem::IsBusy(streaming_ctx))
+			if (jobsystem::IsBusy(streaming_ctx))
 			{
 				locker.unlock();
 				return;
@@ -1569,8 +1644,8 @@ namespace vz
 				return;
 
 			// One low priority thread will be responsible for streaming, to not cause any hitching while rendering:
-			streaming_ctx.priority = vz::jobsystem::Priority::Streaming;
-			vz::jobsystem::Execute(streaming_ctx, [](vz::jobsystem::JobArgs args) {
+			streaming_ctx.priority = jobsystem::Priority::Streaming;
+			jobsystem::Execute(streaming_ctx, [](jobsystem::JobArgs args) {
 				for (auto& resource : streaming_texture_jobs)
 				{
 					TextureDesc desc = resource->texture.desc;
@@ -1583,7 +1658,8 @@ namespace vz
 					const GraphicsDevice::MemoryUsage memory_usage = device->GetMemoryUsage();
 					const float memory_percent = float(double(memory_usage.usage) / double(memory_usage.budget));
 					const bool memory_shortage = memory_percent > streaming_threshold;
-					const bool stream_in = memory_shortage ? false : (requested_resolution >= std::min(desc.width, desc.height));
+					const bool stream_in = requested_resolution >= std::min(desc.width, desc.height);
+					const uint32_t target_unload_delay = memory_shortage ? 4 : 255;
 
 					int mip_offset = int(resource->streaming_texture.mip_count - desc.mip_levels);
 					if (stream_in)
@@ -1602,7 +1678,7 @@ namespace vz
 					else
 					{
 						resource->streaming_unload_delay++; // one more frame that this wants to unload
-						if (!memory_shortage && resource->streaming_unload_delay < 255)
+						if (resource->streaming_unload_delay < target_unload_delay)
 							continue; // only unload mips if it's been wanting to unload for a couple frames, or there is memory shortage
 						if (ComputeTextureMemorySizeInBytes(desc) <= streaming_texture_min_size)
 							continue; // Don't reduce the texture below, because of 4KB alignment, this would not reduce memory usage further
@@ -1659,7 +1735,7 @@ namespace vz
 						assert(success);
 						device->SetName(&replace.texture, resource->filename.c_str());
 
-						Format srgb_format = getTextureFormatSRGB(desc.format);
+						Format srgb_format = GetFormatSRGB(desc.format);
 						if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 						{
 							replace.srgb_subresource = device->CreateSubresource(

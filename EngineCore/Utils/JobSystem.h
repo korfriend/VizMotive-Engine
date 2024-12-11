@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <atomic>
-#include <chrono>
 
 #ifndef UTIL_EXPORT
 #ifdef _WIN32
@@ -14,8 +13,6 @@
 
 namespace vz::jobsystem
 {
-	using TimeStamp = std::chrono::high_resolution_clock::time_point;
-
 	UTIL_EXPORT void Initialize(uint32_t maxThreadCount = ~0u);
 	UTIL_EXPORT void ShutDown();
 
@@ -42,14 +39,19 @@ namespace vz::jobsystem
 	{
 		volatile long counter = 0;
 		Priority priority = Priority::High;
-		bool ignorePast = false;
-		TimeStamp timeStamp = {};
+	};
+
+	struct contextConcurrency
+	{
+		uint32_t useFixedThread = 0; // -1: no fixed, [0, numThreads - 1]
 	};
 
 	UTIL_EXPORT uint32_t GetThreadCount(Priority priority = Priority::High);
 
 	// Add a task to execute asynchronously. Any idle thread will execute this.
 	UTIL_EXPORT void Execute(context& ctx, const std::function<void(JobArgs)>& task);
+
+	UTIL_EXPORT void ExecuteConcurrency(contextConcurrency& ctx, const std::function<void(JobArgs)>& task);
 
 	// Divide a task onto multiple jobs and execute in parallel.
 	//	jobCount	: how many jobs to generate for this task.

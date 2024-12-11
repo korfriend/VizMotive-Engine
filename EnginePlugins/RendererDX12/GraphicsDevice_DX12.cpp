@@ -7944,4 +7944,14 @@ std::mutex queue_locker;
 		}
 	}
 
+
+	void GraphicsDevice_DX12::UpdateTexture(const Texture* texture, const void* data, const size_t dataSize) 
+	{
+		if (texture == nullptr || data == nullptr || texture->mapped_data == nullptr)
+			return;
+
+		Texture_DX12* internal_texture = to_internal(texture);
+
+		memcpy(texture->mapped_data, data, dataSize);
+	}
 }

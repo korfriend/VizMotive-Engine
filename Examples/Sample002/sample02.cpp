@@ -235,7 +235,7 @@ int main(int, char**)
 		geometry_test2->MakeTestTriangle();
 
 		vzm::VzTexture* texture = vzm::NewTexture("my texture");
-		texture->LoadImageFile("../Assets/testimage_2ns.jpg");
+		texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
 		material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
 		vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);

@@ -150,10 +150,15 @@ namespace vz
 			resourcemanager::Load(fileName, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA | resourcemanager::Flags::STREAMING)
 		);
 
-		resName_ = fileName;
 		Resource& resource = *resource_.get();
 		if (resource.IsValid())
 		{
+			if (resName_ != fileName)
+			{
+				resourcemanager::Delete(resName_);
+			}
+			resName_ = fileName;
+
 			graphics::Texture texture = resource.GetTexture();
 			width_ = texture.desc.width;
 			height_ = texture.desc.height;
@@ -172,22 +177,19 @@ namespace vz
 		const std::vector<uint8_t>& data, const TextureFormat textureFormat,
 		const uint32_t w, const uint32_t h, const uint32_t d)
 	{
-		if (resourcemanager::Contains(name))
-		{
-			resourcemanager::Delete(name);
-			//backlog::post("do not allow the same key for resource manager for TextureComponent::LoadMemory", backlog::LogLevel::Error);
-			//assert(0 && resourcemanager::Contains(name) && "do not allow the same key for resource manager for TextureComponent::LoadMemory");
-			//return false;
-		}
-
 		resource_ = std::make_shared<Resource>(
-			resourcemanager::LoadMemory(name, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, data.data(), w, h, d, textureFormat)
+			resourcemanager::LoadMemory(name, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, data.data(), w, h, d, textureFormat, false)
 		);
 
-		resName_ = name;
 		Resource& resource = *resource_.get();
 		if (resource.IsValid())
 		{
+			if (resName_ != name)
+			{
+				resourcemanager::Delete(resName_);
+			}
+			resName_ = name;
+
 			graphics::Texture texture = resource.GetTexture();
 			width_ = texture.desc.width;
 			height_ = texture.desc.height;
@@ -200,6 +202,12 @@ namespace vz
 		}
 		timeStampSetter_ = TimerNow;
 		return resource.IsValid();
+	}
+
+	bool TextureComponent::UpdateMemory(const std::vector<uint8_t>& data)
+	{
+		timeStampSetter_ = TimerNow;
+		return resourcemanager::UpdateTexture(resName_, data.data());
 	}
 
 	const XMFLOAT2 TextureComponent::GetTableValidBeginEndRatioX() const
@@ -535,12 +543,12 @@ namespace vz
 		}
 
 		static jobsystem::context ctx;
-		ctx.ignorePast = true;
-		ctx.timeStamp = TimerNow;
+		//ctx.ignorePast = true;
+		//ctx.timeStamp = TimerNow;
 		//jobsystem::Wait(ctx);
 
 		using namespace graphics;
-		jobsystem::Execute(ctx, [this, entityVisibleMap](jobsystem::JobArgs args) {
+		//jobsystem::Execute(ctx, [this, entityVisibleMap](jobsystem::JobArgs args) {
 
 			GTextureComponent* otf_texture = (GTextureComponent*)compfactory::GetTextureComponent(entityVisibleMap);
 			if (!otf_texture)
@@ -619,19 +627,28 @@ namespace vz
 				}
 			}
 
-			GPUBufferDesc desc;
-			desc.size = num_bits * 4;
-			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			//desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
-			desc.misc_flags = ResourceMiscFlag::NONE;
-			desc.format = Format::R32_UINT;
-			
-			visible_block_buffer = {};
-			bool success = device->CreateBuffer(&desc, bitmask_data, &visible_block_buffer);
-			assert(success);
-			device->SetName(&visible_block_buffer, "GVolumeComponent::visible_block_buffer");
-			
-		});
+			if (!visible_block_buffer.IsValid() || visible_block_buffer.GetDesc().size != num_bits * 4)
+			{
+				GPUBufferDesc desc;
+				desc.size = num_bits * 4;
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.misc_flags = ResourceMiscFlag::NONE;
+				desc.format = Format::R32_UINT;
+
+				bool success = device->CreateBuffer(&desc, bitmask_data, &visible_block_buffer);
+				assert(success);
+				device->SetName(&visible_block_buffer, "GVolumeComponent::visible_block_buffer");
+
+				// USE UPDATEBUFFER!!
+				//static std::mutex locker;
+				//std::scoped_lock lock(locker);
+			}
+			else
+			{
+				CommandList cmd = device->BeginCommandList(); // QUEUE_GRAPHICS
+				device->UpdateBuffer(&visible_block_buffer, bitmask_data, cmd);
+			}
+		//});
 
 		// garbage collection
 		std::vector<Entity> invalid_entities;
