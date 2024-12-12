@@ -108,6 +108,33 @@ namespace vz
 						parallelBounds[args.groupID] = *shared_bounds;
 					}
 				}
+
+				if (renderable->IsVolumeRenderable())
+				{
+					MaterialComponent* material = compfactory::GetMaterialComponent(renderable->GetMaterial(0));
+					assert(material);
+
+					GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
+						material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
+					assert(volume);
+					assert(volume->IsValidVolume());
+
+					TextureComponent* otf = compfactory::GetTextureComponentByVUID(
+						material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
+					assert(otf);
+					Entity entity_otf = otf->GetEntity();
+
+					if (!volume->GetBlockTexture().IsValid())
+					{
+						volume->UpdateVolumeMinMaxBlocks({ 8, 8, 8 });
+					}
+					XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
+					if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
+						|| volume->GetTimeStamp() < otf->GetTimeStamp())
+					{
+						volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
+					}
+				}
 			}
 		}, sizeof(geometrics::AABB));
 	}
