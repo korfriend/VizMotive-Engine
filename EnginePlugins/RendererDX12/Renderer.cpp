@@ -1254,6 +1254,8 @@ namespace vz
 
 namespace vz
 {
+	// camera-level GPU renderer updates
+	//	c.f., scene-level (including animations) GPU-side updates performed in GSceneDetails::Update(..)
 	void GRenderPath3DDetails::UpdateProcess(const float dt)
 	{
 		// Frustum culling for main camera:
@@ -2377,6 +2379,7 @@ namespace vz
 				prim_effect_buffers.wetmapCleared = true;
 			}
 		}
+
 		BarrierStackFlush(cmd);
 
 		if (scene_Gdetails->textureStreamingFeedbackBuffer.IsValid())
@@ -2598,17 +2601,7 @@ namespace vz
 				material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
 			assert(otf);
 			Entity entity_otf = otf->GetEntity();
-
-			if (!volume->GetBlockTexture().IsValid())
-			{
-				volume->UpdateVolumeMinMaxBlocks({ 8, 8, 8 });
-			}
 			XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
-			if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
-				|| volume->GetTimeStamp() < otf->GetTimeStamp())
-			{
-				volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
-			}
 
 			VolumePushConstants volume_push;
 			{

@@ -558,6 +558,9 @@ namespace vz
 				return;
 			}
 
+			// test code for concurrent queue behavior
+			//std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
 			GPUBlockBitmask& blobkBitmask = visibleBlockBitmasks_[entityVisibleMap];
 
 			uint num_blocksX = blocksSize_.x;
