@@ -196,17 +196,23 @@ namespace vz
 
 		// This needs to be handled a bit differently
 		
-		XMVECTOR quat = XMLoadFloat4(&rotation_);
-		XMVECTOR x = XMQuaternionRotationRollPitchYaw(rotAngles.x, 0, 0);
-		XMVECTOR y = XMQuaternionRotationRollPitchYaw(0, rotAngles.y, 0);
-		XMVECTOR z = XMQuaternionRotationRollPitchYaw(0, 0, rotAngles.z);
+		//XMVECTOR quat = XMLoadFloat4(&rotation_);
+		XMVECTOR quat = XMQuaternionIdentity();
+		//XMVECTOR x = XMQuaternionRotationRollPitchYaw(rotAngles.x, 0, 0);
+		//XMVECTOR y = XMQuaternionRotationRollPitchYaw(0, rotAngles.y, 0);
+		//XMVECTOR z = XMQuaternionRotationRollPitchYaw(0, 0, rotAngles.z);
+		XMVECTOR qZ = XMQuaternionRotationRollPitchYaw(0, 0, rotAngles.z);
+		XMVECTOR qX = XMQuaternionRotationRollPitchYaw(rotAngles.x, 0, 0);
+		XMVECTOR qY = XMQuaternionRotationRollPitchYaw(0, rotAngles.y, 0);
 
-		quat = XMQuaternionMultiply(x, quat);
-		quat = XMQuaternionMultiply(quat, y);
-		quat = XMQuaternionMultiply(z, quat);
-		quat = XMQuaternionNormalize(quat);
-
-		XMStoreFloat4(&rotation_, quat);
+		//quat = XMQuaternionMultiply(x, quat);
+		//quat = XMQuaternionMultiply(quat, y);
+		//quat = XMQuaternionMultiply(z, quat);
+		//quat = XMQuaternionNormalize(quat);
+		XMVECTOR finalQuat = XMQuaternionMultiply(qZ, XMQuaternionMultiply(qX, qY));
+		finalQuat = XMQuaternionNormalize(finalQuat);
+		//XMStoreFloat4(&rotation_, quat);
+		XMStoreFloat4(&rotation_, finalQuat);
 
 		timeStampSetter_ = TimerNow;
 	}

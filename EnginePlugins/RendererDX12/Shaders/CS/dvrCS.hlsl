@@ -75,27 +75,35 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			pos_hit_ws = pos_start_ws;
 	}
 
-	float3 ray_hit = pos_hit_ws - ray.Origin;
-	float z_hit = dot(ray_hit, GetCamera().forward);
-	float linear_depth = z_hit * GetCamera().z_far_rcp;
-	if (linear_depth >= inout_linear_depth[DTid.xy])
+	float3 vec_o2start = pos_hit_ws - ray.Origin;
+	float z_hit = dot(vec_o2start, camera.forward);
+	float linear_depth = z_hit * camera.z_far_rcp;
+
+	
+	// TODO : PIXELMASK for drawing outline (if required!!)
+	// 	store a value to the PIXEL MASK (bitpacking...)
+	//	use RWBuffer<UINT> atomic operation...
+
+
+	if (linear_depth >= inout_linear_depth[pixel])
 		return;
+
+
+	uint dvr_hit_enc = length(pos_hit_ws - pos_start_ws) < vol_instance.sample_dist ? DVR_SURFACE_ON_CLIPPLANE : DVR_SURFACE_OUTSIDE_CLIPPLANE;
 
 	if (BitCheck(vol_instance.flags, INST_JITTERING))
 	{
 		RNG rng;
 		rng.init(uint2(pixel), GetFrameCount());
 		// additional feature : https://koreascience.kr/article/JAKO201324947256830.pdf
-		pos_hit_ws -= rng.next_float() * vol_instance.sample_dist * ray.Direction;
+		float ray_dist_jitter = rng.next_float() * vol_instance.sample_dist;
+		pos_hit_ws -= ray_dist_jitter * ray.Direction;
+		linear_depth -= ray_dist_jitter;
+		vec_o2start = pos_hit_ws - ray.Origin;
 	}
+	float ray_dist_o2start = length(vec_o2start);
 
-	uint dvr_hit_enc = length(pos_hit_ws - pos_start_ws) < vol_instance.sample_dist ? DVR_SURFACE_ON_CLIPPLANE : DVR_SURFACE_OUTSIDE_CLIPPLANE;
-
-    if (dvr_hit_enc != DVR_SURFACE_OUTSIDE_VOLUME)
-    {
-        inout_color[DTid.xy] = float4(1, 1, 1, 1);
-        inout_linear_depth[DTid.xy] = linear_depth;
-    }
+	inout_linear_depth[pixel] = linear_depth;
 
 	// TODO: PROGRESSIVE SCHEME
 	// light map can be updated asynch as long as it can be used as UAV
@@ -107,4 +115,169 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	// tiled lighting?!
 	// ... light map ...
 
+	float4 color_out = (float4)0; // output
+	float cos = dot(camera.forward, ray.Direction);
+	float4 prev_color = inout_color[pixel];
+	float prev_ray_dist = FLT_MAX;
+	uint num_frags = 0;
+	Fragment fs[2];
+	if (prev_color.a > 0) {
+		float z = inout_linear_depth[pixel] * camera.z_far;
+		prev_ray_dist = z / cos;
+		Fragment f;
+		f.color = prev_color;
+		f.rayDist = prev_ray_dist;
+		f.thick = vol_instance.sample_dist;
+		f.opacitySum = prev_color.a;
+		fs[0] = f;
+		num_frags++;
+	}
+	fs[num_frags] = (Fragment)0;
+	fs[num_frags].rayDist = FLT_MAX;
+	//num_frags++;
+	uint index_frag = 0;
+	
+	Fragment frag = fs[0]; // if no frag, the z-depth is infinite
+
+	float3 dir_sample_ts = TransformVector(dir_sample_ws, vol_instance.mat_ws2ts); 
+	float3 pos_ray_start_ts = TransformPoint(pos_hit_ws, vol_instance.mat_ws2ts);
+
+	// --- gradient setting ---
+	float3 v_v = dir_sample_ts;
+	float3 uv_v = ray.Direction; // uv_v
+	float3 uv_u = camera.up;
+	float3 uv_r = cross(uv_v, uv_u); // uv_r
+	uv_u = normalize(cross(uv_r, uv_v)); // uv_u , normalize?! for precision
+	float3 v_u = TransformVector(uv_u * vol_instance.sample_dist, vol_instance.mat_ws2ts); // v_u
+	float3 v_r = TransformVector(uv_r * vol_instance.sample_dist, vol_instance.mat_ws2ts); // v_r
+	// -------------------------
+
+	int start_step = 0;
+	float sample_value = volume_main.SampleLevel(sampler_linear_clamp, pos_ray_start_ts, 0).r;
+
+	float sample_value_prev = volume_main.SampleLevel(sampler_linear_clamp, pos_ray_start_ts - v_v, 0).r;
+
+	if (dvr_hit_enc == DVR_SURFACE_ON_CLIPPLANE) // on the clip plane
+	{
+		float4 color = (float4) 0;
+		start_step++;
+
+		// unlit here
+#ifdef OTF_PREINTEGRATION
+		if (Vis_Volume_And_Check_Slab(color, sample_value, sample_value_prev, pos_ray_start_ts, volume_main, otf))
+#else
+		if (Vis_Volume_And_Check(color, sample_value, pos_ray_start_ts, volume_main, otf))
+#endif
+		{
+			IntermixSample(color_out, index_frag, color, ray_dist_o2start, vol_instance.sample_dist, num_frags, fs, 1.0);
+		}
+		sample_value_prev = sample_value;
+	}
+	
+	//{	// TEST
+	//	float4 color = (float4) 0;
+	//	//Vis_Volume_And_Check(color, sample_value, pos_ray_start_ts, volume_main, otf);
+    //	color = ApplyOTF(otf, sample_value, 0);
+	//	
+	//	//color = otf.SampleLevel(sampler_point_wrap, float2(0.8, 0), 0);
+	//	//color.a = 1;
+	//	//color.rgb *= color.a * volume.opacity_correction; // associated color
+	//	inout_color[pixel] = color;//float4(1, 0, 0, 1);
+	//	return;
+	//}
+
+	int sample_count = 0;
+
+	// load the base light 
+	//uint bucket = 0;
+	//uint bucket_bits = xForwardLightMask[bucket];
+	//const uint bucket_bit_index = firstbitlow(bucket_bits);
+	//const uint entity_index = bucket * 32 + bucket_bit_index;
+	//ShaderEntity base_light = load_entity(lights().first_item() + entity_index);
+	ShaderEntity base_light = load_entity(0);
+	float3 L = (float3)base_light.GetDirection();
+	float3 V = -ray.Direction;
+
+	//if (length(L) > 0)
+	//{
+	//	inout_color[pixel] = float4((L + (float3)1)/2.f, 1);
+	//	return;
+	//}
+
+	// light.GetType() : ENTITY_TYPE_DIRECTIONALLIGHT, ENTITY_TYPE_POINTLIGHT, ENTITY_TYPE_SPOTLIGHT //
+	// in this version, simply consider the directional light
+
+	[loop]
+	for (int step = start_step; step < num_ray_samples; step++)
+	{
+		float3 pos_sample_ts = pos_ray_start_ts + dir_sample_ts * (float)step;
+
+        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, step, buffer_bitmask)
+
+		[branch]
+		if (blkSkip.visible)
+		{
+			[loop]
+			for (int sub_step = 0; sub_step <= blkSkip.num_skip_steps; sub_step++)
+			{
+				//float3 pos_sample_blk_ws = pos_hit_ws + dir_sample_ws * (float) i;
+				float3 pos_sample_blk_ts = pos_ray_start_ts + dir_sample_ts * (float)(step + sub_step);
+
+				float4 color = (float4) 0;
+				if (sample_value_prev < 0) {
+					sample_value_prev = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_blk_ts - v_v, 0).r;
+				}
+#if OTF_PREINTEGRATION
+				if (Vis_Volume_And_Check_Slab(color, sample_value, sample_value_prev, pos_sample_blk_ts, volume_main, otf))
+#else
+				if (Vis_Volume_And_Check(color, sample_value, pos_sample_blk_ts, volume_main, otf))
+#endif
+				{
+					float3 G = GradientVolume3(sample_value, sample_value_prev, pos_sample_blk_ts, 
+												v_v, v_u, v_r, uv_v, uv_u, uv_r, volume_main);
+					float length_G = length(G);
+
+					float lighting = 1.f;
+					if (length_G > 0) {
+						// TODO using material attributes
+						float3 N = G / length_G;
+						lighting = saturate(PhongBlinnVR(V, L, N, float4(0.3, 0.3, 1.0, 100), false));
+
+						// TODO
+						// 
+						// Surface surface;
+						// surface.init();
+						// TiledLighting or ForwardLighting
+					}
+
+					color = float4(lighting * color.rgb, color.a);
+					float ray_dist = ray_dist_o2start + (float)(step + sub_step) * vol_instance.sample_dist;
+					IntermixSample(color_out, index_frag, color, ray_dist, vol_instance.sample_dist, num_frags, fs, 1.0);
+
+					if (color_out.a >= ERT_ALPHA)
+					{
+						sub_step = num_ray_samples;
+						step = num_ray_samples;
+						color_out.a = 1.f;
+						break;
+					}
+				} // if (Vis_Volume_And_...
+				sample_value_prev = sample_value;
+			} // for (int sub_step = 0; sub_step <= blkSkip.num_skip_steps; sub_step++)
+		} 
+		else
+		{
+			sample_count++;
+			sample_value_prev = -1;
+		} // if (blkSkip.visible)
+		step += blkSkip.num_skip_steps;
+	} // for (int step = start_step; step < num_ray_samples; step++)
+	
+	for (; index_frag < num_frags; ++index_frag)
+    {
+        float4 color = fs[index_frag].color;
+        color_out += color * (1.f - color_out.a);
+    }
+	
+    inout_color[pixel] = color_out;
 }

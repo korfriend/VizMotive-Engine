@@ -2628,10 +2628,6 @@ namespace vz
 
 			device->BindUAV(&rtMain, 0, cmd);
 			device->BindUAV(&rtLinearDepth, 1, cmd, 0);
-			device->BindUAV(&rtLinearDepth, 2, cmd, 1);
-			device->BindUAV(&rtLinearDepth, 3, cmd, 2);
-			device->BindUAV(&rtLinearDepth, 4, cmd, 3);
-			device->BindUAV(&rtLinearDepth, 5, cmd, 4);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
@@ -5053,14 +5049,13 @@ namespace vz
 	}
 	void AddDeferredTextureCopy(const graphics::Texture& texture_src, const graphics::Texture& texture_dst, const bool mipGen)
 	{
-		if (!texture_src.IsValid() || texture_dst.IsValid())
+		if (!texture_src.IsValid() || !texture_dst.IsValid())
 		{
 			return;
 		}
 		rcommon::deferredResourceLock.lock();
 		rcommon::deferredTextureCopy.push_back(std::make_pair(texture_src, texture_dst));
 		rcommon::deferredResourceLock.unlock();
-		std::vector<std::pair<Texture, Texture>> deferredTextureCopy;
 	}
 	void AddDeferredBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset)
 	{
