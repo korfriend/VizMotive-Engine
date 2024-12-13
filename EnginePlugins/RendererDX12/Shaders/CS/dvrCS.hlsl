@@ -76,7 +76,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	}
 
 	float3 vec_o2start = pos_hit_ws - ray.Origin;
-	float z_hit = dot(vec_o2start, camera.forward);
+	float3 cam_forward = camera.forward; // supposed to be a unit vector
+	float z_hit = dot(vec_o2start, cam_forward);
 	float linear_depth = z_hit * camera.z_far_rcp;
 
 	
@@ -84,10 +85,9 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	// 	store a value to the PIXEL MASK (bitpacking...)
 	//	use RWBuffer<UINT> atomic operation...
 
-
-	if (linear_depth >= inout_linear_depth[pixel])
+	float prev_z = inout_linear_depth[pixel];
+	if (linear_depth >= prev_z)
 		return;
-
 
 	uint dvr_hit_enc = length(pos_hit_ws - pos_start_ws) < vol_instance.sample_dist ? DVR_SURFACE_ON_CLIPPLANE : DVR_SURFACE_OUTSIDE_CLIPPLANE;
 
@@ -116,19 +116,20 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	// ... light map ...
 
 	float4 color_out = (float4)0; // output
-	float cos = dot(camera.forward, ray.Direction);
+	float cos = dot(cam_forward, ray.Direction);
 	float4 prev_color = inout_color[pixel];
-	float prev_ray_dist = FLT_MAX;
 	uint num_frags = 0;
 	Fragment fs[2];
-	if (prev_color.a > 0) {
-		float z = inout_linear_depth[pixel] * camera.z_far;
-		prev_ray_dist = z / cos;
+	if (prev_color.a > 0 && prev_z < 1.f) 
+	{
 		Fragment f;
-		f.color = prev_color;
-		f.rayDist = prev_ray_dist;
+		f.color = float4(prev_color.rgb, 1);
+		float z = prev_z * camera.z_far;
+		f.rayDist = z / cos;
+#ifdef FRAG_MERGING
 		f.thick = vol_instance.sample_dist;
-		f.opacitySum = prev_color.a;
+		f.opacitySum = 1.f;//prev_color.a;
+#endif
 		fs[0] = f;
 		num_frags++;
 	}
@@ -136,9 +137,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	fs[num_frags].rayDist = FLT_MAX;
 	//num_frags++;
 	uint index_frag = 0;
+	Fragment f_next_layer = fs[0];
 	
-	Fragment frag = fs[0]; // if no frag, the z-depth is infinite
-
 	float3 dir_sample_ts = TransformVector(dir_sample_ws, vol_instance.mat_ws2ts); 
 	float3 pos_ray_start_ts = TransformPoint(pos_hit_ws, vol_instance.mat_ws2ts);
 
@@ -169,23 +169,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		if (Vis_Volume_And_Check(color, sample_value, pos_ray_start_ts, volume_main, otf))
 #endif
 		{
-			IntermixSample(color_out, index_frag, color, ray_dist_o2start, vol_instance.sample_dist, num_frags, fs, 1.0);
+			IntermixSample(color_out, f_next_layer, index_frag, color, ray_dist_o2start, vol_instance.sample_dist, num_frags, fs, 1.0);
 		}
 		sample_value_prev = sample_value;
+		return;
 	}
 	
-	//{	// TEST
-	//	float4 color = (float4) 0;
-	//	//Vis_Volume_And_Check(color, sample_value, pos_ray_start_ts, volume_main, otf);
-    //	color = ApplyOTF(otf, sample_value, 0);
-	//	
-	//	//color = otf.SampleLevel(sampler_point_wrap, float2(0.8, 0), 0);
-	//	//color.a = 1;
-	//	//color.rgb *= color.a * volume.opacity_correction; // associated color
-	//	inout_color[pixel] = color;//float4(1, 0, 0, 1);
-	//	return;
-	//}
-
 	int sample_count = 0;
 
 	// load the base light 
@@ -198,15 +187,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	float3 L = (float3)base_light.GetDirection();
 	float3 V = -ray.Direction;
 
-	//if (length(L) > 0)
-	//{
-	//	inout_color[pixel] = float4((L + (float3)1)/2.f, 1);
-	//	return;
-	//}
-
-	// light.GetType() : ENTITY_TYPE_DIRECTIONALLIGHT, ENTITY_TYPE_POINTLIGHT, ENTITY_TYPE_SPOTLIGHT //
 	// in this version, simply consider the directional light
-
 	[loop]
 	for (int step = start_step; step < num_ray_samples; step++)
 	{
@@ -227,6 +208,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 				if (sample_value_prev < 0) {
 					sample_value_prev = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_blk_ts - v_v, 0).r;
 				}
+				sample_count++;
 #if OTF_PREINTEGRATION
 				if (Vis_Volume_And_Check_Slab(color, sample_value, sample_value_prev, pos_sample_blk_ts, volume_main, otf))
 #else
@@ -252,7 +234,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 					color = float4(lighting * color.rgb, color.a);
 					float ray_dist = ray_dist_o2start + (float)(step + sub_step) * vol_instance.sample_dist;
-					IntermixSample(color_out, index_frag, color, ray_dist, vol_instance.sample_dist, num_frags, fs, 1.0);
+					IntermixSample(color_out, f_next_layer, index_frag, color, ray_dist, vol_instance.sample_dist, num_frags, fs, 1.0);
 
 					if (color_out.a >= ERT_ALPHA)
 					{
@@ -267,17 +249,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		} 
 		else
 		{
-			sample_count++;
 			sample_value_prev = -1;
 		} // if (blkSkip.visible)
 		step += blkSkip.num_skip_steps;
+		//step -= 1;
 	} // for (int step = start_step; step < num_ray_samples; step++)
 	
-	for (; index_frag < num_frags; ++index_frag)
-    {
-        float4 color = fs[index_frag].color;
-        color_out += color * (1.f - color_out.a);
-    }
+    //inout_color[pixel] = float4(index_frag == 0? 1 : 0, index_frag == 1? 1 : 0, 0, 1);
+	//return;
+
+	if (color_out.a < ERT_ALPHA)
+	{
+		for (; index_frag < num_frags; ++index_frag)
+		{
+			float4 color = fs[index_frag].color;
+			color_out += color * (1.f - color_out.a);
+		}
+	}
 	
     inout_color[pixel] = color_out;
 }

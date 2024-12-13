@@ -8,7 +8,7 @@
 #define FRAG_MERGING
 #define ERT_ALPHA 0.98
 #define MAX_FRAGMENTS 2
-#define SAFE_OPAQUEALPHA 0.001
+#define SAFE_OPAQUEALPHA 0.999f // to avoid zero-divide
 
 PUSHCONSTANT(volume, VolumePushConstants);
 
@@ -579,6 +579,8 @@ float4 MixOpt(const in float4 vis1, const in float alphaw1, const in float4 vis2
 	return vout;
 }
 
+#ifdef FRAG_MERGING
+#define LINEAR_MODE 1
 Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta)
 {
 	// Overall algorithm computation cost 
@@ -610,7 +612,7 @@ Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta
 			fs_out.f_prior.rayDist = zfront_posterior_f;
 #if LINEAR_MODE == 1
 			{
-				f_m_prior_vis = f_prior_vis * (fs_out.f_prior.thick / f_prior.zthick);
+				f_m_prior_vis = f_prior_vis * (fs_out.f_prior.thick / f_prior.thick);
 			}
 #else
 			{
@@ -637,7 +639,6 @@ Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta
 			f_prior_vis = (f_prior_vis - f_m_prior_vis) / (1.f - f_m_prior_vis.a);
 
 			fs_out.f_prior.opacitySum = f_prior.opacitySum * f_m_prior_vis.a / old_alpha;
-			//f_prior.opacitySum = f_prior.opacitySum * f_prior_vis.a / old_alpha;
 			f_prior.opacitySum = f_prior.opacitySum - fs_out.f_prior.opacitySum;
 		}
 		else
@@ -649,7 +650,7 @@ Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta
 
 #if LINEAR_MODE == 1
 			{
-				f_m_prior_vis = f_posterior_vis * (fs_out.f_prior.thick / f_posterior.zthick);
+				f_m_prior_vis = f_posterior_vis * (fs_out.f_prior.thick / f_posterior.thick);
 			}
 #else
 			{
@@ -676,7 +677,6 @@ Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta
 			f_posterior_vis = (f_posterior_vis - f_m_prior_vis) / (1.f - f_m_prior_vis.a);
 
 			fs_out.f_prior.opacitySum = f_posterior.opacitySum * f_m_prior_vis.a / old_alpha;
-			//f_posterior.opacitySum = f_posterior.opacitySum * f_posterior_vis.a / old_alpha;
 			f_posterior.opacitySum = f_posterior.opacitySum - fs_out.f_prior.opacitySum;
 		}
 
@@ -685,7 +685,7 @@ Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta
 		fs_out.f_prior.rayDist = f_prior.rayDist;
 		float4 f_mid_vis = f_posterior_vis * (f_prior.thick / f_posterior.thick); // REDESIGN
 		float f_mid_alphaw = f_posterior.opacitySum * f_mid_vis.a / f_posterior_vis.a;
-		//float4 f_mid_mix_vis = BlendFloat4AndFloat4(f_mid_vis, f_prior_vis);
+		
 		float4 f_mid_mix_vis = MixOpt(f_mid_vis, f_mid_alphaw, f_prior_vis, f_prior.opacitySum);
 		f_m_prior_vis += f_mid_mix_vis * (1.f - f_m_prior_vis.a);
 		fs_out.f_prior.opacitySum += f_mid_alphaw + f_prior.opacitySum;
@@ -693,18 +693,17 @@ Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta
 		f_posterior.thick -= f_prior.thick;
 		float old_alpha = f_posterior_vis.a;
 		f_posterior_vis = (f_posterior_vis - f_mid_vis) / (1.f - f_mid_vis.a);
-		//f_posterior.opacitySum *= f_posterior_vis.a / old_alpha;
 		f_posterior.opacitySum -= f_mid_alphaw;
 
 		f_posterior.color = f_posterior_vis;
 		fs_out.f_prior.color = f_m_prior_vis;
 
-		if (f_posterior.color.a < SAFE_OPAQUEALPHA)
+		if (f_posterior.color.a == 0)
 		{
 			f_posterior.color = (float4)0;
 			f_posterior.thick = 0;
 		}
-		if (f_posterior.color.a < SAFE_OPAQUEALPHA)
+		if (fs_out.f_prior.color.a == 0)
 		{
 			fs_out.f_prior.color = (float4)0;
 			fs_out.f_prior.thick = 0;
@@ -713,9 +712,10 @@ Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta
 	fs_out.f_posterior = f_posterior;
 	return fs_out;
 }
+#endif
 
-inline void IntermixSample(inout float4 colorIntegrated, inout uint indexFrag, 
-	float4 color, const float rayDist, const float sampleThick, 
+inline void IntermixSample(inout float4 colorIntegrated, inout Fragment f_next_layer, inout uint indexFrag, 
+	const float4 color, const float rayDist, const float sampleThick, 
 	const uint numFrags, const Fragment fs[MAX_FRAGMENTS], 
 	const float mergingBeta) 
 {
@@ -729,81 +729,83 @@ inline void IntermixSample(inout float4 colorIntegrated, inout uint indexFrag,
         Fragment f_cur;
 		/*conversion to integer causes some color difference.. but negligible*/
         f_cur.color = color;
-        f_cur.rayDist = rayDist;
 #ifdef FRAG_MERGING
+        f_cur.rayDist = rayDist;
         f_cur.thick = sampleThick;
 		f_cur.opacitySum = color.a;
-		
-		Fragment f_incoming_layer = fs[indexFrag];
 #endif
         [loop]
         while (indexFrag < numFrags && f_cur.color.a > 0)
         {
-            if (color.a > ERT_ALPHA)
+#ifdef FRAG_MERGING	
+			if (f_cur.rayDist < f_next_layer.rayDist - f_next_layer.thick)
             {
-                indexFrag = numFrags;
-                break;
-            }
-			
-#ifdef FRAG_MERGING
-			if (f_cur.rayDist < f_incoming_layer.rayDist - f_incoming_layer.thick)
-            {
-				color += f_cur.color * (1.f - color.a);
+				colorIntegrated += f_cur.color * (1.f - colorIntegrated.a);
 				f_cur.color.a = 0;
                 break;
             }
-			else if (f_incoming_layer.rayDist < f_cur.rayDist - f_cur.thick)
+			else if (f_next_layer.rayDist < f_cur.rayDist - f_cur.thick)
             {
-				color += f_incoming_layer.color * (1.f - color.a);
-				f_incoming_layer = fs[++indexFrag];
+				colorIntegrated += f_next_layer.color * (1.f - colorIntegrated.a);
+				f_next_layer = fs[++indexFrag];
             }
 			else
 			{
 				Fragment f_prior, f_posterior; 
-				if (f_cur.rayDist > f_incoming_layer.rayDist)
+				if (f_cur.rayDist > f_next_layer.rayDist)
 				{
-					f_prior = f_incoming_layer; 
+					f_prior = f_next_layer; 
 					f_posterior = f_cur; 
 				}
 				else
 				{
 					f_prior = f_cur; 
-					f_posterior = f_incoming_layer; 
+					f_posterior = f_next_layer; 
 				}
 				Fragment_OUT fs_out = MergeFrags(f_prior, f_posterior, mergingBeta);
-				color += fs_out.f_prior.color * (1.f - color.a);
-				if (f_cur.rayDist > f_incoming_layer.rayDist)
+				colorIntegrated += fs_out.f_prior.color * (1.f - colorIntegrated.a);
+				if (f_cur.rayDist > f_next_layer.rayDist)
 				{
 					f_cur = fs_out.f_posterior;
-					f_incoming_layer = fs[++indexFrag];
+					f_next_layer = fs[++indexFrag];
 				}
 				else
 				{
 					f_cur.color = (float4)0; 
-					if (fs_out.f_posterior.color.a < SAFE_OPAQUEALPHA)
+					if (fs_out.f_posterior.color.a == 0)
 					{
-						f_incoming_layer = fs[++indexFrag]; 
+						f_next_layer = fs[++indexFrag]; 
 					}
 					else
-						f_incoming_layer = fs_out.f_posterior;
+					{
+						f_next_layer = fs_out.f_posterior;
+					}
 					break;
 				}
 			}
+            if (colorIntegrated.a > ERT_ALPHA)
+            {
+				indexFrag = numFrags;
+                break;
+            }
 #else
-			Fragment f_incoming_layer = fs[indexFrag];
-			float dist_diff = rayDist - f_incoming_layer.rayDist;
+			float dist_diff = rayDist - f_next_layer.rayDist;
 			float4 color_mix = color;
 			if (dist_diff >= 0) 
 			{
-				if (dist_diff < vol_instance.sample_dist) {
-					color_mix = MixOpt(color, color.a, f_incoming_layer.color, f_incoming_layer.color.a);
+				if (dist_diff < sampleThick) {
+					color_mix = MixOpt(color, color.a, f_next_layer.color, f_next_layer.color.a);
 					/*is_sample_used = true;*/ 
 				}
 				else {
-					color_mix = f_incoming_layer.color;
+					color_mix = f_next_layer.color;
 				}
 				colorIntegrated += color_mix * (1.f - colorIntegrated.a);
 				indexFrag++;
+                if (colorIntegrated.a > ERT_ALPHA)
+                {
+                    break;
+                }
 			}
 			else
 			{
@@ -812,14 +814,14 @@ inline void IntermixSample(inout float4 colorIntegrated, inout uint indexFrag,
 				break;
 			}
 #endif // FRAG_MERGING
-        } 
-#ifndef FRAG_MERGING
+        } // while (indexFrag < numFrags && f_cur.color.a > 0)
+#ifdef FRAG_MERGING
 		if (f_cur.color.a > 0)
 		{
 			colorIntegrated += f_cur.color * (1.f - colorIntegrated.a);
 		}
 #endif
-    }
+    } // if (indexFrag >= numFrags)
 }
 
 // toward directions from the fragment

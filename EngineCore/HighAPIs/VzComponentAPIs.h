@@ -238,6 +238,10 @@ namespace vzm
         ActorVID GetParent();
         std::vector<ActorVID> GetChildren();
 
+		void AppendChild(const VzBaseComp* child);
+		void DetachChild(const VzBaseComp* child);
+		void AttachToParent(const VzBaseComp* parent);
+
 		// note:
 		//	engine-level renderable components can belong to multiple scenes
 		//	high-level scene components can belong to a single scene

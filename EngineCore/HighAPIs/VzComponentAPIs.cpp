@@ -205,4 +205,30 @@ namespace vzm
 		}
 		return children;
 	}
+
+	void VzSceneComp::AppendChild(const VzBaseComp* child)
+	{
+		vzm::AppendSceneCompTo(child, this);
+	}
+	void VzSceneComp::DetachChild(const VzBaseComp* child)
+	{
+		if (child == nullptr)
+		{
+			return;
+		}
+		HierarchyComponent* hierarchy_child = compfactory::GetHierarchyComponent(child->GetVID());
+		if (hierarchy_child == nullptr)
+		{
+			return;
+		}
+		if (hierarchy_child->GetParentEntity() != componentVID_)
+		{
+			return;
+		}
+		hierarchy_child->SetParent(0u);
+	}
+	void VzSceneComp::AttachToParent(const VzBaseComp* parent)
+	{
+		vzm::AppendSceneCompTo(this, parent);
+	}
 }
