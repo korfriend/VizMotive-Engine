@@ -209,16 +209,20 @@ int main(int, char**)
 		light->SetLightIntensity(5.f);
 		light->SetPosition({ 0.f, 0.f, 100.f });
 		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
+		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
 		renderer->SetCanvas(1, 1, 96.f, nullptr);
 		renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
 
 		camera = NewCamera("my camera");
-		glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
+		glm::fvec3 pos(0, 0, 5), up(0, 1, 0), at(0, 0, -4);
 		glm::fvec3 view = at - pos;
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+		camera->SetPerspectiveProjection(0.1f, 100.f, 45.f, 1.f);
+
+		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		scene->AppendChild(axis_helper);
 
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 		geometry_test->MakeTestQuadWithUVs();
@@ -234,10 +238,12 @@ int main(int, char**)
 		material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
 		vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
+		scene->AppendChild(actor_test);
 		actor_test->SetScale({ 2.f, 2.f, 2.f });
 		actor_test->SetPosition({ 0, 0, -1.f });
 
 		vzm::VzActor* actor_test2 = vzm::NewActor("my actor2");
+		scene->AppendChild(actor_test2);
 		actor_test2->SetGeometry(geometry_test2);
 		actor_test2->SetPosition({ 0, -2, 0 });
 		vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
@@ -250,18 +256,47 @@ int main(int, char**)
 			material->SetBaseColor(colors[i]);
 		}
 
-		vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
-		geometry_stl->LoadGeometryFile("../Assets/stl_files/Anchorpin.stl");
-		vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
-		material_stl->SetShaderType(vzm::ShaderType::PBR);
-		material_stl->SetDoubleSided(true);
-		vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
-		actor_test3->SetScale({ 0.3f, 0.3f, 0.3f });
+		vzm::VzMaterial* material_volume = vzm::NewMaterial("volume material");
+		vzm::VzTexture* otf_volume = vzm::NewTexture("volume material's OTF");
+		const uint32_t otf_w = 256;
+		std::vector<uint8_t> otf_array(otf_w * 4 * 3);
+		for (size_t i = 0; i < otf_w; i++)
+		{
+			otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
+			otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
+			otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
+			otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
+				i < 210 ? (uint8_t)((float)(i - 180) / 30.f * 255.f) : 255;
 
-		vzm::AppendSceneCompTo(actor_test, scene);
-		vzm::AppendSceneCompTo(actor_test2, scene);
-		vzm::AppendSceneCompTo(actor_test3, scene);
-		vzm::AppendSceneCompTo(light, scene);
+			otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
+			otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
+			otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
+			otf_array[(otf_w * 4 * 1) + 4 * i + 3] = i < 100 ? 0 :
+				i < 200 ? (uint8_t)((float)(i - 100) / 100.f * 255.f) : 255;
+
+			otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
+			otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
+			otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
+			otf_array[(otf_w * 4 * 2) + 4 * i + 3] = i < 100 ? 0 :
+				i < 130 ? (uint8_t)((float)(i - 100) / 30.f * 255.f) : 255;
+
+		}
+		otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
+		otf_volume->UpdateLookup(otf_array, 180, 255);
+
+		vzm::VzActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
+		scene->AppendChild(volume_actor);
+
+		vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
+		{
+			vzm::ParamMap<std::string> io;
+			io.SetParam("filename", std::string("d:/aaa.dcm"));
+			io.SetParam("volume texture entity", volume->GetVID());
+			vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
+		}
+		material_volume->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
+		material_volume->SetLookupTable(otf_volume, vzm::LookupTableSlot::LOOKUP_OTF);
+
 
 		VzArchive* archive = vzm::NewArchive("test archive");
 		archive->Store(camera);

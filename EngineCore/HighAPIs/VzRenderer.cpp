@@ -152,10 +152,6 @@ namespace vzm
 		const float target_deltaTime = 1.0f / renderer->targetFrameRate;
 		if (renderer->framerateLock && dt < target_deltaTime)
 		{
-			if (renderer->frameskip)
-			{
-				return false;
-			}
 			helper::QuickSleep((target_deltaTime - dt) * 1000);
 			dt += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
 		}

@@ -19,5 +19,9 @@ namespace vzm
 		//void SetIBLRotation(float rotation);
 		//void SetSkyboxVisibleLayerMask(const uint8_t layerBits = 0x7, const uint8_t maskBits = 0x4);
 		//void SetLightmapVisibleLayerMask(const uint8_t layerBits = 0x3, const uint8_t maskBits = 0x2); // check where to set
+
+		void AppendChild(const VzBaseComp* child);
+		void DetachChild(const VzBaseComp* child);
+		void AttachToParent(const VzBaseComp* parent);
 	};
 }

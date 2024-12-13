@@ -593,7 +593,7 @@ namespace vz
 
 	void CameraComponent::SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up)
 	{
-		eye_ = eye; at_ = at; up_ = up; XMStoreFloat3(&forward_, XMLoadFloat3(&at) - XMLoadFloat3(&eye));
+		eye_ = eye; at_ = at; up_ = up; XMStoreFloat3(&forward_, XMVector3Normalize(XMLoadFloat3(&at) - XMLoadFloat3(&eye)));
 		isDirty_ = true;
 
 		TransformComponent* tr_comp = compfactory::GetTransformComponent(entity_);
