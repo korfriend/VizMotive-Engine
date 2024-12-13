@@ -5,6 +5,11 @@
 
 #define ITERATION_REFINESURFACE 5
 
+#define FRAG_MERGING
+#define ERT_ALPHA 0.98
+#define MAX_FRAGMENTS 2
+#define SAFE_OPAQUEALPHA 0.001
+
 PUSHCONSTANT(volume, VolumePushConstants);
 
 static const float SAMPLE_LEVEL_TEST = 0;
@@ -94,7 +99,7 @@ inline float3 TransformVector(in float3 vec_src, in float4x4 matT)
 	return mul((float3x3) matT, vec_src);
 }
 
-inline bool IsInsideClipBox(const in float3 pos_target, const in float4x4 mat_2_bs)
+inline bool IsInsideClipBox(const float3 pos_target, const float4x4 mat_2_bs)
 {
 	float3 pos_target_bs = TransformPoint(pos_target, mat_2_bs);
 	float3 _dot = (pos_target_bs + float3(0.5, 0.5, 0.5)) * (pos_target_bs - float3(0.5, 0.5, 0.5));
@@ -130,7 +135,7 @@ float2 ComputeClipBoxHits(const float3 pos_start, const float3 vec_dir, const fl
 	return hit_t;
 }
 
-float2 ComputePlaneHits(const in float prev_t, const in float next_t, const in float3 pos_onplane, const in float3 vec_plane, const in float3 pos_start, const in float3 vec_dir)
+float2 ComputePlaneHits(const float prev_t, const float next_t, const float3 pos_onplane, const float3 vec_plane, const float3 pos_start, const float3 vec_dir)
 {
 	float2 hits_t = float2(prev_t, next_t);
 
@@ -175,7 +180,7 @@ float2 ComputePlaneHits(const in float prev_t, const in float next_t, const in f
 	return hits_t;
 }
 
-bool IsInsideClipBound(const in float3 pos, const in uint flags, const in ShaderClipper clipper)
+bool IsInsideClipBound(const float3 pos, const uint flags, const ShaderClipper clipper)
 {
 	// Custom Clip Plane //
 	if (flags & INST_CLIPPLANE)
@@ -195,9 +200,9 @@ bool IsInsideClipBound(const in float3 pos, const in uint flags, const in Shader
 	return true;
 }
 
-float2 ComputeVBoxHits(const in float3 pos_start, const in float3 vec_dir, const in uint flags, 
-    const in float4x4 mat_vbox_2bs, 
-    const in ShaderClipper clipper)
+float2 ComputeVBoxHits(const float3 pos_start, const float3 vec_dir, const uint flags, 
+    const float4x4 mat_vbox_2bs, 
+    const ShaderClipper clipper)
 {
 	// Compute VObject Box Enter and Exit //
 	float2 hits_t = ComputeClipBoxHits(pos_start, vec_dir, mat_vbox_2bs);
@@ -233,7 +238,7 @@ struct BlockSkip
 	bool visible;
 	int num_skip_steps;
 };
-BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const in Buffer<uint> buffer_bitmask)
+BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const Buffer<uint> buffer_bitmask)
 {
 	BlockSkip blk_v = (BlockSkip)0;
 	int3 blk_id = pos_start_ts / singleblock_size_ts;
@@ -251,7 +256,7 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 	return blk_v;
 };
 
-float4 ApplyOTF(const in Texture2D otf, const in float sample_v, const in float idv)
+float4 ApplyOTF(const Texture2D otf, const float sample_v, const float idv)
 {
 	float4 color = otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
 	color.rgb *= color.a * volume.opacity_correction; // associated color
@@ -260,7 +265,7 @@ float4 ApplyOTF(const in Texture2D otf, const in float sample_v, const in float 
 
 // in this case, Texture2D is stored as R32G32B32A32_FLOAT 
 // 	the integration should be performed based on the float color of range [0,1]
-float4 ApplyPreintOTF(const in Texture2D otf, const float sample_v, float sample_v_prev, const in float idv)
+float4 ApplyPreintOTF(const Texture2D otf, const float sample_v, float sample_v_prev, const float idv)
 {
 	float4 color = (float4)0;
 
@@ -281,17 +286,37 @@ float4 ApplyPreintOTF(const in Texture2D otf, const float sample_v, float sample
 	return color;
 }
 
+float3 GradientVolume3(const float sampleV, const float samplePreV, const float3 pos_sample_ts,
+	const float3 vec_v, const float3 vec_u, const float3 vec_r, // TS from WS
+	const float3 uvec_v, const float3 uvec_u, const float3 uvec_r,
+	Texture3D tex3d_data)
+{
+	// note v, u, r are orthogonal for each other
+	// vec_u and vec_r are defined in TS, and each length is sample distance
+	// uvec_v, uvec_u, and uvec_r are unit vectors defined in WS
+	// samplePreV; //
+	//float dv = tex3d_data.SampleLevel(sampler_linear_clamp, pos_sample_ts - 1 * vec_v, 0).r - sampleV;
+	float dv = samplePreV - sampleV;
+	float du = tex3d_data.SampleLevel(sampler_linear_clamp, pos_sample_ts - 1 * vec_u, 0).r - sampleV;
+	float dr = tex3d_data.SampleLevel(sampler_linear_clamp, pos_sample_ts - 1 * vec_r, 0).r - sampleV;
+
+	float3 v_v = uvec_v * dv;
+	float3 v_u = uvec_u * du;
+	float3 v_r = uvec_r * dr;
+	return v_v + v_u + v_r;
+}
+
 // Sample_Volume_And_Check for SearchForemostSurface
 // Vis_Volume_And_Check for raycast-rendering
 #ifdef POST_INTERPOLATION // do not support mask volume
 bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample,
-	const in Texture3D volume_main)
+	const Texture3D volume_main)
 {
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 	return sample_v > visible_min_value;
 }
 bool Vis_Volume_And_Check(inout float4 color, const float3 pos_sample_ts,
-	const in Texture3D volume_main, const in Texture2D otf)
+	const Texture3D volume_main, const Texture2D otf)
 {
 	float3 pos_vs = float3(pos_sample_ts.x * g_cbVobj.vol_size.x - 0.5f, 
 		pos_sample_ts.y * g_cbVobj.vol_size.y - 0.5f, 
@@ -330,9 +355,9 @@ bool Vis_Volume_And_Check(inout float4 color, const float3 pos_sample_ts,
 }
 #else
 bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample,
-	const in Texture3D volume_main
+	const Texture3D volume_main
 #ifdef SCULPT_MASK
-	, const in Texture3D volume_mask
+	, const Texture3D volume_mask
 #endif 
 	)
 {
@@ -347,9 +372,9 @@ bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, c
 }
 
 bool Vis_Volume_And_Check(inout float4 color, inout float sample_v, const float3 pos_sample_ts,
-	const in Texture3D volume_main, const in Texture2D otf
+	const Texture3D volume_main, const Texture2D otf
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
-	, const in Texture3D volume_mask
+	, const Texture3D volume_mask
 #endif
 	)
 {
@@ -371,9 +396,9 @@ bool Vis_Volume_And_Check(inout float4 color, inout float sample_v, const float3
 }
 
 bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float sample_prev, const float3 pos_sample_ts,
-	const in Texture3D volume_main, const in Texture2D otf
+	const Texture3D volume_main, const Texture2D otf
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
-	, const in Texture3D volume_mask
+	, const Texture3D volume_mask
 #endif
 )
 {
@@ -400,9 +425,9 @@ bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float s
     BLK.num_skip_steps = min(BLK.num_skip_steps, N - I - 1);
 
 void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const float3 dir_sample_ws, const int num_ray_samples, const float4x4 mat_ws2ts,
-	const in Texture3D volume_main, const in Buffer<uint> buffer_bitmask
+	const Texture3D volume_main, const Buffer<uint> buffer_bitmask
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
-	, const in Texture3D volume_mask
+	, const Texture3D volume_mask
 #endif
 	)
 {
@@ -464,9 +489,9 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
 }
 
 void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, const float3 dir_sample_ws, const int num_refinement, const float4x4 mat_ws2ts, 
-	const in Texture3D volume_main
+	const Texture3D volume_main
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
-	, const in Texture3D volume_mask 
+	, const Texture3D volume_mask 
 #endif
 	)
 {
@@ -519,4 +544,294 @@ VolumeInstance GetVolumeInstance()
     VolumeInstance inst;
     inst.Init(); // texture_volume_blocks = -1;
     return inst;
+}
+
+struct Fragment
+{
+	float4 color; 
+	float rayDist; // note that the distance along the view-ray, not z value in CS
+#ifdef FRAG_MERGING
+	float thick;
+	float opacitySum;
+#endif
+};
+
+struct Fragment_OUT
+{
+	Fragment f_prior; // Includes current intermixed depth
+	Fragment f_posterior;
+};
+
+
+float4 MixOpt(const in float4 vis1, const in float alphaw1, const in float4 vis2, const in float alphaw2)
+{
+	float4 vout = (float4)0;
+	if (alphaw1 + alphaw2 > 0)
+	{
+		float3 C_mix1 = vis1.rgb / vis1.a * alphaw1;
+		float3 C_mix2 = vis2.rgb / vis2.a * alphaw2;
+		float3 I_mix = (C_mix1 + C_mix2) / (alphaw1 + alphaw2);
+		float T_mix1 = 1 - vis1.a;
+		float T_mix2 = 1 - vis2.a;
+		float A_mix = 1 - T_mix1 * T_mix2;
+		vout = float4(I_mix * A_mix, A_mix);
+	}
+	return vout;
+}
+
+Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta)
+{
+	// Overall algorithm computation cost 
+	// : 3 branches, 2 visibility interpolations, 2 visibility integrations, and 1 fusion of overlapping ray-segments
+
+	// f_prior and f_posterior mean f_prior.rayDist >= f_prior.z
+	Fragment_OUT fs_out;
+
+	float zfront_posterior_f = f_posterior.rayDist - f_posterior.thick;
+	if (f_prior.rayDist <= zfront_posterior_f)
+	{
+		// Case 1 : No Overlapping
+		fs_out.f_prior = f_prior;
+	}
+	else
+	{
+		float4 f_m_prior_vis;
+		float4 f_prior_vis = f_prior.color;
+		float4 f_posterior_vis = f_posterior.color;
+		f_prior_vis.a = min(f_prior_vis.a, SAFE_OPAQUEALPHA);
+		f_posterior_vis.a = min(f_posterior_vis.a, SAFE_OPAQUEALPHA);
+
+		float zfront_prior_f = f_prior.rayDist - f_prior.thick;
+		if (zfront_prior_f <= zfront_posterior_f)
+		{
+			// Case 2 : Intersecting each other
+			//fs_out.f_prior.thick = max(zfront_posterior_f - zfront_prior_f, 0); // to avoid computational precision error (0 or small minus)
+			fs_out.f_prior.thick = zfront_posterior_f - zfront_prior_f;
+			fs_out.f_prior.rayDist = zfront_posterior_f;
+#if LINEAR_MODE == 1
+			{
+				f_m_prior_vis = f_prior_vis * (fs_out.f_prior.thick / f_prior.zthick);
+			}
+#else
+			{
+				float zd_ratio = fs_out.f_prior.thick / f_prior.thick;
+				float Ad = f_prior_vis.a;
+				float3 Id = f_prior_vis.rgb / Ad;
+
+				// strict mode
+				float Az = Ad * zd_ratio * beta + (1 - beta) * (1 - pow(abs(1 - Ad), zd_ratio));
+				// approx. mode
+				//float term1 = zd_ratio * (1 - zd_ratio) / 2.f * Ad * Ad;
+				//float term2 = term1 * (2 - zd_ratio) / 3.f * Ad;
+				//float term3 = term2 * (3 - zd_ratio) / 4.f * Ad;
+				//float term4 = term3 * (4 - zd_ratio) / 5.f * Ad;
+				//float Az = Ad * zd_ratio + (1 - beta) * (term1 + term2 + term3 + term4 + term4 * (5 - zd_ratio) / 6.f * Ad);
+
+				float3 Cz = Id * Az;
+				f_m_prior_vis = float4(Cz, Az);
+			}
+#endif
+
+			float old_alpha = f_prior_vis.a;
+			f_prior.thick -= fs_out.f_prior.thick;
+			f_prior_vis = (f_prior_vis - f_m_prior_vis) / (1.f - f_m_prior_vis.a);
+
+			fs_out.f_prior.opacitySum = f_prior.opacitySum * f_m_prior_vis.a / old_alpha;
+			//f_prior.opacitySum = f_prior.opacitySum * f_prior_vis.a / old_alpha;
+			f_prior.opacitySum = f_prior.opacitySum - fs_out.f_prior.opacitySum;
+		}
+		else
+		{
+			// Case 3 : f_prior belongs to f_posterior
+			//fs_out.f_prior.thick = max(zfront_prior_f - zfront_posterior_f, 0); // to avoid computational precision error (0 or small minus)
+			fs_out.f_prior.thick = zfront_prior_f - zfront_posterior_f;
+			fs_out.f_prior.rayDist = zfront_prior_f;
+
+#if LINEAR_MODE == 1
+			{
+				f_m_prior_vis = f_posterior_vis * (fs_out.f_prior.thick / f_posterior.zthick);
+			}
+#else
+			{
+				float zd_ratio = fs_out.f_prior.thick / f_posterior.thick;
+				float Ad = f_posterior_vis.a;
+				float3 Id = f_posterior_vis.rgb / Ad;
+
+				// strict mode
+				float Az = Ad * zd_ratio * beta + (1 - beta) * (1 - pow(abs(1 - Ad), zd_ratio));
+				// approx. mode
+				//float term1 = zd_ratio * (1 - zd_ratio) / 2.f * Ad * Ad;
+				//float term2 = term1 * (2 - zd_ratio) / 3.f * Ad;
+				//float term3 = term2 * (3 - zd_ratio) / 4.f * Ad;
+				//float term4 = term3 * (4 - zd_ratio) / 5.f * Ad;
+				//float Az = Ad * zd_ratio + (1 - beta) * (term1 + term2 + term3 + term4 + term4 * (5 - zd_ratio) / 6.f * Ad);
+
+				float3 Cz = Id * Az;
+				f_m_prior_vis = float4(Cz, Az);
+			}
+#endif
+
+			float old_alpha = f_posterior_vis.a;
+			f_posterior.thick -= fs_out.f_prior.thick;
+			f_posterior_vis = (f_posterior_vis - f_m_prior_vis) / (1.f - f_m_prior_vis.a);
+
+			fs_out.f_prior.opacitySum = f_posterior.opacitySum * f_m_prior_vis.a / old_alpha;
+			//f_posterior.opacitySum = f_posterior.opacitySum * f_posterior_vis.a / old_alpha;
+			f_posterior.opacitySum = f_posterior.opacitySum - fs_out.f_prior.opacitySum;
+		}
+
+		// merge the fusion sub_rs (f_prior) to fs_out.f_prior
+		fs_out.f_prior.thick += f_prior.thick;
+		fs_out.f_prior.rayDist = f_prior.rayDist;
+		float4 f_mid_vis = f_posterior_vis * (f_prior.thick / f_posterior.thick); // REDESIGN
+		float f_mid_alphaw = f_posterior.opacitySum * f_mid_vis.a / f_posterior_vis.a;
+		//float4 f_mid_mix_vis = BlendFloat4AndFloat4(f_mid_vis, f_prior_vis);
+		float4 f_mid_mix_vis = MixOpt(f_mid_vis, f_mid_alphaw, f_prior_vis, f_prior.opacitySum);
+		f_m_prior_vis += f_mid_mix_vis * (1.f - f_m_prior_vis.a);
+		fs_out.f_prior.opacitySum += f_mid_alphaw + f_prior.opacitySum;
+
+		f_posterior.thick -= f_prior.thick;
+		float old_alpha = f_posterior_vis.a;
+		f_posterior_vis = (f_posterior_vis - f_mid_vis) / (1.f - f_mid_vis.a);
+		//f_posterior.opacitySum *= f_posterior_vis.a / old_alpha;
+		f_posterior.opacitySum -= f_mid_alphaw;
+
+		f_posterior.color = f_posterior_vis;
+		fs_out.f_prior.color = f_m_prior_vis;
+
+		if (f_posterior.color.a < SAFE_OPAQUEALPHA)
+		{
+			f_posterior.color = (float4)0;
+			f_posterior.thick = 0;
+		}
+		if (f_posterior.color.a < SAFE_OPAQUEALPHA)
+		{
+			fs_out.f_prior.color = (float4)0;
+			fs_out.f_prior.thick = 0;
+		}
+	}
+	fs_out.f_posterior = f_posterior;
+	return fs_out;
+}
+
+inline void IntermixSample(inout float4 colorIntegrated, inout uint indexFrag, 
+	float4 color, const float rayDist, const float sampleThick, 
+	const uint numFrags, const Fragment fs[MAX_FRAGMENTS], 
+	const float mergingBeta) 
+{
+	// rayDist refers to the distance from the ray origin to the backside of the sample slab 
+    if (indexFrag >= numFrags)
+    {
+        colorIntegrated += color * (1.f - colorIntegrated.a);
+    }
+    else
+    {
+        Fragment f_cur;
+		/*conversion to integer causes some color difference.. but negligible*/
+        f_cur.color = color;
+        f_cur.rayDist = rayDist;
+#ifdef FRAG_MERGING
+        f_cur.thick = sampleThick;
+		f_cur.opacitySum = color.a;
+		
+		Fragment f_incoming_layer = fs[indexFrag];
+#endif
+        [loop]
+        while (indexFrag < numFrags && f_cur.color.a > 0)
+        {
+            if (color.a > ERT_ALPHA)
+            {
+                indexFrag = numFrags;
+                break;
+            }
+			
+#ifdef FRAG_MERGING
+			if (f_cur.rayDist < f_incoming_layer.rayDist - f_incoming_layer.thick)
+            {
+				color += f_cur.color * (1.f - color.a);
+				f_cur.color.a = 0;
+                break;
+            }
+			else if (f_incoming_layer.rayDist < f_cur.rayDist - f_cur.thick)
+            {
+				color += f_incoming_layer.color * (1.f - color.a);
+				f_incoming_layer = fs[++indexFrag];
+            }
+			else
+			{
+				Fragment f_prior, f_posterior; 
+				if (f_cur.rayDist > f_incoming_layer.rayDist)
+				{
+					f_prior = f_incoming_layer; 
+					f_posterior = f_cur; 
+				}
+				else
+				{
+					f_prior = f_cur; 
+					f_posterior = f_incoming_layer; 
+				}
+				Fragment_OUT fs_out = MergeFrags(f_prior, f_posterior, mergingBeta);
+				color += fs_out.f_prior.color * (1.f - color.a);
+				if (f_cur.rayDist > f_incoming_layer.rayDist)
+				{
+					f_cur = fs_out.f_posterior;
+					f_incoming_layer = fs[++indexFrag];
+				}
+				else
+				{
+					f_cur.color = (float4)0; 
+					if (fs_out.f_posterior.color.a < SAFE_OPAQUEALPHA)
+					{
+						f_incoming_layer = fs[++indexFrag]; 
+					}
+					else
+						f_incoming_layer = fs_out.f_posterior;
+					break;
+				}
+			}
+#else
+			Fragment f_incoming_layer = fs[indexFrag];
+			float dist_diff = rayDist - f_incoming_layer.rayDist;
+			float4 color_mix = color;
+			if (dist_diff >= 0) 
+			{
+				if (dist_diff < vol_instance.sample_dist) {
+					color_mix = MixOpt(color, color.a, f_incoming_layer.color, f_incoming_layer.color.a);
+					/*is_sample_used = true;*/ 
+				}
+				else {
+					color_mix = f_incoming_layer.color;
+				}
+				colorIntegrated += color_mix * (1.f - colorIntegrated.a);
+				indexFrag++;
+			}
+			else
+			{
+				colorIntegrated += color_mix * (1.f - colorIntegrated.a);
+				/*is_sample_used = true;*/
+				break;
+			}
+#endif // FRAG_MERGING
+        } 
+#ifndef FRAG_MERGING
+		if (f_cur.color.a > 0)
+		{
+			colorIntegrated += f_cur.color * (1.f - colorIntegrated.a);
+		}
+#endif
+    }
+}
+
+// toward directions from the fragment
+float PhongBlinnVR(const float3 V, const float3 L, float3 N, const float4 phongFactor, const bool useAbs)
+{
+    float diff = dot(L, N);
+    if (useAbs)
+        diff = abs(diff);
+    else
+        diff = max(diff, 0);
+
+	float3 H = normalize(V + L);
+	float specular = pow(max(dot(N, H), 0.0), phongFactor.w);
+	return phongFactor.x + phongFactor.y * diff + phongFactor.z * specular;
 }

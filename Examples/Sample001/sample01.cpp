@@ -137,9 +137,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     cam->SetWorldPose(__FC3 p, __FC3 at, __FC3 u);
     
     cam->SetPerspectiveProjection(1.f, 100.f, 45.f, (float)w / (float)h);
-    
+
 	//vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
 	//root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
+	vzm::VzActor* axis_actor = vzm::LoadModelFile("../Assets/axis.obj");
+    //axis_actor->SetScale({ 2000, 2000, 2000 });
     
 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
 	geometry_test->MakeTestQuadWithUVs();
@@ -216,13 +218,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
     light_test->SetLightIntensity(5.f);
-    light_test->SetPosition({ 0.f, 0.f, 100.f });
+    light_test->SetPosition({ 0.f, 0.f, 100.f }); 
     light_test->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
 	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(actor_test2, scene);
 	vzm::AppendSceneCompTo(actor_test3, scene);
+	vzm::AppendSceneCompTo(axis_actor, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
+    
 	//vzm::AppendSceneCompTo(root_obj_actor, scene);
     
     // Main loop
@@ -250,7 +254,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		u = glm::rotateX(u, x_rot);
 		cam->SetWorldPose(__FC3 p, __FC3 v, __FC3 u);
 
-        static uint32_t index0 = 180, index1 = 210;
+        static uint32_t index0 = 120, index1 = 210;
         static bool add_index = true;
         {
             if (add_index)

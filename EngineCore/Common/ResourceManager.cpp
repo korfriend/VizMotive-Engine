@@ -1241,8 +1241,10 @@ namespace vz
 			if (!resource_internal->textureUpdate.IsValid())
 			{
 				TextureDesc desc = resource_internal->texture.GetDesc();
-				desc.bind_flags = BindFlag::NONE;
 				desc.usage = Usage::UPLOAD;
+				//desc.bind_flags = BindFlag::SHADER_RESOURCE;
+				//desc.misc_flags = ResourceMiscFlag::NO_DEFAULT_DESCRIPTORS;
+				desc.bind_flags = BindFlag::NONE;
 				desc.misc_flags = ResourceMiscFlag::NONE;
 
 				bool success = device->CreateTexture(&desc, nullptr, &resource->textureUpdate);

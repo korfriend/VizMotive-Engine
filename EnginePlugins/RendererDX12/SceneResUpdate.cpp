@@ -256,6 +256,27 @@ namespace vz
 							shader_material.volume_textures[i].sparse_feedbackmap_descriptor = volume_comp->GetSparseFeedbackmapDescriptor();
 						}
 					}
+					for (int i = 0; i < LOOKUPTABLE_COUNT; ++i)
+					{
+						VUID lookup_vuid = material.GetLookupTableVUID(static_cast<MaterialComponent::LookupTableSlot>(i));
+						GTextureComponent* lookup_comp = nullptr;
+						if (lookup_vuid != INVALID_VUID)
+						{
+							lookup_comp = (GTextureComponent*)compfactory::GetComponentByVUID(lookup_vuid);
+							assert(lookup_comp && lookup_comp->GetComponentType() == ComponentType::TEXTURE);
+							shader_material.lookup_textures[i].uvset_lodclamp = (lookup_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(lookup_comp->GetLodClamp()) << 1u);
+							if (lookup_comp->IsValid())
+							{
+								shader_material.lookup_textures[i].texture_descriptor = device->GetDescriptorIndex(lookup_comp->GetGPUResource(), SubresourceType::SRV, -1);
+							}
+							else
+							{
+								shader_material.lookup_textures[i].texture_descriptor = -1;
+							}
+							shader_material.lookup_textures[i].sparse_residencymap_descriptor = lookup_comp->GetSparseResidencymapDescriptor();
+							shader_material.lookup_textures[i].sparse_feedbackmap_descriptor = lookup_comp->GetSparseFeedbackmapDescriptor();
+						}
+					}
 
 					if (material.samplerDescriptor < 0)
 					{
