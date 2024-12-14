@@ -294,7 +294,6 @@ float3 GradientVolume3(const float sampleV, const float samplePreV, const float3
 	// note v, u, r are orthogonal for each other
 	// vec_u and vec_r are defined in TS, and each length is sample distance
 	// uvec_v, uvec_u, and uvec_r are unit vectors defined in WS
-	// samplePreV; //
 	//float dv = tex3d_data.SampleLevel(sampler_linear_clamp, pos_sample_ts - 1 * vec_v, 0).r - sampleV;
 	float dv = samplePreV - sampleV;
 	float du = tex3d_data.SampleLevel(sampler_linear_clamp, pos_sample_ts - 1 * vec_u, 0).r - sampleV;
@@ -563,7 +562,7 @@ struct Fragment_OUT
 };
 
 
-float4 MixOpt(const in float4 vis1, const in float alphaw1, const in float4 vis2, const in float alphaw2)
+float4 MixOpt(const float4 vis1, const float alphaw1, const float4 vis2, const float alphaw2)
 {
 	float4 vout = (float4)0;
 	if (alphaw1 + alphaw2 > 0)
@@ -825,14 +824,9 @@ inline void IntermixSample(inout float4 colorIntegrated, inout Fragment f_next_l
 }
 
 // toward directions from the fragment
-float PhongBlinnVR(const float3 V, const float3 L, float3 N, const float4 phongFactor, const bool useAbs)
+float PhongBlinnVR(const float3 V, const float3 L, float3 N, const float4 phongFactor)
 {
-    float diff = dot(L, N);
-    if (useAbs)
-        diff = abs(diff);
-    else
-        diff = max(diff, 0);
-
+    float diff = max(dot(L, N), 0.f);
 	float3 H = normalize(V + L);
 	float specular = pow(max(dot(N, H), 0.0), phongFactor.w);
 	return phongFactor.x + phongFactor.y * diff + phongFactor.z * specular;

@@ -39,7 +39,7 @@ namespace vz::jobsystem
 				std::scoped_lock lock(locker);
 				if (ctx->counter > max_ctx_counter.load())
 				{
-					backlog::post("max_ctx_counter " + std::to_string(ctx->counter), LogLevel::Info);
+					backlog::post("max queue count: " + std::to_string(ctx->counter), LogLevel::Info);
 					max_ctx_counter = ctx->counter;
 				}
 			}
