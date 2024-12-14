@@ -2626,8 +2626,16 @@ namespace vz
 				volume_push.blocks_wh = blocks_size.x * blocks_size.y;
 			}
 
-			device->BindUAV(&rtMain, 0, cmd);
-			device->BindUAV(&rtLinearDepth, 1, cmd, 0);
+			if (rtMain.IsValid() && rtLinearDepth.IsValid())
+			{
+				device->BindUAV(&rtMain, 0, cmd);
+				device->BindUAV(&rtLinearDepth, 1, cmd, 0);
+			}
+			else
+			{
+				device->BindUAV(&unbind, 0, cmd);
+				device->BindUAV(&unbind, 1, cmd);
+			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
@@ -2642,6 +2650,9 @@ namespace vz
 				1,
 				cmd
 			);
+
+			device->BindUAV(&unbind, 0, cmd);
+			device->BindUAV(&unbind, 1, cmd);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));

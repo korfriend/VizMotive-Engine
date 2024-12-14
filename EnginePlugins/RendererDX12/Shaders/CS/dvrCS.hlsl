@@ -223,7 +223,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 					if (length_G > 0) {
 						// TODO using material attributes
 						float3 N = G / length_G;
-						lighting = saturate(PhongBlinnVR(V, L, N, float4(0.3, 0.3, 1.0, 100), false));
+						lighting = saturate(PhongBlinnVR(V, L, N, float4(0.3, 0.3, 1.0, 100)));
 
 						// TODO
 						// 
@@ -254,9 +254,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		step += blkSkip.num_skip_steps;
 		//step -= 1;
 	} // for (int step = start_step; step < num_ray_samples; step++)
-	
-    //inout_color[pixel] = float4(index_frag == 0? 1 : 0, index_frag == 1? 1 : 0, 0, 1);
-	//return;
 
 	if (color_out.a < ERT_ALPHA)
 	{
