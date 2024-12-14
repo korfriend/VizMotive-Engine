@@ -3519,7 +3519,7 @@ namespace vz
 				for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 				{
 					const Primitive& part = parts[part_index];
-					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGBuffer(part_index);
+					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGPrimBuffer(part_index);
 
 					uint32_t material_index = instancedBatch.materialIndices[part_index];
 					const GMaterialComponent& material = *scene_Gdetails->materialComponents[material_index];

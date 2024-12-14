@@ -30,7 +30,7 @@ namespace vz
 			float tessealation_factor = geometry.GetTessellationFactor();
 			for (size_t part_index = 0, n = primitives.size(); part_index < n; ++part_index)
 			{
-				GPrimBuffers* prim_buffer_ptr = geometry.GetGBuffer(part_index);
+				GPrimBuffers* prim_buffer_ptr = geometry.GetGPrimBuffer(part_index);
 				if (!prim_buffer_ptr)
 					continue;
 
@@ -442,15 +442,24 @@ namespace vz
 				matrixRenderablesPrev[args.jobIndex] = world_matrix_prev;
 				matrixRenderables[args.jobIndex] = world_matrix;
 
+				// transformRaw is defined in OS itself
+				// transform and transformPrev are defined in UNORM space of OS
+				// if there is no UNORM-space-defined buffers, 
+				//	then transform and transformPrev are the same as transformRaw
 				inst.transformRaw.Create(world_matrix);
+				if (IsFormatUnorm(geometry.positionFormat) && !geometry.GetGPrimBuffer(0)->soPosW.IsValid())
+				{
+					// The UNORM correction is only done for the GPU data!
+					XMMATRIX R = geometry.GetAABB().getUnormRemapMatrix();
+					XMStoreFloat4x4(&world_matrix, R * XMLoadFloat4x4(&world_matrix));
+					XMStoreFloat4x4(&world_matrix_prev, R * XMLoadFloat4x4(&world_matrix_prev));
+				}
 				inst.transform.Create(world_matrix);
 				inst.transformPrev.Create(world_matrix_prev);
 
-				// Get the quaternion from W because that reflects changes by other components (eg. softbody)
 				XMMATRIX W = XMLoadFloat4x4(&world_matrix);
 				XMVECTOR S, R, T;
 				XMMatrixDecompose(&S, &R, &T, W);
-				XMStoreFloat4(&inst.quaternion, R);
 				float size = std::max(XMVectorGetX(S), std::max(XMVectorGetY(S), XMVectorGetZ(S)));
 
 				const geometrics::AABB& aabb = renderable.GetAABB();

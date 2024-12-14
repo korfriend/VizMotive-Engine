@@ -250,6 +250,12 @@ struct alignas(16) ShaderTransform
 			0, 0, 0, 1
 		);
 	}
+#ifndef __cplusplus
+	float3x3 GetMatrixAdjoint()
+	{
+		return adjoint(GetMatrix());
+	}
+#endif // __cplusplus
 };
 
 
@@ -283,7 +289,6 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 	uint color;
 	int lightmap;
 
-	float4 quaternion;
 	ShaderTransform transform;
 	ShaderTransform transformPrev;
 	ShaderTransform transformRaw; // without quantization remapping applied
@@ -313,7 +318,6 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 		color = ~0u;
 		lightmap = -1;
 		
-		quaternion = float4(0, 0, 0, 1);
 		rimHighlight = uint2(0, 0);
 		transform.Init();
 		transformPrev.Init();

@@ -49,7 +49,6 @@ struct VolumeInstance
 	uint color;
 	int lightmap;
 	uint2 rimHighlight;
-	//float4 quaternion;
 
 #ifndef __cplusplus
     void Init()
