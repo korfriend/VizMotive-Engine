@@ -261,11 +261,11 @@ struct VertexSurface
 			ao = 1;
 		}
 
-		normal = rotate_vector(normal, (half4)input.GetInstance().quaternion);
+		normal = mul(input.GetInstance().transformRaw.GetMatrixAdjoint(), normal);
 		normal = any(normal) ? normalize(normal) : 0;
 
 		tangent = input.GetTangent();
-		tangent.xyz = rotate_vector(tangent.xyz, (half4)input.GetInstance().quaternion);
+		tangent.xyz = mul(input.GetInstance().transformRaw.GetMatrixAdjoint(), tangent.xyz);
 		tangent.xyz = any(tangent.xyz) ? normalize(tangent.xyz) : 0;
 		
 		uvsets = input.GetUVSets();

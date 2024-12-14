@@ -121,7 +121,7 @@ namespace vz
 			return graphics::GetIndexBufferFormat((uint32_t)parts_[slot].GetNumIndices());
 		}
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
-		GPrimBuffers* GetGBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
+		GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
 		void UpdateRenderData() override;
 		void DeleteRenderData() override;
 		void UpdateStreamoutRenderData();
