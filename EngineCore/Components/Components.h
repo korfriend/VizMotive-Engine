@@ -40,6 +40,17 @@ namespace vz
 	struct GScene;
 	struct Resource;
 
+	enum class RenderableFilterFlags
+	{
+		RENDERABLE_MESH_OPAQUE = 1 << 0,
+		RENDERABLE_MESH_TRANSPARENT = 1 << 1,
+		RENDERABLE_MESH_NAVIGATION = 1 << 3,
+		RENDERABLE_COLLIDER = 1 << 4,
+		RENDERABLE_VOLUME_DVR = 1 << 5,
+		// Include everything:
+		RENDERABLE_ALL = ~0,
+	};
+
 	struct CORE_EXPORT Scene
 	{
 	public:
@@ -80,11 +91,23 @@ namespace vz
 		// TODO
 		// camera for reflection 
 
+		// -----------------------------------------
 		// Non-serialized attributes:
+		//	Note: transform states are based on those streams
 		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
 		std::unordered_map<Entity, size_t> lookupLights_;
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
+
+		// AABB culling streams:
+		std::vector<geometrics::AABB> aabbRenderables_;
+		std::vector<geometrics::AABB> aabbLights_;
+		//std::vector<geometrics::AABB> aabbProbes_;
+		//std::vector<geometrics::AABB> aabbDecals_;
+
+		// Separate stream of world matrices:
+		std::vector<XMFLOAT4X4> matrixRenderables_;
+		std::vector<XMFLOAT4X4> matrixRenderablesPrev_;
 
 		std::shared_ptr<Resource> skyMap_;
 		std::shared_ptr<Resource> colorGradingMap_;
@@ -200,6 +223,41 @@ namespace vz
 			entities.insert(entities.end(), lights_.begin(), lights_.end());
 			return entities.size();
 		}
+
+		//----------- stream states -------------
+		inline const std::vector<XMFLOAT4X4>& GetRenderableWorldMatrices() const { return matrixRenderables_; }
+		inline const std::vector<XMFLOAT4X4>& GetRenderableWorldMatricesPrev() const { return matrixRenderablesPrev_; }
+
+
+		struct RayIntersectionResult
+		{
+			Entity entity = INVALID_ENTITY;
+			XMFLOAT3 position = XMFLOAT3(0, 0, 0);
+			XMFLOAT3 normal = XMFLOAT3(0, 0, 0);
+			XMFLOAT4 uv = XMFLOAT4(0, 0, 0, 0);
+			XMFLOAT3 velocity = XMFLOAT3(0, 0, 0);
+			float distance = std::numeric_limits<float>::max();
+			int subsetIndex = -1;
+			int vertexID0 = -1;
+			int vertexID1 = -1;
+			int vertexID2 = -1;
+			XMFLOAT2 bary = XMFLOAT2(0, 0);
+			XMFLOAT4X4 orientation = math::IDENTITY_MATRIX;
+
+			constexpr bool operator==(const RayIntersectionResult& other) const
+			{
+				return entity == other.entity;
+			}
+		};
+		// Given a ray, finds the closest intersection point against all mesh instances or collliders
+		//	ray				:	the incoming ray that will be traced
+		//	filterMask		:	filter based on type
+		//	layerMask		:	filter based on layer
+		//	lod				:	specify min level of detail for meshes
+		RayIntersectionResult Intersects(const geometrics::Ray& ray, 
+			uint32_t filterMask = SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE), 
+			uint32_t layerMask = ~0, uint32_t lod = 0) const;
+
 
 		/**
 		 * Read/write scene components (renderables and lights), make sure their VUID-based components are serialized first
@@ -585,12 +643,20 @@ namespace vz
 			std::shared_ptr<void> bufferHandle_;	// 'void' refers to GGeometryComponent::GBuffer
 			Entity recentBelongingGeometry_ = INVALID_ENTITY;
 
-			// BVH...
+			// BVH
+			std::vector<geometrics::AABB> bvhLeafAabbs;
+			geometrics::BVH bvh;
+
 			// OpenMesh-based data structures for acceleration / editing
 
 			//std::shared_ptr<Resource> internalBlock_;
 
 			void updateGpuEssentials(); // supposed to be called in GeometryComponent
+
+			// CPU-side BVH acceleration structure
+			//	true: BVH will be built immediately if it doesn't exist yet
+			//	false: BVH will be deleted immediately if it exists
+			void updateBVH(const bool enabled);
 
 		public:
 			mutable bool autoUpdateRenderData = true;
@@ -612,6 +678,7 @@ namespace vz
 			inline bool IsValid() const { return vertexPositions_.size() > 0 && aabb_.IsValid(); }
 			inline void SetAABB(const geometrics::AABB& aabb) { aabb_ = aabb; }
 			inline void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
+			inline bool IsValidBVH() const { return bvh.IsValid(); };
 
 			// ----- Getters -----
 			inline const std::vector<XMFLOAT3>& GetVtxPositions() const { return vertexPositions_; }
@@ -668,6 +735,7 @@ namespace vz
 		// Non-serialized attributes
 		bool isDirty_ = true;	// BVH, AABB, ...
 		bool hasRenderData_ = false;
+		bool autoUpdateBVH_ = true;
 		geometrics::AABB aabb_; // not serialized (automatically updated)
 		//bool hasBVH_ = false;
 
@@ -675,6 +743,7 @@ namespace vz
 	public:
 		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
 
+		bool IsAutoUpdateBVH() const { return autoUpdateBVH_; }
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
 		void MovePrimitivesFrom(std::vector<Primitive>&& primitives);
@@ -689,6 +758,8 @@ namespace vz
 		size_t GetNumParts() const { return parts_.size(); }
 		void SetTessellationFactor(const float tessllationFactor) { tessellationFactor_ = tessllationFactor; }
 		float GetTessellationFactor() const { return tessellationFactor_; }
+
+		void SetBVHEnabled(const bool enabled);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -860,6 +931,7 @@ namespace vz
 		const std::vector<uint8_t>& GetData() const;
 		int GetFontStyle() const;
 
+		std::string GetResourceName() const { return resName_; }
 		inline uint32_t GetWidth() const { return width_; }
 		inline uint32_t GetHeight() const { return height_; }
 		inline uint32_t GetDepth() const { return depth_; }

@@ -324,15 +324,12 @@ namespace vz
 	void GSceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
 	{
 		size_t num_renderables = renderableComponents.size();
-		matrixRenderables.resize(num_renderables);
-		matrixRenderablesPrev.resize(num_renderables);
 		occlusionResultsObjects.resize(num_renderables);
 
 		// GPUs
 		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			GRenderableComponent& renderable = *renderableComponents[args.jobIndex];
-			TransformComponent* transform = compfactory::GetTransformComponent(renderable.GetEntity());
 
 			// Update occlusion culling status:
 			OcclusionResult& occlusion_result = occlusionResultsObjects[args.jobIndex];
@@ -355,8 +352,12 @@ namespace vz
 			}
 			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
 
+			XMFLOAT4X4 world_matrix_prev = scene_->GetRenderableWorldMatricesPrev()[args.jobIndex];
+			XMFLOAT4X4 world_matrix = scene_->GetRenderableWorldMatrices()[args.jobIndex];
+
 			renderable.renderFlags = 0u;
 			renderable.renderableIndex = ~0u;
+
 			if (renderable.IsMeshRenderable())
 			{
 				// These will only be valid for a single frame:
@@ -436,11 +437,6 @@ namespace vz
 				}
 
 				renderable.sortBits = sort_bits.value;
-
-				XMFLOAT4X4 world_matrix_prev = matrixRenderables[args.jobIndex];
-				XMFLOAT4X4 world_matrix = transform->GetWorldMatrix();
-				matrixRenderablesPrev[args.jobIndex] = world_matrix_prev;
-				matrixRenderables[args.jobIndex] = world_matrix;
 
 				// transformRaw is defined in OS itself
 				// transform and transformPrev are defined in UNORM space of OS
@@ -553,7 +549,7 @@ namespace vz
 				//inst.quaternion = ?? decompose of W and assign R to it
 
 				// ----- volume attributes -----
-				const XMFLOAT4X4& mat_os2ws = transform->GetWorldMatrix();
+				const XMFLOAT4X4& mat_os2ws = world_matrix;
 				XMMATRIX xmat_os2ws = XMLoadFloat4x4(&mat_os2ws);
 				XMMATRIX xmat_ws2os = XMMatrixInverse(NULL, xmat_os2ws);
 				XMMATRIX xmat_os2vs = XMLoadFloat4x4(&volume->GetMatrixOS2VS());
@@ -563,11 +559,7 @@ namespace vz
 				XMFLOAT4X4 mat_ws2ts;
 				XMStoreFloat4x4(&mat_ws2ts, xmat_ws2ts);
 
-				XMFLOAT4X4 world_matrix_prev = matrixRenderables[args.jobIndex];
-				matrixRenderablesPrev[args.jobIndex] = world_matrix_prev;
-				matrixRenderables[args.jobIndex] = mat_ws2ts;
-
-				inst.transform.Create(mat_ws2ts);
+				inst.transform.Create(mat_ws2ts);	
 				inst.transformPrev.Create(world_matrix_prev);
 
 				const geometrics::AABB& aabb_vol = volume->ComputeAABB();
@@ -576,7 +568,7 @@ namespace vz
 				XMMATRIX xmat_alignedvbox_ws2bs = xmat_ws2os * xmat_s;
 				XMFLOAT4X4 mat_alignedvbox_ws2bs;
 				XMStoreFloat4x4(&mat_alignedvbox_ws2bs, xmat_alignedvbox_ws2bs);
-				inst.transformRaw.Create(mat_alignedvbox_ws2bs);
+				inst.transformRaw.Create(mat_alignedvbox_ws2bs); // TODO... this is supposed to be world_matrix
 
 				inst.resLookupIndex = Scene::GetIndex(materialEntities, material.GetEntity());
 				const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();

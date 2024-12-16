@@ -113,6 +113,7 @@ namespace vz
 			Primitive& prim = parts_[i];
 
 			prim.updateGpuEssentials();	// update prim.aabb_
+			prim.updateBVH(autoUpdateBVH_);
 
 			aabb_._max = math::Max(aabb_._max, prim.aabb_._max);
 			aabb_._min = math::Min(aabb_._min, prim.aabb_._min);
@@ -276,6 +277,47 @@ namespace vz
 				uvRangeMin_ = math::Min(uvRangeMin_, uv0_stream[i]);
 				uvRangeMin_ = math::Min(uvRangeMin_, uv1_stream[i]);
 			}
+		}
+	}
+
+	void Primitive::updateBVH(const bool enabled)
+	{
+		if (!enabled)
+		{
+			bvhLeafAabbs.clear();
+		}
+		else if (!bvh.IsValid())
+		{
+			uint32_t index_count = indexPrimitives_.size();
+			if (index_count == 0)
+				return;
+
+			if (ptype_ == PrimitiveType::TRIANGLES)
+			{
+				const uint32_t triangle_count = index_count / 3;
+				for (uint32_t triangle_index = 0; triangle_index < triangle_count; ++triangle_index)
+				{
+					const uint32_t i0 = indexPrimitives_[triangle_index * 3 + 0];
+					const uint32_t i1 = indexPrimitives_[triangle_index * 3 + 1];
+					const uint32_t i2 = indexPrimitives_[triangle_index * 3 + 2];
+					const XMFLOAT3& p0 = vertexPositions_[i0];
+					const XMFLOAT3& p1 = vertexPositions_[i1];
+					const XMFLOAT3& p2 = vertexPositions_[i2];
+					geometrics::AABB aabb = geometrics::AABB(math::Min(p0, math::Min(p1, p2)), math::Max(p0, math::Max(p1, p2)));
+					aabb.layerMask = triangle_index;
+					//aabb.userdata = part_index;
+					bvhLeafAabbs.push_back(aabb);
+				}
+				bvh.Build(bvhLeafAabbs.data(), (uint32_t)bvhLeafAabbs.size());
+			}
+			else
+			{
+				backlog::post("Current BVH is only supported for triangle meshes!", backlog::LogLevel::Warn);
+			}
+		}
+		else
+		{
+			backlog::post("BVH is already updated. so ignore the update request!", backlog::LogLevel::Warn);
 		}
 	}
 
@@ -663,6 +705,19 @@ namespace vz
 	//	CreateRenderData(); // mesh shader needs to rebuild clusters, otherwise wouldn't be needed
 	//	return ret;
 	//}
+}
+
+namespace vz
+{
+	void GeometryComponent::SetBVHEnabled(const bool enabled)
+	{
+		autoUpdateBVH_ = enabled;
+
+		for (Primitive& prim : parts_)
+		{
+			prim.updateBVH(enabled);
+		}
+	}
 }
 
 using uint = uint32_t;

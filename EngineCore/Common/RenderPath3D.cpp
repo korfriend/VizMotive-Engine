@@ -198,14 +198,14 @@ namespace vz
 		return hash;
 	}
 
+	constexpr static size_t HASH_PRIMITIVE_ID = FNV1aHash("PRIMITIVE_ID"); // target at rtPrimitiveID
+	constexpr static size_t HASH_INSTANCE_ID = FNV1aHash("INSTANCE_ID");   // target at rtPrimitiveID
+	constexpr static size_t HASH_LINEAR_DEPTH = FNV1aHash("LINEAR_DEPTH"); // target at rtLinearDepth
+	constexpr static size_t HASH_WITHOUT_POSTPROCESSING = FNV1aHash("WITHOUT_POSTPROCESSING"); // target at rtMain
+
 	void RenderPath3D::ShowDebugBuffer(const std::string& debugMode)
 	{
 		using DEBUG_BUFFER = GRenderPath3D::DEBUG_BUFFER;
-
-		constexpr static size_t HASH_PRIMITIVE_ID = FNV1aHash("PRIMITIVE_ID"); // target at rtPrimitiveID
-		constexpr static size_t HASH_INSTANCE_ID = FNV1aHash("INSTANCE_ID");   // target at rtPrimitiveID
-		constexpr static size_t HASH_LINEAR_DEPTH = FNV1aHash("LINEAR_DEPTH"); // target at rtLinearDepth
-		constexpr static size_t HASH_WITHOUT_POSTPROCESSING = FNV1aHash("WITHOUT_POSTPROCESSING"); // target at rtMain
 
 		size_t hash_debug = FNV1aHash(debugMode);
 		switch (hash_debug)
