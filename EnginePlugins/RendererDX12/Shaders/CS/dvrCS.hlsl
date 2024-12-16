@@ -172,7 +172,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			IntermixSample(color_out, f_next_layer, index_frag, color, ray_dist_o2start, vol_instance.sample_dist, num_frags, fs, 1.0);
 		}
 		sample_value_prev = sample_value;
-		return;
 	}
 	
 	int sample_count = 0;

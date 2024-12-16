@@ -8,7 +8,7 @@
 #define FRAG_MERGING
 #define ERT_ALPHA 0.98
 #define MAX_FRAGMENTS 2
-#define SAFE_OPAQUEALPHA 0.999f // to avoid zero-divide
+#define SAFE_OPAQUEALPHA 0.99 // to avoid zero-divide
 
 PUSHCONSTANT(volume, VolumePushConstants);
 
@@ -696,12 +696,12 @@ Fragment_OUT MergeFrags(Fragment f_prior, Fragment f_posterior, const float beta
 		f_posterior.color = f_posterior_vis;
 		fs_out.f_prior.color = f_m_prior_vis;
 
-		if (f_posterior.color.a == 0)
+		if (f_posterior.color.a < 1.f/255.f)
 		{
 			f_posterior.color = (float4)0;
 			f_posterior.thick = 0;
 		}
-		if (fs_out.f_prior.color.a == 0)
+		if (fs_out.f_prior.color.a < 1.f/255.f)
 		{
 			fs_out.f_prior.color = (float4)0;
 			fs_out.f_prior.thick = 0;
@@ -783,7 +783,7 @@ inline void IntermixSample(inout float4 colorIntegrated, inout Fragment f_next_l
 			}
             if (colorIntegrated.a > ERT_ALPHA)
             {
-				indexFrag = numFrags;
+				//indexFrag = numFrags;
                 break;
             }
 #else

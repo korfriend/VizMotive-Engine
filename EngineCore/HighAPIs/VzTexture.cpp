@@ -44,12 +44,12 @@ namespace vzm
 		UpdateTimeStamp();
 		texture->SetTableValidBeginEndX(XMFLOAT2((float)tableValidBeginX, (float)tableValidEndX));
 		texture->UpdateMemory(data);
-
+		return true;
 	}
 	std::string VzTexture::GetResourceName() const
 	{
 		GET_TEXTURE_COMP(texture, "");
-
+		return texture->GetResourceName();
 	}
 	void VzTexture::SetSamplerFilter(const SamplerType filter)
 	{

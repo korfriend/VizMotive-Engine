@@ -678,7 +678,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
 			break;
-		case '4': renderer->ShowDebugBuffer("NO_POSTPROCESSING");
+		case '4': renderer->ShowDebugBuffer("WITHOUT_POSTPROCESSING");
 			break;
 		case 'N':
 		{

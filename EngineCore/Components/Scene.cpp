@@ -74,7 +74,13 @@ namespace vz
 	void SceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
 	{
 		parallelBounds.clear();
-		parallelBounds.resize((size_t)jobsystem::DispatchGroupCount((uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE));
+
+		size_t num_renderables = renderables_.size();
+		parallelBounds.resize((size_t)jobsystem::DispatchGroupCount((uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE));
+
+		matrixRenderables_.resize(num_renderables);
+		matrixRenderablesPrev_.resize(num_renderables);
+		aabbRenderables_.resize(num_renderables);
 
 		jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
@@ -90,9 +96,13 @@ namespace vz
 			{
 				renderable->Update();	// AABB
 
+				AABB aabb = renderable->GetAABB();
+				aabbRenderables_[args.jobIndex] = aabb;
+				matrixRenderablesPrev_[args.jobIndex] = matrixRenderables_[args.jobIndex];
+				matrixRenderables_[args.jobIndex] = transform->GetWorldMatrix();
+
 				if (renderable->IsMeshRenderable() || renderable->IsVolumeRenderable())
 				{
-					AABB aabb = renderable->GetAABB();
 
 					AABB* shared_bounds = (AABB*)args.sharedmemory;
 					if (args.isFirstJobInGroup)
@@ -334,6 +344,251 @@ namespace vz
 	{
 		return lookupLights_.count(entity) > 0 || lookupRenderables_.count(entity) > 0;
 		//return lookupLights_.contains(entity) || lookupRenderables_.contains(entity);
+	}
+
+	Scene::RayIntersectionResult Scene::Intersects(const Ray& ray, uint32_t filterMask, uint32_t layerMask, uint32_t lod) const
+	{
+		using Primitive = GeometryComponent::Primitive;
+		RayIntersectionResult result;
+
+		const XMVECTOR rayOrigin = XMLoadFloat3(&ray.origin);
+		const XMVECTOR rayDirection = XMVector3Normalize(XMLoadFloat3(&ray.direction));
+
+		if ((filterMask & SCU32(RenderableFilterFlags::RENDERABLE_COLLIDER)))
+		{
+			assert(0 && "COLLIDERCOMPONENT!");
+			//
+		}
+		/*
+		if (filterMask & SCU32(RenderableFilterFlags::RENDERABLE_ALL))
+		{
+			const size_t renderable_count = renderables_.size();
+			for (size_t renderable_index = 0; renderable_index < renderable_count; ++renderable_index)
+			{
+				Entity entity = renderables_[renderable_index];
+				RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
+				TransformComponent* transform = compfactory::GetTransformComponent(entity);
+				assert(renderable && transform);
+				const AABB& aabb = renderable->GetAABB();
+				if ((layerMask & aabb.layerMask) == 0)
+					continue;
+				if (!ray.intersects(aabb))
+					continue;
+
+				if (renderable->IsMeshRenderable())
+				{
+					GeometryComponent& geometry = *compfactory::GetGeometryComponent(renderable->GetGeometry());
+					if (!geometry.IsAutoUpdateBVH())
+						continue;
+
+					const XMMATRIX objectMat = XMLoadFloat4x4(&transform->GetWorldMatrix());
+					const XMMATRIX objectMatPrev = XMLoadFloat4x4(&matrix_objects_prev[objectIndex]);
+					const XMMATRIX objectMat_Inverse = XMMatrixInverse(nullptr, objectMat);
+					const XMVECTOR rayOrigin_local = XMVector3Transform(rayOrigin, objectMat_Inverse);
+					const XMVECTOR rayDirection_local = XMVector3Normalize(XMVector3TransformNormal(rayDirection, objectMat_Inverse));
+
+
+					const std::vector<Primitive>& parts = geometry.GetPrimitives();
+					for (size_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
+					{
+						const Primitive& part = parts[part_index];
+						assert(part.IsValidBVH());
+
+					}
+				}
+				else if (renderable->IsVolumeRenderable() 
+					&& (filterMask & SCU32(RenderableFilterFlags::RENDERABLE_VOLUME_DVR)))
+				{
+
+				}
+
+
+				const Entity entity = objects.GetEntity(renderable_index);
+				const SoftBodyPhysicsComponent* softbody = softbodies.GetComponent(object.meshID);
+				const XMMATRIX objectMat = XMLoadFloat4x4(&matrix_objects[renderable_index]);
+				const XMMATRIX objectMatPrev = XMLoadFloat4x4(&matrix_objects_prev[renderable_index]);
+				const XMMATRIX objectMat_Inverse = XMMatrixInverse(nullptr, objectMat);
+				const XMVECTOR rayOrigin_local = XMVector3Transform(rayOrigin, objectMat_Inverse);
+				const XMVECTOR rayDirection_local = XMVector3Normalize(XMVector3TransformNormal(rayDirection, objectMat_Inverse));
+				const ArmatureComponent* armature = mesh->IsSkinned() ? armatures.GetComponent(mesh->armatureID) : nullptr;
+
+				auto intersect_triangle = [&](uint32_t subsetIndex, uint32_t indexOffset, uint32_t triangleIndex)
+					{
+						const uint32_t i0 = mesh->indices[indexOffset + triangleIndex * 3 + 0];
+						const uint32_t i1 = mesh->indices[indexOffset + triangleIndex * 3 + 1];
+						const uint32_t i2 = mesh->indices[indexOffset + triangleIndex * 3 + 2];
+
+						XMVECTOR p0;
+						XMVECTOR p1;
+						XMVECTOR p2;
+						if (softbody != nullptr && !softbody->boneData.empty())
+						{
+							p0 = SkinVertex(*mesh, *softbody, i0);
+							p1 = SkinVertex(*mesh, *softbody, i1);
+							p2 = SkinVertex(*mesh, *softbody, i2);
+						}
+						else if (armature != nullptr && !armature->boneData.empty())
+						{
+							p0 = SkinVertex(*mesh, *armature, i0);
+							p1 = SkinVertex(*mesh, *armature, i1);
+							p2 = SkinVertex(*mesh, *armature, i2);
+						}
+						else
+						{
+							p0 = XMLoadFloat3(&mesh->vertex_positions[i0]);
+							p1 = XMLoadFloat3(&mesh->vertex_positions[i1]);
+							p2 = XMLoadFloat3(&mesh->vertex_positions[i2]);
+						}
+
+						float distance;
+						XMFLOAT2 bary;
+						if (wi::math::RayTriangleIntersects(rayOrigin_local, rayDirection_local, p0, p1, p2, distance, bary))
+						{
+							const XMVECTOR pos_local = XMVectorAdd(rayOrigin_local, rayDirection_local * distance);
+							const XMVECTOR pos = XMVector3Transform(pos_local, objectMat);
+							distance = wi::math::Distance(pos, rayOrigin);
+
+							// Note: we do the TMin, Tmax check here, in world space! We use the RayTriangleIntersects in local space, so we don't use those in there
+							if (distance < result.distance && distance >= ray.TMin && distance <= ray.TMax)
+							{
+								XMVECTOR nor;
+								if (softbody != nullptr || mesh->vertex_normals.empty()) // Note: for soft body we compute it instead of loading the simulated normals
+								{
+									nor = XMVector3Cross(p2 - p1, p1 - p0);
+								}
+								else
+								{
+									nor = XMVectorBaryCentric(
+										XMLoadFloat3(&mesh->vertex_normals[i0]),
+										XMLoadFloat3(&mesh->vertex_normals[i1]),
+										XMLoadFloat3(&mesh->vertex_normals[i2]),
+										bary.x,
+										bary.y
+									);
+								}
+								nor = XMVector3Normalize(XMVector3TransformNormal(nor, objectMat));
+								const XMVECTOR vel = pos - XMVector3Transform(pos_local, objectMatPrev);
+
+								result.uv = {};
+								if (!mesh->vertex_uvset_0.empty())
+								{
+									XMVECTOR uv = XMVectorBaryCentric(
+										XMLoadFloat2(&mesh->vertex_uvset_0[i0]),
+										XMLoadFloat2(&mesh->vertex_uvset_0[i1]),
+										XMLoadFloat2(&mesh->vertex_uvset_0[i2]),
+										bary.x,
+										bary.y
+									);
+									result.uv.x = XMVectorGetX(uv);
+									result.uv.y = XMVectorGetY(uv);
+								}
+								if (!mesh->vertex_uvset_1.empty())
+								{
+									XMVECTOR uv = XMVectorBaryCentric(
+										XMLoadFloat2(&mesh->vertex_uvset_1[i0]),
+										XMLoadFloat2(&mesh->vertex_uvset_1[i1]),
+										XMLoadFloat2(&mesh->vertex_uvset_1[i2]),
+										bary.x,
+										bary.y
+									);
+									result.uv.z = XMVectorGetX(uv);
+									result.uv.w = XMVectorGetY(uv);
+								}
+
+								result.entity = entity;
+								XMStoreFloat3(&result.position, pos);
+								XMStoreFloat3(&result.normal, nor);
+								XMStoreFloat3(&result.velocity, vel);
+								result.distance = distance;
+								result.subsetIndex = (int)subsetIndex;
+								result.vertexID0 = (int)i0;
+								result.vertexID1 = (int)i1;
+								result.vertexID2 = (int)i2;
+								result.bary = bary;
+							}
+						}
+					};
+
+				if (mesh->bvh.IsValid())
+				{
+					Ray ray_local = Ray(rayOrigin_local, rayDirection_local);
+
+					mesh->bvh.Intersects(ray_local, 0, [&](uint32_t index) {
+						const AABB& leaf = mesh->bvh_leaf_aabbs[index];
+						const uint32_t triangleIndex = leaf.layerMask;
+						const uint32_t subsetIndex = leaf.userdata;
+						const MeshComponent::MeshSubset& subset = mesh->subsets[subsetIndex];
+						if (subset.indexCount == 0)
+							return;
+						const uint32_t indexOffset = subset.indexOffset;
+						intersect_triangle(subsetIndex, indexOffset, triangleIndex);
+						});
+				}
+				else
+				{
+					// Brute-force intersection test:
+					uint32_t first_subset = 0;
+					uint32_t last_subset = 0;
+					mesh->GetLODSubsetRange(lod, first_subset, last_subset);
+					for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
+					{
+						const MeshComponent::MeshSubset& subset = mesh->subsets[subsetIndex];
+						if (subset.indexCount == 0)
+							continue;
+						const uint32_t indexOffset = subset.indexOffset;
+						const uint32_t triangleCount = subset.indexCount / 3;
+
+						for (uint32_t triangleIndex = 0; triangleIndex < triangleCount; ++triangleIndex)
+						{
+							intersect_triangle(subsetIndex, indexOffset, triangleIndex);
+						}
+					}
+				}
+
+			}
+		}
+
+		if (filterMask & FILTER_RAGDOLL)
+		{
+			for (size_t i = 0; i < humanoids.GetCount(); ++i)
+			{
+				Entity entity = humanoids.GetEntity(i);
+				const LayerComponent* layer = layers.GetComponent(entity);
+				if (layer != nullptr && (layer->GetLayerMask() & layerMask) == 0)
+					continue;
+
+				const HumanoidComponent& humanoid = humanoids[i];
+				if (humanoid.IsIntersectionDisabled())
+					continue;
+				if (!humanoid.ragdoll_bounds.intersects(ray))
+					continue;
+
+				for (auto& bp : humanoid.ragdoll_bodyparts)
+				{
+					float dist = 0;
+					XMFLOAT3 direction = {};
+					if (ray.intersects(bp.capsule, dist, direction) && dist < result.distance)
+					{
+						result.distance = dist;
+						result.bary = {};
+						result.entity = entity;
+						result.humanoid_bone = bp.bone;
+						result.normal = direction;
+						result.uv = {};
+						result.velocity = {};
+						XMStoreFloat3(&result.position, rayOrigin + rayDirection * dist);
+						result.subsetIndex = -1;
+						result.vertexID0 = 0;
+						result.vertexID1 = 0;
+						result.vertexID2 = 0;
+					}
+				}
+			}
+		}
+
+		result.orientation = ray.GetPlacementOrientation(result.position, result.normal);
+		/**/
+		return result;
 	}
 
 	void Scene::Serialize(vz::Archive& archive)

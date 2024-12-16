@@ -417,10 +417,6 @@ namespace vz
 		std::vector<Entity> geometryEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> materialEntities; // cached (non enclosing for jobsystem)
 
-		// Separate stream of world matrices:
-		std::vector<XMFLOAT4X4> matrixRenderables;
-		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
-
 		//const bool occlusionQueryEnabled = false;
 		//const bool cameraFreezeCullingEnabled = false;
 		bool isWetmapProcessingRequired = false;

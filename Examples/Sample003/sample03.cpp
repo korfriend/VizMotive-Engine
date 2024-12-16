@@ -417,6 +417,42 @@ int main(int, char**)
 					vzm::ReloadShader();
 				}
 
+				static float cur_otf_value = 180, cur_otf_value_prev = 180;
+				static float cur_otf_band_width = 50;
+				ImGui::SliderFloat("OTF Slider", &cur_otf_value, 0.f, 250.f);
+				if (cur_otf_value_prev != cur_otf_value)
+				{
+					cur_otf_value_prev = cur_otf_value;
+					vzm::VzTexture* otf_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's OTF");
+					if (otf_volume)
+					{
+						const uint32_t otf_w = 256;
+						std::vector<uint8_t> otf_array(otf_w * 4 * 3);
+						for (size_t i = 0; i < otf_w; i++)
+						{
+							uint8_t a = i < cur_otf_value ? 0 :
+								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / 30.f * 255.f) : 255;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
+
+							otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
+							otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
+							otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
+
+							otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
+							otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
+							otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
+
+						}
+
+						otf_volume->UpdateLookup(otf_array, cur_otf_value, cur_otf_value + cur_otf_band_width);
+					}
+				}
+
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			}
 			ImGui::End();
@@ -713,7 +749,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
 			break;
-		case '4': renderer->ShowDebugBuffer("NO_POSTPROCESSING");
+		case '4': renderer->ShowDebugBuffer("WITHOUT_POSTPROCESSING");
 			break;
 		case 'N':
 		{
