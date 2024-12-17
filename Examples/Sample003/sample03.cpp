@@ -543,7 +543,7 @@ bool CreateDeviceD3D(HWND hWnd)
 #endif
 
 	// Create device
-	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_12_2;
+	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_12_1;
 	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
 		return false;
 
