@@ -1524,13 +1524,13 @@ namespace vz
 			Texture& src = it.first;
 			Texture& dst = it.second;
 			GPUBarrier barriers1[] = {
-				GPUBarrier::Image(&src, src.desc.layout, ResourceState::COPY_SRC),
+				//GPUBarrier::Image(&src, src.desc.layout, ResourceState::COPY_SRC),
 				GPUBarrier::Image(&dst, ResourceState::SHADER_RESOURCE_COMPUTE, ResourceState::COPY_DST),
 			};
 			device->Barrier(barriers1, arraysize(barriers1), cmd);
 			device->CopyResource(&dst, &src, cmd);
 			GPUBarrier barriers2[] = {
-				GPUBarrier::Image(&src, ResourceState::COPY_SRC, src.desc.layout),
+				//GPUBarrier::Image(&src, ResourceState::COPY_SRC, src.desc.layout),
 				GPUBarrier::Image(&dst, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE_COMPUTE),
 			};
 			device->Barrier(barriers2, arraysize(barriers2), cmd);
