@@ -325,6 +325,8 @@ namespace vz
 	{
 		size_t num_renderables = renderableComponents.size();
 		occlusionResultsObjects.resize(num_renderables);
+		renderableComponents_mesh.clear();
+		renderableComponents_volume.clear();
 
 		// GPUs
 		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {

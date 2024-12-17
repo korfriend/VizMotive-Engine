@@ -202,6 +202,7 @@
   <ItemGroup>
     <ClCompile Include="AssetIO.cpp" />
     <ClCompile Include="ModelImporter_OBJ.cpp" />
+    <ClCompile Include="ModelImporter_PLY.cpp" />
     <ClCompile Include="ModelImporter_STL.cpp" />
   </ItemGroup>
   <ItemGroup>

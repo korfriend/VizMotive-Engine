@@ -624,6 +624,9 @@ namespace vz
 			COUNT
 		};
 
+		struct SH {
+			XMFLOAT3 dcSHs[16];
+		};
 		struct Primitive {
 		private:
 			std::vector<XMFLOAT3> vertexPositions_;
@@ -633,6 +636,10 @@ namespace vz
 			std::vector<XMFLOAT2> vertexUVset1_;
 			std::vector<uint32_t> vertexColors_;
 			std::vector<uint32_t> indexPrimitives_;
+			// --- Gaussian Splatting ---
+			std::vector<SH> vertexSHs_;	// vertex spherical harmonics
+			std::vector<XMFLOAT4> vertexScale_Opacities_;	// vertex spherical harmonics
+			std::vector<XMFLOAT4> vertexQuaterions_;	// vertex spherical harmonics
 
 			PrimitiveType ptype_ = PrimitiveType::TRIANGLES;
 
@@ -697,6 +704,11 @@ namespace vz
 			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet0() { return vertexUVset0_; }
 			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet1() { return vertexUVset1_; }
 			inline std::vector<uint32_t>& GetMutableVtxColors() { return vertexColors_; }
+
+			inline std::vector<SH>& GetMutableVtxSHs() { return vertexSHs_; }	// vertex spherical harmonics
+			inline std::vector<XMFLOAT4>& GetMutableVtxScaleOpacities() { return vertexScale_Opacities_; }	// vertex spherical harmonics
+			inline std::vector<XMFLOAT4>& GetMutableVtxQuaternions() { return vertexQuaterions_; }	// vertex spherical harmonics
+
 
 			inline size_t GetNumVertices() const { return vertexPositions_.size(); }
 			inline size_t GetNumIndices() const { return indexPrimitives_.size(); }

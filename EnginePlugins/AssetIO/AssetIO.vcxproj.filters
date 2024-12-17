@@ -10,6 +10,9 @@
     <ClCompile Include="ModelImporter_STL.cpp">
       <Filter>Private</Filter>
     </ClCompile>
+    <ClCompile Include="ModelImporter_PLY.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetIO.h">

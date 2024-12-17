@@ -99,10 +99,15 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
+	enum ModelFormat
+	{
+		STL = 0,
+		PLY
+	};
 	bool VzGeometry::LoadGeometryFile(const std::string& filename)
 	{
 		std::string ext = helper::toUpper(helper::GetExtensionFromFileName(filename));
-		if (ext != "STL")
+		if (ext != "STL" && ext != "PLY")
 		{
 			backlog::post("LoadGeometryFile dose not support " + ext + " file!", backlog::LogLevel::Error);
 			return false;
@@ -110,7 +115,20 @@ namespace vzm
 
 		typedef Entity(*PI_Function)(const std::string& fileName, vz::GeometryComponent* geometry);
 
-		PI_Function lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_STL");
+		PI_Function lpdll_function = nullptr;
+		if (ext == "STL")
+		{
+			lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_STL");
+		}
+		else if (ext == "PLY")
+		{
+			lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_PLY");
+		}
+		else
+		{
+			assert(0);
+		}
+
 		if (lpdll_function == nullptr)
 		{
 			backlog::post("vzm::LoadModelFile >> Invalid plugin function!", backlog::LogLevel::Error);

@@ -43,6 +43,9 @@
     <Filter Include="Pipeline Shaders\CS\DVR">
       <UniqueIdentifier>{8ff856cc-1a39-4b5e-abcb-42eb66603b6c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Pipeline Shaders\CS\GS Test">
+      <UniqueIdentifier>{2bf53637-c604-4224-a0ae-0db64ec8abc9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli">
@@ -315,6 +318,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\dvrSurfaceCS.hlsl">
       <Filter>Pipeline Shaders\CS\DVR</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\testCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
