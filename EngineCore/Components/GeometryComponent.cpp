@@ -284,9 +284,9 @@ namespace vz
 	{
 		if (!enabled)
 		{
-			bvhLeafAabbs.clear();
+			bvhLeafAabbs_.clear();
 		}
-		else if (!bvh.IsValid())
+		else if (!bvh_.IsValid())
 		{
 			uint32_t index_count = indexPrimitives_.size();
 			if (index_count == 0)
@@ -306,9 +306,9 @@ namespace vz
 					geometrics::AABB aabb = geometrics::AABB(math::Min(p0, math::Min(p1, p2)), math::Max(p0, math::Max(p1, p2)));
 					aabb.layerMask = triangle_index;
 					//aabb.userdata = part_index;
-					bvhLeafAabbs.push_back(aabb);
+					bvhLeafAabbs_.push_back(aabb);
 				}
-				bvh.Build(bvhLeafAabbs.data(), (uint32_t)bvhLeafAabbs.size());
+				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
 			}
 			else
 			{

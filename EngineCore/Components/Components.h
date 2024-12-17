@@ -644,8 +644,8 @@ namespace vz
 			Entity recentBelongingGeometry_ = INVALID_ENTITY;
 
 			// BVH
-			std::vector<geometrics::AABB> bvhLeafAabbs;
-			geometrics::BVH bvh;
+			std::vector<geometrics::AABB> bvhLeafAabbs_;
+			geometrics::BVH bvh_;
 
 			// OpenMesh-based data structures for acceleration / editing
 
@@ -678,7 +678,9 @@ namespace vz
 			inline bool IsValid() const { return vertexPositions_.size() > 0 && aabb_.IsValid(); }
 			inline void SetAABB(const geometrics::AABB& aabb) { aabb_ = aabb; }
 			inline void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
-			inline bool IsValidBVH() const { return bvh.IsValid(); };
+			inline bool IsValidBVH() const { return bvh_.IsValid(); };
+			inline const geometrics::BVH& GetBVH() const { return bvh_; };
+			inline const std::vector<geometrics::AABB>& GetBVHLeafAABBs() const { return bvhLeafAabbs_; };
 
 			// ----- Getters -----
 			inline const std::vector<XMFLOAT3>& GetVtxPositions() const { return vertexPositions_; }
