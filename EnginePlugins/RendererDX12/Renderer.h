@@ -141,6 +141,9 @@ namespace vz
 		// DVR
 		CSTYPE_DVR_DEFAULT, // VER 0.1
 
+		// GS_TEST
+		CSTYPE_GS_TEST,
+
 		// Post-Processing Chain
 		CSTYPE_POSTPROCESS_TONEMAP,
 

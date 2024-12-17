@@ -118,6 +118,8 @@ static const uint TILED_CULLING_GRANULARITY = TILED_CULLING_BLOCKSIZE / TILED_CU
 static const uint VISIBILITY_BLOCKSIZE = 8;
 static const uint VISIBILITY_TILED_CULLING_GRANULARITY = TILED_CULLING_BLOCKSIZE / VISIBILITY_BLOCKSIZE;
 
+static const uint GS_TILESIZE = 16;
+
 //---------- Enumerations -----------
 // These option bits can be read from options constant buffer value:
 enum FRAME_OPTIONS
