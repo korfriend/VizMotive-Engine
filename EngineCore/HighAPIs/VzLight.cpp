@@ -17,11 +17,16 @@ namespace vzm
 		GET_LIGHT_COMP(light, );
 		light->SetLightType((LightComponent::LightType)type);
 	}
-	void VzLight::SetConeAngle(const float outerConeAngle, const float innerConeAngle)
+	void VzLight::SetSpotlightConeAngle(const float outerConeAngle, const float innerConeAngle)
 	{
 		GET_LIGHT_COMP(light, );
 		light->SetInnerConeAngle(innerConeAngle);
 		light->SetOuterConeAngle(outerConeAngle);
+	}
+	void VzLight::SetPointlightLength(const float length)
+	{
+		GET_LIGHT_COMP(light, );
+		light->SetLength(length);
 	}
 	void VzLight::SetRange(const float range)
 	{
