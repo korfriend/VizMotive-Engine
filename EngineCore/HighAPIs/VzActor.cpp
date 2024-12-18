@@ -54,6 +54,23 @@ namespace vzm
 		assert(0 && "TODO");
 		UpdateTimeStamp();
 	}
+
+	void VzActor::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
+	}
+	void VzActor::SetClipPlane(const vfloat4& clipPlane)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetClipPlane(*(XMFLOAT4*)&clipPlane);
+	}
+	void VzActor::SetClipBox(const vfloat4x4& clipBox)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetClipBox(*(XMFLOAT4X4*)&clipBox);
+	}
+
 	std::vector<MaterialVID> VzActor::GetMaterials() const
 	{
 		GET_RENDERABLE_COMP(renderable, std::vector<MaterialVID>());

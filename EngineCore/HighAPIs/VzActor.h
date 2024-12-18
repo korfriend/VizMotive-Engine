@@ -28,6 +28,10 @@ namespace vzm
 		void SetCastShadows(const bool enabled);
 		void SetReceiveShadows(const bool enabled);
 
+		void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled);
+		void SetClipPlane(const vfloat4& clipPlane);
+		void SetClipBox(const vfloat4x4& clipBox);
+
 		std::vector<MaterialVID> GetMaterials() const;
 		MaterialVID GetMaterial(const int slot = 0) const;
 		GeometryVID GetGeometry() const;
