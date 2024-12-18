@@ -24,8 +24,8 @@ namespace vz
 	struct Canvas
 	{
 	protected:
-		uint32_t width_ = 0;
-		uint32_t height_ = 0;
+		uint32_t width_ = 0;	// minimum 16
+		uint32_t height_ = 0;	// minimum 16
 		float dpi_ = 96;
 		float scaling_ = 1; // custom DPI scaling factor (optional)
 		void* window_ = nullptr;
@@ -44,8 +44,8 @@ namespace vz
 		// Create a canvas from physical measurements
 		inline void SetCanvas(uint32_t width, uint32_t height, float dpi = 96, void* window = nullptr)
 		{
-			width_ = width;
-			height_ = height;
+			width_ = std::max(width, 32u);
+			height_ = std::max(height, 32u);
 			dpi_ = dpi;
 			window_ = window;
 		}
