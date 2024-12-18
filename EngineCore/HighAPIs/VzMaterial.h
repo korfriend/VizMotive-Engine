@@ -29,6 +29,7 @@ namespace vzm
 		{
 			VOLUME_DENSITYMAP, // this is used for volume rendering
 			VOLUME_SEMANTICMAP,
+			VOLUME_SCULPT_MAP,
 
 			VOLUME_TEXTURESLOT_COUNT
 		};
@@ -36,6 +37,7 @@ namespace vzm
 		{
 			LOOKUP_COLOR,
 			LOOKUP_OTF,
+			LOOKUP_WINDOWING,
 
 			LOOKUPTABLE_COUNT
 		};
