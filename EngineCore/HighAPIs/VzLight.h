@@ -18,7 +18,8 @@ namespace vzm
 
 		void SetLightType(const LightType type);
 
-		void SetConeAngle(const float outerConeAngle, const float innerConeAngle = 0); // only for spotlight
+		void SetSpotlightConeAngle(const float outerConeAngle, const float innerConeAngle = 0); // only for spotlight
+		void SetPointlightLength(const float length);
 		void SetRange(const float range);
 		void SetIntensity(const float intensity);
 		void SetColor(const vfloat3 color);
