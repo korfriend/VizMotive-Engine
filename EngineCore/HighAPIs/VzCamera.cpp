@@ -98,6 +98,22 @@ namespace vzm
 		camera->GetNearFar(nullptr, &ret);
 		return ret;
 	}
+
+	void VzCamera::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
+	{
+		GET_CAM_COMP(camera, );
+		camera->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
+	}
+	void VzCamera::SetClipPlane(const vfloat4& clipPlane)
+	{
+		GET_CAM_COMP(camera, );
+		camera->SetClipPlane(*(XMFLOAT4*)&clipPlane);
+	}
+	void VzCamera::SetClipBox(const vfloat4x4& clipBox)
+	{
+		GET_CAM_COMP(camera, );
+		camera->SetClipBox(*(XMFLOAT4X4*)&clipBox);
+	}
 }
 
 namespace vzm

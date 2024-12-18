@@ -1063,6 +1063,10 @@ namespace vz
 		XMFLOAT4 rimHighlightColor_ = XMFLOAT4(1, 1, 1, 0);
 		float rimHighlightFalloff_ = 8;
 
+		// clipper
+		XMFLOAT4X4 clipBox_; // WS to origin-centered unit cube
+		XMFLOAT4 clipPlane_;
+
 		// Non-serialized attributes:
 		//	dirty check can be considered by the following components
 		//		- transformComponent, geometryComponent, and material components (with their referencing textureComponents)
@@ -1073,38 +1077,49 @@ namespace vz
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 
-		void SetDirty() { isDirty_ = true; }
-		bool IsDirty() const { return isDirty_; }
-		bool IsMeshRenderable() const { return flags_ & SCU32(RenderableFlags::MESH_RENDERABLE); }
-		bool IsVolumeRenderable() const { return flags_ & SCU32(RenderableFlags::VOLUME_RENDERABLE); }
+		inline void SetDirty() { isDirty_ = true; }
+		inline bool IsDirty() const { return isDirty_; }
+		inline bool IsMeshRenderable() const { return flags_ & SCU32(RenderableFlags::MESH_RENDERABLE); }
+		inline bool IsVolumeRenderable() const { return flags_ & SCU32(RenderableFlags::VOLUME_RENDERABLE); }
 
-		void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
-		bool IsForeground() const { return flags_ & SCU32(RenderableFlags::FOREGROUND); }
+		inline void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
+		inline bool IsForeground() const { return flags_ & SCU32(RenderableFlags::FOREGROUND); }
 
-		uint32_t GetFlags() const { return flags_; }
+		inline uint32_t GetFlags() const { return flags_; }
 
-		void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; }
-		void SetVisibleRadius(const float radius) { visibleRadius_ = radius; }
-		void SetVisibleCenter(const XMFLOAT3 center) { visibleCenter_ = center; }
-		void SetGeometry(const Entity geometryEntity);
-		void SetMaterial(const Entity materialEntity, const size_t slot);
-		void SetMaterials(const std::vector<Entity>& materials);
-		void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); timeStampSetter_ = TimerNow; }
-		bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
-		uint8_t GetVisibleMask() const { return visibleLayerMask_; }
-		float GetFadeDistance() const { return fadeDistance_; }
-		float GetVisibleRadius() const { return visibleRadius_; }
-		XMFLOAT3 GetVisibleCenter() const { return visibleCenter_; }
-		XMFLOAT4 GetRimHighLightColor() const { return rimHighlightColor_; }
-		float GetRimHighLightFalloff() const { return rimHighlightFalloff_; }
+		inline void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; }
+		inline void SetVisibleRadius(const float radius) { visibleRadius_ = radius; }
+		inline void SetVisibleCenter(const XMFLOAT3 center) { visibleCenter_ = center; }
+		inline void SetGeometry(const Entity geometryEntity);
+		inline void SetMaterial(const Entity materialEntity, const size_t slot);
+		inline void SetMaterials(const std::vector<Entity>& materials);
+		inline void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); timeStampSetter_ = TimerNow; }
 
-		Entity GetGeometry() const;
-		Entity GetMaterial(const size_t slot) const;
-		std::vector<Entity> GetMaterials() const;
-		size_t GetNumParts() const;
-		size_t GetMaterials(Entity* entities) const;
-		void Update();
-		geometrics::AABB GetAABB() const { return aabb_; }
+		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
+			clipBoxEnabled ? flags_ |= SCU32(RenderableFlags::CLIP_BOX) : flags_ &= ~SCU32(RenderableFlags::CLIP_BOX);
+			clipPlaneEnabled ? flags_ |= SCU32(RenderableFlags::CLIP_PLANE) : flags_ &= ~SCU32(RenderableFlags::CLIP_PLANE);
+		}
+		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; }
+		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; }
+
+		inline bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
+		inline uint8_t GetVisibleMask() const { return visibleLayerMask_; }
+		inline float GetFadeDistance() const { return fadeDistance_; }
+		inline float GetVisibleRadius() const { return visibleRadius_; }
+		inline XMFLOAT3 GetVisibleCenter() const { return visibleCenter_; }
+		inline XMFLOAT4 GetRimHighLightColor() const { return rimHighlightColor_; }
+		inline float GetRimHighLightFalloff() const { return rimHighlightFalloff_; }
+		inline XMFLOAT4 GetClipPlane() const { return clipPlane_; }
+		inline XMFLOAT4X4 GetClipBox() const { return clipBox_; }
+
+		inline Entity GetGeometry() const;
+		inline Entity GetMaterial(const size_t slot) const;
+		inline std::vector<Entity> GetMaterials() const;
+		inline size_t GetNumParts() const;
+		inline size_t GetMaterials(Entity* entities) const;
+		inline void Update();
+		inline geometrics::AABB GetAABB() const { return aabb_; }
+		
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
@@ -1207,11 +1222,13 @@ namespace vz
 	struct CORE_EXPORT CameraComponent : ComponentBase
 	{
 	private:
-		enum ProjFlags : uint8_t
+		enum CamFlags : uint8_t
 		{
 			EMPTY = 0,
 			ORTHOGONAL = 1 << 0,    // if not, PERSPECTIVE
-			CUSTOM_PROJECTION = 1 << 2
+			CUSTOM_PROJECTION = 1 << 2,
+			CLIP_PLANE = 1 << 3,
+			CLIP_BOX = 1 << 4
 		};
 
 		float zNearP_ = 0.1f;
@@ -1241,7 +1258,11 @@ namespace vz
 		float height_ = 0.0f;
 
 		uint8_t visibleLayerMask_ = ~0;
-		uint8_t projFlags_ = ProjFlags::EMPTY;
+		uint8_t flags_ = CamFlags::EMPTY;
+
+		// clipper
+		XMFLOAT4X4 clipBox_; // WS to origin-centered unit cube
+		XMFLOAT4 clipPlane_;
 
 		// Non-serialized attributes:
 		bool isDirty_ = true;
@@ -1280,15 +1301,22 @@ namespace vz
 		}
 		inline void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f) {
 			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY; 
-			projFlags_ &= ~ORTHOGONAL;
+			flags_ &= ~ORTHOGONAL;
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}
 		inline void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize) {
 			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; orthoVerticalSize_ = orthoVerticalSize;
 			if (orthoVerticalSize < 0) orthoVerticalSize_ = computeOrthoVerticalSizeFromPerspective(math::Length(eye_));
-			projFlags_ |= ORTHOGONAL;
+			flags_ |= ORTHOGONAL;
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}
+
+		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
+			clipBoxEnabled ? flags_ |= CamFlags::CLIP_BOX : flags_ &= ~CamFlags::CLIP_BOX;
+			clipPlaneEnabled ? flags_ |= CamFlags::CLIP_PLANE : flags_ &= ~CamFlags::CLIP_PLANE;
+		}
+		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; }
+		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; }
 
 		// update view matrix using camera extrinsics such as eye_, at_, and up_ set by the above setters
 		// update proj matrix using camera intrinsics
@@ -1308,7 +1336,7 @@ namespace vz
 		inline const XMFLOAT4X4& GetInvViewProjection() const { return invViewProjection_; }
 		inline const geometrics::Frustum& GetFrustum() const { return frustum_; }
 
-		inline bool IsOrtho() const { return projFlags_ & ORTHOGONAL; }
+		inline bool IsOrtho() const { return flags_ & ORTHOGONAL; }
 		inline float GetFovVertical() const { return fovY_; }
 		inline float GetFocalLength() const { return focalLength_; }
 		inline float GetApertureSize() const { return apertureSize_; }
@@ -1316,6 +1344,9 @@ namespace vz
 
 		inline void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
 		inline void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }
+
+		inline XMFLOAT4 GetClipPlane() const { return clipPlane_; }
+		inline XMFLOAT4X4 GetClipBox() const { return clipBox_; }
 
 		// camera lens and sensor setting
 		inline void SensorExposure(const float exposure) { exposure_ = exposure; timeStampSetter_ = TimerNow; }
@@ -1326,13 +1357,13 @@ namespace vz
 		inline void SensorBloomEnabled(const bool bloomEnabled) { bloomEnabled_ = bloomEnabled; timeStampSetter_ = TimerNow; }
 		inline void SensorHdrCalibration(const float hdrCalibration) { hdrCalibration_ = hdrCalibration; timeStampSetter_ = TimerNow; }
 
-		float GetSensorExposure() const { return exposure_; }
-		float GetSensorBrightness() const { return brightness_; }
-		float GetSensorContrast() const { return contrast_; }
-		float GetSensorSaturation() const { return saturation_; }
-		bool IsSensorEyeAdaptationEnabled() const { return eyeAdaptionEnabled_; }
-		bool IsSensorBloomEnabled() const { return bloomEnabled_; }
-		float GetSensorHdrCalibration() const { return hdrCalibration_; }
+		inline float GetSensorExposure() const { return exposure_; }
+		inline float GetSensorBrightness() const { return brightness_; }
+		inline float GetSensorContrast() const { return contrast_; }
+		inline float GetSensorSaturation() const { return saturation_; }
+		inline bool IsSensorEyeAdaptationEnabled() const { return eyeAdaptionEnabled_; }
+		inline bool IsSensorBloomEnabled() const { return bloomEnabled_; }
+		inline float GetSensorHdrCalibration() const { return hdrCalibration_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 

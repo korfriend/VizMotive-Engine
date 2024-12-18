@@ -485,7 +485,7 @@ namespace vz
 						Ray ray_local = Ray(ray_origin_local, ray_direction_local);
 
 						const BVH& bvh = part.GetBVH();
-						const const std::vector<geometrics::AABB>& bvh_leaf_aabbs = part.GetBVHLeafAABBs();
+						const std::vector<geometrics::AABB>& bvh_leaf_aabbs = part.GetBVHLeafAABBs();
 						bvh.Intersects(ray_local, 0, [&](uint32_t index) {
 							const AABB& leaf = bvh_leaf_aabbs[index];
 							const uint32_t triangleIndex = leaf.layerMask;

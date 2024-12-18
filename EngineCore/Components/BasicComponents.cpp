@@ -654,7 +654,7 @@ namespace vz
 
 	void CameraComponent::UpdateMatrix()
 	{
-		if (projFlags_ != CUSTOM_PROJECTION)
+		if (flags_ != CUSTOM_PROJECTION)
 		{
 			XMMATRIX P;
 

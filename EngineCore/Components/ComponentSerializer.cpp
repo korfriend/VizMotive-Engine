@@ -337,6 +337,8 @@ namespace vz
 			archive >> visibleRadius_;
 			archive >> rimHighlightColor_;
 			archive >> rimHighlightFalloff_;
+			archive >> clipBox_;
+			archive >> clipPlane_;
 
 			uint32_t u32_data;
 			archive >> u32_data;
@@ -357,6 +359,8 @@ namespace vz
 			archive << visibleRadius_;
 			archive << rimHighlightColor_;
 			archive << rimHighlightFalloff_;
+			archive << clipBox_;
+			archive << clipPlane_;
 
 			archive << vuidMaterials_.size();
 			for (size_t i = 0, n = vuidMaterials_.size(); i < n; ++i)
@@ -409,6 +413,8 @@ namespace vz
 			archive >> apertureSize_;
 			archive >> apertureShape_;
 			archive >> orthoVerticalSize_;
+			archive >> clipBox_;
+			archive >> clipPlane_;
 
 			float cur_width = width_;
 			float cur_height = height_;
@@ -422,7 +428,7 @@ namespace vz
 				width_ = cur_ratio * height_;
 			}
 
-			archive >> projFlags_;
+			archive >> flags_;
 
 			archive >> visibleLayerMask_;
 
@@ -449,10 +455,12 @@ namespace vz
 			archive << apertureSize_;
 			archive << apertureShape_;
 			archive << orthoVerticalSize_;
+			archive << clipBox_;
+			archive << clipPlane_;
 
 			archive << width_;
 			archive << height_;
-			archive << projFlags_;
+			archive << flags_;
 			archive << visibleLayerMask_;
 
 			archive << exposure_;

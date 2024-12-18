@@ -1344,7 +1344,7 @@ struct alignas(16) ShaderFrustumCorners
 
 struct alignas(16) ShaderClipper
 {
-	ShaderTransform transformClibBox; // WS to Clip Box Space (BS)
+	ShaderTransform transformClibBox; // WS to Clip Box Space (BS), origin-centered unit cube
 	float4 clipPlane;
 
 	void Init()

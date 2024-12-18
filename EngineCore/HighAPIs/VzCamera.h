@@ -8,7 +8,7 @@ namespace vzm
 		struct OrbitalControl
 		{
 			OrbitalControl() {};
-			~OrbitalControl() {};
+			virtual ~OrbitalControl() = default;
 			virtual void Initialize(const RendererVID rendererVID, const vfloat3 stageCenter, const float stageRadius) = 0;
 			virtual bool Start(const vfloat2 pos, const float sensitivity = 1.0f) = 0;
 			virtual bool Move(const vfloat2 pos) = 0;	// target is camera
@@ -28,6 +28,10 @@ namespace vzm
 
 		float GetNear() const;
 		float GetCullingFar() const;
+
+		void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled);
+		void SetClipPlane(const vfloat4& clipPlane);
+		void SetClipBox(const vfloat4x4& clipBox);
 
 		OrbitalControl* GetOrbitControl() const { return orbitControl_.get(); }
 	};
