@@ -456,7 +456,7 @@ int main(int, char**)
 				static bool orthographics = false;
 				ImGui::Checkbox("ORTHOGONAL", &orthographics);
 				if (orthographics) {
-					camera->SetOrthogonalProjection(curWindowSize.x, curWindowSize.y, camera->GetNear(), camera->GetCullingFar(), 10);
+					camera->SetOrthogonalProjection(curWindowSize.x, curWindowSize.y, camera->GetNear(), camera->GetCullingFar(), -1);
 				}
 				else {
 					camera->SetPerspectiveProjection(camera->GetNear(), camera->GetCullingFar(), 45.f, curWindowSize.x / (float)curWindowSize.y);
