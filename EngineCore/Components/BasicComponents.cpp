@@ -541,6 +541,22 @@ namespace vz
 
 namespace vz
 {
+	inline float computeInverseLineardepth(const float lin, const float znear, const float zfar)
+	{
+		float z_n = ((lin - 2 * zfar) * znear + zfar * lin) / (lin * znear - zfar * lin);
+		float z = (z_n + 1) * 0.5f;
+		return z;
+	}
+	float CameraComponent::computeOrthoVerticalSizeFromPerspective(const float dist)
+	{
+		float z = computeInverseLineardepth(std::abs(dist), zNearP_, zFarP_);
+		XMMATRIX P = XMMatrixPerspectiveFovLH(fovY_, width_ / height_, zNearP_, zFarP_); // reverse zbuffer!
+		XMMATRIX Unproj = XMMatrixInverse(nullptr, P);
+		XMVECTOR Ptop = XMVector3TransformCoord(XMVectorSet(0, 1, z, 1), Unproj);
+		XMVECTOR Pbottom = XMVector3TransformCoord(XMVectorSet(0, -1, z, 1), Unproj);
+		return XMVectorGetX(XMVector3Length(Ptop - Pbottom));
+	}
+
 	bool CameraComponent::SetWorldLookAtFromHierarchyTransforms()
 	{
 		TransformComponent* tr_comp = compfactory::GetTransformComponent(entity_);
@@ -640,9 +656,34 @@ namespace vz
 	{
 		if (projectionType_ != Projection::CUSTOM_PROJECTION)
 		{
-			XMStoreFloat4x4(&projection_, VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_)); // reverse zbuffer!
-			projection_.m[2][0] = jitter.x;
-			projection_.m[2][1] = jitter.y;
+			XMMATRIX P;
+
+			switch (projectionType_)
+			{
+			case vz::CameraComponent::Projection::PERSPECTIVE:
+			{
+				P = VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_); // reverse zbuffer!
+			}
+				break;
+			case vz::CameraComponent::Projection::ORTHO:
+			{
+				float aspect = width_ / height_;
+				float ortho_width = orthoVerticalSize_ * aspect;
+				float ortho_height = orthoVerticalSize_;
+				P = VZMatrixOrthographic(ortho_width, ortho_height, zFarP_, zNearP_); // reverse zbuffer!
+			}
+				break;
+			case vz::CameraComponent::Projection::CUSTOM_PROJECTION:
+			default:
+				assert(0);
+				break;
+			}
+
+			//projection_.m[2][0] = jitter.x;
+			//projection_.m[2][1] = jitter.y;
+
+			P = P * XMMatrixTranslation(jitter.x, jitter.y, 0);
+			XMStoreFloat4x4(&projection_, P); // reverse zbuffer!
 		}
 
 		XMVECTOR _Eye = XMLoadFloat3(&eye_);

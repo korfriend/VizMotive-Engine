@@ -35,11 +35,13 @@ using namespace DirectX::PackedVector;
 #ifdef RENDERING_LHS
 #define VZMatrixLookTo XMMatrixLookToLH
 #define VZMatrixLookAt XMMatrixLookAtLH
+#define VZMatrixOrthographic XMMatrixOrthographicLH
 #define VZMatrixOrthographicOffCenter XMMatrixOrthographicOffCenterLH
 #define VZMatrixPerspectiveFov XMMatrixPerspectiveFovLH
 #else
 #define VZMatrixLookTo XMMatrixLookToRH
 #define VZMatrixLookAt XMMatrixLookAtRH
+#define VZMatrixOrthographic XMMatrixOrthographicRH
 #define VZMatrixOrthographicOffCenter XMMatrixOrthographicOffCenterRH
 #define VZMatrixPerspectiveFov XMMatrixPerspectiveFovRH
 #endif

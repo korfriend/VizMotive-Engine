@@ -1210,6 +1210,7 @@ namespace vz
 		float fovY_ = XM_PI / 3.0f;
 		float focalLength_ = 1;
 		float apertureSize_ = 0;
+		float orthoVerticalSize_ = 1.f;
 		XMFLOAT2 apertureShape_ = XMFLOAT2(1, 1);
 
 		// camera lens/sensor settings: used for the postprocess chain
@@ -1244,6 +1245,8 @@ namespace vz
 		XMFLOAT4X4 invView_, invProjection_, invViewProjection_;
 		vz::geometrics::Frustum frustum_ = {};
 
+		float computeOrthoVerticalSizeFromPerspective(const float dist);
+
 	public:
 		CameraComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::CAMERA, entity, vuid) {
 			view_ = projection_ = viewProjection_ = invView_ = invProjection_ = invViewProjection_ = math::IDENTITY_MATRIX;
@@ -1266,8 +1269,15 @@ namespace vz
 			isDirty_ = true;
 			timeStampSetter_ = TimerNow;
 		}
-		inline void SetPerspective(float width, float height, float nearP, float farP, float fovY = XM_PI / 3.0f) {
+		inline void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f) {
 			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY; 
+			projectionType_ = Projection::PERSPECTIVE;
+			isDirty_ = true; timeStampSetter_ = TimerNow;
+		}
+		inline void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize) {
+			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; orthoVerticalSize_ = orthoVerticalSize;
+			if (orthoVerticalSize < 0) orthoVerticalSize_ = computeOrthoVerticalSizeFromPerspective(math::Length(eye_));
+			projectionType_ = Projection::ORTHO;
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}
 

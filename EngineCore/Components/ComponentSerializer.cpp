@@ -404,6 +404,7 @@ namespace vz
 			archive >> focalLength_;
 			archive >> apertureSize_;
 			archive >> apertureShape_;
+			archive >> orthoVerticalSize_;
 
 			float cur_width = width_;
 			float cur_height = height_;
@@ -444,6 +445,7 @@ namespace vz
 			archive << focalLength_;
 			archive << apertureSize_;
 			archive << apertureShape_;
+			archive << orthoVerticalSize_;
 
 			archive << width_;
 			archive << height_;
