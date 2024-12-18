@@ -2141,10 +2141,10 @@ namespace vz
 		//  * shadercam.reflection_plane : Scene's property
 
 		shadercam.options = SHADERCAMERA_OPTION_NONE;//camera.shadercamera_options;
-		//if (camera.IsOrtho())
-		//{
-		//	shadercam.options |= SHADERCAMERA_OPTION_ORTHO;
-		//}
+		if (camera.IsOrtho())
+		{
+			shadercam.options |= SHADERCAMERA_OPTION_ORTHO;
+		}
 
 		shadercam.view_projection = camera.GetViewProjection();
 		shadercam.view = camera.GetView();
