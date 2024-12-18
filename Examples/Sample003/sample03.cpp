@@ -331,13 +331,13 @@ int main(int, char**)
 
 		using namespace vzm;
 		{
+			static ImVec2 prevWindowSize = ImVec2(0, 0);
+			ImVec2 curWindowSize = ImVec2(0, 0);
 			ImGui::Begin("3D Viewer");
 			{
-				static ImVec2 prevWindowSize = ImVec2(0, 0);
-				ImVec2 curWindowSize = ImGui::GetWindowSize();
-
 				if (prevWindowSize.x * prevWindowSize.y == 0)
 					ImGui::SetWindowSize(ImVec2(0, 0));
+				curWindowSize = ImGui::GetWindowSize();
 
 				bool resized = prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y;
 				prevWindowSize = curWindowSize;
@@ -451,6 +451,15 @@ int main(int, char**)
 
 						otf_volume->UpdateLookup(otf_array, cur_otf_value, cur_otf_value + cur_otf_band_width);
 					}
+				}
+
+				static bool orthographics = false;
+				ImGui::Checkbox("ORTHOGONAL", &orthographics);
+				if (orthographics) {
+					camera->SetOrthogonalProjection(curWindowSize.x, curWindowSize.y, camera->GetNear(), camera->GetCullingFar(), 10);
+				}
+				else {
+					camera->SetPerspectiveProjection(camera->GetNear(), camera->GetCullingFar(), 45.f, curWindowSize.x / (float)curWindowSize.y);
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);

@@ -21,14 +21,17 @@ namespace vzm
 	}
 	void VzCamera::SetWorldPose(const vfloat3& pos, const vfloat3& view, const vfloat3& up)
 	{
-		//jobsystem::context ctx;
-		//jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
 		GET_CAM_COMP(camera, );
 		camera->SetWorldLookTo(*(XMFLOAT3*)&pos, *(XMFLOAT3*)&view, *(XMFLOAT3*)&up);
 		camera->UpdateMatrix();
 		UpdateTimeStamp();
-		//	});
-		//jobsystem::Wait(ctx);
+	}
+	void VzCamera::SetOrthogonalProjection(float width, float height, float zNearP, float zFarP, float orthoVerticalSize)
+	{
+		GET_CAM_COMP(camera, );
+		camera->SetOrtho(width, height, zNearP, zFarP, orthoVerticalSize);
+		camera->UpdateMatrix();
+		UpdateTimeStamp();
 	}
 	void VzCamera::SetPerspectiveProjection(const float zNearP, const float zFarP, const float fovInDegree, const float aspectRatio, const bool isVertical)
 	{
