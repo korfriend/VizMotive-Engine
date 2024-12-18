@@ -149,10 +149,7 @@ void main(uint2 Gid : SV_GroupID, uint groupIndex : SV_GroupIndex)
 		output_depth_mip4[pixel / 16] = depth;
 	}
 
-	float lineardepth = 
-		//compute_lineardepth(depth) * GetCamera().z_far_rcp;
-	
-	 	(GetCamera().z_near + (1.0f - depth) * (GetCamera().z_far - GetCamera().z_near)) * GetCamera().z_far_rcp;
+	float lineardepth = compute_lineardepth(depth) * GetCamera().z_far_rcp;
 
 	output_lineardepth_mip0[pixel] = lineardepth;
 	if (GTid.x % 2 == 0 && GTid.y % 2 == 0)
