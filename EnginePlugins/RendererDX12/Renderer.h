@@ -14,6 +14,7 @@ using namespace vz::graphics;
 static_assert(SHADERTYPE_BIN_COUNT == SCU32(vz::MaterialComponent::ShaderType::COUNT));
 static_assert(TEXTURESLOT_COUNT == SCU32(vz::MaterialComponent::TextureSlot::TEXTURESLOT_COUNT));
 static_assert(VOLUME_TEXTURESLOT_COUNT == SCU32(vz::MaterialComponent::VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT));
+static_assert(LOOKUPTABLE_COUNT == SCU32(vz::MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT));
 
 //RenderableComponent::RenderableFlags
 static_assert(INST_CLIPBOX == SCU32(vz::RenderableComponent::RenderableFlags::CLIP_BOX));
