@@ -550,7 +550,7 @@ namespace vz
 	float CameraComponent::computeOrthoVerticalSizeFromPerspective(const float dist)
 	{
 		float z = computeInverseLineardepth(std::abs(dist), zNearP_, zFarP_);
-		XMMATRIX P = XMMatrixPerspectiveFovLH(fovY_, width_ / height_, zNearP_, zFarP_); // reverse zbuffer!
+		XMMATRIX P = VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_); // reverse zbuffer!
 		XMMATRIX Unproj = XMMatrixInverse(nullptr, P);
 		XMVECTOR Ptop = XMVector3TransformCoord(XMVectorSet(0, 1, z, 1), Unproj);
 		XMVECTOR Pbottom = XMVector3TransformCoord(XMVectorSet(0, -1, z, 1), Unproj);
