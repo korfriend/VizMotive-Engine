@@ -422,8 +422,7 @@ namespace vz
 				width_ = cur_ratio * height_;
 			}
 
-			archive >> u8_data;
-			projectionType_ = static_cast<Projection>(u8_data);
+			archive >> projFlags_;
 
 			archive >> visibleLayerMask_;
 
@@ -453,7 +452,7 @@ namespace vz
 
 			archive << width_;
 			archive << height_;
-			archive << static_cast<uint8_t>(projectionType_);
+			archive << projFlags_;
 			archive << visibleLayerMask_;
 
 			archive << exposure_;

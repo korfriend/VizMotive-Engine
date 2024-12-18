@@ -654,33 +654,21 @@ namespace vz
 
 	void CameraComponent::UpdateMatrix()
 	{
-		if (projectionType_ != Projection::CUSTOM_PROJECTION)
+		if (projFlags_ != CUSTOM_PROJECTION)
 		{
 			XMMATRIX P;
 
-			switch (projectionType_)
-			{
-			case vz::CameraComponent::Projection::PERSPECTIVE:
-			{
-				P = VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_); // reverse zbuffer!
-			}
-				break;
-			case vz::CameraComponent::Projection::ORTHO:
+			if (IsOrtho())
 			{
 				float aspect = width_ / height_;
 				float ortho_width = orthoVerticalSize_ * aspect;
 				float ortho_height = orthoVerticalSize_;
 				P = VZMatrixOrthographic(ortho_width, ortho_height, zFarP_, zNearP_); // reverse zbuffer!
 			}
-				break;
-			case vz::CameraComponent::Projection::CUSTOM_PROJECTION:
-			default:
-				assert(0);
-				break;
+			else
+			{
+				P = VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_); // reverse zbuffer!
 			}
-
-			//projection_.m[2][0] = jitter.x;
-			//projection_.m[2][1] = jitter.y;
 
 			P = P * XMMatrixTranslation(jitter.x, jitter.y, 0);
 			XMStoreFloat4x4(&projection_, P); // reverse zbuffer!

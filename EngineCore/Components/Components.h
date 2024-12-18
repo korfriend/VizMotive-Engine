@@ -1206,14 +1206,14 @@ namespace vz
 
 	struct CORE_EXPORT CameraComponent : ComponentBase
 	{
-	public:
-		enum class Projection : uint8_t
-		{
-			PERSPECTIVE,    //!< perspective projection, objects get smaller as they are farther
-			ORTHO,           //!< orthonormal projection, preserves distances
-			CUSTOM_PROJECTION
-		};
 	private:
+		enum ProjFlags : uint8_t
+		{
+			EMPTY = 0,
+			ORTHOGONAL = 1 << 0,    // if not, PERSPECTIVE
+			CUSTOM_PROJECTION = 1 << 2
+		};
+
 		float zNearP_ = 0.1f;
 		float zFarP_ = 5000.0f;
 		float fovY_ = XM_PI / 3.0f;
@@ -1241,7 +1241,7 @@ namespace vz
 		float height_ = 0.0f;
 
 		uint8_t visibleLayerMask_ = ~0;
-		Projection projectionType_ = Projection::PERSPECTIVE;
+		uint8_t projFlags_ = ProjFlags::EMPTY;
 
 		// Non-serialized attributes:
 		bool isDirty_ = true;
@@ -1280,13 +1280,13 @@ namespace vz
 		}
 		inline void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f) {
 			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY; 
-			projectionType_ = Projection::PERSPECTIVE;
+			projFlags_ &= ~ORTHOGONAL;
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}
 		inline void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize) {
 			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; orthoVerticalSize_ = orthoVerticalSize;
 			if (orthoVerticalSize < 0) orthoVerticalSize_ = computeOrthoVerticalSizeFromPerspective(math::Length(eye_));
-			projectionType_ = Projection::ORTHO;
+			projFlags_ |= ORTHOGONAL;
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}
 
@@ -1308,7 +1308,7 @@ namespace vz
 		inline const XMFLOAT4X4& GetInvViewProjection() const { return invViewProjection_; }
 		inline const geometrics::Frustum& GetFrustum() const { return frustum_; }
 
-		inline Projection GetProjectionType() const { return projectionType_; }
+		inline bool IsOrtho() const { return projFlags_ & ORTHOGONAL; }
 		inline float GetFovVertical() const { return fovY_; }
 		inline float GetFocalLength() const { return focalLength_; }
 		inline float GetApertureSize() const { return apertureSize_; }

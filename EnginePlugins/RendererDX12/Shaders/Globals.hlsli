@@ -1144,9 +1144,16 @@ inline float3x3 compute_tangent_frame(float3 N, float3 P, float2 UV)
 // Computes linear depth from post-projection depth
 inline float compute_lineardepth(in float z, in float near, in float far)
 {
-    float z_n = 2 * z - 1;
-    float lin = 2 * far * near / (near + far - z_n * (near - far));
-    return lin;
+    if (GetCamera().IsOrtho())
+    {
+        return near + (1.0f - z) * (far - near);
+    }
+    else
+    {
+        float z_n = 2 * z - 1;
+        float lin = 2 * far * near / (near + far - z_n * (near - far));
+        return lin;
+    }
 }
 inline float compute_lineardepth(in float z)
 {
@@ -1156,9 +1163,16 @@ inline float compute_lineardepth(in float z)
 // Computes post-projection depth from linear depth
 inline float compute_inverse_lineardepth(in float lin, in float near, in float far)
 {
-    float z_n = ((lin - 2 * far) * near + far * lin) / (lin * near - far * lin);
-    float z = (z_n + 1) / 2;
-    return z;
+    if (GetCamera().IsOrtho())
+    {
+        return 1.0f - (lin - near) / (far - near);
+    }
+    else
+    {
+        float z_n = ((lin - 2 * far) * near + far * lin) / (lin * near - far * lin);
+        float z = (z_n + 1) / 2;
+        return z;
+    }
 }
 
 inline float3x3 get_tangentspace(in float3 normal)
