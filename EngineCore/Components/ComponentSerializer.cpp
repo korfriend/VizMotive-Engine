@@ -378,6 +378,8 @@ namespace vz
 			archive >> range_;
 			archive >> radius_;
 			archive >> length_;
+			archive >> outerConeAngle_;
+			archive >> innerConeAngle_;
 		}
 		else
 		{
@@ -387,6 +389,8 @@ namespace vz
 			archive << range_;
 			archive << radius_;
 			archive << length_;
+			archive << outerConeAngle_;
+			archive << innerConeAngle_;
 		}
 	}
 

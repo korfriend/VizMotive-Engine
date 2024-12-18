@@ -1117,6 +1117,7 @@ namespace vz
 			DIRECTIONAL = 0,
 			POINT,
 			SPOT,
+			RECT_AREA,
 			COUNT
 		};
 	private:
@@ -1141,6 +1142,8 @@ namespace vz
 		// spotlight only
 		float radius_ = 0.25; 
 		float length_ = 0.f;
+		float outerConeAngle_ = XM_PIDIV4;
+		float innerConeAngle_ = 0; // default value is 0, means only outer cone angle is used
 
 		// Non-serialized attributes:
 		bool isDirty_ = true;
@@ -1169,10 +1172,12 @@ namespace vz
 		inline void SetDirty() { isDirty_ = true; }
 		inline void SetLightColor(XMFLOAT3 color) { color_ = color; timeStampSetter_ = TimerNow; }
 		inline void SetRange(const float range) { range_ = range; isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetRadius(const float radius) { radius_ = radius; }
-		inline void SetLength(const float length) { length_ = length; }
+		inline void SetRadius(const float radius) { radius_ = radius; timeStampSetter_ = TimerNow; }
+		inline void SetLength(const float length) { length_ = length; timeStampSetter_ = TimerNow; }
 		inline void SetLightType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
 		inline void SetLightIntensity(const float intensity) { intensity_ = intensity; }
+		inline void SetOuterConeAngle(const float angle) { outerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow;}
+		inline void SetInnerConeAngle(const float angle) { innerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow; }
 
 		inline XMFLOAT3 GetLightColor() const { return color_; }
 		inline float GetLightIntensity() const { return intensity_; }
@@ -1187,6 +1192,8 @@ namespace vz
 		inline float GetLength() const { return length_; }
 		inline const geometrics::AABB& GetAABB() const { return aabb_; }
 		inline LightType GetLightType() const { return type_; }
+		inline float GetOuterConeAngle() const { return outerConeAngle_; }
+		inline float GetInnerConeAngle() const { return innerConeAngle_; }
 
 		inline bool IsInactive() const { return intensity_ == 0 || range_ == 0; }
 
