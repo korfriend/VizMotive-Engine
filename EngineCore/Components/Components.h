@@ -472,13 +472,15 @@ namespace vz
 		{
 			LOOKUP_COLOR,
 			LOOKUP_OTF,
+			LOOKUP_WINDOWING,
 
 			LOOKUPTABLE_COUNT
 		};
 		enum class VolumeTextureSlot : uint32_t
 		{
 			VOLUME_MAIN_MAP, // this is used for volume rendering
-			VOLUME_SEMANTIC_MAP, 
+			VOLUME_SEMANTIC_MAP,
+			VOLUME_SCULPT_MAP,
 
 			VOLUME_TEXTURESLOT_COUNT
 		};
