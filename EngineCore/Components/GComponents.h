@@ -63,6 +63,20 @@ namespace vz
 	{
 		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
 
+		struct GaussianSplattingBuffers
+		{
+			// gaussian kernels
+			graphics::GPUBuffer gaussianSHs;
+			graphics::GPUBuffer gaussianScale_Opacities;
+			graphics::GPUBuffer gaussianQuaterinions;
+
+			// inter-processing buffers
+			graphics::GPUBuffer touchedTiles_0;
+			graphics::GPUBuffer offsetTiles_0;
+			graphics::GPUBuffer duplicatedDepthGaussians; // new version
+			graphics::GPUBuffer duplicatedTileDepthGaussians_0;
+			graphics::GPUBuffer duplicatedIdGaussians;
+		};
 		struct GPrimBuffers
 		{
 			uint32_t slot = 0;
@@ -86,10 +100,13 @@ namespace vz
 			BufferView soTangent;
 			BufferView soPre;
 
+			GaussianSplattingBuffers gaussianSplattingBuffers;
+
 			void Destroy()
 			{
 				generalBuffer = {};
 				streamoutBuffer = {};
+				gaussianSplattingBuffers = {};
 
 				// buffer views
 				ib = {};
@@ -110,6 +127,8 @@ namespace vz
 
 		uint32_t geometryOffset = 0; // (including # of parts)
 
+		// ----- Gaussian Splatting -----
+		bool isGaussianSplatting = false;
 		// ----- Meshlet -----
 		bool isMeshletEnabled = false;
 		uint32_t meshletOffset = ~0u; // base

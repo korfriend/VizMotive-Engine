@@ -768,15 +768,16 @@ struct alignas(16) ShaderClusterBounds
 
 namespace vz
 {
-	using GBuffers = GGeometryComponent::GPrimBuffers;
+	using GPrimBuffers = GGeometryComponent::GPrimBuffers;
 
 	void GGeometryComponent::DeleteRenderData()
 	{
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& primitive = parts_[i];
-			primitive.bufferHandle_.reset();
+			primitive.bufferHandle_.reset();	// calls GPrimBuffers::Destroy()
 		}
+
 		hasRenderData_ = false;
 	}
 	void GGeometryComponent::UpdateRenderData()
@@ -798,11 +799,12 @@ namespace vz
 			return;
 		}
 
+		// general buffer creation
 		for (size_t part_index = 0, n = parts_.size(); part_index < n; ++part_index)
 		{
 			Primitive& primitive = parts_[part_index];
-			primitive.bufferHandle_ = std::make_shared<GBuffers>();
-			GBuffers& part_buffers = *(GBuffers*)primitive.bufferHandle_.get();
+			primitive.bufferHandle_ = std::make_shared<GPrimBuffers>();
+			GPrimBuffers& part_buffers = *(GPrimBuffers*)primitive.bufferHandle_.get();
 			part_buffers.slot = part_index;
 			
 			GPUBufferDesc bd;
@@ -1015,6 +1017,65 @@ namespace vz
 				vb_col.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_col.offset, vb_col.size, &Vertex_COL::FORMAT);
 				vb_col.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_col.subresource_srv);
 			}
+
+
+			const std::vector<SH>& vertex_SHs = primitive.vertexSHs_;
+			const std::vector<XMFLOAT4>& vertex_quaterions = primitive.vertexQuaterions_;
+			const std::vector<XMFLOAT4>& vertex_scale_opacities = primitive.vertexScale_Opacities_;
+			if (!vertex_SHs.empty())
+			{
+				isGaussianSplatting = true;
+				size_t num_gaussian_kernels = vertex_SHs.size();
+				assert(num_gaussian_kernels == vertex_scale_opacities.size() && num_gaussian_kernels == vertex_quaterions.size());
+
+				// vertex_SHs, vertex_scale_opacities, vertex_quaterions
+				bd.bind_flags = BindFlag::SHADER_RESOURCE;
+				bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+				if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+				{
+					bd.misc_flags |= ResourceMiscFlag::RAY_TRACING;
+				}
+				bd.size = num_gaussian_kernels * sizeof(SH);
+				bool success = device->CreateBuffer(&bd, vertex_SHs.data(), &part_buffers.gaussianSplattingBuffers.gaussianSHs);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianSHs, "GGeometryComponent::bufferHandle_::gaussianSHs");
+
+				bd.size = num_gaussian_kernels * sizeof(XMFLOAT4);
+				success = device->CreateBuffer(&bd, vertex_scale_opacities.data(), &part_buffers.gaussianSplattingBuffers.gaussianScale_Opacities);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianScale_Opacities, "GGeometryComponent::bufferHandle_::gaussianScale_Opacities");
+
+				bd.size = num_gaussian_kernels * sizeof(XMFLOAT4);
+				success = device->CreateBuffer(&bd, vertex_scale_opacities.data(), &part_buffers.gaussianSplattingBuffers.gaussianQuaterinions);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianQuaterinions, "GGeometryComponent::bufferHandle_::gaussianQuaterinions");
+
+				// Inter-processing buffers (read/write)
+				bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.touchedTiles_0);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.touchedTiles_0, "GGeometryComponent::bufferHandle_::touchedTiles_0");
+
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTiles_0);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTiles_0, "GGeometryComponent::bufferHandle_::offsetTiles_0");
+
+				const size_t initial_capacity_scale = 4;
+				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale;
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.duplicatedTileDepthGaussians_0);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.duplicatedTileDepthGaussians_0, "GGeometryComponent::bufferHandle_::duplicatedTileDapethGaussians_0");
+
+				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale;
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.duplicatedIdGaussians);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.duplicatedIdGaussians, "GGeometryComponent::bufferHandle_::duplicatedIdGaussians");
+
+				// TODO...
+			}
 		}
 
 		std::vector<ShaderCluster> clusters;
@@ -1156,8 +1217,8 @@ namespace vz
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& primitive = parts_[i];
-			primitive.bufferHandle_ = std::make_shared<GBuffers>();
-			GBuffers& part_buffers = *(GBuffers*)primitive.bufferHandle_.get();
+			primitive.bufferHandle_ = std::make_shared<GPrimBuffers>();
+			GPrimBuffers& part_buffers = *(GPrimBuffers*)primitive.bufferHandle_.get();
 
 			const std::vector<XMFLOAT3>& vertex_positions = primitive.vertexPositions_;
 			const std::vector<uint32_t>& indices = primitive.indexPrimitives_;
@@ -1251,7 +1312,7 @@ namespace vz
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			const Primitive& primitive = parts_[i];
-			const GBuffers* part_buffers = (GBuffers*)primitive.bufferHandle_.get();
+			const GPrimBuffers* part_buffers = (GPrimBuffers*)primitive.bufferHandle_.get();
 			if (part_buffers == nullptr)
 			{
 				continue;

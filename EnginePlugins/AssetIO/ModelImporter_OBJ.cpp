@@ -248,6 +248,7 @@ Entity ImportModel_OBJ(const std::string& fileName,
 						renderable.SetMaterial(materials[material_index], part_index);
 						//mesh.subsets.back().indexOffset = (uint32_t)mesh.indices.size();
 						mutable_primitive = mesh.GetMutablePrimitive(part_index);
+						mutable_primitive->SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
 
 						vertex_positions = &mutable_primitive->GetMutableVtxPositions();
 						vertex_normals = &mutable_primitive->GetMutableVtxNormals();

@@ -607,7 +607,7 @@ namespace vz
 			LINES = 1,    //!< lines
 			LINE_STRIP = 2,    //!< line strip
 			TRIANGLES = 3,    //!< triangles
-			TRIANGLE_STRIP = 4     //!< triangle strip
+			TRIANGLE_STRIP = 4,     //!< triangle strip
 		};
 		enum class NormalComputeMethod : uint8_t {
 			COMPUTE_NORMALS_HARD,		// hard face normals, can result in additional vertices generated
@@ -1305,8 +1305,11 @@ namespace vz
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}
 		inline void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize) {
-			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; orthoVerticalSize_ = orthoVerticalSize;
-			if (orthoVerticalSize < 0) orthoVerticalSize_ = computeOrthoVerticalSizeFromPerspective(math::Length(eye_));
+			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; 
+			if (orthoVerticalSize < 0)
+				orthoVerticalSize_ = computeOrthoVerticalSizeFromPerspective(math::Length(eye_));
+			else if (orthoVerticalSize > 0)
+				orthoVerticalSize_ = orthoVerticalSize;
 			flags_ |= ORTHOGONAL;
 			isDirty_ = true; timeStampSetter_ = TimerNow;
 		}

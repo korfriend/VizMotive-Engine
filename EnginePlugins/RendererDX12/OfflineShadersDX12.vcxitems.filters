@@ -143,6 +143,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DVR.h">
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_GS.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\meshVS_common.hlsl">

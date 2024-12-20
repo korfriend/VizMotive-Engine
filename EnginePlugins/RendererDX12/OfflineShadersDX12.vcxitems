@@ -42,6 +42,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DDGI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_DVR.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_GS.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Postprocess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_Raytracing.h" />

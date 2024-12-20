@@ -454,12 +454,14 @@ int main(int, char**)
 				}
 
 				static bool orthographics = false;
-				ImGui::Checkbox("ORTHOGONAL", &orthographics);
-				if (orthographics) {
-					camera->SetOrthogonalProjection(curWindowSize.x, curWindowSize.y, camera->GetNear(), camera->GetCullingFar(), -1);
-				}
-				else {
-					camera->SetPerspectiveProjection(camera->GetNear(), camera->GetCullingFar(), 45.f, curWindowSize.x / (float)curWindowSize.y);
+				if (ImGui::Checkbox("ORTHOGONAL", &orthographics))
+				{
+					if (orthographics) {
+						camera->SetOrthogonalProjection(curWindowSize.x, curWindowSize.y, camera->GetNear(), camera->GetCullingFar(), -1);
+					}
+					else {
+						camera->SetPerspectiveProjection(camera->GetNear(), camera->GetCullingFar(), 45.f, curWindowSize.x / (float)curWindowSize.y);
+					}
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
