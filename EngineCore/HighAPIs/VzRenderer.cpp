@@ -34,10 +34,17 @@ namespace vzm
 			{
 				float z_near, z_far;
 				camera->GetNearFar(&z_near, &z_far);
-				camera->SetPerspective(
-					(float)w / (float)h,
-					1.f, z_near, z_far, camera->GetFovVertical()
-				);
+				if (camera->IsOrtho())
+				{
+					camera->SetOrtho(w, h, z_near, z_far, 0);
+				}
+				else
+				{
+					camera->SetPerspective(
+						(float)w / (float)h,
+						1.f, z_near, z_far, camera->GetFovVertical()
+					);
+				}
 			};
 
 		if (renderer->camera)

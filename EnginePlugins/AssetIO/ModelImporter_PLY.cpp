@@ -109,6 +109,8 @@ bool ImportModel_PLY(const std::string &fileName, vz::GeometryComponent *geometr
 		vertex_Qts->emplace_back(rot[0], rot[1], rot[2], rot[3]);
 	}
 
+	geometry->UpdateRenderData();
+
 	file.close();
 
 	// std::cerr

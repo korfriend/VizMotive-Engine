@@ -65,6 +65,7 @@ namespace vz::renderer
 	bool isVariableRateShadingClassification = false;
 	bool isSurfelGIDebugEnabled = false;
 	bool isColorGradingEnabled = false;
+	bool isGaussianSplattingEnabled = false;
 
 	namespace options
 	{
@@ -879,7 +880,13 @@ namespace vz::renderer
 			(internalResolution.y + TILED_CULLING_BLOCKSIZE - 1) / TILED_CULLING_BLOCKSIZE
 		);
 	}
-
+	constexpr XMUINT2 GetGaussianSplattingTileCount(XMUINT2 internalResolution)
+	{
+		return XMUINT2(
+			(internalResolution.x + GS_TILESIZE - 1) / GS_TILESIZE,
+			(internalResolution.y + GS_TILESIZE - 1) / GS_TILESIZE
+		);
+	}
 
 	const Sampler* GetSampler(SAMPLERTYPES id)
 	{
@@ -946,6 +953,16 @@ namespace vz::renderer
 	{
 		XMUINT2 tileCount = {};
 		graphics::GPUBuffer entityTiles; // culled entity indices
+	};
+	struct GaussianSplattingResources
+	{
+		XMUINT2 tileCount = {};
+		// --- new version ---
+		graphics::GPUBuffer touchedTiles_tiledCounts;
+		graphics::GPUBuffer offsetTiles;
+
+
+		// next step		
 	};
 	struct LuminanceResources
 	{
@@ -1113,6 +1130,8 @@ namespace vz
 		//TiledLightResources tiledLightResources_planarReflection; // dynamic allocation
 		LuminanceResources luminanceResources; // dynamic allocation
 		BloomResources bloomResources;
+		// Gaussian Splatting 
+		GaussianSplattingResources gaussianSplattingResources;
 
 		graphics::Texture rtShadingRate; // UINT8 shading rate per tile
 
@@ -1144,7 +1163,6 @@ namespace vz
 		graphics::Texture rtParticleDistortion = {};
 
 		graphics::Texture distortion_overlay; // optional full screen distortion from an asset
-
 
 		mutable const graphics::Texture* lastPostprocessRT = &rtPostprocess;
 
@@ -1197,6 +1215,7 @@ namespace vz
 		
 		void CreateTiledLightResources(TiledLightResources& res, XMUINT2 resolution);
 		void ComputeTiledLightCulling(const TiledLightResources& res, const View& vis, const Texture& debugUAV, CommandList cmd);
+		void CreateTiledGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution);
 		
 		void CreateViewResources(ViewResources& res, XMUINT2 resolution);
 		void View_Prepare(const ViewResources& res, const Texture& input_primitiveID_1, const Texture& input_primitiveID_2, CommandList cmd); // input_primitiveID can be MSAA
@@ -2365,6 +2384,15 @@ namespace vz
 			bool has_buffer_effect = num_parts == renderable.bufferEffects.size();
 			for (size_t part_index = 0; part_index < num_parts; ++part_index)
 			{
+				if (geomety.isGaussianSplatting && renderer::isGaussianSplattingEnabled)
+				{
+					GGeometryComponent::GPrimBuffers* prim_buffers = geomety.GetGPrimBuffer(part_index);
+					if (prim_buffers)
+					{
+						device->ClearUAV(&prim_buffers->gaussianSplattingBuffers.touchedTiles_0, 0, cmd);
+					}
+				}
+
 				if (!has_buffer_effect)
 				{
 					continue;
@@ -2572,6 +2600,10 @@ namespace vz
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
 
+			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
+			if (!geometry.isGaussianSplatting)
+				continue;
+
 			const float distance = math::Distance(viewMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
@@ -2595,29 +2627,24 @@ namespace vz
 
 			GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
 			assert(material);
+			
+			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[geometry_index];
+			GaussianPushConstants gaussian_push;
+			{
+				GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
 
-			//VolumePushConstants volume_push;
-			//{
-			//	const XMFLOAT3& vox_size = volume->GetVoxelSize();
-			//	volume_push.instanceIndex = batch.instanceIndex;
-			//	volume_push.sculptStep = -1;
-			//	volume_push.opacity_correction = 1.f;
-			//	volume_push.main_visible_min_sample = tableValidBeginEndRatioX.x;
-			//
-			//	const XMUINT3& block_pitch = volume->GetBlockPitch();
-			//	XMFLOAT3 vol_size = XMFLOAT3((float)volume->GetWidth(), (float)volume->GetHeight(), (float)volume->GetDepth());
-			//	volume_push.singleblock_size_ts = XMFLOAT3((float)block_pitch.x / vol_size.x,
-			//		(float)block_pitch.y / vol_size.y, (float)block_pitch.z / vol_size.z);
-			//
-			//	volume_push.mask_value_range = 255.f;
-			//	const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
-			//	volume_push.value_range = min_max_stored_v.y - min_max_stored_v.x;
-			//	volume_push.mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
-			//
-			//	const XMUINT3& blocks_size = volume->GetBlocksSize();
-			//	volume_push.blocks_w = blocks_size.x;
-			//	volume_push.blocks_wh = blocks_size.x * blocks_size.y;
-			//}
+				gaussian_push.instanceIndex = batch.instanceIndex;
+				gaussian_push.gaussian_SHs_index = device->GetDescriptorIndex(&gs_buffers.gaussianSHs, SubresourceType::SRV);
+				gaussian_push.gaussian_scale_opacities_index = device->GetDescriptorIndex(&gs_buffers.gaussianScale_Opacities, SubresourceType::SRV);
+				gaussian_push.gaussian_quaternions_index = device->GetDescriptorIndex(&gs_buffers.gaussianQuaterinions, SubresourceType::SRV);
+				gaussian_push.touchedTiles_0_index = device->GetDescriptorIndex(&gs_buffers.touchedTiles_0, SubresourceType::UAV);
+				gaussian_push.offsetTiles_0_index = device->GetDescriptorIndex(&gs_buffers.offsetTiles_0, SubresourceType::UAV);
+				gaussian_push.duplicatedDepthGaussians_index = device->GetDescriptorIndex(&gs_buffers.duplicatedDepthGaussians, SubresourceType::UAV);
+				gaussian_push.duplicatedTileDepthGaussians_0_index = device->GetDescriptorIndex(&gs_buffers.duplicatedTileDepthGaussians_0, SubresourceType::UAV);
+				gaussian_push.duplicatedIdGaussians_index = device->GetDescriptorIndex(&gs_buffers.duplicatedIdGaussians, SubresourceType::UAV);
+
+				gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
+			}
 
 			if (rtMain.IsValid() && rtLinearDepth.IsValid())
 			{
@@ -2634,9 +2661,33 @@ namespace vz
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			BarrierStackFlush(cmd);
 
-			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_TEST], cmd);
-			//device->PushConstants(&volume_push, sizeof(VolumePushConstants), cmd);
+			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
 
+			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], cmd);
+			device->Dispatch(
+				gaussian_push.num_gaussians,
+				1,
+				1,
+				cmd
+			);
+
+			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], cmd);
+			device->Dispatch(
+				gaussian_push.num_gaussians,
+				1,
+				1,
+				cmd
+			);
+
+			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], cmd);
+			device->Dispatch(
+				gs_tile_count.x,
+				gs_tile_count.y,
+				1,
+				cmd
+			);
+
+			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], cmd);
 			device->Dispatch(
 				gs_tile_count.x,
 				gs_tile_count.y,
@@ -3217,6 +3268,24 @@ namespace vz
 		device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
 
 		profiler::EndRange(range);
+	}
+
+	void GRenderPath3DDetails::CreateTiledGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution)
+	{
+		res.tileCount = GetGaussianSplattingTileCount(resolution);
+		
+		// new version //
+		GPUBufferDesc bd;
+		bd.stride = sizeof(uint);
+		bd.size = res.tileCount.x * res.tileCount.y * bd.stride * SHADER_ENTITY_TILE_BUCKET_COUNT * 2; // *2: opaque and transparent arrays
+		bd.usage = Usage::DEFAULT;
+		bd.bind_flags = BindFlag::UNORDERED_ACCESS | BindFlag::SHADER_RESOURCE;
+		bd.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+		device->CreateBuffer(&bd, nullptr, &res.touchedTiles_tiledCounts);
+		device->SetName(&res.touchedTiles_tiledCounts, "touchedTiles_tiledCounts");
+		
+		device->CreateBuffer(&bd, nullptr, &res.offsetTiles);
+		device->SetName(&res.offsetTiles, "offsetTiles");
 	}
 }
 
@@ -4242,6 +4311,11 @@ namespace vz
 			device->SetName(&debugUAV, "debugUAV");
 		}
 		CreateTiledLightResources(tiledLightResources, internalResolution);
+
+		if (renderer::isGaussianSplattingEnabled)
+		{
+			CreateTiledGaussianResources(gaussianSplattingResources, internalResolution);
+		}
 		//CreateScreenSpaceShadowResources(screenspaceshadowResources, internalResolution);
 
 		return true;
@@ -5089,8 +5163,11 @@ namespace vz
 			
 			//RenderTransparents(cmd);
 
-			//RenderGaussianSplatting(cmd);
-			
+			if (renderer::isGaussianSplattingEnabled)
+			{
+				RenderGaussianSplatting(cmd);
+			} 
+				
 			RenderDirectVolumes(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
@@ -5135,6 +5212,7 @@ namespace vz
 		//tiledLightResources_planarReflection = {};
 		luminanceResources = {};
 		bloomResources = {};
+		gaussianSplattingResources = {};
 
 		rtShadingRate = {};
 

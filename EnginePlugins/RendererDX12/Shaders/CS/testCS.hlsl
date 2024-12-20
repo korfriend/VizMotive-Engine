@@ -1,11 +1,16 @@
 #include "../Globals.hlsli"
+#include "../ShaderInterop_GS.h"
+#include "../CommonHF/surfaceHF.hlsli"
+#include "../CommonHF/raytracingHF.hlsli"
+
+PUSHCONSTANT(gaussians, GaussianPushConstants);
 
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWTexture2D<float> inout_linear_depth : register(u1);
 
-[numthreads(GS_TILESIZE, GS_TILESIZE, 1)]
+[numthreads(1, 1, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
-{	
+{	 
 	const uint2 pixel = DTid.xy;
 
     ShaderCamera camera = GetCamera();
