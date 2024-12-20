@@ -35,70 +35,6 @@
 /*
 // Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
 void EnableDpiAwareness() {
-    // Windows 10에서 사용할 수 있는 DPI 인식 설정
-    HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
-    if (hUser32) {
-        typedef BOOL(WINAPI* SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
-        SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
-            (SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
-
-        if (SetProcessDpiAwarenessContextFunc) {
-            SetProcessDpiAwarenessContextFunc(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-        }
-        else {
-            // Windows 8.1에서 사용할 수 있는 DPI 인식 설정
-            HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
-            if (hShcore) {
-                typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
-                SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
-                    (SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
-
-                if (SetProcessDpiAwarenessFunc) {
-                    SetProcessDpiAwarenessFunc(PROCESS_PER_MONITOR_DPI_AWARE);
-                }
-                FreeLibrary(hShcore);
-            }
-        }
-        FreeLibrary(hUser32);
-    }
-}
-/**/
-struct FrameContext
-{
-	ID3D12CommandAllocator* CommandAllocator;
-	UINT64                  FenceValue;
-};
-
-// Data
-static int const                    NUM_FRAMES_IN_FLIGHT = 3;
-static FrameContext                 g_frameContext[NUM_FRAMES_IN_FLIGHT] = {};
-static UINT                         g_frameIndex = 0;
-
-static int const                    NUM_BACK_BUFFERS = 3;
-static ID3D12Device* g_pd3dDevice = nullptr;
-static ID3D12DescriptorHeap* g_pd3dRtvDescHeap = nullptr;
-static ID3D12DescriptorHeap* g_pd3dSrvDescHeap = nullptr;
-static ID3D12CommandQueue* g_pd3dCommandQueue = nullptr;
-static ID3D12GraphicsCommandList* g_pd3dCommandList = nullptr;
-static ID3D12Fence* g_fence = nullptr;
-static HANDLE                       g_fenceEvent = nullptr;
-static UINT64                       g_fenceLastSignaledValue = 0;
-static IDXGISwapChain3* g_pSwapChain = nullptr;
-static HANDLE                       g_hSwapChainWaitableObject = nullptr;
-static ID3D12Resource* g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
-static D3D12_CPU_DESCRIPTOR_HANDLE  g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
-
-// Forward declarations of helper functions
-bool CreateDeviceD3D(HWND hWnd);
-void CleanupDeviceD3D();
-void CreateRenderTarget();
-void CleanupRenderTarget();
-void WaitForLastSubmittedFrame();
-FrameContext* WaitForNextFrameResources();
-LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-// Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
-void EnableDpiAwareness() {
 	// Windows 10에서 사용할 수 있는 DPI 인식 설정
 	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
 	if (hUser32) {
@@ -126,27 +62,98 @@ void EnableDpiAwareness() {
 		FreeLibrary(hUser32);
 	}
 }
+/**/
+struct FrameContext
+{
+	ID3D12CommandAllocator *CommandAllocator;
+	UINT64 FenceValue;
+};
+
+// Data
+static int const NUM_FRAMES_IN_FLIGHT = 3;
+static FrameContext g_frameContext[NUM_FRAMES_IN_FLIGHT] = {};
+static UINT g_frameIndex = 0;
+
+static int const NUM_BACK_BUFFERS = 3;
+static ID3D12Device *g_pd3dDevice = nullptr;
+static ID3D12DescriptorHeap *g_pd3dRtvDescHeap = nullptr;
+static ID3D12DescriptorHeap *g_pd3dSrvDescHeap = nullptr;
+static ID3D12CommandQueue *g_pd3dCommandQueue = nullptr;
+static ID3D12GraphicsCommandList *g_pd3dCommandList = nullptr;
+static ID3D12Fence *g_fence = nullptr;
+static HANDLE g_fenceEvent = nullptr;
+static UINT64 g_fenceLastSignaledValue = 0;
+static IDXGISwapChain3 *g_pSwapChain = nullptr;
+static HANDLE g_hSwapChainWaitableObject = nullptr;
+static ID3D12Resource *g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
+static D3D12_CPU_DESCRIPTOR_HANDLE g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
+
+// Forward declarations of helper functions
+bool CreateDeviceD3D(HWND hWnd);
+void CleanupDeviceD3D();
+void CreateRenderTarget();
+void CleanupRenderTarget();
+void WaitForLastSubmittedFrame();
+FrameContext *WaitForNextFrameResources();
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+// Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
+void EnableDpiAwareness()
+{
+	// Windows 10에서 사용할 수 있는 DPI 인식 설정
+	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
+	if (hUser32)
+	{
+		typedef BOOL(WINAPI * SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
+		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
+			(SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+
+		if (SetProcessDpiAwarenessContextFunc)
+		{
+			SetProcessDpiAwarenessContextFunc(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+		}
+		else
+		{
+			// Windows 8.1에서 사용할 수 있는 DPI 인식 설정
+			HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
+			if (hShcore)
+			{
+				typedef HRESULT(WINAPI * SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
+				SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
+					(SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
+
+				if (SetProcessDpiAwarenessFunc)
+				{
+					SetProcessDpiAwarenessFunc(PROCESS_PER_MONITOR_DPI_AWARE);
+				}
+				FreeLibrary(hShcore);
+			}
+		}
+		FreeLibrary(hUser32);
+	}
+}
 
 // Main code
 DXGI_SWAP_CHAIN_DESC1 sd;
 
-int main(int, char**)
+int main(int, char **)
 {
 	// DPI 인식을 활성화
 	EnableDpiAwareness();
 
 	// Create application window
-	//ImGui_ImplWin32_EnableDpiAwareness();
-	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
+	// ImGui_ImplWin32_EnableDpiAwareness();
+	WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
 	::RegisterClassExW(&wc);
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::ParamMap<std::string> arguments;
-	//arguments.SetString("API", "DX11");
+	// arguments.SetString("API", "DX11");
 	arguments.SetString("GPU_VALIDATION", "VERBOSE");
-	//arguments.SetParam("MAX_THREADS", 1u); // ~0u
+	// arguments.SetParam("MAX_THREADS", 1u); // ~0u
 	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
-	if (!vzm::InitEngineLib(arguments)) {
+	if (!vzm::InitEngineLib(arguments))
+	{
 		std::cerr << "Failed to initialize engine library." << std::endl;
 		return -1;
 	}
@@ -166,20 +173,21 @@ int main(int, char**)
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	ImGuiIO &io = ImGui::GetIO();
+	(void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsLight();
+	// ImGui::StyleColorsLight();
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hwnd);
 	ImGui_ImplDX12_Init(g_pd3dDevice, NUM_FRAMES_IN_FLIGHT,
-		sd.Format, g_pd3dSrvDescHeap, //DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
-		g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
-		g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
+						sd.Format, g_pd3dSrvDescHeap, // DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
+						g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
+						g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -189,30 +197,98 @@ int main(int, char**)
 	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
 	// - Read 'docs/FONTS.md' for more instructions and details.
 	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-	//io.Fonts->AddFontDefault();
-	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-	//IM_ASSERT(font != nullptr);
+	// io.Fonts->AddFontDefault();
+	// io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
+	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+	// ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+	// IM_ASSERT(font != nullptr);
 
 	using namespace vzm;
-	VzScene* scene = nullptr;
-	VzCamera* camera = nullptr;
-	VzRenderer* renderer = nullptr;
+	VzScene *scene = nullptr;
+	VzCamera *camera = nullptr;
+	VzRenderer *renderer = nullptr;
 	ImVec2 wh(512, 512);
+
+	// === backup ===
+	// {
+	// 	scene = NewScene("my scene");
+
+	// 	VzLight* light = NewLight("my light");
+	// 	light->SetLightIntensity(5.f);
+	// 	light->SetPosition({ 0.f, 0.f, 100.f });
+	// 	light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
+
+	// 	renderer = NewRenderer("my renderer");
+	// 	renderer->SetCanvas(1, 1, 96.f, nullptr);
+	// 	renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
+
+	// 	camera = NewCamera("my camera");
+	// 	glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
+	// 	glm::fvec3 view = at - pos;
+	// 	camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+	// 	camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+
+	// 	vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
+	// 	geometry_test->MakeTestQuadWithUVs();
+	// 	vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
+	// 	material_test->SetShaderType(vzm::ShaderType::PBR);
+	// 	material_test->SetDoubleSided(true);
+
+	// 	vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my triangles");
+	// 	geometry_test2->MakeTestTriangle();
+
+	// 	vzm::VzTexture* texture = vzm::NewTexture("my texture");
+	// 	texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
+	// 	material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
+
+	// 	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
+	// 	actor_test->SetScale({ 2.f, 2.f, 2.f });
+	// 	actor_test->SetPosition({ 0, 0, -1.f });
+
+	// 	vzm::VzActor* actor_test2 = vzm::NewActor("my actor2");
+	// 	actor_test2->SetGeometry(geometry_test2);
+	// 	actor_test2->SetPosition({ 0, -2, 0 });
+	// 	vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
+	// 	for (size_t i = 0, n = geometry_test2->GetNumParts(); i < n; ++i)
+	// 	{
+	// 		vzm::VzMaterial* material = vzm::NewMaterial("my test2's material " + i);
+	// 		actor_test2->SetMaterial(material, i);
+	// 		material->SetShaderType(vzm::ShaderType::PBR);
+	// 		material->SetDoubleSided(true);
+	// 		material->SetBaseColor(colors[i]);
+	// 	}
+
+	// 	vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
+	// 	geometry_stl->LoadGeometryFile("../Assets/stl_files/Anchorpin.stl");
+	// 	vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
+	// 	material_stl->SetShaderType(vzm::ShaderType::PBR);
+	// 	material_stl->SetDoubleSided(true);
+	// 	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
+	// 	actor_test3->SetScale({ 0.3f, 0.3f, 0.3f });
+
+	// 	vzm::AppendSceneCompTo(actor_test, scene);
+	// 	vzm::AppendSceneCompTo(actor_test2, scene);
+	// 	vzm::AppendSceneCompTo(actor_test3, scene);
+	// 	vzm::AppendSceneCompTo(light, scene);
+
+	// 	VzArchive* archive = vzm::NewArchive("test archive");
+	// 	archive->Store(camera);
+	// }
+
+	// add .ply load
 	{
 		scene = NewScene("my scene");
 
-		VzLight* light = NewLight("my light");
-		light->SetIntensity(5.f);
-		light->SetPosition({ 0.f, 0.f, 100.f });
-		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
+		VzLight *light = NewLight("my light");
+		light->SetLightIntensity(5.f);
+		light->SetPosition({0.f, 0.f, 100.f});
+		light->SetEulerAngleZXYInDegree({0, 180, 0});
 
 		renderer = NewRenderer("my renderer");
 		renderer->SetCanvas(1, 1, 96.f, nullptr);
-		renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
+		renderer->SetClearColor({1.f, 1.f, 0.f, 1.f});
 
 		camera = NewCamera("my camera");
 		glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
@@ -220,50 +296,74 @@ int main(int, char**)
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
 
-		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
+		vzm::VzGeometry *geometry_test = vzm::NewGeometry("my geometry");
 		geometry_test->MakeTestQuadWithUVs();
-		vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
+		vzm::VzMaterial *material_test = vzm::NewMaterial("my material");
 		material_test->SetShaderType(vzm::ShaderType::PBR);
 		material_test->SetDoubleSided(true);
 
-		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my triangles");
+		vzm::VzGeometry *geometry_test2 = vzm::NewGeometry("my triangles");
 		geometry_test2->MakeTestTriangle();
 
-		vzm::VzTexture* texture = vzm::NewTexture("my texture");
+		vzm::VzTexture *texture = vzm::NewTexture("my texture");
 		texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
 		material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
-		vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
-		actor_test->SetScale({ 2.f, 2.f, 2.f });
-		actor_test->SetPosition({ 0, 0, -1.f });
+		vzm::VzActor *actor_test = vzm::NewActor("my actor", geometry_test, material_test);
+		actor_test->SetScale({2.f, 2.f, 2.f});
+		actor_test->SetPosition({0, 0, -1.f});
 
-		vzm::VzActor* actor_test2 = vzm::NewActor("my actor2");
+		vzm::VzActor *actor_test2 = vzm::NewActor("my actor2");
 		actor_test2->SetGeometry(geometry_test2);
-		actor_test2->SetPosition({ 0, -2, 0 });
-		vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
+		actor_test2->SetPosition({0, -2, 0});
+		vfloat4 colors[3] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}};
 		for (size_t i = 0, n = geometry_test2->GetNumParts(); i < n; ++i)
 		{
-			vzm::VzMaterial* material = vzm::NewMaterial("my test2's material " + i);
+			vzm::VzMaterial *material = vzm::NewMaterial("my test2's material " + i);
 			actor_test2->SetMaterial(material, i);
 			material->SetShaderType(vzm::ShaderType::PBR);
 			material->SetDoubleSided(true);
 			material->SetBaseColor(colors[i]);
 		}
 
-		vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
+		vzm::VzGeometry *geometry_stl = vzm::NewGeometry("my stl");
 		geometry_stl->LoadGeometryFile("../Assets/stl_files/Anchorpin.stl");
-		vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
+		vzm::VzMaterial *material_stl = vzm::NewMaterial("my stl's material");
 		material_stl->SetShaderType(vzm::ShaderType::PBR);
 		material_stl->SetDoubleSided(true);
-		vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
-		actor_test3->SetScale({ 0.3f, 0.3f, 0.3f });
+		vzm::VzActor *actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
+		actor_test3->SetScale({0.3f, 0.3f, 0.3f});
+
+		// === Add PLY loading code here ===
+		// Load PLY geometry
+		{
+			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
+			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_1000.ply"))
+			{
+				std::cerr << "Failed to load point_cloud.ply" << std::endl;
+			}
+			else
+			{
+				vzm::VzMaterial *ply_material = vzm::NewMaterial("my ply material");
+				ply_material->SetShaderType(vzm::ShaderType::PBR);
+				ply_material->SetDoubleSided(true);
+
+				vzm::VzActor *ply_actor = vzm::NewActor("my ply actor", geometry_ply, ply_material);
+				ply_actor->SetScale({1.f, 1.f, 1.f});
+				ply_actor->SetPosition({0.f, 0.f, -2.f});
+
+				vzm::AppendSceneCompTo(ply_actor, scene);
+			}
+		}
+
+		// === end of PLY loading code ===
 
 		vzm::AppendSceneCompTo(actor_test, scene);
 		vzm::AppendSceneCompTo(actor_test2, scene);
 		vzm::AppendSceneCompTo(actor_test3, scene);
 		vzm::AppendSceneCompTo(light, scene);
 
-		VzArchive* archive = vzm::NewArchive("test archive");
+		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 	}
 
@@ -320,18 +420,18 @@ int main(int, char**)
 				ImGui::SetItemAllowOverlap();
 
 				bool is_hovered = ImGui::IsItemHovered(); // Hovered
-				bool is_active = ImGui::IsItemActive();   // Held
+				bool is_active = ImGui::IsItemActive();	  // Held
 
 				if (is_hovered && !resized)
 				{
 					static glm::fvec2 prevMousePos(0);
-					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
-					glm::fvec2 s_pos = *(glm::fvec2*)&cur_item_pos;
-					glm::fvec2 w_pos = *(glm::fvec2*)&win_pos;
+					glm::fvec2 ioPos = *(glm::fvec2 *)&io.MousePos;
+					glm::fvec2 s_pos = *(glm::fvec2 *)&cur_item_pos;
+					glm::fvec2 w_pos = *(glm::fvec2 *)&win_pos;
 					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
 					glm::fvec2 pos_ss = m_pos;
 
-					OrbitalControl* orbit_control = camera->GetOrbitControl();
+					OrbitalControl *orbit_control = camera->GetOrbitControl();
 					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 2.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
@@ -340,8 +440,7 @@ int main(int, char**)
 						camera->GetPerspectiveProjection(&np, &fp, NULL, NULL);
 						orbit_control->Start(__FC2 pos_ss);
 					}
-					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f))
-						&& glm::length2(prevMousePos - m_pos) > 0)
+					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f)) && glm::length2(prevMousePos - m_pos) > 0)
 					{
 						if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
 							orbit_control->PanMove(__FC2 pos_ss);
@@ -367,7 +466,7 @@ int main(int, char**)
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;
-				renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, srt , &w, &h);
+				renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, srt, &w, &h);
 				ImTextureID texId = (ImTextureID)srt.descriptorHandle;
 				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 				ImGui::Image(texId, ImVec2((float)w, (float)h));
@@ -385,13 +484,12 @@ int main(int, char**)
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			}
 			ImGui::End();
-
 		}
 
 		// Rendering
 		ImGui::Render();
 
-		FrameContext* frameCtx = WaitForNextFrameResources();
+		FrameContext *frameCtx = WaitForNextFrameResources();
 		UINT backBufferIdx = g_pSwapChain->GetCurrentBackBufferIndex();
 		frameCtx->CommandAllocator->Reset();
 
@@ -406,7 +504,7 @@ int main(int, char**)
 		g_pd3dCommandList->ResourceBarrier(1, &barrier);
 
 		// Render Dear ImGui graphics
-		const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+		const float clear_color_with_alpha[4] = {clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w};
 		g_pd3dCommandList->ClearRenderTargetView(g_mainRenderTargetDescriptor[backBufferIdx], clear_color_with_alpha, 0, nullptr);
 		g_pd3dCommandList->OMSetRenderTargets(1, &g_mainRenderTargetDescriptor[backBufferIdx], FALSE, nullptr);
 		g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
@@ -416,10 +514,10 @@ int main(int, char**)
 		g_pd3dCommandList->ResourceBarrier(1, &barrier);
 		g_pd3dCommandList->Close();
 
-		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&g_pd3dCommandList);
+		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList *const *)&g_pd3dCommandList);
 
 		g_pSwapChain->Present(1, 0); // Present with vsync
-		//g_pSwapChain->Present(0, 0); // Present without vsync
+		// g_pSwapChain->Present(0, 0); // Present without vsync
 
 		UINT64 fenceValue = g_fenceLastSignaledValue + 1;
 		g_pd3dCommandQueue->Signal(g_fence, fenceValue);
@@ -465,9 +563,9 @@ bool CreateDeviceD3D(HWND hWnd)
 
 	// [DEBUG] Enable debug interface
 #ifdef DX12_ENABLE_DEBUG_LAYER
-	ID3D12Debug* pdx12Debug = nullptr;
+	ID3D12Debug *pdx12Debug = nullptr;
 	// note : only one debug_layer is available
-	//if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pdx12Debug))))
+	// if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pdx12Debug))))
 	//	pdx12Debug->EnableDebugLayer();
 #endif
 
@@ -476,11 +574,11 @@ bool CreateDeviceD3D(HWND hWnd)
 	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
 		return false;
 
-	// [DEBUG] Setup debug interface to break on any warnings/errors
+		// [DEBUG] Setup debug interface to break on any warnings/errors
 #ifdef DX12_ENABLE_DEBUG_LAYER
 	if (pdx12Debug != nullptr)
 	{
-		ID3D12InfoQueue* pInfoQueue = nullptr;
+		ID3D12InfoQueue *pInfoQueue = nullptr;
 		g_pd3dDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue));
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -542,8 +640,8 @@ bool CreateDeviceD3D(HWND hWnd)
 		return false;
 
 	{
-		IDXGIFactory4* dxgiFactory = nullptr;
-		IDXGISwapChain1* swapChain1 = nullptr;
+		IDXGIFactory4 *dxgiFactory = nullptr;
+		IDXGISwapChain1 *swapChain1 = nullptr;
 		if (CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)) != S_OK)
 			return false;
 		if (dxgiFactory->CreateSwapChainForHwnd(g_pd3dCommandQueue, hWnd, &sd, nullptr, nullptr, &swapChain1) != S_OK)
@@ -563,20 +661,60 @@ bool CreateDeviceD3D(HWND hWnd)
 void CleanupDeviceD3D()
 {
 	CleanupRenderTarget();
-	if (g_pSwapChain) { g_pSwapChain->SetFullscreenState(false, nullptr); g_pSwapChain->Release(); g_pSwapChain = nullptr; }
-	if (g_hSwapChainWaitableObject != nullptr) { CloseHandle(g_hSwapChainWaitableObject); }
+	if (g_pSwapChain)
+	{
+		g_pSwapChain->SetFullscreenState(false, nullptr);
+		g_pSwapChain->Release();
+		g_pSwapChain = nullptr;
+	}
+	if (g_hSwapChainWaitableObject != nullptr)
+	{
+		CloseHandle(g_hSwapChainWaitableObject);
+	}
 	for (UINT i = 0; i < NUM_FRAMES_IN_FLIGHT; i++)
-		if (g_frameContext[i].CommandAllocator) { g_frameContext[i].CommandAllocator->Release(); g_frameContext[i].CommandAllocator = nullptr; }
-	if (g_pd3dCommandQueue) { g_pd3dCommandQueue->Release(); g_pd3dCommandQueue = nullptr; }
-	if (g_pd3dCommandList) { g_pd3dCommandList->Release(); g_pd3dCommandList = nullptr; }
-	if (g_pd3dRtvDescHeap) { g_pd3dRtvDescHeap->Release(); g_pd3dRtvDescHeap = nullptr; }
-	if (g_pd3dSrvDescHeap) { g_pd3dSrvDescHeap->Release(); g_pd3dSrvDescHeap = nullptr; }
-	if (g_fence) { g_fence->Release(); g_fence = nullptr; }
-	if (g_fenceEvent) { CloseHandle(g_fenceEvent); g_fenceEvent = nullptr; }
-	if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
+		if (g_frameContext[i].CommandAllocator)
+		{
+			g_frameContext[i].CommandAllocator->Release();
+			g_frameContext[i].CommandAllocator = nullptr;
+		}
+	if (g_pd3dCommandQueue)
+	{
+		g_pd3dCommandQueue->Release();
+		g_pd3dCommandQueue = nullptr;
+	}
+	if (g_pd3dCommandList)
+	{
+		g_pd3dCommandList->Release();
+		g_pd3dCommandList = nullptr;
+	}
+	if (g_pd3dRtvDescHeap)
+	{
+		g_pd3dRtvDescHeap->Release();
+		g_pd3dRtvDescHeap = nullptr;
+	}
+	if (g_pd3dSrvDescHeap)
+	{
+		g_pd3dSrvDescHeap->Release();
+		g_pd3dSrvDescHeap = nullptr;
+	}
+	if (g_fence)
+	{
+		g_fence->Release();
+		g_fence = nullptr;
+	}
+	if (g_fenceEvent)
+	{
+		CloseHandle(g_fenceEvent);
+		g_fenceEvent = nullptr;
+	}
+	if (g_pd3dDevice)
+	{
+		g_pd3dDevice->Release();
+		g_pd3dDevice = nullptr;
+	}
 
 #ifdef DX12_ENABLE_DEBUG_LAYER
-	IDXGIDebug1* pDebug = nullptr;
+	IDXGIDebug1 *pDebug = nullptr;
 	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDebug))))
 	{
 		pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY);
@@ -589,7 +727,7 @@ void CreateRenderTarget()
 {
 	for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
 	{
-		ID3D12Resource* pBackBuffer = nullptr;
+		ID3D12Resource *pBackBuffer = nullptr;
 		g_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer));
 		g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, g_mainRenderTargetDescriptor[i]);
 		g_mainRenderTargetResource[i] = pBackBuffer;
@@ -601,12 +739,16 @@ void CleanupRenderTarget()
 	WaitForLastSubmittedFrame();
 
 	for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
-		if (g_mainRenderTargetResource[i]) { g_mainRenderTargetResource[i]->Release(); g_mainRenderTargetResource[i] = nullptr; }
+		if (g_mainRenderTargetResource[i])
+		{
+			g_mainRenderTargetResource[i]->Release();
+			g_mainRenderTargetResource[i] = nullptr;
+		}
 }
 
 void WaitForLastSubmittedFrame()
 {
-	FrameContext* frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
+	FrameContext *frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
 
 	UINT64 fenceValue = frameCtx->FenceValue;
 	if (fenceValue == 0)
@@ -620,15 +762,15 @@ void WaitForLastSubmittedFrame()
 	WaitForSingleObject(g_fenceEvent, INFINITE);
 }
 
-FrameContext* WaitForNextFrameResources()
+FrameContext *WaitForNextFrameResources()
 {
 	UINT nextFrameIndex = g_frameIndex + 1;
 	g_frameIndex = nextFrameIndex;
 
-	HANDLE waitableObjects[] = { g_hSwapChainWaitableObject, nullptr };
+	HANDLE waitableObjects[] = {g_hSwapChainWaitableObject, nullptr};
 	DWORD numWaitableObjects = 1;
 
-	FrameContext* frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
+	FrameContext *frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
 	UINT64 fenceValue = frameCtx->FenceValue;
 	if (fenceValue != 0) // means no fence was signaled
 	{
@@ -656,46 +798,52 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
 
-	vzm::VzRenderer* renderer = nullptr;
+	vzm::VzRenderer *renderer = nullptr;
 	if (vzm::IsValidEngineLib())
 	{
-		renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
+		renderer = (vzm::VzRenderer *)vzm::GetFirstComponentByName("my renderer");
 	}
 
 	switch (msg)
 	{
 	case WM_KEYDOWN:
-		switch (wParam) {
+		switch (wParam)
+		{
 		case 'R':
-			//vz::eventhandler::FireEvent(1, 0);
+			// vz::eventhandler::FireEvent(1, 0);
 			vzm::ReloadShader();
 			break;
-		case '0': renderer->ShowDebugBuffer("NONE");
+		case '0':
+			renderer->ShowDebugBuffer("NONE");
 			break;
-		case '1': renderer->ShowDebugBuffer("PRIMITIVE_ID");
+		case '1':
+			renderer->ShowDebugBuffer("PRIMITIVE_ID");
 			break;
-		case '2': renderer->ShowDebugBuffer("INSTANCE_ID");
+		case '2':
+			renderer->ShowDebugBuffer("INSTANCE_ID");
 			break;
-		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
+		case '3':
+			renderer->ShowDebugBuffer("LINEAR_DEPTH");
 			break;
-		case '4': renderer->ShowDebugBuffer("WITHOUT_POSTPROCESSING");
+		case '4':
+			renderer->ShowDebugBuffer("WITHOUT_POSTPROCESSING");
 			break;
 		case 'N':
 		{
 			using namespace vzm;
-			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
-			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
+			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
+			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
 			archive->Store(camera);
 		}
 		break;
-		case 'M': 
+		case 'M':
 		{
 			using namespace vzm;
-			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
-			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
+			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
+			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
 			archive->Load(camera);
 		}
-			break;
+		break;
 		default:
 			break;
 		}
