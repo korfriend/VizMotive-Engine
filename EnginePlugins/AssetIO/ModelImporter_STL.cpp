@@ -42,6 +42,7 @@ bool ImportModel_STL(const std::string& fileName, vz::GeometryComponent* geometr
 		const aiMesh* mesh = scene->mMeshes[i];
 
 		Primitive* mutable_primitive = geometry->GetMutablePrimitive(i);
+		mutable_primitive->SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
 		//PrintMeshInfo(mesh);
 
 		std::vector<XMFLOAT3>* vertex_positions = &mutable_primitive->GetMutableVtxPositions();

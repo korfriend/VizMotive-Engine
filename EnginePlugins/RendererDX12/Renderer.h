@@ -8,6 +8,7 @@
 #include "Shaders/ShaderInterop.h"
 #include "Shaders/ShaderInterop_Postprocess.h"
 #include "Shaders/ShaderInterop_DVR.h"
+#include "Shaders/ShaderInterop_GS.h"
 
 using namespace vz::graphics;
 
@@ -142,8 +143,11 @@ namespace vz
 		// DVR
 		CSTYPE_DVR_DEFAULT, // VER 0.1
 
-		// GS_TEST
-		CSTYPE_GS_TEST,
+		// Gaussian Splatting
+		CSTYPE_GS_GAUSSIAN_TOUCH_COUNT,
+		CSTYPE_GS_GAUSSIAN_OFFSET,
+		CSTYPE_GS_DUPLICATED_GAUSSIANS,
+		CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS,
 
 		// Post-Processing Chain
 		CSTYPE_POSTPROCESS_TONEMAP,
