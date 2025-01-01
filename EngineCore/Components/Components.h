@@ -1251,7 +1251,7 @@ namespace vz
 		bool bloomEnabled_ = false;
 
 		// These parameters are used differently depending on the projection mode.
-		// 1. orthogonal : image plane's width and height
+		// 1. orthogonal : image's width and height (canvas size)
 		// 2. perspective : computing aspect (W / H) ratio, i.e., (width_, height_) := (aspectRatio, 1.f)
 		// NOTE: these are NOT buffer or texture resolution!
 		float width_ = 0.0f;
@@ -1261,8 +1261,8 @@ namespace vz
 		uint8_t flags_ = CamFlags::EMPTY;
 
 		// clipper
-		XMFLOAT4X4 clipBox_; // WS to origin-centered unit cube
-		XMFLOAT4 clipPlane_;
+		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube
+		XMFLOAT4 clipPlane_ = XMFLOAT4(0, 0, 1, 1);
 
 		// Non-serialized attributes:
 		bool isDirty_ = true;
@@ -1347,6 +1347,7 @@ namespace vz
 
 		inline void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
 		inline void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }
+		inline float GetOrthoVerticalSize() const { return orthoVerticalSize_; }
 
 		inline XMFLOAT4 GetClipPlane() const { return clipPlane_; }
 		inline XMFLOAT4X4 GetClipBox() const { return clipBox_; }
