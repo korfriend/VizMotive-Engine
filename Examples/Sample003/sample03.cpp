@@ -385,13 +385,14 @@ int main(int, char**)
 					}
 					else if (io.MouseWheel != 0)
 					{
-						glm::fvec3 pos, view, up;
-						camera->GetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-						if (io.MouseWheel > 0)
-							pos += 0.2f * view;
-						else
-							pos -= 0.2f * view;
-						camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						//glm::fvec3 pos, view, up;
+						//camera->GetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						//if (io.MouseWheel > 0)
+						//	pos += 0.2f * view;
+						//else
+						//	pos -= 0.2f * view;
+						//camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						orbit_control->Zoom(io.MouseWheel, 1.f);
 					}
 					prevMousePos = pos_ss;
 				}

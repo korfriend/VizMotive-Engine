@@ -26,7 +26,7 @@ namespace vzm
 		camera->UpdateMatrix();
 		UpdateTimeStamp();
 	}
-	void VzCamera::SetOrthogonalProjection(float width, float height, float zNearP, float zFarP, float orthoVerticalSize)
+	void VzCamera::SetOrthogonalProjection(const float width, const float height, const float zNearP, const float zFarP, const float orthoVerticalSize)
 	{
 		GET_CAM_COMP(camera, );
 		camera->SetOrtho(width, height, zNearP, zFarP, orthoVerticalSize);
@@ -64,7 +64,10 @@ namespace vzm
 			return;
 		}
 		float aspect, near_p, far_p;
-		camera->GetWidthHeight(&aspect, nullptr);
+		float w, h;
+		camera->GetWidthHeight(&w, &h);
+		aspect = w / h;
+
 		camera->GetNearFar(&near_p, &far_p);
 		if (fovInDegree)
 		{
@@ -84,6 +87,39 @@ namespace vzm
 		}
 	}
 
+	void VzCamera::GetOrthogonalProjection(float* zNearP, float* zFarP, float* width, float* height, float* orthoVerticalSize) const
+	{
+		GET_CAM_COMP(camera, );
+		if (!camera->IsOrtho())
+		{
+			return;
+		}
+		float near_p, far_p;
+		float w, h;
+		camera->GetWidthHeight(&w, &h);
+		camera->GetNearFar(&near_p, &far_p);
+		if (width)
+		{
+			*width = w;
+		}
+		if (height)
+		{
+			*height = h;
+		}
+		if (zNearP)
+		{
+			*zNearP = near_p;
+		}
+		if (zFarP)
+		{
+			*zFarP = far_p;
+		}
+		if (orthoVerticalSize)
+		{
+			*orthoVerticalSize = camera->GetOrthoVerticalSize();
+		}
+	}
+
 	float VzCamera::GetNear() const
 	{
 		GET_CAM_COMP(camera, -1.f);
@@ -97,6 +133,12 @@ namespace vzm
 		float ret;
 		camera->GetNearFar(nullptr, &ret);
 		return ret;
+	}
+
+	bool VzCamera::IsOrtho() const
+	{
+		GET_CAM_COMP(camera, false);
+		return camera->IsOrtho();
 	}
 
 	void VzCamera::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
@@ -376,6 +418,7 @@ namespace vzm
 		bool Start(const vfloat2 pos, const float sensitivity = 1.0f) override;
 		bool Move(const vfloat2 pos) override;
 		bool PanMove(const vfloat2 pos) override;
+		bool Zoom(const float zoomDelta, const float sensitivity) override;
 	};
 
 
@@ -530,9 +573,6 @@ namespace vzm
 				return true;
 			}
 
-			//cout << "-----0> " << glm::length(diff_ws) << endl;
-			//cout << "-----1> " << pos.x << ", " << pos.y << endl;
-			//cout << "-----2> " << arc_ball.__start_x << ", " << arc_ball.__start_y << endl;
 			XMVECTOR pos_center_ws = arc_ball.GetCenterStage();
 			XMVECTOR vec_eye2center_ws = pos_center_ws - XMLoadFloat3(&cam_pose_begin.posCamera);
 
@@ -543,6 +583,42 @@ namespace vzm
 			XMFLOAT3 eye;
 			XMStoreFloat3(&eye, v);
 			vzCamera->SetWorldPose(__FC3 eye, __FC3 cam_pose_begin.vecView, __FC3 cam_pose_begin.vecUp);
+		}
+		return true;
+	}
+	bool OrbitalControlDetail::Zoom(const float zoomDelta, const float sensitivity)
+	{
+		if (vzCamera->IsOrtho())
+		{
+			float z_near, z_far;
+			float w, h;
+			float ortho_vertical_size;
+			vzCamera->GetOrthogonalProjection(&z_near, &z_far, &w, &h, &ortho_vertical_size);
+			if (ortho_vertical_size <= 0)
+			{
+				backlog::post("invalid orthogonal state!", backlog::LogLevel::Error);
+				return false;
+			}
+			if (zoomDelta > 0) {
+				ortho_vertical_size *= 0.9f * sensitivity;
+			}
+			else {
+				ortho_vertical_size *= 1.1f * sensitivity;
+			}
+			vzCamera->SetOrthogonalProjection(w, h, z_near, z_far, ortho_vertical_size);
+		}
+		else
+		{
+			float z_near, z_far;
+			float aspect_ratio, vertical_fov;
+			vzCamera->GetPerspectiveProjection(&z_near, &z_far, &vertical_fov, &aspect_ratio, true);
+			if (zoomDelta > 0) {
+				vertical_fov *= 0.9f * sensitivity;
+			}
+			else {
+				vertical_fov *= 1.1f * sensitivity;
+			}
+			vzCamera->SetPerspectiveProjection(z_near, z_far, vertical_fov, aspect_ratio, true);
 		}
 		return true;
 	}

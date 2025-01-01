@@ -336,25 +336,25 @@ int main(int, char **)
 
 		// === Add PLY loading code here ===
 		// Load PLY geometry
-		{
-			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
-			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_1000.ply"))
-			{
-				std::cerr << "Failed to load point_cloud.ply" << std::endl;
-			}
-			else
-			{
-				vzm::VzMaterial *ply_material = vzm::NewMaterial("my ply material");
-				ply_material->SetShaderType(vzm::ShaderType::PBR);
-				ply_material->SetDoubleSided(true);
-
-				vzm::VzActor *ply_actor = vzm::NewActor("my ply actor", geometry_ply, ply_material);
-				ply_actor->SetScale({1.f, 1.f, 1.f});
-				ply_actor->SetPosition({0.f, 0.f, -2.f});
-
-				vzm::AppendSceneCompTo(ply_actor, scene);
-			}
-		}
+		//{
+		//	vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
+		//	if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_1000.ply"))
+		//	{
+		//		std::cerr << "Failed to load point_cloud.ply" << std::endl;
+		//	}
+		//	else
+		//	{
+		//		vzm::VzMaterial *ply_material = vzm::NewMaterial("my ply material");
+		//		ply_material->SetShaderType(vzm::ShaderType::PBR);
+		//		ply_material->SetDoubleSided(true);
+		//
+		//		vzm::VzActor *ply_actor = vzm::NewActor("my ply actor", geometry_ply, ply_material);
+		//		ply_actor->SetScale({1.f, 1.f, 1.f});
+		//		ply_actor->SetPosition({0.f, 0.f, -2.f});
+		//
+		//		vzm::AppendSceneCompTo(ply_actor, scene);
+		//	}
+		//}
 
 		// === end of PLY loading code ===
 
@@ -449,13 +449,14 @@ int main(int, char **)
 					}
 					else if (io.MouseWheel != 0)
 					{
-						glm::fvec3 pos, view, up;
-						camera->GetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-						if (io.MouseWheel > 0)
-							pos += 0.2f * view;
-						else
-							pos -= 0.2f * view;
-						camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						//glm::fvec3 pos, view, up;
+						//camera->GetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						//if (io.MouseWheel > 0)
+						//	pos += 0.2f * view;
+						//else
+						//	pos -= 0.2f * view;
+						//camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						orbit_control->Zoom(io.MouseWheel, 1.f);
 					}
 					prevMousePos = pos_ss;
 				}
