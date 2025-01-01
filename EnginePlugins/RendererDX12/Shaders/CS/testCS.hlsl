@@ -10,7 +10,7 @@ RWTexture2D<float> inout_linear_depth : register(u1);
 
 [numthreads(1, 1, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
-{	 
+{	
 	const uint2 pixel = DTid.xy;
 
     ShaderCamera camera = GetCamera();
