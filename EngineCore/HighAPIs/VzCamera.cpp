@@ -156,6 +156,15 @@ namespace vzm
 		GET_CAM_COMP(camera, );
 		camera->SetClipBox(*(XMFLOAT4X4*)&clipBox);
 	}
+	bool VzCamera::IsClipperEnabled(bool* clipBoxEnabled, bool* clipPlaneEnabled) const
+	{
+		GET_CAM_COMP(camera, false);
+		bool box_clipped = camera->IsBoxClipperEnabled();
+		bool plane_clipped = camera->IsPlaneClipperEnabled();
+		if (clipBoxEnabled) *clipBoxEnabled = box_clipped;
+		if (clipPlaneEnabled) *clipPlaneEnabled = plane_clipped;
+		return box_clipped || plane_clipped;
+	}
 }
 
 namespace vzm

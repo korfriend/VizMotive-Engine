@@ -36,7 +36,7 @@ namespace vzm
 				camera->GetNearFar(&z_near, &z_far);
 				if (camera->IsOrtho())
 				{
-					camera->SetOrtho(w, h, z_near, z_far, 0);
+					camera->SetOrtho((float)w, (float)h, z_near, z_far, 0);
 				}
 				else
 				{

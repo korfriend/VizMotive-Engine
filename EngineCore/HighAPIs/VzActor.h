@@ -31,6 +31,7 @@ namespace vzm
 		void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled);
 		void SetClipPlane(const vfloat4& clipPlane);
 		void SetClipBox(const vfloat4x4& clipBox);
+		bool IsClipperEnabled(bool* clipBoxEnabled = nullptr, bool* clipPlaneEnabled = nullptr) const;
 
 		std::vector<MaterialVID> GetMaterials() const;
 		MaterialVID GetMaterial(const int slot = 0) const;
