@@ -614,6 +614,13 @@ namespace vzm
 			else {
 				ortho_vertical_size *= 1.1f * sensitivity;
 			}
+
+			if (ortho_vertical_size < 0.0001)
+			{
+				backlog::post("invalid Ortho-Size: " + std::to_string(ortho_vertical_size), backlog::LogLevel::Warn);
+				return false;
+			}
+
 			vzCamera->SetOrthogonalProjection(w, h, z_near, z_far, ortho_vertical_size);
 		}
 		else
@@ -627,6 +634,13 @@ namespace vzm
 			else {
 				vertical_fov *= 1.1f * sensitivity;
 			}
+
+			if (vertical_fov < 0.1 || vertical_fov > 179.9)
+			{
+				backlog::post("invalid FOV: " + std::to_string(vertical_fov) + "(Deg)", backlog::LogLevel::Warn);
+				return false;
+			}
+
 			vzCamera->SetPerspectiveProjection(z_near, z_far, vertical_fov, aspect_ratio, true);
 		}
 		return true;
