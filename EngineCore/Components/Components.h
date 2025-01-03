@@ -1064,8 +1064,8 @@ namespace vz
 		float rimHighlightFalloff_ = 8;
 
 		// clipper
-		XMFLOAT4X4 clipBox_; // WS to origin-centered unit cube
-		XMFLOAT4 clipPlane_;
+		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube
+		XMFLOAT4 clipPlane_ = XMFLOAT4(0, 0, 1, 1);
 
 		// Non-serialized attributes:
 		//	dirty check can be considered by the following components
@@ -1101,8 +1101,8 @@ namespace vz
 		}
 		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; }
 		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; }
-		bool IsBoxClipperEnabled() const { return flags_ & RenderableFlags::CLIP_BOX; }
-		bool IsPlaneClipperEnabled() const { return flags_ & RenderableFlags::CLIP_PLANE; };
+		inline bool IsBoxClipperEnabled() const { return flags_ & RenderableFlags::CLIP_BOX; }
+		inline bool IsPlaneClipperEnabled() const { return flags_ & RenderableFlags::CLIP_PLANE; };
 
 		inline bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
 		inline uint8_t GetVisibleMask() const { return visibleLayerMask_; }
