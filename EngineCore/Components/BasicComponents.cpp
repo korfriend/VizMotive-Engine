@@ -353,9 +353,9 @@ namespace vz
 	{
 		switch (checkIsRenderable(vuidGeometry_, vuidMaterials_))
 		{
-		case 0: flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE); flags_ &= ~SCU32(RenderableFlags::VOLUME_RENDERABLE); break;
-		case 1: flags_ |= SCU32(RenderableFlags::MESH_RENDERABLE); flags_ &= ~SCU32(RenderableFlags::VOLUME_RENDERABLE); break;
-		case 2: flags_ &= ~SCU32(RenderableFlags::MESH_RENDERABLE); flags_ |= SCU32(RenderableFlags::VOLUME_RENDERABLE); break;
+		case 0: flags_ &= ~RenderableFlags::MESH_RENDERABLE; flags_ &= ~RenderableFlags::VOLUME_RENDERABLE; break;
+		case 1: flags_ |= RenderableFlags::MESH_RENDERABLE; flags_ &= ~RenderableFlags::VOLUME_RENDERABLE; break;
+		case 2: flags_ &= ~RenderableFlags::MESH_RENDERABLE; flags_ |= RenderableFlags::VOLUME_RENDERABLE; break;
 		default:
 			break;
 		}

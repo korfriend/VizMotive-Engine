@@ -70,6 +70,15 @@ namespace vzm
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetClipBox(*(XMFLOAT4X4*)&clipBox);
 	}
+	bool VzActor::IsClipperEnabled(bool* clipBoxEnabled, bool* clipPlaneEnabled) const
+	{
+		GET_RENDERABLE_COMP(renderable, false);
+		bool box_clipped = renderable->IsBoxClipperEnabled();
+		bool plane_clipped = renderable->IsPlaneClipperEnabled();
+		if (clipBoxEnabled) *clipBoxEnabled = box_clipped;
+		if (clipPlaneEnabled) *clipPlaneEnabled = plane_clipped;
+		return box_clipped || plane_clipped;
+	}
 
 	std::vector<MaterialVID> VzActor::GetMaterials() const
 	{
