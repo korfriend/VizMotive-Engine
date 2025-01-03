@@ -1036,7 +1036,7 @@ namespace vz
 	// scene 
 	struct CORE_EXPORT RenderableComponent : ComponentBase
 	{
-		enum class RenderableFlags : uint32_t
+		enum RenderableFlags : uint32_t
 		{
 			EMPTY = 0,
 			MESH_RENDERABLE = 1 << 0,
@@ -1050,7 +1050,7 @@ namespace vz
 			JITTER_SAMPLE = 1 << 11,
 		};
 	private:
-		uint32_t flags_ = SCU32(RenderableFlags::EMPTY);
+		uint32_t flags_ = RenderableFlags::EMPTY;
 
 		uint8_t visibleLayerMask_ = 0x7;
 		VUID vuidGeometry_ = INVALID_ENTITY;
@@ -1079,11 +1079,11 @@ namespace vz
 
 		inline void SetDirty() { isDirty_ = true; }
 		inline bool IsDirty() const { return isDirty_; }
-		inline bool IsMeshRenderable() const { return flags_ & SCU32(RenderableFlags::MESH_RENDERABLE); }
-		inline bool IsVolumeRenderable() const { return flags_ & SCU32(RenderableFlags::VOLUME_RENDERABLE); }
+		inline bool IsMeshRenderable() const { return flags_ & RenderableFlags::MESH_RENDERABLE; }
+		inline bool IsVolumeRenderable() const { return flags_ & RenderableFlags::VOLUME_RENDERABLE; }
 
 		inline void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
-		inline bool IsForeground() const { return flags_ & SCU32(RenderableFlags::FOREGROUND); }
+		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
 
 		inline uint32_t GetFlags() const { return flags_; }
 
@@ -1096,11 +1096,13 @@ namespace vz
 		inline void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); timeStampSetter_ = TimerNow; }
 
 		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
-			clipBoxEnabled ? flags_ |= SCU32(RenderableFlags::CLIP_BOX) : flags_ &= ~SCU32(RenderableFlags::CLIP_BOX);
-			clipPlaneEnabled ? flags_ |= SCU32(RenderableFlags::CLIP_PLANE) : flags_ &= ~SCU32(RenderableFlags::CLIP_PLANE);
+			clipBoxEnabled ? flags_ |= RenderableFlags::CLIP_BOX : flags_ &= ~RenderableFlags::CLIP_BOX;
+			clipPlaneEnabled ? flags_ |= RenderableFlags::CLIP_PLANE : flags_ &= ~RenderableFlags::CLIP_PLANE;
 		}
 		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; }
 		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; }
+		bool IsBoxClipperEnabled() const { return flags_ & RenderableFlags::CLIP_BOX; }
+		bool IsPlaneClipperEnabled() const { return flags_ & RenderableFlags::CLIP_PLANE; };
 
 		inline bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
 		inline uint8_t GetVisibleMask() const { return visibleLayerMask_; }
@@ -1320,6 +1322,8 @@ namespace vz
 		}
 		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; }
 		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; }
+		bool IsBoxClipperEnabled() const { return flags_ & CamFlags::CLIP_BOX; }
+		bool IsPlaneClipperEnabled() const { return flags_ & CamFlags::CLIP_PLANE; };
 
 		// update view matrix using camera extrinsics such as eye_, at_, and up_ set by the above setters
 		// update proj matrix using camera intrinsics
