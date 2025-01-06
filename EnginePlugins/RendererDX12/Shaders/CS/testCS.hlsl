@@ -14,10 +14,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	const uint2 pixel = DTid.xy;
 
     ShaderCamera camera = GetCamera();
-	const bool pixel_valid = (pixel.x < camera.internal_resolution.x / 2) && (pixel.y < camera.internal_resolution.y /2);
-    if (!pixel_valid)
-    {
-        return;
-    }
-    inout_color[pixel] = float4(1, 0, 0, 1);
+	//const bool pixel_valid = (pixel.x < camera.internal_resolution.x / 2) && (pixel.y < camera.internal_resolution.y /2);
+    //if (!pixel_valid)
+    //{
+    //    return;
+    //}
+
+    // ply... position, normal...
+    ShaderMeshInstance gs_instance = load_instance(gaussians.instanceIndex);
+	uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
+    ShaderGeometry geometry = load_geometry(subsetIndex);
+    //if (geometry.vb_pos_w < 0)
+    //{
+    //    inout_color[pixel] = float4(1, 1, 0, 1);
+    //    return;
+    //}
+	Buffer<float4> vb_pos_w = bindless_buffers_float4[geometry.vb_pos_w];
+	float3 pos = vb_pos_w[0].xyz;
+
+    //inout_color[pixel] = float4(pos.x - 0.580303, pos.y + 3.68339, pos.z + 3.44946, 1);
 }
