@@ -65,7 +65,7 @@ namespace vz::renderer
 	bool isVariableRateShadingClassification = false;
 	bool isSurfelGIDebugEnabled = false;
 	bool isColorGradingEnabled = false;
-	bool isGaussianSplattingEnabled = false;
+	bool isGaussianSplattingEnabled = true;
 
 	namespace options
 	{
@@ -2634,6 +2634,8 @@ namespace vz
 				GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
 
 				gaussian_push.instanceIndex = batch.instanceIndex;
+				gaussian_push.geometryIndex = batch.geometryIndex;
+				//gaussian_push.materialIndex = material->m
 				gaussian_push.gaussian_SHs_index = device->GetDescriptorIndex(&gs_buffers.gaussianSHs, SubresourceType::SRV);
 				gaussian_push.gaussian_scale_opacities_index = device->GetDescriptorIndex(&gs_buffers.gaussianScale_Opacities, SubresourceType::SRV);
 				gaussian_push.gaussian_quaternions_index = device->GetDescriptorIndex(&gs_buffers.gaussianQuaterinions, SubresourceType::SRV);
@@ -2661,9 +2663,10 @@ namespace vz
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			BarrierStackFlush(cmd);
 
+			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], cmd);
+
 			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
 
-			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], cmd);
 			device->Dispatch(
 				gaussian_push.num_gaussians,
 				1,
@@ -2671,29 +2674,29 @@ namespace vz
 				cmd
 			);
 
-			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], cmd);
-			device->Dispatch(
-				gaussian_push.num_gaussians,
-				1,
-				1,
-				cmd
-			);
-
-			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], cmd);
-			device->Dispatch(
-				gs_tile_count.x,
-				gs_tile_count.y,
-				1,
-				cmd
-			);
-
-			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], cmd);
-			device->Dispatch(
-				gs_tile_count.x,
-				gs_tile_count.y,
-				1,
-				cmd
-			);
+			//device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], cmd);
+			//device->Dispatch(
+			//	gaussian_push.num_gaussians,
+			//	1,
+			//	1,
+			//	cmd
+			//);
+			//
+			//device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], cmd);
+			//device->Dispatch(
+			//	gs_tile_count.x,
+			//	gs_tile_count.y,
+			//	1,
+			//	cmd
+			//);
+			//
+			//device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], cmd);
+			//device->Dispatch(
+			//	gs_tile_count.x,
+			//	gs_tile_count.y,
+			//	1,
+			//	cmd
+			//);
 
 			device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
