@@ -2663,12 +2663,20 @@ namespace vz
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			BarrierStackFlush(cmd);
 
+			// assume that window size is fixed
+			uint P = gaussian_push.num_gaussians;
+			uint W = 1280;
+			uint H = 800;
+			const uint blockSize = 256;
+
+			const uint groupCount = (P + blockSize - 1) / blockSize;
+
 			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], cmd);
 
 			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
-
+			
 			device->Dispatch(
-				gaussian_push.num_gaussians,
+				P,
 				1,
 				1,
 				cmd
