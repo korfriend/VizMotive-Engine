@@ -290,6 +290,7 @@ int main(int, char **)
 		renderer->SetCanvas(1, 1, 96.f, nullptr);
 		renderer->SetClearColor({1.f, 1.f, 0.f, 1.f});
 
+		// === camera ===
 		camera = NewCamera("my camera");
 		glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
 		glm::fvec3 view = at - pos;

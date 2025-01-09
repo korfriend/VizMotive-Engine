@@ -42,7 +42,7 @@ bool ImportModel_PLY(const std::string &fileName, vz::GeometryComponent *geometr
 		return false;
 	}
 
-	vertexCount = 100;
+	//vertexCount = 100;
 
 	// 2. Prepare GeometryComponent
 	using Primitive = GeometryComponent::Primitive;
@@ -114,19 +114,19 @@ bool ImportModel_PLY(const std::string &fileName, vz::GeometryComponent *geometr
 	file.close();
 
 	// std::cerr
-	{
-		const auto &positions = mutable_primitive->GetVtxPositions();
-		const auto &normals = mutable_primitive->GetVtxNormals();
+	//{
+	//	const auto &positions = mutable_primitive->GetVtxPositions();
+	//	const auto &normals = mutable_primitive->GetVtxNormals();
 
-		std::cerr << "Loaded " << positions.size() << " vertices from " << fileName << std::endl;
-		for (size_t i = 0; i < positions.size(); ++i)
-		{
-			const auto &p = positions[i];
-			const auto &n = normals[i];
-			std::cerr << "Vertex " << i << ": Pos(" << p.x << ", " << p.y << ", " << p.z << "), "
-					  << "Normal(" << n.x << ", " << n.y << ", " << n.z << ")\n";
-		}
-	}
+	//	std::cerr << "Loaded " << positions.size() << " vertices from " << fileName << std::endl;
+	//	for (size_t i = 0; i < positions.size(); ++i)
+	//	{
+	//		const auto &p = positions[i];
+	//		const auto &n = normals[i];
+	//		std::cerr << "Vertex " << i << ": Pos(" << p.x << ", " << p.y << ", " << p.z << "), "
+	//				  << "Normal(" << n.x << ", " << n.y << ", " << n.z << ")\n";
+	//	}
+	//}
 
 	return true;
 }
