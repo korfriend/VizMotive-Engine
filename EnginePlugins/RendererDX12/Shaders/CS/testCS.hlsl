@@ -23,8 +23,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     // Global thread index in the dispatch space along the X-axis
     uint idx = DTid.x; // auto idx = cg::this_grid().thread_rank();
 
-    if (idx >= 1000) return;
-
     // for bounding box
     uint2 rect_min, rect_max;
 
@@ -47,6 +45,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
     ShaderGeometry geometry = load_geometry(subsetIndex);
 
+    if (idx >= gaussians.num_gaussians) return;
+    
     // tile touch, UINT (4 bytes)
     // RWByteAddressBuffer tiletouch = bindless_rwbuffers[gaussians.touchedTiles_0_index];
 
