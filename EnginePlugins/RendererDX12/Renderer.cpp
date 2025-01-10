@@ -2671,12 +2671,15 @@ namespace vz
 
 			const uint groupCount = (P + blockSize - 1) / blockSize;
 
+			int threads_per_group = 256;
+			int numGroups = (P + threads_per_group - 1) / threads_per_group; // num_groups
+
 			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], cmd);
 
 			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
 			
 			device->Dispatch(
-				P,
+				numGroups,
 				1,
 				1,
 				cmd
