@@ -5,10 +5,10 @@
 
 PUSHCONSTANT(gaussians, GaussianPushConstants);
 
+//RWTexture2D<float> inout_linear_depth : register(u1);
 RWTexture2D<unorm float4> inout_color : register(u0);
-RWTexture2D<float> inout_linear_depth : register(u1);
 
-[numthreads(1, 1, 1)]
+[numthreads(256, 1, 1)]
 // todo : sync with dispatch
 // to deal with thread id individually, using Gid instread of DTid
 
@@ -18,7 +18,12 @@ RWTexture2D<float> inout_linear_depth : register(u1);
 
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
-    const uint2 pixel = DTid.xy;
+    //const uint2 pixel = DTid.xy;
+    
+    // Global thread index in the dispatch space along the X-axis
+    uint idx = DTid.x; // auto idx = cg::this_grid().thread_rank();
+
+    if (idx >= 1000) return;
 
     // for bounding box
     uint2 rect_min, rect_max;
@@ -42,12 +47,19 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
     ShaderGeometry geometry = load_geometry(subsetIndex);
 
-    // =============== main =============== 
-    Buffer<float4> vb_pos_w = bindless_buffers_float4[geometry.vb_pos_w];
+    // tile touch, UINT (4 bytes)
+    // RWByteAddressBuffer tiletouch = bindless_rwbuffers[gaussians.touchedTiles_0_index];
 
-    for (uint i = 0; i < 999; ++i)
+    // position
+    Buffer<float4> vb_pos_w = bindless_buffers_float4[geometry.vb_pos_w];
+    // tile touch count buffer
+    //Buffer<uint> tile_touched = bindless_buffers_uint[gaussians.touchedTiles_0_index];  
+    // read only
+    //RWStructuredBuffer<uint> tile_touched = bindless_buffers_uint[guassians.touchedTiles_0_index];
+    // atomic add, interlockedAdd
+
     {
-        float3 pos = vb_pos_w[i].xyz;
+        float3 pos = vb_pos_w[idx].xyz;
 
         // view, proj matrix
         float4x4 viewmatrix = camera.view;
