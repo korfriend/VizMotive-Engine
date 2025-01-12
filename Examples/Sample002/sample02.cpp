@@ -338,8 +338,10 @@ int main(int, char **)
 		// === Add PLY loading code here ===
 		// Load PLY geometry
 		{
-			vzm::VzGeometry* geometry_ply = vzm::NewGeometry("my ply geometry");
-			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
+			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
+			//if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
+			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud.ply"))
+
 			{
 				std::cerr << "Failed to load point_cloud.ply" << std::endl;
 			}

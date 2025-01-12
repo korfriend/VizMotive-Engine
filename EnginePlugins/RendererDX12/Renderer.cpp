@@ -2630,8 +2630,10 @@ namespace vz
 			
 			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[geometry_index];
 			GaussianPushConstants gaussian_push;
+			GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
+
 			{
-				GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
+				//GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
 
 				gaussian_push.instanceIndex = batch.instanceIndex;
 				gaussian_push.geometryIndex = batch.geometryIndex;
@@ -2648,10 +2650,21 @@ namespace vz
 				gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 			}
 
-			if (rtMain.IsValid() && rtLinearDepth.IsValid())
+			//if (rtMain.IsValid() && rtLinearDepth.IsValid())
+			//{
+			//	device->BindUAV(&rtMain, 0, cmd);
+			//	device->BindUAV(&rtLinearDepth, 1, cmd, 0);
+			//}
+			//else
+			//{
+			//	device->BindUAV(&unbind, 0, cmd);
+			//	device->BindUAV(&unbind, 1, cmd);
+			//}
+			if (rtMain.IsValid())
 			{
 				device->BindUAV(&rtMain, 0, cmd);
-				device->BindUAV(&rtLinearDepth, 1, cmd, 0);
+				// Replace rtLinearDepth with touchedTiles_0:
+				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd);
 			}
 			else
 			{
@@ -2660,7 +2673,9 @@ namespace vz
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+
 			BarrierStackFlush(cmd);
 
 			// assume that window size is fixed
@@ -2713,7 +2728,9 @@ namespace vz
 			device->BindUAV(&unbind, 1, cmd);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+
 			BarrierStackFlush(cmd);
 
 			break; // TODO: at this moment, just a single gs is supported!
