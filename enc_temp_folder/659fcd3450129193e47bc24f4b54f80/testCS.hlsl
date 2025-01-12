@@ -60,7 +60,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     );
 
     // Check both oldValue and the updated value
-    if (oldValue == 0 && newValue == 0)
+    if (oldValue == 0 && newValue == 1)
     {
         inout_color[point_pixel] = float4(1, 1, 1, 1); // White
     }
