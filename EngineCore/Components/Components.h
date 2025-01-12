@@ -429,6 +429,7 @@ namespace vz
 			CAST_SHADOW = 1 << 9,
 			RECEIVE_SHADOW = 1 << 10,
 			VERTEXAO = 1 << 11,
+			GAUSSIAN_SPLATTING = 1 << 12
 		};
 		enum class ShaderType : uint32_t
 		{
@@ -559,6 +560,7 @@ namespace vz
 		inline void SetReceiveShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; }
 		inline void SetShaderType(ShaderType shaderType) { shaderType_ = shaderType; }
 		inline void SetDoubleSided(bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; }
+		inline void SetGaussianSplatting(bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
@@ -574,6 +576,7 @@ namespace vz
 		inline bool IsCastShadow() const { return flags_ & SCU32(RenderFlags::CAST_SHADOW); }
 		inline bool IsReceiveShadow() const { return flags_ & SCU32(RenderFlags::RECEIVE_SHADOW); }
 		inline bool IsVertexAOEnabled() const { return flags_ & SCU32(RenderFlags::VERTEXAO); }
+		inline bool IsGaussianSplattingEnabled() const { return flags_ & SCU32(RenderFlags::GAUSSIAN_SPLATTING); }
 
 		inline uint32_t GetRenderFlags() const { return flags_; }
 

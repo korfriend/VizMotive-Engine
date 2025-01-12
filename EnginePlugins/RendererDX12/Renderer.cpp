@@ -2384,7 +2384,7 @@ namespace vz
 			bool has_buffer_effect = num_parts == renderable.bufferEffects.size();
 			for (size_t part_index = 0; part_index < num_parts; ++part_index)
 			{
-				if (geomety.isGaussianSplatting && renderer::isGaussianSplattingEnabled)
+				if (geomety.allowGaussianSplatting && renderer::isGaussianSplattingEnabled)
 				{
 					GGeometryComponent::GPrimBuffers* prim_buffers = geomety.GetGPrimBuffer(part_index);
 					if (prim_buffers)
@@ -2578,7 +2578,7 @@ namespace vz
 
 		BindCommonResources(cmd);
 
-		uint32_t filterMask = GMaterialComponent::FILTER_ALL; // TODO
+		uint32_t filterMask = GMaterialComponent::FILTER_GAUSSIAN_SPLATTING;
 
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
 		XMUINT2 gs_tile_count = XMUINT2(
@@ -2601,7 +2601,7 @@ namespace vz
 				continue;
 
 			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
-			if (!geometry.isGaussianSplatting)
+			if (!geometry.allowGaussianSplatting)
 				continue;
 
 			const float distance = math::Distance(viewMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
@@ -2899,6 +2899,9 @@ namespace vz
 				if (!(view.camera->GetVisibleLayerMask() & renderable.GetVisibleMask()))
 					continue;
 				if ((renderable.materialFilterFlags & filterMask) == 0)
+					continue;
+
+				if (renderable.materialFilterFlags & GMaterialComponent::MaterialFilterFlags::FILTER_GAUSSIAN_SPLATTING)
 					continue;
 
 				const float distance = math::Distance(view.camera->GetWorldEye(), renderable.GetAABB().getCenter());
