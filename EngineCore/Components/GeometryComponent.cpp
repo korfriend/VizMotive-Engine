@@ -1024,7 +1024,7 @@ namespace vz
 			const std::vector<XMFLOAT4>& vertex_scale_opacities = primitive.vertexScale_Opacities_;
 			if (!vertex_SHs.empty())
 			{
-				isGaussianSplatting = true;
+				allowGaussianSplatting = true;
 				size_t num_gaussian_kernels = vertex_SHs.size();
 				assert(num_gaussian_kernels == vertex_scale_opacities.size() && num_gaussian_kernels == vertex_quaterions.size());
 

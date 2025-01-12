@@ -65,6 +65,7 @@ namespace vzm
 		ShaderType GetShaderType() const;
 		void SetDoubleSided(const bool enabled);
 		void SetBaseColor(const vfloat4& color);
+		void SetGaussianSplattingEnabled(const bool enabled);
 		vfloat4 GetBaseColor() const;
 		bool IsDoubleSided() const;
 	};

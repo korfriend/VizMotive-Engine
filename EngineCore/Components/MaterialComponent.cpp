@@ -76,6 +76,10 @@ namespace vz
 		{
 			filter_mask_flags |= FILTER_OPAQUE;
 		}
+		if (IsGaussianSplattingEnabled())
+		{
+			filter_mask_flags |= FILTER_GAUSSIAN_SPLATTING;
+		}
 		VolumeComponent* volume = compfactory::GetVolumeComponentByVUID(volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_MAIN_MAP)]);
 		if (volume)
 		{

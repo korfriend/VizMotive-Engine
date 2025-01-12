@@ -1,5 +1,5 @@
 #include "VzEngineAPIs.h"
-#include "Components/Components.h"
+#include "Components/GComponents.h"
 #include "Utils/Backlog.h"
 
 using namespace vz;
@@ -51,6 +51,12 @@ namespace vzm
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetBaseColor(*(XMFLOAT4*)&color);
+	}
+
+	void VzMaterial::SetGaussianSplattingEnabled(const bool enabled)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetGaussianSplatting(enabled);
 	}
 
 	vfloat4 VzMaterial::GetBaseColor() const

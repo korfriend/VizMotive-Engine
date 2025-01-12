@@ -35,10 +35,12 @@ namespace vz
 
 			// Object filtering types:
 			FILTER_OPAQUE = 1 << 0,
-			FILTER_VOLUME = 1 << 3,
 			FILTER_TRANSPARENT = 1 << 1,
 			FILTER_NAVIGATION_MESH = 1 << 2,
 			FILTER_OBJECT_ALL = FILTER_OPAQUE | FILTER_TRANSPARENT | FILTER_NAVIGATION_MESH,
+
+			FILTER_VOLUME = 1 << 3,
+			FILTER_GAUSSIAN_SPLATTING = 1 << 4,
 
 			// Other filtering types:
 			FILTER_COLLIDER = 1 << 5,
@@ -128,7 +130,7 @@ namespace vz
 		uint32_t geometryOffset = 0; // (including # of parts)
 
 		// ----- Gaussian Splatting -----
-		bool isGaussianSplatting = false;
+		bool allowGaussianSplatting = false;
 		// ----- Meshlet -----
 		bool isMeshletEnabled = false;
 		uint32_t meshletOffset = ~0u; // base
