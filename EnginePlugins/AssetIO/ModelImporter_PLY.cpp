@@ -8,7 +8,7 @@
 #include "Utils/Helpers.h"
 
 using namespace vz;
-bool ImportModel_PLY(const std::string &fileName, vz::GeometryComponent *geometry)
+bool ImportModel_PLY(const std::string& fileName, vz::GeometryComponent* geometry)
 {
 	std::ifstream file(fileName, std::ios::binary);
 	if (!file.is_open())
@@ -51,15 +51,15 @@ bool ImportModel_PLY(const std::string &fileName, vz::GeometryComponent *geometr
 	std::vector<Primitive> parts(1);
 	geometry->CopyPrimitivesFrom(parts);
 
-	Primitive *mutable_primitive = geometry->GetMutablePrimitive(0);
+	Primitive* mutable_primitive = geometry->GetMutablePrimitive(0);
 
-	std::vector<XMFLOAT3> *vertex_positions = &mutable_primitive->GetMutableVtxPositions();
-	std::vector<XMFLOAT3> *vertex_normals = &mutable_primitive->GetMutableVtxNormals();
-	std::vector<SH> *vertex_SHs = &mutable_primitive->GetMutableVtxSHs();
-	std::vector<XMFLOAT4> *vertex_SOs = &mutable_primitive->GetMutableVtxScaleOpacities();
-	std::vector<XMFLOAT4> *vertex_Qts = &mutable_primitive->GetMutableVtxQuaternions();
+	std::vector<XMFLOAT3>* vertex_positions = &mutable_primitive->GetMutableVtxPositions();
+	std::vector<XMFLOAT3>* vertex_normals = &mutable_primitive->GetMutableVtxNormals();
+	std::vector<SH>* vertex_SHs = &mutable_primitive->GetMutableVtxSHs();
+	std::vector<XMFLOAT4>* vertex_SOs = &mutable_primitive->GetMutableVtxScaleOpacities();
+	std::vector<XMFLOAT4>* vertex_Qts = &mutable_primitive->GetMutableVtxQuaternions();
 
-	std::vector<uint32_t> *indices = &mutable_primitive->GetMutableIdxPrimives();
+	std::vector<uint32_t>* indices = &mutable_primitive->GetMutableIdxPrimives();
 
 	vertex_positions->reserve(vertexCount);
 	vertex_normals->reserve(vertexCount);
@@ -76,26 +76,26 @@ bool ImportModel_PLY(const std::string &fileName, vz::GeometryComponent *geometr
 		float sh_coeffs[48]; // 48 floats for SH coefficients (16 XMFLOAT3 = 48 floats)
 
 		// Read vertex position and normal
-		file.read(reinterpret_cast<char *>(&x), sizeof(float));
-		file.read(reinterpret_cast<char *>(&y), sizeof(float));
-		file.read(reinterpret_cast<char *>(&z), sizeof(float));
+		file.read(reinterpret_cast<char*>(&x), sizeof(float));
+		file.read(reinterpret_cast<char*>(&y), sizeof(float));
+		file.read(reinterpret_cast<char*>(&z), sizeof(float));
 
-		file.read(reinterpret_cast<char *>(&nx), sizeof(float));
-		file.read(reinterpret_cast<char *>(&ny), sizeof(float));
-		file.read(reinterpret_cast<char *>(&nz), sizeof(float));
+		file.read(reinterpret_cast<char*>(&nx), sizeof(float));
+		file.read(reinterpret_cast<char*>(&ny), sizeof(float));
+		file.read(reinterpret_cast<char*>(&nz), sizeof(float));
 
 		indices->push_back(i);
 
 		// Read 48 SH coefficients
 		for (int j = 0; j < 48; j++)
 		{
-			file.read(reinterpret_cast<char *>(&sh_coeffs[j]), sizeof(float));
+			file.read(reinterpret_cast<char*>(&sh_coeffs[j]), sizeof(float));
 		}
 
 		// Read opacity, scale, rotation
-		file.read(reinterpret_cast<char *>(&opacity), sizeof(float));
-		file.read(reinterpret_cast<char *>(scale), sizeof(float) * 3);
-		file.read(reinterpret_cast<char *>(rot), sizeof(float) * 4);
+		file.read(reinterpret_cast<char*>(&opacity), sizeof(float));
+		file.read(reinterpret_cast<char*>(scale), sizeof(float) * 3);
+		file.read(reinterpret_cast<char*>(rot), sizeof(float) * 4);
 
 		// 4. Store data
 		vertex_positions->emplace_back(x, y, z);
