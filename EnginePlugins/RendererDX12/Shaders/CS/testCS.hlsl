@@ -1,5 +1,3 @@
-// Minimal HLSL snippet for atomic add and condition check (oldValue == 0 && newValue == 1).
-
 #include "../Globals.hlsli"
 #include "../ShaderInterop_GS.h"
 #include "../CommonHF/surfaceHF.hlsli"
@@ -44,20 +42,25 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     // Transform to clip space
     float4 p_view = mul(float4(pos, 1.0f), camera.view);
     float4 p_hom = mul(p_view, camera.projection);
-    float p_w = 1.0f / (p_hom.w + 1e-7f);
+
+    // Avoid division by zero
+    float p_w = 1.0f / max(p_hom.w, 1e-7f);
+
+    // Convert to Normalized Device Coordinates (NDC)
     float3 p_proj = float3(p_hom.x * p_w, p_hom.y * p_w, p_hom.z * p_w);
 
-    // Convert to screen coordinates
+    // Convert NDC (-1~1) to screen coordinates (0~W, 0~H)
     float2 point_image = float2(
-        ((p_proj.x + 1.0f) * W - 1.0f) * 0.5f,
-        ((p_proj.y + 1.0f) * H - 1.0f) * 0.5f
+        (p_proj.x * 0.5f + 0.5f) * (float)W,
+        (p_proj.y * 0.5f + 0.5f) * (float)H
     );
 
-    // Clamp pixel
-    uint2 point_pixel = uint2(
-        clamp((uint) point_image.x, 0u, W - 1),
-        clamp((uint) point_image.y, 0u, H - 1)
-    );
+    // Round to nearest pixel
+    int2 point_pixel = int2(point_image + 0.5f);
+
+    // If out of screen, do nothing
+    if (point_pixel.x < 0 || point_pixel.y < 0 || point_pixel.x >= int(W) || point_pixel.y >= int(H))
+        return;
 
     // Check both oldValue and the updated value
     if (oldValue == 0 && newValue == 1)
