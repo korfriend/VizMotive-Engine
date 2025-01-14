@@ -28,7 +28,7 @@ void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2
 }
 
 // Function: Convert world position to pixel coordinates
-int2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
+float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
 {
     float4 p_view = mul(float4(pos, 1.0f), camera.view);
     float4 p_hom = mul(p_view, camera.projection);
@@ -40,13 +40,13 @@ int2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
     float3 p_proj = float3(p_hom.x * p_w, p_hom.y * p_w, p_hom.z * p_w);
 
     // Convert NDC (-1~1) to screen coordinates (0~W, 0~H)
-    float2 screen_coords = float2(
+    return float2(
         (p_proj.x * 0.5f + 0.5f) * (float)W,
         (p_proj.y * 0.5f + 0.5f) * (float)H
     );
 
-    // Round to nearest pixel and return
-    return int2(screen_coords + 0.5f);
+    //// Round to nearest pixel and return
+    //return int2(screen_coords + 0.5f);
 }
 
 // Function: Compute the 3D covariance matrix for a Gaussian
@@ -81,8 +81,8 @@ float3x3 computeCov3D(float3 scale, float4 rotation)
     // Return the covariance matrix (upper triangular matrix)
     return float3x3(
         Sigma[0][0], Sigma[0][1], Sigma[0][2],
-        0.0f, Sigma[1][1], Sigma[1][2],
-        0.0f, 0.0f, Sigma[2][2]
+        0.0f,        Sigma[1][1], Sigma[1][2],
+        0.0f,        0.0f,        Sigma[2][2]
     );
 }
 
@@ -98,7 +98,7 @@ float3 computeCov2D(
     // Calculate aspect ratio
     float aspect_ratio = (float)resolution.x / (float)resolution.y;
 
-    // Compute focal_x and focal_y from focal_length
+    // Compute focal_x and focal_y from single focal_length
     float focal_x = focal_length * aspect_ratio;
     float focal_y = focal_length;
 
@@ -125,7 +125,8 @@ float3 computeCov2D(
     // Compute 2D covariance matrix
     float3x3 cov = mul(transpose(T), mul(cov3D, T));
 
-    // Apply low-pass filter
+    // Apply low-pass filter: every Gaussian should be at least
+    // one pixel wide/high. Discard 3rd row and column.
     cov[0][0] += 0.3f;
     cov[1][1] += 0.3f;
 
@@ -158,44 +159,41 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     Buffer<float4> vb_pos_w = bindless_buffers_float4[geometry.vb_pos_w];
     float3 pos = vb_pos_w[idx].xyz;
 
-    // Step 1: Compute 3D covariance matrix
-    float3 scale = float3(1.0, 1.0, 1.0); // Replace with actual scale
+    // computeCov3D
+    float3 scale = float3(1.0, 1.0, 1.0);         // Replace with actual scale
     float4 rotation = float4(1.0, 0.0, 0.0, 0.0); // Replace with actual rotation
     float3x3 cov3D = computeCov3D(scale, rotation);
 
-    // Step 2: Compute 2D covariance matrix
+    // computeCov2D
     float3 cov2D = computeCov2D(pos, focalLength, uint2(W, H), cov3D, camera.view);
 
-    // Step 3: Invert 2D covariance matrix (EWA algorithm)
+    // Invert 2D covariance matrix (EWA algorithm)
     float det = (cov2D.x * cov2D.z - cov2D.y * cov2D.y);
     if (det == 0.0f)
         return;
 
     float det_inv = 1.0f / det;
-    float3 conic = float3(
-        cov2D.z * det_inv,
-        -cov2D.y * det_inv,
-        cov2D.x * det_inv
-    );
+    float3 conic = float3(cov2D.z * det_inv, -cov2D.y * det_inv, cov2D.x * det_inv);
 
-    // Step 4: Compute Eigenvalues and radius
+    // compute eigenvalue l1, l2 and radius
     float mid = 0.5f * (cov2D.x + cov2D.z);
     float lambda1 = mid + sqrt(max(0.1f, mid * mid - det));
     float lambda2 = mid - sqrt(max(0.1f, mid * mid - det));
     float radius = ceil(3.0f * sqrt(max(lambda1, lambda2)));
+    float2 point_image = worldToPixel(pos, camera, W, H);
 
-    // Step 5: Compute bounding rectangle in screen space
+    // bounding box
     uint2 rect_min, rect_max;
-    getRect(float2(pos.x, pos.y), int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
+    getRect(point_image, int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
 
     if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
         return;
 
-    // Step 6: Write pixel values for debugging
-    int2 pixel_coord = worldToPixel(pos, camera, W, H);
+    int2 pixel_coord = int2(point_image + 0.5f);
+
     if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
     {
-        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Mark the pixel red
+        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
     }
 
     // Store results or further process here...
