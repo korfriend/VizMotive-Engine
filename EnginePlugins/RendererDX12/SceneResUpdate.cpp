@@ -467,7 +467,7 @@ namespace vz
 				inst.flags = renderable.GetFlags();
 				
 				//inst.emissive
-				//inst.color
+				inst.color = math::pack_half4(XMFLOAT4(1, 1, 1, 1));
 				//inst.lightmap
 
 				// TODO : applying adaptive LOD 
