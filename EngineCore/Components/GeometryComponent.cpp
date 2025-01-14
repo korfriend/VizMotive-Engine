@@ -1046,7 +1046,7 @@ namespace vz
 				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianScale_Opacities, "GGeometryComponent::bufferHandle_::gaussianScale_Opacities");
 
 				bd.size = num_gaussian_kernels * sizeof(XMFLOAT4);
-				success = device->CreateBuffer(&bd, vertex_scale_opacities.data(), &part_buffers.gaussianSplattingBuffers.gaussianQuaterinions);
+				success = device->CreateBuffer(&bd, vertex_quaterions.data(), &part_buffers.gaussianSplattingBuffers.gaussianQuaterinions);
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianQuaterinions, "GGeometryComponent::bufferHandle_::gaussianQuaterinions");
 
