@@ -652,6 +652,8 @@ namespace vz
 			geometrics::AABB aabb_;
 			XMFLOAT2 uvRangeMin_ = XMFLOAT2(0, 0);
 			XMFLOAT2 uvRangeMax_ = XMFLOAT2(1, 1);
+			size_t uvStride_ = 0;
+			bool useFullPrecisionUV_ = false;
 			std::shared_ptr<void> bufferHandle_;	// 'void' refers to GGeometryComponent::GBuffer
 			Entity recentBelongingGeometry_ = INVALID_ENTITY;
 
