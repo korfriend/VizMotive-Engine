@@ -162,6 +162,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     float3 pos = gs_position[idx].xyz;
     float3 scale = gs_scale_opacity[idx].xyz;
+    float opacity = gs_scale_opacity[idx].w;
     float4 rotation = gs_quaternion[idx];
 
     // computeCov3D
@@ -205,27 +206,27 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     int2 pixel_coord = int2(point_image + 0.5f);
 
-    float4 t_rot = gs_quaternion[0];
+    //float4 t_rot = gs_quaternion[0];
 
     //  Rotation(0.666832, 0.0965957, -0.328523, 0.0227409
     // float4 test_color = t_rot;
-    if (t_rot.x > -4.5f && t_rot.x < -4.4f) {
+    //if (t_rot.x > -4.5f && t_rot.x < -4.4f) {
 
-        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
-    }
-
-    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    //{
-    //    if (touchedTiles_0[idx] >= 0)
-    //    {
-    //        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
-    //       
-    //    }
-    //    else 
-    //    {
-    //        inout_color[pixel_coord] = float4(0.0f, 1.0f, 0.0f, 1.0f); // Green
-    //    }
+    //    inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
     //}
+
+    if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
+    {
+        if (radius >= 5.0f)
+        {
+            inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+           
+        }
+        else 
+        {
+            inout_color[pixel_coord] = float4(0.0f, 1.0f, 0.0f, 1.0f); // Green
+        }
+    }
     
     //float sum_scale = scale.x + scale.y + scale.z; // 예: 3.0 ~ ?
     //float colorVal = frac(sum_scale * 0.1f);      // 0~1 사이로 만듦
