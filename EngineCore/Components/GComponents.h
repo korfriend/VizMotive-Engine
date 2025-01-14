@@ -215,11 +215,28 @@ namespace vz
 			}
 			static constexpr graphics::Format FORMAT = graphics::Format::R16G16_UNORM;
 		};
+		struct Vertex_TEX32
+		{
+			float x = 0;
+			float y = 0;
+			constexpr void FromFULL(const XMFLOAT2& uv, const XMFLOAT2& uv_range_min = XMFLOAT2(0, 0), const XMFLOAT2& uv_range_max = XMFLOAT2(1, 1))
+			{
+				x = math::InverseLerp(uv_range_min.x, uv_range_max.x, uv.x);
+				y = math::InverseLerp(uv_range_min.y, uv_range_max.y, uv.y);
+			}
+			static constexpr graphics::Format FORMAT = graphics::Format::R32G32_FLOAT;
+		};
 		struct Vertex_UVS
 		{
 			Vertex_TEX uv0;
 			Vertex_TEX uv1;
 			static constexpr graphics::Format FORMAT = graphics::Format::R16G16B16A16_UNORM;
+		};
+		struct Vertex_UVS32
+		{
+			Vertex_TEX32 uv0;
+			Vertex_TEX32 uv1;
+			static constexpr graphics::Format FORMAT = graphics::Format::R32G32B32A32_FLOAT;
 		};
 		struct Vertex_BON
 		{

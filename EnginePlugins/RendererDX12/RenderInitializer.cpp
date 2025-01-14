@@ -22,6 +22,9 @@ namespace vz::rcommon
 	extern Texture				textures[TEXTYPE_COUNT];
 
 	extern GPUBuffer			luminanceDummy;
+	extern GPUBuffer			instanceDummy;
+	extern GPUBuffer			geometryDummy;
+	extern GPUBuffer			materialDummy;
 
 	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	extern PipelineState		PSO_wireframe;
@@ -82,6 +85,39 @@ namespace vz::initializer
 			device->SetName(&rcommon::luminanceDummy, "luminance_dummy");
 
 			static_assert(LUMINANCE_BUFFER_OFFSET_EXPOSURE == 0);
+		}
+		{
+			ShaderMeshInstance data;
+			data.Init();
+			GPUBufferDesc desc;
+			desc.stride = sizeof(data);
+			desc.size = desc.stride;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+			device->CreateBuffer(&desc, &data, &rcommon::instanceDummy);
+			device->SetName(&rcommon::instanceDummy, "instance_dummy");
+		}
+		{
+			ShaderGeometry data;
+			data.Init();
+			GPUBufferDesc desc;
+			desc.stride = sizeof(data);
+			desc.size = desc.stride;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+			device->CreateBuffer(&desc, &data, &rcommon::geometryDummy);
+			device->SetName(&rcommon::geometryDummy, "geometry_dummy");
+		}
+		{
+			ShaderMaterial data;
+			data.Init();
+			GPUBufferDesc desc;
+			desc.stride = sizeof(data);
+			desc.size = desc.stride;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE;
+			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+			device->CreateBuffer(&desc, &data, &rcommon::materialDummy);
+			device->SetName(&rcommon::materialDummy, "material_dummy");
 		}
 	}
 	void SetUpStates()
@@ -467,6 +503,9 @@ namespace vz::initializer
 		ReleaseRenderRes(textures, TEXTYPE_COUNT);
 
 		rcommon::luminanceDummy = {};
+		rcommon::instanceDummy = {};
+		rcommon::geometryDummy = {};
+		rcommon::materialDummy = {};
 
 		ReleaseRenderRes(PSO_debug, DEBUGRENDERING_COUNT);
 		rcommon::PSO_wireframe = {};
