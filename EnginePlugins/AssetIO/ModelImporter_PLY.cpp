@@ -42,8 +42,6 @@ bool ImportModel_PLY(const std::string& fileName, vz::GeometryComponent* geometr
 		return false;
 	}
 
-	//vertexCount = 100;
-
 	// 2. Prepare GeometryComponent
 	using Primitive = GeometryComponent::Primitive;
 	using SH = GeometryComponent::SH;
@@ -127,6 +125,19 @@ bool ImportModel_PLY(const std::string& fileName, vz::GeometryComponent* geometr
 	//				  << "Normal(" << n.x << ", " << n.y << ", " << n.z << ")\n";
 	//	}
 	//}
+
+	// Print first 1000 vertices' scale and rotation
+	const auto& vertex_SOs_ref = mutable_primitive->GetMutableVtxScaleOpacities();
+	const auto& vertex_Qts_ref = mutable_primitive->GetMutableVtxQuaternions();
+
+	size_t limit = std::min<size_t>(100, vertex_SOs_ref.size());
+	for (size_t i = 0; i < limit; ++i)
+	{
+		const auto& scale = vertex_SOs_ref[i];
+		const auto& rotation = vertex_Qts_ref[i];
+		std::cerr << "Vertex " << i << ": Scale(" << scale.x << ", " << scale.y << ", " << scale.z << "), "
+			<< "Rotation(" << rotation.x << ", " << rotation.y << ", " << rotation.z << ", " << rotation.w << ")" << '\n';
+	}
 
 	return true;
 }

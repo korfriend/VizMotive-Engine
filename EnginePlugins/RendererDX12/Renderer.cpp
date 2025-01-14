@@ -2680,11 +2680,15 @@ namespace vz
 			//	device->BindUAV(&unbind, 0, cmd);
 			//	device->BindUAV(&unbind, 1, cmd);
 			//}
+
+			// t0, t1 SRV(rot, opacity, scale)
+			//device->BindResource(&gs_buffers.gaussianQuaterinions, 0, cmd); // t0
+			//device->BindResource(&gs_buffers.gaussianScale_Opacities, 1, cmd); //t1
+
 			if (rtMain.IsValid())
 			{
 				device->BindUAV(&rtMain, 0, cmd);
-				// Replace rtLinearDepth with touchedTiles_0:
-				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd);
+				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd); // Replace rtLinearDepth with touchedTiles_0:
 			}
 			else
 			{
@@ -2714,7 +2718,7 @@ namespace vz
 			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
 			
 			device->Dispatch(
-				numGroups,
+				P,
 				1,
 				1,
 				cmd
@@ -2746,6 +2750,10 @@ namespace vz
 
 			device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
+			
+			// unbind SRV??
+			//device->BindResource(&unbind, 0, cmd);
+			//device->BindResource(&unbind, 1, cmd);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
