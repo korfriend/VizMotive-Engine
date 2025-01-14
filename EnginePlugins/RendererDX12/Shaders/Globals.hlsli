@@ -76,6 +76,10 @@ inline uint pack_half2(in half2 value)
     retVal = f32tof16(value.x) | (f32tof16(value.y) << 16u);
     return retVal;
 }
+inline uint pack_half2(in half a, in half b)
+{
+    return pack_half2(half2(a, b));
+}
 inline half2 unpack_half2(in uint value)
 {
     half2 retVal;
@@ -89,6 +93,10 @@ inline uint2 pack_half3(in half3 value)
     retVal.x = f32tof16(value.x) | (f32tof16(value.y) << 16u);
     retVal.y = f32tof16(value.z);
     return retVal;
+}
+inline uint2 pack_half3(in half a, in half b, in half c, in half d)
+{
+    return pack_half4(half4(a, b, c, d));
 }
 inline half3 unpack_half3(in uint2 value)
 {
