@@ -164,21 +164,21 @@ struct VertexInput
 			return 1;
 		return (half4)bindless_buffers_float4[GetMesh().vb_col][vertexID];
 	}
-	
-	half3 GetNormal()
+
+	float3 GetNormal()
 	{
 		[branch]
 		if (GetMesh().vb_nor < 0)
 			return 0;
-		return (half3)bindless_buffers_float4[GetMesh().vb_nor][vertexID].xyz;
+		return bindless_buffers_float4[GetMesh().vb_nor][vertexID].xyz;
 	}
 
-	half4 GetTangent()
+	float4 GetTangent()
 	{
 		[branch]
 		if (GetMesh().vb_tan < 0)
 			return 0;
-		return (half4)bindless_buffers_float4[GetMesh().vb_tan][vertexID];
+		return bindless_buffers_float4[GetMesh().vb_tan][vertexID];
 	}
 
 	ShaderMeshInstance GetInstance()
@@ -232,8 +232,8 @@ struct VertexSurface
 	float4 uvsets;
 	half2 atlas;
 	half4 color;
-	half3 normal;
-	half4 tangent;
+	float3 normal;
+	float4 tangent;
 	half ao;
 	half wet;
 

@@ -262,7 +262,6 @@ struct alignas(16) ShaderTransform
 #endif // __cplusplus
 };
 
-
 //RenderableComponent::RenderableFlags
 static const uint INST_CLIPBOX = 1 << 9;
 static const uint INST_CLIPPLANE = 1 << 10;
@@ -289,21 +288,23 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 
 	// renderable-special per a renderable instance
 	//	determined by flags (use_renderable_attributes)
-	uint2 emissive;
-	uint color;
-	int lightmap;
+	uint2 color; // packed half4
+	uint2 emissive; // packed half4
 
-	ShaderTransform transform;
-	ShaderTransform transformPrev;
-	ShaderTransform transformRaw; // without quantization remapping applied
+	ShaderTransform transform; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
+	ShaderTransform transformPrev; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
+	ShaderTransform transformRaw; // Note: this is the world matrix without any quantization remapping
 
 	uint clipIndex;
+	int lightmap;
 	uint padding0;
 	uint padding1;
-	uint padding2;
 
 	void Init()
 	{
+#ifdef __cplusplus
+		using namespace vz::math;
+#endif // __cplusplus
 		uid = 0;
 		flags = 0;
 		alphaTest_size = 0;
@@ -319,7 +320,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 		aabbRadius = 0;
 
 		emissive = uint2(0, 0);
-		color = ~0u;
+		color = pack_half4(1, 1, 1, 1);
 		lightmap = -1;
 		
 		rimHighlight = uint2(0, 0);
@@ -338,7 +339,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 	}
 
 #ifndef __cplusplus
-	inline half4 GetColor() { return (half4)unpack_rgba(color); }
+	inline half4 GetColor() { return unpack_half4(color); }
 	inline half3 GetEmissive() { return unpack_half3(emissive); }
 	inline half GetAlphaTest() { return unpack_half2(alphaTest_size).x; }
 	inline half GetSize() { return unpack_half2(alphaTest_size).y; }

@@ -130,6 +130,12 @@ namespace vz::helper
 		return num;
 #endif // _WIN32
 	}
+	inline std::string FromWString(const std::wstring& fileName)
+	{
+		std::string fileName_u8;
+		StringConvert(fileName, fileName_u8);
+		return fileName_u8;
+	}
 
 	template <class T>
 	constexpr void hash_combine(std::size_t& seed, const T& v)
@@ -329,7 +335,7 @@ namespace vz::helper
 		std::filesystem::path absolute = std::filesystem::absolute(ToNativeString(path));
 		if (!absolute.empty())
 		{
-			path = absolute.string();// generic_u8string();
+			StringConvert(absolute.generic_wstring(), path);
 		}
 	}
 
@@ -347,7 +353,7 @@ namespace vz::helper
 			std::filesystem::path relative = std::filesystem::relative(filepath, rootpath);
 			if (!relative.empty())
 			{
-				path = relative.string();//.generic_u8string();
+				StringConvert(relative.generic_wstring(), path);
 			}
 		}
 	}
@@ -363,7 +369,7 @@ namespace vz::helper
 	inline std::string GetTempDirectoryPath()
 	{
 		auto path = std::filesystem::temp_directory_path();
-		return path.string();// generic_u8string();
+		return FromWString(path.generic_wstring()); 
 	}
 
 	inline std::string GetPathRelative(const std::string& rootdir, std::string& path)
@@ -398,7 +404,7 @@ namespace vz::helper
 	inline std::string GetCurrentPath()
 	{
 		auto path = std::filesystem::current_path();
-		return path.string();// generic_u8string();
+		return FromWString(path.generic_wstring());
 	}
 
 	inline void GetFileNamesInDirectory(const std::string& directory, std::function<void(std::string fileName)> onSuccess, const std::string& filter_extension)
@@ -411,7 +417,7 @@ namespace vz::helper
 		{
 			if (entry.is_directory())
 				continue;
-			std::string filename = entry.path().filename().string();// generic_u8string();
+			std::string filename = FromWString(entry.path().filename().generic_wstring());
 			if (filter_extension.empty() || vz::helper::toUpper(vz::helper::GetExtensionFromFileName(filename)).compare(vz::helper::toUpper(filter_extension)) == 0)
 			{
 				onSuccess(directory + filename);
@@ -429,7 +435,7 @@ namespace vz::helper
 		{
 			if (!entry.is_directory())
 				continue;
-			std::string filename = entry.path().filename().string();// generic_u8string();
+			std::string filename = FromWString(entry.path().filename().generic_wstring());
 			onSuccess(directory + filename);
 		}
 	}
