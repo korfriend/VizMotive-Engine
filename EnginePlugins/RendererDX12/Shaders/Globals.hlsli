@@ -94,10 +94,6 @@ inline uint2 pack_half3(in half3 value)
     retVal.y = f32tof16(value.z);
     return retVal;
 }
-inline uint2 pack_half3(in half a, in half b, in half c, in half d)
-{
-    return pack_half4(half4(a, b, c, d));
-}
 inline half3 unpack_half3(in uint2 value)
 {
     half3 retVal;
@@ -112,6 +108,10 @@ inline uint2 pack_half4(in float4 value)
     retVal.x = f32tof16(value.x) | (f32tof16(value.y) << 16u);
     retVal.y = f32tof16(value.z) | (f32tof16(value.w) << 16u);
     return retVal;
+}
+inline uint2 pack_half4(in half a, in half b, in half c, in half d)
+{
+    return pack_half4(half4(a, b, c, d));
 }
 inline half4 unpack_half4(in uint2 value)
 {
@@ -144,33 +144,11 @@ T inverse_lerp(T value1, T value2, T pos)
 // Source: https://www.shadertoy.com/view/3s33zj
 float3x3 adjoint(in float4x4 m)
 {
-    return float3x3(cross(m[1].xyz, m[2].xyz), 
-                cross(m[2].xyz, m[0].xyz), 
-                cross(m[0].xyz, m[1].xyz));
-
-    /*
-    // alternative way to write the adjoint
-
-    return mat3( 
-     m[1].yzx*m[2].zxy-m[1].zxy*m[2].yzx,
-     m[2].yzx*m[0].zxy-m[2].zxy*m[0].yzx,
-     m[0].yzx*m[1].zxy-m[0].zxy*m[1].yzx );
-    */
-    
-    /*
-    // alternative way to write the adjoint
-
-    return mat3( 
-     m[1][1]*m[2][2]-m[1][2]*m[2][1],
-     m[1][2]*m[2][0]-m[1][0]*m[2][2],
-     m[1][0]*m[2][1]-m[1][1]*m[2][0],
-     m[0][2]*m[2][1]-m[0][1]*m[2][2],
-	 m[0][0]*m[2][2]-m[0][2]*m[2][0],
-     m[0][1]*m[2][0]-m[0][0]*m[2][1],
-     m[0][1]*m[1][2]-m[0][2]*m[1][1],
-     m[0][2]*m[1][0]-m[0][0]*m[1][2],
-     m[0][0]*m[1][1]-m[0][1]*m[1][0] );
-    */
+    return float3x3(
+        cross(m[1].xyz, m[2].xyz),
+        cross(m[2].xyz, m[0].xyz),
+        cross(m[0].xyz, m[1].xyz)
+    );
 }
 
 // The root signature will affect shader compilation for DX12.
@@ -1150,37 +1128,36 @@ inline float3x3 compute_tangent_frame(float3 N, float3 P, float2 UV)
 }
 
 // Computes linear depth from post-projection depth
-inline float compute_lineardepth(in float z, in float near, in float far)
+inline float compute_lineardepth(in float z, in float near, in float far, in bool ortho = false)
 {
-    if (GetCamera().IsOrtho())
-    {
-        return near + (1.0f - z) * (far - near);
-    }
-    else
-    {
-        float z_n = 2 * z - 1;
-        float lin = 2 * far * near / (near + far - z_n * (near - far));
-        return lin;
-    }
+    if (ortho)
+        return near + (1 - z) * (far - near); // ortho
+
+    // Perspective:
+    float z_n = 2 * z - 1;
+    float lin = 2 * far * near / (near + far - z_n * (near - far));
+    return lin;
 }
 inline float compute_lineardepth(in float z)
 {
-    return compute_lineardepth(z, GetCamera().z_near, GetCamera().z_far);
+    return compute_lineardepth(z, GetCamera().z_near, GetCamera().z_far, GetCamera().IsOrtho());
 }
 
 // Computes post-projection depth from linear depth
-inline float compute_inverse_lineardepth(in float lin, in float near, in float far)
+inline float compute_inverse_lineardepth(in float lin, in float near, in float far, in bool ortho = false)
 {
-    if (GetCamera().IsOrtho())
-    {
-        return 1.0f - (lin - near) / (far - near);
-    }
-    else
-    {
-        float z_n = ((lin - 2 * far) * near + far * lin) / (lin * near - far * lin);
-        float z = (z_n + 1) / 2;
-        return z;
-    }
+    if (ortho)
+        return 1 - (lin - near) / (far - near);
+
+    // Perspective:
+    float z_n = ((lin - 2 * far) * near + far * lin) / (lin * near - far * lin);
+    float z = (z_n + 1) / 2;
+    return z;
+}
+
+inline float compute_inverse_lineardepth(in float lin)
+{
+    return compute_inverse_lineardepth(lin, GetCamera().z_near, GetCamera().z_far, GetCamera().IsOrtho());
 }
 
 inline float3x3 get_tangentspace(in float3 normal)

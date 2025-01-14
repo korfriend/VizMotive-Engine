@@ -291,9 +291,9 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 	uint2 color; // packed half4
 	uint2 emissive; // packed half4
 
-	ShaderTransform transform;
-	ShaderTransform transformPrev;
-	ShaderTransform transformRaw; // without quantization remapping applied
+	ShaderTransform transform; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
+	ShaderTransform transformPrev; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
+	ShaderTransform transformRaw; // Note: this is the world matrix without any quantization remapping
 
 	uint clipIndex;
 	int lightmap;
@@ -302,6 +302,9 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 
 	void Init()
 	{
+#ifdef __cplusplus
+		using namespace vz::math;
+#endif // __cplusplus
 		uid = 0;
 		flags = 0;
 		alphaTest_size = 0;
@@ -317,7 +320,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 		aabbRadius = 0;
 
 		emissive = uint2(0, 0);
-		color = uint2(0, 0);
+		color = pack_half4(1, 1, 1, 1);
 		lightmap = -1;
 		
 		rimHighlight = uint2(0, 0);
