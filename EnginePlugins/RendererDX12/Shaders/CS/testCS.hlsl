@@ -11,12 +11,15 @@ PUSHCONSTANT(gaussians, GaussianPushConstants);
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWStructuredBuffer<uint> touchedTiles_0 : register(u1);
 
-// Function: Get screen-space bounding rectangle for Gaussian
+// type XMFLOAT4
+//StructuredBuffer<float4> gaussian_scale_opacity : register(t0);
+//StructuredBuffer<float4> gaussian_rotation : register(t1);
+
+// Function: getrect, inline function in cuda(auxiliary)
 void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2 rect_max)
 {
-    // Define block dimensions (BLOCK_X and BLOCK_Y need to match grid setup)
-    const int BLOCK_X = 16; // Tile width
-    const int BLOCK_Y = 16; // Tile height
+    const uint BLOCK_X = GS_TILESIZE;
+    const uint BLOCK_Y = GS_TILESIZE;
 
     // Calculate rect_min
     rect_min.x = min(grid.x, max(0, (int)((p.x - max_radius) / BLOCK_X)));
@@ -32,11 +35,7 @@ float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
 {
     float4 p_view = mul(float4(pos, 1.0f), camera.view);
     float4 p_hom = mul(p_view, camera.projection);
-
-    // Avoid division by zero
     float p_w = 1.0f / max(p_hom.w, 1e-7f);
-
-    // Convert to Normalized Device Coordinates (NDC)
     float3 p_proj = float3(p_hom.x * p_w, p_hom.y * p_w, p_hom.z * p_w);
 
     // Convert NDC (-1~1) to screen coordinates (0~W, 0~H)
@@ -44,9 +43,6 @@ float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
         (p_proj.x * 0.5f + 0.5f) * (float)W,
         (p_proj.y * 0.5f + 0.5f) * (float)H
     );
-
-    //// Round to nearest pixel and return
-    //return int2(screen_coords + 0.5f);
 }
 
 // Function: Compute the 3D covariance matrix for a Gaussian
@@ -130,14 +126,14 @@ float3 computeCov2D(
     cov[0][0] += 0.3f;
     cov[1][1] += 0.3f;
 
-    // Return the 2D covariance matrix (compressed form)
+    // Return the 2D covariance matrix (diagonal matrix)
     return float3(cov[0][0], cov[0][1], cov[1][1]);
 }
 
-// Main Compute Shader
 [numthreads(256, 1, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
+    float radius = 0.0f;
     // Global thread index along X-axis
     uint idx = DTid.x;
 
@@ -156,12 +152,21 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
     ShaderGeometry geometry = load_geometry(subsetIndex);
 
-    Buffer<float4> vb_pos_w = bindless_buffers_float4[geometry.vb_pos_w];
-    float3 pos = vb_pos_w[idx].xyz;
+    // Load Position, Scale/Opacity, Quaternion
+    Buffer<float4> gs_position = bindless_buffers_float4[geometry.vb_pos_w];
+    Buffer<float4> gs_scale_opacity = bindless_buffers_float4[gaussians.gaussian_scale_opacities_index];
+    Buffer<float4> gs_quaternion = bindless_buffers_float4[gaussians.gaussian_quaternions_index];
+
+    // bindless graphics,
+    // 해당 인덱스에 맞는 버퍼를 가져온다. float4 로
+
+    float3 pos = gs_position[idx].xyz;
+    float3 scale = gs_scale_opacity[idx].xyz;
+    float4 rotation = gs_quaternion[idx];
 
     // computeCov3D
-    float3 scale = float3(1.0, 1.0, 1.0);         // Replace with actual scale
-    float4 rotation = float4(1.0, 0.0, 0.0, 0.0); // Replace with actual rotation
+    //float3 scale = float3(2.0, 2.0, 2.0);         // Replace with actual scale
+    //float4 rotation = float4(1.0, 0.0, 0.0, 0.0); // Replace with actual rotation
     float3x3 cov3D = computeCov3D(scale, rotation);
 
     // computeCov2D
@@ -179,7 +184,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float mid = 0.5f * (cov2D.x + cov2D.z);
     float lambda1 = mid + sqrt(max(0.1f, mid * mid - det));
     float lambda2 = mid - sqrt(max(0.1f, mid * mid - det));
-    float radius = ceil(3.0f * sqrt(max(lambda1, lambda2)));
+    radius = ceil(3.0f * sqrt(max(lambda1, lambda2)));
     float2 point_image = worldToPixel(pos, camera, W, H);
 
     // bounding box
@@ -189,13 +194,51 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
         return;
 
+    // Store results or further process here...
+    //touchedTiles_0[idx] = (rect_max.y - rect_min.y) * (rect_max.x - rect_min.x);
+
+    uint tile_count_x = rect_max.x - rect_min.x;
+    uint tile_count_y = rect_max.y - rect_min.y;
+    uint total_tiles = tile_count_x * tile_count_y;
+
+    touchedTiles_0[idx] = total_tiles;
+
     int2 pixel_coord = int2(point_image + 0.5f);
 
-    if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    {
-        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+    float4 t_rot = gs_quaternion[0];
+
+    //  Rotation(0.666832, 0.0965957, -0.328523, 0.0227409
+    // float4 test_color = t_rot;
+    if (t_rot.x > -4.5f && t_rot.x < -4.4f) {
+
+        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
     }
 
-    // Store results or further process here...
-    touchedTiles_0[idx] = (rect_max.y - rect_min.y) * (rect_max.x - rect_min.x);
+    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
+    //{
+    //    if (touchedTiles_0[idx] >= 0)
+    //    {
+    //        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
+    //       
+    //    }
+    //    else 
+    //    {
+    //        inout_color[pixel_coord] = float4(0.0f, 1.0f, 0.0f, 1.0f); // Green
+    //    }
+    //}
+    
+    //float sum_scale = scale.x + scale.y + scale.z; // 예: 3.0 ~ ?
+    //float colorVal = frac(sum_scale * 0.1f);      // 0~1 사이로 만듦
+    ////float colorVal = 0.7f;
+    //// 4) 픽셀 범위 체크
+    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) &&
+    //    pixel_coord.y >= 0 && pixel_coord.y < int(H))
+    //{
+    //    // 5) 디버그 색을 픽셀에 적용
+    //    //    - colorVal을 R채널, G채널 등으로 배분해도 되고, 단색으로 써도 됨
+    //    //    - 여기서는 "R 채널 = colorVal, G=1-colorVal"처럼 간단히.
+    //    float4 debugColor = float4(colorVal, 1.0f - colorVal, 0.0f, 1.0f);
+
+    //    inout_color[pixel_coord] = debugColor;
+    //}
 }
