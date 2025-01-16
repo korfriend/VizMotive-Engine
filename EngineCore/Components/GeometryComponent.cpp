@@ -1253,8 +1253,8 @@ namespace vz
 			const std::vector<XMFLOAT4>& vertex_tangents = primitive.vertexTangents_;
 
 			desc.size =
-				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32), alignment) + // pos
-				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32), alignment) + // prevpos
+				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32W), alignment) + // pos
+				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32W), alignment) + // prevpos
 				AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
 				AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment)
 				;
@@ -1274,18 +1274,18 @@ namespace vz
 			uint64_t buffer_offset = 0ull;
 
 			so_pos.offset = buffer_offset;
-			so_pos.size = vertex_positions.size() * sizeof(Vertex_POS32);
+			so_pos.size = vertex_positions.size() * sizeof(Vertex_POS32W);
 			buffer_offset += AlignTo(so_pos.size, alignment);
-			so_pos.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pos.offset, so_pos.size, &Vertex_POS32::FORMAT);
-			so_pos.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pos.offset, so_pos.size); // UAV can't have RGB32_F format!
+			so_pos.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pos.offset, so_pos.size, &Vertex_POS32W::FORMAT);
+			so_pos.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pos.offset, so_pos.size, &Vertex_POS32W::FORMAT); // UAV can't have RGB32_F format!
 			so_pos.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_pos.subresource_srv);
 			so_pos.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_pos.subresource_uav);
 
 			so_pre.offset = buffer_offset;
 			so_pre.size = so_pos.size;
 			buffer_offset += AlignTo(so_pre.size, alignment);
-			so_pre.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pre.offset, so_pre.size, &Vertex_POS32::FORMAT);
-			so_pre.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pre.offset, so_pre.size); // UAV can't have RGB32_F format!
+			so_pre.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pre.offset, so_pre.size, &Vertex_POS32W::FORMAT);
+			so_pre.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pre.offset, so_pre.size, &Vertex_POS32W::FORMAT); // UAV can't have RGB32_F format!
 			so_pre.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_pre.subresource_srv);
 			so_pre.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_pre.subresource_uav);
 
