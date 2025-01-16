@@ -535,7 +535,7 @@ namespace vz::graphics
 
 			~AllocationHandler()
 			{
-				Update(~0, 0); // destroy all remaining
+				Update(~0ull, 0); // destroy all remaining
 			}
 
 			// Deferred destroy of resources that the GPU is already finished with:

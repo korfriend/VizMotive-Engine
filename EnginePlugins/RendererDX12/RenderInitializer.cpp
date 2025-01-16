@@ -21,11 +21,6 @@ namespace vz::rcommon
 	extern Sampler				samplers[SAMPLER_COUNT];
 	extern Texture				textures[TEXTYPE_COUNT];
 
-	extern GPUBuffer			luminanceDummy;
-	extern GPUBuffer			instanceDummy;
-	extern GPUBuffer			geometryDummy;
-	extern GPUBuffer			materialDummy;
-
 	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	extern PipelineState		PSO_wireframe;
 	extern PipelineState		PSO_occlusionquery;
@@ -69,55 +64,6 @@ namespace vz::initializer
 			InitData.row_pitch = desc.width;
 			device->CreateTexture(&desc, &InitData, &rcommon::textures[TEXTYPE_2D_SHEENLUT]);
 			device->SetName(&rcommon::textures[TEXTYPE_2D_SHEENLUT], "textures[TEXTYPE_2D_SHEENLUT]");
-		}
-
-		{
-			// the dummy buffer is read-only so only the first 'exposure' value is needed,
-			// not the luminance or histogram values in the full version of the buffer used
-			// when eye adaption is enabled.
-			float values[1] = { 1 };
-
-			GPUBufferDesc desc;
-			desc.size = sizeof(values);
-			desc.bind_flags = BindFlag::SHADER_RESOURCE;
-			desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
-			device->CreateBuffer(&desc, values, &rcommon::luminanceDummy);
-			device->SetName(&rcommon::luminanceDummy, "luminance_dummy");
-
-			static_assert(LUMINANCE_BUFFER_OFFSET_EXPOSURE == 0);
-		}
-		{
-			ShaderMeshInstance data;
-			data.Init();
-			GPUBufferDesc desc;
-			desc.stride = sizeof(data);
-			desc.size = desc.stride;
-			desc.bind_flags = BindFlag::SHADER_RESOURCE;
-			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
-			device->CreateBuffer(&desc, &data, &rcommon::instanceDummy);
-			device->SetName(&rcommon::instanceDummy, "instance_dummy");
-		}
-		{
-			ShaderGeometry data;
-			data.Init();
-			GPUBufferDesc desc;
-			desc.stride = sizeof(data);
-			desc.size = desc.stride;
-			desc.bind_flags = BindFlag::SHADER_RESOURCE;
-			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
-			device->CreateBuffer(&desc, &data, &rcommon::geometryDummy);
-			device->SetName(&rcommon::geometryDummy, "geometry_dummy");
-		}
-		{
-			ShaderMaterial data;
-			data.Init();
-			GPUBufferDesc desc;
-			desc.stride = sizeof(data);
-			desc.size = desc.stride;
-			desc.bind_flags = BindFlag::SHADER_RESOURCE;
-			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
-			device->CreateBuffer(&desc, &data, &rcommon::materialDummy);
-			device->SetName(&rcommon::materialDummy, "material_dummy");
 		}
 	}
 	void SetUpStates()
@@ -501,12 +447,6 @@ namespace vz::initializer
 		ReleaseRenderRes(buffers, BUFFERTYPE_COUNT);
 		ReleaseRenderRes(samplers, SAMPLER_COUNT);
 		ReleaseRenderRes(textures, TEXTYPE_COUNT);
-
-		rcommon::luminanceDummy = {};
-		rcommon::instanceDummy = {};
-		rcommon::geometryDummy = {};
-		rcommon::materialDummy = {};
-
 		ReleaseRenderRes(PSO_debug, DEBUGRENDERING_COUNT);
 		rcommon::PSO_wireframe = {};
 		rcommon::PSO_occlusionquery = {};
