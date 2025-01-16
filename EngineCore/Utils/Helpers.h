@@ -1,5 +1,7 @@
 #pragma once
 #include "Libs/Math.h"
+#include "Platform.h"
+#include "ThirdParty/lodepng.h"
 
 #include <sstream>
 #include <iostream>
@@ -8,11 +10,11 @@
 #include <functional>
 #include <thread>
 
-
 #ifdef _WIN32
 #include <windows.h>
-#include <psapi.h>
-#include <commdlg.h>
+#include <Psapi.h> // GetProcessMemoryInfo
+#include <Commdlg.h> // openfile
+#include <comdef.h> // com_error
 #endif
 
 namespace vz::helper 
@@ -606,6 +608,34 @@ namespace vz::helper
 			ss << timerSeconds / 60 / 60 << " hours";
 		}
 		return ss.str();
+	}
+
+	inline std::string GetPlatformErrorString(vz::platform::error_type code)
+	{
+		std::string str;
+
+#ifdef _WIN32
+		_com_error err(code);
+		LPCTSTR errMsg = err.ErrorMessage();
+		wchar_t wtext[1024] = {};
+		_snwprintf_s(wtext, arraysize(wtext), arraysize(wtext), L"0x%08x (%s)", code, errMsg);
+		char text[1024] = {};
+		helper::StringConvert(wtext, text, arraysize(text));
+		str = text;
+#endif // _WIN32
+
+		return str;
+	}
+
+	inline bool Compress(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data)
+	{
+		unsigned error = lodepng::compress(dst_data, src_data, src_size);
+		return error == 0;
+	}
+	inline bool Decompress(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data)
+	{
+		unsigned error = lodepng::decompress(dst_data, src_data, src_size);
+		return error == 0;
 	}
 
 	struct FileDialogParams

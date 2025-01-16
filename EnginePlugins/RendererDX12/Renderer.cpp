@@ -24,13 +24,6 @@ namespace vz::rcommon
 	Sampler				samplers[SAMPLER_COUNT];
 	Texture				textures[TEXTYPE_COUNT];
 
-	// Dummy buffers preinitialized to invalid scene structs, avoids possible GPU crash when
-	//  shader compiler is incorrectly pulling buffer desciptor load outside valid branch
-	GPUBuffer			luminanceDummy;
-	GPUBuffer			instanceDummy;
-	GPUBuffer			geometryDummy;
-	GPUBuffer			materialDummy;
-
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	PipelineState		PSO_wireframe;
 	PipelineState		PSO_occlusionquery;
@@ -865,20 +858,6 @@ namespace vz::renderer
 		frameCB.lights = ShaderEntityIterator(lightarray_offset, lightarray_count);
 		frameCB.decals = ShaderEntityIterator(decalarray_offset, decalarray_count);
 		//frameCB.forces = ShaderEntityIterator(forcefieldarray_offset, forcefieldarray_count);
-
-		// GPU crash workarounds, setting buffers with invalid data:
-		if (frameCB.scene.instancebuffer < 0)
-		{
-			frameCB.scene.instancebuffer = device->GetDescriptorIndex(&rcommon::instanceDummy, SubresourceType::SRV);
-		}
-		if (frameCB.scene.geometrybuffer < 0)
-		{
-			frameCB.scene.geometrybuffer = device->GetDescriptorIndex(&rcommon::geometryDummy, SubresourceType::SRV);
-		}
-		if (frameCB.scene.materialbuffer < 0)
-		{
-			frameCB.scene.materialbuffer = device->GetDescriptorIndex(&rcommon::materialDummy, SubresourceType::SRV);
-		}
 	}
 
 	constexpr uint32_t CombineStencilrefs(StencilRef engineStencilRef, uint8_t userStencilRef)
@@ -3048,7 +3027,7 @@ namespace vz
 		}
 		tonemap_push.flags_hdrcalibration |= XMConvertFloatToHalf(hdr_calibration) << 16u;
 		tonemap_push.texture_input = device->GetDescriptorIndex(&input, SubresourceType::SRV);
-		tonemap_push.buffer_input_luminance = device->GetDescriptorIndex((buffer_luminance == nullptr) ? &rcommon::luminanceDummy : buffer_luminance, SubresourceType::SRV);
+		tonemap_push.buffer_input_luminance = device->GetDescriptorIndex(buffer_luminance, SubresourceType::SRV);
 		tonemap_push.texture_input_distortion = device->GetDescriptorIndex(texture_distortion, SubresourceType::SRV);
 		tonemap_push.texture_input_distortion_overlay = device->GetDescriptorIndex(texture_distortion_overlay, SubresourceType::SRV);
 		tonemap_push.texture_colorgrade_lookuptable = device->GetDescriptorIndex(texture_colorgradinglut, SubresourceType::SRV);
