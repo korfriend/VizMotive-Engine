@@ -189,19 +189,14 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     //uint2 grid = (78, 44);
     //getRect(point_image, int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
     // ============== get rect ==============
-    rect_min.x = min(78, max(0, (int) ((point_image.x - int(radius)) / 16)));
-    rect_min.y = min(44, max(0, (int) ((point_image.y - int(radius)) / 16)));
 
-    rect_max.x = min(78, max(0, (int) ((point_image.x + int(radius) + 16 - 1) / 16)));
-    rect_max.y = min(44, max(0, (int) ((point_image.y + int(radius) + 16 - 1) / 16)));
-    //============== get rect ==============
 
     uint total_tiles = (rect_max.x - rect_min.x) * (rect_max.y - rect_min.y);
 
     if (total_tiles == 0)
         return;
 
-    // --- º¯°æµÈ ºÎºÐ: bounding box ³» Å¸ÀÏ¸¶´Ù InterlockedAdd( touchedTiles_0[idx], 1 ) ---
+    // --- ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îºï¿½: bounding box ï¿½ï¿½ Å¸ï¿½Ï¸ï¿½ï¿½ï¿½ InterlockedAdd( touchedTiles_0[idx], 1 ) ---
     for (uint ty = rect_min.y; ty < rect_max.y; ty++)
     {
         for (uint tx = rect_min.x; tx < rect_max.x; tx++)
