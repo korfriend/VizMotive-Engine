@@ -111,31 +111,21 @@ bool ImportModel_PLY(const std::string& fileName, vz::GeometryComponent* geometr
 
 	file.close();
 
-	// std::cerr
-	//{
-	//	const auto &positions = mutable_primitive->GetVtxPositions();
-	//	const auto &normals = mutable_primitive->GetVtxNormals();
-
-	//	std::cerr << "Loaded " << positions.size() << " vertices from " << fileName << std::endl;
-	//	for (size_t i = 0; i < positions.size(); ++i)
-	//	{
-	//		const auto &p = positions[i];
-	//		const auto &n = normals[i];
-	//		std::cerr << "Vertex " << i << ": Pos(" << p.x << ", " << p.y << ", " << p.z << "), "
-	//				  << "Normal(" << n.x << ", " << n.y << ", " << n.z << ")\n";
-	//	}
-	//}
-
-	// Print first 1000 vertices' scale and rotation
+	const auto& positions = mutable_primitive->GetVtxPositions();
 	const auto& vertex_SOs_ref = mutable_primitive->GetMutableVtxScaleOpacities();
 	const auto& vertex_Qts_ref = mutable_primitive->GetMutableVtxQuaternions();
 
-	size_t limit = std::min<size_t>(100, vertex_SOs_ref.size());
-	for (size_t i = 0; i < limit; ++i)
-	{
+	// Determine the limit for printing
+	size_t limit = std::min<size_t>(1, positions.size());
+
+	std::cerr << "Loaded " << positions.size() << " vertices." << std::endl;
+	for (size_t i = 0; i < limit; ++i) {
+		const auto& p = positions[i];
 		const auto& scale = vertex_SOs_ref[i];
 		const auto& rotation = vertex_Qts_ref[i];
-		std::cerr << "Vertex " << i << ": Scale(" << scale.x << ", " << scale.y << ", " << scale.z << "), "
+
+		std::cerr << "Vertex " << i << ": Pos(" << p.x << ", " << p.y << ", " << p.z << "), "
+			<< "Scale(" << scale.x << ", " << scale.y << ", " << scale.z << "), "
 			<< "Rotation(" << rotation.x << ", " << rotation.y << ", " << rotation.z << ", " << rotation.w << ")" << '\n';
 	}
 
