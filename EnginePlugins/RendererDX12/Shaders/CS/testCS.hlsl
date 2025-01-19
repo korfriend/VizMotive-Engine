@@ -18,16 +18,16 @@ RWStructuredBuffer<uint> touchedTiles_0 : register(u1);
 // Function: getrect, inline function in cuda(auxiliary)
 void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2 rect_max)
 {
-    const uint BLOCK_X = GS_TILESIZE;
-    const uint BLOCK_Y = GS_TILESIZE;
+    const uint BLOCK_X = 16;
+    const uint BLOCK_Y = 16;
 
     // Calculate rect_min
-    rect_min.x = min(grid.x, max(0, (int)((p.x - max_radius) / BLOCK_X)));
-    rect_min.y = min(grid.y, max(0, (int)((p.y - max_radius) / BLOCK_Y)));
+    rect_min.x = min(grid.x, max(0, (int) ((p.x - max_radius) / BLOCK_X)));
+    rect_min.y = min(grid.y, max(0, (int) ((p.y - max_radius) / BLOCK_Y)));
 
     // Calculate rect_max
-    rect_max.x = min(grid.x, max(0, (int)((p.x + max_radius + BLOCK_X - 1) / BLOCK_X)));
-    rect_max.y = min(grid.y, max(0, (int)((p.y + max_radius + BLOCK_Y - 1) / BLOCK_Y)));
+    rect_max.x = min(grid.x, max(0, (int) ((p.x + max_radius + BLOCK_X - 1) / BLOCK_X)));
+    rect_max.y = min(grid.y, max(0, (int) ((p.y + max_radius + BLOCK_Y - 1) / BLOCK_Y)));
 }
 
 // Function: Convert world position to pixel coordinates
@@ -40,8 +40,8 @@ float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
 
     // Convert NDC (-1~1) to screen coordinates (0~W, 0~H)
     return float2(
-        (p_proj.x * 0.5f + 0.5f) * (float)W,
-        (p_proj.y * 0.5f + 0.5f) * (float)H
+        (p_proj.x * 0.5f + 0.5f) * (float) W,
+        (p_proj.y * 0.5f + 0.5f) * (float) H
     );
 }
 
@@ -77,8 +77,8 @@ float3x3 computeCov3D(float3 scale, float4 rotation)
     // Return the covariance matrix (upper triangular matrix)
     return float3x3(
         Sigma[0][0], Sigma[0][1], Sigma[0][2],
-        0.0f,        Sigma[1][1], Sigma[1][2],
-        0.0f,        0.0f,        Sigma[2][2]
+        0.0f, Sigma[1][1], Sigma[1][2],
+        0.0f, 0.0f, Sigma[2][2]
     );
 }
 
@@ -86,13 +86,13 @@ float3x3 computeCov3D(float3 scale, float4 rotation)
 float3 computeCov2D(
     float3 mean,
     float focal_length, // Single focal length
-    uint2 resolution,   // Screen resolution
-    float3x3 cov3D,     // 3D covariance matrix
+    uint2 resolution, // Screen resolution
+    float3x3 cov3D, // 3D covariance matrix
     float4x4 viewmatrix // Camera view matrix
 )
 {
     // Calculate aspect ratio
-    float aspect_ratio = (float)resolution.x / (float)resolution.y;
+    float aspect_ratio = (float) resolution.x / (float) resolution.y;
 
     // Compute focal_x and focal_y from single focal_length
     float focal_x = focal_length * aspect_ratio;
@@ -153,12 +153,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     ShaderGeometry geometry = load_geometry(subsetIndex);
 
     // Load Position, Scale/Opacity, Quaternion
+    // bindless graphics, load buffer with index
     Buffer<float4> gs_position = bindless_buffers_float4[geometry.vb_pos_w];
     Buffer<float4> gs_scale_opacity = bindless_buffers_float4[gaussians.gaussian_scale_opacities_index];
     Buffer<float4> gs_quaternion = bindless_buffers_float4[gaussians.gaussian_quaternions_index];
-
-    // bindless graphics,
-    // 해당 인덱스에 맞는 버퍼를 가져온다. float4 로
 
     float3 pos = gs_position[idx].xyz;
     float3 scale = gs_scale_opacity[idx].xyz;
@@ -166,8 +164,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float4 rotation = gs_quaternion[idx];
 
     // computeCov3D
-    //float3 scale = float3(2.0, 2.0, 2.0);         // Replace with actual scale
-    //float4 rotation = float4(1.0, 0.0, 0.0, 0.0); // Replace with actual rotation
     float3x3 cov3D = computeCov3D(scale, rotation);
 
     // computeCov2D
@@ -190,56 +186,58 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     // bounding box
     uint2 rect_min, rect_max;
-    getRect(point_image, int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
+    //uint2 grid = (78, 44);
+    //getRect(point_image, int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
+    // ============== get rect ==============
+    rect_min.x = min(78, max(0, (int) ((point_image.x - int(radius)) / 16)));
+    rect_min.y = min(44, max(0, (int) ((point_image.y - int(radius)) / 16)));
 
-    if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
+    rect_max.x = min(78, max(0, (int) ((point_image.x + int(radius) + 16 - 1) / 16)));
+    rect_max.y = min(44, max(0, (int) ((point_image.y + int(radius) + 16 - 1) / 16)));
+    //============== get rect ==============
+
+    uint total_tiles = (rect_max.x - rect_min.x) * (rect_max.y - rect_min.y);
+
+    if (total_tiles == 0)
         return;
 
-    // Store results or further process here...
-    //touchedTiles_0[idx] = (rect_max.y - rect_min.y) * (rect_max.x - rect_min.x);
+    // --- 변경된 부분: bounding box 내 타일마다 InterlockedAdd( touchedTiles_0[idx], 1 ) ---
+    for (uint ty = rect_min.y; ty < rect_max.y; ty++)
+    {
+        for (uint tx = rect_min.x; tx < rect_max.x; tx++)
+        {
+            InterlockedAdd(touchedTiles_0[idx], 1);
+        }
+    }
+    // -----------------------------------------------------------
 
-    uint tile_count_x = rect_max.x - rect_min.x;
-    uint tile_count_y = rect_max.y - rect_min.y;
-    uint total_tiles = tile_count_x * tile_count_y;
-
-    touchedTiles_0[idx] = total_tiles;
 
     int2 pixel_coord = int2(point_image + 0.5f);
 
-    //float4 t_rot = gs_quaternion[0];
+    // test value for idx == 0
+    float3 t_pos = gs_position[0].xyz;
+    float3 t_scale = gs_scale_opacity[0].xyz;
+    float4 t_rot = gs_quaternion[0];
 
-    //  Rotation(0.666832, 0.0965957, -0.328523, 0.0227409
-    // float4 test_color = t_rot;
+    // t_pos = (0.580303, -3.68339, 3.44946)
+    // t_scale = (-4.44527, -4.37531, -5.52493)
+    // t_rot = (0.666832, 0.0965957, -0.328523, 0.0227409)
+    // focal length = 1.0f
+
+
     //if (t_rot.x > -4.5f && t_rot.x < -4.4f) {
-
     //    inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
     //}
 
     if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
     {
-        if (radius >= 5.0f)
+        if (touchedTiles_0[3323] >= 3)
         {
             inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
-           
         }
-        else 
+        else
         {
-            inout_color[pixel_coord] = float4(0.0f, 1.0f, 0.0f, 1.0f); // Green
+            inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
         }
     }
-    
-    //float sum_scale = scale.x + scale.y + scale.z; // 예: 3.0 ~ ?
-    //float colorVal = frac(sum_scale * 0.1f);      // 0~1 사이로 만듦
-    ////float colorVal = 0.7f;
-    //// 4) 픽셀 범위 체크
-    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) &&
-    //    pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    //{
-    //    // 5) 디버그 색을 픽셀에 적용
-    //    //    - colorVal을 R채널, G채널 등으로 배분해도 되고, 단색으로 써도 됨
-    //    //    - 여기서는 "R 채널 = colorVal, G=1-colorVal"처럼 간단히.
-    //    float4 debugColor = float4(colorVal, 1.0f - colorVal, 0.0f, 1.0f);
-
-    //    inout_color[pixel_coord] = debugColor;
-    //}
 }
