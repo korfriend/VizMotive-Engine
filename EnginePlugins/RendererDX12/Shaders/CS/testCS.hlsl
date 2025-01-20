@@ -4,7 +4,26 @@
 #include "../Globals.hlsli"
 #include "../ShaderInterop_GS.h"
 #include "../CommonHF/surfaceHF.hlsli"
-#include "../CommonHF/raytracingHF.hlsli"
+#include "../CommonHF/raytracingHF.hlsli"   
+
+static const float SH_C0 = 0.28209479177387814f;
+static const float SH_C1 = 0.4886025119029199f;
+static const float SH_C2[5] = {
+    1.0925484305920792f,
+    -1.0925484305920792f,
+    0.31539156525252005f,
+    -1.0925484305920792f,
+    0.5462742152960396f
+};
+static const float SH_C3[7] = {
+    -0.5900435899266435f,
+    2.890611442640554f,
+    -0.4570457994644658f,
+    0.3731763325901154f,
+    -0.4570457994644658f,
+    1.445305721320277f,
+    -0.5900435899266435f
+};
 
 PUSHCONSTANT(gaussians, GaussianPushConstants);
 
@@ -14,6 +33,53 @@ RWStructuredBuffer<uint> touchedTiles_0 : register(u1);
 // type XMFLOAT4
 //StructuredBuffer<float4> gaussian_scale_opacity : register(t0);
 //StructuredBuffer<float4> gaussian_rotation : register(t1);
+
+float3 compute_sh(Buffer<float3> gs_shs, float3 pos, int idx, float3 camPos)
+{
+    // 방향 벡터 계산 및 정규화
+    float3 dir = pos - camPos;
+    float len = length(dir);
+    dir = (len > 1e-6f) ? (dir / len) : float3(0.0f, 0.0f, 0.0f);
+
+    int baseIndex = idx * 16;
+
+    float3 result = SH_C0 * gs_shs[baseIndex + 0];
+
+    float x = dir.x;
+    float y = dir.y;
+    float z = dir.z;
+    result = result
+        - SH_C1 * y * gs_shs[baseIndex + 1]
+        + SH_C1 * z * gs_shs[baseIndex + 2]
+        - SH_C1 * x * gs_shs[baseIndex + 3];
+
+    float xx = x * x;
+    float yy = y * y;
+    float zz = z * z;
+    float xy = x * y;
+    float yz = y * z;
+    float xz = x * z;
+
+    result +=
+        SH_C2[0] * xy * gs_shs[baseIndex + 4] +
+        SH_C2[1] * yz * gs_shs[baseIndex + 5] +
+        SH_C2[2] * (2.0f * zz - xx - yy) * gs_shs[baseIndex + 6] +
+        SH_C2[3] * xz * gs_shs[baseIndex + 7] +
+        SH_C2[4] * (xx - yy) * gs_shs[baseIndex + 8];
+
+    result +=
+        SH_C3[0] * y * (3.0f * xx - yy) * gs_shs[baseIndex + 9] +
+        SH_C3[1] * xy * z * gs_shs[baseIndex + 10] +
+        SH_C3[2] * y * (4.0f * zz - xx - yy) * gs_shs[baseIndex + 11] +
+        SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * gs_shs[baseIndex + 12] +
+        SH_C3[4] * x * (4.0f * zz - xx - yy) * gs_shs[baseIndex + 13] +
+        SH_C3[5] * z * (xx - yy) * gs_shs[baseIndex + 14] +
+        SH_C3[6] * x * (xx - 3.0f * yy) * gs_shs[baseIndex + 15];
+
+    result += 0.5f;
+
+    return max(result, 0.0f);
+}
 
 // Function: getrect, inline function in cuda(auxiliary)
 void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2 rect_max)
@@ -146,17 +212,18 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     uint W = camera.internal_resolution.x;
     uint H = camera.internal_resolution.y;
     float focalLength = camera.focal_length;
-
+    float3 camPos = camera.position;
     // Load instance and geometry
     ShaderMeshInstance gs_instance = load_instance(gaussians.instanceIndex);
     uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
     ShaderGeometry geometry = load_geometry(subsetIndex);
 
-    // Load Position, Scale/Opacity, Quaternion
+    // Load Position, Scale/Opacity, Quaternion, SH coefficients
     // bindless graphics, load buffer with index
     Buffer<float4> gs_position = bindless_buffers_float4[geometry.vb_pos_w];
     Buffer<float4> gs_scale_opacity = bindless_buffers_float4[gaussians.gaussian_scale_opacities_index];
     Buffer<float4> gs_quaternion = bindless_buffers_float4[gaussians.gaussian_quaternions_index];
+    Buffer<float3> gs_shs = bindless_buffers_float3[gaussians.gaussian_SHs_index]; // struct SH {XMFLOAT3 dcSHs[16];};
 
     float3 pos = gs_position[idx].xyz;
     float3 scale = gs_scale_opacity[idx].xyz;
@@ -185,59 +252,68 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float2 point_image = worldToPixel(pos, camera, W, H);
 
     // bounding box
-    uint2 rect_min, rect_max;
-    //uint2 grid = (78, 44);
-    //getRect(point_image, int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
-    // ============== get rect ==============
-    rect_min.x = min(78, max(0, (int) ((point_image.x - int(radius)) / 16)));
-    rect_min.y = min(44, max(0, (int) ((point_image.y - int(radius)) / 16)));
-
-    rect_max.x = min(78, max(0, (int) ((point_image.x + int(radius) + 16 - 1) / 16)));
-    rect_max.y = min(44, max(0, (int) ((point_image.y + int(radius) + 16 - 1) / 16)));
-    //============== get rect ==============
+    uint2 rect_min, rect_max;   //uint2 grid = (78, 44);
+    getRect(point_image, int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
 
     uint total_tiles = (rect_max.x - rect_min.x) * (rect_max.y - rect_min.y);
 
     if (total_tiles == 0)
         return;
 
-    // --- 변경된 부분: bounding box 내 타일마다 InterlockedAdd( touchedTiles_0[idx], 1 ) ---
-    for (uint ty = rect_min.y; ty < rect_max.y; ty++)
-    {
-        for (uint tx = rect_min.x; tx < rect_max.x; tx++)
-        {
-            InterlockedAdd(touchedTiles_0[idx], 1);
-        }
-    }
-    // -----------------------------------------------------------
-
+    InterlockedAdd(touchedTiles_0[idx], total_tiles);
 
     int2 pixel_coord = int2(point_image + 0.5f);
 
-    // test value for idx == 0
-    float3 t_pos = gs_position[0].xyz;
-    float3 t_scale = gs_scale_opacity[0].xyz;
-    float4 t_rot = gs_quaternion[0];
-
-    // t_pos = (0.580303, -3.68339, 3.44946)
-    // t_scale = (-4.44527, -4.37531, -5.52493)
-    // t_rot = (0.666832, 0.0965957, -0.328523, 0.0227409)
-    // focal length = 1.0f
-
-
-    //if (t_rot.x > -4.5f && t_rot.x < -4.4f) {
-    //    inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
+    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
+    //{
+    //    if (radius >= 4)
+    //    {
+    //        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+    //    }
+    //    else
+    //    {
+    //        inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
+    //    }
     //}
 
+    // SH color for gaussian 16: [0.8455225  0.87772584 0.65956086]
+    // Position of vertex 16: [-0.23435153  1.1573098   2.2420747]
+    uint test_idx = 16;
+    float3 pos_test = gs_position[test_idx].xyz;
+    float3 RGB_Test = compute_sh(gs_shs, pos_test, test_idx, camPos);
+    float4 final_RGB = float4(RGB_Test, 1.0f);
+
     if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    {
-        if (touchedTiles_0[3323] >= 3)
+    {   
+        if (RGB_Test.x == 0.8455225f) // float3 camPos = (0, 0, 10);
         {
-            inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+            inout_color[pixel_coord] = float4(0.0f, 1.0f, 0.0f, 1.0f); // Correct (Green)
         }
         else
         {
-            inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
+            inout_color[pixel_coord] = float4(1.0f, 0.0f, 0.0f, 1.0f); // Wrong (Red)
         }
     }
 }
+
+//// test value for idx == 0
+//float3 t_pos = gs_position[0].xyz;
+//float3 t_scale = gs_scale_opacity[0].xyz;
+//float4 t_rot = gs_quaternion[0];
+
+// t_pos = (0.580303, -3.68339, 3.44946)
+// t_scale = (-4.44527, -4.37531, -5.52493)
+// t_rot = (0.666832, 0.0965957, -0.328523, 0.0227409)
+// focal length = 1.0f
+//if (t_rot.x > -4.5f && t_rot.x < -4.4f) 
+// {
+//    inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
+// }
+//if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
+//{
+//    // SH 색상 계산
+//    float3 colorRGB = compute_sh(gs_shs, pos, idx, camPos);
+
+//    // 계산된 색상으로 출력 텍스처 설정 (알파 값은 1.0으로 고정)
+//    inout_color[pixel_coord] = float4(colorRGB, 1.0f);
+//}
