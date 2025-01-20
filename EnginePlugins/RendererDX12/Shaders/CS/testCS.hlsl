@@ -186,38 +186,37 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     // bounding box
     uint2 rect_min, rect_max;
-    //uint2 grid = (78, 44);
-    //getRect(point_image, int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
-    // ============== get rect ==============
-    rect_min.x = min(78, max(0, (int) ((point_image.x - int(radius)) / 16)));
-    rect_min.y = min(44, max(0, (int) ((point_image.y - int(radius)) / 16)));
 
-    rect_max.x = min(78, max(0, (int) ((point_image.x + int(radius) + 16 - 1) / 16)));
-    rect_max.y = min(44, max(0, (int) ((point_image.y + int(radius) + 16 - 1) / 16)));
-    //============== get rect ==============
+    getRect(point_image, int(radius), uint2(W / 16, H / 16), rect_min, rect_max);
 
     uint total_tiles = (rect_max.x - rect_min.x) * (rect_max.y - rect_min.y);
 
     if (total_tiles == 0)
         return;
+    
+    uint oldVal;
+    InterlockedAdd(touchedTiles_0[idx], total_tiles, oldVal);
+    uint newVal = oldVal + total_tiles;
+    int2 pixel_coord = int2(point_image + 0.5f);
+    //int2 pixel_coord = int2(point_image);
+    
 
-    // --- 변경된 부분: bounding box 내 타일마다 InterlockedAdd( touchedTiles_0[idx], 1 ) ---
-    for (uint ty = rect_min.y; ty < rect_max.y; ty++)
+    if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
     {
-        for (uint tx = rect_min.x; tx < rect_max.x; tx++)
+        if (radius > 3) 
         {
-            InterlockedAdd(touchedTiles_0[idx], 1);
+            inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+        }
+        else
+        {
+            inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
         }
     }
-    // -----------------------------------------------------------
-
-
-    int2 pixel_coord = int2(point_image + 0.5f);
-
+}
     // test value for idx == 0
-    float3 t_pos = gs_position[0].xyz;
-    float3 t_scale = gs_scale_opacity[0].xyz;
-    float4 t_rot = gs_quaternion[0];
+    //float3 t_pos = gs_position[0].xyz;
+    //float3 t_scale = gs_scale_opacity[0].xyz;
+    //float4 t_rot = gs_quaternion[0];
 
     // t_pos = (0.580303, -3.68339, 3.44946)
     // t_scale = (-4.44527, -4.37531, -5.52493)
@@ -228,16 +227,3 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     //if (t_rot.x > -4.5f && t_rot.x < -4.4f) {
     //    inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
     //}
-
-    if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    {
-        if (touchedTiles_0[3323] >= 3)
-        {
-            inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
-        }
-        else
-        {
-            inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
-        }
-    }
-}
