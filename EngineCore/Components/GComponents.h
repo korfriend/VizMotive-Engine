@@ -78,6 +78,21 @@ namespace vz
 			graphics::GPUBuffer duplicatedDepthGaussians; // new version
 			graphics::GPUBuffer duplicatedTileDepthGaussians_0;
 			graphics::GPUBuffer duplicatedIdGaussians;
+
+			bool IsValid() const { return gaussianScale_Opacities.IsValid(); }
+		};
+		struct BVHBuffers
+		{
+			// Scene BVH intersection resources:
+			graphics::GPUBuffer bvhNodeBuffer;
+			graphics::GPUBuffer bvhParentBuffer;
+			graphics::GPUBuffer bvhFlagBuffer;
+			graphics::GPUBuffer primitiveCounterBuffer;
+			graphics::GPUBuffer primitiveIDBuffer;
+			graphics::GPUBuffer primitiveBuffer;
+			graphics::GPUBuffer primitiveMortonBuffer;
+			uint32_t primitiveCapacity = 0;
+			bool IsValid() const { return primitiveCounterBuffer.IsValid(); }
 		};
 		struct GPrimBuffers
 		{
@@ -102,12 +117,15 @@ namespace vz
 			BufferView soTangent;
 			BufferView soPre;
 
+			BVHBuffers bvhBuffers;
 			GaussianSplattingBuffers gaussianSplattingBuffers;
 
 			void Destroy()
 			{
 				generalBuffer = {};
 				streamoutBuffer = {};
+
+				bvhBuffers = {};
 				gaussianSplattingBuffers = {};
 
 				// buffer views
@@ -129,6 +147,8 @@ namespace vz
 
 		uint32_t geometryOffset = 0; // (including # of parts)
 
+		// ----- BVH -----
+		bool isBVHEnabled = true;
 		// ----- Gaussian Splatting -----
 		bool allowGaussianSplatting = false;
 		// ----- Meshlet -----
@@ -144,6 +164,7 @@ namespace vz
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
 		GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
 		void UpdateRenderData() override;
+		void UpdateGPUBVH() override;
 		void DeleteRenderData() override;
 		void UpdateStreamoutRenderData();
 		size_t GetMemoryUsageCPU() const override;
