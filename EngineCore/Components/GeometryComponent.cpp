@@ -1,5 +1,6 @@
 #include "GComponents.h"
 #include "Utils/Backlog.h"
+#include "Utils/Timer.h"
 
 #include "ThirdParty/mikktspace.h"
 #include "ThirdParty/meshoptimizer/meshoptimizer.h"
@@ -113,11 +114,12 @@ namespace vz
 			Primitive& prim = parts_[i];
 
 			prim.updateGpuEssentials();	// update prim.aabb_
-			prim.updateBVH(autoUpdateBVH_);
 
 			aabb_._max = math::Max(aabb_._max, prim.aabb_._max);
 			aabb_._min = math::Min(aabb_._min, prim.aabb_._min);
 		}
+		timeStampPrimitiveUpdate_ = TimerNow;
+		isBVHEnabled_ = false;
 		isDirty_ = false;
 	}
 }
@@ -304,6 +306,8 @@ namespace vz
 
 			if (ptype_ == PrimitiveType::TRIANGLES)
 			{
+				Timer timer;
+
 				const uint32_t triangle_count = index_count / 3;
 				for (uint32_t triangle_index = 0; triangle_index < triangle_count; ++triangle_index)
 				{
@@ -319,6 +323,8 @@ namespace vz
 					bvhLeafAabbs_.push_back(aabb);
 				}
 				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
+
+				backlog::post("BVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
 			}
 			else
 			{
@@ -719,14 +725,18 @@ namespace vz
 
 namespace vz
 {
-	void GeometryComponent::SetBVHEnabled(const bool enabled)
+	void GeometryComponent::UpdateBVH(const bool enabled)
 	{
-		autoUpdateBVH_ = enabled;
-
+		if (busyUpdateBVH_->load())
+			return;
+		busyUpdateBVH_->store(true);
 		for (Primitive& prim : parts_)
 		{
 			prim.updateBVH(enabled);
 		}
+		isBVHEnabled_ = enabled;
+		timeStampBVHUpdate_ = TimerNow;
+		busyUpdateBVH_->store(false);
 	}
 }
 
@@ -1045,7 +1055,6 @@ namespace vz
 				vb_col.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_col.subresource_srv);
 			}
 
-
 			const std::vector<SH>& vertex_SHs = primitive.vertexSHs_;
 			const std::vector<XMFLOAT4>& vertex_quaterions = primitive.vertexQuaterions_;
 			const std::vector<XMFLOAT4>& vertex_scale_opacities = primitive.vertexScale_Opacities_;
@@ -1220,6 +1229,11 @@ namespace vz
 		hasRenderData_ = true;
 	}
 
+	void GGeometryComponent::UpdateGPUBVH()
+	{
+
+	}
+
 	void GGeometryComponent::UpdateStreamoutRenderData()
 	{
 		if (!hasRenderData_) 
@@ -1383,4 +1397,9 @@ namespace vz
 	//	}
 	//	bvh.Build(bvh_leaf_aabbs.data(), (uint32_t)bvh_leaf_aabbs.size());
 	//}
+}
+
+namespace vz
+{
+
 }
