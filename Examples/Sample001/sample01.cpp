@@ -354,6 +354,17 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_MOUSEMOVE:
     {
+        if (renderer)
+		{
+			vzm::VzScene* scene = (vzm::VzScene*)vzm::GetFirstComponentByName("my scene");
+			vzm::VzCamera* camera = (vzm::VzCamera*)vzm::GetFirstComponentByName("my camera");
+
+			int x = GET_X_LPARAM(lParam);
+			int y = GET_Y_LPARAM(lParam);
+            vfloat3 w_pos;
+            VID vid;
+            renderer->Picking(scene, camera, { (float)x, (float)y }, w_pos, vid);
+        }
         break;
     }
     case WM_LBUTTONUP:
