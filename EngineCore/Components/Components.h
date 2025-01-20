@@ -654,7 +654,7 @@ namespace vz
 			XMFLOAT2 uvRangeMax_ = XMFLOAT2(1, 1);
 			size_t uvStride_ = 0;
 			bool useFullPrecisionUV_ = false;
-			std::shared_ptr<void> bufferHandle_;	// 'void' refers to GGeometryComponent::GBuffer
+			std::shared_ptr<void> bufferHandle_;	// 'void' refers to GGeometryComponent::GPrimBuffers
 			Entity recentBelongingGeometry_ = INVALID_ENTITY;
 
 			// BVH
@@ -756,15 +756,17 @@ namespace vz
 		// Non-serialized attributes
 		bool isDirty_ = true;	// BVH, AABB, ...
 		bool hasRenderData_ = false;
-		bool autoUpdateBVH_ = true;
+		bool isBVHEnabled_ = false;
 		geometrics::AABB aabb_; // not serialized (automatically updated)
-		//bool hasBVH_ = false;
+		TimeStamp timeStampPrimitiveUpdate_ = TimerMin;
+		TimeStamp timeStampBVHUpdate_ = TimerMin;
+		std::shared_ptr<std::atomic<bool>> busyUpdateBVH_ = std::make_shared<std::atomic<bool>>(false);
 
 		void update();
 	public:
 		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
 
-		bool IsAutoUpdateBVH() const { return autoUpdateBVH_; }
+		bool IsBVHEnabled() const { return isBVHEnabled_ && TimeDurationCount(timeStampBVHUpdate_, timeStampPrimitiveUpdate_) > 0; }
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
 		void MovePrimitivesFrom(std::vector<Primitive>&& primitives);
@@ -780,13 +782,14 @@ namespace vz
 		void SetTessellationFactor(const float tessllationFactor) { tessellationFactor_ = tessllationFactor; }
 		float GetTessellationFactor() const { return tessellationFactor_; }
 
-		void SetBVHEnabled(const bool enabled);
+		void UpdateBVH(const bool enabled);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		// GPU interfaces //
 		bool HasRenderData() const { return hasRenderData_; }
 		virtual void DeleteRenderData() = 0;
+		virtual void UpdateGPUBVH() = 0;
 		virtual void UpdateRenderData() = 0;
 		virtual size_t GetMemoryUsageCPU() const = 0;
 		virtual size_t GetMemoryUsageGPU() const = 0;
