@@ -165,7 +165,6 @@ namespace vz
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
 		GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
 		void UpdateRenderData() override;
-		void DeferredUpdateGPUBVH() override;
 		void DeleteRenderData() override;
 		void UpdateStreamoutRenderData();
 		size_t GetMemoryUsageCPU() const override;
@@ -514,4 +513,22 @@ namespace vz
 
 		std::vector<float> cascadeDistances = { 8, 80, 800 };
 	};
+}
+
+namespace vz::compfactory
+{
+	inline GMaterialComponent* GetGMaterialComponent(const Entity entity) { return (GMaterialComponent*)GetMaterialComponent(entity); }
+	inline GGeometryComponent* GetGGeometryComponent(const Entity entity) { return (GGeometryComponent*)GetGeometryComponent(entity); }
+	inline GTextureComponent* GetGTextureComponent(const Entity entity) { return (GTextureComponent*)GetTextureComponent(entity); }
+	inline GVolumeComponent* GetGVolumeComponent(const Entity entity) { return (GVolumeComponent*)GetVolumeComponent(entity); }
+	inline GRenderableComponent* GetGRenderableComponent(const Entity entity) { return (GRenderableComponent*)GetRenderableComponent(entity); }
+	inline GLightComponent* GetGLightComponent(const Entity entity) { return (GLightComponent*)GetLightComponent(entity); }
+	inline GCameraComponent* GetGCameraComponent(const Entity entity) { return (GCameraComponent*)GetCameraComponent(entity); }
+	inline GMaterialComponent* GetGMaterialComponentByVUID(const VUID vuid) { return (GMaterialComponent*)GetMaterialComponentByVUID(vuid); }
+	inline GGeometryComponent* GetGGeometryComponentByVUID(const VUID vuid) { return (GGeometryComponent*)GetGeometryComponentByVUID(vuid); }
+	inline GTextureComponent* GetGTextureComponentByVUID(const VUID vuid) { return (GTextureComponent*)GetTextureComponentByVUID(vuid); }
+	inline GVolumeComponent* GetGVolumeComponentByVUID(const VUID vuid) { return (GVolumeComponent*)GetVolumeComponentByVUID(vuid); }
+	inline GRenderableComponent* GetGRenderableComponentByVUID(const VUID vuid) { return (GRenderableComponent*)GetRenderableComponentByVUID(vuid); }
+	inline GLightComponent* GetGLightComponentByVUID(const VUID vuid) { return (GLightComponent*)GetLightComponentByVUID(vuid); }
+	inline GCameraComponent* GetGCameraComponentByVUID(const VUID vuid) { return (GCameraComponent*)GetCameraComponentByVUID(vuid); }
 }

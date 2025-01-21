@@ -33,7 +33,7 @@ namespace vz::rcommon
 	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
 
 	// progressive components
-	std::vector<Entity> deferredGPUBVHGens; // BVHBuffers
+	std::vector<Entity> deferredGeometryGPUBVHGens; // BVHBuffers
 	std::vector<std::pair<Texture, bool>> deferredMIPGens;
 	std::vector<std::pair<Texture, Texture>> deferredBCQueue; // BC : Block Compression
 	std::vector<std::pair<Texture, Texture>> deferredTextureCopy;
@@ -1513,7 +1513,7 @@ namespace vz
 
 	void GRenderPath3DDetails::ProcessDeferredResourceRequests(CommandList cmd)
 	{
-		if (rcommon::deferredGPUBVHGens.size() +
+		if (rcommon::deferredGeometryGPUBVHGens.size() +
 			rcommon::deferredMIPGens.size() + 
 			rcommon::deferredBCQueue.size() + 
 			rcommon::deferredBufferUpdate.size() + 
@@ -1568,6 +1568,16 @@ namespace vz
 			device->Barrier(barriers2, arraysize(barriers2), cmd);
 		}
 		rcommon::deferredTextureCopy.clear();
+
+		std::vector<Entity> wait_entities;
+		for (auto& it : rcommon::deferredGeometryGPUBVHGens)
+		{
+			if (!UpdateGeometryGPUBVH(it, cmd)) {
+				wait_entities.push_back(it);
+			}
+		}
+		rcommon::deferredGeometryGPUBVHGens.clear();
+		rcommon::deferredGeometryGPUBVHGens = wait_entities;
 
 		rcommon::deferredResourceLock.unlock();
 	}
@@ -5545,14 +5555,14 @@ namespace vz
 		rcommon::deferredTextureCopy.push_back(std::make_pair(texture_src, texture_dst));
 		rcommon::deferredResourceLock.unlock();
 	}
-	void AddDeferredGPUBVHUpdate(const Entity entity)
+	void AddDeferredGeometryGPUBVHUpdate(const Entity entity)
 	{
 		if (!compfactory::ContainGeometryComponent(entity))
 		{
 			return;
 		}
 		rcommon::deferredResourceLock.lock();
-		rcommon::deferredGPUBVHGens.push_back(entity);
+		rcommon::deferredGeometryGPUBVHGens.push_back(entity);
 		rcommon::deferredResourceLock.unlock();
 	}
 	void AddDeferredBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset)
