@@ -26,6 +26,7 @@
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="Image.cpp" />
+    <ClCompile Include="SortLib.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shaders\ShaderInterop.h">
@@ -84,6 +85,13 @@
     <ClInclude Include="Shaders\ShaderInterop_Postprocess.h">
       <Filter>Shaders\Interop</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\ShaderInterop_GPUSortLib.h">
+      <Filter>Shaders\Interop</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderLoader.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="SortLib.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">

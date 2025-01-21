@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "Image.h"
 #include "TextureHelper.h"
+#include "SortLib.h"
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
@@ -32,11 +33,20 @@ namespace vz::rcommon
 	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
 
 	// progressive components
+	std::vector<Entity> deferredGPUBVHGens; // BVHBuffers
 	std::vector<std::pair<Texture, bool>> deferredMIPGens;
 	std::vector<std::pair<Texture, Texture>> deferredBCQueue; // BC : Block Compression
 	std::vector<std::pair<Texture, Texture>> deferredTextureCopy;
 	std::vector<std::pair<GPUBuffer, std::pair<void*, size_t>>> deferredBufferUpdate;
 	SpinLock deferredResourceLock;
+}
+
+namespace vz
+{
+	PipelineState* GetObjectPSO(MeshRenderingVariant variant)
+	{
+		return &rcommon::PSO_render[variant.bits.renderpass][variant.bits.shadertype][variant.value];
+	}
 }
 
 // TODO 
@@ -1193,6 +1203,7 @@ namespace vz
 
 		void GenerateMipChain(const Texture& texture, MIPGENFILTER filter, CommandList cmd, const MIPGEN_OPTIONS& options);
 
+		bool UpdateGeometryGPUBVH(const Entity geometryEntity, CommandList cmd);
 		// Compress a texture into Block Compressed format
 		//	textureSrc	: source uncompressed texture
 		//	textureBC	: destination compressed texture, must be a supported BC format (BC1/BC3/BC4/BC5/BC6H_UFLOAT)
@@ -1233,7 +1244,7 @@ namespace vz
 		void Compose(CommandList cmd);
 
 		// ---------- Post Processings ----------
-		void ProcessDeferredTextureRequests(CommandList cmd);
+		void ProcessDeferredResourceRequests(CommandList cmd);
 		void Postprocess_Blur_Gaussian(
 			const Texture& input,
 			const Texture& temp,
@@ -1500,10 +1511,13 @@ namespace vz
 		}
 	}
 
-	void GRenderPath3DDetails::ProcessDeferredTextureRequests(CommandList cmd)
+	void GRenderPath3DDetails::ProcessDeferredResourceRequests(CommandList cmd)
 	{
-		if (rcommon::deferredMIPGens.size() + rcommon::deferredBCQueue.size()
-			+ rcommon::deferredBufferUpdate.size() + rcommon::deferredTextureCopy.size() == 0)
+		if (rcommon::deferredGPUBVHGens.size() +
+			rcommon::deferredMIPGens.size() + 
+			rcommon::deferredBCQueue.size() + 
+			rcommon::deferredBufferUpdate.size() + 
+			rcommon::deferredTextureCopy.size() == 0)
 		{
 			return;
 		}
@@ -2003,8 +2017,230 @@ namespace vz
 		}
 	}
 
-	void GRenderPath3DDetails::BlockCompress(const graphics::Texture& texture_src, graphics::Texture& texture_bc, graphics::CommandList cmd, uint32_t dst_slice_offset)
+	bool GRenderPath3DDetails::UpdateGeometryGPUBVH(const Entity geometryEntity, CommandList cmd)
+	{
+		GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(geometryEntity);
+		assert(geometry);
 
+		if (geometry->GetNumParts() == 0 || !geometry->HasRenderData())
+		{
+			return false;
+		}
+
+		using Primitive = GeometryComponent::Primitive;
+		using BVHBuffers = GGeometryComponent::BVHBuffers;
+
+		const std::vector<Primitive>& parts = geometry->GetPrimitives();
+
+		for (size_t i = 0; i < parts.size(); ++i)
+		{
+			const Primitive& prim = parts[i];
+			GPrimBuffers* part_buffers = geometry->GetGPrimBuffer(i);
+			if (prim.GetPrimitiveType() != GeometryComponent::PrimitiveType::TRIANGLES
+				|| part_buffers == nullptr)
+			{
+				backlog::post("BVH is only available for triangle meshes!", backlog::LogLevel::Error);
+				return false;
+			}
+
+			uint totalTriangles = (uint)prim.GetNumIndices() / 3;
+
+			BVHBuffers& bvhBuffers = part_buffers->bvhBuffers;
+			if (totalTriangles > 0 && !bvhBuffers.primitiveCounterBuffer.IsValid())
+			{
+				GPUBufferDesc desc;
+				desc.bind_flags = BindFlag::SHADER_RESOURCE;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &bvhBuffers.primitiveCounterBuffer);
+				device->SetName(&bvhBuffers.primitiveCounterBuffer, "GPUBVH::primitiveCounterBuffer");
+			}
+			else
+			{
+				bvhBuffers.primitiveCounterBuffer = {};
+			}
+
+			if (totalTriangles > bvhBuffers.primitiveCapacity)
+			{
+				bvhBuffers.primitiveCapacity = std::max(2u, totalTriangles);
+
+				GPUBufferDesc desc;
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(BVHNode);
+				desc.size = desc.stride * bvhBuffers.primitiveCapacity * 2;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &bvhBuffers.bvhNodeBuffer);
+				device->SetName(&bvhBuffers.bvhNodeBuffer, "GPUBVH::BVHNodeBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride * bvhBuffers.primitiveCapacity * 2;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &bvhBuffers.bvhParentBuffer);
+				device->SetName(&bvhBuffers.bvhParentBuffer, "GPUBVH::BVHParentBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride * (((bvhBuffers.primitiveCapacity - 1) + 31) / 32); // bitfield for internal nodes
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &bvhBuffers.bvhFlagBuffer);
+				device->SetName(&bvhBuffers.bvhFlagBuffer, "GPUBVH::BVHFlagBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride * bvhBuffers.primitiveCapacity;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &bvhBuffers.primitiveIDBuffer);
+				device->SetName(&bvhBuffers.primitiveIDBuffer, "GPUBVH::primitiveIDBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride * bvhBuffers.primitiveCapacity;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(BVHPrimitive);
+				desc.size = desc.stride * bvhBuffers.primitiveCapacity;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &bvhBuffers.primitiveBuffer);
+				device->SetName(&bvhBuffers.primitiveBuffer, "GPUBVH::primitiveBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.size = desc.stride * bvhBuffers.primitiveCapacity;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				desc.usage = Usage::DEFAULT;
+				desc.stride = sizeof(float); // morton buffer is float because sorting must be done and gpu sort operates on floats for now!
+				device->CreateBuffer(&desc, nullptr, &bvhBuffers.primitiveMortonBuffer);
+				device->SetName(&bvhBuffers.primitiveMortonBuffer, "GPUBVH::primitiveMortonBuffer");
+			}
+
+
+			// ----- build ----- 
+			auto range = profiler::BeginRangeGPU("BVH Rebuild", &cmd);
+
+			uint32_t primitiveCount = 0;
+
+			device->EventBegin("BVH - Primitive (GEOMETRY-ONLY) Builder", cmd);
+			{
+				device->BindComputeShader(&rcommon::shaders[CSTYPE_BVH_PRIMITIVES_GEOMETRYONLY], cmd);
+				const GPUResource* uavs[] = {
+					&bvhBuffers.primitiveIDBuffer,
+					&bvhBuffers.primitiveBuffer,
+					&bvhBuffers.primitiveMortonBuffer,
+				};
+				device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
+
+				BVHPushConstants push;
+				push.geometryIndex = geometry->geometryOffset;
+				push.subsetIndex = i;
+				push.primitiveCount = totalTriangles;
+				push.instanceIndex = 0; // geometry-binding BVH does NOT require instance!
+				device->PushConstants(&push, sizeof(push), cmd);
+
+				primitiveCount += push.primitiveCount;
+
+				device->Dispatch(
+					(push.primitiveCount + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE,
+					1,
+					1,
+					cmd
+				);
+
+				GPUBarrier barriers[] = {
+					GPUBarrier::Memory()
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Buffer(&bvhBuffers.primitiveCounterBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_DST),
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			device->UpdateBuffer(&bvhBuffers.primitiveCounterBuffer, &primitiveCount, cmd);
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Buffer(&bvhBuffers.primitiveCounterBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE),
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+
+			device->EventEnd(cmd);
+
+			device->EventBegin("BVH - Sort Primitive Mortons", cmd);
+			gpusortlib::Sort(primitiveCount, bvhBuffers.primitiveMortonBuffer, bvhBuffers.primitiveCounterBuffer, 0, bvhBuffers.primitiveIDBuffer, cmd);
+			device->EventEnd(cmd);
+
+			device->EventBegin("BVH - Build Hierarchy", cmd);
+			{
+				device->BindComputeShader(&rcommon::shaders[CSTYPE_BVH_HIERARCHY], cmd);
+				const GPUResource* uavs[] = {
+					&bvhBuffers.bvhNodeBuffer,
+					&bvhBuffers.bvhParentBuffer,
+					&bvhBuffers.bvhFlagBuffer
+				};
+				device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
+
+				const GPUResource* res[] = {
+					&bvhBuffers.primitiveCounterBuffer,
+					&bvhBuffers.primitiveIDBuffer,
+					&bvhBuffers.primitiveMortonBuffer,
+				};
+				device->BindResources(res, 0, arraysize(res), cmd);
+
+				device->Dispatch((primitiveCount + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE, 1, 1, cmd);
+
+				GPUBarrier barriers[] = {
+					GPUBarrier::Memory()
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			device->EventEnd(cmd);
+
+			device->EventBegin("BVH - Propagate AABB", cmd);
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Memory()
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+
+				device->BindComputeShader(&rcommon::shaders[CSTYPE_BVH_PROPAGATEAABB], cmd);
+				const GPUResource* uavs[] = {
+					&bvhBuffers.bvhNodeBuffer,
+					&bvhBuffers.bvhFlagBuffer,
+				};
+				device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
+
+				const GPUResource* res[] = {
+					&bvhBuffers.primitiveCounterBuffer,
+					&bvhBuffers.primitiveIDBuffer,
+					&bvhBuffers.primitiveBuffer,
+					&bvhBuffers.bvhParentBuffer,
+				};
+				device->BindResources(res, 0, arraysize(res), cmd);
+
+				device->Dispatch((primitiveCount + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE, 1, 1, cmd);
+
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			device->EventEnd(cmd);
+
+			profiler::EndRange(range); // BVH rebuild
+		}
+
+		return true;
+	}
+
+	void GRenderPath3DDetails::BlockCompress(const graphics::Texture& texture_src, graphics::Texture& texture_bc, graphics::CommandList cmd, uint32_t dst_slice_offset)
 	{
 		const uint32_t block_size = GetFormatBlockSize(texture_bc.desc.format);
 		TextureDesc desc;
@@ -3815,13 +4051,13 @@ namespace vz
 							variant.bits.sample_count = renderpass_info.sample_count;
 							variant.bits.mesh_shader = meshShaderRequested;
 
-							pso = shader::GetObjectPSO(variant);
+							pso = GetObjectPSO(variant);
 							assert(pso->IsValid());
 
 							if ((filterMask & GMaterialComponent::FILTER_TRANSPARENT) && variant.bits.cullmode == (uint32_t)CullMode::NONE)
 							{
 								variant.bits.cullmode = (uint32_t)CullMode::FRONT;
-								pso_backside = shader::GetObjectPSO(variant);
+								pso_backside = GetObjectPSO(variant);
 							}
 						}
 					}
@@ -4527,7 +4763,7 @@ namespace vz
 		// Preparing the frame:
 		CommandList cmd = device->BeginCommandList();
 		device->WaitQueue(cmd, QUEUE_COMPUTE); // sync to prev frame compute (disallow prev frame overlapping a compute task into updating global scene resources for this frame)
-		ProcessDeferredTextureRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
+		ProcessDeferredResourceRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
 		
 		CommandList cmd_prepareframe = cmd;
 		// remember GraphicsDevice::BeginCommandList does incur some overhead
@@ -5307,6 +5543,16 @@ namespace vz
 		}
 		rcommon::deferredResourceLock.lock();
 		rcommon::deferredTextureCopy.push_back(std::make_pair(texture_src, texture_dst));
+		rcommon::deferredResourceLock.unlock();
+	}
+	void AddDeferredGPUBVHUpdate(const Entity entity)
+	{
+		if (!compfactory::ContainGeometryComponent(entity))
+		{
+			return;
+		}
+		rcommon::deferredResourceLock.lock();
+		rcommon::deferredGPUBVHGens.push_back(entity);
 		rcommon::deferredResourceLock.unlock();
 	}
 	void AddDeferredBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset)

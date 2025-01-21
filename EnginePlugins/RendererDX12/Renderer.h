@@ -9,6 +9,7 @@
 #include "Shaders/ShaderInterop_Postprocess.h"
 #include "Shaders/ShaderInterop_DVR.h"
 #include "Shaders/ShaderInterop_GS.h"
+#include "Shaders/ShaderInterop_BVH.h"
 
 using namespace vz::graphics;
 
@@ -180,6 +181,11 @@ namespace vz
 		CSTYPE_BLOCKCOMPRESS_BC6H_CUBEMAP,
 		CSTYPE_BLOCKCOMPRESS_BC6H,
 
+		// BVH
+		CSTYPE_BVH_PRIMITIVES_GEOMETRYONLY,
+		CSTYPE_BVH_PRIMITIVES,
+		CSTYPE_BVH_HIERARCHY,
+		CSTYPE_BVH_PROPAGATEAABB,
 		
 		CSTYPE_WETMAP_UPDATE, // VER 0.1
 
@@ -362,26 +368,14 @@ namespace vz
 	};
 	static_assert(sizeof(MeshRenderingVariant) == sizeof(uint32_t));
 
+	inline PipelineState* GetObjectPSO(MeshRenderingVariant variant);
+
 	namespace initializer
 	{
 		bool IsInitialized();
 		void SetUpStates();
 		void LoadBuffers();
 		void ReleaseResources();
-	}
-
-	namespace shader
-	{
-		bool LoadShader(
-			ShaderStage stage,
-			Shader& shader,
-			const std::string& filename,
-			ShaderModel minshadermodel = graphics::ShaderModel::SM_6_0,
-			const std::vector<std::string>& permutation_defines = {}
-		);
-
-		void LoadShaders();
-		inline PipelineState* GetObjectPSO(MeshRenderingVariant variant);
 	}
 
 	namespace renderer
