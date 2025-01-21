@@ -2683,11 +2683,8 @@ namespace vz
 
 			// assume that window size is fixed
 			uint P = gaussian_push.num_gaussians;
-			uint W = 1280;
-			uint H = 800;
-			const uint blockSize = 256;
-
-			const uint groupCount = (P + blockSize - 1) / blockSize;
+			//uint W = 1280;
+			//uint H = 800;
 
 			int threads_per_group = 256;
 			int numGroups = (P + threads_per_group - 1) / threads_per_group; // num_groups
@@ -2697,7 +2694,7 @@ namespace vz
 			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
 			
 			device->Dispatch(
-				P,
+				numGroups,
 				1,
 				1,
 				cmd
