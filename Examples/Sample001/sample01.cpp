@@ -138,8 +138,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     
     cam->SetPerspectiveProjection(1.f, 100.f, 45.f, (float)w / (float)h);
 
-	//vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
-	//root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
+	vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+	root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
 	vzm::VzActor* axis_actor = vzm::LoadModelFile("../Assets/axis.obj");
     //axis_actor->SetScale({ 2000, 2000, 2000 });
     
@@ -227,7 +227,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::AppendSceneCompTo(axis_actor, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
     
-	//vzm::AppendSceneCompTo(root_obj_actor, scene);
+	vzm::AppendSceneCompTo(root_obj_actor, scene);
     
     // Main loop
     bool done = false;
@@ -248,7 +248,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		if (done)
 			break;
-		static float x_rot = glm::radians<float>(2);
+		static float x_rot = glm::radians<float>(0.5);
 		p = glm::rotateX(p, x_rot);
 		v = glm::rotateX(v, x_rot);
 		u = glm::rotateX(u, x_rot);
@@ -354,6 +354,17 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_MOUSEMOVE:
     {
+        if (renderer)
+		{
+			vzm::VzScene* scene = (vzm::VzScene*)vzm::GetFirstComponentByName("my scene");
+			vzm::VzCamera* camera = (vzm::VzCamera*)vzm::GetFirstComponentByName("my camera");
+
+			int x = GET_X_LPARAM(lParam);
+			int y = GET_Y_LPARAM(lParam);
+            vfloat3 w_pos;
+            VID vid;
+            renderer->Picking(scene, camera, { (float)x, (float)y }, w_pos, vid);
+        }
         break;
     }
     case WM_LBUTTONUP:

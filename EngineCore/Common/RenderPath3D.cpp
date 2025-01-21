@@ -198,6 +198,17 @@ namespace vz
 		return hash;
 	}
 
+	geometrics::Ray RenderPath3D::GetPickRay(float screenX, float screenY, const CameraComponent& camera)
+	{
+		XMMATRIX V = XMLoadFloat4x4(&camera.GetView());
+		XMMATRIX P = XMLoadFloat4x4(&camera.GetProjection());
+		XMMATRIX W = XMMatrixIdentity();
+		XMVECTOR lineStart = XMVector3Unproject(XMVectorSet(screenX, screenY, 1, 1), 0, 0, (float)width_, (float)height_, 0.0f, 1.0f, P, V, W);
+		XMVECTOR lineEnd = XMVector3Unproject(XMVectorSet(screenX, screenY, 0, 1), 0, 0, (float)width_, (float)height_, 0.0f, 1.0f, P, V, W);
+		XMVECTOR rayDirection = XMVector3Normalize(XMVectorSubtract(lineEnd, lineStart));
+		return geometrics::Ray(lineStart, rayDirection);
+	}
+
 	constexpr static size_t HASH_PRIMITIVE_ID = FNV1aHash("PRIMITIVE_ID"); // target at rtPrimitiveID
 	constexpr static size_t HASH_INSTANCE_ID = FNV1aHash("INSTANCE_ID");   // target at rtPrimitiveID
 	constexpr static size_t HASH_LINEAR_DEPTH = FNV1aHash("LINEAR_DEPTH"); // target at rtLinearDepth

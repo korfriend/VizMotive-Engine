@@ -24,8 +24,6 @@ namespace vz::rcommon
 	Sampler				samplers[SAMPLER_COUNT];
 	Texture				textures[TEXTYPE_COUNT];
 
-	GPUBuffer			luminanceDummy;
-
 	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	PipelineState		PSO_wireframe;
 	PipelineState		PSO_occlusionquery;
@@ -2270,6 +2268,7 @@ namespace vz
 
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
 
+		barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->meshletBuffer, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 		barrierStack.push_back(GPUBarrier::Buffer(&rcommon::buffers[BUFFERTYPE_FRAMECB], ResourceState::CONSTANT_BUFFER, ResourceState::COPY_DST));
 		if (scene_Gdetails->instanceBuffer.IsValid())
 		{
@@ -3025,7 +3024,7 @@ namespace vz
 		}
 		tonemap_push.flags_hdrcalibration |= XMConvertFloatToHalf(hdr_calibration) << 16u;
 		tonemap_push.texture_input = device->GetDescriptorIndex(&input, SubresourceType::SRV);
-		tonemap_push.buffer_input_luminance = device->GetDescriptorIndex((buffer_luminance == nullptr) ? &rcommon::luminanceDummy : buffer_luminance, SubresourceType::SRV);
+		tonemap_push.buffer_input_luminance = device->GetDescriptorIndex(buffer_luminance, SubresourceType::SRV);
 		tonemap_push.texture_input_distortion = device->GetDescriptorIndex(texture_distortion, SubresourceType::SRV);
 		tonemap_push.texture_input_distortion_overlay = device->GetDescriptorIndex(texture_distortion_overlay, SubresourceType::SRV);
 		tonemap_push.texture_colorgrade_lookuptable = device->GetDescriptorIndex(texture_colorgradinglut, SubresourceType::SRV);

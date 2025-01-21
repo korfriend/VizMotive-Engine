@@ -36,6 +36,7 @@ namespace vz
 		inline void RunTransformUpdateSystem(jobsystem::context& ctx);
 		inline void RunRenderableUpdateSystem(jobsystem::context& ctx);
 		inline void RunLightUpdateSystem(jobsystem::context& ctx);
+		inline void RunGeometryUpdateSystem(jobsystem::context& ctx);
 	};
 }
 
@@ -168,21 +169,45 @@ namespace vz
 			});
 	}
 
+	void SceneDetails::RunGeometryUpdateSystem(jobsystem::context& ctx)
+	{
+		jobsystem::Dispatch(ctx, (uint32_t)geometries_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+			Entity entity = geometries_[args.jobIndex];
+
+			GeometryComponent* geometry = compfactory::GetGeometryComponent(entity);
+			assert(geometry != nullptr);
+
+			//if (geometry->busyUpdateBVH->load())
+			//	return;
+			//geometry->busyUpdateBVH->store(true);
+			if (!geometry->IsBVHEnabled())
+			{
+				geometry->UpdateBVH(true);
+			}
+			//geometry->busyUpdateBVH->store(false);
+
+			});
+	}
+
 	void Scene::Update(const float dt)
 	{
 		dt_ = dt;
 
 		SceneDetails* scene_details = static_cast<SceneDetails*>(this);
 
+		scanGeometryEntities();
+		scanMaterialEntities();
+
 		// 1. fully CPU-based operations
+		jobsystem::context ctx_bvh;
+		scene_details->RunGeometryUpdateSystem(ctx_bvh);
+		
 		jobsystem::context ctx;
 
 		// TODO:
 		// * need to consider the scene update time (timestamp)
 		//		to avoid unnecessary execution of update systems
-
-		scanGeometryEntities();
-		scanMaterialEntities();
 
 		{
 			// CHECK if skipping is available
@@ -377,7 +402,7 @@ namespace vz
 				if (renderable->IsMeshRenderable())
 				{
 					GeometryComponent& geometry = *compfactory::GetGeometryComponent(renderable->GetGeometry());
-					if (!geometry.IsAutoUpdateBVH())
+					if (!geometry.IsBVHEnabled())
 						continue;
 
 					const XMMATRIX world_mat = XMLoadFloat4x4(&matrixRenderables_[renderable_index]);

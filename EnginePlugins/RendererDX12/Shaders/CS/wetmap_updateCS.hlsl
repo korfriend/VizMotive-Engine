@@ -10,7 +10,7 @@ void main(uint DTid : SV_DispatchThreadID)
 	if(geometry.vb_pos_w < 0)
 		return;
 
-	Buffer<float4> vb_pos_w = bindless_buffers_float4[geometry.vb_pos_w];
+	Buffer<float4> vb_pos_w = bindless_buffers_float4[descriptor_index(geometry.vb_pos_w)];
 	float3 world_pos = vb_pos_w[DTid].xyz;
 	world_pos = mul(meshinstance.transform.GetMatrix(), float4(world_pos, 1)).xyz;
 
@@ -18,13 +18,13 @@ void main(uint DTid : SV_DispatchThreadID)
 	[branch]
 	if(geometry.vb_nor >= 0)
 	{
-		Buffer<float4> vb_nor = bindless_buffers_float4[geometry.vb_nor];
+		Buffer<half4> vb_nor = bindless_buffers_half4[descriptor_index(geometry.vb_nor)];
 		float3 normal = vb_nor[DTid].xyz;
 		normal = normalize(normal);
 		drying *= lerp(4, 1, pow(saturate(normal.y), 8)); // modulate drying speed based on surface slope
 	}
 		
-	RWBuffer<float> wetmap = bindless_rwbuffers_float[push.wetmap];
+	RWBuffer<float> wetmap = bindless_rwbuffers_float[descriptor_index(push.wetmap)];
 
 	float prev = wetmap[DTid];
 	float current = prev;

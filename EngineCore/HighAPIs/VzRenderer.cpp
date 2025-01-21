@@ -185,7 +185,7 @@ namespace vzm
 		}
 
 		renderer->scene = Scene::GetScene(vidScene);
-		renderer->camera = compfactory::GetCameraComponent(vidCam);
+		renderer->camera = camera;
 
 		if (!renderer->scene || !renderer->camera)
 		{
@@ -195,7 +195,16 @@ namespace vzm
 		camera->isPickingMode = true;
 		camera->pickingIO.SetScreenPos(*(XMFLOAT2*)&pos);
 
+
 		renderer->Render(0); // just for picking process
+		//geometrics::Ray ray = renderer->GetPickRay(pos.x, pos.y, *camera);
+		//Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray, 
+		//	SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE) | SCU32(RenderableFilterFlags::RENDERABLE_VOLUME_DVR));
+		//if (intersect_result.entity != INVALID_ENTITY)
+		//{
+		//	std::cout << intersect_result.position.x << ", " << intersect_result.position.y << ", " << intersect_result.position.z << std::endl;
+		//	std::cout << intersect_result.distance << std::endl;
+		//}
 
 		size_t num_picked_positions = camera->pickingIO.NumPickedPositions();
 		bool ret = num_picked_positions > 0;

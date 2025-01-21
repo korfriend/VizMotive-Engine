@@ -57,5 +57,6 @@ namespace vz
 
 		void ShowDebugBuffer(const std::string& debugMode = "NONE");
 
+		geometrics::Ray GetPickRay(float screenX, float screenY, const CameraComponent& camera);
 	};
 }
