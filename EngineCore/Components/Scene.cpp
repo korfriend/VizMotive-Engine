@@ -175,17 +175,22 @@ namespace vz
 
 			Entity entity = geometries_[args.jobIndex];
 
-			GeometryComponent* geometry = compfactory::GetGeometryComponent(entity);
+			GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(entity);
 			assert(geometry != nullptr);
 
-			//if (geometry->busyUpdateBVH->load())
-			//	return;
-			//geometry->busyUpdateBVH->store(true);
-			if (!geometry->IsBVHEnabled())
+			return;//
+			double dd = TimeDurationCount(TimerMin, TimerNow);
+
+			bool is_dirty_bvh = geometry->IsDirtyBVH();
+			if (!geometry->HasBVH() || is_dirty_bvh)
 			{
 				geometry->UpdateBVH(true);
 			}
-			//geometry->busyUpdateBVH->store(false);
+
+			if (geometry->IsGPUBVHEnabled() && is_dirty_bvh)
+			{
+				graphicsPackage.pluginAddDeferredGeometryGPUBVHUpdate(entity);
+			}
 
 			});
 	}
@@ -402,7 +407,7 @@ namespace vz
 				if (renderable->IsMeshRenderable())
 				{
 					GeometryComponent& geometry = *compfactory::GetGeometryComponent(renderable->GetGeometry());
-					if (!geometry.IsBVHEnabled())
+					if (!geometry.HasBVH())
 						continue;
 
 					const XMMATRIX world_mat = XMLoadFloat4x4(&matrixRenderables_[renderable_index]);

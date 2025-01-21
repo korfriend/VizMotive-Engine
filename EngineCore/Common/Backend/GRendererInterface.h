@@ -6,6 +6,8 @@
 
 namespace vz
 {
+	using Entity = uint32_t;
+
 	struct GraphicsPackage
 	{
 		typedef bool(*PI_GraphicsInitializer)(graphics::ValidationMode validationMode, graphics::GPUPreference preference);
@@ -18,6 +20,7 @@ namespace vz
 		typedef void(*PI_AddDeferredBlockCompression)(const graphics::Texture& texture_src, const graphics::Texture& texture_bc);
 		typedef void(*PI_AddDeferredTextureCopy)(const graphics::Texture& texture_src, const graphics::Texture& texture_dst, const bool mipGen);
 		typedef void(*PI_AddDeferredBufferUpdate)(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset);
+		typedef void(*PI_AddDeferredGeometryGPUBVHUpdate)(const Entity entity);
 
 		typedef bool(*PI_LoadShader)(
 			graphics::ShaderStage stage,
@@ -39,6 +42,7 @@ namespace vz
 
 		PI_AddDeferredTextureCopy pluginAddDeferredTextureCopy = nullptr;
 		PI_AddDeferredBufferUpdate pluginAddDeferredBufferUpdate = nullptr;
+		PI_AddDeferredGeometryGPUBVHUpdate pluginAddDeferredGeometryGPUBVHUpdate = nullptr;
 
 		// optional 
 		PI_AddDeferredMIPGen pluginAddDeferredMIPGen = nullptr;
@@ -73,9 +77,10 @@ namespace vz
 			pluginAddDeferredBlockCompression = platform::LoadModule<PI_AddDeferredBlockCompression>(moduleName, "AddDeferredBlockCompression");
 			pluginAddDeferredTextureCopy = platform::LoadModule<PI_AddDeferredTextureCopy>(moduleName, "AddDeferredTextureCopy");
 			pluginAddDeferredBufferUpdate = platform::LoadModule<PI_AddDeferredBufferUpdate>(moduleName, "AddDeferredBufferUpdate");
+			pluginAddDeferredGeometryGPUBVHUpdate = platform::LoadModule<PI_AddDeferredGeometryGPUBVHUpdate>(moduleName, "AddDeferredGeometryGPUBVHUpdate");
 
 			return pluginInitializer && pluginDeinitializer && pluginGetDev && pluginNewGRenderPath3D && pluginNewGScene && pluginInitRenderer && pluginLoadShader && pluginLoadShaders
-				&& pluginAddDeferredTextureCopy && pluginAddDeferredBufferUpdate;
+				&& pluginAddDeferredTextureCopy && pluginAddDeferredBufferUpdate && pluginAddDeferredGeometryGPUBVHUpdate;
 		}
 	};
 }

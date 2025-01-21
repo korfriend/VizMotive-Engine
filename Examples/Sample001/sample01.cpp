@@ -140,6 +140,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
 	root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
+
+    for (ActorVID vid : root_obj_actor->GetChildren())
+	{
+		vzm::VzActor* obj_actor_child = (vzm::VzActor*)vzm::GetComponent(vid);
+		vzm::VzGeometry* obj_geometry = (vzm::VzGeometry*)vzm::GetComponent(obj_actor_child->GetGeometry());
+        if (obj_geometry)
+        {
+            obj_geometry->SetGPUBVHEnabled(true);
+        }
+    }
+
 	vzm::VzActor* axis_actor = vzm::LoadModelFile("../Assets/axis.obj");
     //axis_actor->SetScale({ 2000, 2000, 2000 });
     
