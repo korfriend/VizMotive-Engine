@@ -309,3 +309,19 @@ constexpr bool has_flag(E lhs, E rhs)
 {
 	return (lhs & rhs) == rhs;
 }
+constexpr auto* relative_path(const char* const path)
+{
+	const auto* startPosition = path;
+	for (const auto* currentCharacter = path; *currentCharacter != '\0'; ++currentCharacter)
+	{
+		if (*currentCharacter == '\\' || *currentCharacter == '/')
+		{
+			startPosition = currentCharacter;
+		}
+	}
+	if (startPosition != path)
+	{
+		++startPosition;
+	}
+	return startPosition;
+}

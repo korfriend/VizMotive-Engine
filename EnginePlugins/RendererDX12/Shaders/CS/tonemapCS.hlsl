@@ -57,19 +57,19 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	half brightness = exposure_brightness_contrast_saturation.y;
 	half contrast = exposure_brightness_contrast_saturation.z;
 	half saturation = exposure_brightness_contrast_saturation.w;
-	min16uint flags = tonemap_push.flags_hdrcalibration & 0xFFFF;
-	half hdr_calibration = f16tof32(tonemap_push.flags_hdrcalibration >> 16u);
+	min16uint flags = (min16uint)tonemap_push.flags_hdrcalibration & 0xFFFF;
+	half hdr_calibration = half(f16tof32(tonemap_push.flags_hdrcalibration >> 16u));
 
 	[branch]
 	if (tonemap_push.texture_input_distortion >= 0)
 	{
-		uv += bindless_textures[tonemap_push.texture_input_distortion].SampleLevel(sampler_linear_clamp, uv, 0).rg;
+		uv += bindless_textures[descriptor_index(tonemap_push.texture_input_distortion)].SampleLevel(sampler_linear_clamp, uv, 0).rg;
 	}
 
 	[branch]
 	if (tonemap_push.texture_input_distortion_overlay >= 0)
 	{
-		uv += bindless_textures[tonemap_push.texture_input_distortion_overlay].SampleLevel(sampler_linear_clamp, uv, 0).rg * 2 - 1;
+		uv += bindless_textures[descriptor_index(tonemap_push.texture_input_distortion_overlay)].SampleLevel(sampler_linear_clamp, uv, 0).rg * 2 - 1;
 	}
 
 	half4 result = 0;
@@ -77,16 +77,21 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	[branch]
 	if (tonemap_push.texture_input >= 0)
 	{
-		result = bindless_textures[tonemap_push.texture_input].SampleLevel(sampler_linear_clamp, uv, 0);
+		result = bindless_textures_half4[descriptor_index(tonemap_push.texture_input)].SampleLevel(sampler_linear_clamp, uv, 0);
 	}
 
-	exposure *= bindless_buffers[tonemap_push.buffer_input_luminance].Load<float>(LUMINANCE_BUFFER_OFFSET_EXPOSURE);
+	[branch]
+	if (tonemap_push.buffer_input_luminance >= 0)
+	{
+		exposure *= (half)bindless_buffers[descriptor_index(tonemap_push.buffer_input_luminance)].Load<float>(LUMINANCE_BUFFER_OFFSET_EXPOSURE);
+	}
+
 	result.rgb *= exposure;
 
 	[branch]
 	if (tonemap_push.texture_bloom >= 0)
 	{
-		Texture2D<float4> texture_bloom = bindless_textures[tonemap_push.texture_bloom];
+		Texture2D<half4> texture_bloom = bindless_textures_half4[descriptor_index(tonemap_push.texture_bloom)];
 		half3 bloom = texture_bloom.SampleLevel(sampler_linear_clamp, uv, 1.5).rgb;
 		bloom += texture_bloom.SampleLevel(sampler_linear_clamp, uv, 3.5).rgb;
 		bloom += texture_bloom.SampleLevel(sampler_linear_clamp, uv, 4.5).rgb;
@@ -105,7 +110,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		{
 			result.rgb = tonemap(result.rgb);
 		}
-		result.rgb = ApplySRGBCurve_Fast(result.rgb);
+		result.rgb = (half3)ApplySRGBCurve_Fast(result.rgb);
 	}
 	else
 	{
@@ -115,14 +120,14 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	[branch]
 	if (tonemap_push.texture_colorgrade_lookuptable >= 0)
 	{
-		result.rgb = bindless_textures3D[tonemap_push.texture_colorgrade_lookuptable].SampleLevel(sampler_linear_clamp, result.rgb, 0).rgb;
+		result.rgb = (half3)bindless_textures3D[descriptor_index(tonemap_push.texture_colorgrade_lookuptable)].SampleLevel(sampler_linear_clamp, result.rgb, 0).rgb;
 	}
 
 	[branch]
 	if (flags & TONEMAP_FLAG_DITHER)
 	{
 		// dithering before outputting to SDR will reduce color banding:
-		result.rgb += (dither(DTid.xy) - 0.5) / 64.0;
+		result.rgb += (dither((min16uint2)DTid.xy) - 0.5) / 64.0;
 	}
 
 	result.rgb = (result.rgb - 0.5) * contrast + 0.5 + brightness;
@@ -133,6 +138,6 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	[branch]
 	if (tonemap_push.texture_output >= 0)
 	{
-		bindless_rwtextures[tonemap_push.texture_output][DTid.xy] = result;
+		bindless_rwtextures[descriptor_index(tonemap_push.texture_output)][DTid.xy] = result;
 	}
 }
