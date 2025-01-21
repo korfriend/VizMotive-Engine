@@ -217,6 +217,7 @@
     <ClCompile Include="ShaderLoader.cpp" />
     <ClCompile Include="RenderInitializer.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="SortLib.cpp" />
     <ClCompile Include="TextureHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -228,15 +229,18 @@
     <ClInclude Include="Random.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderCompiler.h" />
+    <ClInclude Include="ShaderLoader.h" />
     <ClInclude Include="Shaders\ShaderInterop.h" />
     <ClInclude Include="Shaders\ShaderInterop_BVH.h" />
     <ClInclude Include="Shaders\ShaderInterop_DDGI.h" />
+    <ClInclude Include="Shaders\ShaderInterop_GPUSortLib.h" />
     <ClInclude Include="Shaders\ShaderInterop_Image.h" />
     <ClInclude Include="Shaders\ShaderInterop_Postprocess.h" />
     <ClInclude Include="Shaders\ShaderInterop_Raytracing.h" />
     <ClInclude Include="Shaders\ShaderInterop_SurfelGI.h" />
     <ClInclude Include="Shaders\ShaderInterop_VXGI.h" />
     <ClInclude Include="sheenLUT.h" />
+    <ClInclude Include="SortLib.h" />
     <ClInclude Include="TextureHelper.h" />
     <ClInclude Include="Utility\dxcapi.h" />
     <ClInclude Include="waterripple.h" />

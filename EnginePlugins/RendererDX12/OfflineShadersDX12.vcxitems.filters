@@ -46,6 +46,12 @@
     <Filter Include="Pipeline Shaders\CS\GS Test">
       <UniqueIdentifier>{2bf53637-c604-4224-a0ae-0db64ec8abc9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Pipeline Shaders\CS\BVH">
+      <UniqueIdentifier>{5ff7c468-3d5d-438d-b157-ac26eb2c27ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline Shaders\CS\Sort">
+      <UniqueIdentifier>{a5a2778b-82d4-4c44-94fa-644126055662}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\CommonHF\brdf.hlsli">
@@ -144,6 +150,9 @@
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_GS.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\ShaderInterop_GPUSortLib.h">
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
   </ItemGroup>
@@ -324,6 +333,30 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\testCS.hlsl">
       <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\bvh_hierarchyCS.hlsl">
+      <Filter>Pipeline Shaders\CS\BVH</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\bvh_primitivesCS.hlsl">
+      <Filter>Pipeline Shaders\CS\BVH</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\bvh_propagateaabbCS.hlsl">
+      <Filter>Pipeline Shaders\CS\BVH</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\bvh_primitivesCS_geometryonly.hlsl">
+      <Filter>Pipeline Shaders\CS\BVH</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gpusortlib_sortCS.hlsl">
+      <Filter>Pipeline Shaders\CS\Sort</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gpusortlib_sortInnerCS.hlsl">
+      <Filter>Pipeline Shaders\CS\Sort</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gpusortlib_sortStepCS.hlsl">
+      <Filter>Pipeline Shaders\CS\Sort</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gpusortlib_kickoffSortCS.hlsl">
+      <Filter>Pipeline Shaders\CS\Sort</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

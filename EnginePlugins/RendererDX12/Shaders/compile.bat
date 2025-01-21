@@ -51,6 +51,11 @@ dxc -T cs_6_0 ./CS/blockcompressCS_BC5.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC6H.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC6H_cubemap.hlsl -spirv
 
+dxc -T cs_6_0 ./CS/bvh_hierarchyCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/bvh_primitivesCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/bvh_primitivesCS_geometryonly.hlsl -spirv
+dxc -T cs_6_0 ./CS/bvh_propagateaabbCS.hlsl -spirv
+
 dxc -T cs_6_0 ./CS/wetmap_updateCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/meshlet_prepareCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv

@@ -789,7 +789,7 @@ namespace vz
 		// GPU interfaces //
 		bool HasRenderData() const { return hasRenderData_; }
 		virtual void DeleteRenderData() = 0;
-		virtual void UpdateGPUBVH() = 0;
+		virtual void DeferredUpdateGPUBVH() = 0;
 		virtual void UpdateRenderData() = 0;
 		virtual size_t GetMemoryUsageCPU() const = 0;
 		virtual size_t GetMemoryUsageGPU() const = 0;
