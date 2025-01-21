@@ -1126,6 +1126,7 @@ namespace vz::geometrics
 {
 	// Simple fast update BVH
 	//	https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/
+	// https://github.com/jbikker/bvh_article?tab=readme-ov-file
 	struct BVH
 	{
 		struct Node

@@ -297,8 +297,8 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 
 	uint clipIndex;
 	int lightmap;
+	uint layerMask;
 	uint padding0;
-	uint padding1;
 
 	void Init()
 	{
@@ -315,6 +315,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 		resLookupIndex = ~0u;
 		meshletOffset = ~0u;
 		clipIndex = ~0u;
+		layerMask = 0u;
 
 		aabbCenter = float3(0, 0, 0);
 		aabbRadius = 0;
@@ -677,6 +678,12 @@ struct alignas(16) ShaderMaterial
 	inline bool IsTransparent() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_TRANSPARENT; }
 	inline bool IsAdditive() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_ADDITIVE; }
 	inline bool IsDoubleSided() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED; }
+};
+
+enum SHADERMESH_FLAGS
+{
+	SHADERMESH_FLAG_DOUBLE_SIDED = 1 << 0,
+	SHADERMESH_FLAG_EMITTEDPARTICLE = 1 << 1,
 };
 
 // This is equivalent to a Geometry's Primitive parts

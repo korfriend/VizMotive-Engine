@@ -1229,9 +1229,8 @@ namespace vz
 		hasRenderData_ = true;
 	}
 
-	void GGeometryComponent::UpdateGPUBVH()
+	void GGeometryComponent::DeferredUpdateGPUBVH()
 	{
-
 	}
 
 	void GGeometryComponent::UpdateStreamoutRenderData()

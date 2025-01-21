@@ -83,6 +83,7 @@ namespace vz
 		};
 		struct BVHBuffers
 		{
+			// https://github.com/ToruNiina/lbvh
 			// Scene BVH intersection resources:
 			graphics::GPUBuffer bvhNodeBuffer;
 			graphics::GPUBuffer bvhParentBuffer;
@@ -164,7 +165,7 @@ namespace vz
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
 		GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
 		void UpdateRenderData() override;
-		void UpdateGPUBVH() override;
+		void DeferredUpdateGPUBVH() override;
 		void DeleteRenderData() override;
 		void UpdateStreamoutRenderData();
 		size_t GetMemoryUsageCPU() const override;
