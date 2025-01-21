@@ -15,5 +15,8 @@ namespace vzm
 		bool LoadGeometryFile(const std::string& filename);
 
 		size_t GetNumParts() const;
+
+		bool IsGPUBVHEnabled() const;
+		void SetGPUBVHEnabled(const bool enabled);
 	};
 }
