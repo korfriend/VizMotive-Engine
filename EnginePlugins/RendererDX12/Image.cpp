@@ -72,6 +72,13 @@ namespace vz::image
 		{
 			return VZMatrixOrthographicOffCenter(0, (float)GetLogicalWidth(), (float)GetLogicalHeight(), 0, -1, 1);
 		}
+		// Returns the aspect (width/height)
+		constexpr float GetAspect() const
+		{
+			if (height == 0)
+				return float(width);
+			return float(width) / float(height);
+		}
 	};
 
 	static thread_local Canvas canvas;
@@ -156,14 +163,7 @@ namespace vz::image
 		color.z *= params.intensity;
 		color.w *= params.opacity;
 
-		XMHALF4 packed_color;
-		packed_color.x = XMConvertFloatToHalf(color.x);
-		packed_color.y = XMConvertFloatToHalf(color.y);
-		packed_color.z = XMConvertFloatToHalf(color.z);
-		packed_color.w = XMConvertFloatToHalf(color.w);
-
-		image.packed_color.x = uint(packed_color.v);
-		image.packed_color.y = uint(packed_color.v >> 32ull);
+		image.packed_color = math::pack_half4(color);
 
 		if (params.angular_softness_outer_angle > 0)
 		{
@@ -172,10 +172,12 @@ namespace vz::image
 			// https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual#inner-and-outer-cone-angles
 			const float lightAngleScale = 1.0f / std::max(0.001f, innerConeAngleCos - outerConeAngleCos);
 			const float lightAngleOffset = -outerConeAngleCos * lightAngleScale;
-			image.angular_softness_direction = params.angular_softness_direction;
-			image.angular_softness_scale = lightAngleScale;
-			image.angular_softness_offset = lightAngleOffset;
+
+			image.angular_softness_direction = math::pack_half2(params.angular_softness_direction);
+			image.angular_softness_mad = math::pack_half2(lightAngleScale, lightAngleOffset);
 		}
+		
+		const float canvas_aspect = canvas.GetAspect();
 
 		image.flags = 0;
 		if (params.isExtractNormalMapEnabled())
@@ -189,7 +191,6 @@ namespace vz::image
 		if (params.isLinearOutputMappingEnabled())
 		{
 			image.flags |= IMAGE_FLAG_OUTPUT_COLOR_SPACE_LINEAR;
-			image.hdr_scaling = params.hdr_scaling;
 		}
 		if (params.isFullScreenEnabled())
 		{
@@ -207,9 +208,16 @@ namespace vz::image
 		{
 			image.flags |= IMAGE_FLAG_DISTORTION_MASK;
 		}
+		if (params.isHighlightEnabled())
+		{
+			image.flags |= IMAGE_FLAG_HIGHLIGHT;
+			image.highlight_xy = math::pack_half2(params.highlight_pos.x * canvas_aspect, params.highlight_pos.y);
+			image.highlight_color_spread = math::pack_half4(params.highlight_color.x, params.highlight_color.y, params.highlight_color.z, params.highlight_spread);
+		}
 
-		image.border_soften = params.border_soften;
-		image.mask_alpha_range = XMConvertFloatToHalf(params.mask_alpha_range_start) | (XMConvertFloatToHalf(params.mask_alpha_range_end) << 16u);
+		image.hdr_scaling_aspect = math::pack_half2(params.hdr_scaling, canvas_aspect);
+		image.bordersoften_saturation = math::pack_half2(params.border_soften, params.saturation);
+		image.mask_alpha_range = math::pack_half2(params.mask_alpha_range_start, params.mask_alpha_range_end);
 
 		STRIP_MODE strip_mode = STRIP_ON;
 		uint32_t index_count = 0;

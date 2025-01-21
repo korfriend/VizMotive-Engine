@@ -60,8 +60,9 @@ namespace vz::image
 			ANGULAR_DOUBLESIDED = 1 << 10,
 			ANGULAR_INVERSE = 1 << 11,
 			DISTORTION_MASK = 1 << 12,
+			HIGHLIGHT = 1 << 13,
 			
-			DEBUG_TEST = 1 << 13,
+			DEBUG_TEST = 1 << 14,
 		};
 
 		enum DEBUG_BUFFER
@@ -92,6 +93,7 @@ namespace vz::image
 		XMFLOAT2 angular_softness_direction = XMFLOAT2(0, 1);
 		float angular_softness_inner_angle = 0;
 		float angular_softness_outer_angle = 0;
+		float saturation = 1;
 
 		// you can deform the image by its corners (0: top left, 1: top right, 2: bottom left, 3: bottom right)
 		XMFLOAT2 corners[4] = {
@@ -108,6 +110,10 @@ namespace vz::image
 		} corners_rounding[4]; // specify rounding corners (0: top left, 1: top right, 2: bottom left, 3: bottom right)
 
 		float border_soften = 0; // how much alpha softening to apply to image border in range [0, 1] (0: disable)
+
+		XMFLOAT3 highlight_color = XMFLOAT3(1, 1, 1);
+		float highlight_spread = 1;
+		XMFLOAT2 highlight_pos = XMFLOAT2(0, 0); // screen-uv space highlight position (if HIGHLIGHT is enabled)
 
 		uint8_t stencilRef = 0;
 		STENCILMODE stencilComp = STENCILMODE_DISABLED;
@@ -144,6 +150,7 @@ namespace vz::image
 		constexpr bool isAngularSoftnessDoubleSided() const { return _flags & ANGULAR_DOUBLESIDED; }
 		constexpr bool isAngularSoftnessInverse() const { return _flags & ANGULAR_INVERSE; }
 		constexpr bool isDistortionMaskEnabled() const { return _flags & DISTORTION_MASK; }
+		constexpr bool isHighlightEnabled() const { return _flags & HIGHLIGHT; }
 		constexpr bool isDebugTestEnabled() const { return _flags & DEBUG_TEST; }
 
 		constexpr void enableDebugTest() { _flags |= DEBUG_TEST; }
@@ -170,6 +177,7 @@ namespace vz::image
 		constexpr void enableAngularSoftnessInverse() { _flags |= ANGULAR_INVERSE; }
 		// Mask texture RG will be used for distortion of screen UVs for background image, A will be used as opacity
 		constexpr void enableDistortionMask() { _flags |= DISTORTION_MASK; }
+		constexpr void enableHighlight() { _flags |= HIGHLIGHT; }
 
 		constexpr void disableDebugTest() { _flags &= ~DEBUG_TEST; }
 		// disable draw rectangle for base texture (whole texture will be drawn, no cutout)
@@ -187,6 +195,7 @@ namespace vz::image
 		constexpr void disableAngularSoftnessDoubleSided() { _flags &= ~ANGULAR_DOUBLESIDED; }
 		constexpr void disableAngularSoftnessInverse() { _flags &= ~ANGULAR_INVERSE; }
 		constexpr void disableDistortionMask() { _flags &= ~DISTORTION_MASK; }
+		constexpr void disableHighlight() { _flags &= ~HIGHLIGHT; }
 
 		Params() = default;
 

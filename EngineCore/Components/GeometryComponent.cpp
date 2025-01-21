@@ -1,5 +1,6 @@
 #include "GComponents.h"
 #include "Utils/Backlog.h"
+#include "Utils/Timer.h"
 
 #include "ThirdParty/mikktspace.h"
 #include "ThirdParty/meshoptimizer/meshoptimizer.h"
@@ -113,11 +114,12 @@ namespace vz
 			Primitive& prim = parts_[i];
 
 			prim.updateGpuEssentials();	// update prim.aabb_
-			prim.updateBVH(autoUpdateBVH_);
 
 			aabb_._max = math::Max(aabb_._max, prim.aabb_._max);
 			aabb_._min = math::Min(aabb_._min, prim.aabb_._min);
 		}
+		timeStampPrimitiveUpdate_ = TimerNow;
+		isBVHEnabled_ = false;
 		isDirty_ = false;
 	}
 }
@@ -263,6 +265,9 @@ namespace vz
 		aabb_ = geometrics::AABB(_min, _max);
 
 		// Determine UV range for normalization:
+		uvStride_ = sizeof(GGeometryComponent::Vertex_UVS);
+		//uvFormat_ = GGeometryComponent::Vertex_UVS::FORMAT;
+		useFullPrecisionUV_ = false;
 		if (!vertex_uvset_0.empty() || !vertex_uvset_1.empty())
 		{
 			const XMFLOAT2* uv0_stream = vertex_uvset_0.empty() ? vertex_uvset_1.data() : vertex_uvset_0.data();
@@ -276,6 +281,13 @@ namespace vz
 				uvRangeMax_ = math::Max(uvRangeMax_, uv1_stream[i]);
 				uvRangeMin_ = math::Min(uvRangeMin_, uv0_stream[i]);
 				uvRangeMin_ = math::Min(uvRangeMin_, uv1_stream[i]);
+			}
+			if (std::abs(uvRangeMax_.x - uvRangeMin_.x) > 65536 || std::abs(uvRangeMax_.y - uvRangeMin_.y) > 65536)
+			{
+				// The bounding box of UVs is too large, fall back to full precision UVs:
+				uvStride_ = sizeof(GGeometryComponent::Vertex_UVS32);
+				//uvFormat_ = GGeometryComponent::Vertex_UVS32::FORMAT;
+				useFullPrecisionUV_ = true;
 			}
 		}
 	}
@@ -294,6 +306,8 @@ namespace vz
 
 			if (ptype_ == PrimitiveType::TRIANGLES)
 			{
+				Timer timer;
+
 				const uint32_t triangle_count = index_count / 3;
 				for (uint32_t triangle_index = 0; triangle_index < triangle_count; ++triangle_index)
 				{
@@ -309,6 +323,8 @@ namespace vz
 					bvhLeafAabbs_.push_back(aabb);
 				}
 				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
+
+				backlog::post("BVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
 			}
 			else
 			{
@@ -709,14 +725,18 @@ namespace vz
 
 namespace vz
 {
-	void GeometryComponent::SetBVHEnabled(const bool enabled)
+	void GeometryComponent::UpdateBVH(const bool enabled)
 	{
-		autoUpdateBVH_ = enabled;
-
+		if (busyUpdateBVH_->load())
+			return;
+		busyUpdateBVH_->store(true);
 		for (Primitive& prim : parts_)
 		{
 			prim.updateBVH(enabled);
 		}
+		isBVHEnabled_ = enabled;
+		timeStampBVHUpdate_ = TimerNow;
+		busyUpdateBVH_->store(false);
 	}
 }
 
@@ -840,7 +860,7 @@ namespace vz
 				AlignTo(indices.size() * GetIndexStride(part_index), alignment) +
 				AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
 				AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment) +
-				AlignTo(uv_count * sizeof(Vertex_UVS), alignment) +
+				AlignTo(uv_count * primitive.uvStride_, alignment) +
 				AlignTo(vertex_colors.size() * sizeof(Vertex_COL), alignment)
 				;
 
@@ -956,15 +976,31 @@ namespace vz
 					const XMFLOAT2* uv1_stream = vertex_uvset_1.empty() ? vertex_uvset_0.data() : vertex_uvset_1.data();
 
 					vb_uvs.offset = buffer_offset;
-					vb_uvs.size = uv_count * sizeof(Vertex_UVS);
-					Vertex_UVS* vertices = (Vertex_UVS*)(buffer_data + buffer_offset);
-					buffer_offset += AlignTo(vb_uvs.size, alignment);
-					for (size_t i = 0; i < uv_count; ++i)
+					vb_uvs.size = uv_count * primitive.uvStride_;
+					if (primitive.uvStride_ == sizeof(Vertex_UVS))
 					{
-						Vertex_UVS vert;
-						vert.uv0.FromFULL(uv0_stream[i], uv_range_min, uv_range_max);
-						vert.uv1.FromFULL(uv1_stream[i], uv_range_min, uv_range_max);
-						std::memcpy(vertices + i, &vert, sizeof(vert));
+						Vertex_UVS* vertices = (Vertex_UVS*)(buffer_data + buffer_offset);
+						buffer_offset += AlignTo(vb_uvs.size, alignment);
+						for (size_t i = 0; i < uv_count; ++i)
+						{
+							Vertex_UVS vert;
+							vert.uv0.FromFULL(uv0_stream[i], uv_range_min, uv_range_max);
+							vert.uv1.FromFULL(uv1_stream[i], uv_range_min, uv_range_max);
+							std::memcpy(vertices + i, &vert, sizeof(vert));
+						}
+					}
+
+					else
+					{
+						Vertex_UVS32* vertices = (Vertex_UVS32*)(buffer_data + buffer_offset);
+						buffer_offset += AlignTo(vb_uvs.size, alignment);
+						for (size_t i = 0; i < uv_count; ++i)
+						{
+							Vertex_UVS32 vert;
+							vert.uv0.FromFULL(uv0_stream[i], uv_range_min, uv_range_max);
+							vert.uv1.FromFULL(uv1_stream[i], uv_range_min, uv_range_max);
+							std::memcpy(vertices + i, &vert, sizeof(vert));
+						}
 					}
 				}
 
@@ -1009,7 +1045,8 @@ namespace vz
 			}
 			if (vb_uvs.IsValid())
 			{
-				vb_uvs.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_uvs.offset, vb_uvs.size, &Vertex_UVS::FORMAT);
+				vb_uvs.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_uvs.offset, vb_uvs.size, 
+					primitive.useFullPrecisionUV_ ? &GGeometryComponent::Vertex_UVS32::FORMAT : &GGeometryComponent::Vertex_UVS::FORMAT);
 				vb_uvs.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_uvs.subresource_srv);
 			}
 			if (vb_col.IsValid())
@@ -1017,7 +1054,6 @@ namespace vz
 				vb_col.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_col.offset, vb_col.size, &Vertex_COL::FORMAT);
 				vb_col.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_col.subresource_srv);
 			}
-
 
 			const std::vector<SH>& vertex_SHs = primitive.vertexSHs_;
 			const std::vector<XMFLOAT4>& vertex_quaterions = primitive.vertexQuaterions_;
@@ -1193,6 +1229,11 @@ namespace vz
 		hasRenderData_ = true;
 	}
 
+	void GGeometryComponent::UpdateGPUBVH()
+	{
+
+	}
+
 	void GGeometryComponent::UpdateStreamoutRenderData()
 	{
 		if (!hasRenderData_) 
@@ -1226,8 +1267,8 @@ namespace vz
 			const std::vector<XMFLOAT4>& vertex_tangents = primitive.vertexTangents_;
 
 			desc.size =
-				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32), alignment) + // pos
-				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32), alignment) + // prevpos
+				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32W), alignment) + // pos
+				AlignTo(vertex_positions.size() * sizeof(Vertex_POS32W), alignment) + // prevpos
 				AlignTo(vertex_normals.size() * sizeof(Vertex_NOR), alignment) +
 				AlignTo(vertex_tangents.size() * sizeof(Vertex_TAN), alignment)
 				;
@@ -1247,18 +1288,18 @@ namespace vz
 			uint64_t buffer_offset = 0ull;
 
 			so_pos.offset = buffer_offset;
-			so_pos.size = vertex_positions.size() * sizeof(Vertex_POS32);
+			so_pos.size = vertex_positions.size() * sizeof(Vertex_POS32W);
 			buffer_offset += AlignTo(so_pos.size, alignment);
-			so_pos.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pos.offset, so_pos.size, &Vertex_POS32::FORMAT);
-			so_pos.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pos.offset, so_pos.size); // UAV can't have RGB32_F format!
+			so_pos.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pos.offset, so_pos.size, &Vertex_POS32W::FORMAT);
+			so_pos.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pos.offset, so_pos.size, &Vertex_POS32W::FORMAT); // UAV can't have RGB32_F format!
 			so_pos.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_pos.subresource_srv);
 			so_pos.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_pos.subresource_uav);
 
 			so_pre.offset = buffer_offset;
 			so_pre.size = so_pos.size;
 			buffer_offset += AlignTo(so_pre.size, alignment);
-			so_pre.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pre.offset, so_pre.size, &Vertex_POS32::FORMAT);
-			so_pre.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pre.offset, so_pre.size); // UAV can't have RGB32_F format!
+			so_pre.subresource_srv = device->CreateSubresource(&streamoutBuffer, SubresourceType::SRV, so_pre.offset, so_pre.size, &Vertex_POS32W::FORMAT);
+			so_pre.subresource_uav = device->CreateSubresource(&streamoutBuffer, SubresourceType::UAV, so_pre.offset, so_pre.size, &Vertex_POS32W::FORMAT); // UAV can't have RGB32_F format!
 			so_pre.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_pre.subresource_srv);
 			so_pre.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_pre.subresource_uav);
 
@@ -1356,4 +1397,9 @@ namespace vz
 	//	}
 	//	bvh.Build(bvh_leaf_aabbs.data(), (uint32_t)bvh_leaf_aabbs.size());
 	//}
+}
+
+namespace vz
+{
+
 }
