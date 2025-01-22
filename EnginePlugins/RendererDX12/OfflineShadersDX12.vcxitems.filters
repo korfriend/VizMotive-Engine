@@ -331,7 +331,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\dvrSurfaceCS.hlsl">
       <Filter>Pipeline Shaders\CS\DVR</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\testCS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_preprocessCS.hlsl">
       <Filter>Pipeline Shaders\CS\GS Test</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\bvh_hierarchyCS.hlsl">
@@ -357,6 +357,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gpusortlib_kickoffSortCS.hlsl">
       <Filter>Pipeline Shaders\CS\Sort</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_offsetCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

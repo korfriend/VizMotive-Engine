@@ -1,27 +1,13 @@
 #include "../Globals.hlsli"
 #include "../ShaderInterop_GS.h"
 
-RWStructuredBuffer<uint> offsetTiles : register(u0);  // 출력: 오프셋 배열
-StructuredBuffer<uint> touchedTiles : register(t0);   // 입력: 터치된 타일 카운트
-cbuffer PushConstants : register(b0) {
-    GaussianPushConstants pushConstants;
-}
+RWTexture2D<unorm float4> inout_color : register(u0);
+RWStructuredBuffer<uint> src : register(u0); // touchedTiles_0
+RWStructuredBuffer<uint> dst : register(u1); // offsetTiles_0
 
-[numthreads(256, 1, 1)]
-void main(uint DTid : SV_DispatchThreadID)
+[numthreads(16, 16, 1)]
+void main(uint3 DTid : SV_DispatchThreadID)
 {
-    uint tileID = DTid;
-
-    uint totalTiles = pushConstants.gridSize.x * pushConstants.gridSize.y;
-
-    if (tileID >= totalTiles) {
-        return;
-    }
-
-    if (tileID == 0) {
-        offsetTiles[tileID] = 0;
-    }
-    else {
-        offsetTiles[tileID] = offsetTiles[tileID - 1] + touchedTiles[tileID - 1];
-    }
+    uint2 index = DTid.xy;
+    inout_color[index] = float4(1.0f, 1.0f, 1.0f, 1.0f);
 }
