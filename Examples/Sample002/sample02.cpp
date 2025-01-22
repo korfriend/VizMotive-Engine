@@ -328,7 +328,7 @@ int main(int, char **)
 		}
 
 		vzm::VzGeometry *geometry_stl = vzm::NewGeometry("my stl");
-		geometry_stl->LoadGeometryFile("../Assets/stl_files/Anchorpin.stl");
+		geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
 		vzm::VzMaterial *material_stl = vzm::NewMaterial("my stl's material");
 		material_stl->SetShaderType(vzm::ShaderType::PBR);
 		material_stl->SetDoubleSided(true);
@@ -337,6 +337,7 @@ int main(int, char **)
 
 		// === Add PLY loading code here ===
 		// Load PLY geometry
+		if (0)
 		{
 			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
 			//if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
@@ -415,7 +416,7 @@ int main(int, char **)
 				{
 					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 					canvas_size.y = std::max(canvas_size.y, 1.f);
-					renderer->ResizeCanvas(canvas_size.x, canvas_size.y, camera->GetVID());
+					renderer->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, camera->GetVID());
 					wh = canvas_size;
 				}
 				ImVec2 win_pos = ImGui::GetWindowPos();

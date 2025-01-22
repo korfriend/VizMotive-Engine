@@ -752,11 +752,12 @@ namespace vz
 	protected:
 		std::vector<Primitive> parts_;	
 		float tessellationFactor_ = 0.f;
+		bool isGPUBVHEnabled_ = false;
 
 		// Non-serialized attributes
 		bool isDirty_ = true;	// BVH, AABB, ...
 		bool hasRenderData_ = false;
-		bool isBVHEnabled_ = false;
+		bool hasBVH_ = false;
 		geometrics::AABB aabb_; // not serialized (automatically updated)
 		TimeStamp timeStampPrimitiveUpdate_ = TimerMin;
 		TimeStamp timeStampBVHUpdate_ = TimerMin;
@@ -766,7 +767,8 @@ namespace vz
 	public:
 		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
 
-		bool IsBVHEnabled() const { return isBVHEnabled_ && TimeDurationCount(timeStampBVHUpdate_, timeStampPrimitiveUpdate_) > 0; }
+		bool IsDirtyBVH() const { return TimeDurationCount(timeStampBVHUpdate_, timeStampPrimitiveUpdate_) >= 0; }
+		bool HasBVH() const { return hasBVH_; }
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
 		void MovePrimitivesFrom(std::vector<Primitive>&& primitives);
@@ -788,8 +790,10 @@ namespace vz
 
 		// GPU interfaces //
 		bool HasRenderData() const { return hasRenderData_; }
+		bool IsGPUBVHEnabled() const { return isGPUBVHEnabled_; }
+		void SetGPUBVHEnabled(const bool enabled) { isGPUBVHEnabled_ = enabled; }
+
 		virtual void DeleteRenderData() = 0;
-		virtual void UpdateGPUBVH() = 0;
 		virtual void UpdateRenderData() = 0;
 		virtual size_t GetMemoryUsageCPU() const = 0;
 		virtual size_t GetMemoryUsageGPU() const = 0;

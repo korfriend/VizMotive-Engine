@@ -1,7 +1,6 @@
 #include "Image.h"
-//#include "wiResourceManager.h"
 #include "Renderer.h"
-//#include "wiHelper.h"
+#include "ShaderLoader.h"
 #include "Shaders/ShaderInterop_Image.h"
 #include "Utils/Backlog.h"
 #include "Utils/EventHandler.h"

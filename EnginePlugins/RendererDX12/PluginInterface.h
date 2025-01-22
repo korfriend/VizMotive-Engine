@@ -14,6 +14,8 @@
 
 namespace vz
 {
+	using Entity = uint32_t;
+
 	// PluginInterface.cpp
 	extern "C" DX12_EXPORT bool Initialize(graphics::ValidationMode validationMode, graphics::GPUPreference preference);
 	extern "C" DX12_EXPORT graphics::GraphicsDevice* GetGraphicsDevice();
@@ -27,6 +29,7 @@ namespace vz
 	extern "C" DX12_EXPORT void AddDeferredBlockCompression(const graphics::Texture& texture_src, const graphics::Texture& texture_bc);
 	extern "C" DX12_EXPORT void AddDeferredTextureCopy(const graphics::Texture& texture_src, const graphics::Texture& texture_dst, const bool mipGen);
 	extern "C" DX12_EXPORT void AddDeferredBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size = ~0, const uint64_t offset = 0);
+	extern "C" DX12_EXPORT void AddDeferredGeometryGPUBVHUpdate(const Entity entity);
 
 	// RenderInitializer.cpp
 	extern "C" DX12_EXPORT bool InitRenderer();

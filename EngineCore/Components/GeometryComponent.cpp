@@ -119,7 +119,7 @@ namespace vz
 			aabb_._min = math::Min(aabb_._min, prim.aabb_._min);
 		}
 		timeStampPrimitiveUpdate_ = TimerNow;
-		isBVHEnabled_ = false;
+		hasBVH_ = false;
 		isDirty_ = false;
 	}
 }
@@ -734,7 +734,7 @@ namespace vz
 		{
 			prim.updateBVH(enabled);
 		}
-		isBVHEnabled_ = enabled;
+		hasBVH_ = enabled;
 		timeStampBVHUpdate_ = TimerNow;
 		busyUpdateBVH_->store(false);
 	}
@@ -1227,11 +1227,6 @@ namespace vz
 		}
 
 		hasRenderData_ = true;
-	}
-
-	void GGeometryComponent::UpdateGPUBVH()
-	{
-
 	}
 
 	void GGeometryComponent::UpdateStreamoutRenderData()
