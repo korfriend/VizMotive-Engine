@@ -730,12 +730,12 @@ namespace vz
 		if (busyUpdateBVH_->load())
 			return;
 		busyUpdateBVH_->store(true);
+		timeStampBVHUpdate_ = TimerNow;
 		for (Primitive& prim : parts_)
 		{
 			prim.updateBVH(enabled);
 		}
 		hasBVH_ = enabled;
-		timeStampBVHUpdate_ = TimerNow;
 		busyUpdateBVH_->store(false);
 	}
 }
