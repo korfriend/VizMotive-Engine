@@ -34,24 +34,28 @@ RWStructuredBuffer<uint> touchedTiles_0 : register(u1);
 //StructuredBuffer<float4> gaussian_scale_opacity : register(t0);
 //StructuredBuffer<float4> gaussian_rotation : register(t1);
 
-float3 compute_sh(Buffer<float3> gs_shs, float3 pos, int idx, float3 camPos)
+float3 get_sh_float3(Buffer<float> gs_shs, int index) {
+    int start = index * 3;
+    return float3(gs_shs[start + 0], gs_shs[start + 1], gs_shs[start + 2]);
+}
+
+float3 compute_sh(Buffer<float> gs_shs, float3 pos, int idx, float3 camPos)
 {
-    // 방향 벡터 계산 및 정규화
     float3 dir = pos - camPos;
     float len = length(dir);
     dir = (len > 1e-6f) ? (dir / len) : float3(0.0f, 0.0f, 0.0f);
 
     int baseIndex = idx * 16;
 
-    float3 result = SH_C0 * gs_shs[baseIndex + 0];
+    float3 result = SH_C0 * get_sh_float3(gs_shs, baseIndex + 0);
 
     float x = dir.x;
     float y = dir.y;
     float z = dir.z;
     result = result
-        - SH_C1 * y * gs_shs[baseIndex + 1]
-        + SH_C1 * z * gs_shs[baseIndex + 2]
-        - SH_C1 * x * gs_shs[baseIndex + 3];
+        - SH_C1 * y * get_sh_float3(gs_shs, baseIndex + 1)
+        + SH_C1 * z * get_sh_float3(gs_shs, baseIndex + 2)
+        - SH_C1 * x * get_sh_float3(gs_shs, baseIndex + 3);
 
     float xx = x * x;
     float yy = y * y;
@@ -61,26 +65,25 @@ float3 compute_sh(Buffer<float3> gs_shs, float3 pos, int idx, float3 camPos)
     float xz = x * z;
 
     result +=
-        SH_C2[0] * xy * gs_shs[baseIndex + 4] +
-        SH_C2[1] * yz * gs_shs[baseIndex + 5] +
-        SH_C2[2] * (2.0f * zz - xx - yy) * gs_shs[baseIndex + 6] +
-        SH_C2[3] * xz * gs_shs[baseIndex + 7] +
-        SH_C2[4] * (xx - yy) * gs_shs[baseIndex + 8];
+        SH_C2[0] * xy * get_sh_float3(gs_shs, baseIndex + 4) +
+        SH_C2[1] * yz * get_sh_float3(gs_shs, baseIndex + 5) +
+        SH_C2[2] * (2.0f * zz - xx - yy) * get_sh_float3(gs_shs, baseIndex + 6) +
+        SH_C2[3] * xz * get_sh_float3(gs_shs, baseIndex + 7) +
+        SH_C2[4] * (xx - yy) * get_sh_float3(gs_shs, baseIndex + 8);
 
     result +=
-        SH_C3[0] * y * (3.0f * xx - yy) * gs_shs[baseIndex + 9] +
-        SH_C3[1] * xy * z * gs_shs[baseIndex + 10] +
-        SH_C3[2] * y * (4.0f * zz - xx - yy) * gs_shs[baseIndex + 11] +
-        SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * gs_shs[baseIndex + 12] +
-        SH_C3[4] * x * (4.0f * zz - xx - yy) * gs_shs[baseIndex + 13] +
-        SH_C3[5] * z * (xx - yy) * gs_shs[baseIndex + 14] +
-        SH_C3[6] * x * (xx - 3.0f * yy) * gs_shs[baseIndex + 15];
+        SH_C3[0] * y * (3.0f * xx - yy) * get_sh_float3(gs_shs, baseIndex + 9) +
+        SH_C3[1] * xy * z * get_sh_float3(gs_shs, baseIndex + 10) +
+        SH_C3[2] * y * (4.0f * zz - xx - yy) * get_sh_float3(gs_shs, baseIndex + 11) +
+        SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * get_sh_float3(gs_shs, baseIndex + 12) +
+        SH_C3[4] * x * (4.0f * zz - xx - yy) * get_sh_float3(gs_shs, baseIndex + 13) +
+        SH_C3[5] * z * (xx - yy) * get_sh_float3(gs_shs, baseIndex + 14) +
+        SH_C3[6] * x * (xx - 3.0f * yy) * get_sh_float3(gs_shs, baseIndex + 15);
 
     result += 0.5f;
 
     return max(result, 0.0f);
 }
-
 // Function: getrect, inline function in cuda(auxiliary)
 void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2 rect_max)
 {
@@ -223,7 +226,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     Buffer<float4> gs_position = bindless_buffers_float4[geometry.vb_pos_w];
     Buffer<float4> gs_scale_opacity = bindless_buffers_float4[gaussians.gaussian_scale_opacities_index];
     Buffer<float4> gs_quaternion = bindless_buffers_float4[gaussians.gaussian_quaternions_index];
-    Buffer<float3> gs_shs = bindless_buffers_float3[gaussians.gaussian_SHs_index]; // struct SH {XMFLOAT3 dcSHs[16];};
+    //Buffer<float3> gs_shs = bindless_buffers_float3[gaussians.gaussian_SHs_index]; 
+    Buffer<float> gs_shs = bindless_buffers_float[gaussians.gaussian_SHs_index]; // struct SH {XMFLOAT3 dcSHs[16];};
 
     float3 pos = gs_position[idx].xyz;
     float3 scale = gs_scale_opacity[idx].xyz;
@@ -278,21 +282,56 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     // SH color for gaussian 16: [0.8455225  0.87772584 0.65956086]
     // Position of vertex 16: [-0.23435153  1.1573098   2.2420747]
-    uint test_idx = 16;
-    float3 pos_test = gs_position[test_idx].xyz;
-    float3 RGB_Test = compute_sh(gs_shs, pos_test, test_idx, camPos);
-    float4 final_RGB = float4(RGB_Test, 1.0f);
 
+    //    (2.20295, 1.60472, 1.68436)
+    //    (0.0468679, 0.0708462, 0.0480314)
+    //    (0.0516027, 0.0534793, 0.0578414)
+    //    (0.062336, 0.0456323, 0.00781638)
+    //    (-0.000345991, 0.0367759, 0.0178164)
+    //    (0.0103551, 0.014644, 0.0277609)
+    //    (0.024907, 0.0401756, 0.0676378)
+    //    (0.0726372, 0.0403042, 0.0436357)
+    //    (0.0782928, 0.0253747, -0.019868)
+    //    (0.0180557, 0.0233558, 0.0152131)
+    //    (0.0250393, -0.0112344, 0.0226496)
+    //    (0.0322682, 0.0525895, 0.0343003)
+    //    (0.0483671, 0.0382582, 0.0437218)
+    //    (0.0462263, 0.0305492, -0.0138234)
+    //    (-0.00977228, 0.024071, 0.0118135)
+    //    (-0.0111381, -0.0156093, 0.00291849)
+    float aa = gs_shs[0];
+    float bb = gs_shs[1];
+    float cc = gs_shs[2];
+
+    float dd = gs_shs[3];
+    float ee = gs_shs[4]; // 0.0708462
+    float ff = gs_shs[5]; // 0.0480314
+
+    //uint test_idx = 16;
+    //float3 pos_test = gs_position[test_idx].xyz;
+    //float3 RGB_Test = compute_sh(gs_shs, pos_test, test_idx, camPos);
+    //float4 final_RGB = float4(RGB_Test, 1.0f);
+
+    // compute RGB from SH coefficients
+
+    float3 rgb_sh = compute_sh(gs_shs, pos, idx, camPos);
+    float4 final_RGB = float4(rgb_sh, 1.0f);
+
+
+    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
+    //{   
+    //    if (ff >= 0.0480313f && ff <= 0.0480315f) // float3 camPos = (0, 0, 10);
+    //    {
+    //        inout_color[pixel_coord] = float4(final_RGB); // Correct (Green)
+    //    }
+    //    else
+    //    {
+    //        inout_color[pixel_coord] = float4(1.0f, 0.0f, 0.0f, 1.0f); // Wrong (Red)
+    //    }
+    //}
     if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    {   
-        if (RGB_Test.x == 0.8455225f) // float3 camPos = (0, 0, 10);
-        {
-            inout_color[pixel_coord] = float4(0.0f, 1.0f, 0.0f, 1.0f); // Correct (Green)
-        }
-        else
-        {
-            inout_color[pixel_coord] = float4(1.0f, 0.0f, 0.0f, 1.0f); // Wrong (Red)
-        }
+    {
+        inout_color[pixel_coord] = float4(final_RGB);
     }
 }
 
@@ -309,11 +348,3 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 // {
 //    inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
 // }
-//if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-//{
-//    // SH 색상 계산
-//    float3 colorRGB = compute_sh(gs_shs, pos, idx, camPos);
-
-//    // 계산된 색상으로 출력 텍스처 설정 (알파 값은 1.0으로 고정)
-//    inout_color[pixel_coord] = float4(colorRGB, 1.0f);
-//}
