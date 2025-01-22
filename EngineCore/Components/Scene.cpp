@@ -178,9 +178,6 @@ namespace vz
 			GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(entity);
 			assert(geometry != nullptr);
 
-			return;//
-			double dd = TimeDurationCount(TimerMin, TimerNow);
-
 			bool is_dirty_bvh = geometry->IsDirtyBVH();
 			if (!geometry->HasBVH() || is_dirty_bvh)
 			{
