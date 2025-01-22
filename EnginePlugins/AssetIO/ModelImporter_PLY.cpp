@@ -138,7 +138,7 @@ bool ImportModel_PLY(const std::string& fileName, vz::GeometryComponent* geometr
             std::cerr << "("
                 << shs.dcSHs[k].x << ", "
                 << shs.dcSHs[k].y << ", "
-                << shs.dcSHs[k].z << ") ";
+                << shs.dcSHs[k].z << ") " << '\n';
         }
         std::cerr << std::endl;
     }
