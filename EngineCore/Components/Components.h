@@ -27,7 +27,7 @@ inline constexpr VUID INVALID_VUID = 0;
 using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimeDurationCount(A, B) std::chrono::duration_cast<std::chrono::duration<double>>(A - B).count()
 #define TimerNow std::chrono::high_resolution_clock::now()
-#define TimerMin std::chrono::high_resolution_clock::time_point::min()
+#define TimerMin {} // indicating 1970/1/1 (00:00:00 UTC), DO NOT USE 'std::chrono::high_resolution_clock::time_point::min()'
 #define SETVISIBLEMASK(MASK, LAYERBITS, MASKBITS) MASK = (MASK & ~LAYERBITS) | (MASKBITS & LAYERBITS);
 
 namespace vz
@@ -759,15 +759,16 @@ namespace vz
 		bool hasRenderData_ = false;
 		bool hasBVH_ = false;
 		geometrics::AABB aabb_; // not serialized (automatically updated)
+		std::shared_ptr<std::atomic<bool>> busyUpdateBVH_ = std::make_shared<std::atomic<bool>>(false);
+
 		TimeStamp timeStampPrimitiveUpdate_ = TimerMin;
 		TimeStamp timeStampBVHUpdate_ = TimerMin;
-		std::shared_ptr<std::atomic<bool>> busyUpdateBVH_ = std::make_shared<std::atomic<bool>>(false);
 
 		void update();
 	public:
 		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
 
-		bool IsDirtyBVH() const { return TimeDurationCount(timeStampBVHUpdate_, timeStampPrimitiveUpdate_) >= 0; }
+		bool IsDirtyBVH() const { return TimeDurationCount(timeStampPrimitiveUpdate_, timeStampBVHUpdate_) >= 0; }
 		bool HasBVH() const { return hasBVH_; }
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
