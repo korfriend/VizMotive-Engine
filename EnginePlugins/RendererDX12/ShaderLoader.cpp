@@ -1,5 +1,6 @@
 #include "PluginInterface.h"
 #include "Renderer.h"
+#include "ShaderLoader.h"
 #include "ShaderCompiler.h"
 
 #include "Utils/JobSystem.h"
@@ -458,11 +459,6 @@ namespace vz::shader
 		return false;
 	}
 
-	PipelineState* GetObjectPSO(MeshRenderingVariant variant)
-	{
-		return &rcommon::PSO_render[variant.bits.renderpass][variant.bits.shadertype][variant.value];
-	}
-
 	void LoadShaders()
 	{
 		// naming convention based on Wicked Engine 
@@ -603,6 +599,13 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_WETMAP_UPDATE], "wetmap_updateCS.cso"); });
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_TONEMAP], "tonemapCS.cso"); });
+
+		// BVH
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BVH_PRIMITIVES_GEOMETRYONLY], "bvh_primitivesCS_geometryonly.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BVH_PRIMITIVES], "bvh_primitivesCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BVH_HIERARCHY], "bvh_hierarchyCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BVH_PROPAGATEAABB], "bvh_propagateaabbCS.cso"); });
+
 
 		jobsystem::Wait(ctx);
 

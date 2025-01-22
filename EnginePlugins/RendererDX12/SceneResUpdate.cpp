@@ -481,6 +481,8 @@ namespace vz
 				// TODO: clipper setting
 				inst.clipIndex = -1;
 
+				inst.layerMask = 0u;
+
 				inst.aabbCenter = aabb.getCenter();	
 				inst.aabbRadius = aabb.getRadius();
 				//inst.vb_ao = renderable.vb_ao_srv;

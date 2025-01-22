@@ -4,10 +4,10 @@
 
 struct BVHPushConstants
 {
-	uint instanceIndex;
+	uint geometryIndex;
 	uint subsetIndex;
 	uint primitiveCount;
-	uint primitiveOffset;
+	uint instanceIndex;
 };
 
 static const uint BVH_BUILDER_GROUPSIZE = 64;

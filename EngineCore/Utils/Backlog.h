@@ -9,6 +9,13 @@
 #endif
 #endif
 
+#define vzlog_level(str,level,...) {char text[1024]; snprintf(text, sizeof(text), str, ## __VA_ARGS__); vz::backlog::post(text, level);}
+#define vzlog_messagebox(str,...) {char text[1024]; snprintf(text, sizeof(text), str, ## __VA_ARGS__); vz::backlog::post(text, vz::backlog::LogLevel::Error); vz::helper::messageBox(text, "Error!");}
+#define vzlog_warning(str,...) {vzlog_level(str, vz::backlog::LogLevel::Warning, ## __VA_ARGS__);}
+#define vzlog_error(str,...) {vzlog_level(str, vz::backlog::LogLevel::Error, ## __VA_ARGS__);}
+#define vzlog(str,...) {vzlog_level(str, vz::backlog::LogLevel::Info, ## __VA_ARGS__);}
+#define vzlog_assert(cond,str,...) {if(!(cond)){wilog_error(str, ## __VA_ARGS__); assert(cond);}}
+
 namespace vz::backlog
 {
 	enum class LogLevel

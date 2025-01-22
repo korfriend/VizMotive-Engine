@@ -148,4 +148,15 @@ namespace vzm
 		GET_GEO_COMP(geometry, 0);
 		return geometry->GetNumParts();
 	}
+
+	bool VzGeometry::IsGPUBVHEnabled() const
+	{
+		GET_GEO_COMP(geometry, false);
+		return geometry->IsGPUBVHEnabled();
+	}
+	void VzGeometry::SetGPUBVHEnabled(const bool enabled)
+	{
+		GET_GEO_COMP(geometry, );
+		geometry->SetGPUBVHEnabled(enabled);
+	}
 }
