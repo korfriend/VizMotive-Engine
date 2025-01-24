@@ -2921,32 +2921,30 @@ namespace vz
 			if (rtMain.IsValid())
 			{
 				device->BindUAV(&rtMain, 0, cmd);
-				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd); // Replace rtLinearDepth with touchedTiles_0:
+				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd); // touched tiles count 
+				device->BindUAV(&gs_buffers.offsetTiles_0, 2, cmd); // prefix sum of touched tiles count
 			}
 			else
 			{
 				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
+				device->BindUAV(&unbind, 2, cmd);
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 			BarrierStackFlush(cmd);
 
-			// assume that window size is fixed
 			uint P = gaussian_push.num_gaussians;
-			//uint W = 1280;
-			//uint H = 800;
 
 			int threads_per_group = 256;
 			int numGroups = (P + threads_per_group - 1) / threads_per_group; // num_groups
 
+			// preprocess and calculate touched tiles count
 			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], cmd);
-
 			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
-			
 			device->Dispatch(
 				numGroups,
 				1,
@@ -2954,13 +2952,15 @@ namespace vz
 				cmd
 			);
 
-			//device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], cmd);
-			//device->Dispatch(
-			//	gaussian_push.num_gaussians,
-			//	1,
-			//	1,
-			//	cmd
-			//);
+			// prefix sum (offset)
+			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], cmd);
+			//device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
+			device->Dispatch(
+				numGroups,
+				1,
+				1,
+				cmd
+			);
 			//
 			//device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], cmd);
 			//device->Dispatch(
@@ -2980,14 +2980,15 @@ namespace vz
 
 			device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
-			
+			device->BindUAV(&unbind, 2, cmd);
+
 			// unbind SRV??
 			//device->BindResource(&unbind, 0, cmd);
 			//device->BindResource(&unbind, 1, cmd);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
-			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 
 			BarrierStackFlush(cmd);
 
