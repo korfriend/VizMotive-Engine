@@ -2153,6 +2153,14 @@ namespace vz
 				push.subsetIndex = i;
 				push.primitiveCount = totalTriangles;
 				push.instanceIndex = 0; // geometry-binding BVH does NOT require instance!
+
+				const geometrics::AABB& aabb = prim.GetAABB();
+				push.aabb_min = aabb.getMin();
+				push.aabb_extents_rcp = aabb.getWidth();
+				push.aabb_extents_rcp.x = 1.f / push.aabb_extents_rcp.x;
+				push.aabb_extents_rcp.y = 1.f / push.aabb_extents_rcp.y;
+				push.aabb_extents_rcp.z = 1.f / push.aabb_extents_rcp.z;
+
 				device->PushConstants(&push, sizeof(push), cmd);
 
 				primitiveCount += push.primitiveCount;
