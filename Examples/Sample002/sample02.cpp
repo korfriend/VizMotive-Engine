@@ -363,9 +363,9 @@ int main(int, char **)
 
 		// === end of PLY loading code ===
 
-		//vzm::AppendSceneCompTo(actor_test, scene);
-		//vzm::AppendSceneCompTo(actor_test2, scene);
-		//vzm::AppendSceneCompTo(actor_test3, scene);
+		vzm::AppendSceneCompTo(actor_test, scene);
+		vzm::AppendSceneCompTo(actor_test2, scene);
+		vzm::AppendSceneCompTo(actor_test3, scene);
 		vzm::AppendSceneCompTo(light, scene);
 
 		VzArchive *archive = vzm::NewArchive("test archive");
