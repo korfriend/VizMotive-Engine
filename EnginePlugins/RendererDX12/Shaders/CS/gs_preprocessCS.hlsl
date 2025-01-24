@@ -28,7 +28,8 @@ static const float SH_C3[7] = {
 PUSHCONSTANT(gaussians, GaussianPushConstants);
 
 RWTexture2D<unorm float4> inout_color : register(u0);
-RWStructuredBuffer<uint> touchedTiles_0 : register(u1);
+RWStructuredBuffer<uint> touchedTiles : register(u1);
+RWStructuredBuffer<uint> offsetTiles : register(u2);
 
 // type XMFLOAT4
 //StructuredBuffer<float4> gaussian_scale_opacity : register(t0);
@@ -264,77 +265,21 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     if (total_tiles == 0)
         return;
 
-    InterlockedAdd(touchedTiles_0[idx], total_tiles);
+    InterlockedAdd(touchedTiles[idx], total_tiles);
 
     int2 pixel_coord = int2(point_image + 0.5f);
 
-    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    //{
-    //    if (radius >= 4)
-    //    {
-    //        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
-    //    }
-    //    else
-    //    {
-    //        inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
-    //    }
-    //}
-
-    // SH color for gaussian 16: [0.8455225  0.87772584 0.65956086]
-    // Position of vertex 16: [-0.23435153  1.1573098   2.2420747]
-
-    //    (2.20295, 1.60472, 1.68436)
-    //    (0.0468679, 0.0708462, 0.0480314)
-    //    (0.0516027, 0.0534793, 0.0578414)
-    //    (0.062336, 0.0456323, 0.00781638)
-    //    (-0.000345991, 0.0367759, 0.0178164)
-    //    (0.0103551, 0.014644, 0.0277609)
-    //    (0.024907, 0.0401756, 0.0676378)
-    //    (0.0726372, 0.0403042, 0.0436357)
-    //    (0.0782928, 0.0253747, -0.019868)
-    //    (0.0180557, 0.0233558, 0.0152131)
-    //    (0.0250393, -0.0112344, 0.0226496)
-    //    (0.0322682, 0.0525895, 0.0343003)
-    //    (0.0483671, 0.0382582, 0.0437218)
-    //    (0.0462263, 0.0305492, -0.0138234)
-    //    (-0.00977228, 0.024071, 0.0118135)
-    //    (-0.0111381, -0.0156093, 0.00291849)
-    float aa = gs_shs[0];
-    float bb = gs_shs[1];
-    float cc = gs_shs[2];
-
-    float dd = gs_shs[3];
-    float ee = gs_shs[4]; // 0.0708462
-    float ff = gs_shs[5]; // 0.0480314
-
-    //uint test_idx = 16;
-    //float3 pos_test = gs_position[test_idx].xyz;
-    //float3 RGB_Test = compute_sh(gs_shs, pos_test, test_idx, camPos);
-    //float4 final_RGB = float4(RGB_Test, 1.0f);
-
     // compute RGB from SH coefficients
-
     float3 rgb_sh = compute_sh(gs_shs, pos, idx, camPos);
     float4 final_RGB = float4(rgb_sh, 1.0f);
 
-
-    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    //{   
-    //    if (ff >= 0.0480313f && ff <= 0.0480315f) // float3 camPos = (0, 0, 10);
-    //    {
-    //        inout_color[pixel_coord] = float4(final_RGB); // Correct (Green)
-    //    }
-    //    else
-    //    {
-    //        inout_color[pixel_coord] = float4(1.0f, 0.0f, 0.0f, 1.0f); // Wrong (Red)
-    //    }
-    //}
     if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
     {
         inout_color[pixel_coord] = float4(final_RGB);
     }
 }
 
+// ========= check pos,scale,rot values =========
 //// test value for idx == 0
 //float3 t_pos = gs_position[0].xyz;
 //float3 t_scale = gs_scale_opacity[0].xyz;
@@ -348,3 +293,50 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 // {
 //    inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
 // }
+
+// ========= check radius =========
+//if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
+//{
+//    if (radius >= 4)
+//    {
+//        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+//    }
+//    else
+//    {
+//        inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
+//    }
+//}
+
+// ========= check SH =========
+//float aa = gs_shs[0]; // 2.20295
+//float bb = gs_shs[1]; // 1.60472
+//float cc = gs_shs[2]; // 1.68436
+//
+//float dd = gs_shs[3]; // 0.0468679
+//float ee = gs_shs[4]; // 0.0708462
+//float ff = gs_shs[5]; // 0.0480314
+
+//uint test_idx = 16;
+//float3 pos_test = gs_position[test_idx].xyz;
+//float3 RGB_Test = compute_sh(gs_shs, pos_test, test_idx, camPos);
+//float4 final_RGB = float4(RGB_Test, 1.0f);
+
+// SH color for gaussian 16: [0.8455225  0.87772584 0.65956086]
+// Position of vertex 16: [-0.23435153  1.1573098   2.2420747]
+
+//    (2.20295, 1.60472, 1.68436)
+//    (0.0468679, 0.0708462, 0.0480314)
+//    (0.0516027, 0.0534793, 0.0578414)
+//    (0.062336, 0.0456323, 0.00781638)
+//    (-0.000345991, 0.0367759, 0.0178164)
+//    (0.0103551, 0.014644, 0.0277609)
+//    (0.024907, 0.0401756, 0.0676378)
+//    (0.0726372, 0.0403042, 0.0436357)
+//    (0.0782928, 0.0253747, -0.019868)
+//    (0.0180557, 0.0233558, 0.0152131)
+//    (0.0250393, -0.0112344, 0.0226496)
+//    (0.0322682, 0.0525895, 0.0343003)
+//    (0.0483671, 0.0382582, 0.0437218)
+//    (0.0462263, 0.0305492, -0.0138234)
+//    (-0.00977228, 0.024071, 0.0118135)
+//    (-0.0111381, -0.0156093, 0.00291849)
