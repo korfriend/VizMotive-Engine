@@ -93,7 +93,12 @@ void main(uint3 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 	float3 minAABB = min(P0, min(P1, P2));
 	float3 maxAABB = max(P0, max(P1, P2));
 	float3 centerAABB = (minAABB + maxAABB) * 0.5f;
+
+#ifdef GEOMETRYSPACE
+	const uint mortoncode = morton3D((centerAABB - push.aabb_min) * push.aabb_extents_rcp);
+#else
 	const uint mortoncode = morton3D((centerAABB - GetScene().aabb_min) * GetScene().aabb_extents_rcp);
+#endif
 	primitiveMortonBuffer[primitiveID] = (float)mortoncode; // convert to float before sorting
 
 }

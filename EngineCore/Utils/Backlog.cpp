@@ -38,11 +38,13 @@ namespace vz::backlog
 		std::string log_path = helper::GetTempDirectoryPath();
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
-		char path[2048];
-		HRESULT result = SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, path);
+		WCHAR path[2048];
+		HRESULT result = SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, 0, path);
 		if (result == S_OK)
 		{
-			log_path = std::string(path) + "/";
+			std::wstring path_w = std::wstring(path);
+			helper::StringConvert(path_w, log_path);
+			log_path += "/";
 		}
 #endif
 
