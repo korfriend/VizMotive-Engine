@@ -337,7 +337,7 @@ int main(int, char **)
 
 		// === Add PLY loading code here ===
 		// Load PLY geometry
-		if (0)
+		if (1)
 		{
 			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
 			//if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
@@ -365,7 +365,7 @@ int main(int, char **)
 
 		vzm::AppendSceneCompTo(actor_test, scene);
 		vzm::AppendSceneCompTo(actor_test2, scene);
-		vzm::AppendSceneCompTo(actor_test3, scene);
+		//vzm::AppendSceneCompTo(actor_test3, scene);
 		vzm::AppendSceneCompTo(light, scene);
 
 		VzArchive *archive = vzm::NewArchive("test archive");
