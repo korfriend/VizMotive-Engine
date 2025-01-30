@@ -75,6 +75,8 @@ namespace vz
 			// inter-processing buffers
 			graphics::GPUBuffer touchedTiles_0;
 			graphics::GPUBuffer offsetTiles_0;
+			//graphics::GPUBuffer offsetTilesPing; // Ping buffer
+
 			graphics::GPUBuffer duplicatedDepthGaussians; // new version
 			graphics::GPUBuffer duplicatedTileDepthGaussians_0;
 			graphics::GPUBuffer duplicatedIdGaussians;

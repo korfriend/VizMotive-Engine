@@ -1099,6 +1099,12 @@ namespace vz
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTiles_0, "GGeometryComponent::bufferHandle_::offsetTiles_0");
 
+				//// ping and pong 
+				//bd.size = num_gaussian_kernels * sizeof(UINT);
+				//success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPing);
+				//assert(success);
+				//device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPing, "GGeometryComponent::bufferHandle_::offsetTilesPing");
+
 				const size_t initial_capacity_scale = 4;
 				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale;
 				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.duplicatedTileDepthGaussians_0);

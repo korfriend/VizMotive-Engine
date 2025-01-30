@@ -2896,6 +2896,8 @@ namespace vz
 				gaussian_push.gaussian_quaternions_index = device->GetDescriptorIndex(&gs_buffers.gaussianQuaterinions, SubresourceType::SRV);
 				gaussian_push.touchedTiles_0_index = device->GetDescriptorIndex(&gs_buffers.touchedTiles_0, SubresourceType::UAV);
 				gaussian_push.offsetTiles_0_index = device->GetDescriptorIndex(&gs_buffers.offsetTiles_0, SubresourceType::UAV);
+				//gaussian_push.offsetTiles_Ping_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPing, SubresourceType::UAV);
+
 				gaussian_push.duplicatedDepthGaussians_index = device->GetDescriptorIndex(&gs_buffers.duplicatedDepthGaussians, SubresourceType::UAV);
 				gaussian_push.duplicatedTileDepthGaussians_0_index = device->GetDescriptorIndex(&gs_buffers.duplicatedTileDepthGaussians_0, SubresourceType::UAV);
 				gaussian_push.duplicatedIdGaussians_index = device->GetDescriptorIndex(&gs_buffers.duplicatedIdGaussians, SubresourceType::UAV);
@@ -2923,17 +2925,21 @@ namespace vz
 				device->BindUAV(&rtMain, 0, cmd);
 				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd); // touched tiles count 
 				device->BindUAV(&gs_buffers.offsetTiles_0, 2, cmd); // prefix sum of touched tiles count
+				//device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd); // test for ping-pong buffer
+
 			}
 			else
 			{
 				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
 				device->BindUAV(&unbind, 2, cmd);
+				//device->BindUAV(&unbind, 3, cmd);
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 			BarrierStackFlush(cmd);
 
@@ -2981,6 +2987,7 @@ namespace vz
 			device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
 			device->BindUAV(&unbind, 2, cmd);
+			//device->BindUAV(&unbind, 3, cmd);
 
 			// unbind SRV??
 			//device->BindResource(&unbind, 0, cmd);
@@ -2989,6 +2996,7 @@ namespace vz
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 
 			BarrierStackFlush(cmd);
 
