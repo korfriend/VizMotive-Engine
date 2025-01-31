@@ -11,11 +11,13 @@ struct GaussianPushConstants
 
 	int touchedTiles_0_index;
 	int offsetTiles_0_index;
-	int duplicatedDepthGaussians_index; // new version
-	//int offsetTiles_Ping_index; // ping buffer
-	int duplicatedTileDepthGaussians_0_index;
+	int offsetTiles_Ping_index; // ping buffer
+	int offsetTiles_Pong_index; // ping buffer
 
+	int duplicatedDepthGaussians_index; // new version
+	//int duplicatedTileDepthGaussians_0_index;
 	int duplicatedIdGaussians_index;
+
 	uint num_gaussians;
 	uint geometryIndex;
 	uint materialIndex;

@@ -1098,18 +1098,25 @@ namespace vz
 				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTiles_0);
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTiles_0, "GGeometryComponent::bufferHandle_::offsetTiles_0");
+				// Ping and Pong buffer for prefix sum
+				// 
+				// Ping buffer
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPing);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPing, "GGeometryComponent::bufferHandle_::offsetTilesPing");
 
-				//// ping and pong 
-				//bd.size = num_gaussian_kernels * sizeof(UINT);
-				//success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPing);
-				//assert(success);
-				//device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPing, "GGeometryComponent::bufferHandle_::offsetTilesPing");
+				// Pong buffer
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPong);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPong, "GGeometryComponent::bufferHandle_::offsetTilesPong");
 
 				const size_t initial_capacity_scale = 4;
-				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale;
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.duplicatedTileDepthGaussians_0);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.duplicatedTileDepthGaussians_0, "GGeometryComponent::bufferHandle_::duplicatedTileDapethGaussians_0");
+				//bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale;
+				//success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.duplicatedTileDepthGaussians_0);
+				//assert(success);
+				//device->SetName(&part_buffers.gaussianSplattingBuffers.duplicatedTileDepthGaussians_0, "GGeometryComponent::bufferHandle_::duplicatedTileDapethGaussians_0");
 
 				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale;
 				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.duplicatedIdGaussians);

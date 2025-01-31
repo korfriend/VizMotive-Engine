@@ -30,7 +30,8 @@ PUSHCONSTANT(gaussians, GaussianPushConstants);
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWStructuredBuffer<uint> touchedTiles : register(u1);
 RWStructuredBuffer<uint> offsetTiles : register(u2);
-//RWStructuredBuffer<uint> offsetTilesPing : register(u3);
+RWStructuredBuffer<uint> offsetTilesPing : register(u3);
+RWStructuredBuffer<uint> offsetTilesPong : register(u4);
 
 // type XMFLOAT4
 //StructuredBuffer<float4> gaussian_scale_opacity : register(t0);
