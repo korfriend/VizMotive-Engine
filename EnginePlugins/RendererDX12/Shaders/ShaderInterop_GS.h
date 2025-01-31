@@ -20,7 +20,7 @@ struct GaussianPushConstants
 
 	uint num_gaussians;
 	uint geometryIndex;
-	uint materialIndex;
+	//uint materialIndex;
 };
 
 #endif // SHADERINTEROP_GS_H
