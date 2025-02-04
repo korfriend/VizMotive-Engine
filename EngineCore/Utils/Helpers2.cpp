@@ -11,6 +11,7 @@
 #include "ThirdParty/stb_image_write.h"
 #include "ThirdParty/basis_universal/encoder/basisu_comp.h"
 #include "ThirdParty/basis_universal/encoder/basisu_gpu_texture.h"
+#include "ThirdParty/basis_universal/zstd/zstd.h"
 
 #include <thread>
 #include <locale>
@@ -814,5 +815,40 @@ namespace vz::helper2
 		}
 
 		return false;
+	}
+}
+
+namespace vz::helper2
+{
+
+	bool CompressPNG(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data)
+	{
+		unsigned error = lodepng::compress(dst_data, src_data, src_size);
+		return error == 0;
+	}
+	bool DecompressPNG(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data)
+	{
+		unsigned error = lodepng::decompress(dst_data, src_data, src_size);
+		return error == 0;
+	}
+
+	bool Compress(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data, int level)
+	{
+		dst_data.resize(ZSTD_compressBound(src_size));
+		size_t res = ZSTD_compress(dst_data.data(), dst_data.size(), src_data, src_size, level);
+		if (ZSTD_isError(res))
+			return false;
+		dst_data.resize(res);
+		return true;
+	}
+
+	bool Decompress(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data)
+	{
+		size_t res = ZSTD_getFrameContentSize(src_data, src_size);
+		if (ZSTD_isError(res))
+			return false;
+		dst_data.resize(res);
+		res = ZSTD_decompress(dst_data.data(), dst_data.size(), src_data, src_size);
+		return ZSTD_isError(res) == 0;
 	}
 }

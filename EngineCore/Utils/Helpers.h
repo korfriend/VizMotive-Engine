@@ -1,7 +1,6 @@
 #pragma once
 #include "Libs/Math.h"
 #include "Platform.h"
-#include "ThirdParty/lodepng.h"
 
 #include <sstream>
 #include <iostream>
@@ -168,6 +167,24 @@ namespace vz::helper
 #else
 #define ToNativeString(x) (x)
 #endif // _WIN32
+
+	inline size_t FileSize(const std::string& fileName)
+	{
+#if defined(PLATFORM_LINUX)
+		std::string filepath = fileName;
+		std::replace(filepath.begin(), filepath.end(), '\\', '/'); // Linux cannot handle backslash in file path, need to convert it to forward slash
+		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+#else
+		std::ifstream file(ToNativeString(fileName), std::ios::binary | std::ios::ate);
+#endif // PLATFORM_LINUX || PLATFORM_PS5
+		if (file.is_open())
+		{
+			size_t dataSize = (size_t)file.tellg();
+			file.close();
+			return dataSize;
+		}
+		return 0;
+	}
 
 	template<template<typename T, typename A> typename vector_interface>
 	inline bool FileRead_Impl(const std::string& fileName, vector_interface<uint8_t, std::allocator<uint8_t>>& data, size_t max_read, size_t offset)
@@ -625,17 +642,6 @@ namespace vz::helper
 #endif // _WIN32
 
 		return str;
-	}
-
-	inline bool Compress(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data)
-	{
-		unsigned error = lodepng::compress(dst_data, src_data, src_size);
-		return error == 0;
-	}
-	inline bool Decompress(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data)
-	{
-		unsigned error = lodepng::decompress(dst_data, src_data, src_size);
-		return error == 0;
 	}
 
 	struct FileDialogParams
