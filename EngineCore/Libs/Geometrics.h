@@ -1152,7 +1152,7 @@ namespace vz::geometrics
 				return;
 
 			const uint32_t node_capacity = aabb_count * 2 - 1;
-			allocation.reserve(
+			allocation.resize(
 				sizeof(Node) * node_capacity +
 				sizeof(uint32_t) * aabb_count
 			);

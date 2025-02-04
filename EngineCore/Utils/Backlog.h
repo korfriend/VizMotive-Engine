@@ -14,7 +14,7 @@
 #define vzlog_warning(str,...) {vzlog_level(str, vz::backlog::LogLevel::Warning, ## __VA_ARGS__);}
 #define vzlog_error(str,...) {vzlog_level(str, vz::backlog::LogLevel::Error, ## __VA_ARGS__);}
 #define vzlog(str,...) {vzlog_level(str, vz::backlog::LogLevel::Info, ## __VA_ARGS__);}
-#define vzlog_assert(cond,str,...) {if(!(cond)){wilog_error(str, ## __VA_ARGS__); assert(cond);}}
+#define vzlog_assert(cond,str,...) {if(!(cond)){vzlog_error(str, ## __VA_ARGS__); assert(cond);}}
 
 namespace vz::backlog
 {
