@@ -61,4 +61,5 @@ dxc -T cs_6_0 ./CS/meshlet_prepareCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/dvrCS.hlsl -spirv
-dxc -T cs_6_0 ./CS/testCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/gs_preprocessCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/gs_offsetCS.hlsl -spirv
