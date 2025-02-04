@@ -1,13 +1,45 @@
 #include "../Globals.hlsli"
 #include "../ShaderInterop_GS.h"
 
-RWTexture2D<unorm float4> inout_color : register(u0);
-RWStructuredBuffer<uint> src : register(u0); // touchedTiles_0
-RWStructuredBuffer<uint> dst : register(u1); // offsetTiles_0
+PUSHCONSTANT(sortVars, GaussianSortConstants);
 
-[numthreads(16, 16, 1)]
-void main(uint3 DTid : SV_DispatchThreadID)
+RWTexture2D<unorm float4> inout_color : register(u0);
+RWStructuredBuffer<uint> pingBuffer : register(u3); // offsetTiles_ping
+RWStructuredBuffer<uint> pongBuffer : register(u4); // offsetTiles_pong
+
+[numthreads(256, 1, 1)]
+void main(uint3 dtid : SV_DispatchThreadID)
 {
-    uint2 index = DTid.xy;
-    inout_color[index] = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    uint timestep = sortVars.timestamp;
+    uint index = dtid.x;
+    
+    uint offset = 1u << timestep;
+
+    if (index < offset)
+    {
+        if ((timestep % 2) == 0)
+        {
+            // read ping -> write pong
+            pongBuffer[index] = pingBuffer[index];
+        }
+        else
+        {
+            // read pong  -> write ping
+            pingBuffer[index] = pongBuffer[index];
+        }
+    }
+    else
+    {
+        // if index >= offset , accum value index-offset 
+        if ((timestep % 2) == 0)
+        {
+            // read ping -> write pong
+            pongBuffer[index] = pingBuffer[index] + pingBuffer[index - offset];
+        }
+        else
+        {
+            // read pong -> read ping
+            pingBuffer[index] = pongBuffer[index] + pongBuffer[index - offset];
+        }
+    }
 }

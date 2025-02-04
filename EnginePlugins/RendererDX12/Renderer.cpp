@@ -2899,7 +2899,7 @@ namespace vz
 
 				// Ping and Pong Buffer for prefix sum
 				gaussian_push.offsetTiles_Ping_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPing, SubresourceType::UAV);
-				gaussian_push.offsetTiles_Ping_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPong, SubresourceType::UAV);
+				gaussian_push.offsetTiles_Pong_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPong, SubresourceType::UAV);
 
 				gaussian_push.duplicatedDepthGaussians_index = device->GetDescriptorIndex(&gs_buffers.duplicatedDepthGaussians, SubresourceType::UAV);
 				//gaussian_push.duplicatedTileDepthGaussians_0_index = device->GetDescriptorIndex(&gs_buffers.duplicatedTileDepthGaussians_0, SubresourceType::UAV);
@@ -2913,8 +2913,8 @@ namespace vz
 				device->BindUAV(&rtMain, 0, cmd);
 				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd); // touched tiles count 
 				device->BindUAV(&gs_buffers.offsetTiles_0, 2, cmd); // prefix sum of touched tiles count
-				device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd); // test for ping-pong buffer
-				device->BindUAV(&gs_buffers.offsetTilesPong, 4, cmd); // test for ping-pong buffer
+				//device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd); // test for ping-pong buffer
+				//device->BindUAV(&gs_buffers.offsetTilesPong, 4, cmd); // test for ping-pong buffer
 
 			}
 			else
@@ -2922,15 +2922,15 @@ namespace vz
 				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
 				device->BindUAV(&unbind, 2, cmd);
-				device->BindUAV(&unbind, 3, cmd);
-				device->BindUAV(&unbind, 4, cmd);
+				//device->BindUAV(&unbind, 3, cmd);
+				//device->BindUAV(&unbind, 4, cmd);
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 			BarrierStackFlush(cmd);
 
@@ -2948,45 +2948,92 @@ namespace vz
 				1,
 				cmd
 			);
+			// copy touched tiles count to offset tiles
+			{
+				GPUBarrier barriers[] =
+				{
+					GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
+					GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)
+				};
+				device->Barrier(barriers, _countof(barriers), cmd);
+			}
 
-			 //prefix sum (offset)
-			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], cmd);
-			//device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
-			device->Dispatch(
-				numGroups,
-				1,
-				1,
+			device->CopyBuffer(
+				&gs_buffers.offsetTilesPing,   // 대상 버퍼 (Destination)
+				0,
+				&gs_buffers.touchedTiles_0,      // 소스 버퍼 (Source)
+				0,
+				(P * sizeof(UINT)),
 				cmd
 			);
-			//
-			//device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], cmd);
-			//device->Dispatch(
-			//	gs_tile_count.x,
-			//	gs_tile_count.y,
-			//	1,
-			//	cmd
-			//);
-			//
-			//device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], cmd);
-			//device->Dispatch(
-			//	gs_tile_count.x,
-			//	gs_tile_count.y,
-			//	1,
-			//	cmd
-			//);
+
+			{
+				GPUBarrier barriers2[] =
+				{
+					GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::COPY_SRC, ResourceState::UNORDERED_ACCESS),
+					GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::COPY_DST, ResourceState::UNORDERED_ACCESS)
+				};
+				device->Barrier(barriers2, _countof(barriers2), cmd);
+			}
+
+
 
 			device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
 			device->BindUAV(&unbind, 2, cmd);
-			device->BindUAV(&unbind, 3, cmd);
-			device->BindUAV(&unbind, 4, cmd);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 
+			//prefix sum (offset)
+			uint iters = (uint)std::ceil(std::log2((float)P));
+			GaussianSortConstants gaussian_sort;
+
+			device->BindComputeShader(&rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], cmd);
+
+			for (int step = 0; step <= iters; ++step) {
+				gaussian_sort.timestamp = step;
+
+				device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
+
+				if ((step % 2) == 0)
+				{
+					device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd);
+					device->BindUAV(&gs_buffers.offsetTilesPong, 4, cmd);
+				}
+				else
+				{
+					device->BindUAV(&gs_buffers.offsetTilesPong, 3, cmd);
+					device->BindUAV(&gs_buffers.offsetTilesPing, 4, cmd);
+				}
+
+				device->Dispatch(
+					numGroups,
+					1,
+					1,
+					cmd
+				);
+
+				//if (step % 2 == 0)
+				//{
+				//	barrierStack.push_back(
+				//		GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::UNORDERED_ACCESS));
+				//}
+				//else
+				//{
+				//	barrierStack.push_back(
+				//		GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::UNORDERED_ACCESS));
+				//}
+
+				BarrierStackFlush(cmd);
+			}
+
+			device->BindUAV(&unbind, 3, cmd);
+			device->BindUAV(&unbind, 4, cmd);
+
+		    barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			BarrierStackFlush(cmd);
 
 			break; // TODO: at this moment, just a single gs is supported!
@@ -2994,6 +3041,7 @@ namespace vz
 
 		device->EventEnd(cmd);
 	}
+
 	void GRenderPath3DDetails::RenderDirectVolumes(CommandList cmd)
 	{
 		if (viewMain.visibleRenderables.empty())
