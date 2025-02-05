@@ -3,7 +3,7 @@
 
 PUSHCONSTANT(sortVars, GaussianSortConstants);
 
-RWTexture2D<unorm float4> inout_color : register(u0);
+RWTexture2D<unorm float4> inout_color : register(u0); // for debugging
 
 // SRV
 StructuredBuffer<uint> pingBufferSRV : register(t0);

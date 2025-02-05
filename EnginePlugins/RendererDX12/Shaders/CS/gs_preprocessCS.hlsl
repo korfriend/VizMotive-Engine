@@ -30,12 +30,6 @@ PUSHCONSTANT(gaussians, GaussianPushConstants);
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWStructuredBuffer<uint> touchedTiles : register(u1);
 RWStructuredBuffer<uint> offsetTiles : register(u2);
-RWStructuredBuffer<uint> offsetTilesPing : register(u3);
-RWStructuredBuffer<uint> offsetTilesPong : register(u4);
-
-// type XMFLOAT4
-//StructuredBuffer<float4> gaussian_scale_opacity : register(t0);
-//StructuredBuffer<float4> gaussian_rotation : register(t1);
 
 float3 get_sh_float3(Buffer<float> gs_shs, int index) {
     int start = index * 3;
@@ -219,6 +213,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     uint H = camera.internal_resolution.y;
     float focalLength = camera.focal_length;
     float3 camPos = camera.position;
+
     // Load instance and geometry
     ShaderMeshInstance gs_instance = load_instance(gaussians.instanceIndex);
     uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
