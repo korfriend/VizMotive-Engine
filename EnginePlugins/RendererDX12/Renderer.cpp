@@ -2111,11 +2111,6 @@ namespace vz
 				device->SetName(&bvhBuffers.primitiveIDBuffer, "GPUBVH::primitiveIDBuffer");
 
 				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-				desc.stride = sizeof(uint);
-				desc.size = desc.stride * bvhBuffers.primitiveCapacity;
-				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
-
-				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 				desc.stride = sizeof(BVHPrimitive);
 				desc.size = desc.stride * bvhBuffers.primitiveCapacity;
 				desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;

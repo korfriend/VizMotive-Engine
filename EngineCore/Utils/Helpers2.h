@@ -5,6 +5,11 @@
 
 namespace vz::helper2
 {
+	bool CompressPNG(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data);
+	bool DecompressPNG(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data);
+	bool Compress(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data, int level);
+	bool Decompress(const uint8_t* src_data, size_t src_size, std::vector<uint8_t>& dst_data);
+
 	// Returns file path if successful, empty string otherwise
 	std::string screenshot(const vz::graphics::SwapChain& swapchain, const std::string& name = "");
 
