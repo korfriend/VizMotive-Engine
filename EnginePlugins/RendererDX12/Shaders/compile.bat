@@ -63,3 +63,6 @@ dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/dvrCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gs_preprocessCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gs_offsetCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/gs_duplicateWithKeysCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/gs_identifyTileRangesCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/gs_renderCS.hlsl -spirv

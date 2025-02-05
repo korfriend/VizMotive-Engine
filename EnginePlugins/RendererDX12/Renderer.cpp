@@ -2913,24 +2913,17 @@ namespace vz
 				device->BindUAV(&rtMain, 0, cmd);
 				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd); // touched tiles count 
 				device->BindUAV(&gs_buffers.offsetTiles_0, 2, cmd); // prefix sum of touched tiles count
-				//device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd); // test for ping-pong buffer
-				//device->BindUAV(&gs_buffers.offsetTilesPong, 4, cmd); // test for ping-pong buffer
-
 			}
 			else
 			{
 				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
 				device->BindUAV(&unbind, 2, cmd);
-				//device->BindUAV(&unbind, 3, cmd);
-				//device->BindUAV(&unbind, 4, cmd);
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 			BarrierStackFlush(cmd);
 
@@ -2959,9 +2952,9 @@ namespace vz
 			}
 
 			device->CopyBuffer(
-				&gs_buffers.offsetTilesPing,   // 대상 버퍼 (Destination)
+				&gs_buffers.offsetTilesPing,  // dst buffer
 				0,
-				&gs_buffers.touchedTiles_0,      // 소스 버퍼 (Source)
+				&gs_buffers.touchedTiles_0,   // src buffer
 				0,
 				(P * sizeof(UINT)),
 				cmd
@@ -2975,8 +2968,6 @@ namespace vz
 				};
 				device->Barrier(barriers2, _countof(barriers2), cmd);
 			}
-
-
 
 			device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
@@ -2999,13 +2990,25 @@ namespace vz
 
 				if ((step % 2) == 0)
 				{
-					device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd);
-					device->BindUAV(&gs_buffers.offsetTilesPong, 4, cmd);
+					barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+					barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+
+					device->BindResource(&unbind, 0, cmd); // t0
+					device->BindUAV(&unbind, 3, cmd);  // u3
+
+					device->BindResource(&gs_buffers.offsetTilesPing, 0, cmd); // bind SRV to t0
+					device->BindUAV(&gs_buffers.offsetTilesPong, 3, cmd); // bind UAV to u3
 				}
 				else
 				{
-					device->BindUAV(&gs_buffers.offsetTilesPong, 3, cmd);
-					device->BindUAV(&gs_buffers.offsetTilesPing, 4, cmd);
+					barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+					barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+
+					device->BindResource(&unbind, 0, cmd);
+					device->BindUAV(&unbind, 3, cmd);
+
+					device->BindResource(&gs_buffers.offsetTilesPong, 0, cmd);
+					device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd);
 				}
 
 				device->Dispatch(
@@ -3014,26 +3017,12 @@ namespace vz
 					1,
 					cmd
 				);
-
-				//if (step % 2 == 0)
-				//{
-				//	barrierStack.push_back(
-				//		GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::UNORDERED_ACCESS));
-				//}
-				//else
-				//{
-				//	barrierStack.push_back(
-				//		GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::UNORDERED_ACCESS));
-				//}
-
 				BarrierStackFlush(cmd);
 			}
 
-			device->BindUAV(&unbind, 3, cmd);
-			device->BindUAV(&unbind, 4, cmd);
+			device->BindUAV(&unbind, 3, cmd);		// u3
+			device->BindResource(&unbind, 0, cmd);  // t0
 
-		    barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			BarrierStackFlush(cmd);
 
 			break; // TODO: at this moment, just a single gs is supported!

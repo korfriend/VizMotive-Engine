@@ -361,5 +361,14 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_offsetCS.hlsl">
       <Filter>Pipeline Shaders\CS\GS Test</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_duplicateWithKeysCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_identifyTileRangesCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_renderCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

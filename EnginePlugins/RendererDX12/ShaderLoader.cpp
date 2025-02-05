@@ -560,8 +560,9 @@ namespace vz::shader
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], "gs_preprocessCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], "gs_offsetCS.cso"); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], "testCS.cso"); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], "testCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], "gs_duplicateWithKeysCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_IDENTIFY_TILE_RANGES], "gs_identifyTileRangesCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], "gs_renderCS.cso"); });
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_DVR_DEFAULT], "dvrCS.cso"); });
 

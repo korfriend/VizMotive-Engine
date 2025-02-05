@@ -85,7 +85,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gpusortlib_sortCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gpusortlib_sortInnerCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gpusortlib_sortStepCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_duplicateWithKeysCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_identifyTileRangesCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_offsetCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\gs_renderCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS_ADVANCED.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\lightCullingCS_ADVANCED_DEBUG.hlsl" />
