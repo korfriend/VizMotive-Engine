@@ -1,5 +1,5 @@
 #include "ResourceManager.h"
-#include "Backend/GRendererInterface.h" // deferred task for streaming
+#include "Backend/GModuleLoader.h" // deferred task for streaming
 #include "Components/GComponents.h"
 
 #include "Utils/Helpers.h"
@@ -21,7 +21,8 @@ using namespace vz::graphics;
 
 namespace vz
 {
-	extern GraphicsPackage graphicsPackage;
+	extern GBackendLoader graphicsBackend;
+	extern GShaderEngineLoader shaderEngine;
 
 	struct StreamingTexture
 	{
@@ -218,13 +219,13 @@ namespace vz
 		// https://wickedengine.net/2022/11/graphics-api-secrets-format-casting/
 		Format getTextureFormatSRGB(Format format)
 		{
-			if (graphicsPackage.API == "DX12")
+			if (graphicsBackend.API == "DX12")
 			{
 				format = GetFormatSRGB(format);
 			}
 			else 
 			{
-				assert(graphicsPackage.API == "DX11");
+				assert(graphicsBackend.API == "DX11");
 			}
 			return format;
 		}
@@ -1027,9 +1028,9 @@ namespace vz
 							}
 
 							//renderer::AddDeferredMIPGen(resource->texture, true);
-							if (graphicsPackage.pluginAddDeferredMIPGen)
+							if (shaderEngine.pluginAddDeferredMIPGen)
 							{
-								graphicsPackage.pluginAddDeferredMIPGen(resource->texture, true);
+								shaderEngine.pluginAddDeferredMIPGen(resource->texture, true);
 							}
 
 							if (has_flag(flags, Flags::IMPORT_BLOCK_COMPRESSED))
@@ -1070,9 +1071,9 @@ namespace vz
 								}
 
 								//renderer::AddDeferredBlockCompression(uncompressed_src, resource->texture);
-								if (graphicsPackage.pluginAddDeferredBlockCompression)
+								if (shaderEngine.pluginAddDeferredBlockCompression)
 								{
-									graphicsPackage.pluginAddDeferredBlockCompression(uncompressed_src, resource->texture);
+									shaderEngine.pluginAddDeferredBlockCompression(uncompressed_src, resource->texture);
 								}
 							}
 						}
@@ -1254,9 +1255,9 @@ namespace vz
 			else
 			{
 				memcpy(resource->textureUpdate.mapped_data, data, resource_internal->textureUpdate.mapped_size);
-				if (graphicsPackage.pluginAddDeferredTextureCopy)
+				if (shaderEngine.pluginAddDeferredTextureCopy)
 				{
-					graphicsPackage.pluginAddDeferredTextureCopy(resource->textureUpdate, resource->texture, false);
+					shaderEngine.pluginAddDeferredTextureCopy(resource->textureUpdate, resource->texture, false);
 				}
 			}
 
@@ -1809,9 +1810,9 @@ namespace vz
 		//}
 		void AddBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset)
 		{
-			if (graphicsPackage.pluginAddDeferredBufferUpdate)
+			if (shaderEngine.pluginAddDeferredBufferUpdate)
 			{
-				graphicsPackage.pluginAddDeferredBufferUpdate(buffer, data, size, offset);
+				shaderEngine.pluginAddDeferredBufferUpdate(buffer, data, size, offset);
 			}
 		}
 

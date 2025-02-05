@@ -1,12 +1,12 @@
 #include "RenderPath3D.h"
-#include "Common/Backend/GRendererInterface.h"
+#include "Common/Backend/GModuleLoader.h"
 #include "Components/GComponents.h"
 #include "Utils/Profiler.h"
 #include "Utils/Jobsystem.h"
 
 namespace vz
 {
-	extern GraphicsPackage graphicsPackage;
+	extern GShaderEngineLoader shaderEngine;
 
 	XMMATRIX CreateScreenToProjectionMatrix(const graphics::Viewport& viewport)
 	{
@@ -53,7 +53,7 @@ namespace vz
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
 		: RenderPath2D(entity, graphicsDevice) 
 	{
-		handlerRenderPath3D_ = graphicsPackage.pluginNewGRenderPath3D(viewport_, swapChain_, rtRenderFinal_);
+		handlerRenderPath3D_ = shaderEngine.pluginNewGRenderPath3D(viewport_, swapChain_, rtRenderFinal_);
 		assert(handlerRenderPath3D_->version == GRenderPath3D::GRenderPath3D_INTERFACE_VERSION);
 
 		type_ = "RenderPath3D";
