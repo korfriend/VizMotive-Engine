@@ -8,11 +8,48 @@ namespace vz
 {
 	using Entity = uint32_t;
 
-	struct GraphicsPackage
+	struct GBackendLoader
 	{
 		typedef bool(*PI_GraphicsInitializer)(graphics::ValidationMode validationMode, graphics::GPUPreference preference);
 		typedef vz::graphics::GraphicsDevice* (*PI_GetGraphicsDevice)();
 		typedef bool(*PI_GraphicsDeinitializer)();
+
+		PI_GraphicsInitializer pluginInitializer = nullptr;
+		PI_GraphicsDeinitializer pluginDeinitializer = nullptr;
+		PI_GetGraphicsDevice pluginGetDev = nullptr;
+
+		std::string API = "";
+		std::string moduleName = "";
+
+		bool Init(const std::string& api)
+		{
+			API = api;
+			if (api == "DX12") {
+				moduleName = "GBackendDX12";
+			}
+			else if (api == "DX11") {
+				moduleName = "GBackendDX11";
+			}
+			else if (api == "VULKAN") {
+				moduleName = "GBackendVulkan";
+			}
+			else {
+				assert(0);
+				return false;
+			}
+			pluginInitializer = platform::LoadModule<PI_GraphicsInitializer>(moduleName, "Initialize");
+			pluginDeinitializer = platform::LoadModule<PI_GraphicsDeinitializer>(moduleName, "Deinitialize");
+			pluginGetDev = platform::LoadModule<PI_GetGraphicsDevice>(moduleName, "GetGraphicsDevice");
+
+			return pluginInitializer && pluginDeinitializer && pluginGetDev;
+		}
+	};
+
+	struct GShaderEngineLoader
+	{
+		typedef bool(*PI_Initializer)(graphics::GraphicsDevice* device);
+		typedef bool(*PI_Deinitializer)();
+
 		typedef GRenderPath3D* (*PI_NewGRenderPath3D)(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
 		typedef GScene* (*PI_NewGScene)(Scene* scene);
 		typedef bool(*PI_InitRenderer)();
@@ -31,9 +68,8 @@ namespace vz
 		typedef bool(*PI_LoadShaders)();
 
 		// essential
-		PI_GraphicsInitializer pluginInitializer = nullptr;
-		PI_GraphicsDeinitializer pluginDeinitializer = nullptr;
-		PI_GetGraphicsDevice pluginGetDev = nullptr;
+		PI_Initializer pluginInitializer = nullptr;
+		PI_Deinitializer pluginDeinitializer = nullptr;
 		PI_NewGRenderPath3D pluginNewGRenderPath3D = nullptr;
 		PI_NewGScene pluginNewGScene = nullptr;
 		PI_InitRenderer pluginInitRenderer = nullptr;
@@ -48,25 +84,15 @@ namespace vz
 		PI_AddDeferredMIPGen pluginAddDeferredMIPGen = nullptr;
 		PI_AddDeferredBlockCompression pluginAddDeferredBlockCompression = nullptr;
 
-		std::string API = "";
 		std::string moduleName = "";
 
-		bool Init(const std::string& api)
+		bool Init(const std::string& shaderModuleName)
 		{
-			API = api;
-			if (api == "DX12") {
-				moduleName = "RendererDX12";
-			}
-			else if (api == "DX11") {
-				moduleName = "RendererDX11";
-			}
-			else {
-				assert(0);
-				return false;
-			}
-			pluginInitializer = platform::LoadModule<PI_GraphicsInitializer>(moduleName, "Initialize");
-			pluginDeinitializer = platform::LoadModule<PI_GraphicsDeinitializer>(moduleName, "Deinitialize");
-			pluginGetDev = platform::LoadModule<PI_GetGraphicsDevice>(moduleName, "GetGraphicsDevice");
+			moduleName = shaderModuleName;
+			
+			pluginInitializer = platform::LoadModule<PI_Initializer>(moduleName, "Initialize");
+			pluginDeinitializer = platform::LoadModule<PI_Deinitializer>(moduleName, "Deinitialize");
+			
 			pluginNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>(moduleName, "NewGRenderPath");
 			pluginNewGScene = platform::LoadModule<PI_NewGScene>(moduleName, "NewGScene");
 			pluginInitRenderer = platform::LoadModule<PI_InitRenderer>(moduleName, "InitRenderer");
@@ -79,7 +105,7 @@ namespace vz
 			pluginAddDeferredBufferUpdate = platform::LoadModule<PI_AddDeferredBufferUpdate>(moduleName, "AddDeferredBufferUpdate");
 			pluginAddDeferredGeometryGPUBVHUpdate = platform::LoadModule<PI_AddDeferredGeometryGPUBVHUpdate>(moduleName, "AddDeferredGeometryGPUBVHUpdate");
 
-			return pluginInitializer && pluginDeinitializer && pluginGetDev && pluginNewGRenderPath3D && pluginNewGScene && pluginInitRenderer && pluginLoadShader && pluginLoadShaders
+			return pluginInitializer && pluginDeinitializer && pluginNewGRenderPath3D && pluginNewGScene && pluginInitRenderer && pluginLoadShader && pluginLoadShaders
 				&& pluginAddDeferredTextureCopy && pluginAddDeferredBufferUpdate && pluginAddDeferredGeometryGPUBVHUpdate;
 		}
 	};
