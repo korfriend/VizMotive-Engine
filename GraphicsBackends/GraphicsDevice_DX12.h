@@ -5,10 +5,8 @@
 #include "Common/Backend/GBackendDevice.h"
 #include "Utils/SpinLock.h"
 
-//#include "d3d12.h"
-//#include "d3d12video.h"
-#include "Libs/dx12/d3d12.h"
-#include "Libs/dx12/d3d12video.h"
+#include "dx12/d3d12.h"
+#include "dx12/d3d12video.h"
 #include <dxgi1_6.h>
 #define PPV_ARGS(x) IID_PPV_ARGS(&x)
 

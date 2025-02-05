@@ -7,11 +7,12 @@
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
 #include "Common/Backend/GBackendDevice.h"
-#include "Common/Backend/GRendererInterface.h"
+#include "Common/Backend/GModuleLoader.h"
 
 namespace vz
 {
-	GraphicsPackage graphicsPackage;
+	GBackendLoader graphicsBackend;
+	GShaderEngineLoader shaderEngine;
 }
 
 namespace vzm
@@ -125,9 +126,14 @@ namespace vzm
 
 		// assume DX12 rendering engine
 		std::string api = arguments.GetString("API", "DX12");
-		if (!graphicsPackage.Init(api))
+		if (!graphicsBackend.Init(api))
 		{
-			backlog::post("Invalid Graphics API : " + api, backlog::LogLevel::Error);
+			vzlog_error("Invalid Graphics API : %s", api.c_str());
+			return false;
+		}
+		if (!shaderEngine.Init(api == "DX11" ? "ShaderEngineDX11" : "ShaderEngine"))
+		{
+			vzlog_error("Invalid Shader Engine");
 			return false;
 		}
 
@@ -147,11 +153,13 @@ namespace vzm
 		{
 			preferenceMode = graphics::GPUPreference::Integrated;
 		}
-		graphicsPackage.pluginInitializer(validationMode, preferenceMode);
+		graphicsBackend.pluginInitializer(validationMode, preferenceMode);
 
 		// graphics device
-		graphicsDevice = graphicsPackage.pluginGetDev();
+		graphicsDevice = graphicsBackend.pluginGetDev();
 		graphics::GetDevice() = graphicsDevice;
+
+		shaderEngine.pluginInitializer(graphicsDevice);
 
 		// engine core initializer
 		uint32_t num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
@@ -708,13 +716,14 @@ namespace vzm
 		// high-level apis handle engine components via functions defined in vzcomp namespace
 		vzcomp::DestroyAll();	// here, after-shutdown drives a single threaded process
 
-		graphicsPackage.pluginDeinitializer();
+		graphicsBackend.pluginDeinitializer();
+		shaderEngine.pluginDeinitializer();
 		
 		eventhandler::Destroy();
 
-		backlog::post("=======================", backlog::LogLevel::Info);
-		backlog::post("Engine Finished Bye ^^!", backlog::LogLevel::Info);
-		backlog::post("=======================", backlog::LogLevel::Info);
+		vzlog("=======================");
+		vzlog("Engine Finished Bye ^^!");
+		vzlog("=======================");
 		backlog::Destroy();
 
 		return true;

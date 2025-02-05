@@ -1,6 +1,6 @@
 #include "Initializer.h"
 #include "Version.h"
-#include "Common/Backend/GRendererInterface.h"
+#include "Common/Backend/GModuleLoader.h"
 #include "Utils/JobSystem.h"
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
@@ -11,7 +11,7 @@
 
 namespace vz
 {
-	extern GraphicsPackage graphicsPackage;
+	extern GShaderEngineLoader shaderEngine;
 }
 
 namespace vz::initializer
@@ -62,7 +62,7 @@ namespace vz::initializer
 
 		jobsystem::Initialize(numMaxThreads);
 
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { graphicsPackage.pluginInitRenderer(); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shaderEngine.pluginInitRenderer(); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });
 		
 		// take a new thread and wait the above jobs (asynchronously)
 		std::thread([] {

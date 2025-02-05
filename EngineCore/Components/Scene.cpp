@@ -5,7 +5,7 @@
 #include "Utils/Platform.h"
 #include "Common/Archive.h"
 #include "Libs/Geometrics.h"
-#include "Common/Backend/GRendererInterface.h"
+#include "Common/Backend/GModuleLoader.h"
 #include "Common/ResourceManager.h"
 
 #include <cstdint>
@@ -19,7 +19,7 @@
 
 namespace vz
 {
-	extern GraphicsPackage graphicsPackage;
+	extern GShaderEngineLoader shaderEngine;
 
 	struct SceneDetails : Scene
 	{
@@ -49,7 +49,7 @@ namespace vz
 
 	Scene::Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name)
 	{
-		handlerScene_ = graphicsPackage.pluginNewGScene(this);
+		handlerScene_ = shaderEngine.pluginNewGScene(this);
 		assert(handlerScene_->version == GScene::GScene_INTERFACE_VERSION);
 	}
 
@@ -186,7 +186,7 @@ namespace vz
 
 			if (geometry->IsGPUBVHEnabled() && is_dirty_bvh)
 			{
-				graphicsPackage.pluginAddDeferredGeometryGPUBVHUpdate(entity);
+				shaderEngine.pluginAddDeferredGeometryGPUBVHUpdate(entity);
 			}
 
 			});

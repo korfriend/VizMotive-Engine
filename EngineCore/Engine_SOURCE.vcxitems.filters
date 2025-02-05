@@ -145,9 +145,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h">
       <Filter>ThirdParty</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GRendererInterface.h">
-      <Filter>Common\Backend</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
       <Filter>Components\Public %28CORE_EXPORT%29 APIs</Filter>
     </ClInclude>
@@ -237,6 +234,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h">
       <Filter>HighAPIs %28API_EXPORT%29\Public %28APIs%29\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GModuleLoader.h">
+      <Filter>Common\Backend</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

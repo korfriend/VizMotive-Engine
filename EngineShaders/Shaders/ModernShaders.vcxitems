@@ -4,6 +4,7 @@
     <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
     <HasSharedItems>true</HasSharedItems>
     <ItemsProjectGuid>{fd7a4774-0a05-4e2b-bf88-b8a8e688e116}</ItemsProjectGuid>
+    <ItemsProjectName>ModernShaders</ItemsProjectName>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
