@@ -1,7 +1,5 @@
 #include "../Globals.hlsli"
-#include "../ShaderInterop_GS.hlsli"
-#include "../CommonHF/surfaceHF.hlsli"
-#include "../CommonHF/raytracingHF.hlsli"   
+#include "../ShaderInterop_GS.h"
 
 struct VertexAttribute
 {
