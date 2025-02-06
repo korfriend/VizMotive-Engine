@@ -44,7 +44,7 @@ namespace vzm
 		std::unordered_map<TextureVID, std::unique_ptr<VzTexture>> textures;
 		std::unordered_map<VolumeVID, std::unique_ptr<VzVolume>> volumes;
 
-		bool Destroy(const VID vid)
+		bool Destroy(const VID vid, const bool includeDescendants = false)
 		{
 			jobsystem::WaitAllJobs();
 
@@ -81,6 +81,17 @@ namespace vzm
 
 			if (is_engine_component)
 			{
+				if (includeDescendants)
+				{
+					HierarchyComponent* hierarchy = compfactory::GetHierarchyComponent(vid);
+					for (VUID vuid : hierarchy->GetChildren())
+					{
+						HierarchyComponent* child = compfactory::GetHierarchyComponentByVUID(vuid);
+						vzlog_assert(child, "a child MUST exist!");
+						Destroy(child->GetEntity(), true);
+					}
+				}
+
 				compfactory::Destroy(vid);
 				Scene::RemoveEntityForScenes(vid);
 			}
@@ -640,10 +651,10 @@ namespace vzm
 		return it == vzcomp::lookup.end() ? nullptr : it->second;
 	}
 	
-	bool RemoveComponent(const VID vid)
+	bool RemoveComponent(const VID vid, const bool includeDescendants)
 	{
 		CHECK_API_VALIDITY(false);
-		return vzcomp::Destroy(vid);	// jobsystem
+		return vzcomp::Destroy(vid, includeDescendants);	// jobsystem
 	}
 
 	VzActor* LoadModelFile(const std::string& filename)

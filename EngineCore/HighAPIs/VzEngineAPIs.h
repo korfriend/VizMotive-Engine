@@ -65,8 +65,8 @@ namespace vzm
 	//  - return name string if entity's name exists, if not, return "" 
 	API_EXPORT std::string GetNameByVid(const VID vid);
 	// Remove an entity (scene, scene components, renderer, asset) 
-	API_EXPORT bool RemoveComponent(const VID vid);
-	inline bool RemoveComponent(const VzBaseComp* comp) { return RemoveComponent(comp->GetVID()); }
+	API_EXPORT bool RemoveComponent(const VID vid, const bool includeDescendants = false);
+	inline bool RemoveComponent(const VzBaseComp* comp, const bool includeDescendants = false) { return RemoveComponent(comp->GetVID(), includeDescendants); }
 
 	// Load a mesh file (obj and stl) into actors and return the first actor
 	//  - return root-node actor (empty)
