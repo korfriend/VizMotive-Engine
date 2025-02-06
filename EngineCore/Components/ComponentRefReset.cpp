@@ -1,0 +1,68 @@
+#include "Components.h"
+
+namespace vz
+{
+	void HierarchyComponent::ResetRefComponents(const VUID vuidRef)
+	{
+		if (vuidParentHierarchy_ == vuidRef)
+			vuidParentHierarchy_ = INVALID_VUID;
+		auto it = children_.find(vuidRef);
+		if (it != children_.end())
+			children_.erase(it);
+	}
+
+	void MaterialComponent::ResetRefComponents(const VUID vuidRef)
+	{
+		bool is_modified = false;
+		for (size_t i = 0; i < SCU32(TextureSlot::TEXTURESLOT_COUNT); i++)
+		{
+			if (textureComponents_[i] == vuidRef)
+			{
+				textureComponents_[i] = INVALID_VUID;
+				is_modified = true;
+			}
+		}
+		for (size_t i = 0; i < SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT); i++)
+		{
+			if (volumeComponents_[i] == vuidRef)
+			{
+				volumeComponents_[i] = INVALID_VUID;
+				is_modified = true;
+			}
+		}
+		for (size_t i = 0; i < SCU32(LookupTableSlot::LOOKUPTABLE_COUNT); i++)
+		{
+			if (lookupComponents_[i] == vuidRef)
+			{
+				lookupComponents_[i] = INVALID_VUID;
+				is_modified = true;
+			}
+		}
+		if (is_modified)
+		{
+			UpdateAssociatedTextures();
+		}
+	}
+
+	void RenderableComponent::ResetRefComponents(const VUID vuidRef)
+	{
+		bool is_modified = false;
+		if (vuidGeometry_ == vuidRef)
+		{
+			vuidGeometry_ = INVALID_VUID;
+			is_modified = true;
+		}
+		for (size_t i = 0; i < vuidMaterials_.size(); i++)
+		{
+			if (vuidMaterials_[i] == vuidRef)
+			{
+				vuidMaterials_[i] = INVALID_VUID;
+				is_modified = true;
+			}
+		}
+		if (is_modified)
+		{
+			updateRenderableFlags();
+		}
+	}
+}

@@ -39,7 +39,6 @@ namespace vz
 
 namespace vz
 {
-
 	void GMaterialComponent::UpdateAssociatedTextures()
 	{
 		for (uint32_t slot = 0; slot < SCU32(TextureSlot::TEXTURESLOT_COUNT); ++slot)

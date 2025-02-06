@@ -285,7 +285,8 @@ int main(int, char**)
 		otf_volume->UpdateLookup(otf_array, 180, 255);
 
 		vzm::VzActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
-		scene->AppendChild(volume_actor);
+		//scene->AppendChild(volume_actor);
+		actor_test->AppendChild(volume_actor);
 
 		vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
 		{
@@ -423,6 +424,8 @@ int main(int, char**)
 					VzBaseComp* dst_actor = vzm::GetFirstComponentByName("my actor");
 					if (dst_actor)
 						vzm::RemoveComponent(dst_actor);
+					VzActor* vol_actor = (VzActor*)vzm::GetFirstComponentByName("my volume actor");
+					vzlog("ID : %d", vol_actor->GetParent());
 				}
 
 				static float cur_otf_value = 180, cur_otf_value_prev = 180;
