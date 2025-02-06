@@ -85,6 +85,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Version.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentRefReset.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp" />
