@@ -472,4 +472,17 @@ namespace vz
 			archive << hdrCalibration_;
 		}
 	}
+
+	void SlicerComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		CameraComponent::Serialize(archive, version);
+		if (archive.IsReadMode())
+		{
+			archive >> thickness_;
+		}
+		else
+		{
+			archive << thickness_;
+		}
+	}
 }

@@ -278,6 +278,7 @@ namespace vz
 		VOLUMETEXTURE,
 		LIGHT,
 		CAMERA,
+		SLICER,
 	};
 
 	struct CORE_EXPORT ComponentBase
@@ -293,7 +294,7 @@ namespace vz
 		//std::atomic_bool isLocked_ = {};
 
 	public:
-		ComponentBase() {};
+		ComponentBase() = default;
 		ComponentBase(const ComponentType compType, const Entity entity, const VUID vuid);
 		ComponentType GetComponentType() const { return cType_; }
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
@@ -1240,14 +1241,16 @@ namespace vz
 
 	struct CORE_EXPORT CameraComponent : ComponentBase
 	{
-	private:
+	protected:
 		enum CamFlags : uint8_t
 		{
 			EMPTY = 0,
 			ORTHOGONAL = 1 << 0,    // if not, PERSPECTIVE
 			CUSTOM_PROJECTION = 1 << 2,
 			CLIP_PLANE = 1 << 3,
-			CLIP_BOX = 1 << 4
+			CLIP_BOX = 1 << 4,
+			SLICER = 1 << 5, // must be ORTHOGONAL
+			PANORAMIC = 1 << 6, // must be SLICER
 		};
 
 		float zNearP_ = 0.1f;
@@ -1290,16 +1293,19 @@ namespace vz
 		XMFLOAT3 forward_ = XMFLOAT3(0, 0, 1); // viewing direction
 		XMFLOAT3 up_ = XMFLOAT3(0, 1, 0);
 		XMFLOAT3X3 rotationMatrix_ = math::IDENTITY_MATRIX33;
-		XMFLOAT4X4 view_, projection_, viewProjection_;
-		XMFLOAT4X4 invView_, invProjection_, invViewProjection_;
+		XMFLOAT4X4 view_ = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 projection_ = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 viewProjection_ = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 invView_ = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 invProjection_ = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 invViewProjection_ = math::IDENTITY_MATRIX;
 		vz::geometrics::Frustum frustum_ = {};
 
 		float computeOrthoVerticalSizeFromPerspective(const float dist);
 
 	public:
-		CameraComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::CAMERA, entity, vuid) {
-			view_ = projection_ = viewProjection_ = invView_ = invProjection_ = invViewProjection_ = math::IDENTITY_MATRIX;
-		}
+		CameraComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::CAMERA, entity, vuid) {}
+		CameraComponent(const ComponentType ctype, const Entity entity, const VUID vuid = 0) : ComponentBase(ctype, entity, vuid) {}
 
 		// Non-serialized attributes:
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);
@@ -1393,6 +1399,24 @@ namespace vz
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::CAMERA;
+	};
+
+	struct CORE_EXPORT SlicerComponent : CameraComponent
+	{
+	private:
+		float thickness_ = 0.f;
+
+		// Non-serialized attributes:
+
+	public:
+		SlicerComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(ComponentType::SLICER, entity, vuid) {
+			flags_ = CamFlags::ORTHOGONAL | CamFlags::SLICER;
+			zNearP_ = 0.f;
+		}
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		inline static const ComponentType IntrinsicType = ComponentType::SLICER;
 	};
 }
 
