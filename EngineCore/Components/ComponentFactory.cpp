@@ -350,6 +350,7 @@ namespace vz::compfactory
 
 	size_t Destroy(const Entity entity)
 	{
+		std::unordered_set<VUID> vuids;
 		size_t num_destroyed = 0u;
 		for (auto& entry : componentLibrary.entries)
 		{
@@ -377,9 +378,20 @@ namespace vz::compfactory
 						lookupName2Entities.erase(name_comp->GetName());
 					}
 				}
+				// dummy call
+				VUID vuid = entry.second.component_manager->GetVUID(entity);
+				vuids.insert(vuid);
+
 				comp_manager->Remove(entity);
 
 				num_destroyed++;
+			}
+		}
+		for (auto& entry : componentLibrary.entries)
+		{
+			for (auto vuid : vuids)
+			{
+				entry.second.component_manager->ResetAllRefComponents(vuid);
 			}
 		}
 		return num_destroyed;

@@ -49,6 +49,9 @@ namespace vz::ecs
 		virtual size_t GetCount() const = 0;
 		virtual Entity GetEntity(size_t index) const = 0;
 		virtual const std::vector<Entity>& GetEntityArray() const = 0;
+
+		virtual VUID GetVUID(Entity entity) const = 0;
+		virtual void ResetAllRefComponents(VUID vuid) = 0;
 	};
 
 	class ComponentLibrary;
@@ -476,7 +479,15 @@ namespace vz::ecs
 		// Retrieve a [read only] component specified by an entity (if it exists, otherwise nullptr)
 		inline const Component* GetComponent(Entity entity) const
 		{
-			return GetComponent(entity);
+			if (lookup.empty()) {
+				return nullptr;
+			}
+			const auto it = lookup.find(entity);
+			if (it != lookup.end())
+			{
+				return &components[it->second];
+			}
+			return nullptr;
 		}
 
 		// Retrieve a [read/write] component specified by a VUID (if it exists, otherwise nullptr)
@@ -495,7 +506,14 @@ namespace vz::ecs
 		// Retrieve a [read only] component specified by an entity (if it exists, otherwise nullptr)
 		inline const Component* GetComponent(VUID vuid) const
 		{
-			return GetComponent(vuid);
+			if (lookupVUID.empty())
+				return nullptr;
+			const auto it = lookupVUID.find(vuid);
+			if (it != lookupVUID.end())
+			{
+				return &components[it->second];
+			}
+			return nullptr;
 		}
 
 		// Retrieve component index by entity handle (if not exists, returns ~0ull value)
@@ -544,6 +562,19 @@ namespace vz::ecs
 
 		// Returns the tightly packed [read only] component array
 		inline const std::vector<Component>& GetComponentArray() const { return components; }
+
+		inline VUID GetVUID(Entity entity) const {
+			const Component* comp = GetComponent(entity);
+			if (comp == nullptr)
+				return INVALID_VUID;
+			return comp == nullptr ? INVALID_VUID : comp->GetVUID();
+		}
+
+		inline void ResetAllRefComponents(VUID vuid) override {
+			for (Component& comp : components) {
+				comp.ResetRefComponents(vuid);
+			}
+		}
 
 	private:
 		// This is a linear array of alive components
