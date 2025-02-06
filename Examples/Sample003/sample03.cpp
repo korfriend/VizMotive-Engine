@@ -418,6 +418,13 @@ int main(int, char**)
 					vzm::ReloadShader();
 				}
 
+				if (ImGui::Button("Remove Test"))
+				{
+					VzBaseComp* dst_actor = vzm::GetFirstComponentByName("my actor");
+					if (dst_actor)
+						vzm::RemoveComponent(dst_actor);
+				}
+
 				static float cur_otf_value = 180, cur_otf_value_prev = 180;
 				static float cur_otf_band_width = 50;
 				ImGui::SliderFloat("OTF Slider", &cur_otf_value, 0.f, 250.f);
