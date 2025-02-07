@@ -1,5 +1,6 @@
 #include "ComponentDetails.h"
 #include "Utils/ECS.h"
+#include "Utils/Backlog.h"
 #include "Common/Archive.h"
 #include "Common/ResourceManager.h"
 
@@ -17,6 +18,7 @@ namespace vz::compfactory
 	ComponentManager<NameComponent>& nameManager = componentLibrary.Register<NameComponent>("NAME");
 	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>("TANSFORM");
 	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>("HIERARCHY");
+	ComponentManager<SlicerComponent>& slicerManager = componentLibrary.Register<SlicerComponent>("SLICER");
 
 	// ----- Graphics-related components -----
 	ComponentManager<GRenderableComponent>& renderableManager = componentLibrary.Register<GRenderableComponent>("RENDERABLE");
@@ -139,6 +141,12 @@ namespace vz::compfactory
 		CameraComponent* comp = &cameraManager.Create(entity_update);
 		return comp;
 	}
+	SlicerComponent* CreateSlicerComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		SlicerComponent* comp = &slicerManager.Create(entity_update);
+		return comp;
+	}
 	RenderableComponent* CreateRenderableComponent(const Entity entity)
 	{
 		ENTITY_UPDATE(entity_update);
@@ -174,7 +182,7 @@ namespace vz::compfactory
 		{
 			comp = volumeManager.GetComponent(entity);
 		}
-		assert(comp); 
+		vzlog_assert(comp, "No texture!");
 		return comp;
 	}
 	VolumeComponent* GetVolumeComponent(const Entity entity)
@@ -191,7 +199,17 @@ namespace vz::compfactory
 	}
 	CameraComponent* GetCameraComponent(const Entity entity)
 	{
-		RETURN_GET_COMP(CameraComponent, cameraManager, entity);
+		CameraComponent* comp = cameraManager.GetComponent(entity);
+		if (comp == nullptr)
+		{
+			comp = slicerManager.GetComponent(entity);
+		}
+		assert(comp);
+		return comp;
+	}
+	SlicerComponent* GetSlicerComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(SlicerComponent, slicerManager, entity);
 	}
 
 	NameComponent* GetNameComponentByVUID(const VUID vuid)
@@ -233,6 +251,10 @@ namespace vz::compfactory
 	CameraComponent* GetCameraComponentByVUID(const VUID vuid)
 	{
 		return GetCameraComponent(GetEntityByVUID(vuid));
+	}
+	SlicerComponent* GetSlicerComponentByVUID(const VUID vuid)
+	{
+		return GetSlicerComponent(GetEntityByVUID(vuid));
 	}
 
 #define GET_COMPONENTS(T, TM) comps.clear(); size_t n = entities.size(); comps.reserve(n); \
@@ -287,6 +309,10 @@ namespace vz::compfactory
 	bool ContainCameraComponent(const Entity entity)
 	{
 		return cameraManager.Contains(entity);
+	}
+	bool ContainSlicerComponent(const Entity entity)
+	{
+		return slicerManager.Contains(entity);
 	}
 	bool ContainTextureComponent(const Entity entity)
 	{
