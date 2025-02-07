@@ -139,9 +139,9 @@ namespace vz
 	
 	void RenderPath3D::Render(const float dt)
 	{
-		if (camera == nullptr || scene == nullptr)
+		if ((camera == nullptr && slicer == nullptr) || scene == nullptr)
 		{
-			backlog::post("RenderPath3D::Render >> No Scene or No Camera in RenderPath3D!", backlog::LogLevel::Warn);
+			backlog::post("RenderPath3D::Render >> No Scene or No Camera/Slicer in RenderPath!", backlog::LogLevel::Warn);
 			return;
 		}
 

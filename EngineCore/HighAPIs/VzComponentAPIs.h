@@ -166,6 +166,7 @@ namespace vzm
 
 		// scene components
 		CAMERA,
+		SLICER,
 		LIGHT,
 		ACTOR,
 

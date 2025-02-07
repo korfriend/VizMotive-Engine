@@ -303,9 +303,6 @@ int main(int, char**)
 		archive->Store(camera);
 	}
 
-	// Our state
-	bool show_demo_window = true;
-	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	// Main loop
@@ -347,7 +344,7 @@ int main(int, char**)
 				{
 					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 					canvas_size.y = std::max(canvas_size.y, 1.f);
-					renderer->ResizeCanvas(canvas_size.x, canvas_size.y, camera->GetVID());
+					renderer->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, camera->GetVID());
 					wh = canvas_size;
 				}
 				ImVec2 win_pos = ImGui::GetWindowPos();
@@ -356,7 +353,6 @@ int main(int, char**)
 				ImGui::SetItemAllowOverlap();
 
 				bool is_hovered = ImGui::IsItemHovered(); // Hovered
-				bool is_active = ImGui::IsItemActive();   // Held
 
 				if (is_hovered && !resized)
 				{
@@ -472,7 +468,7 @@ int main(int, char**)
 
 						}
 
-						otf_volume->UpdateLookup(otf_array, cur_otf_value, cur_otf_value + cur_otf_band_width);
+						otf_volume->UpdateLookup(otf_array, (uint)cur_otf_value, (uint)(cur_otf_value + cur_otf_band_width));
 					}
 				}
 

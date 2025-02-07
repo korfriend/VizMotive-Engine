@@ -18,7 +18,6 @@ namespace vz
 		~RenderPath2D() { DeleteGPUResources(false); }
 		// to do ... slicer component...
 
-		using SlicerComponent = CameraComponent;
 		SlicerComponent* slicer = nullptr;
 
 		void SetMSAASampleCount(uint32_t value) { msaaSampleCount_ = value; }

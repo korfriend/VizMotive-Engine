@@ -1254,7 +1254,7 @@ namespace vz
 		};
 
 		float zNearP_ = 0.1f;
-		float zFarP_ = 5000.0f;
+		float zFarP_ = 10000.0f;
 		float fovY_ = XM_PI / 3.0f;
 		float focalLength_ = 1;
 		float apertureSize_ = 0;
@@ -1447,6 +1447,7 @@ namespace vz::compfactory
 	CORE_EXPORT inline VolumeComponent* CreateVolumeComponent(const Entity entity);
 	CORE_EXPORT inline LightComponent* CreateLightComponent(const Entity entity);
 	CORE_EXPORT inline CameraComponent* CreateCameraComponent(const Entity entity);
+	CORE_EXPORT inline SlicerComponent* CreateSlicerComponent(const Entity entity);
 	CORE_EXPORT inline RenderableComponent* CreateRenderableComponent(const Entity entity);
 
 	CORE_EXPORT inline NameComponent* GetNameComponent(const Entity entity);
@@ -1459,6 +1460,7 @@ namespace vz::compfactory
 	CORE_EXPORT inline RenderableComponent* GetRenderableComponent(const Entity entity);
 	CORE_EXPORT inline LightComponent* GetLightComponent(const Entity entity);
 	CORE_EXPORT inline CameraComponent* GetCameraComponent(const Entity entity);
+	CORE_EXPORT inline SlicerComponent* GetSlicerComponent(const Entity entity);
 
 	CORE_EXPORT inline NameComponent* GetNameComponentByVUID(const VUID vuid);
 	CORE_EXPORT inline TransformComponent* GetTransformComponentByVUID(const VUID vuid);
@@ -1470,6 +1472,7 @@ namespace vz::compfactory
 	CORE_EXPORT inline RenderableComponent* GetRenderableComponentByVUID(const VUID vuid);
 	CORE_EXPORT inline LightComponent* GetLightComponentByVUID(const VUID vuid);
 	CORE_EXPORT inline CameraComponent* GetCameraComponentByVUID(const VUID vuid);
+	CORE_EXPORT inline SlicerComponent* GetSlicerComponentByVUID(const VUID vuid);
 
 	CORE_EXPORT inline size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
 	CORE_EXPORT inline size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
@@ -1484,6 +1487,7 @@ namespace vz::compfactory
 	CORE_EXPORT inline bool ContainRenderableComponent(const Entity entity);
 	CORE_EXPORT inline bool ContainLightComponent(const Entity entity);
 	CORE_EXPORT inline bool ContainCameraComponent(const Entity entity);
+	CORE_EXPORT inline bool ContainSlicerComponent(const Entity entity);
 	CORE_EXPORT inline bool ContainTextureComponent(const Entity entity);
 	CORE_EXPORT inline bool ContainVolumeComponent(const Entity entity);
 
