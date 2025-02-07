@@ -41,4 +41,21 @@ namespace vzm
 	};
 
 	using OrbitalControl = VzCamera::OrbitalControl;
+
+	struct API_EXPORT VzSlicer : VzSceneComp
+	{
+		VzSlicer(const VID vid, const std::string& originFrom);
+
+		// Pose parameters are defined in WS (not local space)
+		void SetWorldPoseByHierarchy();
+		void SetWorldPose(const vfloat3& pos, const vfloat3& view, const vfloat3& up);
+		void GetWorldPose(vfloat3& pos, vfloat3& view, vfloat3& up) const;
+		void SetOrthogonalProjection(const float width, const float height, const float orthoVerticalSize = 1);
+		void GetOrthogonalProjection(float* width, float* height, float* orthoVerticalSize) const;
+
+		void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled);
+		void SetClipPlane(const vfloat4& clipPlane);
+		void SetClipBox(const vfloat4x4& clipBox);
+		bool IsClipperEnabled(bool* clipBoxEnabled = nullptr, bool* clipPlaneEnabled = nullptr) const;
+	};
 }
