@@ -1084,6 +1084,13 @@ namespace vz
 		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube
 		XMFLOAT4 clipPlane_ = XMFLOAT4(0, 0, 1, 1);
 
+		// special effects
+		float outlineThickness_ = 0.f; // zero means 1 pixel
+		XMFLOAT3 outlineColor_ = XMFLOAT3(1, 1, 1);
+		float outlineThreshold_ = 1000.f;
+		XMFLOAT3 undercutDirection_ = XMFLOAT3(1, 0, 0);
+		XMFLOAT3 undercutColor_ = XMFLOAT3(1, 0, 0);
+
 		// Non-serialized attributes:
 		//	dirty check can be considered by the following components
 		//		- transformComponent, geometryComponent, and material components (with their referencing textureComponents)
@@ -1099,14 +1106,14 @@ namespace vz
 		inline bool IsMeshRenderable() const { return flags_ & RenderableFlags::MESH_RENDERABLE; }
 		inline bool IsVolumeRenderable() const { return flags_ & RenderableFlags::VOLUME_RENDERABLE; }
 
-		inline void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) }
+		inline void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
 
 		inline uint32_t GetFlags() const { return flags_; }
 
-		inline void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; }
-		inline void SetVisibleRadius(const float radius) { visibleRadius_ = radius; }
-		inline void SetVisibleCenter(const XMFLOAT3 center) { visibleCenter_ = center; }
+		inline void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; timeStampSetter_ = TimerNow; }
+		inline void SetVisibleRadius(const float radius) { visibleRadius_ = radius; timeStampSetter_ = TimerNow; }
+		inline void SetVisibleCenter(const XMFLOAT3 center) { visibleCenter_ = center; timeStampSetter_ = TimerNow; }
 		inline void SetGeometry(const Entity geometryEntity);
 		inline void SetMaterial(const Entity materialEntity, const size_t slot);
 		inline void SetMaterials(const std::vector<Entity>& materials);
@@ -1114,12 +1121,18 @@ namespace vz
 
 		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= RenderableFlags::CLIP_BOX : flags_ &= ~RenderableFlags::CLIP_BOX;
-			clipPlaneEnabled ? flags_ |= RenderableFlags::CLIP_PLANE : flags_ &= ~RenderableFlags::CLIP_PLANE;
+			clipPlaneEnabled ? flags_ |= RenderableFlags::CLIP_PLANE : flags_ &= ~RenderableFlags::CLIP_PLANE; timeStampSetter_ = TimerNow;
 		}
-		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; }
-		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; }
+		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; timeStampSetter_ = TimerNow; }
+		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; timeStampSetter_ = TimerNow; }
 		inline bool IsBoxClipperEnabled() const { return flags_ & RenderableFlags::CLIP_BOX; }
 		inline bool IsPlaneClipperEnabled() const { return flags_ & RenderableFlags::CLIP_PLANE; };
+
+		inline void SetOutineThickness(const float v) { outlineThickness_ = v; timeStampSetter_ = TimerNow; }
+		inline void SetOutineColor(const XMFLOAT3& v) { outlineColor_ = v; timeStampSetter_ = TimerNow; }
+		inline void SetOutineThreshold(const float v) { outlineThreshold_ = v; timeStampSetter_ = TimerNow; }
+		inline void SetUndercutDirection(const XMFLOAT3& v) { undercutDirection_ = v; timeStampSetter_ = TimerNow; }
+		inline void SetUndercutColor(const XMFLOAT3& v) { undercutColor_ = v; timeStampSetter_ = TimerNow; }
 
 		inline bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
 		inline uint8_t GetVisibleMask() const { return visibleLayerMask_; }
@@ -1130,6 +1143,12 @@ namespace vz
 		inline float GetRimHighLightFalloff() const { return rimHighlightFalloff_; }
 		inline XMFLOAT4 GetClipPlane() const { return clipPlane_; }
 		inline XMFLOAT4X4 GetClipBox() const { return clipBox_; }
+
+		inline float GetOutineThickness() const { return outlineThickness_; }
+		inline XMFLOAT3 GetOutineColor() const { return outlineColor_; }
+		inline float GetOutineThreshold() const { return outlineThreshold_; }
+		inline XMFLOAT3 GetUndercutDirection() const { return undercutDirection_; }
+		inline XMFLOAT3 GetUndercutColor() const { return undercutColor_; }
 
 		inline Entity GetGeometry() const;
 		inline Entity GetMaterial(const size_t slot) const;

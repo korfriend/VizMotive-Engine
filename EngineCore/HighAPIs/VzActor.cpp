@@ -80,6 +80,32 @@ namespace vzm
 		return box_clipped || plane_clipped;
 	}
 
+	void VzActor::SetOutineThickness(const float v)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetOutineThickness(v);
+	}
+	void VzActor::SetOutineColor(const vfloat3 v)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetOutineColor(*(XMFLOAT3*)&v);
+	}
+	void VzActor::SetOutineThreshold(const float v)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetOutineThreshold(v);
+	}
+	void VzActor::SetUndercutDirection(const vfloat3 v)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetUndercutDirection(*(XMFLOAT3*)&v);
+	}
+	void VzActor::SetUndercutColor(const vfloat3 v)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetUndercutColor(*(XMFLOAT3*)&v);
+	}
+
 	std::vector<MaterialVID> VzActor::GetMaterials() const
 	{
 		GET_RENDERABLE_COMP(renderable, std::vector<MaterialVID>());
