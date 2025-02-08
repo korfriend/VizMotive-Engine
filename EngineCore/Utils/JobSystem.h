@@ -11,6 +11,8 @@
 #endif
 #endif
 
+#define MAGIC_CHECK_VALUE 0xDEADBEEF
+
 namespace vz::jobsystem
 {
 	UTIL_EXPORT void Initialize(uint32_t maxThreadCount = ~0u);
@@ -39,11 +41,15 @@ namespace vz::jobsystem
 	{
 		volatile long counter = 0;
 		Priority priority = Priority::High;
+
+		const uint32_t magicChecker = MAGIC_CHECK_VALUE;
 	};
 
 	struct contextConcurrency
 	{
 		uint32_t concurrentID = 0;
+
+		const uint32_t magicChecker = MAGIC_CHECK_VALUE;
 	};
 
 	UTIL_EXPORT uint32_t GetThreadCount(Priority priority = Priority::High);

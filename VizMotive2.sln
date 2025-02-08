@@ -47,6 +47,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GBackendVulkan", "GraphicsB
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShaderEngine", "EngineShaders\ShaderEngine\ShaderEngine.vcxproj", "{55DE2782-27C3-4804-AA00-59326800DA3B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ModernShaders", "EngineShaders\Shaders\ModernShaders.vcxitems", "{FD7A4774-0A05-4E2B-BF88-B8A8E688E116}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_MT|x64 = Debug_MT|x64
@@ -241,6 +243,7 @@ Global
 		{EF13217F-7B13-4A3E-AD08-FBC2A599919B} = {84C866AA-AE3A-4BBE-B89D-50A9EC3A1987}
 		{AEA4A101-A572-47BA-897D-E6FE45566F65} = {84C866AA-AE3A-4BBE-B89D-50A9EC3A1987}
 		{55DE2782-27C3-4804-AA00-59326800DA3B} = {821B90CB-C36E-4340-92E5-531178151C02}
+		{FD7A4774-0A05-4E2B-BF88-B8A8E688E116} = {821B90CB-C36E-4340-92E5-531178151C02}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}
@@ -251,5 +254,6 @@ Global
 		Examples\imgui\imgui.vcxitems*{aebf5849-4d10-46e4-a6ae-6536dbcc5b0f}*SharedItemsImports = 4
 		EngineCore\Engine_SOURCE.vcxitems*{d86799c4-9d93-4981-93b7-48c219d40915}*SharedItemsImports = 4
 		EngineCore\Engine_SOURCE.vcxitems*{d8d9bfe0-037d-43c2-a0e4-c5e88b21bfea}*SharedItemsImports = 9
+		EngineShaders\Shaders\ModernShaders.vcxitems*{fd7a4774-0a05-4e2b-bf88-b8a8e688e116}*SharedItemsImports = 9
 	EndGlobalSection
 EndGlobal
