@@ -16,7 +16,7 @@ std::string SHADERSOURCEPATH = "./Shaders/";
 #else
 // Note: when NOT using Shader Dump, use absolute directory, to avoid the case when something (eg. file dialog) overrides working directory
 std::string SHADERPATH = vz::helper::GetCurrentPath() + "/Shaders/";
-std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "../../../EnginePlugins/RendererDX12/Shaders/";
+std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "../../../EngineShaders/Shaders/";
 #endif // SHADERDUMP_ENABLED
 
 std::atomic<size_t> SHADER_ERRORS{ 0 };
@@ -468,7 +468,7 @@ namespace vz::shader
 		CTX_renderPS.priority = jobsystem::Priority::Low;
 		for (uint32_t renderPass = 0; renderPass < RENDERPASS_COUNT; ++renderPass)
 		{
-			for (uint32_t mesh_shader = 0; mesh_shader <= MESH_SHADER_PSO_COUNT; ++mesh_shader)
+			for (uint32_t mesh_shader = 0; mesh_shader < MESH_SHADER_PSO_COUNT; ++mesh_shader)
 			{
 				jobsystem::Wait(rcommon::CTX_renderPSO[renderPass][mesh_shader]);
 			}
@@ -509,7 +509,6 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_ALPHATEST], "meshPS_prepass_alphatest.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_DEPTHONLY], "meshPS_prepass_depthonly.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_DEPTHONLY_ALPHATEST], "meshPS_prepass_depthonly_alphatest.cso"); });
-
 
 		//----- PS materials by permutation -----
 		static const std::vector<std::string> shaderTypeDefines[] = {
@@ -558,8 +557,8 @@ namespace vz::shader
 		
 			});
 
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], "gs_preprocessCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], "gs_offsetCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], "gs_preprocessCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], "gs_offsetCS.cso"); });
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], "testCS.cso"); });
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], "testCS.cso"); });
 
@@ -754,7 +753,7 @@ namespace vz::shader
 
 			device->CreatePipelineState(&desc, &rcommon::PSO_debug[args.jobIndex]);
 		});
-		
+
 		jobsystem::Wait(ctx);
 
 		//for (uint32_t renderPass = 0; renderPass < RENDERPASS_COUNT; ++renderPass)
