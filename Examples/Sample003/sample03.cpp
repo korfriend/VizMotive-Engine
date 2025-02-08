@@ -490,7 +490,7 @@ int main(int, char**)
 				if (profile_enabled)
 				{
 					std::string performance_info, memory_info;
-					vz::profiler::GetStringProfile(performance_info, memory_info);
+					vz::profiler::GetProfileInfo(performance_info, memory_info);
 					ImGui::Text(performance_info.c_str());
 					ImGui::Text(memory_info.c_str());
 				}

@@ -305,7 +305,7 @@ namespace vz::profiler
 		// TO DO
 	}
 
-	void GetStringProfile(std::string& performanceProfile, std::string& resourceProfile)
+	void GetProfileInfo(std::string& performanceProfile, std::string& resourceProfile)
 	{
 		if (!ENABLED || !ENABLED_REQUEST || !initialized || drawn_this_frame)
 			return;
