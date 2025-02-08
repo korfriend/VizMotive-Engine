@@ -73,7 +73,7 @@ namespace vz::renderer
 	bool isVariableRateShadingClassification = false;
 	bool isSurfelGIDebugEnabled = false;
 	bool isColorGradingEnabled = false;
-	bool isGaussianSplattingEnabled = true;
+	bool isGaussianSplattingEnabled = false;
 
 	namespace options
 	{
