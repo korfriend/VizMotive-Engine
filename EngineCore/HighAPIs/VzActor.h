@@ -33,6 +33,12 @@ namespace vzm
 		void SetClipBox(const vfloat4x4& clipBox);
 		bool IsClipperEnabled(bool* clipBoxEnabled = nullptr, bool* clipPlaneEnabled = nullptr) const;
 
+		void SetOutineThickness(const float v);
+		void SetOutineColor(const vfloat3 v);
+		void SetOutineThreshold(const float v);
+		void SetUndercutDirection(const vfloat3 v);
+		void SetUndercutColor(const vfloat3 v);
+
 		std::vector<MaterialVID> GetMaterials() const;
 		MaterialVID GetMaterial(const int slot = 0) const;
 		GeometryVID GetGeometry() const;

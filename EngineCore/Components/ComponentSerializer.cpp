@@ -340,6 +340,12 @@ namespace vz
 			archive >> clipBox_;
 			archive >> clipPlane_;
 
+			archive >> outlineThickness_;
+			archive >> outlineColor_;
+			archive >> outlineThreshold_;
+			archive >> undercutDirection_;
+			archive >> undercutColor_;
+
 			uint32_t u32_data;
 			archive >> u32_data;
 			for (size_t i = 0, n = u32_data; i < n; ++i)
@@ -361,6 +367,12 @@ namespace vz
 			archive << rimHighlightFalloff_;
 			archive << clipBox_;
 			archive << clipPlane_;
+
+			archive << outlineThickness_;
+			archive << outlineColor_;
+			archive << outlineThreshold_;
+			archive << undercutDirection_;
+			archive << undercutColor_;
 
 			archive << vuidMaterials_.size();
 			for (size_t i = 0, n = vuidMaterials_.size(); i < n; ++i)
