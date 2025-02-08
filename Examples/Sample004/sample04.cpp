@@ -211,6 +211,7 @@ int main(int, char **)
 	VzRenderer *renderer = nullptr;
 	ImVec2 wh(512, 512);
 
+	// add .ply load
 	{
 		scene = NewScene("my scene");
 
@@ -230,48 +231,36 @@ int main(int, char **)
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
 
-		vzm::VzGeometry *geometry_test = vzm::NewGeometry("my geometry");
-		geometry_test->MakeTestQuadWithUVs();
-		vzm::VzMaterial *material_test = vzm::NewMaterial("my material");
-		material_test->SetShaderType(vzm::ShaderType::PBR);
-		material_test->SetDoubleSided(true);
-
-		vzm::VzGeometry *geometry_test2 = vzm::NewGeometry("my triangles");
-		geometry_test2->MakeTestTriangle();
-
-		vzm::VzTexture *texture = vzm::NewTexture("my texture");
-		texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
-		material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
-
-		vzm::VzActor *actor_test = vzm::NewActor("my actor", geometry_test, material_test);
-		actor_test->SetScale({2.f, 2.f, 2.f});
-		actor_test->SetPosition({0, 0, -1.f});
-
-		vzm::VzActor *actor_test2 = vzm::NewActor("my actor2");
-		actor_test2->SetGeometry(geometry_test2);
-		actor_test2->SetPosition({0, -2, 0});
-		vfloat4 colors[3] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}};
-		for (size_t i = 0, n = geometry_test2->GetNumParts(); i < n; ++i)
+		// === Add PLY loading code here ===
+		// Load PLY geometry
+		if (1)
 		{
-			vzm::VzMaterial *material = vzm::NewMaterial("my test2's material " + i);
-			actor_test2->SetMaterial(material, i);
-			material->SetShaderType(vzm::ShaderType::PBR);
-			material->SetDoubleSided(true);
-			material->SetBaseColor(colors[i]);
+			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
+			//if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
+			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud.ply"))
+
+			{
+				std::cerr << "Failed to load point_cloud.ply" << std::endl;
+			}
+			else
+			{
+				vzm::VzMaterial* ply_material = vzm::NewMaterial("my ply material");
+				ply_material->SetShaderType(vzm::ShaderType::PBR);
+				ply_material->SetDoubleSided(true);
+				ply_material->SetGaussianSplattingEnabled(true);
+
+				vzm::VzActor* ply_actor = vzm::NewActor("my ply actor", geometry_ply, ply_material);
+				ply_actor->SetScale({ 1.f, 1.f, 1.f });
+				ply_actor->SetPosition({ 0.f, 0.f, -2.f });
+
+				vzm::AppendSceneCompTo(ply_actor, scene);
+			}
 		}
 
-		vzm::VzGeometry *geometry_stl = vzm::NewGeometry("my stl");
-		geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
-		vzm::VzMaterial *material_stl = vzm::NewMaterial("my stl's material");
-		material_stl->SetShaderType(vzm::ShaderType::PBR);
-		material_stl->SetDoubleSided(true);
-		vzm::VzActor *actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
-		actor_test3->SetScale({0.1f, 0.1f, 0.1f});
+		// === end of PLY loading code ===
 
-
-		vzm::AppendSceneCompTo(actor_test, scene);
-		vzm::AppendSceneCompTo(actor_test2, scene);
-		vzm::AppendSceneCompTo(actor_test3, scene);
+		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		scene->AppendChild(axis_helper);
 		vzm::AppendSceneCompTo(light, scene);
 
 		VzArchive *archive = vzm::NewArchive("test archive");
