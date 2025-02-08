@@ -32,7 +32,7 @@ namespace vz
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
 		~RenderPath3D();
 
-		CameraComponent* camera = nullptr;
+		CameraComponent* camera = nullptr; // can be used for SlicerComponent
 		Scene* scene = nullptr;
 
 		bool useManualSetViewport = false;

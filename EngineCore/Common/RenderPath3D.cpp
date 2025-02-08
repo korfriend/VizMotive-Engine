@@ -139,7 +139,7 @@ namespace vz
 	
 	void RenderPath3D::Render(const float dt)
 	{
-		if ((camera == nullptr && slicer == nullptr) || scene == nullptr)
+		if (camera == nullptr || scene == nullptr)
 		{
 			backlog::post("RenderPath3D::Render >> No Scene or No Camera/Slicer in RenderPath!", backlog::LogLevel::Warn);
 			return;
@@ -153,7 +153,6 @@ namespace vz
 			// since IsCanvasResized() updates the canvas size,
 			//	resizing sources does not happen redundantly 
 		}
-		RenderPath2D::Render(dt);
 
 		// Clear Option //
 		if (swapChain_.IsValid())
@@ -165,24 +164,29 @@ namespace vz
 			assert(rtRenderFinal_.IsValid());
 			memcpy(rtRenderFinal_.desc.clear.color, clearColor, sizeof(float) * 4);
 		}
+
+		RenderPath2D::Render(dt);
 		
-		// This involves the following process
-		//	1. update view (for each rendering pipeline)
-		//	2. update render data
-		//	3. execute rendering pipelines
-		handlerRenderPath3D_->scene = scene;
-		handlerRenderPath3D_->camera = camera;
-		handlerRenderPath3D_->viewport = viewport_;
+		if (camera)
+		{
+			// This involves the following process
+			//	1. update view (for each rendering pipeline)
+			//	2. update render data
+			//	3. execute rendering pipelines
+			handlerRenderPath3D_->scene = scene;
+			handlerRenderPath3D_->camera = camera;
+			handlerRenderPath3D_->viewport = viewport_;
 
-		handlerRenderPath3D_->matToScreen = matScreen_;
-		handlerRenderPath3D_->matToScreenInv = matScreenInv_;
+			handlerRenderPath3D_->matToScreen = matScreen_;
+			handlerRenderPath3D_->matToScreenInv = matScreenInv_;
 
-		handlerRenderPath3D_->scissor = scissor_;
-		handlerRenderPath3D_->colorspace = colorSpace_;
-		handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
-		handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
+			handlerRenderPath3D_->scissor = scissor_;
+			handlerRenderPath3D_->colorspace = colorSpace_;
+			handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
+			handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
 
-		handlerRenderPath3D_->Render(dt);
+			handlerRenderPath3D_->Render(dt);
+		}
 	}
 
 	void RenderPath3D::Compose()

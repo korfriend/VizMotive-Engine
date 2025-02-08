@@ -85,7 +85,7 @@ namespace vz
 			}
 		}
 
-		if (slicer != nullptr)
+		//if (slicer != nullptr)
 		{
 			//if (!rtRender2D_.IsValid())
 			//{

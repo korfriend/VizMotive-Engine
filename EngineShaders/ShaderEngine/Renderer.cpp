@@ -1241,6 +1241,7 @@ namespace vz
 		void RenderPostprocessChain(CommandList cmd);
 		
 		bool RenderProcess();
+		bool SlicerProcess();
 		void Compose(CommandList cmd);
 
 		// ---------- Post Processings ----------
@@ -4726,7 +4727,14 @@ namespace vz
 		auto range = profiler::BeginRangeCPU("Render");
 
 		UpdateProcess(dt);
-		RenderProcess();
+		if (camera->GetComponentType() == ComponentType::CAMERA) 
+		{
+			RenderProcess();
+		}
+		else
+		{
+			SlicerProcess();
+		}
 		profiler::EndRange(range);
 
 		graphics::CommandList cmd = device->BeginCommandList();
@@ -4767,6 +4775,11 @@ namespace vz
 
 		device->SubmitCommandLists();
 
+		return true;
+	}
+
+	bool GRenderPath3DDetails::SlicerProcess()
+	{
 		return true;
 	}
 
