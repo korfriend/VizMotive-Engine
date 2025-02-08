@@ -13,7 +13,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_SOURCE", "EngineCore
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginSample001", "Examples\PluginSample001\PluginSample001.vcxproj", "{E2D2C7BC-B88E-4340-B334-AC845CBAFCE8}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins (Essential)", "Plugins (Essential)", "{C2134175-EEFE-47EA-BAE5-EC589D70946F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules (Essential)", "Modules (Essential)", "{C2134175-EEFE-47EA-BAE5-EC589D70946F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample01", "Examples\Sample001\Sample01.vcxproj", "{9F316E83-5AE5-4939-A723-305A94F48005}"
 EndProject
