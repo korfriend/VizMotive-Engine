@@ -72,6 +72,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\PrivateInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
