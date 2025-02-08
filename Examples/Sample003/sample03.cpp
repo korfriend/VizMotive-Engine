@@ -487,16 +487,16 @@ int main(int, char**)
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
 				static bool profile_enabled = false;
+				if (ImGui::Checkbox("Profile Enabled", &profile_enabled))
+				{
+					vz::profiler::SetEnabled(profile_enabled);
+				}
 				if (profile_enabled)
 				{
 					std::string performance_info, memory_info;
 					vz::profiler::GetProfileInfo(performance_info, memory_info);
 					ImGui::Text(performance_info.c_str());
 					ImGui::Text(memory_info.c_str());
-				}
-				if (ImGui::Checkbox("Profile Enabled", &profile_enabled))
-				{
-					vz::profiler::SetEnabled(profile_enabled);
 				}
 			}
 			ImGui::End();
