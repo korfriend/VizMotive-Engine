@@ -71,7 +71,6 @@ namespace vzm
 	// Load a mesh file (obj and stl) into actors and return the first actor
 	//  - return root-node actor (empty)
 	API_EXPORT VzActor* LoadModelFile(const std::string& filename);
-	API_EXPORT float GetAsyncLoadProgress();
 
 	API_EXPORT bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io);
 

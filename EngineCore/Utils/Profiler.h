@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 #ifndef UTIL_EXPORT
 #ifdef _WIN32
@@ -59,6 +60,8 @@ namespace vz::profiler
 		inline ScopedRangeGPU(const char* name, graphics::CommandList* cmd) { id = BeginRangeGPU(name, cmd); }
 		inline ~ScopedRangeGPU() { EndRange(id); }
 	};
+
+	UTIL_EXPORT void GetStringProfile(std::string& performanceProfile, std::string& resourceProfile);
 
 	UTIL_EXPORT void DisableDrawForThisFrame();
 
