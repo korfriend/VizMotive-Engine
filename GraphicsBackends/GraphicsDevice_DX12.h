@@ -4,6 +4,7 @@
 
 #include "Common/Backend/GBackendDevice.h"
 #include "Utils/SpinLock.h"
+#include "Utils/Backlog.h"
 
 #include "dx12/d3d12.h"
 #include "dx12/d3d12video.h"
@@ -21,6 +22,9 @@
 #include <mutex>
 #include <vector>
 
+#define dx12_assert(cond, fname) { vzlog_assert(cond, "DX12 error: %s failed with %s (%s:%d)", fname, vz::helper::GetPlatformErrorString(hr).c_str(), relative_path(__FILE__), __LINE__); }
+#define dx12_check(call) [&]() { HRESULT hr = call; dx12_assert(SUCCEEDED(hr), extract_function_name(#call).c_str()); return hr; }()
+
 namespace vz::graphics
 {
 	class GraphicsDevice_DX12 final : public GraphicsDevice
@@ -36,14 +40,13 @@ namespace vz::graphics
 		Microsoft::WRL::ComPtr<ID3D12Fence> deviceRemovedFence;
 		HANDLE deviceRemovedWaitHandle = {};
 #endif // PLATFORM_WINDOWS_DESKTOP
-		std::mutex onDeviceRemovedMutex;
-		bool deviceRemoved = false;
 
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature> dispatchIndirectCommandSignature;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature> drawInstancedIndirectCommandSignature;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature> drawIndexedInstancedIndirectCommandSignature;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature> dispatchMeshIndirectCommandSignature;
 
+		bool deviceRemoved = false;
 		bool tearingSupported = false;
 		bool additionalShadingRatesSupported = false;
 		bool casting_fully_typed_formats = false;
