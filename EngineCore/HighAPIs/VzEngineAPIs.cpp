@@ -4,6 +4,7 @@
 #include "Utils/Platform.h"
 #include "Utils/EventHandler.h"
 #include "Utils/ECS.h"
+#include "Utils/PrivateInterface.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
 #include "Common/Backend/GBackendDevice.h"
@@ -723,6 +724,7 @@ namespace vzm
 		CHECK_API_VALIDITY(false);
 		jobsystem::ShutDown();
 		graphicsDevice->WaitForGPU();
+		profiler::Shutdown();
 
 		// high-level apis handle engine components via functions defined in vzcomp namespace
 		vzcomp::DestroyAll();	// here, after-shutdown drives a single threaded process

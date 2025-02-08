@@ -2,6 +2,7 @@
 #include "HighAPIs/VzEngineAPIs.h"
 #include "Utils/Backlog.h"
 #include "Utils/EventHandler.h"
+#include "Utils/Profiler.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -484,6 +485,19 @@ int main(int, char**)
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+				static bool profile_enabled = false;
+				if (profile_enabled)
+				{
+					std::string performance_info, memory_info;
+					vz::profiler::GetStringProfile(performance_info, memory_info);
+					ImGui::Text(performance_info.c_str());
+					ImGui::Text(memory_info.c_str());
+				}
+				if (ImGui::Checkbox("Profile Enabled", &profile_enabled))
+				{
+					vz::profiler::SetEnabled(profile_enabled);
+				}
 			}
 			ImGui::End();
 
@@ -540,6 +554,7 @@ int main(int, char**)
 	CleanupDeviceD3D();
 	::DestroyWindow(hwnd);
 	::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+
 
 	return 0;
 }

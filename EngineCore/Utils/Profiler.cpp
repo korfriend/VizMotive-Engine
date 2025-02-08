@@ -1,9 +1,11 @@
 #include "Profiler.h"
 #include "Common/Backend/GBackendDevice.h"
+#include "Common/Canvas.h"
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
 #include "Utils/Timer.h"
 #include "Utils/EventHandler.h"
+#include "Utils/PrivateInterface.h"
 
 #if __has_include("Superluminal/PerformanceAPI_capi.h")
 #include "Superluminal/PerformanceAPI_capi.h"
@@ -69,11 +71,16 @@ namespace vz::profiler
 
 		if (!initialized)
 		{
+			GraphicsDevice* device = graphics::GetDevice();
+			if (device == nullptr)
+			{
+				vzlog_error("Engine is NOT available! maybe deinitialized or not initialized?!");
+				return;
+			}
+
 			initialized = true;
 
 			ranges.reserve(100);
-
-			GraphicsDevice* device = graphics::GetDevice();
 
 			GPUQueryHeapDesc desc;
 			desc.type = GpuQueryType::TIMESTAMP;
@@ -274,6 +281,12 @@ namespace vz::profiler
 	}
 
 
+	const uint32_t graph_vertex_count = 120;
+	float cpu_graph[graph_vertex_count] = {};
+	float gpu_graph[graph_vertex_count] = {};
+	float cpu_memory_graph[graph_vertex_count] = {};
+	float gpu_memory_graph[graph_vertex_count] = {};
+
 	struct Hits
 	{
 		uint32_t num_hits = 0;
@@ -281,6 +294,121 @@ namespace vz::profiler
 	};
 	std::unordered_map<std::string, Hits> time_cache_cpu;
 	std::unordered_map<std::string, Hits> time_cache_gpu;
+	void DrawProfile(
+		const vz::Canvas& canvas,
+		float x,
+		float y,
+		CommandList cmd,
+		ColorSpace colorspace
+	)
+	{
+		// TO DO
+	}
+
+	void GetStringProfile(std::string& performanceProfile, std::string& resourceProfile)
+	{
+		if (!ENABLED || !ENABLED_REQUEST || !initialized || drawn_this_frame)
+			return;
+
+		std::stringstream ss("");
+		ss.precision(2);
+		{
+			for (auto& x : ranges)
+			{
+				if (!x.second.in_use)
+					continue;
+				if (x.second.IsCPURange())
+				{
+					if (x.first == cpu_frame)
+						continue;
+					time_cache_cpu[x.second.name].num_hits++;
+					time_cache_cpu[x.second.name].total_time += x.second.time;
+				}
+				else
+				{
+					if (x.first == gpu_frame)
+						continue;
+					time_cache_gpu[x.second.name].num_hits++;
+					time_cache_gpu[x.second.name].total_time += x.second.time;
+				}
+			}
+
+			// Print CPU ranges:
+			ss << ranges[cpu_frame].name << ": " << std::fixed << ranges[cpu_frame].time << " ms" << std::endl;
+			for (auto& x : time_cache_cpu)
+			{
+				if (x.second.num_hits > 1)
+				{
+					ss << "\t" << x.first << " (" << x.second.num_hits << "x)" << ": " << std::fixed << x.second.total_time << " ms" << std::endl;
+				}
+				else if (x.second.num_hits == 1)
+				{
+					ss << "\t" << x.first << ": " << std::fixed << x.second.total_time << " ms" << std::endl;
+				}
+				x.second.num_hits = 0;
+				x.second.total_time = 0;
+			}
+			ss << std::endl;
+
+			// Print GPU ranges:
+			ss << ranges[gpu_frame].name << ": " << std::fixed << ranges[gpu_frame].time << " ms" << std::endl;
+			for (auto& x : time_cache_gpu)
+			{
+				if (x.second.num_hits > 1)
+				{
+					ss << "\t" << x.first << " (" << x.second.num_hits << "x)" << ": " << std::fixed << x.second.total_time << " ms" << std::endl;
+				}
+				else if (x.second.num_hits == 1)
+				{
+					ss << "\t" << x.first << ": " << std::fixed << x.second.total_time << " ms" << std::endl;
+				}
+				x.second.num_hits = 0;
+				x.second.total_time = 0;
+			}
+			performanceProfile = ss.str();
+		}
+
+		{
+			// CPU Resource
+			GraphicsDevice* device = graphics::GetDevice();
+			graphics::GraphicsDevice::MemoryUsage gpu_memory_usage = device->GetMemoryUsage();
+			helper::MemoryUsage cpu_memory_usage = helper::GetMemoryUsage();
+			float graph_max = 33;
+			float graph_max_gpu_memory = 0;
+			float graph_max_cpu_memory = 0;
+			for (uint32_t i = graph_vertex_count - 1; i > 0; --i)
+			{
+				cpu_graph[i] = cpu_graph[i - 1];
+				gpu_graph[i] = gpu_graph[i - 1];
+				cpu_memory_graph[i] = cpu_memory_graph[i - 1];
+				gpu_memory_graph[i] = gpu_memory_graph[i - 1];
+				graph_max = std::max(graph_max, cpu_graph[i]);
+				graph_max = std::max(graph_max, gpu_graph[i]);
+				graph_max_gpu_memory = std::max(graph_max_gpu_memory, gpu_memory_graph[i]);
+				graph_max_cpu_memory = std::max(graph_max_cpu_memory, cpu_memory_graph[i]);
+			}
+			cpu_graph[0] = ranges[cpu_frame].time;
+			gpu_graph[0] = ranges[gpu_frame].time;
+			cpu_memory_graph[0] = float(double(cpu_memory_usage.process_physical) / (1024.0 * 1024.0 * 1024.0)); // Gigabytes
+			gpu_memory_graph[0] = float(double(gpu_memory_usage.usage) / (1024.0 * 1024.0 * 1024.0)); // Gigabytes
+			graph_max = std::max(graph_max, cpu_graph[0]);
+			graph_max = std::max(graph_max, gpu_graph[0]);
+			graph_max_gpu_memory = std::max(graph_max_gpu_memory, gpu_memory_graph[0]);
+			graph_max_cpu_memory = std::max(graph_max_cpu_memory, cpu_memory_graph[0]);
+			const float graph_max_memory = std::max(graph_max_cpu_memory, graph_max_gpu_memory) * 1.1f;
+
+			std::stringstream ss;
+			ss.precision(1);
+			ss.str(""); // new
+			ss << "cpu: " << cpu_graph[0] << " ms" << std::endl;
+			ss << "gpu: " << gpu_graph[0] << " ms" << std::endl;
+			ss << "RAM: " << cpu_memory_graph[0] << " GB" << std::endl;
+			ss << "VRAM: " << gpu_memory_graph[0] << " GB" << std::endl;
+
+			resourceProfile = ss.str();
+		}
+	}
+
 	void DisableDrawForThisFrame()
 	{
 		drawn_this_frame = true;
@@ -296,5 +424,22 @@ namespace vz::profiler
 	bool IsEnabled()
 	{
 		return ENABLED;
+	}
+
+	void Shutdown()
+	{
+		if (queryHeap.IsValid())
+		{
+			queryHeap = {};
+		}
+		for (int i = 0; i < arraysize(queryResultBuffer); ++i)
+		{
+			if (queryResultBuffer[i].IsValid())
+			{
+				queryResultBuffer[i] = {};
+			}
+		}
+		ranges.clear();
+		initialized = false;
 	}
 }

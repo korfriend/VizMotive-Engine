@@ -25,15 +25,6 @@
     <Filter Include="Libs %28header only%29\DirectXMath">
       <UniqueIdentifier>{10cde5e9-38d1-44a5-9174-73ab7ff9992d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utils\Header Only">
-      <UniqueIdentifier>{e3c597f1-dc00-4e24-ad2d-cf5dbaebabd3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Utils\Src">
-      <UniqueIdentifier>{f4b528db-3157-44f7-9b2f-3df59fcac99b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Utils\UTIL_EXPORT %28managed by core%29">
-      <UniqueIdentifier>{0e18ec7f-8058-4218-9048-ec0f4ca4800e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="HighAPIs %28API_EXPORT%29">
       <UniqueIdentifier>{5ff741b1-0d48-48b3-a433-ad3c209a02ce}</UniqueIdentifier>
     </Filter>
@@ -57,6 +48,15 @@
     </Filter>
     <Filter Include="Components\Private">
       <UniqueIdentifier>{25f62d85-dbd6-488d-99fd-3156f75a2a66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\Private">
+      <UniqueIdentifier>{f4b528db-3157-44f7-9b2f-3df59fcac99b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\Public %28Header Only%29">
+      <UniqueIdentifier>{e3c597f1-dc00-4e24-ad2d-cf5dbaebabd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\Public %28APIs managed by core%29">
+      <UniqueIdentifier>{0e18ec7f-8058-4218-9048-ec0f4ca4800e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -188,34 +188,34 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h">
-      <Filter>Utils\Header Only</Filter>
+      <Filter>Utils\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h">
-      <Filter>Utils\Header Only</Filter>
+      <Filter>Utils\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h">
-      <Filter>Utils\Header Only</Filter>
+      <Filter>Utils\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h">
-      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
+      <Filter>Utils\Public %28APIs managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h">
-      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
+      <Filter>Utils\Public %28APIs managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h">
-      <Filter>Utils\Header Only</Filter>
+      <Filter>Utils\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h">
-      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
+      <Filter>Utils\Public %28APIs managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h">
-      <Filter>Utils\UTIL_EXPORT %28managed by core%29</Filter>
+      <Filter>Utils\Public %28APIs managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h">
-      <Filter>Utils\Src</Filter>
+      <Filter>Utils\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h">
-      <Filter>Utils\Src</Filter>
+      <Filter>Utils\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\meshoptimizer.h">
       <Filter>ThirdParty\meshoptimizer</Filter>
@@ -227,16 +227,19 @@
       <Filter>Components\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
-      <Filter>Utils\Src</Filter>
+      <Filter>Utils\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
-      <Filter>Utils\Header Only</Filter>
+      <Filter>Utils\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h">
       <Filter>HighAPIs %28API_EXPORT%29\Public %28APIs%29\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GModuleLoader.h">
       <Filter>Common\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\PrivateInterface.h">
+      <Filter>Utils\Private</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -286,19 +289,19 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp">
-      <Filter>Utils\Src</Filter>
+      <Filter>Utils\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp">
-      <Filter>Utils\Src</Filter>
+      <Filter>Utils\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp">
-      <Filter>Utils\Src</Filter>
+      <Filter>Utils\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp">
-      <Filter>Utils\Src</Filter>
+      <Filter>Utils\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp">
-      <Filter>Utils\Src</Filter>
+      <Filter>Utils\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\overdrawoptimizer.cpp">
       <Filter>ThirdParty\meshoptimizer</Filter>
