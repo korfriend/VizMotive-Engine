@@ -494,6 +494,8 @@ namespace vz::jobsystem
 
 	void Execute(context& ctx, const std::function<void(JobArgs)>& task)
 	{
+		vzlog_assert(ctx.magicChecker == MAGIC_CHECK_VALUE, "CRITICAL JOBSYSTEM MISUSE!: Invalid context passed to jobsystem API");
+
 		PriorityResources& res = internal_state.resources[int(ctx.priority)];
 
 		// Context state is updated:
@@ -521,6 +523,8 @@ namespace vz::jobsystem
 
 	void ExecuteConcurrency(contextConcurrency& ctx, const std::function<void(JobArgs)>& task)
 	{
+		vzlog_assert(ctx.magicChecker == MAGIC_CHECK_VALUE, "CRITICAL JOBSYSTEM MISUSE!: Invalid context passed to jobsystem API");
+
 		PriorityResources& res = internal_state.resources[int(Priority::Low)];
 
 		Job job;
@@ -547,6 +551,8 @@ namespace vz::jobsystem
 
 	void Dispatch(context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedmemory_size)
 	{
+		vzlog_assert(ctx.magicChecker == MAGIC_CHECK_VALUE, "CRITICAL JOBSYSTEM MISUSE!: Invalid context passed to jobsystem API");
+
 		if (jobCount == 0 || groupSize == 0)
 		{
 			return;
@@ -595,12 +601,15 @@ namespace vz::jobsystem
 
 	bool IsBusy(const context& ctx)
 	{
+		vzlog_assert(ctx.magicChecker == MAGIC_CHECK_VALUE, "CRITICAL JOBSYSTEM MISUSE!: Invalid context passed to jobsystem API");
+
 		// Whenever the context label is greater than zero, it means that there is still work that needs to be done
 		return AtomicLoad(&ctx.counter) > 0;
 	}
 
 	void Wait(const context& ctx)
 	{
+		vzlog_assert(ctx.magicChecker == MAGIC_CHECK_VALUE, "CRITICAL JOBSYSTEM MISUSE!: Invalid context passed to jobsystem API");
 		if (IsBusy(ctx))
 		{
 			PriorityResources& res = internal_state.resources[int(ctx.priority)];
