@@ -41,15 +41,18 @@ namespace vz::jobsystem
 	{
 		volatile long counter = 0;
 		Priority priority = Priority::High;
-
-		const uint32_t magicChecker = MAGIC_CHECK_VALUE;
+		bool IsAvailable() const { return magicChecker_ == MAGIC_CHECK_VALUE; }
+	private:
+		const uint32_t magicChecker_ = MAGIC_CHECK_VALUE;
 	};
 
 	struct contextConcurrency
 	{
 		uint32_t concurrentID = 0;
 
-		const uint32_t magicChecker = MAGIC_CHECK_VALUE;
+		bool IsAvailable() const { return magicChecker_ == MAGIC_CHECK_VALUE; }
+	private:
+		const uint32_t magicChecker_ = MAGIC_CHECK_VALUE;
 	};
 
 	UTIL_EXPORT uint32_t GetThreadCount(Priority priority = Priority::High);
