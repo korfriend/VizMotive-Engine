@@ -38,8 +38,8 @@ VizMotive/
 
 ### Build Instructions
 1. Open the solution in Visual Studio
-2. Select the 'Engine Build' project
-3. Build the 'Install' target
+2. Select the 'Engine Build' filter
+3. Build the 'Install' project
 4. Access the compiled binaries and headers in `VizMotive-root/Install`
 
 ## Development
