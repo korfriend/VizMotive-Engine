@@ -2,7 +2,7 @@
 #include "CommonInclude.h"
 #include "Utils/Platform.h"
 
-#include "Common/Backend/GBackendDevice.h"
+#include "GBackend/GBackendDevice.h"
 #include "Utils/SpinLock.h"
 #include "Utils/Backlog.h"
 

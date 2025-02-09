@@ -3,7 +3,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-#include "Libs/Math.h"
+#include "Utils/vzMath.h"
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
 

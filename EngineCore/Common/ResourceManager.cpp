@@ -1,5 +1,5 @@
 #include "ResourceManager.h"
-#include "Backend/GModuleLoader.h" // deferred task for streaming
+#include "GBackend/GModuleLoader.h" // deferred task for streaming
 #include "Components/GComponents.h"
 
 #include "Utils/Helpers.h"

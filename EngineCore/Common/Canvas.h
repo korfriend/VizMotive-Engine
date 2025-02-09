@@ -1,6 +1,6 @@
 #pragma once
-#include "Libs/Math.h"
-#include "Common/Backend/GBackendDevice.h"
+#include "Utils/vzMath.h"
+#include "GBackend/GBackendDevice.h"
 
 
 #include <string>

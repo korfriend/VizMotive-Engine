@@ -1,5 +1,5 @@
 #pragma once
-#include "Components/Components.h"
+#include "vzmcore/Components.h"
 
 #include <any>
 

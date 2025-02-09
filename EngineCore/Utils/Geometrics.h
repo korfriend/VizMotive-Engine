@@ -1,5 +1,5 @@
 #pragma once
-#include "Math.h"
+#include "vzMath.h"
 
 #include <limits>
 #include <cassert>

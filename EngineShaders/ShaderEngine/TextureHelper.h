@@ -1,5 +1,5 @@
 #pragma once
-#include "Common/Backend/GBackendDevice.h"
+#include "GBackend/GBackendDevice.h"
 #include "Utils/Color.h"
 
 namespace vz::texturehelper

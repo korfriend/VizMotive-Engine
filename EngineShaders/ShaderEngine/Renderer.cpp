@@ -9,8 +9,8 @@
 #include "Utils/Spinlock.h"
 #include "Utils/Profiler.h"
 #include "Utils/Helpers.h"
-#include "Libs/Math.h"
-#include "Libs/Geometrics.h"
+#include "Utils/vzMath.h"
+#include "Utils/Geometrics.h"
 
 #include "ThirdParty/RectPacker.h"
 
