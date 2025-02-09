@@ -2,9 +2,9 @@
 #include "Helpers.h"
 #include "Platform.h"
 
-#include "../include/spdlog/spdlog.h"
-#include "../include/spdlog/sinks/basic_file_sink.h"
-#include "../include/spdlog/sinks/stdout_color_sinks.h"
+#include "ThirdParty/spdlog/spdlog.h"
+#include "ThirdParty/spdlog/sinks/basic_file_sink.h"
+#include "ThirdParty/spdlog/sinks/stdout_color_sinks.h"
 
 #include <filesystem>
 
