@@ -4,7 +4,7 @@
 #include "EventHandler.h"
 #include "Color.h"
 #include "Helpers.h"
-#include "Libs/Math.h"
+#include "Libs/vzMath.h"
 
 #include "ThirdParty/lodepng.h"
 #include "ThirdParty/dds.h"
