@@ -16,6 +16,7 @@
 *.userprefs
 
 # Build results
+Install/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -37,13 +38,6 @@ bin/*.txt
 bin/Distribution
 bin/Release
 bin/Debug
-EngineCores/
-CoreAPIs/
-backups/
-VmNativeModules/
-VmPlatform/
-VmProjects/
-VmModuleProjects/
 bin/X64_Release/*.lib
 bin/X64_Debug/*.lib
 bin/X64_Release/*.ini
@@ -75,9 +69,6 @@ TestResult.xml
 dlldata.c
 
 *.dll
-NPTrackingToolsx64*.dll
-opencv_world330*.dll
-opencv_world470*.dll
 
 # DNX
 project.lock.json
