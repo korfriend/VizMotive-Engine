@@ -20,6 +20,13 @@ for %%F in (%enginecomps%) do (
 )
 
 REM ------------------------------------------
+REM Individual header files in Libs folder (outdated copy)
+REM Target: ..\Install\vzmcore\utils\
+set "libs=vzMath.h Geometrics.h"
+for %%F in (%libs%) do (
+    xcopy "..\EngineCore\Libs\%%F" "..\Install\vzmcore\utils\" /D /Y
+)
+REM ------------------------------------------
 REM Copy entire DirectXMath folder (including subfolders)
 REM robocopy performs incremental copy by default, copying only files that are newer than the target
 robocopy "..\EngineCore\Utils\DirectXMath" "..\Install\vzmcore\utils\DirectXMath" /E /XO
