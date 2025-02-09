@@ -4,7 +4,7 @@
 #ifdef __cplusplus // not invoking shader compiler, but included in engine source
 
 // Application-side types:
-#include "Libs/Math.h"
+#include "Utils/vzMath.h"
 
 using float4x4 = XMFLOAT4X4;
 using float2 = XMFLOAT2;

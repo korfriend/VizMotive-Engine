@@ -4,8 +4,8 @@
 #include "Utils/JobSystem.h"
 #include "Utils/Platform.h"
 #include "Common/Archive.h"
-#include "Libs/Geometrics.h"
-#include "Common/Backend/GModuleLoader.h"
+#include "Utils/Geometrics.h"
+#include "GBackend/GModuleLoader.h"
 #include "Common/ResourceManager.h"
 
 #include <cstdint>

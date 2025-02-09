@@ -1,8 +1,8 @@
 // Filament highlevel APIs
-#include "HighAPIs/VzEngineAPIs.h"
-#include "Utils/Backlog.h"
-#include "Utils/EventHandler.h"
-#include "Utils/Profiler.h"
+#include "vzm2/VzEngineAPIs.h"
+#include "vzm2/utils/Backlog.h"
+#include "vzm2/utils/EventHandler.h"
+#include "vzm2/utils/Profiler.h"
 
 #include <iostream>
 #include <windowsx.h>

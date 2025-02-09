@@ -17,10 +17,6 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GModuleLoader.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GSceneRenderPath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h" />
@@ -32,6 +28,10 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GBackend.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GBackendDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GModuleLoader.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GSceneRenderPath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
@@ -43,13 +43,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzScene.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXColors.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMath.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Geometrics.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\h264.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\liberation_sans.h" />
@@ -65,8 +58,14 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_truetype.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXCollision.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXColors.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMath.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathCommon.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXPackedVector.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Geometrics.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h" />
@@ -76,6 +75,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\vzMath.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
@@ -130,11 +130,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXCollision.inl" />
-    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathConvert.inl" />
-    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathMatrix.inl" />
-    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathMisc.inl" />
-    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathVector.inl" />
-    <None Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathMatrix.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathMisc.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathVector.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXPackedVector.inl" />
   </ItemGroup>
 </Project>

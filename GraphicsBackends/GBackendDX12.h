@@ -1,5 +1,5 @@
 #pragma once
-#include "Common/Backend/GBackendDevice.h"
+#include "GBackend/GBackendDevice.h"
 
 #ifdef _WIN32
 #define DX12_EXPORT __declspec(dllexport)

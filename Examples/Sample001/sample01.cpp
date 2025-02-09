@@ -1,5 +1,5 @@
 // Filament highlevel APIs
-#include "HighAPIs/VzEngineAPIs.h"
+#include "vzm2/VzEngineAPIs.h"
 
 #include <iostream>
 #include <windowsx.h>
