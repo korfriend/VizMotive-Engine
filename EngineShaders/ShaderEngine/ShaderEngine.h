@@ -1,6 +1,6 @@
 #pragma once
-#include "Common/Backend/GBackendDevice.h"
-#include "Common/Backend/GSceneRenderPath.h"
+#include "GBackend/GBackendDevice.h"
+#include "GBackend/GSceneRenderPath.h"
 
 #ifdef _WIN32
 #define DX12_EXPORT __declspec(dllexport)

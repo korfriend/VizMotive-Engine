@@ -1,6 +1,6 @@
 #pragma once
 #include "CommonInclude.h"
-#include "Libs/Math.h"
+#include "Utils/vzMath.h"
 #include "Common/Archive.h"
 #include "Random.h"
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "Libs/Math.h"
+#include "vzMath.h"
 
 namespace vz
 {

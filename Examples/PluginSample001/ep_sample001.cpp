@@ -1,7 +1,7 @@
 #include "ep_sample001.h"
 
-#include "Components/GComponents.h"
-#include "Utils/Helpers.h"
+#include "vzmcore/GComponents.h"
+#include "vzmcore/utils/Helpers.h"
 
 using namespace vz;
 

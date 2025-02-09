@@ -4,11 +4,11 @@
 #include "Utils/Timer.h"
 #include <unordered_set>
 
-#include "Libs/dx12/dxgiformat.h"
-#include "Libs/dx12/d3dx12_default.h"
-#include "Libs/dx12/d3dx12_resource_helpers.h"
-#include "Libs/dx12/d3dx12_pipeline_state_stream.h"
-#include "Libs/dx12/d3dx12_check_feature_support.h"
+#include "Utils/dx12/dxgiformat.h"
+#include "Utils/dx12/d3dx12_default.h"
+#include "Utils/dx12/d3dx12_resource_helpers.h"
+#include "Utils/dx12/d3dx12_pipeline_state_stream.h"
+#include "Utils/dx12/d3dx12_check_feature_support.h"
 #ifdef _DEBUG
 #include <dxgidebug.h>
 #endif

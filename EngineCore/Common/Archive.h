@@ -1,7 +1,7 @@
 #pragma once
-#include "Libs/Math.h"
+#include "Utils/vzMath.h"
 #include "Utils/Color.h"
-#include "Backend/GBackend.h"
+#include "GBackend/GBackend.h"
 
 #include <string>
 
