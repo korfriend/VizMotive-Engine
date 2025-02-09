@@ -12,16 +12,25 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine_SOURCE", "EngineCore\Engine_SOURCE.vcxitems", "{D8D9BFE0-037D-43C2-A0E4-C5E88B21BFEA}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginSample001", "Examples\PluginSample001\PluginSample001.vcxproj", "{E2D2C7BC-B88E-4340-B334-AC845CBAFCE8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules (Essential)", "Modules (Essential)", "{C2134175-EEFE-47EA-BAE5-EC589D70946F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample01", "Examples\Sample001\Sample01.vcxproj", "{9F316E83-5AE5-4939-A723-305A94F48005}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shader Engines", "Shader Engines", "{821B90CB-C36E-4340-92E5-531178151C02}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Built-in Plugins", "Built-in Plugins", "{D5932B66-320A-4FA8-9E0D-C1FD4EF88E04}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample02", "Examples\Sample002\Sample02.vcxproj", "{29DA1FC3-1674-4897-A72D-E81317C187B8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine-Plugin Samples", "Engine-Plugin Samples", "{8963E175-6D53-4024-B1A3-DD44CF101C8E}"
 EndProject
@@ -34,22 +43,45 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "win32imgui(DX12)", "win32imgui(DX12)", "{0A297EDD-E998-4D81-A886-F244FE4D7DA0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssetIO", "EnginePlugins\AssetIO\AssetIO.vcxproj", "{034C33F7-BE75-401B-93BC-84EED7401570}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample03", "Examples\Sample003\Sample03.vcxproj", "{AEBF5849-4D10-46E4-A6AE-6536DBCC5B0F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Graphics Backends", "Graphics Backends", "{84C866AA-AE3A-4BBE-B89D-50A9EC3A1987}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GBackendDX11", "GraphicsBackends\GBackendDX11.vcxproj", "{FDBCF2F5-2AEC-428B-A825-F248208DF02A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GBackendDX12", "GraphicsBackends\GBackendDX12.vcxproj", "{EF13217F-7B13-4A3E-AD08-FBC2A599919B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GBackendVulkan", "GraphicsBackends\GBackendVulkan.vcxproj", "{AEA4A101-A572-47BA-897D-E6FE45566F65}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShaderEngine", "EngineShaders\ShaderEngine\ShaderEngine.vcxproj", "{55DE2782-27C3-4804-AA00-59326800DA3B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ModernShaders", "EngineShaders\Shaders\ModernShaders.vcxitems", "{FD7A4774-0A05-4E2B-BF88-B8A8E688E116}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample04", "Examples\Sample004\Sample04.vcxproj", "{B5405B8A-91B9-4ADD-8301-9E68D539AE60}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Install", "BUILD\InstallPackage\Install.vcxproj", "{441820A9-D7E4-48C0-BF2D-E246966C2C9C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -239,6 +271,22 @@ Global
 		{B5405B8A-91B9-4ADD-8301-9E68D539AE60}.Release|x64.Build.0 = Release|x64
 		{B5405B8A-91B9-4ADD-8301-9E68D539AE60}.Release|x86.ActiveCfg = Release|Win32
 		{B5405B8A-91B9-4ADD-8301-9E68D539AE60}.Release|x86.Build.0 = Release|Win32
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Debug_MT|x64.ActiveCfg = Debug|x64
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Debug_MT|x64.Build.0 = Debug|x64
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Debug_MT|x86.ActiveCfg = Debug|Win32
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Debug_MT|x86.Build.0 = Debug|Win32
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Debug|x64.ActiveCfg = Debug|x64
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Debug|x64.Build.0 = Debug|x64
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Debug|x86.ActiveCfg = Debug|Win32
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Debug|x86.Build.0 = Debug|Win32
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release_MT|x64.ActiveCfg = Release|x64
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release_MT|x64.Build.0 = Release|x64
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release_MT|x86.ActiveCfg = Release|Win32
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release_MT|x86.Build.0 = Release|Win32
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release|x64.ActiveCfg = Release|x64
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release|x64.Build.0 = Release|x64
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release|x86.ActiveCfg = Release|Win32
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -263,6 +311,7 @@ Global
 		{55DE2782-27C3-4804-AA00-59326800DA3B} = {821B90CB-C36E-4340-92E5-531178151C02}
 		{FD7A4774-0A05-4E2B-BF88-B8A8E688E116} = {821B90CB-C36E-4340-92E5-531178151C02}
 		{B5405B8A-91B9-4ADD-8301-9E68D539AE60} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
+		{441820A9-D7E4-48C0-BF2D-E246966C2C9C} = {72F7CF71-5EAA-4BC7-B937-6270571D9EDA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}

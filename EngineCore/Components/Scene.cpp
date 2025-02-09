@@ -5,7 +5,7 @@
 #include "Utils/Platform.h"
 #include "Common/Archive.h"
 #include "Libs/Geometrics.h"
-#include "Common/Backend/GModuleLoader.h"
+#include "GBackend/GModuleLoader.h"
 #include "Common/ResourceManager.h"
 
 #include <cstdint>

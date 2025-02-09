@@ -7,8 +7,8 @@
 #include "Utils/PrivateInterface.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
-#include "Common/Backend/GBackendDevice.h"
-#include "Common/Backend/GModuleLoader.h"
+#include "GBackend/GBackendDevice.h"
+#include "GBackend/GModuleLoader.h"
 
 namespace vz
 {
