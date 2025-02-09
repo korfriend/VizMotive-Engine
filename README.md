@@ -1,6 +1,6 @@
 # VizMotive Engine
 
-A modern, high-performance framework for visualization and vision tasks, built on proven industry foundations.
+A modern, high-performance framework for visualization and vision tasks, built on proven industry foundations. The framework aims to seamlessly integrate native AI modules, enabling high-performance vision processing and real-time AI capabilities directly within the graphics pipeline.
 
 ## Overview
 
