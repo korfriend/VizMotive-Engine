@@ -17,10 +17,6 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackend.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GBackendDevice.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GModuleLoader.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Backend\GSceneRenderPath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h" />
@@ -32,6 +28,10 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GBackend.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GBackendDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GModuleLoader.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GSceneRenderPath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
@@ -48,7 +48,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXMathCommon.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\DirectXMath\DirectXPackedVector.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Math.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Libs\vzMath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Libs\Geometrics.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\dds.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\h264.h" />
