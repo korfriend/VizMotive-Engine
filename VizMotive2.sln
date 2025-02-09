@@ -52,7 +52,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample03", "Examples\Sample
 		{D86799C4-9D93-4981-93B7-48C219D40915} = {D86799C4-9D93-4981-93B7-48C219D40915}
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Graphics Backends", "Graphics Backends", "{84C866AA-AE3A-4BBE-B89D-50A9EC3A1987}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Graphics Backends (Essential)", "Graphics Backends (Essential)", "{84C866AA-AE3A-4BBE-B89D-50A9EC3A1987}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GBackendDX11", "GraphicsBackends\GBackendDX11.vcxproj", "{FDBCF2F5-2AEC-428B-A825-F248208DF02A}"
 	ProjectSection(ProjectDependencies) = postProject
