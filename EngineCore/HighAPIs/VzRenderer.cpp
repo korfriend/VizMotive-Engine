@@ -1,6 +1,7 @@
 #include "VzEngineAPIs.h"
 #include "Components/GComponents.h"
 #include "Common/RenderPath3D.h"
+#include "GBackend/GModuleLoader.h"
 #include "Utils/Backlog.h"
 #include "Utils/Helpers.h"
 #include "Utils/Profiler.h"
@@ -8,6 +9,11 @@
 using namespace vz;
 using namespace std;
 using namespace backlog;
+
+namespace vz
+{
+	extern GBackendLoader graphicsBackend;
+}
 
 namespace vzm
 {
@@ -195,35 +201,56 @@ namespace vzm
 		camera->isPickingMode = true;
 		camera->pickingIO.SetScreenPos(*(XMFLOAT2*)&pos);
 
-
-		renderer->Render(0); // just for picking process
-		//geometrics::Ray ray = renderer->GetPickRay(pos.x, pos.y, *camera);
-		//Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray, 
-		//	SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE) | SCU32(RenderableFilterFlags::RENDERABLE_VOLUME_DVR));
-		//if (intersect_result.entity != INVALID_ENTITY)
-		//{
-		//	std::cout << intersect_result.position.x << ", " << intersect_result.position.y << ", " << intersect_result.position.z << std::endl;
-		//	std::cout << intersect_result.distance << std::endl;
-		//}
-
-		size_t num_picked_positions = camera->pickingIO.NumPickedPositions();
-		bool ret = num_picked_positions > 0;
-
-		// output setting
-		if (ret)
+		bool ret = false;
+		if (vz::graphicsBackend.API == "DX11")
 		{
-			vids.resize(num_picked_positions);
-			worldPositions.resize(num_picked_positions);
-			pritmitiveIDs.resize(num_picked_positions);
-			maskValues.resize(num_picked_positions);
-			memcpy(vids.data(), camera->pickingIO.DataEntities(), sizeof(Entity) * num_picked_positions);
-			memcpy(worldPositions.data(), camera->pickingIO.DataPositions(), sizeof(XMFLOAT3) * num_picked_positions);
-			memcpy(pritmitiveIDs.data(), camera->pickingIO.DataPrimitiveIDs(), sizeof(int) * num_picked_positions);
-			memcpy(maskValues.data(), camera->pickingIO.DataMaskValues(), sizeof(int) * num_picked_positions);
+			// TODO: MUST BE DEPRECATED!!!
+			// Use core-built-in picking based on simple BVH
+
+			renderer->Render(0); // just for picking process
+
+			size_t num_picked_positions = camera->pickingIO.NumPickedPositions();
+			ret = num_picked_positions > 0;
+
+			// output setting
+			if (ret)
+			{
+				vids.resize(num_picked_positions);
+				worldPositions.resize(num_picked_positions);
+				pritmitiveIDs.resize(num_picked_positions);
+				maskValues.resize(num_picked_positions);
+				memcpy(vids.data(), camera->pickingIO.DataEntities(), sizeof(Entity) * num_picked_positions);
+				memcpy(worldPositions.data(), camera->pickingIO.DataPositions(), sizeof(XMFLOAT3) * num_picked_positions);
+				memcpy(pritmitiveIDs.data(), camera->pickingIO.DataPrimitiveIDs(), sizeof(int) * num_picked_positions);
+				memcpy(maskValues.data(), camera->pickingIO.DataMaskValues(), sizeof(int) * num_picked_positions);
+			}
+
+			camera->isPickingMode = false;
+			camera->pickingIO.Clear();
+		}
+		else
+		{
+			geometrics::Ray ray = renderer->GetPickRay(pos.x, pos.y, *camera);
+			Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray,
+				SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE) | SCU32(RenderableFilterFlags::RENDERABLE_VOLUME_DVR));
+			if (intersect_result.entity != INVALID_ENTITY)
+			{
+				std::cout << intersect_result.position.x << ", " << intersect_result.position.y << ", " << intersect_result.position.z << std::endl;
+				std::cout << intersect_result.distance << std::endl;
+
+				size_t num_picked_positions = 1;
+				vids.resize(num_picked_positions);
+				worldPositions.resize(num_picked_positions);
+				pritmitiveIDs.resize(num_picked_positions);
+				maskValues.resize(num_picked_positions);
+
+				vids[0] = intersect_result.entity;
+				worldPositions[0] = *(vfloat3*)&intersect_result.position;
+				pritmitiveIDs[0] = intersect_result.p;
+				maskValues[0] = -1;
+			}
 		}
 
-		camera->isPickingMode = false;
-		camera->pickingIO.Clear();
 
 		return ret;
 	}

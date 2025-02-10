@@ -505,6 +505,7 @@ namespace vz
 										result.vertexID1 = (int)i1;
 										result.vertexID2 = (int)i2;
 										result.bary = bary;
+										result.triIndex = (int)triangleIndex;
 									}
 								}
 							};
