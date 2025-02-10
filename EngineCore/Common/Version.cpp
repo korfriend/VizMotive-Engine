@@ -12,7 +12,7 @@ namespace vz::version
 	// minor bug fixes, alterations, refactors, updates
 	const int revision = 0;
 
-	const std::string versionString = std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision);
+	const std::string versionString = std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision) + ".preview";
 
 	long GetVersion()
 	{

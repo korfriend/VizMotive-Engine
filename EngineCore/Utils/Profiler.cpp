@@ -1,5 +1,6 @@
 #include "Profiler.h"
 #include "GBackend/GBackendDevice.h"
+#include "GBackend/GModuleLoader.h"
 #include "Common/Canvas.h"
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
@@ -20,6 +21,11 @@
 #include <sstream>
 
 using namespace vz::graphics;
+
+namespace vz
+{
+	extern GBackendLoader graphicsBackend;
+}
 
 namespace vz::profiler
 {
@@ -115,7 +121,17 @@ namespace vz::profiler
 
 		// Read results of previous timings:
 		// This should be done before we begin reallocating new queries for current buffer index
-		const uint64_t* queryResults = (const uint64_t*)queryResultBuffer[queryheap_idx].mapped_data;
+		uint64_t* queryResults = nullptr;
+		if (graphicsBackend.API == "DX11")
+		{
+			device->Map(&queryResultBuffer[queryheap_idx]);
+			queryResults = (uint64_t*)queryResultBuffer[queryheap_idx].mapped_data;
+		}
+		else
+		{
+			queryResults = (uint64_t*)queryResultBuffer[queryheap_idx].mapped_data;
+		}
+			
 		double gpu_frequency = (double)device->GetTimestampFrequency() / 1000.0;
 		for (auto& x : ranges)
 		{
@@ -149,6 +165,11 @@ namespace vz::profiler
 			}
 
 			range.in_use = false;
+		}
+
+		if (graphicsBackend.API == "DX11")
+		{
+			device->Unmap(&queryResultBuffer[queryheap_idx]);
 		}
 
 		device->QueryReset(
