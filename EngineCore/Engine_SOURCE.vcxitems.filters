@@ -4,12 +4,6 @@
     <Filter Include="Common">
       <UniqueIdentifier>{7aa9d8b6-827d-496a-9916-ce1df652ad78}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utils">
-      <UniqueIdentifier>{2d378dfe-7ac5-43ba-838f-a29987f71127}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Components">
-      <UniqueIdentifier>{1ef74076-5448-4106-bc13-a82f3500293f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ThirdParty">
       <UniqueIdentifier>{0c7ca975-abff-4991-8de0-a6383a28fdcc}</UniqueIdentifier>
     </Filter>
@@ -34,26 +28,32 @@
     <Filter Include="HighAPIs %28API_EXPORT%29\Public %28APIs%29\Components">
       <UniqueIdentifier>{3dec64ff-fb3f-42f3-ae98-269b75258a1d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Components\Public %28CORE_EXPORT%29 APIs">
-      <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Components\Private">
-      <UniqueIdentifier>{25f62d85-dbd6-488d-99fd-3156f75a2a66}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Utils\Private">
-      <UniqueIdentifier>{f4b528db-3157-44f7-9b2f-3df59fcac99b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Utils\Public %28Header Only%29">
-      <UniqueIdentifier>{e3c597f1-dc00-4e24-ad2d-cf5dbaebabd3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Utils\Public %28APIs managed by core%29">
-      <UniqueIdentifier>{0e18ec7f-8058-4218-9048-ec0f4ca4800e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="GBackend">
       <UniqueIdentifier>{a8cb1b7e-e9ba-4ad2-bffc-076b282bc578}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utils\Public %28Header Only%29\DirectXMath">
+    <Filter Include="Utils %28UTIL_EXPORT%29">
+      <UniqueIdentifier>{2d378dfe-7ac5-43ba-838f-a29987f71127}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils %28UTIL_EXPORT%29\Private">
+      <UniqueIdentifier>{f4b528db-3157-44f7-9b2f-3df59fcac99b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils %28UTIL_EXPORT%29\Public %28Header Only%29">
+      <UniqueIdentifier>{e3c597f1-dc00-4e24-ad2d-cf5dbaebabd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath">
       <UniqueIdentifier>{0c419b66-6c21-4c7b-bafc-2c06a2b34c5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils %28UTIL_EXPORT%29\Public %28APIs managed by core%29">
+      <UniqueIdentifier>{0e18ec7f-8058-4218-9048-ec0f4ca4800e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components %28CORE_EXPORT%29">
+      <UniqueIdentifier>{1ef74076-5448-4106-bc13-a82f3500293f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components %28CORE_EXPORT%29\Public %28APIs%29">
+      <UniqueIdentifier>{1700b8a5-9b4b-4d80-92e7-a7df65dd0853}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components %28CORE_EXPORT%29\Private">
+      <UniqueIdentifier>{25f62d85-dbd6-488d-99fd-3156f75a2a66}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -119,10 +119,10 @@
       <Filter>ThirdParty</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h">
-      <Filter>Components\Public %28CORE_EXPORT%29 APIs</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Public %28APIs%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h">
-      <Filter>Components\Public %28CORE_EXPORT%29 APIs</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Public %28APIs%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.h">
       <Filter>HighAPIs %28API_EXPORT%29\Public %28APIs%29\Common</Filter>
@@ -158,52 +158,52 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h">
-      <Filter>Utils\Public %28Header Only%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h">
-      <Filter>Utils\Public %28Header Only%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h">
-      <Filter>Utils\Public %28Header Only%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h">
-      <Filter>Utils\Public %28APIs managed by core%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28APIs managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h">
-      <Filter>Utils\Public %28APIs managed by core%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28APIs managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h">
-      <Filter>Utils\Public %28Header Only%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h">
-      <Filter>Utils\Public %28APIs managed by core%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28APIs managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h">
-      <Filter>Utils\Public %28APIs managed by core%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28APIs managed by core%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\meshoptimizer.h">
       <Filter>ThirdParty\meshoptimizer</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h">
-      <Filter>Utils\Public %28Header Only%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h">
       <Filter>HighAPIs %28API_EXPORT%29\Public %28APIs%29\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\PrivateInterface.h">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GBackend.h">
       <Filter>GBackend</Filter>
@@ -218,25 +218,25 @@
       <Filter>GBackend</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Geometrics.h">
-      <Filter>Utils\Public %28Header Only%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\vzMath.h">
-      <Filter>Utils\Public %28Header Only%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXCollision.h">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXColors.h">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMath.h">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathCommon.h">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXPackedVector.h">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -286,19 +286,19 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp">
-      <Filter>Utils\Private</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\overdrawoptimizer.cpp">
       <Filter>ThirdParty\meshoptimizer</Filter>
@@ -358,25 +358,25 @@
       <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.cpp">
       <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
@@ -388,21 +388,21 @@
       <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentRefReset.cpp">
-      <Filter>Components\Private</Filter>
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathMatrix.inl">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathMisc.inl">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathVector.inl">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXPackedVector.inl">
-      <Filter>Utils\Public %28Header Only%29\DirectXMath</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -72,7 +72,6 @@ namespace vz
 		PI_Deinitializer pluginDeinitializer = nullptr;
 		PI_NewGRenderPath3D pluginNewGRenderPath3D = nullptr;
 		PI_NewGScene pluginNewGScene = nullptr;
-		PI_InitRenderer pluginInitRenderer = nullptr;
 		PI_LoadShader pluginLoadShader = nullptr;
 		PI_LoadShaders pluginLoadShaders = nullptr;
 
@@ -95,7 +94,6 @@ namespace vz
 			
 			pluginNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>(moduleName, "NewGRenderPath");
 			pluginNewGScene = platform::LoadModule<PI_NewGScene>(moduleName, "NewGScene");
-			pluginInitRenderer = platform::LoadModule<PI_InitRenderer>(moduleName, "InitRenderer");
 			pluginLoadShader = platform::LoadModule<PI_LoadShader>(moduleName, "LoadShader");
 			pluginLoadShaders = platform::LoadModule<PI_LoadShaders>(moduleName, "LoadShaders");
 
@@ -105,7 +103,7 @@ namespace vz
 			pluginAddDeferredBufferUpdate = platform::LoadModule<PI_AddDeferredBufferUpdate>(moduleName, "AddDeferredBufferUpdate");
 			pluginAddDeferredGeometryGPUBVHUpdate = platform::LoadModule<PI_AddDeferredGeometryGPUBVHUpdate>(moduleName, "AddDeferredGeometryGPUBVHUpdate");
 
-			return pluginInitializer && pluginDeinitializer && pluginNewGRenderPath3D && pluginNewGScene && pluginInitRenderer && pluginLoadShader && pluginLoadShaders
+			return pluginInitializer && pluginDeinitializer && pluginNewGRenderPath3D && pluginNewGScene && pluginLoadShader && pluginLoadShaders
 				&& pluginAddDeferredTextureCopy && pluginAddDeferredBufferUpdate && pluginAddDeferredGeometryGPUBVHUpdate;
 		}
 	};
