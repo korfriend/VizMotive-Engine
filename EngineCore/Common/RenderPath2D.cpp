@@ -1,4 +1,5 @@
 #include "RenderPath2D.h"
+#include "Common/Initializer.h"
 
 namespace vz
 {
@@ -36,6 +37,12 @@ namespace vz
 
 	void RenderPath2D::ResizeResources()
 	{
+		if (!initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
+		{
+			vzlog("waiting for ShaderEngine Initialization...");
+			return;
+		}
+
 		RenderPath2D::DeleteGPUResources(true);
 
 		SwapChainDesc desc;
@@ -106,6 +113,11 @@ namespace vz
 	}
 	void RenderPath2D::Render(const float dt)
 	{
+		if (!initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
+		{
+			vzlog("waiting for ShaderEngine Initialization...");
+			return;
+		}
 		// to do
 	}
 }

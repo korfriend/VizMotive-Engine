@@ -488,7 +488,8 @@ namespace vz::renderer
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); });
 
 		jobsystem::Wait(ctx);
-		backlog::post("renderer Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
+		backlog::post("Shader Engine Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
+
 		renderer::initialized.store(true);
 		return true;
 	}
@@ -536,11 +537,20 @@ namespace vz
 		assert(version == vz::COMPONENT_INTERFACE_VERSION);
 
 		graphics::GetDevice() = device;
-		
-		renderer::Initialize();
 
 		return true;
 	}
+
+	bool LoadRenderer()
+	{
+		return renderer::Initialize();
+	}
+
+	//extern "C" DX12_EXPORT bool IsInitialized();
+	//bool IsInitialized()
+	//{
+	//	return renderer::IsInitialized();
+	//}
 
 	void Deinitialize()
 	{

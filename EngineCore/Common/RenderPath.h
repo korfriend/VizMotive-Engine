@@ -34,7 +34,6 @@ namespace vz
 		graphics::ColorSpace prevColorSpace_ = colorSpace_;
 		uint32_t prevMsaaSampleCount_ = 1;
 
-
 	public:
 		RenderPath(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
 			: Canvas(entity), graphicsDevice_(graphicsDevice) {
