@@ -204,7 +204,6 @@ namespace vz::compfactory
 		{
 			comp = slicerManager.GetComponent(entity);
 		}
-		assert(comp);
 		return comp;
 	}
 	SlicerComponent* GetSlicerComponent(const Entity entity)

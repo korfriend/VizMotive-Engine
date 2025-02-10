@@ -23,8 +23,8 @@ namespace vz
 		graphics::Viewport viewport_;
 		graphics::Rect scissor_;
 
-		XMFLOAT4X4 matScreen_;
-		XMFLOAT4X4 matScreenInv_;
+		XMFLOAT4X4 matScreen_ = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 matScreenInv_ = math::IDENTITY_MATRIX;
 
 		void updateViewportTransforms();
 
