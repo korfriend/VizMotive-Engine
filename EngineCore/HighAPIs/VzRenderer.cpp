@@ -246,7 +246,7 @@ namespace vzm
 
 				vids[0] = intersect_result.entity;
 				worldPositions[0] = *(vfloat3*)&intersect_result.position;
-				pritmitiveIDs[0] = intersect_result.p;
+				pritmitiveIDs[0] = intersect_result.triIndex;
 				maskValues[0] = -1;
 			}
 		}
