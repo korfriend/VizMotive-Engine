@@ -1,5 +1,6 @@
 #include "RenderPath3D.h"
 #include "GBackend/GModuleLoader.h"
+#include "Common/Initializer.h"
 #include "Components/GComponents.h"
 #include "Utils/Profiler.h"
 #include "Utils/Jobsystem.h"
@@ -83,6 +84,12 @@ namespace vz
 
 	void RenderPath3D::ResizeResources()
 	{
+		if (!initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
+		{
+			vzlog("waiting for ShaderEngine Initialization...");
+			return;
+		}
+
 		RenderPath3D::DeleteGPUResources(true);
 		RenderPath2D::ResizeResources();
 		handlerRenderPath3D_->ResizeCanvas(width_, height_);
@@ -139,9 +146,15 @@ namespace vz
 	
 	void RenderPath3D::Render(const float dt)
 	{
+		if (!initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
+		{
+			vzlog("waiting for ShaderEngine Initialization...");
+			return;
+		}
+
 		if (camera == nullptr || scene == nullptr)
 		{
-			backlog::post("RenderPath3D::Render >> No Scene or No Camera/Slicer in RenderPath!", backlog::LogLevel::Warn);
+			vzlog_warning("RenderPath3D::Render >> No Scene or No Camera/Slicer in RenderPath!");
 			return;
 		}
 

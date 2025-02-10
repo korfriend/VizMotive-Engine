@@ -62,7 +62,7 @@ namespace vz::initializer
 
 		jobsystem::Initialize(numMaxThreads);
 
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shaderEngine.pluginInitializer(graphics::GetDevice()); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shaderEngine.pluginLoadRenderer(); systems[INITIALIZED_SYSTEM_RENDERER].store(true); });
 		
 		// take a new thread and wait the above jobs (asynchronously)
 		std::thread([] {
