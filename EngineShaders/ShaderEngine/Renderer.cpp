@@ -938,6 +938,7 @@ namespace vz::renderer
 
 	bool GRenderPath3DDetails::ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight)
 	{
+		vzlog_assert(IsInitialized(), "ShaderEngine must be Initialized!");
 		if (canvasWidth_ == canvasWidth && canvasHeight_ == canvasHeight)
 		{
 			return true;
