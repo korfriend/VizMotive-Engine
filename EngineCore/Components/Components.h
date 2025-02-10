@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20241118";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250211";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -243,6 +243,7 @@ namespace vz
 			int vertexID2 = -1;
 			XMFLOAT2 bary = XMFLOAT2(0, 0);
 			XMFLOAT4X4 orientation = math::IDENTITY_MATRIX;
+			int triIndex = -1;
 
 			constexpr bool operator==(const RayIntersectionResult& other) const
 			{
