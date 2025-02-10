@@ -3,7 +3,6 @@
 #include "ShaderLoader.h"
 #include "ShaderCompiler.h"
 
-#include "Utils/JobSystem.h"
 #include "Utils/Backlog.h"
 #include "Utils/Helpers.h"
 
@@ -21,6 +20,8 @@ std::string SHADERSOURCEPATH = vz::helper::GetCurrentPath() + "../../../EngineSh
 
 std::atomic<size_t> SHADER_ERRORS{ 0 };
 std::atomic<size_t> SHADER_MISSING{ 0 };
+
+using namespace vz::renderer;
 
 namespace vz::rcommon
 {
@@ -61,8 +62,6 @@ namespace vz
 
 namespace vz::shader
 {
-	using namespace vz::graphics;
-
 	GraphicsDevice*& device = GetDevice();
 	// this is for the case when retry LoadShaders() 
 	jobsystem::context CTX_renderPS;
@@ -470,7 +469,7 @@ namespace vz::shader
 		{
 			for (uint32_t mesh_shader = 0; mesh_shader < MESH_SHADER_PSO_COUNT; ++mesh_shader)
 			{
-				jobsystem::Wait(rcommon::CTX_renderPSO[renderPass][mesh_shader]);
+				jobsystem::Wait(CTX_renderPSO[renderPass][mesh_shader]);
 			}
 		}
 		SHADER_ERRORS.store(0);
@@ -480,35 +479,35 @@ namespace vz::shader
 		
 		//----- Input Layers -----
 		{
-			rcommon::inputLayouts[ILTYPE_VERTEXCOLOR].elements =
+			inputLayouts[ILTYPE_VERTEXCOLOR].elements =
 			{
 				{ "POSITION", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
 				{ "TEXCOORD", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
 			};
-			rcommon::inputLayouts[ILTYPE_POSITION].elements =
+			inputLayouts[ILTYPE_POSITION].elements =
 			{
 				{ "POSITION", 0, Format::R32G32B32A32_FLOAT, 0, InputLayout::APPEND_ALIGNED_ELEMENT, InputClassification::PER_VERTEX_DATA },
 			};
 		}
 
 		//----- VS -----
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_PREPASS], "meshVS_prepass.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_MESH_PREPASS_ALPHATEST], "meshVS_prepass_alphatest.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_PREPASS], "meshVS_prepass.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_PREPASS_ALPHATEST], "meshVS_prepass_alphatest.cso"); });
 
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, rcommon::shaders[VSTYPE_OCCLUDEE], "occludeeVS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_OCCLUDEE], "occludeeVS.cso"); });
 
 		//----- PS -----
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_DEBUG], "meshPS_debug.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_SIMPLE], "meshPS_simple.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_VERTEXCOLOR], "vertexcolorPS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS], "meshPS_prepass.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_ALPHATEST], "meshPS_prepass_alphatest.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_DEPTHONLY], "meshPS_prepass_depthonly.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, rcommon::shaders[PSTYPE_MESH_PREPASS_DEPTHONLY_ALPHATEST], "meshPS_prepass_depthonly_alphatest.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_DEBUG], "meshPS_debug.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_SIMPLE], "meshPS_simple.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_VERTEXCOLOR], "vertexcolorPS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS], "meshPS_prepass.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS_ALPHATEST], "meshPS_prepass_alphatest.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS_DEPTHONLY], "meshPS_prepass_depthonly.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS_DEPTHONLY_ALPHATEST], "meshPS_prepass_depthonly_alphatest.cso"); });
 
 		//----- PS materials by permutation -----
 		static const std::vector<std::string> shaderTypeDefines[] = {
@@ -535,7 +534,7 @@ namespace vz::shader
 
 			LoadShader(
 				ShaderStage::PS,
-				rcommon::shaders[PSTYPE_RENDERABLE_PERMUTATION__BEGIN + args.jobIndex],
+				shaders[PSTYPE_RENDERABLE_PERMUTATION__BEGIN + args.jobIndex],
 				"meshPS.cso",
 				ShaderModel::SM_6_0,
 				shaderTypeDefines[args.jobIndex] // permutation defines
@@ -549,7 +548,7 @@ namespace vz::shader
 			defines.push_back("TRANSPARENT");
 			LoadShader(
 				ShaderStage::PS,
-				rcommon::shaders[PSTYPE_RENDERABLE_TRANSPARENT_PERMUTATION__BEGIN + args.jobIndex],
+				shaders[PSTYPE_RENDERABLE_TRANSPARENT_PERMUTATION__BEGIN + args.jobIndex],
 				"meshPS.cso",
 				ShaderModel::SM_6_0,
 				defines // permutation defines
@@ -557,53 +556,53 @@ namespace vz::shader
 		
 			});
 
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], "gs_preprocessCS.cso"); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_GAUSSIAN_OFFSET], "gs_offsetCS.cso"); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], "gs_duplicateCS.cso"); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], "gs_duplicateCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_GAUSSIAN_TOUCH_COUNT], "gs_preprocessCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_GAUSSIAN_OFFSET], "gs_offsetCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], "gs_duplicateCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_SORT_DUPLICATED_GAUSSIANS], "gs_duplicateCS.cso"); });
 
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_DVR_DEFAULT], "dvrCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_DEFAULT], "dvrCS.cso"); });
 
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_MESHLET_PREPARE], "meshlet_prepareCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_VIEW_RESOLVE], "view_resolveCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_VIEW_RESOLVE_MSAA], "view_resolveCS_MSAA.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_LIGHTCULLING], "lightCullingCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_LIGHTCULLING_DEBUG], "lightCullingCS_DEBUG.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_LIGHTCULLING_ADVANCED], "lightCullingCS_ADVANCED.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_LIGHTCULLING_ADVANCED_DEBUG], "lightCullingCS_ADVANCED_DEBUG.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GENERATEMIPCHAINCUBEARRAY_UNORM4], "generateMIPChainCubeArrayCS_unorm4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GENERATEMIPCHAINCUBEARRAY_FLOAT4], "generateMIPChainCubeArrayCS_float4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GENERATEMIPCHAINCUBE_UNORM4], "generateMIPChainCubeCS_unorm4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GENERATEMIPCHAINCUBE_FLOAT4], "generateMIPChainCubeCS_float4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GENERATEMIPCHAIN2D_FLOAT4], "generateMIPChain2DCS_float4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GENERATEMIPCHAIN2D_UNORM4], "generateMIPChain2DCS_unorm4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GENERATEMIPCHAIN3D_FLOAT4], "generateMIPChain3DCS_float4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_GENERATEMIPCHAIN3D_UNORM4], "generateMIPChain3DCS_unorm4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_FLOAT1], "blur_gaussian_float1CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_FLOAT3], "blur_gaussian_float3CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_FLOAT4], "blur_gaussian_float4CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_UNORM1], "blur_gaussian_unorm1CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_UNORM4], "blur_gaussian_unorm4CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_FLOAT1], "blur_gaussian_wide_float1CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_FLOAT3], "blur_gaussian_wide_float3CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_FLOAT4], "blur_gaussian_wide_float4CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_UNORM1], "blur_gaussian_wide_unorm1CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_UNORM4], "blur_gaussian_wide_unorm4CS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC1], "blockcompressCS_BC1.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC3], "blockcompressCS_BC3.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC4], "blockcompressCS_BC4.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC5], "blockcompressCS_BC5.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC6H], "blockcompressCS_BC6H.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BLOCKCOMPRESS_BC6H_CUBEMAP], "blockcompressCS_BC6H_cubemap.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_WETMAP_UPDATE], "wetmap_updateCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_MESHLET_PREPARE], "meshlet_prepareCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_VIEW_RESOLVE], "view_resolveCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_VIEW_RESOLVE_MSAA], "view_resolveCS_MSAA.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_LIGHTCULLING], "lightCullingCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_LIGHTCULLING_DEBUG], "lightCullingCS_DEBUG.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_LIGHTCULLING_ADVANCED], "lightCullingCS_ADVANCED.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_LIGHTCULLING_ADVANCED_DEBUG], "lightCullingCS_ADVANCED_DEBUG.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GENERATEMIPCHAINCUBEARRAY_UNORM4], "generateMIPChainCubeArrayCS_unorm4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GENERATEMIPCHAINCUBEARRAY_FLOAT4], "generateMIPChainCubeArrayCS_float4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GENERATEMIPCHAINCUBE_UNORM4], "generateMIPChainCubeCS_unorm4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GENERATEMIPCHAINCUBE_FLOAT4], "generateMIPChainCubeCS_float4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GENERATEMIPCHAIN2D_FLOAT4], "generateMIPChain2DCS_float4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GENERATEMIPCHAIN2D_UNORM4], "generateMIPChain2DCS_unorm4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GENERATEMIPCHAIN3D_FLOAT4], "generateMIPChain3DCS_float4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GENERATEMIPCHAIN3D_UNORM4], "generateMIPChain3DCS_unorm4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_FLOAT1], "blur_gaussian_float1CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_FLOAT3], "blur_gaussian_float3CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_FLOAT4], "blur_gaussian_float4CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_UNORM1], "blur_gaussian_unorm1CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_UNORM4], "blur_gaussian_unorm4CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_FLOAT1], "blur_gaussian_wide_float1CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_FLOAT3], "blur_gaussian_wide_float3CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_FLOAT4], "blur_gaussian_wide_float4CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_UNORM1], "blur_gaussian_wide_unorm1CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_BLUR_GAUSSIAN_WIDE_UNORM4], "blur_gaussian_wide_unorm4CS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BLOCKCOMPRESS_BC1], "blockcompressCS_BC1.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BLOCKCOMPRESS_BC3], "blockcompressCS_BC3.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BLOCKCOMPRESS_BC4], "blockcompressCS_BC4.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BLOCKCOMPRESS_BC5], "blockcompressCS_BC5.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BLOCKCOMPRESS_BC6H], "blockcompressCS_BC6H.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BLOCKCOMPRESS_BC6H_CUBEMAP], "blockcompressCS_BC6H_cubemap.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_WETMAP_UPDATE], "wetmap_updateCS.cso"); });
 
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_POSTPROCESS_TONEMAP], "tonemapCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_TONEMAP], "tonemapCS.cso"); });
 
 		// BVH
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BVH_PRIMITIVES_GEOMETRYONLY], "bvh_primitivesCS_geometryonly.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BVH_PRIMITIVES], "bvh_primitivesCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BVH_HIERARCHY], "bvh_hierarchyCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, rcommon::shaders[CSTYPE_BVH_PROPAGATEAABB], "bvh_propagateaabbCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BVH_PRIMITIVES_GEOMETRYONLY], "bvh_primitivesCS_geometryonly.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BVH_PRIMITIVES], "bvh_primitivesCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BVH_HIERARCHY], "bvh_hierarchyCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BVH_PROPAGATEAABB], "bvh_propagateaabbCS.cso"); });
 
 
 		jobsystem::Wait(ctx);
@@ -611,13 +610,13 @@ namespace vz::shader
 		// create graphics pipelines
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			PipelineStateDesc desc;
-			desc.vs = &rcommon::shaders[VSTYPE_MESH_SIMPLE];
-			desc.ps = &rcommon::shaders[PSTYPE_MESH_SIMPLE];
-			desc.rs = &rcommon::rasterizers[RSTYPE_WIRE];
-			desc.bs = &rcommon::blendStates[BSTYPE_OPAQUE];
-			desc.dss = &rcommon::depthStencils[DSSTYPE_DEFAULT];
+			desc.vs = &shaders[VSTYPE_MESH_SIMPLE];
+			desc.ps = &shaders[PSTYPE_MESH_SIMPLE];
+			desc.rs = &rasterizers[RSTYPE_WIRE];
+			desc.bs = &blendStates[BSTYPE_OPAQUE];
+			desc.dss = &depthStencils[DSSTYPE_DEFAULT];
 
-			device->CreatePipelineState(&desc, &rcommon::PSO_wireframe);
+			device->CreatePipelineState(&desc, &PSO_wireframe);
 
 			//desc.pt = PrimitiveTopology::PATCHLIST;
 			//desc.vs = &common::shaders[VSTYPE_OBJECT_SIMPLE_TESSELLATION];
@@ -628,13 +627,13 @@ namespace vz::shader
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
 			PipelineStateDesc desc;
-			desc.vs = &rcommon::shaders[VSTYPE_OCCLUDEE];
-			desc.rs = &rcommon::rasterizers[RSTYPE_OCCLUDEE];
-			desc.bs = &rcommon::blendStates[BSTYPE_COLORWRITEDISABLE];
-			desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+			desc.vs = &shaders[VSTYPE_OCCLUDEE];
+			desc.rs = &rasterizers[RSTYPE_OCCLUDEE];
+			desc.bs = &blendStates[BSTYPE_COLORWRITEDISABLE];
+			desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
 			desc.pt = PrimitiveTopology::TRIANGLESTRIP;
 
-			device->CreatePipelineState(&desc, &rcommon::PSO_occlusionquery);
+			device->CreatePipelineState(&desc, &PSO_occlusionquery);
 			});
 
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) {
@@ -653,92 +652,92 @@ namespace vz::shader
 			switch (args.jobIndex)
 			{
 			case DEBUGRENDERING_GRID:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_CUBE:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_CUBE_DEPTH:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_LINES:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_LINES_DEPTH:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case DEBUGRENDERING_TRIANGLE_SOLID:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &rcommon::rasterizers[RSTYPE_DOUBLESIDED];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rasterizers[RSTYPE_DOUBLESIDED];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_TRIANGLE_WIREFRAME:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_TRIANGLE_SOLID_DEPTH:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rcommon::rasterizers[RSTYPE_DOUBLESIDED];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_DOUBLESIDED];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_TRIANGLE_WIREFRAME_DEPTH:
-				desc.vs = &rcommon::shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &rcommon::shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &rcommon::inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			case DEBUGRENDERING_EMITTER:
-				desc.vs = &rcommon::shaders[VSTYPE_MESH_DEBUG];
-				desc.ps = &rcommon::shaders[PSTYPE_MESH_DEBUG];
-				desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rcommon::rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &rcommon::blendStates[BSTYPE_OPAQUE];
+				desc.vs = &shaders[VSTYPE_MESH_DEBUG];
+				desc.ps = &shaders[PSTYPE_MESH_DEBUG];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
 				desc.pt = PrimitiveTopology::TRIANGLELIST;
 				break;
 			//case DEBUGRENDERING_RAYTRACE_BVH:
@@ -751,7 +750,7 @@ namespace vz::shader
 			//	break;
 			}
 
-			device->CreatePipelineState(&desc, &rcommon::PSO_debug[args.jobIndex]);
+			device->CreatePipelineState(&desc, &PSO_debug[args.jobIndex]);
 		});
 
 		jobsystem::Wait(ctx);
@@ -765,11 +764,11 @@ namespace vz::shader
 				// default objectshaders:
 				//	We don't wait for these here, because then it can slow down the init time a lot
 				//	We will wait for these to complete in RenderMeshes() just before they will be first used
-				jobsystem::Wait(rcommon::CTX_renderPSO[renderPass][mesh_shader]);
-				rcommon::CTX_renderPSO[renderPass][mesh_shader].priority = jobsystem::Priority::Low;
+				jobsystem::Wait(CTX_renderPSO[renderPass][mesh_shader]);
+				CTX_renderPSO[renderPass][mesh_shader].priority = jobsystem::Priority::Low;
 				for (uint32_t shaderType = 0; shaderType < SHADERTYPE_BIN_COUNT; ++shaderType)
 				{
-					jobsystem::Execute(rcommon::CTX_renderPSO[renderPass][mesh_shader], [=](jobsystem::JobArgs args) {
+					jobsystem::Execute(CTX_renderPSO[renderPass][mesh_shader], [=](jobsystem::JobArgs args) {
 						for (uint32_t blendMode = 0; blendMode < BLENDMODE_COUNT; ++blendMode)
 						{
 							for (uint32_t cullMode = 0; cullMode <= 3; ++cullMode) // graphics::CullMode (NONE, FRONT, BACK)
@@ -795,8 +794,8 @@ namespace vz::shader
 											SHADERTYPE realMS = GetMSTYPE((RENDERPASS)renderPass, tessellation, alphatest, transparency, mesh_shader);
 											if (realMS == SHADERTYPE_COUNT)
 												continue;
-											desc.as = realAS < SHADERTYPE_COUNT ? &rcommon::shaders[realAS] : nullptr;
-											desc.ms = realMS < SHADERTYPE_COUNT ? &rcommon::shaders[realMS] : nullptr;
+											desc.as = realAS < SHADERTYPE_COUNT ? &shaders[realAS] : nullptr;
+											desc.ms = realMS < SHADERTYPE_COUNT ? &shaders[realMS] : nullptr;
 										}
 										else
 										{
@@ -808,33 +807,33 @@ namespace vz::shader
 											if (tessellation && (realHS == SHADERTYPE_COUNT || realDS == SHADERTYPE_COUNT))
 												continue;
 
-											desc.vs = realVS < SHADERTYPE_COUNT ? &rcommon::shaders[realVS] : nullptr;
-											desc.hs = realHS < SHADERTYPE_COUNT ? &rcommon::shaders[realHS] : nullptr;
-											desc.ds = realDS < SHADERTYPE_COUNT ? &rcommon::shaders[realDS] : nullptr;
-											desc.gs = realGS < SHADERTYPE_COUNT ? &rcommon::shaders[realGS] : nullptr;
+											desc.vs = realVS < SHADERTYPE_COUNT ? &shaders[realVS] : nullptr;
+											desc.hs = realHS < SHADERTYPE_COUNT ? &shaders[realHS] : nullptr;
+											desc.ds = realDS < SHADERTYPE_COUNT ? &shaders[realDS] : nullptr;
+											desc.gs = realGS < SHADERTYPE_COUNT ? &shaders[realGS] : nullptr;
 										}
 
 										const uint32_t deferred_enabled = 0; // (TODO) 1
 
 										SHADERTYPE realPS = GetPSTYPE((RENDERPASS)renderPass, deferred_enabled, alphatest, transparency, static_cast<MaterialComponent::ShaderType>(shaderType));
-										desc.ps = realPS < SHADERTYPE_COUNT ? &rcommon::shaders[realPS] : nullptr;
+										desc.ps = realPS < SHADERTYPE_COUNT ? &shaders[realPS] : nullptr;
 
 										switch (blendMode)
 										{
 										case BLENDMODE_OPAQUE:
-											desc.bs = &rcommon::blendStates[BSTYPE_OPAQUE];
+											desc.bs = &blendStates[BSTYPE_OPAQUE];
 											break;
 										case BLENDMODE_ALPHA:
-											desc.bs = &rcommon::blendStates[BSTYPE_TRANSPARENT];
+											desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 											break;
 										case BLENDMODE_ADDITIVE:
-											desc.bs = &rcommon::blendStates[BSTYPE_ADDITIVE];
+											desc.bs = &blendStates[BSTYPE_ADDITIVE];
 											break;
 										case BLENDMODE_PREMULTIPLIED:
-											desc.bs = &rcommon::blendStates[BSTYPE_PREMULTIPLIED];
+											desc.bs = &blendStates[BSTYPE_PREMULTIPLIED];
 											break;
 										case BLENDMODE_MULTIPLY:
-											desc.bs = &rcommon::blendStates[BSTYPE_MULTIPLY];
+											desc.bs = &blendStates[BSTYPE_MULTIPLY];
 											break;
 										default:
 											assert(0);
@@ -844,7 +843,7 @@ namespace vz::shader
 										switch (renderPass)
 										{
 										case RENDERPASS_SHADOW:
-											desc.bs = &rcommon::blendStates[transparency ? BSTYPE_TRANSPARENTSHADOW : BSTYPE_COLORWRITEDISABLE];
+											desc.bs = &blendStates[transparency ? BSTYPE_TRANSPARENTSHADOW : BSTYPE_COLORWRITEDISABLE];
 											break;
 										default:
 											break;
@@ -853,32 +852,32 @@ namespace vz::shader
 										switch (renderPass)
 										{
 										case RENDERPASS_SHADOW:
-											desc.dss = &rcommon::depthStencils[transparency ? DSSTYPE_DEPTHREAD : DSSTYPE_SHADOW];
+											desc.dss = &depthStencils[transparency ? DSSTYPE_DEPTHREAD : DSSTYPE_SHADOW];
 											break;
 										case RENDERPASS_MAIN:
 											if (blendMode == BLENDMODE_ADDITIVE)
 											{
-												desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+												desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
 											}
 											else
 											{
-												desc.dss = &rcommon::depthStencils[transparency ? DSSTYPE_TRANSPARENT : DSSTYPE_DEPTHREADEQUAL];
+												desc.dss = &depthStencils[transparency ? DSSTYPE_TRANSPARENT : DSSTYPE_DEPTHREADEQUAL];
 											}
 											break;
 										case RENDERPASS_ENVMAPCAPTURE:
-											desc.dss = &rcommon::depthStencils[DSSTYPE_ENVMAP];
+											desc.dss = &depthStencils[DSSTYPE_ENVMAP];
 											break;
 										case RENDERPASS_VOXELIZE:
-											desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHDISABLED];
+											desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
 											break;
 										default:
 											if (blendMode == BLENDMODE_ADDITIVE)
 											{
-												desc.dss = &rcommon::depthStencils[DSSTYPE_DEPTHREAD];
+												desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
 											}
 											else
 											{
-												desc.dss = &rcommon::depthStencils[DSSTYPE_DEFAULT];
+												desc.dss = &depthStencils[DSSTYPE_DEFAULT];
 											}
 											break;
 										}
@@ -886,23 +885,23 @@ namespace vz::shader
 										switch (renderPass)
 										{
 										case RENDERPASS_SHADOW:
-											desc.rs = &rcommon::rasterizers[cullMode == (int)CullMode::NONE ? RSTYPE_SHADOW_DOUBLESIDED : RSTYPE_SHADOW];
+											desc.rs = &rasterizers[cullMode == (int)CullMode::NONE ? RSTYPE_SHADOW_DOUBLESIDED : RSTYPE_SHADOW];
 											break;
 										case RENDERPASS_VOXELIZE:
-											desc.rs = &rcommon::rasterizers[RSTYPE_VOXELIZE];
+											desc.rs = &rasterizers[RSTYPE_VOXELIZE];
 											break;
 										default:
 											switch ((CullMode)cullMode)
 											{
 											default:
 											case CullMode::BACK:
-												desc.rs = &rcommon::rasterizers[RSTYPE_FRONT];
+												desc.rs = &rasterizers[RSTYPE_FRONT];
 												break;
 											case CullMode::NONE:
-												desc.rs = &rcommon::rasterizers[RSTYPE_DOUBLESIDED];
+												desc.rs = &rasterizers[RSTYPE_DOUBLESIDED];
 												break;
 											case CullMode::FRONT:
-												desc.rs = &rcommon::rasterizers[RSTYPE_BACK];
+												desc.rs = &rasterizers[RSTYPE_BACK];
 												break;
 											}
 											break;
