@@ -171,8 +171,6 @@ namespace vzm
 		graphicsDevice = graphicsBackend.pluginGetDev();
 		graphics::GetDevice() = graphicsDevice;
 
-		shaderEngine.pluginInitializer(graphicsDevice);
-
 		// engine core initializer
 		uint32_t num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
 		initializer::SetMaxThreadCount(num_max_threads);

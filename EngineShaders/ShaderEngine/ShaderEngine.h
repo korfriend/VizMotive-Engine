@@ -30,9 +30,6 @@ namespace vz
 	extern "C" DX12_EXPORT void AddDeferredBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size = ~0, const uint64_t offset = 0);
 	extern "C" DX12_EXPORT void AddDeferredGeometryGPUBVHUpdate(const Entity entity);
 
-	// RenderInitializer.cpp
-	extern "C" DX12_EXPORT bool InitRenderer();
-
 	// ShaderLoader.cpp
 	extern "C" DX12_EXPORT bool LoadShader(
 		graphics::ShaderStage stage,

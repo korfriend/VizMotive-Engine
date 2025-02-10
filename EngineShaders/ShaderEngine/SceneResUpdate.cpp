@@ -1,8 +1,10 @@
 #include "Renderer.h"
+#include "RenderPath3D_Details.h"
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
 
+using namespace vz::renderer;
 namespace vz
 {
 	using GPrimBuffers = GGeometryComponent::GPrimBuffers;
@@ -280,7 +282,7 @@ namespace vz
 
 					if (material.samplerDescriptor < 0)
 					{
-						shader_material.sampler_descriptor = device->GetDescriptorIndex(renderer::GetSampler(SAMPLER_OBJECTSHADER));
+						shader_material.sampler_descriptor = device->GetDescriptorIndex(&renderer::samplers[SAMPLER_OBJECTSHADER]);
 					}
 					else
 					{
@@ -335,7 +337,7 @@ namespace vz
 
 			// Update occlusion culling status:
 			OcclusionResult& occlusion_result = occlusionResultsObjects[args.jobIndex];
-			if (!renderer::options::IsFreezeCullingCameraEnabled())
+			if (!isFreezeCullingCameraEnabled)
 			{
 				occlusion_result.occlusionHistory <<= 1u; // advance history by 1 frame
 				int query_id = occlusion_result.occlusionQueries[queryheapIdx];
@@ -740,7 +742,7 @@ namespace vz
 
 			// 4. Occlusion culling read: (Non Thread Task)
 			//	per each MeshInstance
-			if (renderer::options::IsOcclusionCullingEnabled() && !renderer::options::IsFreezeCullingCameraEnabled())
+			if (isOcclusionCullingEnabled && !isFreezeCullingCameraEnabled)
 			{
 				uint32_t min_query_count = instanceArraySize + num_lights;
 				if (queryHeap.desc.query_count < min_query_count)

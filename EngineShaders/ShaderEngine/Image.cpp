@@ -7,6 +7,7 @@
 #include "Utils/Timer.h"
 
 using namespace vz::graphics;
+using namespace vz::renderer;
 
 namespace vz::image
 {
