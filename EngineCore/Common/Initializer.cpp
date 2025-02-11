@@ -5,6 +5,8 @@
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
 
+#include "Components/Components.h"
+
 #include <string>
 #include <thread>
 #include <atomic>
@@ -43,8 +45,9 @@ namespace vz::initializer
 
 		std::string ss;
 		ss += "[initializer] Initializing Engine, please wait...\n";
-		ss += "\tVersion: ";
+		ss += "\tVZM2 Version: ";
 		ss += vz::version::GetVersionString();
+		ss += ", Components Version: " + COMPONENT_INTERFACE_VERSION;
 		backlog::post(ss);
 
 		// TODO : Shader dump system
@@ -53,11 +56,11 @@ namespace vz::initializer
 		//size_t shaderdump_count = renderer::GetShaderDumpCount();
 		//if (shaderdump_count > 0)
 		//{
-		//	backlog::post("\nEmbedded shaders found: " + std::to_string(shaderdump_count));
+		//	vzlog("\nEmbedded shaders found: %d", (int)shaderdump_count);
 		//}
 		//else
 		//{
-		//	backlog::post("\nNo embedded shaders found, shaders will be compiled at runtime if needed.\n\tShader source path: " + renderer::GetShaderSourcePath() + "\n\tShader binary path: " + renderer::GetShaderPath());
+		//	vzlog_warning("\nNo embedded shaders found, shaders will be compiled at runtime if needed.\n\tShader source path: %s \n\tShader binary path: %s", renderer::GetShaderSourcePath().c_str(), renderer::GetShaderPath().c_str());
 		//}
 
 		jobsystem::Initialize(numMaxThreads);
