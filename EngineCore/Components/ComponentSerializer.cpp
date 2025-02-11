@@ -493,10 +493,14 @@ namespace vz
 		if (archive.IsReadMode())
 		{
 			archive >> thickness_;
+			archive >> horizontalCurveControls_;
+			archive >> curveInterpolationInterval_;
 		}
 		else
 		{
 			archive << thickness_;
+			archive << horizontalCurveControls_;
+			archive << curveInterpolationInterval_;
 		}
 	}
 }

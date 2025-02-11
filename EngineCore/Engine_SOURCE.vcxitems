@@ -91,6 +91,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\SlicerComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.cpp" />

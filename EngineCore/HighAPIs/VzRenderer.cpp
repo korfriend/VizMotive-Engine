@@ -235,8 +235,8 @@ namespace vzm
 				SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE) | SCU32(RenderableFilterFlags::RENDERABLE_VOLUME_DVR));
 			if (intersect_result.entity != INVALID_ENTITY)
 			{
-				std::cout << intersect_result.position.x << ", " << intersect_result.position.y << ", " << intersect_result.position.z << std::endl;
-				std::cout << intersect_result.distance << std::endl;
+				//vzlog("P(%f, %f, %f), Dist: %f", intersect_result.position.x, intersect_result.position.y, intersect_result.position.z, intersect_result.distance);
+				//vzlog("Primitive Index: %d", intersect_result.triIndex);
 
 				size_t num_picked_positions = 1;
 				vids.resize(num_picked_positions);

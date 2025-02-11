@@ -33,7 +33,7 @@ namespace vz::backlog
 	LogLevel logLevel = LogLevel::Trace;
 	bool isInitialized = false;
 
-	void intialize()
+	static void intialize()
 	{
 		std::string log_path = helper::GetTempDirectoryPath();
 
@@ -44,7 +44,11 @@ namespace vz::backlog
 		{
 			std::wstring path_w = std::wstring(path);
 			helper::StringConvert(path_w, log_path);
+#ifdef PLATFORM_WINDOWS_DESKTOP
+			log_path += "\\";
+#else
 			log_path += "/";
+#endif
 		}
 #endif
 

@@ -2,6 +2,7 @@
 #include "vzMath.h"
 
 #include <limits>
+#include <vector>
 #include <cassert>
 #include <functional>
 
@@ -1120,6 +1121,176 @@ namespace vz::geometrics
 		return vz::math::Collision2D(pos, siz, b.pos, b.siz);
 	}
 
+}
+
+namespace vz::geometrics
+{
+	/*
+	Based on an optimized c++ solution in
+	 - http://stackoverflow.com/questions/9489736/catmull-rom-curve-with-no-cusps-and-no-self-intersections/
+	 - http://ideone.com/NoEbVM
+
+	This CubicPoly class could be used for reusing some variables and calculations,
+	but for three.js curve use, it could be possible inlined and flatten into a single function call
+	which can be placed in CurveUtils.
+	*/
+
+	struct CubicPoly {
+
+		float c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+
+		/*
+		 * Compute coefficients for a cubic polynomial
+		 *   p(s) = c0 + c1*s + c2*s^2 + c3*s^3
+		 * such that
+		 *   p(0) = x0, p(1) = x1
+		 *  and
+		 *   p'(0) = t0, p'(1) = t1.
+		 */
+		void init(float x0, float x1, float t0, float t1) {
+
+			c0 = x0;
+			c1 = t0;
+			c2 = -3 * x0 + 3 * x1 - 2 * t0 - t1;
+			c3 = 2 * x0 - 2 * x1 + t0 + t1;
+
+		}
+
+		void initCatmullRom(float x0, float x1, float x2, float x3, float tension) {
+			init(x1, x2, tension * (x2 - x0), tension * (x3 - x1));
+		}
+
+		void initNonuniformCatmullRom(float x0, float x1, float x2, float x3, float dt0, float dt1, float dt2) {
+			// compute tangents when parameterized in [t1,t2]
+			float t1 = (x1 - x0) / dt0 - (x2 - x0) / (dt0 + dt1) + (x2 - x1) / dt1;
+			float t2 = (x2 - x1) / dt1 - (x3 - x1) / (dt1 + dt2) + (x3 - x2) / dt2;
+
+			// rescale tangents for parametrization in [0,1]
+			t1 *= dt1;
+			t2 *= dt1;
+
+			init(x1, x2, t1, t2);
+		}
+
+		float calc(float t) {
+			const float t2 = t * t;
+			const float t3 = t2 * t;
+			return c0 + c1 * t + c2 * t2 + c3 * t3;
+		}
+	};
+
+	enum class CurveType
+	{
+		CATMULLROM,
+		CENTRIPETAL,
+		CHORDAL,
+	};
+
+	class Curve {
+	private:
+		CurveType curveType_ = CurveType::CATMULLROM;
+		std::vector<XMFLOAT3> points_;
+		bool closed_;
+		float tension_;
+
+	public:
+		Curve(const std::vector<XMFLOAT3>& points, const bool closed = false, const CurveType curveType = CurveType::CATMULLROM, const float tension = 0.5) {
+			points_ = points;
+			closed_ = closed;
+			curveType_ = curveType;
+			tension_ = tension;
+		}
+
+		inline XMFLOAT3 getPoint(float t) {
+			const std::vector<XMFLOAT3> points = points_;
+			const int l = (int)points.size();
+
+			const float p = (float)(l - (closed_ ? 0 : 1)) * t;
+			int intPoint = (int)floor(p);
+			float weight = p - intPoint;
+
+			if (closed_) {
+				intPoint += intPoint > 0 ? 0 : ((int)floor(abs(intPoint) / l) + 1) * l;
+			}
+			else if (weight == 0 && intPoint == l - 1) {
+				intPoint = l - 2;
+				weight = 1;
+			}
+
+			XMFLOAT3 p0, p3; // 4 points (p1 & p2 defined below)
+
+			if (closed_ || intPoint > 0) {
+
+				p0 = points[(intPoint - 1) % l];
+
+			}
+			else {
+
+				// extrapolate first point
+				//tmp.subVectors(points[0], points[1]).add(points[0]);
+				//p0 = tmp;
+				//p0 = 2.f * points[0] - points[1];
+				XMVECTOR v = XMVectorSubtract(XMVectorScale(XMLoadFloat3(&points[0]), 2.f), XMLoadFloat3(&points[1]));
+				XMStoreFloat3(&p0, v);
+			}
+
+			const XMFLOAT3 p1 = points[intPoint % l];
+			const XMFLOAT3 p2 = points[(intPoint + 1) % l];
+
+			if (closed_ || intPoint + 2 < l) {
+
+				p3 = points[(intPoint + 2) % l];
+
+			}
+			else {
+
+				// extrapolate last point
+				//tmp.subVectors(points[l - 1], points[l - 2]).add(points[l - 1]);
+				//p3 = tmp;
+				//p3 = 2.f * points[l - 1] - points[l - 2];
+				XMVECTOR v = XMVectorSubtract(XMVectorScale(XMLoadFloat3(&points[l - 1]), 2.f), XMLoadFloat3(&points[l - 2]));
+				XMStoreFloat3(&p3, v);
+			}
+
+			CubicPoly px, py, pz;
+			switch (curveType_)
+			{
+			case CurveType::CENTRIPETAL:
+			case CurveType::CHORDAL:
+			{
+				// init Centripetal / Chordal Catmull-Rom
+				const float pow_ = curveType_ == CurveType::CHORDAL ? 0.5f : 0.25f;
+				//float dt0 = pow(fLengthVectorSq(&(p0 - p1)), pow_);
+				//float dt1 = pow(fLengthVectorSq(&(p1 - p2)), pow_);
+				//float dt2 = pow(fLengthVectorSq(&(p2 - p3)), pow_);
+				XMVECTOR v0 = XMLoadFloat3(&p0);
+				XMVECTOR v1 = XMLoadFloat3(&p1);
+				XMVECTOR v2 = XMLoadFloat3(&p2);
+				XMVECTOR v3 = XMLoadFloat3(&p3);
+				float dt0 = powf(XMVectorGetX(XMVector3LengthSq(XMVectorSubtract(v0, v1))), pow_);
+				float dt1 = powf(XMVectorGetX(XMVector3LengthSq(XMVectorSubtract(v1, v2))), pow_);
+				float dt2 = powf(XMVectorGetX(XMVector3LengthSq(XMVectorSubtract(v2, v3))), pow_);
+
+				// safety check for repeated points
+				if (dt1 < 1e-4) dt1 = 1.0;
+				if (dt0 < 1e-4) dt0 = dt1;
+				if (dt2 < 1e-4) dt2 = dt1;
+
+				px.initNonuniformCatmullRom(p0.x, p1.x, p2.x, p3.x, dt0, dt1, dt2);
+				py.initNonuniformCatmullRom(p0.y, p1.y, p2.y, p3.y, dt0, dt1, dt2);
+				pz.initNonuniformCatmullRom(p0.z, p1.z, p2.z, p3.z, dt0, dt1, dt2);
+			} break;
+			case CurveType::CATMULLROM:
+			{
+				px.initCatmullRom(p0.x, p1.x, p2.x, p3.x, tension_);
+				py.initCatmullRom(p0.y, p1.y, p2.y, p3.y, tension_);
+				pz.initCatmullRom(p0.z, p1.z, p2.z, p3.z, tension_);
+			} break;
+			default: assert(0);
+			}
+			return XMFLOAT3(px.calc(weight), py.calc(weight), pz.calc(weight));
+		}
+	};
 }
 
 namespace vz::geometrics

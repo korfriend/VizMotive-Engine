@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250211";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250212_1";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -1430,14 +1430,20 @@ namespace vz
 	{
 	private:
 		float thickness_ = 0.f;
+		std::vector<XMFLOAT3> horizontalCurveControls_;
+		float curveInterpolationInterval_ = 0.01f;
 
 		// Non-serialized attributes:
-
+		bool isDirtyCurve_ = true;
+		std::vector<XMFLOAT3> horizontalCurvePoints_;
+		void updateCurve();
 	public:
 		SlicerComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(ComponentType::SLICER, entity, vuid) {
 			flags_ = CamFlags::ORTHOGONAL | CamFlags::SLICER;
 			zNearP_ = 0.f;
 		}
+
+		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; };
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
