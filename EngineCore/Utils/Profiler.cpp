@@ -37,6 +37,7 @@ namespace vz::profiler
 	range_id gpu_frame;
 	GPUQueryHeap queryHeap;
 	GPUBuffer queryResultBuffer[GraphicsDevice::GetBufferCount()];
+	std::vector<uint8_t> queryResultBufferCPU[GraphicsDevice::GetBufferCount()]; // just for DX11
 	std::atomic<uint32_t> nextQuery{ 0 };
 	uint32_t queryheap_idx = 0;
 	bool drawn_this_frame = false;
@@ -98,10 +99,21 @@ namespace vz::profiler
 			bd.usage = Usage::READBACK;
 			bd.size = desc.query_count * sizeof(uint64_t);
 
-			for (int i = 0; i < arraysize(queryResultBuffer); ++i)
+			if (graphicsBackend.API == "DX11")
 			{
-				success = device->CreateBuffer(&bd, nullptr, &queryResultBuffer[i]);
-				assert(success);
+				for (int i = 0; i < arraysize(queryResultBuffer); ++i)
+				{
+					queryResultBufferCPU[i].resize(desc.query_count * sizeof(uint64_t));
+					queryResultBuffer[i].mapped_data = queryResultBufferCPU[i].data();
+				}
+			}
+			else
+			{
+				for (int i = 0; i < arraysize(queryResultBuffer); ++i)
+				{
+					success = device->CreateBuffer(&bd, nullptr, &queryResultBuffer[i]);
+					assert(success);
+				}
 			}
 
 #if PERFORMANCEAPI_ENABLED
@@ -121,16 +133,7 @@ namespace vz::profiler
 
 		// Read results of previous timings:
 		// This should be done before we begin reallocating new queries for current buffer index
-		uint64_t* queryResults = nullptr;
-		if (graphicsBackend.API == "DX11")
-		{
-			device->Map(&queryResultBuffer[queryheap_idx]);
-			queryResults = (uint64_t*)queryResultBuffer[queryheap_idx].mapped_data;
-		}
-		else
-		{
-			queryResults = (uint64_t*)queryResultBuffer[queryheap_idx].mapped_data;
-		}
+		const uint64_t* queryResults = queryResults = (const uint64_t*)queryResultBuffer[queryheap_idx].mapped_data;
 			
 		double gpu_frequency = (double)device->GetTimestampFrequency() / 1000.0;
 		for (auto& x : ranges)
@@ -165,11 +168,6 @@ namespace vz::profiler
 			}
 
 			range.in_use = false;
-		}
-
-		if (graphicsBackend.API == "DX11")
-		{
-			device->Unmap(&queryResultBuffer[queryheap_idx]);
 		}
 
 		device->QueryReset(
