@@ -55,6 +55,9 @@
     <Filter Include="Components %28CORE_EXPORT%29\Private">
       <UniqueIdentifier>{25f62d85-dbd6-488d-99fd-3156f75a2a66}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Components %28CORE_EXPORT%29\Private\Component Details">
+      <UniqueIdentifier>{5beea166-6e5f-4119-8e5a-4d98f96dbf9d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h">
@@ -190,9 +193,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\meshoptimizer.h">
       <Filter>ThirdParty\meshoptimizer</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h">
-      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h">
       <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClInclude>
@@ -237,6 +237,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXPackedVector.h">
       <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h">
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -366,16 +369,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp">
-      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp">
-      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
-      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.cpp">
@@ -389,6 +383,18 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentRefReset.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Details</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Details</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Details</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\SlicerComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Details</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

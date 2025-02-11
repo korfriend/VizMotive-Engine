@@ -91,6 +91,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Install", "BUILD\InstallPac
 		{FDBCF2F5-2AEC-428B-A825-F248208DF02A} = {FDBCF2F5-2AEC-428B-A825-F248208DF02A}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample05", "Examples\Sample005\Sample05.vcxproj", "{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_MT|x64 = Debug_MT|x64
@@ -295,6 +297,22 @@ Global
 		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release|x64.Build.0 = Release|x64
 		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release|x86.ActiveCfg = Release|Win32
 		{441820A9-D7E4-48C0-BF2D-E246966C2C9C}.Release|x86.Build.0 = Release|Win32
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Debug_MT|x64.ActiveCfg = Debug_MT|x64
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Debug_MT|x64.Build.0 = Debug_MT|x64
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Debug_MT|x86.ActiveCfg = Debug_MT|Win32
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Debug_MT|x86.Build.0 = Debug_MT|Win32
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Debug|x64.ActiveCfg = Debug|x64
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Debug|x64.Build.0 = Debug|x64
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Debug|x86.ActiveCfg = Debug|Win32
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Debug|x86.Build.0 = Debug|Win32
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release_MT|x64.ActiveCfg = Release|x64
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release_MT|x64.Build.0 = Release|x64
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release_MT|x86.ActiveCfg = Release|Win32
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release_MT|x86.Build.0 = Release|Win32
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release|x64.ActiveCfg = Release|x64
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release|x64.Build.0 = Release|x64
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release|x86.ActiveCfg = Release|Win32
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -320,11 +338,13 @@ Global
 		{FD7A4774-0A05-4E2B-BF88-B8A8E688E116} = {821B90CB-C36E-4340-92E5-531178151C02}
 		{B5405B8A-91B9-4ADD-8301-9E68D539AE60} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
 		{441820A9-D7E4-48C0-BF2D-E246966C2C9C} = {72F7CF71-5EAA-4BC7-B937-6270571D9EDA}
+		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Examples\imgui\imgui.vcxitems*{1f9db875-b2aa-4b56-8bec-0075885b42df}*SharedItemsImports = 4
 		Examples\imgui\imgui.vcxitems*{29da1fc3-1674-4897-a72d-e81317c187b8}*SharedItemsImports = 4
 		Examples\imgui\imgui.vcxitems*{79b2551b-dcb4-44b1-bc67-b61c76686fe5}*SharedItemsImports = 9
 		Examples\imgui\imgui.vcxitems*{aebf5849-4d10-46e4-a6ae-6536dbcc5b0f}*SharedItemsImports = 4

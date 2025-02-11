@@ -29,6 +29,9 @@
   <ItemGroup>
     <Natvis Include="engine.natvis" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="update_version.bat" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D86799C4-9D93-4981-93B7-48C219D40915}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -172,8 +175,7 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>call "$(ProjectDir)update_version.bat" "$(SolutionDir)\EngineCore\Components\Components.h"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Static|x64'">
