@@ -59,6 +59,12 @@ namespace vzm
 		material->SetGaussianSplatting(enabled);
 	}
 
+	void VzMaterial::SetWireframe(const bool enabled)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetWireframe(enabled);
+	}
+
 	vfloat4 VzMaterial::GetBaseColor() const
 	{
 		GET_MATERIAL_COMP(material, {});

@@ -103,6 +103,7 @@ namespace vz
 			archive >> roughness_;
 			archive >> alphaRef_;
 			archive >> saturate_;
+			archive >> wireframe_;
 
 			archive >> u32_data;
 			engineStencilRef_ = static_cast<StencilRef>(u32_data);
@@ -150,6 +151,7 @@ namespace vz
 			archive << roughness_;
 			archive << alphaRef_;
 			archive << saturate_;
+			archive << wireframe_;
 
 			archive << SCU32(engineStencilRef_);
 			archive << SCU32(dvrShaderType_);
