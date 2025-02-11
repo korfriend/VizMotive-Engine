@@ -433,7 +433,8 @@ namespace vz
 			CAST_SHADOW = 1 << 9,
 			RECEIVE_SHADOW = 1 << 10,
 			VERTEXAO = 1 << 11,
-			GAUSSIAN_SPLATTING = 1 << 12
+			GAUSSIAN_SPLATTING = 1 << 12,
+			WIREFRAME = 1 << 13,
 		};
 		enum class ShaderType : uint32_t
 		{
@@ -536,6 +537,8 @@ namespace vz
 		float roughness_ = 0.f; // only used for ShaderType::PBR
 		float saturate_ = 1.f;
 
+		bool wireframe_ = false;
+
 		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 		VUID volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
 		VUID lookupComponents_[SCU32(LookupTableSlot::LOOKUPTABLE_COUNT)] = {};
@@ -559,12 +562,13 @@ namespace vz
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
 		inline void SetMatalness(const float metalness) { metalness_ = metalness; isDirty_ = true; }
 		inline void SetRoughness(const float roughness) { roughness_ = roughness; isDirty_ = true; }
-		inline void EnableWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; }
-		inline void SetCastShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; }
-		inline void SetReceiveShadow(bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; }
-		inline void SetShaderType(ShaderType shaderType) { shaderType_ = shaderType; }
-		inline void SetDoubleSided(bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; }
-		inline void SetGaussianSplatting(bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; }
+		inline void SetWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; }
+		inline void SetCastShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; }
+		inline void SetReceiveShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; }
+		inline void SetShaderType(const ShaderType shaderType) { shaderType_ = shaderType; }
+		inline void SetDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; }
+		inline void SetGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; }
+		inline void SetWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
@@ -581,6 +585,7 @@ namespace vz
 		inline bool IsReceiveShadow() const { return flags_ & SCU32(RenderFlags::RECEIVE_SHADOW); }
 		inline bool IsVertexAOEnabled() const { return flags_ & SCU32(RenderFlags::VERTEXAO); }
 		inline bool IsGaussianSplattingEnabled() const { return flags_ & SCU32(RenderFlags::GAUSSIAN_SPLATTING); }
+		inline bool IsWireframeEnabled() const { return flags_ & SCU32(RenderFlags::WIREFRAME); }
 
 		inline uint32_t GetRenderFlags() const { return flags_; }
 

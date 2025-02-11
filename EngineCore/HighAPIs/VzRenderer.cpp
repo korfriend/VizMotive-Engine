@@ -198,12 +198,12 @@ namespace vzm
 			return false;
 		}
 
-		camera->isPickingMode = true;
-		camera->pickingIO.SetScreenPos(*(XMFLOAT2*)&pos);
-
 		bool ret = false;
 		if (vz::graphicsBackend.API == "DX11")
 		{
+			camera->isPickingMode = true;
+			camera->pickingIO.SetScreenPos(*(XMFLOAT2*)&pos);
+
 			// TODO: MUST BE DEPRECATED!!!
 			// Use core-built-in picking based on simple BVH
 
