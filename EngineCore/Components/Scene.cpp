@@ -313,7 +313,9 @@ namespace vz
 
 					if (index != linearArray.size() - 1)
 					{
-						linearArray[index] = linearArray.back();
+						Entity last_entity = linearArray.back();
+						linearArray[index] = last_entity;
+						lookup[last_entity] = index;
 					}
 					linearArray.pop_back();
 				}
