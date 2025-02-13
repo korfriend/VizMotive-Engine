@@ -1247,7 +1247,15 @@ namespace vz::renderer
 		auto range = profiler::BeginRangeCPU("Render");
 
 		UpdateProcess(dt);
-		RenderProcess();
+		if (camera->GetComponentType() == ComponentType::SLICER)
+		{
+			SlicerProcess();
+		}
+		else
+		{
+			vzlog_assert(camera->GetComponentType() == ComponentType::CAMERA, "RenderProcess requires CAMERA component!!");
+			RenderProcess();
+		}
 		profiler::EndRange(range);
 
 		graphics::CommandList cmd = device->BeginCommandList();
@@ -2009,6 +2017,11 @@ namespace vz::renderer
 		jobsystem::Wait(ctx);
 
 		firstFrame = false;
+		return true;
+	}
+
+	bool GRenderPath3DDetails::SlicerProcess()
+	{
 		return true;
 	}
 

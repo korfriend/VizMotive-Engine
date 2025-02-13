@@ -52,6 +52,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\minimp4.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\qoi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\RectPacker.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\spdlog\spdlog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image_write.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_rect_pack.h" />
