@@ -26,12 +26,6 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <Natvis Include="engine.natvis" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="update_version.bat" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D86799C4-9D93-4981-93B7-48C219D40915}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -106,37 +100,37 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
+    <OutDir>..\bin\$(Platform)_$(Configuration)\</OutDir>
     <MultiProcFXC>true</MultiProcFXC>
     <TargetName>VizEngined</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Static|x64'">
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
+    <OutDir>..\bin\$(Platform)_$(Configuration)\</OutDir>
     <MultiProcFXC>true</MultiProcFXC>
     <TargetName>VizEngined</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_MT|x64'">
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
+    <OutDir>..\bin\$(Platform)_$(Configuration)\</OutDir>
     <MultiProcFXC>true</MultiProcFXC>
     <TargetName>VizEngined</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
+    <OutDir>..\bin\$(Platform)_$(Configuration)\</OutDir>
     <MultiProcFXC>true</MultiProcFXC>
     <TargetName>VizEngine</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Static|x64'">
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
+    <OutDir>..\bin\$(Platform)_$(Configuration)\</OutDir>
     <MultiProcFXC>true</MultiProcFXC>
     <TargetName>VizEngine</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_MT|x64'">
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
+    <OutDir>..\bin\$(Platform)_$(Configuration)\</OutDir>
     <MultiProcFXC>true</MultiProcFXC>
     <TargetName>VizEngine</TargetName>
   </PropertyGroup>
@@ -147,7 +141,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_LIB;_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)EngineCore;$(SolutionDir)EngineCore/ThirdParty;$(SolutionDir)EngineCore/Common/Backend;$(SolutionDir)EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../EngineCore;../EngineCore/ThirdParty;../EngineCore/Common/Backend;../EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -159,7 +153,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(SolutionDir)EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>shaders/%(Filename).cso</ObjectFileOutput>
@@ -175,8 +169,17 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
-      <Command>call "$(ProjectDir)update_version.bat" "$(SolutionDir)\EngineCore\Components\Components.h"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <CustomBuildStep>
+      <Command>
+      </Command>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Static|x64'">
     <ClCompile>
@@ -185,7 +188,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_LIB;_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)EngineCore;$(SolutionDir)EngineCore/ThirdParty;$(SolutionDir)EngineCore/Common/Backend;$(SolutionDir)EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../EngineCore;../EngineCore/ThirdParty;../EngineCore/Common/Backend;../EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -197,7 +200,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(SolutionDir)EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>shaders/%(Filename).cso</ObjectFileOutput>
@@ -224,7 +227,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_MT_LEAK_CHECK;_DEBUG;_LIB;_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)EngineCore;$(SolutionDir)EngineCore/ThirdParty;$(SolutionDir)EngineCore/Common/Backend;$(SolutionDir)EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../EngineCore;../EngineCore/ThirdParty;../EngineCore/Common/Backend;../EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -237,7 +240,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(SolutionDir)EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>shaders/%(Filename).cso</ObjectFileOutput>
@@ -266,7 +269,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_LIB;_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)EngineCore;$(SolutionDir)EngineCore/ThirdParty;$(SolutionDir)EngineCore/Common/Backend;$(SolutionDir)EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../EngineCore;../EngineCore/ThirdParty;../EngineCore/Common/Backend;../EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -278,7 +281,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(SolutionDir)EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>shaders/%(Filename).cso</ObjectFileOutput>
@@ -302,7 +305,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_LIB;_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)EngineCore;$(SolutionDir)EngineCore/ThirdParty;$(SolutionDir)EngineCore/Common/Backend;$(SolutionDir)EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../EngineCore;../EngineCore/ThirdParty;../EngineCore/Common/Backend;../EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -314,7 +317,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(SolutionDir)EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>shaders/%(Filename).cso</ObjectFileOutput>
@@ -338,7 +341,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_LIB;_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)EngineCore;$(SolutionDir)EngineCore/ThirdParty;$(SolutionDir)EngineCore/Common/Backend;$(SolutionDir)EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../EngineCore;../EngineCore/ThirdParty;../EngineCore/Common/Backend;../EngineCore/Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -350,7 +353,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(SolutionDir)EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../EngineCore/BinaryLibs;</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>shaders/%(Filename).cso</ObjectFileOutput>

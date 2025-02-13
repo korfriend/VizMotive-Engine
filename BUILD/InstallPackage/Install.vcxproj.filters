@@ -1,7 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <None Include="..\install_APIs.bat" />
-    <None Include="..\install_EngineAPIs.bat" />
+    <None Include="..\build_install.bat" />
+    <None Include="..\install_APIs.bat">
+      <Filter>install batch files</Filter>
+    </None>
+    <None Include="..\install_EngineAPIs.bat">
+      <Filter>install batch files</Filter>
+    </None>
+    <None Include="..\revert_update_version.bat">
+      <Filter>install batch files</Filter>
+    </None>
+    <None Include="..\update_version.bat">
+      <Filter>install batch files</Filter>
+    </None>
+    <None Include="..\update_version_check.bat">
+      <Filter>install batch files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="install batch files">
+      <UniqueIdentifier>{5889f1ba-70ee-44ba-a88e-652794d2e3ca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

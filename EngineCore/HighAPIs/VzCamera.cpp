@@ -29,6 +29,15 @@ namespace vzm
 	void VzCamera::SetOrthogonalProjection(const float width, const float height, const float zNearP, const float zFarP, const float orthoVerticalSize)
 	{
 		GET_CAM_COMP(camera, );
+
+		if (camera->GetComponentType() == ComponentType::SLICER)
+		{
+			if (zNearP != 0)
+			{
+				vzlog_warning("Slicer normally requires zero-nearplane setting, current setting is %f", zNearP);
+			}
+		}
+
 		camera->SetOrtho(width, height, zNearP, zFarP, orthoVerticalSize);
 		camera->UpdateMatrix();
 		UpdateTimeStamp();
@@ -36,6 +45,13 @@ namespace vzm
 	void VzCamera::SetPerspectiveProjection(const float zNearP, const float zFarP, const float fovInDegree, const float aspectRatio, const bool isVertical)
 	{
 		GET_CAM_COMP(camera, );
+
+		if (camera->GetComponentType() == ComponentType::SLICER)
+		{
+			vzlog_assert(0, "Slicer does NOT allow perspective setting");
+			return;
+		}
+
 		camera->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
 		camera->UpdateMatrix();
 		UpdateTimeStamp();
@@ -140,7 +156,7 @@ namespace vzm
 		GET_CAM_COMP(camera, false);
 		return camera->IsOrtho();
 	}
-
+	
 	void VzCamera::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
 	{
 		GET_CAM_COMP(camera, );
@@ -648,94 +664,13 @@ namespace vzm
 
 namespace vzm
 {
-	VzSlicer::VzSlicer(const VID vid, const std::string& originFrom)
-		: VzSceneComp(vid, originFrom, COMPONENT_TYPE::SLICER)
-	{
-	}
-
 #define GET_SLICER_COMP(COMP, RET) SlicerComponent* COMP = compfactory::GetSlicerComponent(componentVID_); \
 	if (!COMP) {post("CameraComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
-	void VzSlicer::SetWorldPoseByHierarchy()
+	void VzSlicer::SetHorizontalCurveControls(const std::vector<vfloat3>& controlPts, const float interval)
 	{
 		GET_SLICER_COMP(slicer, );
-		slicer->SetWorldLookAtFromHierarchyTransforms();
-		slicer->UpdateMatrix();
+		slicer->SetHorizontalCurveControls(*(std::vector<XMFLOAT3>*)&controlPts, interval);
 		UpdateTimeStamp();
-	}
-	void VzSlicer::SetWorldPose(const vfloat3& pos, const vfloat3& view, const vfloat3& up)
-	{
-		GET_SLICER_COMP(slicer, );
-		slicer->SetWorldLookTo(*(XMFLOAT3*)&pos, *(XMFLOAT3*)&view, *(XMFLOAT3*)&up);
-		slicer->UpdateMatrix();
-		UpdateTimeStamp();
-	}
-	void VzSlicer::GetWorldPose(vfloat3& pos, vfloat3& view, vfloat3& up) const
-	{
-		GET_SLICER_COMP(slicer, );
-		if (slicer->IsDirty())
-		{
-			slicer->UpdateMatrix();
-		}
-		XMFLOAT3 _eye = slicer->GetWorldEye();
-		XMFLOAT3 _at = slicer->GetWorldAt();
-		XMFLOAT3 _up = slicer->GetWorldUp();
-		XMFLOAT3 _view;
-		XMStoreFloat3(&_view, XMLoadFloat3(&_at) - XMLoadFloat3(&_eye));
-		*(XMFLOAT3*)&pos = _eye;
-		*(XMFLOAT3*)&view = _view;
-		*(XMFLOAT3*)&up = _up;
-	}
-	void VzSlicer::SetOrthogonalProjection(const float width, const float height, const float orthoVerticalSize)
-	{
-		GET_SLICER_COMP(slicer, );
-		slicer->SetOrtho(width, height, 0.f, 5000.f, orthoVerticalSize);
-		slicer->UpdateMatrix();
-		UpdateTimeStamp();
-	}
-	void VzSlicer::GetOrthogonalProjection(float* width, float* height, float* orthoVerticalSize) const
-	{
-		GET_SLICER_COMP(slicer, );
-		vzlog_assert(slicer->IsOrtho(), "must be ORTHO PROJECTION!");
-
-		float w, h;
-		slicer->GetWidthHeight(&w, &h);
-		if (width)
-		{
-			*width = w;
-		}
-		if (height)
-		{
-			*height = h;
-		}
-		if (orthoVerticalSize)
-		{
-			*orthoVerticalSize = slicer->GetOrthoVerticalSize();
-		}
-	}
-
-	void VzSlicer::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
-	{
-		GET_SLICER_COMP(slicer, );
-		slicer->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
-	}
-	void VzSlicer::SetClipPlane(const vfloat4& clipPlane)
-	{
-		GET_SLICER_COMP(slicer, );
-		slicer->SetClipPlane(*(XMFLOAT4*)&clipPlane);
-	}
-	void VzSlicer::SetClipBox(const vfloat4x4& clipBox)
-	{
-		GET_SLICER_COMP(slicer, );
-		slicer->SetClipBox(*(XMFLOAT4X4*)&clipBox);
-	}
-	bool VzSlicer::IsClipperEnabled(bool* clipBoxEnabled, bool* clipPlaneEnabled) const
-	{
-		GET_SLICER_COMP(slicer, false);
-		bool box_clipped = slicer->IsBoxClipperEnabled();
-		bool plane_clipped = slicer->IsPlaneClipperEnabled();
-		if (clipBoxEnabled) *clipBoxEnabled = box_clipped;
-		if (clipPlaneEnabled) *clipPlaneEnabled = plane_clipped;
-		return box_clipped || plane_clipped;
 	}
 }

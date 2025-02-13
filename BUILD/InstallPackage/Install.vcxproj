@@ -110,19 +110,21 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>call "$(ProjectDir)..\build_install.bat"</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>call "$(SolutionDir)\BUILD\install_APIs.bat" "$(Configuration)" &amp;&amp; call "$(SolutionDir)\BUILD\install_EngineAPIs.bat"</Command>
+      <Command>
+      </Command>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>..\install_EngineAPIs.bat;..\install_APIs.bat;</Inputs>
-      <Outputs>$(Platform)\$(Configuration)\dummy.txt</Outputs>
+      <Inputs>
+      </Inputs>
+      <Outputs>
+      </Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -141,24 +143,30 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>call "$(ProjectDir)..\build_install.bat"</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>call "$(SolutionDir)\BUILD\install_APIs.bat" "$(Configuration)" &amp;&amp; call "$(SolutionDir)\BUILD\install_EngineAPIs.bat"</Command>
+      <Command>
+      </Command>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>..\install_EngineAPIs.bat;..\install_APIs.bat;</Inputs>
-      <Outputs>$(Platform)\$(Configuration)\dummy.txt</Outputs>
+      <Inputs>
+      </Inputs>
+      <Outputs>
+      </Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="..\build_install.bat" />
     <None Include="..\install_APIs.bat" />
     <None Include="..\install_EngineAPIs.bat" />
+    <None Include="..\revert_update_version.bat" />
+    <None Include="..\update_version.bat" />
+    <None Include="..\update_version_check.bat" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
