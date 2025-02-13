@@ -2,30 +2,34 @@
 setlocal enabledelayedexpansion
 
 :: -----------------------------------------------------------
-:: 0. Git 사용자 이름이 "korfriend"인지 확인
+:: Backup
 :: -----------------------------------------------------------
-for /f "delims=" %%G in ('git config user.name') do set "GITUSER=%%G"
-if /I not "%GITUSER%"=="korfriend" (
-    echo 현재 Git 사용자: %GITUSER%
-    echo 이 스크립트는 github 계정 "korfriend"에서만 실행됩니다.
-    pause
-    exit /b 0
+set "COMP_PATH=%~dp0..\EngineCore\Components\Components.h"
+set "VERSION_CPP=%~dp0..\EngineCore\Common\Version.cpp"
+::echo [INFO] Creating backup files...
+::copy /Y "%COMP_PATH%" "%COMP_PATH%.bak"
+::copy /Y "%VERSION_CPP%" "%VERSION_CPP%.bak"
+
+REM ============================================================
+REM Check arguments: If argument is "v", skip Components.h update and only update VERSION_CPP
+REM ============================================================
+if /I "%~1"=="v" (
+    echo Argument "v" detected: Proceeding with VERSION_CPP update only.
+    goto UpdateVersionCPP
 )
-echo Git 사용자 확인 완료: %GITUSER%
+
+copy /Y "%COMP_PATH%" "%COMP_PATH%.bak"
+:: -----------------------------------------------------------
+:: 1. Set File Paths
+::    Set Components.h file location relative to batch file directory
+::    (Example: Batch file location: MyScripts\build.bat, Components.h location: EngineCore\Components\Components.h)
+:: -----------------------------------------------------------
+:: %~dp0 represents the batch file directory (including trailing '\')
+echo File to modify: %COMP_PATH%
 
 :: -----------------------------------------------------------
-:: 1. 파일 경로 설정
-::    배치 파일이 있는 디렉터리를 기준으로 Components.h 파일 위치 지정
-::    (예: 배치 파일 위치: MyScripts\build.bat, Components.h 위치: EngineCore\Components\Components.h)
-:: -----------------------------------------------------------
-set "COMP_FILE=Components.h"
-:: %~dp0 는 배치 파일의 디렉터리(마지막에 '\' 포함)를 의미함
-set "COMP_PATH=%~dp0..\EngineCore\Components\%COMP_FILE%"
-echo 수정할 파일: %COMP_PATH%
-
-:: -----------------------------------------------------------
-:: 2. Components.h 파일에서 버전 문자열("VZ::YYYYMMDD_x") 추출
-::    PowerShell의 Select-String을 이용하여 정규식 'VZ::\d{8}_\d+'에 맞는 문자열 검색
+:: 2. Extract version string ("VZ::YYYYMMDD_x") from Components.h
+::    Use PowerShell's Select-String to find strings matching regex 'VZ::\d{8}_\d+'
 :: -----------------------------------------------------------
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Select-String -Path '%COMP_PATH%' -Pattern 'VZ::\d{8}_\d+' | ForEach-Object { $_.Matches } | ForEach-Object { $_.Value }"') do (
     set "VERSION=%%A"
@@ -33,38 +37,38 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Select-String -Path '%
 )
 :found
 if not defined VERSION (
-    echo [%date% %time%] 에러: %COMP_PATH% 파일에서 버전 문자열을 찾을 수 없습니다.
+    echo [%date% %time%] Error: Cannot find version string in %COMP_PATH%
     exit /b 1
 )
-echo 기존 버전 문자열: %VERSION%
+echo Current version string: %VERSION%
 
 :: -----------------------------------------------------------
-:: 3. 버전 문자열 분리 (언더스코어 '_' 기준)
-::    예: "VZ::20250211_0" → datePart="VZ::20250211" , counter="0"
+:: 3. Split version string (based on underscore '_')
+::    Example: "VZ::20250211_0" → datePart="VZ::20250211" , counter="0"
 :: -----------------------------------------------------------
 for /f "tokens=1,2 delims=_" %%a in ("%VERSION%") do (
     set "datePart=%%a"
     set "counter=%%b"
 )
-echo 날짜 부분: %datePart%
-echo 기존 카운터: %counter%
+echo Date part: %datePart%
+echo Current counter: %counter%
 
 :: -----------------------------------------------------------
-:: 4. datePart에서 "VZ::"를 제거하여 실제 날짜(YYYYMMDD) 추출
+:: 4. Remove "VZ::" from datePart to extract actual date (YYYYMMDD)
 :: -----------------------------------------------------------
 set "dateOnly=%datePart:~4%"
-echo 추출된 날짜: %dateOnly%
+echo Extracted date: %dateOnly%
 
 :: -----------------------------------------------------------
-:: 5. 오늘 날짜(YYYYMMDD 형식) 구하기 (PowerShell 이용)
+:: 5. Get today's date in YYYYMMDD format using PowerShell
 :: -----------------------------------------------------------
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set "TODAY=%%i"
-echo 오늘 날짜: %TODAY%
+echo Today date: %TODAY%
 
 :: -----------------------------------------------------------
-:: 6. 오늘 날짜와 파일 내 날짜 비교
-::    - 같으면 기존 카운터에 1 증가
-::    - 다르면 날짜를 오늘 날짜로 갱신하고 카운터를 0으로 초기화
+:: 6. Compare today's date with the file date
+:: If they are equal then increment the counter by 1
+:: If they are different then update datePart with today's date and reset counter to 0
 :: -----------------------------------------------------------
 if "%dateOnly%"=="%TODAY%" (
     set /a newCounter=%counter% + 1
@@ -72,25 +76,68 @@ if "%dateOnly%"=="%TODAY%" (
     set "datePart=VZ::%TODAY%"
     set "newCounter=0"
 )
-echo 새 카운터: %newCounter%
+echo New counter: %newCounter%
 
 :: -----------------------------------------------------------
-:: 7. 새 버전 문자열 생성
+:: 7. Generate new version string
 :: -----------------------------------------------------------
 set "newVersion=%datePart%_%newCounter%"
-echo 새 버전 문자열: %newVersion%
+echo New version string: %newVersion%
 
 :: -----------------------------------------------------------
-:: 8. Components.h 파일 내 버전 문자열 업데이트 (PowerShell -replace 사용)
+:: 8. Update version string in Components.h file (using PowerShell -replace)
 :: -----------------------------------------------------------
 powershell -NoProfile -Command "(Get-Content '%COMP_PATH%') -replace 'VZ::\d{8}_\d+', '%newVersion%' | Set-Content '%COMP_PATH%'"
-echo 파일 %COMP_PATH% 이(가) %newVersion%(으)로 업데이트 되었습니다.
+echo File %COMP_PATH% has been updated to %newVersion%
 
 :: -----------------------------------------------------------
-:: 9. 빌드 실행 (예시: msbuild 사용, 환경에 맞게 수정)
+:: 9. Set Version.cpp file path
+::    - Set relative path to Version.cpp based on batch file location
+::    - For example, if batch file and Version.cpp are in the same folder, use as below
 :: -----------------------------------------------------------
-::echo 빌드를 시작합니다...
+:UpdateVersionCPP
+echo =================== Version Update
+echo File to update: %VERSION_CPP%
+copy /Y "%VERSION_CPP%" "%VERSION_CPP%.bak"
+
+:: -----------------------------------------------------------
+:: 10. Extract current revision value from Version.cpp
+:: Get token5 (number+semicolon) from line matching "const int revision = 3;"
+:: -----------------------------------------------------------
+for /f "tokens=2 delims==" %%A in ('findstr /R /C:"const int revision =" "%VERSION_CPP%"') do (
+    for /f "tokens=1" %%B in ("%%A") do (
+        set "currentRevision=%%B"
+        goto :gotRevision
+    )
+)
+:gotRevision
+if not defined currentRevision (
+    echo [ERROR] Cannot find revision value in %VERSION_CPP%
+    exit /b 1
+)
+:: Remove semicolon e.g., "3;" -> "3"
+set "currentRevision=%currentRevision:;=%"
+echo Current revision: %currentRevision%
+
+:: -----------------------------------------------------------
+:: 11. Increment revision value by 1
+:: -----------------------------------------------------------
+set /a newRevision=%currentRevision% + 1
+echo New revision: %newRevision%
+
+:: -----------------------------------------------------------
+:: 12. Update revision value in Version.cpp (using PowerShell)
+::    - Replace matches of regex 'const int revision = (\d+);' with new revision value
+:: -----------------------------------------------------------
+powershell -NoProfile -Command ^
+    "(Get-Content '%VERSION_CPP%') -replace 'const int revision = (\d+);', 'const int revision = %newRevision%;' | Set-Content '%VERSION_CPP%'"
+
+echo %VERSION_CPP% file's revision value has been updated to %newRevision%
+
+:: -----------------------------------------------------------
+:: build+. Execute build (example: using msbuild, modify as needed)
+:: -----------------------------------------------------------
+::echo Starting build...
 ::msbuild MyProject.sln /p:Configuration=Release
 
 endlocal
-pause

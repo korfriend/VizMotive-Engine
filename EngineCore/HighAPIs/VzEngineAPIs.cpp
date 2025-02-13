@@ -68,7 +68,9 @@ namespace vzm
 			case COMPONENT_TYPE::ARCHIVE: archives.erase(vid); Archive::DestroyArchive(vid); is_engine_component = false;  break;
 			case COMPONENT_TYPE::SCENE: scenes.erase(vid); Scene::DestroyScene(vid); is_engine_component = false; break;
 			case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); is_engine_component = false; break;
-			case COMPONENT_TYPE::CAMERA: cameras.erase(vid); break;
+			case COMPONENT_TYPE::CAMERA: 
+			case COMPONENT_TYPE::SLICER: 
+				cameras.erase(vid); break;
 			case COMPONENT_TYPE::ACTOR: actors.erase(vid); break;
 			case COMPONENT_TYPE::LIGHT: lights.erase(vid); break;
 			case COMPONENT_TYPE::GEOMETRY: geometries.erase(vid); break;
@@ -77,8 +79,6 @@ namespace vzm
 			default:
 				assert(0);
 			}
-
-			lookup.erase(it);
 
 			if (is_engine_component)
 			{
@@ -96,6 +96,7 @@ namespace vzm
 				compfactory::Destroy(vid);
 				Scene::RemoveEntityForScenes(vid);
 			}
+			lookup.erase(it);
 
 			return true;
 		}
@@ -228,8 +229,10 @@ namespace vzm
 		case COMPONENT_TYPE::ACTOR:
 		case COMPONENT_TYPE::LIGHT:
 		case COMPONENT_TYPE::CAMERA:
+		case COMPONENT_TYPE::SLICER:
 			break;
 		default:
+			vzlog_assert(0, "Invalid COMPONENT type for newSceneComponent!");
 			return nullptr;
 		}
 
@@ -265,6 +268,13 @@ namespace vzm
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
+		case COMPONENT_TYPE::SLICER:
+			compfactory::CreateSlicerComponent(entity);
+			{
+				auto it = vzcomp::cameras.emplace(vid, std::make_unique<VzSlicer>(vid, "vzm::NewSlicer"));
+				hlcomp = (VzSceneComp*)it.first->second.get();
+			}
+			break;
 		default:
 			backlog::post("vzm::NewSceneComponent >> Invalid COMPONENT_TYPE", backlog::LogLevel::Error);
 			return nullptr;
@@ -283,6 +293,11 @@ namespace vzm
 	{
 		CHECK_API_VALIDITY(nullptr);
 		return (VzCamera*)newSceneComponent(COMPONENT_TYPE::CAMERA, name, parentVid);
+	}
+	VzSlicer* NewSlicer(const std::string& name, const VID parentVid)
+	{
+		CHECK_API_VALIDITY(nullptr);
+		return (VzSlicer*)newSceneComponent(COMPONENT_TYPE::SLICER, name, parentVid);
 	}
 	VzActor* NewActor(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
 	{
@@ -415,9 +430,11 @@ namespace vzm
 					}
 					else
 					{
-						vid_scene = std::max(std::max(itl != vzcomp::lights.end() ? itl->second.get()->sceneVid : INVALID_VID,
-							itr != vzcomp::actors.end() ? itr->second.get()->sceneVid : INVALID_VID),
-							itc != vzcomp::cameras.end() ? itc->second.get()->sceneVid : INVALID_VID);
+						vid_scene = std::max(
+							std::max(itl != vzcomp::lights.end() ? itl->second.get()->sceneVid : INVALID_VID,
+								itr != vzcomp::actors.end() ? itr->second.get()->sceneVid : INVALID_VID), 
+							itc != vzcomp::cameras.end() ? itc->second.get()->sceneVid : INVALID_VID 
+						);
 						//assert(vid_scene != INVALID_VID); can be INVALID_VID
 						*scene = Scene::GetScene(vid_scene);
 					}
