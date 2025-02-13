@@ -268,8 +268,6 @@ int main(int, char **)
 	}
 
 	// Our state
-	bool show_demo_window = true;
-	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	// Main loop
@@ -320,7 +318,6 @@ int main(int, char **)
 				ImGui::SetItemAllowOverlap();
 
 				bool is_hovered = ImGui::IsItemHovered(); // Hovered
-				bool is_active = ImGui::IsItemActive();	  // Held
 
 				if (is_hovered && !resized)
 				{
@@ -336,8 +333,6 @@ int main(int, char **)
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
-						float np, fp;
-						camera->GetPerspectiveProjection(&np, &fp, NULL, NULL);
 						orbit_control->Start(__FC2 pos_ss);
 					}
 					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f)) && glm::length2(prevMousePos - m_pos) > 0)

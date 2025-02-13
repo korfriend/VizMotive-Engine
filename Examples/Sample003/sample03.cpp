@@ -369,8 +369,6 @@ int main(int, char**)
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
-						float np, fp;
-						camera->GetPerspectiveProjection(&np, &fp, NULL, NULL);
 						orbit_control->Start(__FC2 pos_ss);
 					}
 					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f))
