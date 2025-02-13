@@ -49,15 +49,16 @@ if /I "%updateMode%"=="none" (
     set "ENGINE_DIR=%~dp0..\EngineCore"
     REM Use PowerShell to compare the most recent modification times (in Ticks)
     REM between all existing files in ENGINE_DIR and BIN_DIR
-    for /f "usebackq delims=" %%R in (`powershell -NoProfile -Command "if ((Get-ChildItem -Path '!ENGINE_DIR!' -Recurse -File | Where-Object { Test-Path $_.FullName } | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.ToUniversalTime().Ticks -gt (Get-ChildItem -Path '!BIN_DIR!' -Recurse -Filter *.dll | Where-Object { Test-Path $_.FullName } | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.ToUniversalTime().Ticks) { Write-Output update } else { Write-Output no }"`) do set "COMPARE_RESULT=%%R"
-    echo Comparison result: !COMPARE_RESULT!
-    if /I "!COMPARE_RESULT!"=="update" (
-        echo [INFO] EngineCore code's latest modification is more recent than DLL's.
-        echo Setting update mode to VERSION_CPP only based on update requirement.
-        set "updateMode=v"
-    ) else (
-        echo [INFO] DLLs are up to date, no update needed.
-    )
+    REM :: for /f "usebackq delims=" %%R in (`powershell -NoProfile -Command "if ((Get-ChildItem -Path '!ENGINE_DIR!' -Recurse -File | Where-Object { Test-Path $_.FullName } | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.ToUniversalTime().Ticks -gt (Get-ChildItem -Path '!BIN_DIR!' -Recurse -Filter *.dll | Where-Object { Test-Path $_.FullName } | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.ToUniversalTime().Ticks) { Write-Output update } else { Write-Output no }"`) do set "COMPARE_RESULT=%%R"
+    REM :: echo Comparison result: !COMPARE_RESULT!
+    REM :: if /I "!COMPARE_RESULT!"=="update" (
+    REM ::     echo [INFO] EngineCore code's latest modification is more recent than DLL's.
+    REM ::     echo Setting update mode to VERSION_CPP only based on update requirement.
+    REM ::     set "updateMode=v"
+    REM :: ) else (
+    REM ::     echo [INFO] DLLs are up to date, no update needed.
+    REM :: )
+    set "updateMode=v"
 )
 REM ============================================================
 REM 3. Call update_version.bat if needed

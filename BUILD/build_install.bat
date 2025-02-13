@@ -1,5 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
+chcp 65001
 :: -----------------------------------------------------------
 :: 0. Check if Git username is "korfriend"
 :: -----------------------------------------------------------
@@ -21,7 +22,7 @@ for %%C in (Debug Release) do (
     set "CONFIG=%%C"
     for %%P in (%PROJECTS%) do (
         echo Building project %%~nxP with configuration !CONFIG!
-        msbuild "%%~P" /p:Configuration=!CONFIG! /p:Platform=x64
+        msbuild "%%~P" /p:Configuration=!CONFIG! /p:Platform=x64 /clp:ErrorsOnly
         set "BUILDRESULT=!ERRORLEVEL!"
         if !BUILDRESULT! neq 0 (
             echo Build of project %%~nxP [!CONFIG!] failed with error code !BUILDRESULT!.

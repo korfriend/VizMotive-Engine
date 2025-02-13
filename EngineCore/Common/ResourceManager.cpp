@@ -1228,10 +1228,14 @@ namespace vz
 				return false;
 			}
 
-			locker.lock();
-			std::shared_ptr<ResourceInternal> resource = resources[name].lock();
+			// RAII-type locking mechanism
+			std::shared_ptr<ResourceInternal> resource;
+			{
+				std::lock_guard<std::mutex> lock(locker);
+				resource = resources[name].lock();
+			}
+			vzlog_assert(resource, "Resource pointer has expired!");
 			ResourceInternal* resource_internal = resource.get();
-			locker.unlock();
 
 			if (!resource_internal->texture.IsValid())
 			{
@@ -1252,13 +1256,11 @@ namespace vz
 				std::string gpu_res_name = name + ":Upload";
 				device->SetName(&resource->texture, gpu_res_name.c_str());
 			}
-			else
+
+			memcpy(resource->textureUpdate.mapped_data, data, resource_internal->textureUpdate.mapped_size);
+			if (shaderEngine.pluginAddDeferredTextureCopy)
 			{
-				memcpy(resource->textureUpdate.mapped_data, data, resource_internal->textureUpdate.mapped_size);
-				if (shaderEngine.pluginAddDeferredTextureCopy)
-				{
-					shaderEngine.pluginAddDeferredTextureCopy(resource->textureUpdate, resource->texture, false);
-				}
+				shaderEngine.pluginAddDeferredTextureCopy(resource->textureUpdate, resource->texture, false);
 			}
 
 			return resource_internal->textureUpdate.IsValid();
