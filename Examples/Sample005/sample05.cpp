@@ -207,8 +207,10 @@ int main(int, char **)
 
 	using namespace vzm;
 	VzScene *scene = nullptr;
-	VzCamera *camera = nullptr;
-	VzRenderer *renderer = nullptr;
+	VzCamera* camera = nullptr;
+	VzSlicer* slicer = nullptr;
+	VzRenderer* renderer3D = nullptr;
+	VzRenderer* rendererSlicer = nullptr;
 	ImVec2 wh(512, 512);
 
 	// add .ply load
@@ -220,9 +222,11 @@ int main(int, char **)
 		light->SetPosition({0.f, 0.f, 100.f});
 		light->SetEulerAngleZXYInDegree({0, 180, 0});
 
-		renderer = NewRenderer("my renderer");
-		renderer->SetCanvas(1, 1, 96.f, nullptr);
-		renderer->SetClearColor({1.f, 1.f, 0.f, 1.f});
+		renderer3D = NewRenderer("my renderer");
+		renderer3D->SetCanvas(1, 1, 96.f, nullptr);
+
+		rendererSlicer = NewRenderer("my slicer");
+		rendererSlicer->SetCanvas(1, 1, 96.f, nullptr);
 
 		// === camera ===
 		camera = NewCamera("my camera");
@@ -231,12 +235,32 @@ int main(int, char **)
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
 
+		//slicer = NewSlicer("my slicer");
+		//glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
+		//glm::fvec3 view = at - pos;
+		//camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+		//camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		scene->AppendChild(axis_helper);
 		vzm::AppendSceneCompTo(light, scene);
 
 		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
+
+		VzActor* test_root = NewActor("my test root actor");
+		VzGeometry* test_geometry = NewGeometry("my rect geometry");
+		test_geometry->MakeTestQuadWithUVs();
+		VzMaterial* test_material = NewMaterial("my test material");
+		test_root->AttachToParent(scene);
+
+		//for (size_t i = 0, n = 10; i < n; i++)
+		//{
+		//	VzActor* test_rect = NewActor("my test rect actor" + std::to_string(i), test_geometry, test_material);
+		//	test_root->AppendChild(test_rect);
+		//}
+		//
+		//vzm::RemoveComponent(test_root, true);
 	}
 
 	// Our state
@@ -283,7 +307,7 @@ int main(int, char **)
 				{
 					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 					canvas_size.y = std::max(canvas_size.y, 1.f);
-					renderer->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, camera->GetVID());
+					renderer3D->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, camera->GetVID());
 					wh = canvas_size;
 				}
 				ImVec2 win_pos = ImGui::GetWindowPos();
@@ -304,7 +328,7 @@ int main(int, char **)
 					glm::fvec2 pos_ss = m_pos;
 
 					OrbitalControl *orbit_control = camera->GetOrbitControl();
-					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 2.f);
+					orbit_control->Initialize(renderer3D->GetVID(), {0, 0, 0}, 2.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
@@ -335,15 +359,94 @@ int main(int, char **)
 
 				ImGui::SetCursorPos(cur_item_pos);
 
-				renderer->Render(scene, camera);
+				renderer3D->Render(scene, camera);
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;
-				renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, srt, &w, &h);
+				renderer3D->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, srt, &w, &h);
 				ImTextureID texId = (ImTextureID)srt.descriptorHandle;
 				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 				ImGui::Image(texId, ImVec2((float)w, (float)h));
 			}
+
+			/*
+			ImGui::Begin("Slicer Viewer");
+			{
+				static ImVec2 prevWindowSize = ImVec2(0, 0);
+				ImVec2 curWindowSize = ImGui::GetWindowSize();
+
+				if (prevWindowSize.x * prevWindowSize.y == 0)
+					ImGui::SetWindowSize(ImVec2(0, 0));
+
+				bool resized = prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y;
+				prevWindowSize = curWindowSize;
+
+				if (resized)
+				{
+					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+					canvas_size.y = std::max(canvas_size.y, 1.f);
+					renderer3D->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, camera->GetVID());
+					wh = canvas_size;
+				}
+				ImVec2 win_pos = ImGui::GetWindowPos();
+				ImVec2 cur_item_pos = ImGui::GetCursorPos();
+				ImGui::InvisibleButton("render window", wh, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+				ImGui::SetItemAllowOverlap();
+
+				bool is_hovered = ImGui::IsItemHovered(); // Hovered
+				bool is_active = ImGui::IsItemActive();	  // Held
+
+				if (is_hovered && !resized)
+				{
+					static glm::fvec2 prevMousePos(0);
+					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
+					glm::fvec2 s_pos = *(glm::fvec2*)&cur_item_pos;
+					glm::fvec2 w_pos = *(glm::fvec2*)&win_pos;
+					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
+					glm::fvec2 pos_ss = m_pos;
+
+					OrbitalControl* orbit_control = camera->GetOrbitControl();
+					orbit_control->Initialize(renderer3D->GetVID(), { 0, 0, 0 }, 2.f);
+
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+					{
+						float np, fp;
+						camera->GetPerspectiveProjection(&np, &fp, NULL, NULL);
+						orbit_control->Start(__FC2 pos_ss);
+					}
+					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f)) && glm::length2(prevMousePos - m_pos) > 0)
+					{
+						if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+							orbit_control->PanMove(__FC2 pos_ss);
+						else
+							orbit_control->Move(__FC2 pos_ss);
+					}
+					else if (io.MouseWheel != 0)
+					{
+						//glm::fvec3 pos, view, up;
+						//camera->GetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						//if (io.MouseWheel > 0)
+						//	pos += 0.2f * view;
+						//else
+						//	pos -= 0.2f * view;
+						//camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						orbit_control->Zoom(io.MouseWheel, 1.f);
+					}
+					prevMousePos = pos_ss;
+				}
+
+				ImGui::SetCursorPos(cur_item_pos);
+
+				renderer3D->Render(scene, camera);
+
+				uint32_t w, h;
+				VzRenderer::SharedResourceTarget srt;
+				renderer3D->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, srt, &w, &h);
+				ImTextureID texId = (ImTextureID)srt.descriptorHandle;
+				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
+				ImGui::Image(texId, ImVec2((float)w, (float)h));
+			}
+			/**/
 
 			ImGui::End();
 
