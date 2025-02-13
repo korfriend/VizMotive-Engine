@@ -58,6 +58,9 @@
     <Filter Include="Components %28CORE_EXPORT%29\Private\Component Details">
       <UniqueIdentifier>{5beea166-6e5f-4119-8e5a-4d98f96dbf9d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ThirdParty\spdlog">
+      <UniqueIdentifier>{b622dd28-ed08-4714-8b92-59915b3122d8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h">
@@ -240,6 +243,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h">
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\spdlog\spdlog.h">
+      <Filter>ThirdParty\spdlog</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
