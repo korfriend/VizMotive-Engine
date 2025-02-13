@@ -262,15 +262,23 @@ namespace vz::renderer
 			device->BindUAV(&unbind, 3, cmd);       // u3
 			device->BindUAV(&unbind, 4, cmd);       // u4
 
+			if((iters % 2) == 0)
+				barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			else
+				barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+
+			BarrierStackFlush(cmd);
 
 			// test210 - totalSum test
-			GPUBuffer* srcBuffer = (iters % 2 == 0) ? &gs_buffers.offsetTilesPing : &gs_buffers.offsetTilesPong;
+
+			// even -> srcBuffer is offsetTilesPong
+			GPUBuffer* srcBuffer = ((iters % 2) == 0) ? &gs_buffers.offsetTilesPong : &gs_buffers.offsetTilesPing;
 
 			{
 				GPUBarrier barriers[] =
 				{
 					// must check ResourceState here
-					GPUBarrier::Buffer(srcBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
+					GPUBarrier::Buffer(srcBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_SRC),
 					GPUBarrier::Buffer(&gs_buffers.totalSumBufferHost, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)
 				};
 				device->Barrier(barriers, _countof(barriers), cmd);
