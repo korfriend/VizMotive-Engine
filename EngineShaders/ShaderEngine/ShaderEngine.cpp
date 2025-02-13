@@ -37,7 +37,7 @@ namespace vz::renderer
 	bool isVariableRateShadingClassification = false;
 	bool isSurfelGIDebugEnabled = false;
 	bool isColorGradingEnabled = false;
-	bool isGaussianSplattingEnabled = false;
+	bool isGaussianSplattingEnabled = true;
 }
 
 namespace vz::renderer 
