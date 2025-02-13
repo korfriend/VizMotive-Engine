@@ -2,6 +2,9 @@
 #define SHADERINTEROP_GS_H
 #include "ShaderInterop.h"
 
+#define TILE_WIDTH 16
+#define TILE_HEIGHT 16
+
 static const float SH_C0 = 0.28209479177387814f;
 static const float SH_C1 = 0.4886025119029199f;
 static const float SH_C2[5] = {
@@ -61,9 +64,9 @@ struct GaussianSortConstants
 	int totalSumBufferHost_index;
 	int tileBoundaryBuffer_index;
 
-	uint timestamp;
 	uint tileX;
 	uint tileY;
+	uint timestamp;
 	uint num_gaussians;
 };
 

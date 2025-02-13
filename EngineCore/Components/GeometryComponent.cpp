@@ -1119,8 +1119,8 @@ namespace vz
 				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPong, "GGeometryComponent::bufferHandle_::offsetTilesPong");
 
 				const size_t initial_capacity_scale = 4;
-				// sort buffers
 
+				// Radix sort buffers
 				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale; // uint_64
 				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferEven);
 				assert(success);
@@ -1155,6 +1155,7 @@ namespace vz
 				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.totalSumBufferHost);
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.totalSumBufferHost, "GGeometryComponent::bufferHandle_::totalSumBufferHost");
+
 
 				// tile boundary buffer
 				//bd.size = sizeof(tileX);// ??
