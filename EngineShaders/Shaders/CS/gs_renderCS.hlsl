@@ -47,6 +47,16 @@ void main(uint3 DTid : SV_DispatchThreadID,   // 전역 스레드 ID (gl_GlobalInvoca
     uint start = boundaries[index];
     uint end = boundaries[index + 1];
 
+    if (sorted_vertices[100] == 0) {
+        inout_color[curr_uv] = float4(1, 0, 0, 1.0f);
+
+    }
+    else {
+        inout_color[curr_uv] = float4(0, 0, 1, 1.0f);
+
+    }
+    return;
+
     float T = 1.0f;
     float3 c = float3(0.0f, 0.0f, 0.0f);
     uint localIndex = localX + localY * TILE_WIDTH;

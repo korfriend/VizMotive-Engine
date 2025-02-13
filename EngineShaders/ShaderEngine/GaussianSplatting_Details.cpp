@@ -98,11 +98,6 @@ namespace vz::renderer
 
 			GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
 
-			// test vertex attrs
-			{
-				gaussian_sort.gaussian_vertex_attributes_index = device->GetDescriptorIndex(&gs_buffers.gaussianVertexAttributes, SubresourceType::UAV);
-			}
-
 			{
 				//GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
 				gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
@@ -118,6 +113,9 @@ namespace vz::renderer
 				// Ping and Pong Buffer for prefix sum
 				gaussian_push.offsetTiles_Ping_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPing, SubresourceType::UAV);
 				gaussian_push.offsetTiles_Pong_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPong, SubresourceType::UAV);
+
+				// gaussian vertex attributes
+				gaussian_sort.gaussian_vertex_attributes_index = device->GetDescriptorIndex(&gs_buffers.gaussianVertexAttributes, SubresourceType::UAV);
 
 				// total sum buffer = prefixsum[P - 1]
 				gaussian_sort.totalSumBufferHost_index = device->GetDescriptorIndex(&gs_buffers.totalSumBufferHost, SubresourceType::UAV);
@@ -305,8 +303,9 @@ namespace vz::renderer
 			device->BindUAV(&gs_buffers.sortKBufferEven, 0, cmd);
 			device->BindUAV(&gs_buffers.sortVBufferEven, 1, cmd);
 			device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd);
-			device->BindResource(srcBuffer, 1, cmd);
+			device->BindResource(&gs_buffers.offsetTilesPong, 1, cmd);
 
+			// 
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortKBufferEven, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortVBufferEven, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
@@ -327,8 +326,10 @@ namespace vz::renderer
 			device->BindResource(&unbind, 1, cmd);
 
 			// SRV 로 바꿀필요없음
-			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortKBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortVBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortKBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortVBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+
+			BarrierStackFlush(cmd);
 
 			// radix sort test
 
@@ -368,7 +369,6 @@ namespace vz::renderer
 
 				device->PushConstants(&gaussian_radix, sizeof(GaussianRadixConstants), cmd);
 				device->Dispatch(invocationSize, 1, 1, cmd);
-				BarrierStackFlush(cmd);
 
 				// Sort pass
 				device->BindComputeShader(&shaders[CSTYPE_GS_RADIX_SORT_GAUSSIANS], cmd);
@@ -394,7 +394,6 @@ namespace vz::renderer
 
 				device->PushConstants(&gaussian_radix, sizeof(GaussianRadixConstants), cmd);
 				device->Dispatch(invocationSize, 1, 1, cmd);
-				BarrierStackFlush(cmd);
 			}
 
 			// tile boundary test
@@ -411,7 +410,6 @@ namespace vz::renderer
 			bd.size = tileX * tileY * sizeof(uint) * 2;
 			bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
-
 			bool success = device->CreateBuffer(&bd, nullptr, &tileBoundaryBuffer);
 			assert(success);
 			device->SetName(&tileBoundaryBuffer, "tileBoundaryBuffer");
@@ -420,8 +418,8 @@ namespace vz::renderer
 			device->BindUAV(&gs_buffers.tileBoundaryBuffer, 0, cmd);	// u0
 
 			gaussian_push.num_gaussians = numInstances;					// numInstance test
-
-			barrierStack.push_back(GPUBarrier::Buffer(&tileBoundaryBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			
+			barrierStack.push_back(GPUBarrier::Buffer(&tileBoundaryBuffer, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			BarrierStackFlush(cmd);
 
 			device->BindComputeShader(&shaders[CSTYPE_GS_IDENTIFY_TILE_RANGES], cmd);
@@ -436,6 +434,11 @@ namespace vz::renderer
 				cmd
 			);
 
+			barrierStack.push_back(GPUBarrier::Buffer(&tileBoundaryBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			BarrierStackFlush(cmd);
+
+			device->BindResource(&unbind, 0, cmd);	// t0
+			device->BindUAV(&unbind, 0, cmd);	// u0
 			// ========================================================
 			// test213 - render
 			gaussian_sort.tileX = width;
