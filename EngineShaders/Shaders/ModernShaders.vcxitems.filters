@@ -175,18 +175,6 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrPrepassCS.hlsl">
       <Filter>Pipeline Shaders\CS\DVR</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_preprocessCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_tileTouchCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_duplicateCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_offsetCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
-    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortCS.hlsl">
       <Filter>Pipeline Shaders\CS\Sort</Filter>
     </FxCompile>
@@ -366,6 +354,27 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\vertexcolorVS.hlsl">
       <Filter>Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_duplicateWithKeysCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_identifyTileRangesCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_offsetCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_preprocessCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_renderCS.hlsl">
+      <Filter>Pipeline Shaders\CS\GS Test</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

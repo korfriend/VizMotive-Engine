@@ -642,6 +642,17 @@ namespace vz
 		struct SH {
 			XMFLOAT3 dcSHs[16];
 		};
+
+		// test210
+		struct VertexAttribute {
+			XMFLOAT4 conic_opacity;
+			XMFLOAT4 color_radii;
+			XMUINT4 aabb; // bounding box 
+			XMFLOAT2 uv; // pixel coords that is output of ndx2pix() func;
+			float depth;
+			uint32_t padding0;
+		};
+
 		struct Primitive {
 		private:
 			std::vector<XMFLOAT3> vertexPositions_;

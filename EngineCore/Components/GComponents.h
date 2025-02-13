@@ -75,9 +75,21 @@ namespace vz
 			// inter-processing buffers
 			graphics::GPUBuffer touchedTiles_0;
 			graphics::GPUBuffer offsetTiles_0;
-			graphics::GPUBuffer duplicatedDepthGaussians; // new version
-			graphics::GPUBuffer duplicatedTileDepthGaussians_0;
-			graphics::GPUBuffer duplicatedIdGaussians;
+			graphics::GPUBuffer offsetTilesPing; // Ping buffer
+			graphics::GPUBuffer offsetTilesPong; // Pong buffer
+
+			graphics::GPUBuffer sortKBufferEven; // duplicated key buffer
+			graphics::GPUBuffer sortKBufferOdd;
+			graphics::GPUBuffer sortVBufferEven; // duplicated value buffer
+			graphics::GPUBuffer sortVBufferOdd;
+
+			graphics::GPUBuffer sortHistBuffer;
+
+			// test210 - vertexAttributes
+			graphics::GPUBuffer gaussianVertexAttributes; // test
+			graphics::GPUBuffer totalSumBufferHost; // test
+			graphics::GPUBuffer tileBoundaryBuffer; // test
+
 
 			bool IsValid() const { return gaussianScale_Opacities.IsValid(); }
 		};
