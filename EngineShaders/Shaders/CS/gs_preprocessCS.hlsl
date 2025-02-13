@@ -6,34 +6,12 @@
 #include "../CommonHF/surfaceHF.hlsli"
 #include "../CommonHF/raytracingHF.hlsli"   
 
-static const float SH_C0 = 0.28209479177387814f;
-static const float SH_C1 = 0.4886025119029199f;
-static const float SH_C2[5] = {
-    1.0925484305920792f,
-    -1.0925484305920792f,
-    0.31539156525252005f,
-    -1.0925484305920792f,
-    0.5462742152960396f
-};
-static const float SH_C3[7] = {
-    -0.5900435899266435f,
-    2.890611442640554f,
-    -0.4570457994644658f,
-    0.3731763325901154f,
-    -0.4570457994644658f,
-    1.445305721320277f,
-    -0.5900435899266435f
-};
-
 PUSHCONSTANT(gaussians, GaussianPushConstants);
 
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWStructuredBuffer<uint> touchedTiles : register(u1);
 RWStructuredBuffer<uint> offsetTiles : register(u2);
-
-// type XMFLOAT4
-//StructuredBuffer<float4> gaussian_scale_opacity : register(t0);
-//StructuredBuffer<float4> gaussian_rotation : register(t1);
+RWStructuredBuffer<VertexAttribute> vertexAttributes : register(u3);
 
 float3 get_sh_float3(Buffer<float> gs_shs, int index) {
     int start = index * 3;
@@ -217,6 +195,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     uint H = camera.internal_resolution.y;
     float focalLength = camera.focal_length;
     float3 camPos = camera.position;
+
     // Load instance and geometry
     ShaderMeshInstance gs_instance = load_instance(gaussians.instanceIndex);
     uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
@@ -265,7 +244,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     if (total_tiles == 0)
         return;
 
-    InterlockedAdd(touchedTiles[idx], total_tiles);
+    //InterlockedAdd(touchedTiles[idx], total_tiles);
 
     int2 pixel_coord = int2(point_image + 0.5f);
 
@@ -273,10 +252,20 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float3 rgb_sh = compute_sh(gs_shs, pos, idx, camPos);
     float4 final_RGB = float4(rgb_sh, 1.0f);
 
-    if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-    {
-        inout_color[pixel_coord] = float4(final_RGB);
-    }
+    // test210
+    float4 p_view = mul(float4(pos, 1.0f), camera.view);
+    touchedTiles[idx] = total_tiles;
+    vertexAttributes[idx].conic_opacity = float4(conic.x, conic.y, conic.z, opacity);
+    vertexAttributes[idx].color_radii = float4(rgb_sh, radius);
+    vertexAttributes[idx].aabb = uint4(rect_min.x, rect_min.y, rect_max.x, rect_max.y);
+    vertexAttributes[idx].uv = point_image;
+    vertexAttributes[idx].depth = p_view.z;
+    vertexAttributes[idx].magic = 0x12345678;
+
+    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
+    //{
+    //    inout_color[pixel_coord] = float4(final_RGB);
+    //}
 }
 
 // ========= check pos,scale,rot values =========
