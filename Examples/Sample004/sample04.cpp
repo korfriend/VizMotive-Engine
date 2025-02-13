@@ -365,7 +365,11 @@ int main(int, char **)
 				renderer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 1, srt, &w, &h);
 				ImTextureID texId = (ImTextureID)srt.descriptorHandle;
 				// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
-				ImGui::Image(texId, ImVec2((float)w, (float)h));
+				//ImGui::Image(texId, ImVec2((float)w, (float)h));
+				ImVec2 pos = ImGui::GetItemRectMin();
+				ImVec2 size = wh;
+				ImVec2 pos_end = ImVec2(pos.x + size.x, pos.y + size.y);
+				ImGui::GetWindowDrawList()->AddImage(texId, pos, pos_end);
 			}
 
 			ImGui::End();
