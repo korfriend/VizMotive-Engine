@@ -13,12 +13,13 @@ namespace vzm
 			virtual bool Start(const vfloat2 pos, const float sensitivity = 1.0f) = 0;
 			virtual bool Move(const vfloat2 pos) = 0;	// target is camera
 			virtual bool PanMove(const vfloat2 pos) = 0;
-			virtual bool Zoom(const float zoomDelta, const float sensitivity) = 0;
+			virtual bool Zoom(const float zoomDelta, const float sensitivity) = 0; // wheel
 		};
 	private:
 		std::unique_ptr<OrbitalControl> orbitControl_;
 	public:
 		VzCamera(const VID vid, const std::string& originFrom);
+
 		// Pose parameters are defined in WS (not local space)
 		void SetWorldPoseByHierarchy();
 		void SetWorldPose(const vfloat3& pos, const vfloat3& view, const vfloat3& up);
@@ -42,20 +43,34 @@ namespace vzm
 
 	using OrbitalControl = VzCamera::OrbitalControl;
 
-	struct API_EXPORT VzSlicer : VzSceneComp
+	struct API_EXPORT VzSlicer : VzCamera
 	{
-		VzSlicer(const VID vid, const std::string& originFrom);
+		struct SliceControl
+		{
+			// the interfaces are based on legacy slicer controls.
+			//	e.g., mouse-right-drag handles zoom and mouse-wheel handles camera move for/back-ward
+			SliceControl() {};
+			virtual ~SliceControl() = default;
+			virtual void Initialize(const RendererVID rendererVID, const vfloat3 stageCenter, const float stageRadius) = 0;
+			virtual bool Start(const vfloat2 pos, const float sensitivity = 1.0f) = 0;
+			virtual bool Zoom(const vfloat2 pos) = 0;	
+			virtual bool PanMove(const vfloat2 pos) = 0;
+			virtual bool Move(const float moveDelta, const float sensitivity) = 0; // wheel
+		};
+	private:
+		std::unique_ptr<SliceControl> sliceControl_;
+	public:
 
-		// Pose parameters are defined in WS (not local space)
-		void SetWorldPoseByHierarchy();
-		void SetWorldPose(const vfloat3& pos, const vfloat3& view, const vfloat3& up);
-		void GetWorldPose(vfloat3& pos, vfloat3& view, vfloat3& up) const;
-		void SetOrthogonalProjection(const float width, const float height, const float orthoVerticalSize = 1);
-		void GetOrthogonalProjection(float* width, float* height, float* orthoVerticalSize) const;
+		VzSlicer(const VID vid, const std::string& originFrom)
+			: VzCamera(vid, originFrom) { type_ = COMPONENT_TYPE::SLICER; }
 
-		void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled);
-		void SetClipPlane(const vfloat4& clipPlane);
-		void SetClipBox(const vfloat4x4& clipBox);
-		bool IsClipperEnabled(bool* clipBoxEnabled = nullptr, bool* clipPlaneEnabled = nullptr) const;
+		void SetOrthogonalProjection(const float width, const float height, const float orthoVerticalSize = 1) { VzCamera::SetOrthogonalProjection(width, height, 0, 10000.f, orthoVerticalSize); }
+		void GetOrthogonalProjection(float* width, float* height, float* orthoVerticalSize) const { VzCamera::GetOrthogonalProjection(nullptr, nullptr, width, height, orthoVerticalSize); }
+
+		void SetHorizontalCurveControls(const std::vector<vfloat3>& controlPts, const float interval);
+
+		SliceControl* GetSliceControl() const { return sliceControl_.get(); }
 	};
+
+	using SliceControl = VzSlicer::SliceControl;
 }

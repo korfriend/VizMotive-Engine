@@ -457,6 +457,7 @@ namespace vz::profiler
 			{
 				queryResultBuffer[i] = {};
 			}
+			queryResultBufferCPU[i].clear();
 		}
 		ranges.clear();
 		initialized = false;

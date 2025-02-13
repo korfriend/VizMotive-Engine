@@ -1,4 +1,4 @@
-﻿#include "Version.h"
+#include "Version.h"
 
 #include <string>
 #include <assert.h>
@@ -10,14 +10,14 @@ namespace vz::version
 	// minor features, major updates, breaking compatibility changes
 	const int minor = 0;
 	// minor bug fixes, alterations, refactors, updates
-	const int revision = 0;
-
+	const int revision = 1;
+	
 	const std::string versionString = std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision) + ".preview";
 
 	long GetVersion()
 	{
-		assert(major < 10000 && minor < 1000 && revision < 1000);
-		return major * 1000000 + minor * 1000 + revision;
+		assert(major < 1000 && minor < 1000 && revision < 10000);
+		return major * 10000000 + minor * 10000 + revision;
 	}
 
 	int GetMajor()
