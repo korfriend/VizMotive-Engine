@@ -4,15 +4,6 @@
     <Filter Include="CommonHF">
       <UniqueIdentifier>{f92570bb-a5e3-4b03-ad7a-99124815d443}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline Shaders">
-      <UniqueIdentifier>{580a4773-9b45-44e9-bc46-568927e883eb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Pipeline Shaders\PS">
-      <UniqueIdentifier>{89e1659f-8e03-4d4a-b866-7b4c7876f0fa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Pipeline Shaders\VS">
-      <UniqueIdentifier>{23dbb783-f920-42dd-a8a6-112587b07d22}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Batch %28root%29">
       <UniqueIdentifier>{87ef205b-9f03-4c75-9fa3-a0a1c697c1b2}</UniqueIdentifier>
     </Filter>
@@ -22,35 +13,44 @@
     <Filter Include="Interop %28root%29">
       <UniqueIdentifier>{cba31e7b-f882-4efc-af50-f0d4f29c7e3e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline Shaders\CS">
-      <UniqueIdentifier>{bfa6fdaf-e093-4e65-bdee-a6905930c1ed}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Libs">
       <UniqueIdentifier>{06159dd3-469f-4d2e-a561-53b813393e9b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Libs\compressonator">
       <UniqueIdentifier>{9106b2c4-88fd-4372-a67e-9cb38c6df995}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline Shaders\CS\Rendering Processing">
-      <UniqueIdentifier>{6102899b-4381-4401-a7f2-224a8f01e5b0}</UniqueIdentifier>
+    <Filter Include="Raster-Pipeline Shaders">
+      <UniqueIdentifier>{580a4773-9b45-44e9-bc46-568927e883eb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline Shaders\CS\Image Processing">
-      <UniqueIdentifier>{7d9b7f4b-184e-46b9-8d47-735b89a929e0}</UniqueIdentifier>
+    <Filter Include="Raster-Pipeline Shaders\PS">
+      <UniqueIdentifier>{89e1659f-8e03-4d4a-b866-7b4c7876f0fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline Shaders\CS\Post Processing Chains">
-      <UniqueIdentifier>{21abd7c3-f90c-4f2b-9534-2540d1b1f2ad}</UniqueIdentifier>
+    <Filter Include="Raster-Pipeline Shaders\VS">
+      <UniqueIdentifier>{23dbb783-f920-42dd-a8a6-112587b07d22}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline Shaders\CS\DVR">
-      <UniqueIdentifier>{8ff856cc-1a39-4b5e-abcb-42eb66603b6c}</UniqueIdentifier>
+    <Filter Include="Compute Shaders">
+      <UniqueIdentifier>{0f5fb1ae-0d32-499f-9eb3-6d8216475cb8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline Shaders\CS\GS Test">
-      <UniqueIdentifier>{2bf53637-c604-4224-a0ae-0db64ec8abc9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Pipeline Shaders\CS\BVH">
+    <Filter Include="Compute Shaders\BVH">
       <UniqueIdentifier>{5ff7c468-3d5d-438d-b157-ac26eb2c27ff}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline Shaders\CS\Sort">
+    <Filter Include="Compute Shaders\GS Test">
+      <UniqueIdentifier>{2bf53637-c604-4224-a0ae-0db64ec8abc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compute Shaders\Image Processing">
+      <UniqueIdentifier>{7d9b7f4b-184e-46b9-8d47-735b89a929e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compute Shaders\Post Processing Chains">
+      <UniqueIdentifier>{21abd7c3-f90c-4f2b-9534-2540d1b1f2ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compute Shaders\Rendering Processing">
+      <UniqueIdentifier>{6102899b-4381-4401-a7f2-224a8f01e5b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compute Shaders\Sort">
       <UniqueIdentifier>{a5a2778b-82d4-4c44-94fa-644126055662}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compute Shaders\Direct Volumes">
+      <UniqueIdentifier>{8ff856cc-1a39-4b5e-abcb-42eb66603b6c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -158,223 +158,226 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryonly.hlsl">
-      <Filter>Pipeline Shaders\CS\BVH</Filter>
+      <Filter>Compute Shaders\BVH</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_propagateaabbCS.hlsl">
-      <Filter>Pipeline Shaders\CS\BVH</Filter>
+      <Filter>Compute Shaders\BVH</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_hierarchyCS.hlsl">
-      <Filter>Pipeline Shaders\CS\BVH</Filter>
+      <Filter>Compute Shaders\BVH</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS.hlsl">
-      <Filter>Pipeline Shaders\CS\BVH</Filter>
+      <Filter>Compute Shaders\BVH</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS.hlsl">
-      <Filter>Pipeline Shaders\CS\DVR</Filter>
+      <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrPrepassCS.hlsl">
-      <Filter>Pipeline Shaders\CS\DVR</Filter>
+      <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Sort</Filter>
+      <Filter>Compute Shaders\Sort</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortInnerCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Sort</Filter>
+      <Filter>Compute Shaders\Sort</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortStepCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Sort</Filter>
+      <Filter>Compute Shaders\Sort</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_kickoffSortCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Sort</Filter>
+      <Filter>Compute Shaders\Sort</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Rendering Processing</Filter>
+      <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_ADVANCED.hlsl">
-      <Filter>Pipeline Shaders\CS\Rendering Processing</Filter>
+      <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_ADVANCED_DEBUG.hlsl">
-      <Filter>Pipeline Shaders\CS\Rendering Processing</Filter>
+      <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_DEBUG.hlsl">
-      <Filter>Pipeline Shaders\CS\Rendering Processing</Filter>
+      <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshlet_prepareCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Rendering Processing</Filter>
+      <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Rendering Processing</Filter>
+      <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl">
-      <Filter>Pipeline Shaders\CS\Rendering Processing</Filter>
+      <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\wetmap_updateCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Rendering Processing</Filter>
+      <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\tonemapCS.hlsl">
-      <Filter>Pipeline Shaders\CS\Post Processing Chains</Filter>
+      <Filter>Compute Shaders\Post Processing Chains</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_wide_unorm4CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC1.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC3.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC5.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC6H.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC6H_cubemap.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_float1CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_float3CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_float4CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_unorm1CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_unorm4CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_wide_float1CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_wide_float3CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_wide_float4CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_wide_unorm1CS.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChainCubeCS_unorm4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain2DCS_float4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain2DCS_unorm4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain3DCS_float4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain3DCS_unorm4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChainCubeArrayCS_float4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChainCubeArrayCS_unorm4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChainCubeCS_float4.hlsl">
-      <Filter>Pipeline Shaders\CS\Image Processing</Filter>
+      <Filter>Compute Shaders\Image Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_debug.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_PBR.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_PHONG.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass_alphatest.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass_depthonly.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass_depthonly_alphatest.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_simple.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_UNLIT.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\vertexcolorPS.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\debugPS.hlsl">
-      <Filter>Pipeline Shaders\PS</Filter>
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\imageVS.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_debug.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_common.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_prepass.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_prepass_alphatest.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_prepass_alphatest_tessellation.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_prepass_tessellation.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_simple.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\occludeeVS.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\vertexcolorVS.hlsl">
-      <Filter>Pipeline Shaders\VS</Filter>
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+      <Filter>Compute Shaders\GS Test</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_duplicateWithKeysCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+      <Filter>Compute Shaders\GS Test</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+      <Filter>Compute Shaders\GS Test</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_identifyTileRangesCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+      <Filter>Compute Shaders\GS Test</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_offsetCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+      <Filter>Compute Shaders\GS Test</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_preprocessCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+      <Filter>Compute Shaders\GS Test</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_renderCS.hlsl">
-      <Filter>Pipeline Shaders\CS\GS Test</Filter>
+      <Filter>Compute Shaders\GS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

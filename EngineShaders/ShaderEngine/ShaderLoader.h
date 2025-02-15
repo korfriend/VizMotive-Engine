@@ -95,8 +95,9 @@ namespace vz::shader
 		CSTYPE_LIGHTCULLING_DEBUG,
 		CSTYPE_LIGHTCULLING, // VER 0.1
 
-		// DVR
+		// Direct Volume Rendering and Mesh Slicer
 		CSTYPE_DVR_DEFAULT, // VER 0.1
+		CSTYPE_MESH_SLICER, // VER 0.1
 
 		// Gaussian Splatting
 		CSTYPE_GS_PREPROCESS,

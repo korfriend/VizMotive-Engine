@@ -149,6 +149,7 @@ namespace vzm
 		GET_RENDERPATH(renderer, );
 	}
 
+	// MUST BE CALLED WITHIN THE SAME THREAD
 	bool VzRenderer::Render(const SceneVID vidScene, const CamVID vidCam)
 	{
 		GET_RENDERPATH(renderer, false);

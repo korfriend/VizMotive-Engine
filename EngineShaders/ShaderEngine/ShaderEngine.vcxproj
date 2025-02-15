@@ -207,7 +207,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DVR_Details.cpp" />
+    <ClCompile Include="DirectVolumes_Details.cpp" />
     <ClCompile Include="GaussianSplatting_Details.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="Random.cpp" />

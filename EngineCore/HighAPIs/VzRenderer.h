@@ -34,6 +34,7 @@ namespace vzm
 
 		void SetTonemap(const Tonemap tonemap);
 
+		// MUST BE CALLED WITHIN THE SAME THREAD
 		bool Render(const SceneVID vidScene, const CamVID vidCam);
 		bool Render(const VzScene* scene, const VzCamera* camera) { return Render(scene->GetVID(), camera->GetVID()); };
 
