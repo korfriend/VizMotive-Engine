@@ -690,6 +690,7 @@ namespace vzm
 		XMFLOAT2 pos0;
 
 		float zoomSensitivity = 1.f;
+		bool isStartSlicer = false;
 
 		~SlicerControlDetail() = default;
 
@@ -739,12 +740,12 @@ namespace vzm
 
 			this->pos0 = *(XMFLOAT2*)&pos;
 			this->zoomSensitivity = 10.f * sensitivity; // heuristic!
-
+			this->isStartSlicer = true;
 			return true;
 		}
 		bool Zoom(const vfloat2& pos, const bool convertZoomdir, const bool preserveStageCenter) override
 		{
-			if (!this->isInitialized)
+			if (!this->isInitialized || !this->isStartSlicer)
 			{
 				backlog::post("SlicerControl::Zoom >> Not intialized!", backlog::LogLevel::Error);
 				return false;
@@ -797,7 +798,7 @@ namespace vzm
 		}
 		bool PanMove(const vfloat2& pos) override
 		{
-			if (!this->isInitialized)
+			if (!this->isInitialized || !this->isStartSlicer)
 			{
 				backlog::post("SlicerControl::PanMove >> Not intialized!", backlog::LogLevel::Error);
 				return false;

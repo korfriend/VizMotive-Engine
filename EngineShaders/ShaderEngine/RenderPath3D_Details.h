@@ -430,9 +430,13 @@ namespace vz::renderer
 		void View_Surface_Reduced(const ViewResources& res, CommandList cmd);
 		void View_Shade(const ViewResources& res, const Texture& output, CommandList cmd);
 
+		// render based on raster-graphics pipeline
 		void DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags);
 
 		void RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
+		
+		// render via compute shader
+		void RenderSlicerMeshes(CommandList cmd);
 		void RenderGaussianSplatting(CommandList cmd);
 		void RenderDirectVolumes(CommandList cmd);
 		void RenderPostprocessChain(CommandList cmd);
@@ -474,6 +478,7 @@ namespace vz::renderer
 
 		// ---------- GRenderPath3D's interfaces: -----------------
 		bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) override; // must delete all canvas-related resources and re-create
+		bool ResizeCanvasSlicer(uint32_t canvasWidth, uint32_t canvasHeight); // must delete all canvas-related resources and re-create
 		bool Render(const float dt) override;
 		bool Destroy() override;
 	};

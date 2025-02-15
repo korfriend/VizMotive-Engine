@@ -34,8 +34,8 @@ namespace vz
 		graphics::Texture& rtRenderFinal_;
 
 		// canvas size is supposed to be updated via ResizeCanvas()
-		uint32_t canvasWidth_ = 1u;
-		uint32_t canvasHeight_ = 1u;
+		uint32_t canvasWidth_ = 0u;
+		uint32_t canvasHeight_ = 0u;
 	public:
 		std::string version = GRenderPath3D_INTERFACE_VERSION;
 

@@ -35,7 +35,7 @@
     <ClCompile Include="GaussianSplatting_Details.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="DVR_Details.cpp">
+    <ClCompile Include="DirectVolumes_Details.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
   </ItemGroup>

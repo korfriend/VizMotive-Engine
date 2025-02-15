@@ -158,6 +158,22 @@ namespace vz
 			return;
 		}
 
+		// This involves the following process
+		//	1. update view (for each rendering pipeline)
+		//	2. update render data
+		//	3. execute rendering pipelines
+		handlerRenderPath3D_->scene = scene;
+		handlerRenderPath3D_->camera = camera;
+		handlerRenderPath3D_->viewport = viewport_;
+
+		handlerRenderPath3D_->matToScreen = matScreen_;
+		handlerRenderPath3D_->matToScreenInv = matScreenInv_;
+
+		handlerRenderPath3D_->scissor = scissor_;
+		handlerRenderPath3D_->colorspace = colorSpace_;
+		handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
+		handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
+
 		bool is_resized = UpdateResizedCanvas();
 		if (is_resized)
 		{
@@ -179,27 +195,7 @@ namespace vz
 		}
 
 		RenderPath2D::Render(dt);
-		
-		if (camera)
-		{
-			// This involves the following process
-			//	1. update view (for each rendering pipeline)
-			//	2. update render data
-			//	3. execute rendering pipelines
-			handlerRenderPath3D_->scene = scene;
-			handlerRenderPath3D_->camera = camera;
-			handlerRenderPath3D_->viewport = viewport_;
-
-			handlerRenderPath3D_->matToScreen = matScreen_;
-			handlerRenderPath3D_->matToScreenInv = matScreenInv_;
-
-			handlerRenderPath3D_->scissor = scissor_;
-			handlerRenderPath3D_->colorspace = colorSpace_;
-			handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
-			handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
-
-			handlerRenderPath3D_->Render(dt);
-		}
+		handlerRenderPath3D_->Render(dt);
 	}
 
 	void RenderPath3D::Compose()

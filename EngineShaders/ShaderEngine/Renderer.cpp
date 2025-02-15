@@ -240,6 +240,7 @@ namespace vz::renderer
 		}
 	}
 
+	// based on graphics pipeline
 	void GRenderPath3DDetails::DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags)
 	{
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
@@ -419,6 +420,9 @@ namespace vz::renderer
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();
 		if (scene_Gdetails->textureStreamingFeedbackBuffer.IsValid())
 		{
+			//device->WaitQueue(cmd, QUEUE_TYPE::QUEUE_COPY);
+			//device->WaitQueue(cmd, QUEUE_TYPE::QUEUE_COMPUTE);
+
 			device->Barrier(GPUBarrier::Buffer(&scene_Gdetails->textureStreamingFeedbackBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC), cmd);
 			device->CopyResource(
 				&scene_Gdetails->textureStreamingFeedbackBuffer_readback[device->GetBufferIndex()],
@@ -939,7 +943,7 @@ namespace vz::renderer
 	bool GRenderPath3DDetails::ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight)
 	{
 		vzlog_assert(IsInitialized(), "ShaderEngine must be Initialized!");
-		if (canvasWidth_ == canvasWidth && canvasHeight_ == canvasHeight)
+		if (!camera || (canvasWidth_ == canvasWidth && canvasHeight_ == canvasHeight))
 		{
 			return true;
 		}
@@ -950,6 +954,11 @@ namespace vz::renderer
 		XMUINT2 internalResolution(canvasWidth, canvasHeight);
 
 		Destroy();
+
+		if (camera->GetComponentType() == ComponentType::SLICER)
+		{
+			return ResizeCanvasSlicer(canvasWidth, canvasHeight);
+		}
 		
 		// resources associated with render target buffers and textures
 
@@ -1130,6 +1139,125 @@ namespace vz::renderer
 		return true;
 	}
 
+	bool GRenderPath3DDetails::ResizeCanvasSlicer(uint32_t canvasWidth, uint32_t canvasHeight)
+	{
+		// Call from ResizeCanvas!!!
+		XMUINT2 internalResolution(canvasWidth, canvasHeight);
+
+		// ----- Render targets:-----
+
+		// HERE, MSAA is NOT PERMITTED!!!
+		vzlog_assert(msaaSampleCount == 1, "Slicer does NOT ALLOW MSAA!!");
+		{ // rtMain, rtMain_render
+			TextureDesc desc;
+			desc.format = FORMAT_rendertargetMain;
+			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.width = internalResolution.x;
+			desc.height = internalResolution.y;
+			desc.sample_count = 1;
+			device->CreateTexture(&desc, nullptr, &rtMain);
+			device->SetName(&rtMain, "rtMain");
+
+			rtMain_render = rtMain;
+		}
+
+		{ // rtPrimitiveID_1 (Layer0), rtPrimitiveID_2 (Layer1)
+			TextureDesc desc;
+			desc.format = FORMAT_idbuffer;
+			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.width = internalResolution.x;
+			desc.height = internalResolution.y;
+			desc.sample_count = 1;
+			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			desc.misc_flags = ResourceMiscFlag::ALIASING_TEXTURE_RT_DS;
+			device->CreateTexture(&desc, nullptr, &rtPrimitiveID_1);
+			device->CreateTexture(&desc, nullptr, &rtPrimitiveID_2);
+			if (debugMode == DEBUG_BUFFER::PRIMITIVE_ID)
+			{
+				desc.misc_flags = ResourceMiscFlag::NONE;
+				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_debug);
+				device->SetName(&rtPrimitiveID_debug, "rtPrimitiveID_debug");
+			}
+			device->SetName(&rtPrimitiveID_1, "rtPrimitiveID_1");
+			device->SetName(&rtPrimitiveID_2, "rtPrimitiveID_2");
+
+			rtPrimitiveID_1_render = rtPrimitiveID_1;
+			rtPrimitiveID_2_render = rtPrimitiveID_2;
+		}
+		{ // rtPostprocess
+			TextureDesc desc;
+			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.format = FORMAT_rendertargetMain;
+			desc.width = internalResolution.x;
+			desc.height = internalResolution.y;
+			// the same size of format is recommended. the following condition (less equal) will cause some unexpected behavior.
+			assert(ComputeTextureMemorySizeInBytes(desc) <= ComputeTextureMemorySizeInBytes(rtPrimitiveID_1.desc)); // Aliased check
+			device->CreateTexture(&desc, nullptr, &rtPostprocess, &rtPrimitiveID_1); // Aliased!
+			device->SetName(&rtPostprocess, "rtPostprocess");
+		}
+
+		//----- Depth buffers: -----
+
+		TextureDesc desc;
+		desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+		desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+		desc.format = Format::R32_FLOAT;
+		desc.width = internalResolution.x;
+		desc.height = internalResolution.y;
+		desc.sample_count = msaaSampleCount; // MUST BE 1
+		desc.mip_levels = 1;
+		desc.array_size = 1;
+		{ // depthBufferMain, depthBuffer_Copy, depthBuffer_Copy1, rtLinearDepth
+			device->CreateTexture(&desc, nullptr, &depthBufferMain); // Layer0's z
+			device->SetName(&depthBufferMain, "depthBufferMain");
+			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy); // Layer0's thickness
+			device->SetName(&depthBuffer_Copy, "depthBuffer_Copy");
+			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy1); // Layer1's z
+			device->SetName(&depthBuffer_Copy1, "depthBuffer_Copy1");
+			device->CreateTexture(&desc, nullptr, &rtLinearDepth); // Layer1's thickness
+			device->SetName(&rtLinearDepth, "rtLinearDepth");
+
+			//int subresource = 0;
+			//subresource = device->CreateSubresource(&depthBufferMain, SubresourceType::SRV, 0, 1, 0, 1);
+			//assert(subresource == 0);
+			//subresource = device->CreateSubresource(&depthBufferMain, SubresourceType::UAV, 0, 1, 0, 1);
+			//assert(subresource == 0);
+			//subresource = device->CreateSubresource(&depthBuffer_Copy, SubresourceType::SRV, 0, 1, 0, 1);
+			//assert(subresource == 0);
+			//subresource = device->CreateSubresource(&depthBuffer_Copy, SubresourceType::UAV, 0, 1, 0, 1);
+			//assert(subresource == 0);
+			//subresource = device->CreateSubresource(&depthBuffer_Copy1, SubresourceType::SRV, 0, 1, 0, 1);
+			//assert(subresource == 0);
+			//subresource = device->CreateSubresource(&depthBuffer_Copy1, SubresourceType::UAV, 0, 1, 0, 1);
+			//assert(subresource == 0);
+			//subresource = device->CreateSubresource(&rtLinearDepth, SubresourceType::SRV, 0, 1, 0, 1);
+			//assert(subresource == 0);
+			//subresource = device->CreateSubresource(&rtLinearDepth, SubresourceType::UAV, 0, 1, 0, 1);
+			//assert(subresource == 0);
+		}
+
+		//----- Other resources: -----
+		{ // debugUAV
+			TextureDesc desc;
+			desc.width = internalResolution.x;
+			desc.height = internalResolution.y;
+			desc.mip_levels = 1;
+			desc.array_size = 1;
+			desc.format = Format::R8G8B8A8_UNORM;
+			desc.sample_count = 1;
+			desc.usage = Usage::DEFAULT;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.layout = ResourceState::SHADER_RESOURCE;
+
+			device->CreateTexture(&desc, nullptr, &debugUAV);
+			device->SetName(&debugUAV, "debugUAV");
+		}
+
+		CreateTiledLightResources(tiledLightResources, internalResolution);
+
+		return true;
+	}
+
 	void GRenderPath3DDetails::Compose(CommandList cmd) 
 	{
 		auto range = profiler::BeginRangeCPU("Compose");
@@ -1211,10 +1339,9 @@ namespace vz::renderer
 			return false;
 		}
 
-		if (((GCameraComponent*)camera)->isPickingMode)
+		if (!rtMain.IsValid())
 		{
-			// TODO
-			return true;
+			ResizeCanvas(canvasWidth_, canvasHeight_);
 		}
 
 		profiler::BeginFrame();
@@ -1627,7 +1754,7 @@ namespace vz::renderer
 		//if (getSceneUpdateEnabled())
 		//{
 		//	cmd = device->BeginCommandList();
-		//	device->WaitCommandList(cmd, cmd_prepareframe_async);
+			device->WaitCommandList(cmd, cmd_prepareframe_async);
 		//	jobsystem::Execute(ctx, [cmd, this](jobsystem::JobArgs args) {
 		//		BindCommonResources(cmd);
 		//		BindCameraCB(
@@ -1972,7 +2099,6 @@ namespace vz::renderer
 				cameraReflection,
 				cmd
 			);
-			BindCommonResources(cmd);
 
 			//RenderLightShafts(cmd);
 			
@@ -2022,6 +2148,139 @@ namespace vz::renderer
 
 	bool GRenderPath3DDetails::SlicerProcess()
 	{
+		jobsystem::context ctx;
+
+		// Preparing the frame:
+		CommandList cmd = device->BeginCommandList();
+		device->WaitQueue(cmd, QUEUE_COMPUTE); // sync to prev frame compute (disallow prev frame overlapping a compute task into updating global scene resources for this frame)
+		ProcessDeferredResourceRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
+
+		CommandList cmd_prepareframe = cmd;
+		// remember GraphicsDevice::BeginCommandList does incur some overhead
+		//	this is why jobsystem::Execute is used here
+		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+
+			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
+			UpdateRenderData(viewMain, frameCB, cmd);
+
+			uint32_t num_barriers = 2;
+			GPUBarrier barriers[] = {
+				GPUBarrier::Image(&debugUAV, debugUAV.desc.layout, ResourceState::UNORDERED_ACCESS),
+				GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1),
+				GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE), // prepares transition for discard in dx12
+			};
+			if (viewShadingInCS)
+			{
+				num_barriers++;
+			}
+			device->Barrier(barriers, num_barriers, cmd);
+
+			});
+
+		// async compute parallel with depth prepass
+		cmd = device->BeginCommandList(QUEUE_COMPUTE);
+		device->WaitCommandList(cmd, cmd_prepareframe);
+
+		static const uint32_t drawscene_regular_flags =
+			renderer::DRAWSCENE_OPAQUE |
+			renderer::DRAWSCENE_OCCLUSIONCULLING;
+
+		// Main camera depth culling prepass:
+		// TODO
+		/*
+		cmd = device->BeginCommandList();
+		CommandList cmd_maincamera_prepass = cmd;
+		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+
+			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
+
+			RenderPassImage rp[] = {
+				RenderPassImage::RenderTarget(
+					&depthBufferMain,
+					RenderPassImage::LoadOp::DONTCARE,
+					RenderPassImage::StoreOp::STORE,
+					ResourceState::SHADER_RESOURCE_COMPUTE,
+					ResourceState::SHADER_RESOURCE_COMPUTE
+				),
+			};
+			device->RenderPassBegin(rp, arraysize(rp), cmd);
+
+			device->EventBegin("Depth-based culling process", cmd);
+			auto range = profiler::BeginRangeGPU("Slicer Z-Prepass", (CommandList*)&cmd);
+
+			device->BindScissorRects(1, &scissor, cmd);
+
+			Viewport vp;// = downcast_camera->viewport; // TODO.. viewport just for render-out result vs. viewport for enhancing performance...?!
+			vp.width = (float)depthBufferMain.GetDesc().width;
+			vp.height = (float)depthBufferMain.GetDesc().height;
+
+			// ----- Foreground: -----
+			vp.min_depth = 1.f - foregroundDepthRange;
+			vp.max_depth = 1.f;
+			device->BindViewports(1, &vp, cmd);
+			DrawScene(
+				viewMain,
+				RENDERPASS_PREPASS,
+				cmd,
+				renderer::DRAWSCENE_OPAQUE |
+				renderer::DRAWSCENE_FOREGROUND_ONLY
+			);
+
+			// ----- Regular: -----
+			vp.min_depth = 0;
+			vp.max_depth = 1;
+			device->BindViewports(1, &vp, cmd);
+			DrawScene(
+				viewMain,
+				RENDERPASS_PREPASS,
+				cmd,
+				drawscene_regular_flags
+			);
+
+			profiler::EndRange(range);
+			device->EventEnd(cmd);
+
+			device->RenderPassEnd(cmd);
+			});
+		/**/
+
+		cmd = device->BeginCommandList();
+		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+			device->EventBegin("Slicer Renderer", cmd);
+			BindCameraCB(
+				*camera,
+				cameraPrevious,
+				cameraReflection,
+				cmd
+			);
+
+			RenderSlicerMeshes(cmd);
+			RenderDirectVolumes(cmd);
+
+			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Image(&rtPrimitiveID_1, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
+					GPUBarrier::Image(&rtPrimitiveID_2, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
+					GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
+					GPUBarrier::Image(&depthBuffer_Copy, ResourceState::SHADER_RESOURCE, depthBuffer_Copy.desc.layout),
+					GPUBarrier::Image(&depthBuffer_Copy1, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
+					GPUBarrier::Image(&depthBufferMain, ResourceState::SHADER_RESOURCE, depthBuffer_Copy.desc.layout),
+					GPUBarrier::Image(&debugUAV, ResourceState::UNORDERED_ACCESS, debugUAV.desc.layout),
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			device->EventEnd(cmd);
+			});
+
+		cmd = device->BeginCommandList();
+		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+			RenderPostprocessChain(cmd);
+			});
+
+		jobsystem::Wait(ctx);
+
+		firstFrame = false;
 		return true;
 	}
 

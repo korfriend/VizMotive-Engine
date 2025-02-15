@@ -784,6 +784,7 @@ namespace vz
 
 		if (dt > 0)
 		{
+			jobsystem::Wait(ctx); // dependencies
 			// Scan mesh subset counts and skinning data sizes to allocate GPU geometry data:
 			geometryAllocator.store(0u);
 			jobsystem::Dispatch(ctx, (uint32_t)num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
