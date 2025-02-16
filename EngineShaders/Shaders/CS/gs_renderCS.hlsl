@@ -2,79 +2,110 @@
 #include "../ShaderInterop_GS.h"
 #include "../CommonHF/surfaceHF.hlsli"
 #include "../CommonHF/raytracingHF.hlsli"   
+// test210
+//PUSHCONSTANT(gaussians, GaussianPushConstants);
+PUSHCONSTANT(totalSum, GaussianSortConstants);
 
-#ifndef TILE_WIDTH
-#define TILE_WIDTH 16
-#endif
+// UINT2 (width, height) 를 받아야 함.
 
-#ifndef TILE_HEIGHT
-#define TILE_HEIGHT 16
-#endif
-
-
-PUSHCONSTANT(gaussian_sort, GaussianSortConstants);
+//Buffer<float4> gs_vertexAttr = bindless_buffers_float4[gaussiansSorts.gaussian_Vertex_Attributes_index];
+// vertexAttrs consists of 16 elements (4 + 4 + 4 + 4 = 16)
+// first 4 elements : (conic params + opacity)
+// second 4 elements : color + radius
+// third 4 elements : bounding box (aabb)
+// fourth 4 elements : uv + depth + padding
 
 RWTexture2D<unorm float4> inout_color : register(u0);
+RWTexture2D<unorm float4> prefixSum : register(u1);
 
-StructuredBuffer<VertexAttribute> attr : register(t0);
-StructuredBuffer<uint> boundaries      : register(t1);
-StructuredBuffer<uint> sorted_vertices : register(t2);
+StructuredBuffer<VertexAttribute> Vertices : register(t0);
+StructuredBuffer<uint> offsetTiles : register(t1); // -> tileBoundaryBuffer
+StructuredBuffer<uint> sortValueEven : register(t2); // -> sortVBufferEven
 
-
-// compute shader의 스레드 그룹 크기 지정
-[numthreads(16, 16, 1)]
-void main(uint3 DTid : SV_DispatchThreadID,   // 전역 스레드 ID (gl_GlobalInvocationID)
-    uint3 GTid : SV_GroupThreadID,        // 그룹 내 스레드 ID (gl_LocalInvocationID)
-    uint3 GId : SV_GroupID)              // 워크그룹 ID (gl_WorkGroupID)
+[numthreads(256, 1, 1)] // 16 x 16 x 1
+void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
-    uint tileX = GId.x;
-    uint tileY = GId.y;
-    uint localX = GTid.x;
-    uint localY = GTid.y;
+    ShaderCamera camera = GetCamera();
+    uint W = camera.internal_resolution.x;
+    uint H = camera.internal_resolution.y;
 
-    uint width = gaussian_sort.tileX;
-    uint height = gaussian_sort.tileY;
+    uint idx = DTid.x;
+    //if (idx >= gaussians.num_gaussians)
+    //    return;
+    
+    Buffer<uint> totalPrefixSum = bindless_buffers_uint[totalSum.totalSumBufferHost_index];
+    uint totalSum = totalPrefixSum[0];
+    
+    VertexAttribute v = Vertices[idx];
 
-    uint2 curr_uv = uint2(tileX * TILE_WIDTH + localX,
-        tileY * TILE_HEIGHT + localY);
+    int2 pixel_coord = int2(v.uv);
 
-    if (curr_uv.x >= width || curr_uv.y >= height)
-        return;
-
-    uint tiles_width = (width + TILE_WIDTH - 1) / TILE_WIDTH;
-
-    uint index = (tileX + tileY * tiles_width) * 2;
-    uint start = boundaries[index];
-    uint end = boundaries[index + 1];
-
-    float T = 1.0f;
-    float3 c = float3(0.0f, 0.0f, 0.0f);
-    uint localIndex = localX + localY * TILE_WIDTH;
-
-    for (uint i = start; i < end; i++)
+    if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
     {
-        uint vertex_key = sorted_vertices[i];
-        float2 uv = attr[vertex_key].uv;
-        float2 dist = uv - float2(curr_uv);
-        float4 co = attr[vertex_key].conic_opacity;
-        float power = -0.5f * (co.x * dist.x * dist.x + co.z * dist.y * dist.y)
-            - co.y * dist.x * dist.y;
-
-        if (power > 0.0f)
-            continue;
-
-        float alpha = min(0.99f, co.w * exp(power));
-        if (alpha < (1.0f / 255.0f))
-            continue;
-
-        float test_T = T * (1.0f - alpha);
-        if (test_T < 0.0001f)
-            break;
-
-        c += attr[vertex_key].color_radii.xyz * alpha * T;
-        T = test_T;
+        //if (v.color_radii.w >= 4)
+        if (sortValueEven[10000] == 0)
+        {
+            inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+        }
+        else
+        {
+            inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
+        }
     }
+    
+    //Buffer<float> totalSumPrefix = bindless_buffers_float4[gaussiansSorts.gaussian_Vertex_Attributes_index];
+    //먼저 버퍼 인덱스를 불러와야함 -> push constant 에 index 만들기 
+    
+    //uint2 localID = DTid - Gid * GS_TILESIZE;
 
-    // 최종 결과를 출력 텍스처에 기록 (알파값 1.0f)
-    inout_color[curr_uv] = float4(c, 1.0f);
+    //uint2 curr_uv = uint2(Gid.x * GS_TILESIZE + localID.x, Gid.y * GS_TILESIZE + localID.y);
+
+    //if (curr_uv.x >= width || curr_uv.y >= height)
+    //{
+    //    return;
+    //}
+
+    //uint tiles_width = (width + GS_TILESIZE - 1) / GS_TILESIZE;
+
+    //uint boundaryIndex = (Gid.x + Gid.y * tiles_width) * 2;
+    //uint start = Boundaries[boundaryIndex];
+    //uint end = Boundaries[boundaryIndex + 1];
+
+    //float T = 1.0f;
+    //float3 c = float3(0.0f, 0.0f, 0.0f);
+
+    //for (uint i = start; i < end; i++)
+    //{
+    //    uint vertex_key = SortedVertices[i];
+    //    VertexAttribute v = Vertices[vertex_key];
+
+    //    float2 pixelPos = float2(curr_uv);
+    //    float2 diff = v.uv - pixelPos;
+
+    //    float power = -0.5f * (v.conic_opacity.x * diff.x * diff.x +
+    //        v.conic_opacity.z * diff.y * diff.y)
+    //        - v.conic_opacity.y * diff.x * diff.y;
+
+    //    if (power > 0.0f)
+    //    {
+    //        continue;
+    //    }
+
+    //    float alpha = min(0.99f, v.conic_opacity.w * exp(power));
+    //    if (alpha < (1.0f / 255.0f))
+    //    {
+    //        continue;
+    //    }
+
+    //    float test_T = T * (1.0f - alpha);
+    //    if (test_T < 0.0001f)
+    //    {
+    //        break;
+    //    }
+
+    //    c += v.color_radii.xyz * alpha * T;
+    //    T = test_T;
+    //}
+
+    //inout_color[curr_uv] = float4(c, 1.0f);
 }
