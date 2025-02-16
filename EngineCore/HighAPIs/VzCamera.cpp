@@ -183,6 +183,16 @@ namespace vzm
 	}
 }
 
+static void compute_screen_matrix(XMMATRIX& ps2ss, const float w, const float h)
+{
+	XMMATRIX matTranslate = XMMatrixTranslation(1.f, -1.f, 0.f);
+	XMMATRIX matScale = XMMatrixScaling(0.5f * w, -0.5f * h, 1.f);
+
+	XMMATRIX matTranslateSampleModel = XMMatrixTranslation(-0.5f, -0.5f, 0.f);
+
+	ps2ss = matTranslate * matScale * matTranslateSampleModel;
+}
+
 namespace vzm
 {
 	namespace arcball
@@ -289,7 +299,7 @@ namespace vzm
 			bool IsSetStage() const { return isStateSet_; }
 			float startX, startY;
 
-			ArcBall() {};
+			ArcBall() = default;
 			~ArcBall() = default;
 
 			void SetArcBallMovingStyle(const bool bIsTrackBall)
@@ -439,10 +449,10 @@ namespace vzm
 
 		~OrbitalControlDetail() { arcball_.reset(); }
 
-		void Initialize(const RendererVID rendererVid, const vfloat3 stageCenter, const float stageRadius) override;
-		bool Start(const vfloat2 pos, const float sensitivity = 1.0f) override;
-		bool Move(const vfloat2 pos) override;
-		bool PanMove(const vfloat2 pos) override;
+		void Initialize(const RendererVID rendererVid, const vfloat3& stageCenter, const float stageRadius) override;
+		bool Start(const vfloat2& pos, const float sensitivity = 1.0f) override;
+		bool Move(const vfloat2& pos) override;
+		bool PanMove(const vfloat2& pos) override;
 		bool Zoom(const float zoomDelta, const float sensitivity) override;
 	};
 
@@ -455,7 +465,7 @@ namespace vzm
 		orbitControl_detail->vzCamera = this;
 	}
 
-	void OrbitalControlDetail::Initialize(const RendererVID rendererVid, const vfloat3 stageCenter, const float stageRadius)
+	void OrbitalControlDetail::Initialize(const RendererVID rendererVid, const vfloat3& stageCenter, const float stageRadius)
 	{
 		this->rendererVid = rendererVid;
 
@@ -463,16 +473,7 @@ namespace vzm
 		XMVECTOR stage_center = XMLoadFloat3((XMFLOAT3*)&stageCenter);
 		arc_ball.FitArcballToSphere(stage_center, stageRadius);
 	}
-	void compute_screen_matrix(XMMATRIX& ps2ss, const float w, const float h)
-	{
-		XMMATRIX matTranslate = XMMatrixTranslation(1.f, -1.f, 0.f);
-		XMMATRIX matScale = XMMatrixScaling(0.5f * w, -0.5f * h, 1.f);
-
-		XMMATRIX matTranslateSampleModel = XMMatrixTranslation(-0.5f, -0.5f, 0.f);
-
-		ps2ss = matTranslate * matScale * matTranslateSampleModel;
-	}
-	bool OrbitalControlDetail::Start(const vfloat2 pos, const float sensitivity)
+	bool OrbitalControlDetail::Start(const vfloat2& pos, const float sensitivity)
 	{
 		arcball::ArcBall& arc_ball = *(arcball::ArcBall*)arcball_.get();
 		if (!arc_ball.IsSetStage())
@@ -526,7 +527,7 @@ namespace vzm
 
 		return true;
 	}
-	bool OrbitalControlDetail::Move(const vfloat2 pos)
+	bool OrbitalControlDetail::Move(const vfloat2& pos)
 	{
 		arcball::ArcBall& arc_ball = *(arcball::ArcBall*)arcball_.get();
 		if (!arc_ball.IsSetStage())
@@ -552,7 +553,7 @@ namespace vzm
 
 		return true;
 	}
-	bool OrbitalControlDetail::PanMove(const vfloat2 pos)
+	bool OrbitalControlDetail::PanMove(const vfloat2& pos)
 	{
 		arcball::ArcBall& arc_ball = *(arcball::ArcBall*)arcball_.get();
 		if (!arc_ball.IsSetStage())
@@ -666,6 +667,192 @@ namespace vzm
 {
 #define GET_SLICER_COMP(COMP, RET) SlicerComponent* COMP = compfactory::GetSlicerComponent(componentVID_); \
 	if (!COMP) {post("CameraComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+
+	struct SlicerControlDetail : SlicerControl
+	{
+		CamVID slicerVid = INVALID_VID;
+		RendererVID rendererVid = INVALID_VID;
+		VzSlicer* vzSlicer = nullptr;
+
+		XMFLOAT3 stageCenter;
+		bool isInitialized = false;
+
+		XMFLOAT3 pos;
+		XMFLOAT3 view;
+		XMFLOAT3 up;
+
+		float np, fp;
+		XMMATRIX matWS2SS;
+		XMMATRIX matSS2WS;
+		XMMATRIX ws2cs, cs2ps, ps2ss;
+
+		float w, h;
+		XMFLOAT2 pos0;
+
+		float zoomSensitivity = 1.f;
+		bool isStartSlicer = false;
+
+		~SlicerControlDetail() = default;
+
+		void Initialize(const RendererVID rendererVid, const vfloat3& stageCenter) override
+		{
+			this->rendererVid = rendererVid;
+			this->stageCenter = *(XMFLOAT3*)&stageCenter;
+			this->isInitialized = true;
+		}
+		bool Start(const vfloat2& pos, const float sensitivity = 1.0f) override
+		{
+			if (!this->isInitialized)
+			{
+				backlog::post("SlicerControl::Start >> Not intialized!", backlog::LogLevel::Error);
+				return false;
+			}
+
+			SlicerComponent* cam = compfactory::GetSlicerComponent(slicerVid);
+			TransformComponent* transform = compfactory::GetTransformComponent(slicerVid);
+			Canvas* canvas = canvas::GetCanvas(rendererVid);
+			if (cam == nullptr || transform == nullptr)
+			{
+				backlog::post("Invalid Camera", backlog::LogLevel::Error);
+				return false;
+			}
+			float canvas_w = (float)canvas->GetLogicalWidth();
+			float canvas_h = (float)canvas->GetLogicalHeight();
+			if (pos.x < 0 || pos.y < 0 || pos.x >= canvas_w || pos.y >= canvas_h)
+			{
+				return false;
+			}
+
+			this->pos = cam->GetWorldEye();
+			XMStoreFloat3(&this->view, XMLoadFloat3(&cam->GetWorldAt()) - XMLoadFloat3(&cam->GetWorldEye()));
+			this->up = cam->GetWorldUp();
+
+			this->ws2cs = XMLoadFloat4x4(&cam->GetView());
+
+			cam->GetNearFar(&this->np, &this->fp);
+
+			cam->GetWidthHeight(&this->w, &this->h);
+
+			this->cs2ps = VZMatrixOrthographic(this->w, this->h, this->np, this->fp);
+			compute_screen_matrix(this->ps2ss, canvas_w, canvas_h);
+			this->matWS2SS = ws2cs * cs2ps * ps2ss;
+			this->matSS2WS = XMMatrixInverse(NULL, this->matWS2SS);
+
+			this->pos0 = *(XMFLOAT2*)&pos;
+			this->zoomSensitivity = 10.f * sensitivity; // heuristic!
+			this->isStartSlicer = true;
+			return true;
+		}
+		bool Zoom(const vfloat2& pos, const bool convertZoomdir, const bool preserveStageCenter) override
+		{
+			if (!this->isInitialized || !this->isStartSlicer)
+			{
+				backlog::post("SlicerControl::Zoom >> Not intialized!", backlog::LogLevel::Error);
+				return false;
+			}
+
+			double diff_yss = convertZoomdir ? this->pos0.y - pos.y : pos.y - this->pos0.y;
+			float new_w, new_h;
+			if (diff_yss < 0) // zoomout
+			{
+				this->w *= 1.1f * this->zoomSensitivity;
+				new_w = this->w;
+				this->h *= 1.1f * this->zoomSensitivity;
+				new_h = this->h;
+			}
+			else
+			{
+				this->w *= 0.9f * this->zoomSensitivity;
+				new_w = this->w;
+				this->h *= 0.9f * this->zoomSensitivity;
+				new_h = this->h;
+			}
+			this->pos0.y = pos.y;
+
+			vzSlicer->SetOrthogonalProjection(new_h, new_h);
+
+			if (preserveStageCenter) {
+				// https://github.com/korfriend/OsstemCoreAPIs/discussions/146#discussion-4329688
+				XMMATRIX& mat_ws2ss = this->matWS2SS;
+				XMMATRIX& mat_ss2ws = this->matSS2WS;
+
+				XMVECTOR prev_center_slicer_ss = XMVector3TransformCoord(XMLoadFloat3(&this->stageCenter), mat_ws2ss);
+
+				// new 
+				XMMATRIX cs2ps_new;
+				cs2ps_new = VZMatrixOrthographicOffCenter(-new_w * 0.5f, new_w * 0.5f, -new_h * 0.5f, new_h * 0.5f, this->np, this->fp);
+				XMMATRIX mat_ws2ss_new = this->ps2ss * (cs2ps_new * this->ws2cs); // note that glm is based on column major
+				XMVECTOR new_center_slicer_ss = XMVector3TransformCoord(XMLoadFloat3(&this->stageCenter), mat_ws2ss_new);
+
+				// always orthogonal projection mode
+				XMVECTOR diffSS = new_center_slicer_ss - prev_center_slicer_ss;
+				XMVectorSetZ(diffSS, 0);
+				XMMATRIX mat_ss2ws_new = XMMatrixInverse(nullptr, mat_ws2ss_new);
+				XMVECTOR diffWS = XMVector3TransformCoord(diffSS, mat_ss2ws_new);
+
+				XMFLOAT3 new_pos;
+				XMStoreFloat3(&new_pos, XMLoadFloat3(&this->pos) + diffWS);
+				vzSlicer->SetWorldPose(__FC3 new_pos, __FC3 this->view, __FC3 this->up);
+			}
+			return true;
+		}
+		bool PanMove(const vfloat2& pos) override
+		{
+			if (!this->isInitialized || !this->isStartSlicer)
+			{
+				backlog::post("SlicerControl::PanMove >> Not intialized!", backlog::LogLevel::Error);
+				return false;
+			}
+
+			XMMATRIX& mat_ws2ss = this->matWS2SS;
+			XMMATRIX& mat_ss2ws = this->matSS2WS;
+
+			vzlog_assert(vzSlicer->IsOrtho(), "SlicerControl must be performed under Orthogonal projection")
+			{
+				XMVECTOR pos_eye_ws = XMLoadFloat3(&this->pos);
+				XMVECTOR pos_eye_ss = XMVector3TransformCoord(pos_eye_ws, mat_ws2ss);
+
+				XMFLOAT3 v = XMFLOAT3(pos.x - this->pos0.x, pos.y - this->pos0.y, 0);
+				XMVECTOR diff_ss = XMLoadFloat3(&v);
+
+				pos_eye_ss = pos_eye_ss - diff_ss; // Think Panning! reverse camera moving
+				pos_eye_ws = XMVector3TransformCoord(pos_eye_ss, mat_ss2ws);
+
+				XMFLOAT3 eye;
+				XMStoreFloat3(&eye, pos_eye_ws);
+				vzSlicer->SetWorldPose(__FC3 eye, __FC3 this->view, __FC3 this->up);
+			}
+			
+			return true;
+		}
+		bool Move(const float zoomDelta, const float sensitivity) override
+		{
+			if (!this->isInitialized)
+			{
+				backlog::post("SlicerControl::Move >> Not intialized!", backlog::LogLevel::Error);
+				return false;
+			}
+			vfloat3 pos0, v0, up0;
+			vzSlicer->GetWorldPose(pos0, v0, up0);
+			XMVECTOR xm_pos0 = XMLoadFloat3((XMFLOAT3*)&pos0);
+			XMVECTOR xm_v0 = XMLoadFloat3((XMFLOAT3*)&v0);
+			XMVECTOR new_xm_pos = xm_pos0 + xm_v0 * zoomDelta * sensitivity;
+			vfloat3 pos_new;
+			XMStoreFloat3((XMFLOAT3*)&pos_new, new_xm_pos);
+			vzSlicer->SetWorldPose(pos_new, v0, up0);
+			return true;
+		}
+	};
+
+	VzSlicer::VzSlicer(const VID vid, const std::string& originFrom) : VzCamera(vid, originFrom) 
+	{
+		type_ = COMPONENT_TYPE::SLICER;
+
+		slicerControl_ = make_unique<SlicerControlDetail>();
+		SlicerControlDetail* slicerControl_detail = (SlicerControlDetail*)slicerControl_.get();
+		slicerControl_detail->slicerVid = vid;
+		slicerControl_detail->vzSlicer = this;
+	}
 
 	void VzSlicer::SetHorizontalCurveControls(const std::vector<vfloat3>& controlPts, const float interval)
 	{

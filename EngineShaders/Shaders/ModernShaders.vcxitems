@@ -98,6 +98,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_ADVANCED_DEBUG.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_DEBUG.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshlet_prepareCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\tonemapCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl" />
