@@ -2,13 +2,14 @@
 
 #include "vzmcore/GComponents.h"
 #include "vzmcore/utils/Helpers.h"
+#include "vzmcore/utils/Backlog.h"
 
 using namespace vz;
 
 bool ImportDicom(std::unordered_map<std::string, std::any>& io)
 {
 	std::string version = vz::GetComponentVersion();
-	assert(version == vz::COMPONENT_INTERFACE_VERSION);
+	vzlog_assert(version == vz::COMPONENT_INTERFACE_VERSION, "Engine lib vertion does NOT match the current Engine headers!");
 
 	auto it = io.find("filename");
 	if (it == io.end()) return false;

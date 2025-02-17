@@ -70,29 +70,53 @@ namespace vz::renderer
 			renderQueue.sort_opaque(); // F2B
 		}
 
-		// Pre-allocate space for all the instances in GPU-buffer:
-		const size_t alloc_size = renderQueue.size() * 1 * sizeof(ShaderMeshInstancePointer);
-		const GraphicsDevice::GPUAllocation instances = device->AllocateGPU(alloc_size, cmd);
-		const int instanceBufferDescriptorIndex = device->GetDescriptorIndex(&instances.buffer, SubresourceType::SRV);
-
 		struct InstancedBatch
 		{
 			uint32_t geometryIndex = ~0u;	// geometryIndex
 			uint32_t renderableIndex = ~0u;
 			std::vector<uint32_t> materialIndices;
-			uint32_t instanceCount = 0;	// 
-			uint32_t dataOffset = 0;
 			bool forceAlphatestForDithering = false;
 			AABB aabb;
 			uint32_t lod = 0;
 		} instancedBatch = {};
 
+		SlicerComponent* slicer = (SlicerComponent*)this->camera;
+		assert(slicer->GetComponentType() == ComponentType::SLICER);
+
+		SlicerMeshPushConstants push;
+		push.sliceThickness = slicer->GetThickness();
+		// compute pixelSpace
+		{
+			auto unproj = [&](float screenX, float screenY, float screenZ,
+				float viewportX, float viewportY, float viewportWidth, float viewportHeight,
+				const XMMATRIX& invViewProj)
+				{
+					float ndcX = ((screenX - viewportX) / viewportWidth) * 2.0f - 1.0f;
+					float ndcY = 1.0f - ((screenY - viewportY) / viewportHeight) * 2.0f; // y는 반전
+					float ndcZ = screenZ; // 보통 0~1 범위로 제공됨
+
+					XMVECTOR ndcPos = XMVectorSet(ndcX, ndcY, ndcZ, 1.0f);
+
+					XMVECTOR worldPos = XMVector4Transform(ndcPos, invViewProj);
+
+					worldPos = XMVectorScale(worldPos, 1.0f / XMVectorGetW(worldPos));
+
+					return worldPos;
+				};
+			
+			XMMATRIX inv_vp = XMLoadFloat4x4(&slicer->GetInvViewProjection());
+			XMVECTOR world_pos0 = unproj(0.0f, 0.0f, 0.0f, viewport.top_left_x, viewport.top_left_y, viewport.width, viewport.height, inv_vp);
+			XMVECTOR world_pos1 = unproj(1.0f, 0.0f, 0.0f, viewport.top_left_x, viewport.top_left_y, viewport.width, viewport.height, inv_vp);
+
+			XMVECTOR diff = XMVectorSubtract(world_pos0, world_pos1);
+			push.pixelSize = XMVectorGetX(XMVector3Length(diff));
+		}
+
+
 		// This will be called every time we start a new draw call:
 		//	calls draw per a geometry part
 		auto BatchDrawingFlush = [&]()
 			{
-				if (instancedBatch.instanceCount == 0)
-					return;
 				GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[instancedBatch.geometryIndex];
 
 				if (!geometry.HasRenderData() || !geometry.HasBVH())
@@ -128,12 +152,18 @@ namespace vz::renderer
 
 					device->BindComputeShader(&shaders[CSTYPE_MESH_SLICER], cmd);
 
-					MeshPushConstants push;
-					push.geometryIndex = geometry.geometryOffset + part_index;
+					//uint sliceFlags;
+					//float sliceThickness;
+					//float pixelSpace; // NOTE: Slicer assumes ORTHOGONAL PROJECTION
+
+					push.instanceIndex = instancedBatch.renderableIndex;
 					push.materialIndex = material_index;
-					push.instBufferResIndex = renderable.resLookupIndex + part_index;
-					push.instances = instanceBufferDescriptorIndex;
-					push.instance_offset = (uint)instancedBatch.dataOffset;
+					push.BVH_counter = device->GetDescriptorIndex(&part_buffer.bvhBuffers.primitiveCounterBuffer, SubresourceType::SRV);
+					push.BVH_nodes = device->GetDescriptorIndex(&part_buffer.bvhBuffers.bvhNodeBuffer, SubresourceType::SRV);
+					push.BVH_primitives = device->GetDescriptorIndex(&part_buffer.bvhBuffers.primitiveBuffer, SubresourceType::SRV);
+					//push.instBufferResIndex = renderable.resLookupIndex + part_index;
+					//push.instances = ;
+					//push.instance_offset = (uint)instancedBatch.dataOffset;
 					device->PushConstants(&push, sizeof(push), cmd);
 
 					device->Dispatch(
@@ -182,8 +212,6 @@ namespace vz::renderer
 				instancedBatch = {};
 				instancedBatch.geometryIndex = geometry_index;
 				instancedBatch.renderableIndex = renderable_index;
-				instancedBatch.instanceCount = 0;	// rendering camera count..
-				instancedBatch.dataOffset = (uint32_t)(instances.offset + instanceCount * sizeof(ShaderMeshInstancePointer));
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
 				instancedBatch.lod = renderable.lod;
@@ -204,21 +232,6 @@ namespace vz::renderer
 			else if (dither > 0)
 			{
 				instancedBatch.forceAlphatestForDithering = 1;
-			}
-
-			const uint32_t camera_index = 0;
-			{
-				const uint16_t camera_mask = 1 << camera_index;
-				if ((batch.camera_mask & camera_mask) == 0)
-					continue;
-
-				ShaderMeshInstancePointer poi;
-				poi.Create(renderable_index, camera_index, dither);
-
-				// Write into actual GPU-buffer:
-				std::memcpy((ShaderMeshInstancePointer*)instances.data + instanceCount, &poi, sizeof(poi)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
-
-				instancedBatch.instanceCount++; // next instance in current InstancedBatch
 			}
 		}
 		BatchDrawingFlush();
@@ -307,31 +320,11 @@ namespace vz::renderer
 				volume_push.sculptStep = -1;
 				volume_push.opacity_correction = 1.f;
 				volume_push.main_visible_min_sample = tableValidBeginEndRatioX.x;
-
-				const XMUINT3& block_pitch = volume->GetBlockPitch();
-				XMFLOAT3 vol_size = XMFLOAT3((float)volume->GetWidth(), (float)volume->GetHeight(), (float)volume->GetDepth());
-				volume_push.singleblock_size_ts = XMFLOAT3((float)block_pitch.x / vol_size.x,
-					(float)block_pitch.y / vol_size.y, (float)block_pitch.z / vol_size.z);
-
 				volume_push.mask_value_range = 255.f;
-				const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
-				volume_push.value_range = min_max_stored_v.y - min_max_stored_v.x;
 				volume_push.mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
 
-				const XMUINT3& blocks_size = volume->GetBlocksSize();
-				volume_push.blocks_w = blocks_size.x;
-				volume_push.blocks_wh = blocks_size.x * blocks_size.y;
-			}
-
-			if (rtMain.IsValid() && rtLinearDepth.IsValid())
-			{
-				device->BindUAV(&rtMain, 0, cmd);
-				device->BindUAV(&rtLinearDepth, 1, cmd, 0);
-			}
-			else
-			{
-				device->BindUAV(&unbind, 0, cmd);
-				device->BindUAV(&unbind, 1, cmd);
+				volume_push.inout_color_Index = device->GetDescriptorIndex(&rtMain, SubresourceType::UAV);
+				volume_push.inout_linear_depth_Index = device->GetDescriptorIndex(&rtLinearDepth, SubresourceType::UAV);
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
@@ -347,9 +340,6 @@ namespace vz::renderer
 				1,
 				cmd
 			);
-
-			device->BindUAV(&unbind, 0, cmd);
-			device->BindUAV(&unbind, 1, cmd);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
