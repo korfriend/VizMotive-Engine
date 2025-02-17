@@ -294,6 +294,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 	ShaderTransform transform; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
 	ShaderTransform transformPrev; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
 	ShaderTransform transformRaw; // Note: this is the world matrix without any quantization remapping
+	ShaderTransform transformRaw_inv; // this is for object-space-oriented ray-processing for Slicer
 
 	uint clipIndex;
 	int lightmap;
@@ -328,6 +329,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 		transform.Init();
 		transformPrev.Init();
 		transformRaw.Init();
+		transformRaw_inv.Init();
 	}
 
 	inline void SetUserStencilRef(uint stencilRef)

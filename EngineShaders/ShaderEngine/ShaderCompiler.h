@@ -4,8 +4,10 @@
 #include <string>
 #include <vector>
 
-namespace vz::graphics::shadercompiler
+namespace vz::shadercompiler
 {
+	using namespace vz::graphics;
+
 	enum class Flags
 	{
 		NONE = 0,
@@ -40,6 +42,7 @@ namespace vz::graphics::shadercompiler
 
 	bool SaveShaderAndMetadata(const std::string& shaderfilename, const CompilerOutput& output);
 	bool IsShaderOutdated(const std::string& shaderfilename);
+	void SetRecentHeaderTimeStamp(const uint64_t timestamp);
 
 	void RegisterShader(const std::string& shaderfilename);
 	size_t GetRegisteredShaderCount();
@@ -47,6 +50,6 @@ namespace vz::graphics::shadercompiler
 }
 
 template<>
-struct enable_bitmask_operators<vz::graphics::shadercompiler::Flags> {
+struct enable_bitmask_operators<vz::shadercompiler::Flags> {
 	static const bool enable = true;
 };

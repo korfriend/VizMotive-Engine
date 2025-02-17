@@ -25,6 +25,7 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\imageHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\lightingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\objectHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\objectRayHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\raytracingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\shadingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\shadowHF.hlsli" />

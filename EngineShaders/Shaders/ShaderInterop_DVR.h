@@ -5,7 +5,7 @@
 static const uint DVR_BLOCKSIZE = VISIBILITY_BLOCKSIZE;
 static const float FLT_OPACITY_MIN = 1.f/255.f;		// trival storage problem 
 
-#define BitCheck(BITS, IDX) (BITS & (0x1u << IDX))
+#define SLICER_FLAG_ONLY_OUTLINE 1 << 0
 
 struct VolumePushConstants
 {
@@ -13,15 +13,26 @@ struct VolumePushConstants
 	int sculptStep;
 	// OTF
 	float opacity_correction;
-	float main_visible_min_sample;
+	float main_visible_min_sample; // TODO: will be packed
 
-	float3 singleblock_size_ts;
-	float mask_value_range;
+	uint inout_color_Index;
+	uint inout_linear_depth_Index;
 
-	float value_range;
+	float mask_value_range; // TODO: will be packed
 	float mask_unormid_otf_map;
-	uint blocks_w;
-	uint blocks_wh;
+};
+
+struct SlicerMeshPushConstants
+{
+	uint instanceIndex;
+	uint materialIndex;
+	int BVH_counter;
+	int BVH_nodes;
+
+	int BVH_primitives;
+	uint sliceFlags;
+	float sliceThickness;
+	float pixelSize; // NOTE: Slicer assumes ORTHOGONAL PROJECTION
 };
 
 #endif // SHADERINTEROP_DVR_H

@@ -46,7 +46,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	float depth_hit = length(pos_hit_ws - ray.Origin);
 
-	if (BitCheck(volume.flags, APPLY_JITTERING))
+	if (volume.flags & APPLY_JITTERING)
 	{
 		RNG rng;
 		rng.init(uint2(pixel), GetFrameCount());
