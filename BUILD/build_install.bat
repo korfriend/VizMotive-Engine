@@ -40,7 +40,8 @@ if /I "%GITUSER%"=="korfriend" (
     call %~dp0revert_update_version.bat !BUILDRESULT!
 )
 if /I !BUILDRESULT! == 0 (
-    call %~dp0install_APIs.bat
+    call %~dp0install_APIs.bat Debug
+    call %~dp0install_APIs.bat Release
     call %~dp0install_EngineAPIs.bat
 )
 endlocal

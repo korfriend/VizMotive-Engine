@@ -460,6 +460,18 @@ namespace vz::shader
 
 	void LoadShaders()
 	{
+		// check shader interop check
+		{
+			uint64_t headerTime = {};
+			helper::GetFileNamesInDirectory(SHADERSOURCEPATH, 
+				[&](std::string fileName) {
+					//std::cout << "Found file: " << fileName << std::endl;
+					headerTime = std::max(vz::helper::FileTimestamp(fileName), headerTime);
+				}, "h");
+
+			shadercompiler::SetRecentHeaderTimeStamp(headerTime);
+		}
+
 		// naming convention based on Wicked Engine 
 		//	our variants: 'object' to 'mesh', and 'visibility' to 'view'
 
