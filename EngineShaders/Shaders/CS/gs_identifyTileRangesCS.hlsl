@@ -12,7 +12,7 @@ StructuredBuffer<uint64_t> keys : register(t0);
 void main(uint3 DTid : SV_DispatchThreadID)
 {
     uint index = DTid.x;
-    uint numInstances = gaussians.num_gaussians;
+    uint numInstances = gaussians.num_gaussians * 4;
     if (index >= numInstances)
         return;
 
