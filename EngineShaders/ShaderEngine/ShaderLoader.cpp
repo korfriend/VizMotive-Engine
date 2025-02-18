@@ -615,13 +615,6 @@ namespace vz::shader
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_TONEMAP], "tonemapCS.cso"); });
 
-		// BVH
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BVH_PRIMITIVES_GEOMETRYONLY], "bvh_primitivesCS_geometryonly.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BVH_PRIMITIVES], "bvh_primitivesCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BVH_HIERARCHY], "bvh_hierarchyCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_BVH_PROPAGATEAABB], "bvh_propagateaabbCS.cso"); });
-
-
 		jobsystem::Wait(ctx);
 
 		// create graphics pipelines

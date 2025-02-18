@@ -14,13 +14,13 @@ namespace vz::renderer
 		}
 
 		graphics::Texture uav_textures[] = {
-			rtMain,	// desc.layout
-			rtPrimitiveID_1, // desc.layout
-			rtPrimitiveID_2, // desc.layout
-			depthBufferMain, // desc.layout
-			depthBuffer_Copy, // desc.layout
-			depthBuffer_Copy1, // desc.layout
-			rtLinearDepth, // ResourceState::SHADER_RESOURCE
+			rtMain,	// inout_color, desc.layout
+			rtPrimitiveID_1, // layer0_color, desc.layout
+			rtPrimitiveID_2, // layer1_color, desc.layout
+			depthBufferMain, // layer0_depth, desc.layout
+			depthBuffer_Copy, // layer1_depth, desc.layout
+			depthBuffer_Copy1, // layer0_thick, desc.layout
+			rtLinearDepth, // layer1_thick, ResourceState::SHADER_RESOURCE
 		};
 		for (size_t i = 0, n = sizeof(uav_textures) / sizeof(graphics::Texture); i < n; ++i)
 		{
@@ -68,6 +68,10 @@ namespace vz::renderer
 		{
 			// We use a policy where the closer it is to the front, the higher the priority.
 			renderQueue.sort_opaque(); // F2B
+		}
+		else
+		{
+			return;
 		}
 
 		struct InstancedBatch
@@ -117,10 +121,19 @@ namespace vz::renderer
 		//	calls draw per a geometry part
 		auto BatchDrawingFlush = [&]()
 			{
+				if (instancedBatch.geometryIndex == ~0u)
+					return;
+
 				GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[instancedBatch.geometryIndex];
 
 				if (!geometry.HasRenderData() || !geometry.HasBVH())
 					return;
+
+				//{
+				//	const std::vector<Primitive>& parts = geometry.GetPrimitives();
+				//	const Primitive& part = parts[0];
+				//	UpdateGeometryGPUBVH(geometry.GetEntity(), cmd);
+				//}
 
 				GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instancedBatch.renderableIndex];
 
@@ -137,7 +150,7 @@ namespace vz::renderer
 					const GMaterialComponent& material = *scene_Gdetails->materialComponents[material_index];
 
 					bool is_renderable = filterMask & material.GetFilterMaskFlags();
-					if (!is_renderable)
+					if (!is_renderable || !part_buffer.bvhBuffers.primitiveCounterBuffer.IsValid())
 					{
 						continue;
 					}
@@ -161,6 +174,8 @@ namespace vz::renderer
 					push.BVH_counter = device->GetDescriptorIndex(&part_buffer.bvhBuffers.primitiveCounterBuffer, SubresourceType::SRV);
 					push.BVH_nodes = device->GetDescriptorIndex(&part_buffer.bvhBuffers.bvhNodeBuffer, SubresourceType::SRV);
 					push.BVH_primitives = device->GetDescriptorIndex(&part_buffer.bvhBuffers.primitiveBuffer, SubresourceType::SRV);
+					// TEST
+					push.sliceFlags = part_index + geometry.geometryOffset;
 					//push.instBufferResIndex = renderable.resLookupIndex + part_index;
 					//push.instances = ;
 					//push.instance_offset = (uint)instancedBatch.dataOffset;

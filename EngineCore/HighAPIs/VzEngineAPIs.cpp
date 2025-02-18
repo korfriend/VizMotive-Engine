@@ -1,5 +1,5 @@
 #include "VzEngineAPIs.h"
-#include "Components/ComponentDetails.h"
+#include "Components/Component_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Utils/EventHandler.h"

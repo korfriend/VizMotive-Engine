@@ -23,34 +23,46 @@ void main(uint3 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 	prim.instanceIndex = push.instanceIndex;
 	prim.subsetIndex = push.subsetIndex;
 
+	// IMPORTANT NOTE: ~GEOMETRYSPACE mode requires GetScene(), which means
+	//	UpdateRenderData (uploading FrameCB) must be called prior to BVH generation
+
+	int vb_pos_w = -1;
+	int ib = -1;
 #ifdef GEOMETRYSPACE
-	ShaderGeometry geometry = load_geometry(push.geometryIndex + prim.subsetIndex);
+	vb_pos_w = push.vb_pos_w;
+	ib = push.ib;
 #else	// WORLD SPACE
 	ShaderMeshInstance inst = load_instance(prim.instanceIndex);
 	// push.geometryIndex is supposed to be same to inst.geometryOffset 
 	ShaderGeometry geometry = load_geometry(inst.geometryOffset + prim.subsetIndex);
     ShaderInstanceResLookup instResLookup = load_instResLookup(inst.resLookupIndex + prim.subsetIndex);
 	ShaderMaterial material = load_material(instResLookup.materialIndex);
+
+	vb_pos_w = geometry.vb_pos_w;
+	ib = geometry.ib;
 #endif
 
 	// we do NOT use indexOffset
 	//uint startIndex = prim.primitiveIndex * 3 + geometry.indexOffset;
 	uint startIndex = prim.primitiveIndex * 3;
-	uint i0 = bindless_buffers_uint[descriptor_index(geometry.ib)][startIndex + 0];
-	uint i1 = bindless_buffers_uint[descriptor_index(geometry.ib)][startIndex + 1];
-	uint i2 = bindless_buffers_uint[descriptor_index(geometry.ib)][startIndex + 2];
+	uint i0 = bindless_buffers_uint[descriptor_index(ib)][startIndex + 0];
+	uint i1 = bindless_buffers_uint[descriptor_index(ib)][startIndex + 1];
+	uint i2 = bindless_buffers_uint[descriptor_index(ib)][startIndex + 2];
 	
 #ifdef GEOMETRYSPACE
-	float3 P0 = bindless_buffers_float4[descriptor_index(geometry.vb_pos_w)][i0].xyz;
-	float3 P1 = bindless_buffers_float4[descriptor_index(geometry.vb_pos_w)][i1].xyz;
-	float3 P2 = bindless_buffers_float4[descriptor_index(geometry.vb_pos_w)][i2].xyz;
+	float3 P0 = bindless_buffers_float4[descriptor_index(vb_pos_w)][i0].xyz;
+	float3 P1 = bindless_buffers_float4[descriptor_index(vb_pos_w)][i1].xyz;
+	float3 P2 = bindless_buffers_float4[descriptor_index(vb_pos_w)][i2].xyz;
 #else
-	float3 p0 = bindless_buffers_float4[descriptor_index(geometry.vb_pos_w)][i0].xyz;
-	float3 p1 = bindless_buffers_float4[descriptor_index(geometry.vb_pos_w)][i1].xyz;
-	float3 p2 = bindless_buffers_float4[descriptor_index(geometry.vb_pos_w)][i2].xyz;
-	float3 P0 = mul(inst.transform.GetMatrix(), float4(p0, 1)).xyz;
-	float3 P1 = mul(inst.transform.GetMatrix(), float4(p1, 1)).xyz;
-	float3 P2 = mul(inst.transform.GetMatrix(), float4(p2, 1)).xyz;
+	float3 p_0 = bindless_buffers_float4[descriptor_index(vb_pos_w)][i0].xyz;
+	float3 p_1 = bindless_buffers_float4[descriptor_index(vb_pos_w)][i1].xyz;
+	float3 p_2 = bindless_buffers_float4[descriptor_index(vb_pos_w)][i2].xyz;
+	float4 P0 = mul(inst.transform.GetMatrix(), float4(p_0, 1));
+	float4 P1 = mul(inst.transform.GetMatrix(), float4(p_1, 1));
+	float4 P2 = mul(inst.transform.GetMatrix(), float4(p_2, 1));
+	P0.xyz /= P0.w;
+	P1.xyz /= P1.w;
+	P2.xyz /= P2.w;
 #endif
 
 	BVHPrimitive bvhprim;
@@ -92,8 +104,8 @@ void main(uint3 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 	primitiveIDBuffer[primitiveID] = primitiveID; // will be sorted by morton so we need this!
 
 	// Compute triangle morton code:
-	float3 minAABB = min(P0, min(P1, P2));
-	float3 maxAABB = max(P0, max(P1, P2));
+	float3 minAABB = min(P0.xyz, min(P1.xyz, P2.xyz));
+	float3 maxAABB = max(P0.xyz, max(P1.xyz, P2.xyz));
 	float3 centerAABB = (minAABB + maxAABB) * 0.5f;
 
 #ifdef GEOMETRYSPACE

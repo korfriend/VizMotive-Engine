@@ -3,6 +3,7 @@
 #include "vzm2/utils/Backlog.h"
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/Profiler.h"
+#include "vzm2/utils/JobSystem.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -150,7 +151,7 @@ int main(int, char **)
 
 	vzm::ParamMap<std::string> arguments;
 	// arguments.SetString("API", "DX11");
-	arguments.SetString("GPU_VALIDATION", "VERBOSE");
+	//arguments.SetString("GPU_VALIDATION", "VERBOSE");
 	// arguments.SetParam("MAX_THREADS", 1u); // ~0u
 	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
 	if (!vzm::InitEngineLib(arguments))
@@ -216,7 +217,7 @@ int main(int, char **)
 	VzRenderer* rendererSlicer = nullptr;
 	ImVec2 wh(512, 512);
 
-	// add .ply load
+	vz::jobsystem::context ctx_stl_loader;
 	{
 		scene = NewScene("my scene");
 
@@ -243,13 +244,14 @@ int main(int, char **)
 
 		camera1 = NewCamera("my camera1");
 		camera1->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		camera1->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+		//camera1->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+		camera1->SetOrthogonalProjection(1, 1, 0.1f, 5000.f, 5.f);
 
 		slicer = NewSlicer("my slicer");
-		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 1, 0), at = glm::fvec3(0, 0, -4);
+		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 1, 0), at = glm::fvec3(0, 0, -1);
 		view = at - pos;
 		slicer->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		slicer->SetOrthogonalProjection(1, 1, 1.f);
+		slicer->SetOrthogonalProjection(1, 1, 10.f);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		scene->AppendChild(axis_helper);
@@ -257,6 +259,20 @@ int main(int, char **)
 
 		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
+
+		vz::jobsystem::Execute(ctx_stl_loader, [](vz::jobsystem::JobArgs args) {
+
+			VzGeometry* geometry = vzm::NewGeometry("test geometry");
+			geometry->LoadGeometryFile("../Assets/stl_files/TS3M3008S.stl");
+			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
+			material_stl->SetShaderType(vzm::ShaderType::PBR);
+			material_stl->SetDoubleSided(true);
+			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry, material_stl);
+			actor_test3->SetScale({ 0.5f, 0.5f, 0.5f });
+			actor_test3->SetPosition({ 0, 0, 2 });
+			geometry->SetGPUBVHEnabled(true);
+
+			});
 	}
 
 	// Our state
@@ -283,6 +299,12 @@ int main(int, char **)
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+
+
+		if (!vz::jobsystem::IsBusy(ctx_stl_loader))
+		{
+			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
+		}
 
 		using namespace vzm;
 		{
