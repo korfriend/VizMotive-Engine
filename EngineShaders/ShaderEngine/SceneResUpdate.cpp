@@ -356,6 +356,7 @@ namespace vz
 			}
 			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
 
+			// Note : SceneDetails::RunRenderableUpdateSystem computes raw world matrix and its prev.
 			XMFLOAT4X4 world_matrix_prev = scene_->GetRenderableWorldMatricesPrev()[args.jobIndex];
 			XMFLOAT4X4 world_matrix = scene_->GetRenderableWorldMatrices()[args.jobIndex];
 
@@ -396,6 +397,7 @@ namespace vz
 
 				renderable.materialIndices.assign(num_parts, ~0u);
 				renderable.materialFilterFlags = 0;
+
 				// Create GPU instance data:
 				ShaderMeshInstance inst;
 				inst.Init();
@@ -447,6 +449,12 @@ namespace vz
 				// if there is no UNORM-space-defined buffers, 
 				//	then transform and transformPrev are the same as transformRaw
 				inst.transformRaw.Create(world_matrix);
+
+				XMMATRIX W_inv = XMMatrixInverse(nullptr, XMLoadFloat4x4(&world_matrix));
+				XMFLOAT4X4 world_matrix_inv;
+				XMStoreFloat4x4(&world_matrix_inv, W_inv);
+				inst.transformRaw_inv.Create(world_matrix_inv);
+
 				if (IsFormatUnorm(geometry.positionFormat) && !geometry.GetGPrimBuffer(0)->soPosW.IsValid())
 				{
 					// The UNORM correction is only done for the GPU data!
@@ -534,8 +542,19 @@ namespace vz
 				ShaderMeshInstance inst; // this will be loaded as VolumeInstance
 				inst.Init();
 
-				//inst.emissive
-				//inst.color
+				uint3 vol_size = uint3(volume->GetWidth(), volume->GetHeight(), volume->GetDepth());
+				vzlog_assert(vol_size.x <= 4096 && vol_size.y <= 4096 && vol_size.z <= 4096, "Volume size must be lessequal than 4096!");
+				inst.emissive = uint2(vol_size.x, vol_size.y & 0xFFFF | (vol_size.z & 0xFFFF) << 16);
+
+				const XMUINT3& blocks_size = volume->GetBlocksSize();
+				vzlog_assert(blocks_size.x <= 2048 && blocks_size.y <= 2048 && blocks_size.z <= 1024, "# of Volume Blocks must be packked into 32-bits!");
+				inst.layerMask = blocks_size.x & 0x7FF | ((blocks_size.x & 0x7FF) << 11) | ((blocks_size.z & 0x3FF) << 22);
+
+				const XMUINT3& block_pitch = volume->GetBlockPitch();
+				vzlog_assert(block_pitch.x <= 2048 && block_pitch.y <= 2048 && block_pitch.z <= 1024, "Volume Pitches must be packked into 32-bits!");
+				inst.padding0 = block_pitch.x & 0x7FF | ((block_pitch.x & 0x7FF) << 11) | ((block_pitch.z & 0x3FF) << 22);
+				
+				inst.color = math::pack_half4(XMFLOAT4(1, 1, 1, 1));
 				//inst.lightmap
 				// 
 				// common attributes
@@ -589,8 +608,8 @@ namespace vz
 				int bitmaskbuffer = device->GetDescriptorIndex(&bitmask_buffer, SubresourceType::SRV);
 				inst.baseGeometryCount = *(uint*)&bitmaskbuffer;
 
-				const Texture vol_texture = volume->GetBlockTexture();
-				int texture_volume_blocks = device->GetDescriptorIndex(&vol_texture, SubresourceType::SRV);
+				const Texture vol_blk_texture = volume->GetBlockTexture();
+				int texture_volume_blocks = device->GetDescriptorIndex(&vol_blk_texture, SubresourceType::SRV);
 				inst.meshletOffset = *(uint*)&texture_volume_blocks;
 				const XMFLOAT3& vox_size = volume->GetVoxelSize();
 				float sample_dist = std::min(std::min(vox_size.x, vox_size.y), vox_size.z);

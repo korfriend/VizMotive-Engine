@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250213_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250217_0";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -1454,6 +1454,8 @@ namespace vz
 			zNearP_ = 0.f;
 		}
 
+		inline void SetThickness(const float value) { thickness_ = value; timeStampSetter_ = TimerNow; }
+		inline float GetThickness() const { return thickness_; }
 		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; };
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;

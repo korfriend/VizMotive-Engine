@@ -7,6 +7,10 @@ namespace vz
 
 	bool RenderPath::GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex, uint64_t& descriptorHandle, void** resPtr)
 	{
+		if (!rtRenderFinal_.IsValid())
+		{
+			return false;
+		}
 		if (!resShared_.IsValid())
 		{
 			if (!graphicsDevice_->OpenSharedResource(device2, srvDescHeap2, descriptorIndex, &rtRenderFinal_,

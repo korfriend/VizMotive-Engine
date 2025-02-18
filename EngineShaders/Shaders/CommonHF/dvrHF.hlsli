@@ -10,7 +10,7 @@
 #define MAX_FRAGMENTS 2
 #define SAFE_OPAQUEALPHA 0.99 // to avoid zero-divide
 
-PUSHCONSTANT(volume, VolumePushConstants);
+PUSHCONSTANT(push, VolumePushConstants);
 
 static const float SAMPLE_LEVEL_TEST = 0;
 
@@ -22,7 +22,7 @@ static const float SAMPLE_LEVEL_TEST = 0;
 //Texture2D<float4> input_otf : register(t3); // input_volume 
 //Texture2D<float4> input_mask_colorcode : register(t4);  // input_volume_mask
 
-// No need to be aligned by 16 bits 
+// No need to be aligned by 16 bits (used only in shader)
 struct VolumeInstance
 {
 	float4x4 mat_ws2ts;				// aliased from ShaderMeshInstance::transform
@@ -37,16 +37,19 @@ struct VolumeInstance
 	// we can texture_volume and texture_volume_mask from ShaderMaterial
 	int texture_volume_blocks;		// aliased from ShaderMeshInstance::meshletOffset
 	float sample_dist;				// WS unit, aliased from ShaderMeshInstance::alphaTest_size
+
+	uint3 vol_size;		// aliased from ShaderMeshInstance::emissive, packing
+	uint3 num_blocks;	// uint packing, aliased from ShaderMeshInstance::layerMask, packing
+	uint3 block_pitches;	// uint packing, aliased from ShaderMeshInstance::padding0, packing
 	
 	// the remaining stuffs can be used as the same purpose of ShaderMeshInstance's attributes
-	uint uid;
+	uint uid; 
 	uint flags;
-	uint clipIndex;
+	uint clipIndex; 
 	float3 aabbCenter;
 	float aabbRadius;
-	float fadeDistance;
-	uint2 emissive;
-	uint color;
+	float fadeDistance; 
+	uint2 color;
 	int lightmap;
 	uint2 rimHighlight;
 
@@ -71,6 +74,9 @@ struct VolumeInstance
 		sample_dist = asfloat(meshInst.alphaTest_size);
 
 		bitmaskbuffer = asint(meshInst.baseGeometryCount);
+		vol_size = uint3(meshInst.emissive.x, meshInst.emissive.y & 0xFFFF, meshInst.emissive.y >> 16);
+		num_blocks = uint3((meshInst.layerMask >> 0) & 0x7FF, (meshInst.layerMask >> 11) & 0x7FF, (meshInst.layerMask >> 22) & 0x3FF);
+		block_pitches = uint3((meshInst.padding0 >> 0) & 0x7FF, (meshInst.padding0 >> 11) & 0x7FF, (meshInst.padding0 >> 22) & 0x3FF);
 
 		// the same attrobutes to ShaderMeshInstance
 		uid = meshInst.uid;
@@ -79,12 +85,16 @@ struct VolumeInstance
 		aabbCenter = meshInst.aabbCenter;
 		aabbRadius = meshInst.aabbRadius;
 		fadeDistance = meshInst.fadeDistance;
-		emissive = meshInst.emissive;
 		color = meshInst.color;
 		lightmap = meshInst.lightmap;
 		rimHighlight = meshInst.rimHighlight;
 	}
 #endif
+
+	float3 ComputeSingleBlockTS() {
+		return float3((float)block_pitches.x / vol_size.x,
+			(float)block_pitches.y / vol_size.y, (float)block_pitches.z / vol_size.z);
+	}
 };
 
 inline float3 TransformPoint(in float3 pos_src, in float4x4 matT)
@@ -237,11 +247,11 @@ struct BlockSkip
 	bool visible;
 	int num_skip_steps;
 };
-BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const Buffer<uint> buffer_bitmask)
+BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const uint2 blocks_wwh, const Buffer<uint> buffer_bitmask)
 {
 	BlockSkip blk_v = (BlockSkip)0;
 	int3 blk_id = pos_start_ts / singleblock_size_ts;
-	int bitmask_id =  blk_id.x + blk_id.y * volume.blocks_w + blk_id.z * volume.blocks_wh;
+	int bitmask_id =  blk_id.x + blk_id.y * blocks_wwh.x + blk_id.z * blocks_wwh.y;
 	int mod = bitmask_id % 32;
 	blk_v.visible = (bool)(buffer_bitmask[bitmask_id / 32] & (0x1u << mod));
 
@@ -258,19 +268,19 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 float4 ApplyOTF(const Texture2D otf, const float sample_v, const float idv)
 {
 	float4 color = otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
-	color.rgb *= color.a * volume.opacity_correction; // associated color
+	color.rgb *= color.a * push.opacity_correction; // associated color
 	return color;
 }
 
 // in this case, Texture2D is stored as R32G32B32A32_FLOAT 
 // 	the integration should be performed based on the float color of range [0,1]
-float4 ApplyPreintOTF(const Texture2D otf, const float sample_v, float sample_v_prev, const float idv)
+float4 ApplyPreintOTF(const Texture2D otf, const float sample_v, float sample_v_prev, const float value_range, const float idv)
 {
 	float4 color = (float4)0;
 
     if (sample_v == sample_v_prev)
     {
-        sample_v_prev -= 1.f / volume.value_range;
+        sample_v_prev -= 1.f / value_range;
     }
 	int diff = sample_v - sample_v_prev;
 
@@ -280,7 +290,7 @@ float4 ApplyPreintOTF(const Texture2D otf, const float sample_v, float sample_v_
 	float4 color1 = otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
 
 	color.rgb = (color1.rgb - color0.rgb) * diff_rcp;
-	color.a = (color1.a - color1.a) * diff_rcp * volume.opacity_correction;
+	color.a = (color1.a - color1.a) * diff_rcp * push.opacity_correction;
 	color.rgb *= color.a; // associate color
 	return color;
 }
@@ -346,7 +356,7 @@ bool Vis_Volume_And_Check(inout float4 color, const float3 pos_sample_ts,
 	color = (float4)0;
 	[unroll]
 	for (int m = 0; m < 8; m++) {
-		float4 vis = ApplyOTF(otf, samples[m], volume.opacity_correction, 0);
+		float4 vis = ApplyOTF(otf, samples[m], push.opacity_correction, 0);
 		color += vis * fInterpolateWeights[m];
 	}
 	return color.a >= FLT_OPACITY_MIN;
@@ -362,8 +372,8 @@ bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, c
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 
 #ifdef SCULPT_MASK
-	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, 0).r * volume.mask_value_range + 0.5f);
-    return sample_v >= visible_min_sample && (sculpt_step == 0 || sculpt_step > volume.sculptStep);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, 0).r * push.mask_value_range + 0.5f);
+    return sample_v >= visible_min_sample && (sculpt_step == 0 || sculpt_step > push.sculptStep);
 #else 
     return sample_v >= visible_min_sample;
 #endif // SCULPT_MASK
@@ -379,13 +389,13 @@ bool Vis_Volume_And_Check(inout float4 color, inout float sample_v, const float3
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 #ifdef OTF_MASK
 	float id = volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
-	color = ApplyOTF(otf, sample_v, id * volume.mask_unormid_otf_map);
+	color = ApplyOTF(otf, sample_v, id * push.mask_unormid_otf_map);
 	return color.a >= FLT_OPACITY_MIN;
 #else
 #ifdef SCULPT_MASK
-	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * volume.mask_value_range + 0.5f);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * push.mask_value_range + 0.5f);
     color = ApplyOTF(otf, sample_v, 0);
-    return color.a >= FLT_OPACITY_MIN && (mask_vint == 0 || sculpt_step > volume.sculptStep);
+    return color.a >= FLT_OPACITY_MIN && (mask_vint == 0 || sculpt_step > push.sculptStep);
 #else 
     color = ApplyOTF(otf, sample_v, 0);
     return color.a >= FLT_OPACITY_MIN;
@@ -393,7 +403,7 @@ bool Vis_Volume_And_Check(inout float4 color, inout float sample_v, const float3
 #endif // OTF_MASK
 }
 
-bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float sample_prev, const float3 pos_sample_ts,
+bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float sample_prev, const float value_range, const float3 pos_sample_ts,
 	const Texture3D volume_main, const Texture2D otf
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 	, const Texture3D volume_mask
@@ -404,14 +414,14 @@ bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float s
 
 #if OTF_MASK==1
 	float id = volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
-	color = ApplyPreintOTF(otf, sample_v, sample_prev, id * volume.mask_unormid_otf_map);
+	color = ApplyPreintOTF(otf, sample_v, sample_prev, id * push.mask_unormid_otf_map);
 	return color.a >= FLT_OPACITY_MIN;
 #elif SCULPT_MASK == 1
-	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * volume.mask_value_range + 0.5f);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * push.mask_value_range + 0.5f);
     color = ApplyPreintOTF(otf, sample_v, sample_prev, 0);
-    return color.a >= FLT_OPACITY_MIN && (sculpt_step == 0 || sculpt_step > volume.sculptStep);
+    return color.a >= FLT_OPACITY_MIN && (sculpt_step == 0 || sculpt_step > push.sculptStep);
 #else 
-    color = ApplyPreintOTF(otf, sample_v, sample_prev, 0);
+    color = ApplyPreintOTF(otf, sample_v, sample_prev, value_range, 0);
     return color.a >= FLT_OPACITY_MIN;
 #endif
 }
@@ -419,10 +429,11 @@ bool Vis_Volume_And_Check_Slab(inout float4 color, inout float sample_v, float s
 
 
 #define LOAD_BLOCK_INFO(BLK, P, V, N, I, BIT_MASK_BUFFER) \
-    BlockSkip BLK = ComputeBlockSkip(P, V, volume.singleblock_size_ts, BIT_MASK_BUFFER);\
+    BlockSkip BLK = ComputeBlockSkip(P, V, singleblock_size_ts, blocks_wwh, BIT_MASK_BUFFER);\
     BLK.num_skip_steps = min(BLK.num_skip_steps, N - I - 1);
 
 void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const float3 dir_sample_ws, const int num_ray_samples, const float4x4 mat_ws2ts,
+	const float3 singleblock_size_ts, const uint2 blocks_wwh,
 	const Texture3D volume_main, const Buffer<uint> buffer_bitmask
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 	, const Texture3D volume_mask
@@ -436,7 +447,7 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     float3 dir_sample_ts = TransformVector(dir_sample_ws, mat_ws2ts);
     
 	[branch]
-    if (Sample_Volume_And_Check(sample_v, pos_ray_start_ts, volume.main_visible_min_sample, volume_main
+    if (Sample_Volume_And_Check(sample_v, pos_ray_start_ts, push.main_visible_min_sample, volume_main
 #ifdef SCULPT_MASK
 		, volume_mask 
 #endif
@@ -463,7 +474,7 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
             {
                 float3 pos_sample_blk_ts = pos_ray_start_ts + dir_sample_ts * (float) (i + k);
 				[branch]
-                if (Sample_Volume_And_Check(sample_v, pos_sample_blk_ts, volume.main_visible_min_sample, volume_main
+                if (Sample_Volume_And_Check(sample_v, pos_sample_blk_ts, push.main_visible_min_sample, volume_main
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 						, volume_mask
 #endif
@@ -507,7 +518,7 @@ void RefineSurface(inout float3 pos_refined_ws, const float3 pos_sample_ws, cons
         float3 pos_bis_ts = (pos_bis_s_ts + pos_bis_e_ts) * 0.5f;
         float t = (t0 + t1) * 0.5f;
         float _sample_v = 0;
-        if (Sample_Volume_And_Check(_sample_v, pos_bis_ts, volume.main_visible_min_sample, volume_main
+        if (Sample_Volume_And_Check(_sample_v, pos_bis_ts, push.main_visible_min_sample, volume_main
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 				, volume_mask 
 #endif
@@ -532,9 +543,9 @@ static const uint DVR_SURFACE_ON_CLIPPLANE = 2u;
 
 VolumeInstance GetVolumeInstance()
 {
-    if (volume.instanceIndex >= 0)
+    if (push.instanceIndex >= 0)
     {
-        ShaderMeshInstance mesh_instance = load_instance(volume.instanceIndex);
+        ShaderMeshInstance mesh_instance = load_instance(push.instanceIndex);
         VolumeInstance vol_instance;
         vol_instance.Load(mesh_instance);
         return vol_instance;
