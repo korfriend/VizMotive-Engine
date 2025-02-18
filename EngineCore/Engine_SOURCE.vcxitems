@@ -25,7 +25,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\ResourceManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Version.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\Component_Internal.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Components\GComponents.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GBackend.h" />

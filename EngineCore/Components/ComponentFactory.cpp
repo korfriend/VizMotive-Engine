@@ -1,4 +1,4 @@
-#include "ComponentDetails.h"
+#include "Component_Internal.h"
 #include "Utils/ECS.h"
 #include "Utils/Backlog.h"
 #include "Common/Archive.h"
@@ -46,6 +46,7 @@ namespace vz::compfactory
 		case ComponentType::VOLUMETEXTURE: return volumeManager.GetComponent(vuid);
 		case ComponentType::LIGHT: return lightManager.GetComponent(vuid);
 		case ComponentType::CAMERA: return cameraManager.GetComponent(vuid);
+		case ComponentType::SLICER: return slicerManager.GetComponent(vuid);
 		default: assert(0);
 		}
 		return nullptr;

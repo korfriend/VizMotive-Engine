@@ -14,17 +14,107 @@ RWTexture2D<float> layer1_thick : register(u6);
 #define WILDCARD_DEPTH_OUTLINE_DIRTY 0x12345679
 #define OUTSIDE_PLANE 0x87654321
 
+
+bool InsideTest(const float3 originWS, const float3 originOS, const float3 rayDirOS, const float2 minMaxT, const float4x4 os2ws, inout float minDistOnPlane)
+{
+	RayDesc ray;
+	ray.Origin = originOS;
+	ray.Direction = rayDirOS;
+	ray.TMin = minMaxT.x;
+	ray.TMax = minMaxT.y;
+
+	RayHit hit = TraceRay_Closest(ray);
+	int hitTriIdx = hit.distance >= FLT_MAX - 1 ? -1 : hit.primitiveID.primitiveIndex;
+	bool isInsideOnPlane = false;
+	if (hitTriIdx >= 0) {
+		bool localInside = hit.is_backface;
+		isInsideOnPlane = localInside;
+
+		float3 hit_os = ray.Origin + hit.distance * ray.Direction;
+		float4 hit_ws = mul(os2ws, float4(hit_os, 1));
+		hit_ws.xyz /= hit_ws.w;
+		float dist_pixels = length(hit_ws.xyz - originWS) / push.pixelSize;
+
+		if (minDistOnPlane * minDistOnPlane > dist_pixels * dist_pixels) {
+			minDistOnPlane = localInside ? -dist_pixels : dist_pixels;
+		}
+	}
+	return isInsideOnPlane;
+}
+
+
+inline uint TraceRay_DebugBVH(RayDesc ray, uint2 pixel)
+{
+	//const float3 rcpDirection = rcp(ray.Direction);
+	float3 rcpDirection;
+	rcpDirection.x = (abs(ray.Direction.x) < 1e-10) ? 1000000 : 1.0 / ray.Direction.x;
+	rcpDirection.y = (abs(ray.Direction.y) < 1e-10) ? 1000000 : 1.0 / ray.Direction.y;
+	rcpDirection.z = (abs(ray.Direction.z) < 1e-10) ? 1000000 : 1.0 / ray.Direction.z;
+
+	uint hit_counter = 0;
+
+	// Emulated stack for tree traversal:
+	uint stack[RAYTRACE_STACKSIZE];
+	uint stackpos = 0;
+
+	const uint primitiveCount = primitiveCounterBuffer.Load(0);
+	const uint leafNodeOffset = primitiveCount - 1;
+
+	// push root node
+	stack[stackpos++] = 0;
+
+	[loop]
+	while (stackpos > 0) {
+		// pop untraversed node
+		const uint nodeIndex = stack[--stackpos];
+
+		BVHNode node = bvhNodeBuffer.Load<BVHNode>(nodeIndex * sizeof(BVHNode));
+		//BVHNode node = bvhNodeBuffer[nodeIndex];
+
+		if (IntersectNode(ray, node, rcpDirection))
+		{
+			hit_counter++;
+
+			if (nodeIndex >= leafNodeOffset)
+			{
+				// Leaf node
+			}
+			else
+			{
+				// Internal node
+				if (stackpos < RAYTRACE_STACKSIZE - 1)
+				{
+					// push left child
+					stack[stackpos++] = node.LeftChildIndex;
+					// push right child
+					stack[stackpos++] = node.RightChildIndex;
+				}
+				else
+				{
+					// stack overflow, terminate
+					return 0xFFFFFFFF;
+				}
+			}
+
+		}
+
+	}
+
+
+	return hit_counter;
+
+}
 [numthreads(VISIBILITY_BLOCKSIZE, VISIBILITY_BLOCKSIZE, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
-{	
-    ShaderCamera camera = GetCamera();
+{
+	ShaderCamera camera = GetCamera();
 
 	const uint2 pixel = DTid.xy;
 	const bool pixel_valid = (pixel.x < camera.internal_resolution.x) && (pixel.y < camera.internal_resolution.y);
-    if (!pixel_valid)
-    {
-        return;
-    }
+	if (!pixel_valid)
+	{
+		return;
+	}
 
 	if (asuint(layer0_depth[pixel]) == WILDCARD_DEPTH_OUTLINE)
 	{
@@ -36,7 +126,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		layer0_depth[pixel] = asfloat(WILDCARD_DEPTH_OUTLINE);
 		return;
 	}
-	
+
 	layer0_depth[pixel] = asfloat(OUTSIDE_PLANE);
 
 	bool disableSolidFill = push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE;
@@ -55,10 +145,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	clipper.Init();
 
 	float ray_tmin = 0.0001f; // MAGIC VALUE
-	float ray_tmax = 1e20; 
+	float ray_tmax = 1e20;
 
 	ShaderMeshInstance inst = load_instance(push.instanceIndex);
-	float4x4 ws2os = (float4x4)1;// = inst.transformRaw_inv.GetMatrix();
+	float4x4 ws2os = inst.transformRaw_inv.GetMatrix();
 	float4x4 os2ws = inst.transformRaw.GetMatrix();
 
 	float sliceThickness = push.sliceThickness;
@@ -84,7 +174,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		sliceThickness_os = length(end_os.xyz - origin_os.xyz);
 	}
 
-	const float3x3 ws2os_adj = (float4x4)1;//inst.transformRaw_inv.GetMatrixAdjoint();
+	const float3x3 ws2os_adj = inst.transformRaw_inv.GetMatrixAdjoint();
 
 	float3 ray_dir_os = normalize(mul(ws2os_adj, ray_ws.Direction));
 
@@ -102,32 +192,52 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	float3 up_os = normalize(mul(ws2os_adj, camera.up));
 	float3 right_os = normalize(cross(ray_dir_os, up_os));
 
-	// safe inside test (up- and down-side)//
+	// safe inside test (up- and down-side)
+	isInsideOnPlane = InsideTest(ray_ws.Origin, origin_os.xyz, up_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
+	isInsideOnPlane = isInsideOnPlane && InsideTest(ray_ws.Origin, origin_os.xyz, -up_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
+
+	// safe inside test (right- and left-side)
+	isInsideOnPlane = isInsideOnPlane && InsideTest(ray_ws.Origin, origin_os.xyz, right_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
+	isInsideOnPlane = isInsideOnPlane && InsideTest(ray_ws.Origin, origin_os.xyz, -right_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
+	if (isInsideOnPlane) {
+		inout_color[pixel] = float4(1, 0, 0, 1);
+		// note ... when ray passes through a triangle edge or vertex, hit may not be detected
+		return;
+	}
+	//inout_color[pixel] = float4(right_os, 1);
+	return;
+
+
+
+	if (sliceThickness == 0)
+	{
+		layer1_depth[pixel] = minDistOnPlane;
+		// DO NOT finish here (for solid filling)
+	}
+
+	// forward check
+	bool hit_on_forward_ray = false;
+	float forward_hit_depth = FLT_MAX;
+	bool is_front_forward_face = false;
 	{
 		RayDesc ray;
 		ray.Origin = origin_os.xyz;
-		ray.Direction = up_os;
+		ray.Direction = ray_dir_os;
 		ray.TMin = ray_tmin;
 		ray.TMax = ray_tmax;
 
 		RayHit hit = TraceRay_Closest(ray);
 		int hitTriIdx = hit.distance >= FLT_MAX - 1 ? -1 : hit.primitiveID.primitiveIndex;
-
-		if (hitTriIdx >= 0) {
-			bool localInside = hit.is_backface;
-			isInsideOnPlane = localInside;
-
-			float3 hit_os = ray.Origin + hit.distance * ray.Direction;
-			float4 hit_ws = mul(os2ws, float4(hit_os, 1));
-			hit_ws.xyz /= hit_ws.w;
-			float dist_pixels = length(hit_ws.xyz - ray_ws.Origin) / pixelSize;
-
-			if (minDistOnPlane * minDistOnPlane > dist_pixels * dist_pixels) {
-				minDistOnPlane = localInside ? -dist_pixels : dist_pixels;
-			}
-		}
+		forward_hit_depth = hit.distance;
+		is_front_forward_face = !hit.is_backface;
+		hit_on_forward_ray = hitTriIdx >= 0;
 	}
 
+	if (!hit_on_forward_ray) {
+		inout_color[pixel] = float4(1, 1, 1, 1);
+		// note ... when ray passes through a triangle edge or vertex, hit may not be detected
+		return;
+	}
 
 
 

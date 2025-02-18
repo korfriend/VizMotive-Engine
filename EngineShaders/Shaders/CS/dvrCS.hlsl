@@ -40,12 +40,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	if (texture_index_volume_main < 0)
 		return;
 	
-	Texture3D volume_main = bindless_textures3D[texture_index_volume_main];
-	Texture3D volume_mask = bindless_textures3D[texture_index_volume_mask];
-	Texture3D volume_blocks = bindless_textures3D[vol_instance.texture_volume_blocks];
-	Texture2D otf = bindless_textures[texture_index_otf];
+	Texture3D volume_main = bindless_textures3D[descriptor_index(texture_index_volume_main)];
+	Texture3D volume_mask = bindless_textures3D[descriptor_index(texture_index_volume_mask)];
+	Texture3D volume_blocks = bindless_textures3D[descriptor_index(vol_instance.texture_volume_blocks)];
+	Texture2D otf = bindless_textures[descriptor_index(texture_index_otf)];
 
-	Buffer<uint> buffer_bitmask = bindless_buffers_uint[buffer_index_bitmask];
+	Buffer<uint> buffer_bitmask = bindless_buffers_uint[descriptor_index(buffer_index_bitmask)];
     
 	int hit_step = -1;
 	float3 pos_start_ws = ray.Origin + ray.Direction * hits_t.x;
@@ -85,8 +85,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	// 	store a value to the PIXEL MASK (bitpacking...)
 	//	use RWBuffer<UINT> atomic operation...
 
-	RWTexture2D<float4> inout_color = bindless_rwtextures[push.inout_color_Index];
-	RWTexture2D<float> inout_linear_depth = bindless_rwtextures_float[push.inout_linear_depth_Index];
+	RWTexture2D<float4> inout_color = bindless_rwtextures[descriptor_index(push.inout_color_Index)];
+	RWTexture2D<float> inout_linear_depth = bindless_rwtextures_float[descriptor_index(push.inout_linear_depth_Index)];
 
 	float prev_z = inout_linear_depth[pixel];
 	if (linear_depth >= prev_z)

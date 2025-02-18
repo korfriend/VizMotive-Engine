@@ -403,7 +403,6 @@ namespace vz::renderer
 
 		void GenerateMipChain(const Texture& texture, MIPGENFILTER filter, CommandList cmd, const MIPGEN_OPTIONS& options);
 
-		bool UpdateGeometryGPUBVH(const Entity geometryEntity, CommandList cmd);
 		// Compress a texture into Block Compressed format
 		//	textureSrc	: source uncompressed texture
 		//	textureBC	: destination compressed texture, must be a supported BC format (BC1/BC3/BC4/BC5/BC6H_UFLOAT)
