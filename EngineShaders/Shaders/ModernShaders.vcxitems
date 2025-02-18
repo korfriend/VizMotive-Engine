@@ -71,7 +71,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blur_gaussian_wide_unorm4CS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_hierarchyCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryonly.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryspace.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_propagateaabbCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrPrepassCS.hlsl" />

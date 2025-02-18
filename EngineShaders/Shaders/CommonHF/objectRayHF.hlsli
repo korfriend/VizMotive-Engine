@@ -4,9 +4,9 @@
 
 PUSHCONSTANT(push, SlicerMeshPushConstants);
 
-#define primitiveCounterBuffer bindless_buffers[push.BVH_counter]
-#define bvhNodeBuffer bindless_buffers[push.BVH_nodes]
-#define primitiveBuffer bindless_buffers[push.BVH_primitives]
+#define primitiveCounterBuffer bindless_buffers[descriptor_index(push.BVH_counter)]
+#define bvhNodeBuffer bindless_buffers[descriptor_index(push.BVH_nodes)]
+#define primitiveBuffer bindless_buffers[descriptor_index(push.BVH_primitives)]
 
 //ByteAddressBuffer primitiveCounterBuffer : register(t0);
 //StructuredBuffer<uint> primitiveIDBuffer : register(t1);
@@ -157,7 +157,7 @@ inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 	rcpDirection.x = (abs(ray.Direction.x) < eps) ? 1000000 : 1.0 / ray.Direction.x;
 	rcpDirection.y = (abs(ray.Direction.y) < eps) ? 1000000 : 1.0 / ray.Direction.y;
 	rcpDirection.z = (abs(ray.Direction.z) < eps) ? 1000000 : 1.0 / ray.Direction.z;
-
+	
 	RayHit bestHit = CreateRayHit();
 
 #ifndef RAYTRACE_STACK_SHARED

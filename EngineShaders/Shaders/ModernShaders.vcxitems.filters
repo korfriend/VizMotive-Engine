@@ -160,7 +160,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryonly.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryspace.hlsl">
       <Filter>Compute Shaders\BVH</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_propagateaabbCS.hlsl">

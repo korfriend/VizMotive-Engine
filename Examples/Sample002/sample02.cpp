@@ -2,6 +2,7 @@
 #include "vzm2/VzEngineAPIs.h"
 #include "vzm2/utils/Backlog.h"
 #include "vzm2/utils/EventHandler.h"
+#include "vzm2/utils/JobSystem.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -211,6 +212,7 @@ int main(int, char **)
 	VzRenderer *renderer = nullptr;
 	ImVec2 wh(512, 512);
 
+	vz::jobsystem::context ctx_stl_loader;
 	{
 		scene = NewScene("my scene");
 
@@ -260,18 +262,22 @@ int main(int, char **)
 			material->SetBaseColor(colors[i]);
 		}
 
-		vzm::VzGeometry *geometry_stl = vzm::NewGeometry("my stl");
-		geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
-		vzm::VzMaterial *material_stl = vzm::NewMaterial("my stl's material");
-		material_stl->SetShaderType(vzm::ShaderType::PBR);
-		material_stl->SetDoubleSided(true);
-		vzm::VzActor *actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
-		actor_test3->SetScale({0.1f, 0.1f, 0.1f});
+
+		vz::jobsystem::Execute(ctx_stl_loader, [](vz::jobsystem::JobArgs args) {
+
+			vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
+			geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
+			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
+			material_stl->SetShaderType(vzm::ShaderType::PBR);
+			material_stl->SetDoubleSided(true);
+			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
+			actor_test3->SetScale({ 0.1f, 0.1f, 0.1f });
+
+			});
 
 
 		vzm::AppendSceneCompTo(actor_test, scene);
 		vzm::AppendSceneCompTo(actor_test2, scene);
-		vzm::AppendSceneCompTo(actor_test3, scene);
 		vzm::AppendSceneCompTo(light, scene);
 
 		VzArchive *archive = vzm::NewArchive("test archive");
@@ -302,6 +308,11 @@ int main(int, char **)
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+
+		if (!vz::jobsystem::IsBusy(ctx_stl_loader))
+		{
+			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
+		}
 
 		using namespace vzm;
 		{

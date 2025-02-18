@@ -544,6 +544,12 @@ namespace vzm
 		XMVECTOR view_v = XMVector3TransformNormal(XMLoadFloat3(&cam_pose_begin.vecView), mat_tr);
 		XMVECTOR up_v = XMVector3TransformNormal(XMLoadFloat3(&cam_pose_begin.vecUp), mat_tr);
 
+		if (XMVectorGetX(XMVector3LengthSq(view_v)) < 0.000001)
+		{
+			vzlog_warning("Unexpected drag!");
+			return false;
+		}
+
 		// Set Pose //...
 		XMFLOAT3 eye, view, up;
 		XMStoreFloat3(&eye, eye_v);

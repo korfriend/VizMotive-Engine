@@ -2,6 +2,7 @@
 #include "ShaderEngine.h"
 #include "Image.h"
 #include "SortLib.h"
+#include "GPUBVH.h"
 #include "ShaderLoader.h"
 #include "../Shaders/ShaderInterop.h"
 
@@ -486,6 +487,7 @@ namespace vz::renderer
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::LoadShaders(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { image::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpubvh::Initialize(); });
 
 		jobsystem::Wait(ctx);
 		backlog::post("Shader Engine Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)", backlog::LogLevel::Info);
@@ -520,6 +522,7 @@ namespace vz::renderer
 		}
 
 		image::Deinitialize();
+		gpubvh::Deinitialize();
 		gpusortlib::Deinitialize();
 		renderer::initialized.store(false);
 	}

@@ -640,8 +640,6 @@ namespace vz
 		deltaTime = dt;
 		jobsystem::context ctx;
 
-		device = graphics::GetDevice();
-
 		renderableEntities = scene_->GetRenderableEntities();
 		renderableComponents.resize(renderableEntities.size());
 		size_t num_renderables = renderableComponents.size();
@@ -670,8 +668,9 @@ namespace vz
 			geometryComponents[args.jobIndex] = (GGeometryComponent*)compfactory::GetGeometryComponent(geometryEntities[args.jobIndex]);
 			});
 
-		uint32_t pingpong_buffer_index = device->GetBufferIndex();
 
+		device = graphics::GetDevice();
+		uint32_t pingpong_buffer_index = device->GetBufferIndex();
 		// GPU Setting-up for Update IF necessary
 		{
 			// 1. dynamic rendering (such as particles and terrain, cloud...) kickoff

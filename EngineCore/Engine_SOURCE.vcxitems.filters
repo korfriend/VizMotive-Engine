@@ -241,7 +241,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXPackedVector.h">
       <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29\DirectXMath</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Components\ComponentDetails.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)Components\Component_Internal.h">
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\spdlog\spdlog.h">

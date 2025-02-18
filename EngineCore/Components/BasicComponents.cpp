@@ -15,15 +15,14 @@ namespace vz::uuid
 	// 3. 256 uniques IDs are allowed for the same timestamp
 	static std::atomic<uint16_t> sCounter;
 	static std::mt19937_64 sRandomEngine;
-	static bool isInitialized = false;
+	static std::once_flag randomInitFlag;
 	uint64_t generateUUID(uint8_t cType) 
 	{
-		if (!isInitialized)
-		{
+		std::call_once(randomInitFlag, []() {
 			std::random_device rd;
 			sRandomEngine.seed(rd());
-			isInitialized = true;
-		}
+			});
+
 		uint64_t uuid = 0;
 
 		// High precision timestamp (48 bits)
@@ -35,11 +34,12 @@ namespace vz::uuid
 
 		// Atomic counter (8 bits)
 		uint16_t count = sCounter.fetch_add(1, std::memory_order_relaxed);
-		uuid |= (count & 0xFF) << 8;
+		uuid |= ((uint64_t)(count & 0xFF)) << 8;
 
 		// Random component (8 bits)
 		//uint8_t randomBits = static_cast<uint8_t>(sRandomEngine() & 0xFF);
 		//uuid |= static_cast<uint64_t>(randomBits);
+		assert(!(uuid & 0xFF));
 		uuid |= cType;
 
 		return uuid;

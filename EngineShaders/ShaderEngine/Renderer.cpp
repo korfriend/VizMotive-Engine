@@ -2254,8 +2254,19 @@ namespace vz::renderer
 				cmd
 			);
 
+
+			//RenderPassImage rp[] = {
+			//	RenderPassImage::Resolve(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS),
+			//	RenderPassImage::Resolve(&depthBufferMain, depthBufferMain.desc.layout, ResourceState::UNORDERED_ACCESS),
+			//	RenderPassImage::Resolve(&depthBuffer_Copy, depthBufferMain.desc.layout, ResourceState::UNORDERED_ACCESS),
+			//
+			//};
+
+			device->ClearUAV(&rtMain, 0, cmd);
+			device->ClearUAV(&depthBufferMain, 0, cmd);
+			device->ClearUAV(&depthBuffer_Copy, 0, cmd);
 			RenderSlicerMeshes(cmd);
-			RenderDirectVolumes(cmd);
+			//RenderDirectVolumes(cmd);
 
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{

@@ -38,6 +38,9 @@
     <ClCompile Include="DirectVolumes_Details.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="GPUBVH.cpp">
+      <Filter>Processing</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\dxcapi.h">
@@ -77,6 +80,9 @@
       <Filter>Processing</Filter>
     </ClInclude>
     <ClInclude Include="ShaderEngine.h" />
+    <ClInclude Include="GPUBVH.h">
+      <Filter>Processing</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
