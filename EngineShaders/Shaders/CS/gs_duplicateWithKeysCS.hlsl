@@ -11,11 +11,9 @@ RWStructuredBuffer<uint> OutPayloads : register(u1); // sortVBufferEven
 StructuredBuffer<VertexAttribute> Vertices : register(t0);
 StructuredBuffer<uint> prefixSum : register(t1);
 
-[numthreads(256, 1, 1)]
-void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
+[numthreads(256, 1, 1)] void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
     uint index = DTid.x;
-
     if (index >= sortConstants.num_gaussians * 4)
         return;
 
@@ -35,6 +33,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     for (uint i = aabbX; i < aabbZ; i++)
     {
         for (uint j = aabbY; j < aabbW; j++)
+
         {
             uint64_t tileIndex = ((uint64_t)i) + ((uint64_t)j * tileX);
             uint depthBits = asuint(v.depth);

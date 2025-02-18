@@ -2,7 +2,7 @@
 
 namespace vz::renderer
 {
-	void GRenderPath3DDetails::CreateTiledGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution)
+	void GRenderPath3DDetails::CreateTiledGaussianResources(GaussianSplattingResources &res, XMUINT2 resolution)
 	{
 		res.tileCount = GetGaussianSplattingTileCount(resolution);
 
@@ -25,7 +25,7 @@ namespace vz::renderer
 		if (viewMain.visibleRenderables.empty())
 			return;
 
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)viewMain.scene->GetGSceneHandle();
+		GSceneDetails *scene_Gdetails = (GSceneDetails *)viewMain.scene->GetGSceneHandle();
 		if (scene_Gdetails->renderableComponents_mesh.empty())
 		{
 			return;
@@ -41,8 +41,7 @@ namespace vz::renderer
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
 		XMUINT2 gs_tile_count = XMUINT2(
 			(rtMain.desc.width + GS_TILESIZE - 1) / GS_TILESIZE,
-			(rtMain.desc.height + GS_TILESIZE - 1) / GS_TILESIZE
-		);
+			(rtMain.desc.height + GS_TILESIZE - 1) / GS_TILESIZE);
 
 		GPUResource unbind;
 
@@ -50,7 +49,7 @@ namespace vz::renderer
 		renderQueue.init();
 		for (uint32_t instanceIndex : viewMain.visibleRenderables)
 		{
-			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
+			const GRenderableComponent &renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 			if (!renderable.IsMeshRenderable())
 				continue;
 			if (!(viewMain.camera->GetVisibleLayerMask() & renderable.GetVisibleMask()))
@@ -58,7 +57,7 @@ namespace vz::renderer
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
 
-			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
+			GGeometryComponent &geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
 			if (!geometry.allowGaussianSplatting)
 				continue;
 
@@ -72,24 +71,24 @@ namespace vz::renderer
 		{
 			// We use a policy where the closer it is to the front, the higher the priority.
 			renderQueue.sort_opaque();
-			//renderQueue.sort_transparent();
+			// renderQueue.sort_transparent();
 		}
 
 		uint32_t instanceCount = 0;
-		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
+		for (const RenderBatch &batch : renderQueue.batches) // Do not break out of this loop!
 		{
-			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
-			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
-			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
+			const uint32_t geometry_index = batch.GetGeometryIndex();	  // geometry index
+			const uint32_t renderable_index = batch.GetRenderableIndex(); // renderable index (base renderable)
+			const GRenderableComponent &renderable = *scene_Gdetails->renderableComponents[renderable_index];
 			assert(renderable.IsMeshRenderable());
 
-			GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
+			GMaterialComponent *material = (GMaterialComponent *)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
 			assert(material);
 
-			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[geometry_index];
+			GGeometryComponent &geometry = *scene_Gdetails->geometryComponents[geometry_index];
 
 			GaussianPushConstants gaussian_push;
-			GaussianSortConstants gaussian_sort; // timestamp and gaussian_Vertex_Attributes_index; test210
+			GaussianSortConstants gaussian_sort; // timestamp and gaussian_Vertex_Attributes_index
 			GaussianRadixConstants gaussian_radix;
 
 			UINT width = rtMain.desc.width;
@@ -102,7 +101,7 @@ namespace vz::renderer
 			gaussian_sort.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 			gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 
-			GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
+			GGeometryComponent::GaussianSplattingBuffers &gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
 
 			// test vertex attrs
 			{
@@ -110,7 +109,7 @@ namespace vz::renderer
 			}
 
 			{
-				//GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
+				// GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
 				gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 
 				gaussian_push.instanceIndex = batch.instanceIndex;
@@ -136,33 +135,31 @@ namespace vz::renderer
 
 				gaussian_sort.sortHistBuffer_index = device->GetDescriptorIndex(&gs_buffers.sortHistBuffer, SubresourceType::UAV);
 				gaussian_sort.tileBoundaryBuffer_index = device->GetDescriptorIndex(&gs_buffers.tileBoundaryBuffer, SubresourceType::UAV);
-
 			}
 			// staging buffer - test 212
 
 			if (rtMain.IsValid())
 			{
-				//device->BindUAV(&rtMain, 0, cmd);
-				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd); // touched tiles count 
-				device->BindUAV(&gs_buffers.offsetTiles_0, 2, cmd); // prefix sum of touched tiles count
+				// device->BindUAV(&rtMain, 0, cmd);
+				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd);		   // touched tiles count
+				device->BindUAV(&gs_buffers.offsetTiles_0, 2, cmd);			   // prefix sum of touched tiles count
 				device->BindUAV(&gs_buffers.gaussianVertexAttributes, 3, cmd); // vertex attributes
 			}
 			else
 			{
-				//device->BindUAV(&unbind, 0, cmd);
+				// device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
 				device->BindUAV(&unbind, 2, cmd);
 				device->BindUAV(&unbind, 3, cmd);
 			}
 
 			// SRV to UAV
-			//barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
+			// barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianVertexAttributes, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 			BarrierStackFlush(cmd);
-
 
 			uint numGaussians = gaussian_push.num_gaussians;
 
@@ -176,43 +173,39 @@ namespace vz::renderer
 				numGroups,
 				1,
 				1,
-				cmd
-			);
+				cmd);
 
 			// copy touched tiles count to offset tiles
 			{
 				GPUBarrier barriers[] =
-				{
-					GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
-					GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)
-				};
+					{
+						GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
+						GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)};
 				device->Barrier(barriers, _countof(barriers), cmd);
 			}
 
 			device->CopyBuffer(
-				&gs_buffers.offsetTilesPing,  // dst buffer
+				&gs_buffers.offsetTilesPing, // dst buffer
 				0,
-				&gs_buffers.touchedTiles_0,   // src buffer
+				&gs_buffers.touchedTiles_0, // src buffer
 				0,
 				(numGaussians * sizeof(UINT)),
-				cmd
-			);
+				cmd);
 
 			{
 				GPUBarrier barriers2[] =
-				{
-					GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::COPY_SRC, ResourceState::UNORDERED_ACCESS),
-					GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::COPY_DST, ResourceState::UNORDERED_ACCESS)
-				};
+					{
+						GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::COPY_SRC, ResourceState::UNORDERED_ACCESS),
+						GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::COPY_DST, ResourceState::UNORDERED_ACCESS)};
 				device->Barrier(barriers2, _countof(barriers2), cmd);
 			}
-			//device->BindUAV(&unbind, 0, cmd);
+			// device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
 			device->BindUAV(&unbind, 2, cmd);
 			device->BindUAV(&unbind, 3, cmd);
 
 			// UAV to SRV
-			//barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
+			// barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianVertexAttributes, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
@@ -222,7 +215,8 @@ namespace vz::renderer
 
 			device->BindComputeShader(&shaders[CSTYPE_GS_GAUSSIAN_OFFSET], cmd);
 
-			for (int step = 0; step <= iters; ++step) {
+			for (int step = 0; step <= iters; ++step)
+			{
 				gaussian_sort.timestamp = step;
 				device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
 
@@ -233,15 +227,15 @@ namespace vz::renderer
 					barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 					// unbind
-					device->BindResource(&unbind, 0, cmd);	// t0
-					device->BindResource(&unbind, 1, cmd);  // t1
-					device->BindUAV(&unbind, 3, cmd);       // u3
-					device->BindUAV(&unbind, 4, cmd);       // u4
+					device->BindResource(&unbind, 0, cmd); // t0
+					device->BindResource(&unbind, 1, cmd); // t1
+					device->BindUAV(&unbind, 3, cmd);	   // u3
+					device->BindUAV(&unbind, 4, cmd);	   // u4
 
-					// SRV: offsetTilesPing ¡æ register(t0)
-					device->BindResource(&gs_buffers.offsetTilesPing, 0, cmd);  // bind to t0
-					// UAV: offsetTilesPong ¡æ register(u4)
-					device->BindUAV(&gs_buffers.offsetTilesPong, 4, cmd);		// bind to u4
+					// SRV: offsetTilesPing ï¿½ï¿½ register(t0)
+					device->BindResource(&gs_buffers.offsetTilesPing, 0, cmd); // bind to t0
+					// UAV: offsetTilesPong ï¿½ï¿½ register(u4)
+					device->BindUAV(&gs_buffers.offsetTilesPong, 4, cmd); // bind to u4
 				}
 				else
 				{
@@ -249,24 +243,24 @@ namespace vz::renderer
 					barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 					barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
-					device->BindResource(&unbind, 0, cmd);	// t0
-					device->BindResource(&unbind, 1, cmd);  // t1
-					device->BindUAV(&unbind, 3, cmd);       // u3
-					device->BindUAV(&unbind, 4, cmd);       // u4
+					device->BindResource(&unbind, 0, cmd); // t0
+					device->BindResource(&unbind, 1, cmd); // t1
+					device->BindUAV(&unbind, 3, cmd);	   // u3
+					device->BindUAV(&unbind, 4, cmd);	   // u4
 
-					// SRV: offsetTilesPong ¡æ register(t1)
-					device->BindResource(&gs_buffers.offsetTilesPong, 1, cmd);  // bind to t1
-					// UAV: offsetTilesPing ¡æ register(u3)
-					device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd);		// bind to u3
+					// SRV: offsetTilesPong ï¿½ï¿½ register(t1)
+					device->BindResource(&gs_buffers.offsetTilesPong, 1, cmd); // bind to t1
+					// UAV: offsetTilesPing ï¿½ï¿½ register(u3)
+					device->BindUAV(&gs_buffers.offsetTilesPing, 3, cmd); // bind to u3
 				}
 				device->Dispatch(numGroups, 1, 1, cmd);
 				BarrierStackFlush(cmd);
 			}
 
-			device->BindResource(&unbind, 0, cmd);	// t0
-			device->BindResource(&unbind, 1, cmd);  // t1
-			device->BindUAV(&unbind, 3, cmd);       // u3
-			device->BindUAV(&unbind, 4, cmd);       // u4
+			device->BindResource(&unbind, 0, cmd); // t0
+			device->BindResource(&unbind, 1, cmd); // t1
+			device->BindUAV(&unbind, 3, cmd);	   // u3
+			device->BindUAV(&unbind, 4, cmd);	   // u4
 
 			if ((iters % 2) == 0)
 				barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
@@ -276,33 +270,30 @@ namespace vz::renderer
 			BarrierStackFlush(cmd);
 
 			// even -> srcBuffer is offsetTilesPong
-			GPUBuffer* srcBuffer = ((iters % 2) == 0) ? &gs_buffers.offsetTilesPong : &gs_buffers.offsetTilesPing;
+			GPUBuffer *srcBuffer = ((iters % 2) == 0) ? &gs_buffers.offsetTilesPong : &gs_buffers.offsetTilesPing;
 
 			{
 				GPUBarrier barriers[] =
-				{
-					// must check ResourceState here
-					GPUBarrier::Buffer(srcBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_SRC),
-					GPUBarrier::Buffer(&gs_buffers.totalSumBufferHost, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)
-				};
+					{
+						// must check ResourceState here
+						GPUBarrier::Buffer(srcBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_SRC),
+						GPUBarrier::Buffer(&gs_buffers.totalSumBufferHost, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)};
 				device->Barrier(barriers, _countof(barriers), cmd);
 			}
 
 			device->CopyBuffer(
-				&gs_buffers.totalSumBufferHost,		// dst buffer
-				0,									// dst offset 
-				srcBuffer,							// selected src buffer (ping or pong buffer)
-				((numGaussians - 1) * sizeof(UINT)),// src offset
-				sizeof(UINT),						// copy size
-				cmd
-			);
+				&gs_buffers.totalSumBufferHost,		 // dst buffer
+				0,									 // dst offset
+				srcBuffer,							 // selected src buffer (ping or pong buffer)
+				((numGaussians - 1) * sizeof(UINT)), // src offset
+				sizeof(UINT),						 // copy size
+				cmd);
 
 			{
 				GPUBarrier barriers2[] =
-				{
-					GPUBarrier::Buffer(srcBuffer, ResourceState::COPY_SRC, ResourceState::SHADER_RESOURCE),
-					GPUBarrier::Buffer(&gs_buffers.totalSumBufferHost, ResourceState::COPY_DST, ResourceState::UNORDERED_ACCESS)
-				};
+					{
+						GPUBarrier::Buffer(srcBuffer, ResourceState::COPY_SRC, ResourceState::SHADER_RESOURCE),
+						GPUBarrier::Buffer(&gs_buffers.totalSumBufferHost, ResourceState::COPY_DST, ResourceState::UNORDERED_ACCESS)};
 				device->Barrier(barriers2, _countof(barriers2), cmd);
 			}
 
@@ -324,18 +315,17 @@ namespace vz::renderer
 				numGroups,
 				1,
 				1,
-				cmd
-			);
+				cmd);
 
 			device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
 			device->BindResource(&unbind, 0, cmd);
 			device->BindResource(&unbind, 1, cmd);
 
-			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortKBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortVBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			// barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortKBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			// barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortVBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 
-			// radix sort test
+			//  radix sort test
 
 			UINT numRadixSortBlocksPerWorkgroup = 32;
 			UINT sortBufferSizeMultiplier = 4;
@@ -347,18 +337,21 @@ namespace vz::renderer
 			auto numWorkgroups = (globalInvocationSize + 256 - 1) / 256;
 			auto numInstances = numGaussians * sortBufferSizeMultiplier;
 
-			for (auto i = 0; i < 8; ++i) {
+			for (auto i = 0; i < 8; ++i)
+			{
 				// Hist pass
 				device->BindComputeShader(&shaders[CSTYPE_GS_RADIX_HIST_GAUSSIANS], cmd);
 
 				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
 
-				if (i % 2 == 0) {
+				if (i % 2 == 0)
+				{
 					device->BindUAV(&gs_buffers.sortKBufferEven, 0, cmd);
 					device->BindUAV(&gs_buffers.sortHistBuffer, 1, cmd);
 				}
-				else {
+				else
+				{
 					device->BindUAV(&gs_buffers.sortKBufferOdd, 0, cmd);
 					device->BindUAV(&gs_buffers.sortHistBuffer, 1, cmd);
 				}
@@ -383,13 +376,15 @@ namespace vz::renderer
 				device->BindUAV(&unbind, 2, cmd);
 				device->BindUAV(&unbind, 3, cmd);
 
-				if (i % 2 == 0) {
+				if (i % 2 == 0)
+				{
 					device->BindUAV(&gs_buffers.sortKBufferEven, 0, cmd);
 					device->BindUAV(&gs_buffers.sortKBufferOdd, 1, cmd);
 					device->BindUAV(&gs_buffers.sortVBufferEven, 2, cmd);
 					device->BindUAV(&gs_buffers.sortVBufferOdd, 3, cmd);
 				}
-				else {
+				else
+				{
 					device->BindUAV(&gs_buffers.sortKBufferOdd, 0, cmd);
 					device->BindUAV(&gs_buffers.sortKBufferEven, 1, cmd);
 					device->BindUAV(&gs_buffers.sortVBufferOdd, 2, cmd);
@@ -407,21 +402,19 @@ namespace vz::renderer
 			device->BindUAV(&unbind, 2, cmd);
 			device->BindUAV(&unbind, 3, cmd);
 
-
-
 			// tile boundary test
-			// 
-			//graphics::GPUBuffer tileBoundaryBuffer;
-			//GPUBufferDesc bd;
-			//bd.size = tileX * tileY * sizeof(uint) * 2;
-			//bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			//bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
-			//bool success = device->CreateBuffer(&bd, nullptr, &tileBoundaryBuffer);
-			//assert(success);
-			//device->SetName(&tileBoundaryBuffer, "tileBoundaryBuffer");
+			//
+			// graphics::GPUBuffer tileBoundaryBuffer;
+			// GPUBufferDesc bd;
+			// bd.size = tileX * tileY * sizeof(uint) * 2;
+			// bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			// bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+			// bool success = device->CreateBuffer(&bd, nullptr, &tileBoundaryBuffer);
+			// assert(success);
+			// device->SetName(&tileBoundaryBuffer, "tileBoundaryBuffer");
 
-			device->BindResource(&gs_buffers.sortKBufferEven, 0, cmd);	// t0
-			device->BindUAV(&gs_buffers.tileBoundaryBuffer, 0, cmd);	// u0
+			device->BindResource(&gs_buffers.sortKBufferEven, 0, cmd); // t0
+			device->BindUAV(&gs_buffers.tileBoundaryBuffer, 0, cmd);   // u0
 
 			gaussian_push.num_gaussians = numInstances;
 
@@ -437,109 +430,52 @@ namespace vz::renderer
 				numInstancesGroups,
 				1,
 				1,
-				cmd
-			);
+				cmd);
 
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.tileBoundaryBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			BarrierStackFlush(cmd);
 
-
 			//// ========================================================
 			//// test213 - render
 
-			//gaussian_sort.tileX = rtMain.desc.width;
-			//gaussian_sort.tileY = rtMain.desc.height;
+			// gaussian_sort.tileX = rtMain.desc.width;
+			// gaussian_sort.tileY = rtMain.desc.height;
 
-			//if (rtMain.IsValid())
+			// if (rtMain.IsValid())
 			//{
-			//	device->BindUAV(&rtMain, 0, cmd); // u0 
+			//	device->BindUAV(&rtMain, 0, cmd); // u0
 			//	device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd); // t0
 			//	device->BindResource(&gs_buffers.tileBoundaryBuffer, 1, cmd);		// t1
 			//	device->BindResource(&gs_buffers.sortVBufferEven, 2, cmd);			// t2
-			//}
-			//else
+			// }
+			// else
 			//{
 			//	device->BindUAV(&unbind, 0, cmd);
 			//	device->BindResource(&unbind, 0, cmd);
 			//	device->BindResource(&unbind, 1, cmd);
 			//	device->BindResource(&unbind, 2, cmd);
-			//}
+			// }
 
-			//barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			//BarrierStackFlush(cmd);
+			// barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
+			// BarrierStackFlush(cmd);
 
-			//device->BindComputeShader(&shaders[CSTYPE_GS_RENDER_GAUSSIAN], cmd);
-			//device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
-			//device->Dispatch(
-			//	tileX,
-			//	tileY,
-			//	1, 
+			// device->BindComputeShader(&shaders[CSTYPE_GS_RENDER_GAUSSIAN], cmd);
+			// device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
+			// device->Dispatch(
+
+			//	1,
 			//	cmd
 			//);
 
-			//device->BindUAV(&unbind, 0, cmd);
-			//device->BindResource(&unbind, 0, cmd);
-			//device->BindResource(&unbind, 1, cmd);
-			//device->BindResource(&unbind, 2, cmd);
+			// device->BindUAV(&unbind, 0, cmd);
+			// device->BindResource(&unbind, 0, cmd);
+			// device->BindResource(&unbind, 1, cmd);
+			// device->BindResource(&unbind, 2, cmd);
 
-			//barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
+			// barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 
-			//BarrierStackFlush(cmd);
+			// BarrierStackFlush(cmd);
 			//// ========================================================
-
-
-			//=========================================================
-			//test210 - render 
-			if (rtMain.IsValid())
-			{
-				device->BindUAV(&rtMain, 0, cmd); // u0 
-				device->BindUAV(&gs_buffers.totalSumBufferHost, 1, cmd); // u1
-
-
-				device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd); // t0
-				//device->BindResource(srcBuffer, 1, cmd); // t1
-				device->BindResource(&gs_buffers.tileBoundaryBuffer, 1, cmd); // t2
-				device->BindResource(&gs_buffers.sortKBufferEven, 2, cmd); // t2
-				device->BindResource(&gs_buffers.sortVBufferEven, 3, cmd); // t3
-			}
-			else
-			{
-				device->BindUAV(&unbind, 0, cmd);
-				device->BindUAV(&unbind, 1, cmd);
-
-				device->BindResource(&unbind, 0, cmd);
-				device->BindResource(&unbind, 1, cmd);
-				device->BindResource(&unbind, 2, cmd);
-				device->BindResource(&unbind, 3, cmd);
-
-			}
-
-			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			BarrierStackFlush(cmd);
-
-			device->BindComputeShader(&shaders[CSTYPE_GS_RENDER_GAUSSIAN], cmd);
-			device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
-
-			device->Dispatch(
-				numGroups,
-				1,
-				1,
-				cmd
-			);
-
-			device->BindUAV(&unbind, 0, cmd);
-			device->BindUAV(&unbind, 1, cmd);
-
-			device->BindResource(&unbind, 0, cmd);
-			device->BindResource(&unbind, 1, cmd);
-			device->BindResource(&unbind, 2, cmd);
-			device->BindResource(&unbind, 3, cmd);
-
-
-			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
-
-			BarrierStackFlush(cmd);
-			//=========================================================
 
 			break; // TODO: at this moment, just a single gs is supported!
 		}
