@@ -652,6 +652,40 @@ namespace vz
 		timeStampSetter_ = TimerNow;
 	}
 
+	void CameraComponent::SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY) 
+	{
+		width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY;
+		flags_ &= ~ORTHOGONAL;
+		isDirty_ = true; 
+		timeStampSetter_ = TimerNow;
+	}
+	void CameraComponent::SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize)
+	{
+		width_ = width / height; height_ = 1.f; zNearP_ = nearP; zFarP_ = farP;
+
+		// NOTE: When this function is called for the first time, 
+		//	it will always enter the next branch
+		if (!(flags_ & ORTHOGONAL)) // when previous setting was perspective
+		{
+			if (orthoVerticalSize < 0)
+				orthoVerticalSize_ = computeOrthoVerticalSizeFromPerspective(math::Length(eye_));
+			else if (orthoVerticalSize > 0)
+				orthoVerticalSize_ = orthoVerticalSize;
+		}
+
+		flags_ |= ORTHOGONAL;
+
+		{
+			if (orthoVerticalSize > 0)
+			{
+				orthoVerticalSize_ = orthoVerticalSize;
+			}
+			width_ *= orthoVerticalSize_;
+			height_ = orthoVerticalSize_;
+		}
+		isDirty_ = true; timeStampSetter_ = TimerNow;
+	}
+
 	void CameraComponent::UpdateMatrix()
 	{
 		if (flags_ != CUSTOM_PROJECTION)

@@ -251,7 +251,7 @@ int main(int, char **)
 		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 1, 0), at = glm::fvec3(0, 0, -1);
 		view = at - pos;
 		slicer->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		slicer->SetOrthogonalProjection(1, 1, 10.f);
+		slicer->SetOrthogonalProjection(1, 1, 2.f);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		scene->AppendChild(axis_helper);
@@ -525,7 +525,7 @@ int main(int, char **)
 						//else
 						//	pos -= 0.2f * view;
 						//camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-						slice_control->Move(io.MouseWheel, 1.f);
+						slice_control->Move(io.MouseWheel, 0.01f);
 					}
 					prevMousePos = pos_ss;
 				}
