@@ -47,9 +47,10 @@ namespace vz::profiler
 	PerformanceAPI_Functions superluminal_functions = {};
 #endif // PERFORMANCEAPI_ENABLED
 
+	static int retreiveCountProfile = 0;
 	struct Range
 	{
-		bool in_use = false;
+		bool in_use = false;	// assume that it is managed exclusively by a specific thread and no concurrent access occurs.
 		std::string name;
 		float times[20] = {};
 		int avg_counter = 0;
@@ -64,11 +65,13 @@ namespace vz::profiler
 		bool IsCPURange() const { return !cmd.IsValid(); }
 	};
 	std::unordered_map<size_t, Range> ranges;
+	static std::string warnningProfile = "";
 
 	void BeginFrame()
 	{
 		if (ENABLED_REQUEST != ENABLED)
 		{
+			retreiveCountProfile = 0;
 			ranges.clear();
 			ENABLED = ENABLED_REQUEST;
 		}
@@ -123,6 +126,16 @@ namespace vz::profiler
 				backlog::post("[profiler] Superluminal Performance API loaded");
 			}
 #endif // PERFORMANCEAPI_ENABLED
+		}
+
+
+		if (retreiveCountProfile < 0)
+		{
+			warnningProfile = "** The profile of the previous frame was not reflected. (" + std::to_string(retreiveCountProfile) + ")";
+		}
+		else
+		{
+			warnningProfile = "";
 		}
 
 		cpu_frame = BeginRangeCPU("CPU Frame");
@@ -204,6 +217,7 @@ namespace vz::profiler
 		);
 
 		nextQuery.store(0);
+		retreiveCountProfile--;
 	}
 
 	range_id BeginRangeCPU(const char* name)
@@ -321,7 +335,7 @@ namespace vz::profiler
 		ColorSpace colorspace
 	)
 	{
-		// TO DO
+		vzlog_assert(0, "TO DO");
 	}
 
 	void GetProfileInfo(std::string& performanceProfile, std::string& resourceProfile)
@@ -384,6 +398,11 @@ namespace vz::profiler
 				x.second.num_hits = 0;
 				x.second.total_time = 0;
 			}
+
+			if (warnningProfile != "")
+			{
+				ss << warnningProfile << std::endl;
+			}
 			performanceProfile = ss.str();
 		}
 
@@ -426,6 +445,8 @@ namespace vz::profiler
 
 			resourceProfile = ss.str();
 		}
+
+		retreiveCountProfile++;
 	}
 
 	void DisableDrawForThisFrame()
