@@ -683,7 +683,7 @@ namespace vzm
 		XMFLOAT3 stageCenter;
 		bool isInitialized = false;
 
-		XMFLOAT3 pos;
+		XMFLOAT3 camPos;
 		XMFLOAT3 view;
 		XMFLOAT3 up;
 
@@ -694,6 +694,7 @@ namespace vzm
 
 		float w, h;
 		XMFLOAT2 pos0;
+		float orthoVerticalSize = 0;
 
 		float zoomSensitivity = 1.f;
 		bool isStartSlicer = false;
@@ -729,8 +730,8 @@ namespace vzm
 				return false;
 			}
 
-			this->pos = cam->GetWorldEye();
-			XMStoreFloat3(&this->view, XMLoadFloat3(&cam->GetWorldAt()) - XMLoadFloat3(&cam->GetWorldEye()));
+			this->camPos = cam->GetWorldEye();
+			XMStoreFloat3(&this->view, XMVector3Normalize(XMLoadFloat3(&cam->GetWorldAt()) - XMLoadFloat3(&cam->GetWorldEye())));
 			this->up = cam->GetWorldUp();
 
 			this->ws2cs = XMLoadFloat4x4(&cam->GetView());
@@ -741,11 +742,12 @@ namespace vzm
 
 			this->cs2ps = VZMatrixOrthographic(this->w, this->h, this->np, this->fp);
 			compute_screen_matrix(this->ps2ss, canvas_w, canvas_h);
-			this->matWS2SS = ws2cs * cs2ps * ps2ss;
+			this->matWS2SS = this->ws2cs * this->cs2ps * ps2ss;
 			this->matSS2WS = XMMatrixInverse(NULL, this->matWS2SS);
 
 			this->pos0 = *(XMFLOAT2*)&pos;
-			this->zoomSensitivity = 10.f * sensitivity; // heuristic!
+			this->orthoVerticalSize = cam->GetOrthoVerticalSize();
+			this->zoomSensitivity = sensitivity; // heuristic!
 			this->isStartSlicer = true;
 			return true;
 		}
@@ -758,24 +760,17 @@ namespace vzm
 			}
 
 			double diff_yss = convertZoomdir ? this->pos0.y - pos.y : pos.y - this->pos0.y;
-			float new_w, new_h;
 			if (diff_yss < 0) // zoomout
 			{
-				this->w *= 1.1f * this->zoomSensitivity;
-				new_w = this->w;
-				this->h *= 1.1f * this->zoomSensitivity;
-				new_h = this->h;
+				this->orthoVerticalSize *= 1.1f * this->zoomSensitivity;
 			}
 			else
 			{
-				this->w *= 0.9f * this->zoomSensitivity;
-				new_w = this->w;
-				this->h *= 0.9f * this->zoomSensitivity;
-				new_h = this->h;
+				this->orthoVerticalSize *= 0.9f * this->zoomSensitivity;
 			}
 			this->pos0.y = pos.y;
 
-			vzSlicer->SetOrthogonalProjection(new_h, new_h);
+			vzSlicer->SetOrthogonalProjection(this->w, this->h, this->orthoVerticalSize);
 
 			if (preserveStageCenter) {
 				// https://github.com/korfriend/OsstemCoreAPIs/discussions/146#discussion-4329688
@@ -784,20 +779,22 @@ namespace vzm
 
 				XMVECTOR prev_center_slicer_ss = XMVector3TransformCoord(XMLoadFloat3(&this->stageCenter), mat_ws2ss);
 
+				SlicerComponent* cam = compfactory::GetSlicerComponent(slicerVid);
+				float new_w, new_h;
+				cam->GetWidthHeight(&new_w, &new_h);
 				// new 
-				XMMATRIX cs2ps_new;
-				cs2ps_new = VZMatrixOrthographicOffCenter(-new_w * 0.5f, new_w * 0.5f, -new_h * 0.5f, new_h * 0.5f, this->np, this->fp);
-				XMMATRIX mat_ws2ss_new = this->ps2ss * (cs2ps_new * this->ws2cs); // note that glm is based on column major
+				XMMATRIX cs2ps_new = VZMatrixOrthographicOffCenter(-new_w * 0.5f, new_w * 0.5f, -new_h * 0.5f, new_h * 0.5f, this->np, this->fp);
+				XMMATRIX mat_ws2ss_new = this->ws2cs * cs2ps_new * this->ps2ss; // note that XMath is based on row major
 				XMVECTOR new_center_slicer_ss = XMVector3TransformCoord(XMLoadFloat3(&this->stageCenter), mat_ws2ss_new);
 
 				// always orthogonal projection mode
 				XMVECTOR diffSS = new_center_slicer_ss - prev_center_slicer_ss;
 				XMVectorSetZ(diffSS, 0);
 				XMMATRIX mat_ss2ws_new = XMMatrixInverse(nullptr, mat_ws2ss_new);
-				XMVECTOR diffWS = XMVector3TransformCoord(diffSS, mat_ss2ws_new);
+				XMVECTOR diffWS = XMVector3TransformNormal(diffSS, mat_ss2ws_new);
 
 				XMFLOAT3 new_pos;
-				XMStoreFloat3(&new_pos, XMLoadFloat3(&this->pos) + diffWS);
+				XMStoreFloat3(&new_pos, XMLoadFloat3(&this->camPos) + diffWS);
 				vzSlicer->SetWorldPose(__FC3 new_pos, __FC3 this->view, __FC3 this->up);
 			}
 			return true;
@@ -815,17 +812,16 @@ namespace vzm
 
 			vzlog_assert(vzSlicer->IsOrtho(), "SlicerControl must be performed under Orthogonal projection")
 			{
-				XMVECTOR pos_eye_ws = XMLoadFloat3(&this->pos);
-				XMVECTOR pos_eye_ss = XMVector3TransformCoord(pos_eye_ws, mat_ws2ss);
+				XMFLOAT3 pos_prev_ss = XMFLOAT3(this->pos0.x, this->pos0.y, 0);
+				XMVECTOR pos_prev_eye_ws = XMVector3TransformCoord(XMLoadFloat3(&pos_prev_ss), mat_ss2ws);
+				XMFLOAT3 pos_ss = XMFLOAT3(pos.x, pos.y, 0);
+				XMVECTOR pos_cur_eye_ws = XMVector3TransformCoord(XMLoadFloat3(&pos_ss), mat_ss2ws);
 
-				XMFLOAT3 v = XMFLOAT3(pos.x - this->pos0.x, pos.y - this->pos0.y, 0);
-				XMVECTOR diff_ss = XMLoadFloat3(&v);
-
-				pos_eye_ss = pos_eye_ss - diff_ss; // Think Panning! reverse camera moving
-				pos_eye_ws = XMVector3TransformCoord(pos_eye_ss, mat_ss2ws);
+				XMVECTOR diff_ws = pos_cur_eye_ws - pos_prev_eye_ws;
+				XMVECTOR pos_eye = XMLoadFloat3(&this->camPos) - diff_ws;
 
 				XMFLOAT3 eye;
-				XMStoreFloat3(&eye, pos_eye_ws);
+				XMStoreFloat3(&eye, pos_eye);
 				vzSlicer->SetWorldPose(__FC3 eye, __FC3 this->view, __FC3 this->up);
 			}
 			

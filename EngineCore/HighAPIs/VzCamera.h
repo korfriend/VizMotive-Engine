@@ -63,7 +63,7 @@ namespace vzm
 
 		VzSlicer(const VID vid, const std::string& originFrom);
 
-		void SetOrthogonalProjection(const float width, const float height, const float orthoVerticalSize = 1) { VzCamera::SetOrthogonalProjection(width, height, 0, 10000.f, orthoVerticalSize); }
+		void SetOrthogonalProjection(const float width, const float height, const float orthoVerticalSize = -1) { VzCamera::SetOrthogonalProjection(width, height, 0, 10000.f, orthoVerticalSize); }
 		void GetOrthogonalProjection(float* width, float* height, float* orthoVerticalSize) const { VzCamera::GetOrthogonalProjection(nullptr, nullptr, width, height, orthoVerticalSize); }
 
 		void SetHorizontalCurveControls(const std::vector<vfloat3>& controlPts, const float interval);

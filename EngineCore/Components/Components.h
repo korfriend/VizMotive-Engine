@@ -1360,20 +1360,8 @@ namespace vz
 			isDirty_ = true;
 			timeStampSetter_ = TimerNow;
 		}
-		inline void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f) {
-			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY; 
-			flags_ &= ~ORTHOGONAL;
-			isDirty_ = true; timeStampSetter_ = TimerNow;
-		}
-		inline void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize) {
-			width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; 
-			if (orthoVerticalSize < 0)
-				orthoVerticalSize_ = computeOrthoVerticalSizeFromPerspective(math::Length(eye_));
-			else if (orthoVerticalSize > 0)
-				orthoVerticalSize_ = orthoVerticalSize;
-			flags_ |= ORTHOGONAL;
-			isDirty_ = true; timeStampSetter_ = TimerNow;
-		}
+		inline void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f);
+		inline void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize);
 
 		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= CamFlags::CLIP_BOX : flags_ &= ~CamFlags::CLIP_BOX;
