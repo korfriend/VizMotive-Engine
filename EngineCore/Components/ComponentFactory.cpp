@@ -1,4 +1,4 @@
-#include "Component_Internal.h"
+#include "Common/Engine_Internal.h"
 #include "Utils/ECS.h"
 #include "Utils/Backlog.h"
 #include "Common/Archive.h"
@@ -81,7 +81,7 @@ namespace vz::compfactory
 		return num_changed;
 	}
 
-#define ENTITY_UPDATE(ENTITY) Entity ENTITY = entity; if (entity == 0u) ENTITY = ecs::CreateEntity();
+#define ENTITY_UPDATE(ENTITY) Entity ENTITY = entity; if (entity == 0u) ENTITY = ecs::CreateEntity(); std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 	NameComponent* CreateNameComponent(const Entity entity, const std::string& name)
 	{
 		ENTITY_UPDATE(entity_update);

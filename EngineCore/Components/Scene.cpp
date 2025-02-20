@@ -7,6 +7,7 @@
 #include "Utils/Geometrics.h"
 #include "GBackend/GModuleLoader.h"
 #include "Common/ResourceManager.h"
+#include "Common/Engine_Internal.h"
 
 #include <cstdint>
 #include <atomic>
@@ -656,6 +657,7 @@ namespace vz
 	}
 	Scene* Scene::CreateScene(const std::string& name, const Entity entity)
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		Entity ett = entity;
 		if (entity == 0)
 		{
@@ -667,6 +669,7 @@ namespace vz
 	}
 	void Scene::RemoveEntityForScenes(const Entity entity)
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		for (auto& it : scenes)
 		{
 			it.second->Remove(entity);
@@ -675,6 +678,7 @@ namespace vz
 
 	bool Scene::DestroyScene(const Entity entity)
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		auto it = scenes.find(entity);
 		if (it == scenes.end())
 		{

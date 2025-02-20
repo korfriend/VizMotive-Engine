@@ -1,5 +1,5 @@
 #include "VzEngineAPIs.h"
-#include "Components/Component_Internal.h"
+#include "Common/Engine_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Utils/EventHandler.h"
@@ -9,6 +9,8 @@
 #include "Common/Initializer.h"
 #include "GBackend/GBackendDevice.h"
 #include "GBackend/GModuleLoader.h"
+
+#include <sstream>
 
 namespace vz
 {
@@ -20,10 +22,26 @@ namespace vzm
 {
 	using namespace vz;
 
-#define CHECK_API_VALIDITY(RET) if (!initialized) { backlog::post("High-level API is not initialized!!", backlog::LogLevel::Error); return RET; }
+#define CHECK_API_INIT_VALIDITY(RET) if (!initialized) { vzlog_error("High-level API is not initialized!!"); return RET;}
+#define CHECK_API_LOCKGUARD_VALIDITY(RET) CHECK_API_INIT_VALIDITY(RET); std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
+#define CHECK_API_SINGLETHREAD_VALIDITY(RET) CHECK_API_INIT_VALIDITY(RET); vzlog_assert(engineThreadId == std::this_thread::get_id(), "The API must be called on the same thread that called InitEngineLib!");
 
 	bool initialized = false;
 	vz::graphics::GraphicsDevice* graphicsDevice = nullptr;
+	std::recursive_mutex& GetEngineMutex()
+	{
+		static std::recursive_mutex  engineMutex;
+		return engineMutex;
+	}
+
+	std::thread::id engineThreadId;
+	inline uint64_t threadToInteger(const std::thread::id& id) {
+		std::stringstream ss;
+		ss << id;  
+		uint64_t result;
+		ss >> result;
+		return result;
+	}
 
 	namespace vzcomp
 	{
@@ -126,6 +144,10 @@ namespace vzm
 
 	bool InitEngineLib(const vzm::ParamMap<std::string>& arguments)
 	{
+		std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
+		engineThreadId = std::this_thread::get_id();
+		vzlog("Engine API's thread is assigned to %lld", threadToInteger(engineThreadId));
+
 #ifdef PLATFORM_WINDOWS_DESKTOP
 #if defined(_DEBUG) && defined(_MT_LEAK_CHECK)
 		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -190,18 +212,19 @@ namespace vzm
 
 	VzArchive* NewArchive(const std::string& name)
 	{
-		CHECK_API_VALIDITY(nullptr);
-		Archive* archive = Archive::CreateArchive(name);
+		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
+		Archive* archive = Archive::CreateArchive(name); // lock_guard (recursive mutex)
 		ArchiveVID vid = archive->GetArchiveEntity();
+		vid = archive->GetArchiveEntity();
 		auto it = vzcomp::archives.emplace(vid, std::make_unique<VzArchive>(vid, "vzm::NewArchive"));
-		compfactory::CreateNameComponent(vid, name);
+		compfactory::CreateNameComponent(vid, name); // lock_guard (recursive mutex)
 		vzcomp::lookup[vid] = it.first->second.get();
 		return it.first->second.get();
 	}
 
 	VzScene* NewScene(const std::string& name)
 	{
-		CHECK_API_VALIDITY(nullptr);
+		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		Scene* scene = Scene::CreateScene(name);
 		SceneVID vid = scene->GetSceneEntity();
 		auto it = vzcomp::scenes.emplace(vid, std::make_unique<VzScene>(vid, "vzm::NewScene"));
@@ -212,7 +235,7 @@ namespace vzm
 
 	VzRenderer* NewRenderer(const std::string& name)
 	{
-		CHECK_API_VALIDITY(nullptr);
+		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		RenderPath3D* renderer = canvas::CreateRenderPath3D(graphicsDevice, name);
 		RendererVID vid = renderer->GetEntity();
 		auto it = vzcomp::renderers.emplace(vid, std::make_unique<VzRenderer>(vid, "vzm::NewRenderer"));
@@ -223,7 +246,7 @@ namespace vzm
 
 	VzSceneComp* newSceneComponent(const COMPONENT_TYPE compType, const std::string& compName, const VID parentVid)
 	{
-		CHECK_API_VALIDITY(nullptr);
+		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		switch (compType)
 		{
 		case COMPONENT_TYPE::ACTOR:
@@ -291,17 +314,14 @@ namespace vzm
 
 	VzCamera* NewCamera(const std::string& name, const VID parentVid)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		return (VzCamera*)newSceneComponent(COMPONENT_TYPE::CAMERA, name, parentVid);
 	}
 	VzSlicer* NewSlicer(const std::string& name, const VID parentVid)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		return (VzSlicer*)newSceneComponent(COMPONENT_TYPE::SLICER, name, parentVid);
 	}
 	VzActor* NewActor(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		VzActor* actor = (VzActor*)newSceneComponent(COMPONENT_TYPE::ACTOR, name, parentVid);
 		if (vidGeo) actor->SetGeometry(vidGeo);
 		if (vidMat) actor->SetMaterial(vidMat);
@@ -309,18 +329,16 @@ namespace vzm
 	}
 	VzActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		return NewActor(name, geometry? geometry->GetVID() : 0u, material? material->GetVID() : 0u, parentVid);
 	}
 	VzLight* NewLight(const std::string& name, const VID parentVid)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		return (VzLight*)newSceneComponent(COMPONENT_TYPE::LIGHT, name, parentVid);
 	}
 
 	VzResource* newResComponent(const COMPONENT_TYPE compType, const std::string& compName)
 	{
-		CHECK_API_VALIDITY(nullptr);
+		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		switch (compType)
 		{
 		case COMPONENT_TYPE::GEOMETRY:
@@ -379,22 +397,18 @@ namespace vzm
 
 	VzGeometry* NewGeometry(const std::string& name)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		return (VzGeometry*)newResComponent(COMPONENT_TYPE::GEOMETRY, name);
 	}
 	VzMaterial* NewMaterial(const std::string& name)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		return (VzMaterial*)newResComponent(COMPONENT_TYPE::MATERIAL, name);
 	}
 	VzTexture* NewTexture(const std::string& name)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		return (VzTexture*)newResComponent(COMPONENT_TYPE::TEXTURE, name);
 	}
 	VzVolume* NewVolume(const std::string& name)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		return (VzVolume*)newResComponent(COMPONENT_TYPE::VOLUME, name);
 	}
 
@@ -569,7 +583,7 @@ namespace vzm
 
 	SceneVID AppendSceneCompVidTo(const VID vid, const VID parentVid)
 	{
-		CHECK_API_VALIDITY(INVALID_VID);
+		CHECK_API_LOCKGUARD_VALIDITY(INVALID_VID);
 
 		if (!appendSceneEntityToParent(vid, parentVid))
 		{
@@ -599,7 +613,6 @@ namespace vzm
 
 	VzScene* AppendSceneCompTo(const VZ_NONNULL VzBaseComp* comp, const VZ_NONNULL VzBaseComp* parentComp)
 	{
-		CHECK_API_VALIDITY(nullptr);
 		Scene* scene = Scene::GetScene(AppendSceneCompVidTo(comp->GetVID(), parentComp ? parentComp->GetVID() : 0));
 		auto it = vzcomp::scenes.find(scene->GetSceneEntity());
 		if (it == vzcomp::scenes.end())
@@ -611,12 +624,12 @@ namespace vzm
 
 	VID GetFirstVidByName(const std::string& name)
 	{
-		CHECK_API_VALIDITY(INVALID_VID);
+		CHECK_API_INIT_VALIDITY(INVALID_VID);
 		return compfactory::GetFirstEntityByName(name);
 	}
 	VzBaseComp* GetFirstComponentByName(const std::string& name)
 	{
-		CHECK_API_VALIDITY(nullptr);
+		CHECK_API_INIT_VALIDITY(nullptr);
 		VID vid = compfactory::GetFirstEntityByName(name);
 		if (vid == INVALID_VID)
 		{
@@ -629,13 +642,13 @@ namespace vzm
 
 	size_t GetVidsByName(const std::string& name, std::vector<VID>& vids)
 	{
-		CHECK_API_VALIDITY(0);
+		CHECK_API_INIT_VALIDITY(0);
 		return compfactory::GetEntitiesByName(name, vids);
 	}
 
 	size_t GetComponentsByName(const std::string& name, std::vector<VzBaseComp*>& components)
 	{
-		CHECK_API_VALIDITY(0);
+		CHECK_API_INIT_VALIDITY(0);
 		components.clear();
 		std::vector<VID> vids;
 		size_t n = compfactory::GetEntitiesByName(name, vids);
@@ -656,27 +669,28 @@ namespace vzm
 
 	std::string GetNameByVid(const VID vid)
 	{
-		CHECK_API_VALIDITY("");
+		CHECK_API_INIT_VALIDITY("");
 		NameComponent* name_comp = compfactory::GetNameComponent(vid);
 		return name_comp ? name_comp->GetName() : "";
 	}
 
 	VzBaseComp* GetComponent(const VID vid)
 	{
-		CHECK_API_VALIDITY(nullptr);
+		CHECK_API_INIT_VALIDITY(nullptr);
 		auto it = vzcomp::lookup.find(vid);
 		return it == vzcomp::lookup.end() ? nullptr : it->second;
 	}
 	
 	bool RemoveComponent(const VID vid, const bool includeDescendants)
 	{
-		CHECK_API_VALIDITY(false);
+		CHECK_API_LOCKGUARD_VALIDITY(false);
 		return vzcomp::Destroy(vid, includeDescendants);	// jobsystem
 	}
 
 	VzActor* LoadModelFile(const std::string& filename)
 	{
-		CHECK_API_VALIDITY(nullptr);
+		CHECK_API_INIT_VALIDITY(nullptr);
+
 		typedef Entity(*PI_Function)(const std::string& fileName,
 			std::vector<Entity>& actors,
 			std::vector<Entity>& cameras, // obj does not include camera
@@ -702,6 +716,8 @@ namespace vzm
 
 #define REGISTER_HLCOMP(COMPTYPE, vzcomponents, vID) { auto it = vzcomp::vzcomponents.emplace(vID, std::make_unique<COMPTYPE>(vID, "vzm::LoadModelFile")); VzBaseComp* hlcomp = it.first->second.get(); vzcomp::lookup[vID] = hlcomp; }
 
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+		
 		for (Entity vid : actors) REGISTER_HLCOMP(VzActor, actors, vid);
 		for (Entity vid : cameras) REGISTER_HLCOMP(VzCamera, cameras, vid);
 		for (Entity vid : lights) REGISTER_HLCOMP(VzLight, lights, vid);
@@ -716,7 +732,7 @@ namespace vzm
 
 	bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io)
 	{
-		CHECK_API_VALIDITY(false);
+		CHECK_API_INIT_VALIDITY(false);
 		typedef bool(*PI_Function)(std::unordered_map<std::string, std::any>& io);
 		PI_Function lpdll_function = platform::LoadModule<PI_Function>(pluginFilename, functionName);
 		if (lpdll_function == nullptr)
@@ -730,14 +746,14 @@ namespace vzm
 
 	void ReloadShader()
 	{
-		CHECK_API_VALIDITY(;);
+		CHECK_API_LOCKGUARD_VALIDITY(;);
 		eventhandler::FireEvent(eventhandler::EVENT_RELOAD_SHADERS, 0);
 		graphicsDevice->ClearPipelineStateCache();
 	}
 
 	bool DeinitEngineLib()
 	{
-		CHECK_API_VALIDITY(false);
+		CHECK_API_LOCKGUARD_VALIDITY(false);
 		jobsystem::ShutDown();
 		graphicsDevice->WaitForGPU();
 		profiler::Shutdown();

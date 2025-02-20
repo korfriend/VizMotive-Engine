@@ -4,6 +4,8 @@
 #include "Utils/Backlog.h"
 #include "Utils/ECS.h"
 
+#include "Common/Engine_Internal.h"
+
 #include "ThirdParty/stb_image.h"
 
 // Archive memory layout:
@@ -30,17 +32,18 @@ namespace vz
 	}
 	Archive* Archive::CreateArchive(const std::string& name, const Entity entity)
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		Entity ett = entity;
 		if (entity == 0)
 		{
 			ett = ecs::CreateEntity();
 		}
-
 		archives[ett] = std::make_unique<Archive>(ett, name);
 		return archives[ett].get();
 	}
 	bool Archive::DestroyArchive(const Entity entity)
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		auto it = archives.find(entity);
 		if (it == archives.end())
 		{
