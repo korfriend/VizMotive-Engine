@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250220_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250220_1";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -1438,6 +1438,7 @@ namespace vz
 		float thickness_ = 0.f;
 		std::vector<XMFLOAT3> horizontalCurveControls_;
 		float curveInterpolationInterval_ = 0.01f;
+		float outlineThickness_ = 1.f; // in pixel unit
 
 		// Non-serialized attributes:
 		bool isDirtyCurve_ = true;
@@ -1452,6 +1453,10 @@ namespace vz
 		inline void SetThickness(const float value) { thickness_ = value; timeStampSetter_ = TimerNow; }
 		inline float GetThickness() const { return thickness_; }
 		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; };
+
+		// if value <= 0. then, apply Actor's outlineThickess to the slicer's outline
+		inline void SetOutlineThickness(const float value) { outlineThickness_ = value; timeStampSetter_ = TimerNow; }
+		inline float GetOutlineThickness() const { return outlineThickness_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
