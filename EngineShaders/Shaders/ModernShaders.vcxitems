@@ -31,6 +31,7 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\shadowHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\surfaceHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\voxelConeTracingHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\zfragmentHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)compile.bat" />
     <None Include="$(MSBuildThisFileDirectory)Globals.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)PixelPacking_R11G11B10.hlsli" />
@@ -100,6 +101,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_DEBUG.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshlet_prepareCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerOutlineCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\tonemapCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl" />
