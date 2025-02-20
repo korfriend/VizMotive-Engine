@@ -8,13 +8,10 @@ PUSHCONSTANT(push, SlicerMeshPushConstants);
 #define bvhNodeBuffer bindless_buffers[descriptor_index(push.BVH_nodes)]
 #define primitiveBuffer bindless_buffers[descriptor_index(push.BVH_primitives)]
 
-//ByteAddressBuffer primitiveCounterBuffer : register(t0);
-//StructuredBuffer<uint> primitiveIDBuffer : register(t1);
-//StructuredBuffer<float> primitiveMortonBuffer : register(t2); // float because it was sorted
-//StructuredBuffer<BVHNode> bvhNodeBuffer : register(t3);
-//StructuredBuffer<BVHPrimitive> primitiveBuffer : register(t4);
-//StructuredBuffer<uint> bvhParentBuffer : register(t5);
-//StructuredBuffer<uint> bvhFlagBuffer : register(t6);
+// magic values
+#define WILDCARD_DEPTH_OUTLINE 0x12345678
+#define WILDCARD_DEPTH_OUTLINE_DIRTY 0x12345679
+#define OUTSIDE_PLANE 0x87654321
 
 inline ShaderMaterial GetMaterial()
 {

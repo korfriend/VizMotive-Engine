@@ -32,7 +32,7 @@ namespace vz::compfactory
 
 	ComponentBase* GetComponentByVUID(const VUID vuid)
 	{
-		ComponentType comp_type = static_cast<ComponentType>(vuid & 0xFF); // using magic bits
+		ComponentType comp_type = static_cast<ComponentType>(uint32_t(vuid & 0xFF)); // using magic bits
 		switch (comp_type)
 		{
 		case ComponentType::UNDEFINED: return nullptr;

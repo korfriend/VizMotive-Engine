@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250219_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250220_0";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -1082,6 +1082,7 @@ namespace vz
 			CLIP_BOX = 1 << 9,
 			CLIP_PLANE = 1 << 10,
 			JITTER_SAMPLE = 1 << 11,
+			SLICER_NO_SOLID_FILL = 1 << 12, // in the case that the geometry is NOT water-tight
 		};
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
@@ -1151,6 +1152,12 @@ namespace vz
 		inline void SetUndercutDirection(const XMFLOAT3& v) { undercutDirection_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutColor(const XMFLOAT3& v) { undercutColor_ = v; timeStampSetter_ = TimerNow; }
 
+		inline void EnableSlicerSolidFill(const bool enabled) { 
+			enabled? flags_ &= ~RenderableFlags::SLICER_NO_SOLID_FILL : flags_ |= RenderableFlags::SLICER_NO_SOLID_FILL; 
+			timeStampSetter_ = TimerNow; 
+		}
+		inline bool IsSlicerSolidFill() const { return !(flags_ & RenderableFlags::SLICER_NO_SOLID_FILL); };
+
 		inline bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
 		inline uint8_t GetVisibleMask() const { return visibleLayerMask_; }
 		inline float GetFadeDistance() const { return fadeDistance_; }
@@ -1161,9 +1168,9 @@ namespace vz
 		inline XMFLOAT4 GetClipPlane() const { return clipPlane_; }
 		inline XMFLOAT4X4 GetClipBox() const { return clipBox_; }
 
-		inline float GetOutineThickness() const { return outlineThickness_; }
-		inline XMFLOAT3 GetOutineColor() const { return outlineColor_; }
-		inline float GetOutineThreshold() const { return outlineThreshold_; }
+		inline float GetOutlineThickness() const { return outlineThickness_; }
+		inline XMFLOAT3 GetOutlineColor() const { return outlineColor_; }
+		inline float GetOutlineThreshold() const { return outlineThreshold_; }
 		inline XMFLOAT3 GetUndercutDirection() const { return undercutDirection_; }
 		inline XMFLOAT3 GetUndercutColor() const { return undercutColor_; }
 
