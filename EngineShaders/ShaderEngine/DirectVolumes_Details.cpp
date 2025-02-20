@@ -196,14 +196,14 @@ namespace vz::renderer
 					BarrierStackFlush(cmd);
 
 					if (push.sliceThickness == 0.f || (push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE)) {
+						device->Barrier(GPUBarrier::Memory(), cmd);
 						//CommandList cmd_slicer = cmd;
 						//cmd = device->BeginCommandList();
 						//device->WaitQueue(cmd, QUEUE_COMPUTE);
 						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[RENDER_OUT], slicer_textures[RENDER_OUT].desc.layout, ResourceState::UNORDERED_ACCESS));
 						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_THICK_ASUM_PACKED], slicer_textures[LAYER_1_THICK_ASUM_PACKED].desc.layout, ResourceState::UNORDERED_ACCESS));
-						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_DEPTH], slicer_textures[LAYER_1_DEPTH].desc.layout, ResourceState::SHADER_RESOURCE));
+						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_DEPTH], slicer_textures[LAYER_1_DEPTH].desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
 						BarrierStackFlush(cmd);
-
 						device->BindComputeShader(&shaders[CSTYPE_SLICER_OUTLINE], cmd);
 
 						device->BindUAV(&slicer_textures[RENDER_OUT], 0, cmd);
@@ -219,7 +219,7 @@ namespace vz::renderer
 
 						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[RENDER_OUT], ResourceState::UNORDERED_ACCESS, slicer_textures[RENDER_OUT].desc.layout));
 						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_THICK_ASUM_PACKED], ResourceState::UNORDERED_ACCESS, slicer_textures[LAYER_1_THICK_ASUM_PACKED].desc.layout));
-						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_DEPTH], ResourceState::SHADER_RESOURCE, slicer_textures[LAYER_1_DEPTH].desc.layout));
+						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_DEPTH], ResourceState::SHADER_RESOURCE_COMPUTE, slicer_textures[LAYER_1_DEPTH].desc.layout));
 						BarrierStackFlush(cmd);
 
 						device->BindUAV(&unbind, 0, cmd);

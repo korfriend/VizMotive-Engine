@@ -8,41 +8,28 @@ RWTexture2D<uint> layer1_thick_asum : register(u1);
 
 Texture2D<float> distance_map : register(t0);
 
-float TestAlpha(float v) {
-	uint wildcard_v = asuint(v);
-	if (wildcard_v == WILDCARD_DEPTH_OUTLINE || wildcard_v == OUTSIDE_PLANE)
-		return 0;
-
-	const float lineThres = max(push.outlineThickness, 3.0f);
-	float distAbs = abs(v);
-	if (distAbs >= lineThres)
-		return 0;
-
-	return max(min(lineThres - distAbs, 1.f), 0); // AA option
-}
-
 // value:  [-d, d] 범위의 입력 값
 // d:      최대 범위(양/음)
 // 반환값: 해당 value에 매핑된 RGBA 색상
-float4 ColorMapRange(float value, float d)
-{
-	// 1) [-d, d] 범위를 [0, 1] 범위로 정규화
-	//    value = -d 일 때 0, value = d 일 때 1이 되도록 매핑
-	float t = (value + d) / (2.0 * d);
-
-	// 2) 0 이하나 1 이상으로 넘어가는 경우를 대비해 saturate 사용
-	t = saturate(t);
-
-	// 3) 원하는 시작 색과 끝 색 정의 (예: 파란색 -> 빨간색)
-	float3 colorMin = float3(0.0, 1.0, 1.0);  // 파란색
-	float3 colorMax = float3(1.0, 1.0, 0.0);  // 빨간색
-
-	// 4) lerp로 선형 보간
-	float3 color = lerp(colorMin, colorMax, t);
-
-	// 최종 RGBA 반환 (알파는 1로 설정)
-	return float4(color, 1.0);
-}
+//float4 ColorMapRange(float value, float d)
+//{
+//	// 1) [-d, d] 범위를 [0, 1] 범위로 정규화
+//	//    value = -d 일 때 0, value = d 일 때 1이 되도록 매핑
+//	float t = (value + d) / (2.0 * d);
+//
+//	// 2) 0 이하나 1 이상으로 넘어가는 경우를 대비해 saturate 사용
+//	t = saturate(t);
+//
+//	// 3) 원하는 시작 색과 끝 색 정의 (예: 파란색 -> 빨간색)
+//	float3 colorMin = float3(0.0, 1.0, 1.0);  // 파란색
+//	float3 colorMax = float3(1.0, 1.0, 0.0);  // 빨간색
+//
+//	// 4) lerp로 선형 보간
+//	float3 color = lerp(colorMin, colorMax, t);
+//
+//	// 최종 RGBA 반환 (알파는 1로 설정)
+//	return float4(color, 1.0);
+//}
 
 [numthreads(VISIBILITY_BLOCKSIZE, VISIBILITY_BLOCKSIZE, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
@@ -61,24 +48,24 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	if (wildcard_v == WILDCARD_DEPTH_OUTLINE || wildcard_v == OUTSIDE_PLANE)
 		return;
 
+#define MIN_OUTLINE_PIXEL 2.f
 
-	const float lineThres = max(push.outlineThickness, 5.0f);
+	const float lineThres = max(push.outlineThickness, MIN_OUTLINE_PIXEL);
 	float distAbs = abs(sd);
 	if (distAbs >= lineThres)
 		return;
 
-	//float a = max(min(lineThres - distAbs, 1.f), 0); // AA option
-	//
-	//if (a <= 0.01) {
-	//	return;
-	//}
-	//
-	//ShaderMaterial material = GetMaterial();
-	half4 base_color = (half4)ColorMapRange(sd, 5.0f);// material.GetBaseColor();
+	float a = max(min(lineThres - distAbs, MIN_OUTLINE_PIXEL), 0); // AA option
+	
+	if (a <= 0.01) {
+		return;
+	}
+	
+	ShaderMaterial material = GetMaterial();
+	half4 base_color = material.GetBaseColor();
 
-	float4 outline_color = float4(base_color.xyz, 1);
-	//outline_color.a = a; // *a; // heuristic aliasing 
-	//outline_color.rgb *= outline_color.a;
+	float4 outline_color = float4(base_color.xyz, a); // a*a // heuristic aliasing 
+	outline_color.rgb *= outline_color.a;
 
 	bool disabled_filling = push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE;
 

@@ -260,7 +260,7 @@ int main(int, char **)
 		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 
-		vz::jobsystem::Execute(ctx_stl_loader, [](vz::jobsystem::JobArgs args) {
+		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
 
 			VzGeometry* geometry = vzm::NewGeometry("test geometry");
 			geometry->LoadGeometryFile("../Assets/stl_files/TS3M3008S.stl");
@@ -271,6 +271,7 @@ int main(int, char **)
 			actor_test3->SetScale({ 0.5f, 0.5f, 0.5f });
 			actor_test3->SetPosition({ 0, 0, 2 });
 			geometry->SetGPUBVHEnabled(true);
+			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
 
 			});
 	}
@@ -299,12 +300,6 @@ int main(int, char **)
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-
-
-		if (!vz::jobsystem::IsBusy(ctx_stl_loader))
-		{
-			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
-		}
 
 		using namespace vzm;
 		{
