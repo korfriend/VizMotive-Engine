@@ -18,6 +18,10 @@ namespace vz::jobsystem
 	UTIL_EXPORT void Initialize(uint32_t maxThreadCount = ~0u);
 	UTIL_EXPORT void ShutDown();
 
+	// Returns true if the job system is shutting down
+	//	Long-running (multi-frame) jobs should ideally check this and exit themselves if true
+	bool IsShuttingDown();
+
 	struct JobArgs
 	{
 		uint32_t jobIndex;		// job index relative to dispatch (like SV_DispatchThreadID in HLSL)

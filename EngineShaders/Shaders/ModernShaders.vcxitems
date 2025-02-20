@@ -23,6 +23,7 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\dvrHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\fogHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\imageHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\kbufferHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\lightingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\objectHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\objectRayHF.hlsli" />
@@ -95,6 +96,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_preprocessCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_renderCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\kbuffer_2_ResolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_ADVANCED.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_ADVANCED_DEBUG.hlsl" />
