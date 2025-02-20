@@ -70,7 +70,8 @@ namespace vz::renderer
 	std::vector<std::pair<Texture, Texture>> deferredTextureCopy;
 	std::vector<std::pair<GPUBuffer, std::pair<void*, size_t>>> deferredBufferUpdate;
 
-	SpinLock deferredResourceLock;
+	//SpinLock deferredResourceLock;
+	std::mutex deferredResourceMutex;
 }
 
 namespace vz::renderer

@@ -1252,9 +1252,9 @@ namespace vz
 				desc.bind_flags = BindFlag::NONE;
 				desc.misc_flags = ResourceMiscFlag::NONE;
 
-				bool success = device->CreateTexture(&desc, nullptr, &resource->textureUpdate);
+				bool success = device->CreateTexture(&desc, nullptr, &resource_internal->textureUpdate);
 				std::string gpu_res_name = name + ":Upload";
-				device->SetName(&resource->texture, gpu_res_name.c_str());
+				device->SetName(&resource_internal->textureUpdate, gpu_res_name.c_str());
 			}
 
 			memcpy(resource->textureUpdate.mapped_data, data, resource_internal->textureUpdate.mapped_size);
