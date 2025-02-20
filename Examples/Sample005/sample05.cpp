@@ -308,6 +308,7 @@ int main(int, char **)
 
 		using namespace vzm;
 		{
+			/*
 			ImGui::Begin("3D Viewer");
 			{
 				static ImVec2 prevWindowSize = ImVec2(0, 0);
@@ -387,7 +388,8 @@ int main(int, char **)
 				}
 			}
 			ImGui::End();
-
+			/**/
+			/*
 			ImGui::Begin("3D Viewer Multi-Test");
 			{
 				static ImVec2 prevWindowSize = ImVec2(0, 0);
@@ -467,7 +469,7 @@ int main(int, char **)
 				}
 			}
 			ImGui::End();
-
+			/**/
 			ImGui::Begin("Slicer Viewer");
 			{
 				static ImVec2 prevWindowSize = ImVec2(0, 0);
@@ -502,8 +504,8 @@ int main(int, char **)
 					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
 					glm::fvec2 pos_ss = m_pos;
 
-					SliceControl* slice_control = slicer->GetSliceControl();
-					slice_control->Initialize(rendererSlicer->GetVID(), { 0, 0, 0 }, 2.f);
+					SlicerControl* slice_control = slicer->GetSlicerControl();
+					slice_control->Initialize(rendererSlicer->GetVID(), { 0, 0, 0 });
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
@@ -514,7 +516,7 @@ int main(int, char **)
 						if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
 							slice_control->PanMove(__FC2 pos_ss);
 						else
-							slice_control->Zoom(__FC2 pos_ss);
+							slice_control->Zoom(__FC2 pos_ss, false);
 					}
 					else if (io.MouseWheel != 0)
 					{

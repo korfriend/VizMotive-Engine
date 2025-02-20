@@ -1161,9 +1161,9 @@ namespace vz::renderer
 			rtMain_render = rtMain;
 		}
 
-		{ // rtPrimitiveID_1 (Layer0), rtPrimitiveID_2 (Layer1)
+		{ // rtPrimitiveID_1 (Layer0_color), rtPrimitiveID_2 (Layer1_color)
 			TextureDesc desc;
-			desc.format = FORMAT_idbuffer;
+			desc.format = Format::R32_UINT;
 			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			desc.width = internalResolution.x;
 			desc.height = internalResolution.y;
@@ -1199,7 +1199,7 @@ namespace vz::renderer
 		//----- Depth buffers: -----
 
 		TextureDesc desc;
-		desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+		//desc.layout = ResourceState::UNORDERED_ACCESS;
 		desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 		desc.format = Format::R32_FLOAT;
 		desc.width = internalResolution.x;
@@ -1210,12 +1210,14 @@ namespace vz::renderer
 		{ // depthBufferMain, depthBuffer_Copy, depthBuffer_Copy1, rtLinearDepth
 			device->CreateTexture(&desc, nullptr, &depthBufferMain); // Layer0's z
 			device->SetName(&depthBufferMain, "depthBufferMain");
-			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy); // Layer0's thickness
-			device->SetName(&depthBuffer_Copy, "depthBuffer_Copy");
-			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy1); // Layer1's z
-			device->SetName(&depthBuffer_Copy1, "depthBuffer_Copy1");
-			device->CreateTexture(&desc, nullptr, &rtLinearDepth); // Layer1's thickness
+			device->CreateTexture(&desc, nullptr, &rtLinearDepth); // Layer1's z
 			device->SetName(&rtLinearDepth, "rtLinearDepth");
+
+			desc.format = Format::R32_UINT;
+			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy); // Layer0's thick_asum
+			device->SetName(&depthBuffer_Copy, "depthBuffer_Copy");
+			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy1); // Layer1's thick_asum
+			device->SetName(&depthBuffer_Copy1, "depthBuffer_Copy1");
 
 			//int subresource = 0;
 			//subresource = device->CreateSubresource(&depthBufferMain, SubresourceType::SRV, 0, 1, 0, 1);
@@ -2263,24 +2265,14 @@ namespace vz::renderer
 			//};
 
 			device->ClearUAV(&rtMain, 0, cmd);
-			device->ClearUAV(&depthBufferMain, 0, cmd);
-			device->ClearUAV(&depthBuffer_Copy, 0, cmd);
-			RenderSlicerMeshes(cmd);
-			//RenderDirectVolumes(cmd);
+			device->ClearUAV(&rtPrimitiveID_1, 0, cmd);
+			device->ClearUAV(&rtPrimitiveID_2, 0, cmd);
+			device->ClearUAV(&depthBuffer_Copy1, 0, cmd);
+			device->ClearUAV(&rtLinearDepth, 0, cmd);
 
-			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
-			{
-				GPUBarrier barriers[] = {
-					GPUBarrier::Image(&rtPrimitiveID_1, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
-					GPUBarrier::Image(&rtPrimitiveID_2, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
-					GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
-					GPUBarrier::Image(&depthBuffer_Copy, ResourceState::SHADER_RESOURCE, depthBuffer_Copy.desc.layout),
-					GPUBarrier::Image(&depthBuffer_Copy1, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
-					GPUBarrier::Image(&depthBufferMain, ResourceState::SHADER_RESOURCE, depthBuffer_Copy.desc.layout),
-					GPUBarrier::Image(&debugUAV, ResourceState::UNORDERED_ACCESS, debugUAV.desc.layout),
-				};
-				device->Barrier(barriers, arraysize(barriers), cmd);
-			}
+			RenderSlicerMeshes(cmd);
+			RenderDirectVolumes(cmd);
+
 			device->EventEnd(cmd);
 			});
 

@@ -114,6 +114,9 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\objectRayHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\zfragmentHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GS.h">
@@ -380,6 +383,9 @@
       <Filter>Compute Shaders\GS Test</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerOutlineCS.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
   </ItemGroup>
