@@ -283,6 +283,35 @@ namespace vz::renderer
 		}
 		BatchDrawingFlush();
 
+		if (push.sliceThickness > 0) 
+		{
+			device->BindComputeShader(&shaders[CSTYPE_KBUFFER_2_RESOLVE], cmd);
+
+			device->Barrier(GPUBarrier::Memory(), cmd);
+			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+			{
+				graphics::Texture& texture = slicer_textures[i];
+				device->BindUAV(&texture, i, cmd);
+				barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
+			}
+			BarrierStackFlush(cmd);
+
+			device->Dispatch(
+				tile_count.x,
+				tile_count.y,
+				1,
+				cmd
+			);
+
+			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+			{
+				device->BindUAV(&unbind, i, cmd);
+				graphics::Texture& texture = slicer_textures[i];
+				barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
+			}
+			BarrierStackFlush(cmd);
+		}
+
 		profiler::EndRange(range);
 		device->EventEnd(cmd);
 	}

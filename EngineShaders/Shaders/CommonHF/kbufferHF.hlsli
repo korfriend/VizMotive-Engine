@@ -1,0 +1,184 @@
+#include "../Globals.hlsli"
+#include "zfragmentHF.hlsli"
+
+#define K_CORES K_NUM - 1
+void Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
+{
+	half4 color_in = f_in.GetColor();
+
+	if (f_in.z > 1e20 || color_in.a <= 0.01) return;
+
+	int store_index = -1;
+	int core_max_idx = -1;
+	bool is_overflow = true;
+	
+	Fragment f_coremax, f_tail;
+	f_coremax.Init();
+	f_tail.Init();
+
+	if (fragCount == K_NUM)
+	{
+		f_tail = fs[K_NUM - 1];
+	}
+
+	if (f_in.z > f_tail.z - (float)f_tail.zthick)
+	{
+		// fragCount == K_NUM case
+		// this routine implies that f_tail.i_vis > 0 and f_tail.z is finite
+		// update the merging slot
+		Fragment_OrderIndependentMerge(f_in, f_tail);
+		store_index = K_NUM - 1;
+	}
+	else
+	{
+		[loop]
+		for (uint i = 0; i < K_CORES; i++)
+		{
+			Fragment f_i = (Fragment)0;
+			if (i < fragCount)
+			{
+				f_i = fs[i];
+			}
+
+			if (f_i.color_packed == 0) // empty slot by being 1) merged out or 2) not yet filled
+			{
+				store_index = i;
+				core_max_idx = -2;
+				is_overflow = false;
+				break; // finish
+			}
+			else // if (f_i.i_vis != 0)
+			{
+				if (OverlapTest(f_in, f_i))
+				{
+					Fragment_OrderIndependentMerge(f_in, f_i);
+					store_index = i;
+					core_max_idx = -3;
+					break; // finish
+				}
+				else if (f_coremax.z < f_i.z)
+				{
+					f_coremax = f_i;
+					core_max_idx = i;
+				}
+
+				if (i == K_CORES - 1)
+				{
+					// core_max_idx >= 0
+					// replacing or tail merging case 
+					is_overflow = fragCount >= K_NUM;
+
+					if (f_coremax.z > f_in.z) // replace case
+					{
+						// f_in to the core (and f_coremax to the tail when tail handling mode)
+						store_index = core_max_idx;
+					}
+					else
+					{
+						// f_in to the tail and no to the core
+						f_coremax = f_in;
+					}
+
+					if (!is_overflow) // implying fragCount < K_NUM
+					{
+						f_tail = f_coremax;
+					}
+					else
+					{
+						Fragment_OrderIndependentMerge(f_tail, f_coremax);
+					}
+				}
+			}
+		}
+	}
+
+	if (store_index >= 0)
+	{
+		fs[store_index] = f_in;
+	}
+
+	if (core_max_idx >= 0) // replace
+	{
+		fs[K_NUM - 1] = f_tail;
+	}
+}
+
+half4 Resolve_kBuffer(in uint fragCount, inout Fragment fs[K_NUM], out uint finalFragCount)
+{
+	//fragCount = min(fragCount, K_NUM);
+	SORT(fragCount, fs, Fragment);
+
+	// extended merging for consistent visibility transition
+	//[loop]
+	//for (uint k = 0; k < fragCount; k++)
+	//{
+	//	Fragment f_k = fs[k];
+	//	if (f_k.i_vis != 0)
+	//	{
+	//		// optional setting for manual z-thickness
+	//		f_k.zthick = max(f_k.zthick, GetVZThickness(f_k.z, vz_thickness));
+	//		fs[k] = f_k;
+	//	}
+	//}
+
+	const float merging_beta = 0.5f;
+	half4 color_out = (half4)0;
+	finalFragCount = 0;
+
+	Fragment f_1, f_2;
+	f_1 = fs[0];
+
+	// use the SFM
+	[loop]
+	for (uint i = 0; i < fragCount; i++)
+	{
+		f_2 = (Fragment)0;
+		Fragment f_merge = (Fragment)0;
+		uint i_next = i + 1;
+		if (i_next < fragCount)
+		{
+			f_2 = fs[i_next];
+			f_merge = MergeFragments(f_1, f_2, merging_beta);
+		}
+
+		if (f_merge.color_packed == 0)
+		{
+			if (finalFragCount < K_NUM - 1)
+			{
+				finalFragCount++;
+
+				half4 color = f_1.GetColor();
+				color_out += color * ((half)1.f - color_out.a);
+				f_1 = f_2;
+			}
+			else
+			{
+				// tail //
+				if (f_2.color_packed != 0)
+				{
+					half4 f_1_vis = f_1.GetColor();
+					half4 f_2_vis = f_2.GetColor();
+					f_1_vis += f_2_vis * ((half)1.f - f_1_vis.a);
+					f_1.SetColor(f_1_vis);
+					f_1.zthick = (half)(f_2.z - f_1.z + (float)f_1.zthick);
+					f_1.z = f_2.z;
+					f_1.opacity_sum += f_2.opacity_sum;
+				}
+			}
+		}
+		else
+		{
+			f_1 = f_merge;
+		}
+	}
+
+	if (f_1.color_packed != 0)
+	{
+		finalFragCount++;
+
+		half4 color = f_1.GetColor();
+		color_out += color * ((half)1.f - color_out.a);
+	}
+
+	return color_out;
+}

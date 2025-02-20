@@ -97,8 +97,9 @@ namespace vz::shader
 
 		// Direct Volume Rendering and Mesh Slicer
 		CSTYPE_DVR_DEFAULT, // VER 0.1
-		CSTYPE_MESH_SLICER, // VER 0.1
-		CSTYPE_SLICER_OUTLINE, // VER 0.1
+		CSTYPE_MESH_SLICER, // VER 0.2
+		CSTYPE_SLICER_OUTLINE, // VER 0.2
+		CSTYPE_KBUFFER_2_RESOLVE, // VER 0.2
 
 		// Gaussian Splatting
 		CSTYPE_GS_PREPROCESS,

@@ -593,7 +593,7 @@ int main(int, char **)
 				if (cur_slicer_thickess != cur_slicer_thickess_prev)
 				{
 					cur_slicer_thickess_prev = cur_slicer_thickess;
-					slicer->SetT
+					slicer->SetSlicerThickness(cur_slicer_thickess);
 				}
 
 
