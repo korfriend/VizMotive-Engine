@@ -176,7 +176,7 @@ namespace vz::renderer
 					
 					renderable.IsSlicerSolidFill() ? 
 						push.sliceFlags &= ~SLICER_FLAG_ONLY_OUTLINE : push.sliceFlags |= SLICER_FLAG_ONLY_OUTLINE;
-					push.outlineThickness = renderable.GetOutlineThickness();
+					push.outlineThickness = slicer->GetOutlineThickness() <= 0? renderable.GetOutlineThickness() : slicer->GetOutlineThickness();
 					
 					device->PushConstants(&push, sizeof(push), cmd);
 

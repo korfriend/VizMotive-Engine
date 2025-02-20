@@ -495,12 +495,14 @@ namespace vz
 			archive >> thickness_;
 			archive >> horizontalCurveControls_;
 			archive >> curveInterpolationInterval_;
+			archive >> outlineThickness_;
 		}
 		else
 		{
 			archive << thickness_;
 			archive << horizontalCurveControls_;
 			archive << curveInterpolationInterval_;
+			archive << outlineThickness_;
 		}
 	}
 }
