@@ -263,7 +263,7 @@ int main(int, char **)
 		}
 
 
-		vz::jobsystem::Execute(ctx_stl_loader, [](vz::jobsystem::JobArgs args) {
+		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
 
 			vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
 			geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
@@ -272,6 +272,7 @@ int main(int, char **)
 			material_stl->SetDoubleSided(true);
 			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
 			actor_test3->SetScale({ 0.1f, 0.1f, 0.1f });
+			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
 
 			});
 
@@ -308,11 +309,6 @@ int main(int, char **)
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-
-		if (!vz::jobsystem::IsBusy(ctx_stl_loader))
-		{
-			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
-		}
 
 		using namespace vzm;
 		{
