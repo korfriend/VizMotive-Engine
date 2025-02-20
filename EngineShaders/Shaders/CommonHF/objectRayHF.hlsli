@@ -148,12 +148,7 @@ inline bool IntersectNode(
 // Returns the closest hit primitive if any (useful for generic trace). If nothing was hit, then rayHit.distance will be equal to FLT_MAX
 inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 {
-	//const float3 rcpDirection = rcp(ray.Direction);
-
-	float3 rcpDirection;
-	rcpDirection.x = (abs(ray.Direction.x) < eps) ? 1000000 : 1.0 / ray.Direction.x;
-	rcpDirection.y = (abs(ray.Direction.y) < eps) ? 1000000 : 1.0 / ray.Direction.y;
-	rcpDirection.z = (abs(ray.Direction.z) < eps) ? 1000000 : 1.0 / ray.Direction.z;
+	const float3 rcpDirection = rcp(ray.Direction);
 	
 	RayHit bestHit = CreateRayHit();
 

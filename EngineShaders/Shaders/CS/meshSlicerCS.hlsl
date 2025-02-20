@@ -1,13 +1,14 @@
 #include "../Globals.hlsli"
 #include "../CommonHF/objectRayHF.hlsli"
-#include "../CommonHF/zfragmentHF.hlsli"
+#define K_NUM 2
+#include "../CommonHF/kbufferHF.hlsli"
 
 RWTexture2D<unorm float4> inout_color : register(u0);
-RWTexture2D<uint> layer0_color : register(u1);
+RWTexture2D<uint> layer0_color : register(u1); // RGBA
 RWTexture2D<uint> layer1_color : register(u2);
 RWTexture2D<float> layer0_depth : register(u3);
 RWTexture2D<float> layer1_depth : register(u4); // pixel-space distance_map
-RWTexture2D<uint> layer0_thick_asum : register(u5);
+RWTexture2D<uint> layer0_thick_asum : register(u5); // RG
 RWTexture2D<uint> layer1_thick_asum : register(u6);
 
 inline bool InsideTest(const float3 originWS, const float3 originOS, const float3 rayDirOS, const float2 minMaxT, const float4x4 os2ws, inout float minDistOnPlane)
@@ -37,67 +38,6 @@ inline bool InsideTest(const float3 originWS, const float3 originOS, const float
 	return isInsideOnPlane;
 }
 
-inline uint TraceRay_DebugBVH(RayDesc ray, uint2 pixel)
-{
-	//const float3 rcpDirection = rcp(ray.Direction);
-	float3 rcpDirection;
-	rcpDirection.x = (abs(ray.Direction.x) < 1e-10) ? 1000000 : 1.0 / ray.Direction.x;
-	rcpDirection.y = (abs(ray.Direction.y) < 1e-10) ? 1000000 : 1.0 / ray.Direction.y;
-	rcpDirection.z = (abs(ray.Direction.z) < 1e-10) ? 1000000 : 1.0 / ray.Direction.z;
-
-	uint hit_counter = 0;
-
-	// Emulated stack for tree traversal:
-	uint stack[RAYTRACE_STACKSIZE];
-	uint stackpos = 0;
-
-	const uint primitiveCount = primitiveCounterBuffer.Load(0);
-	const uint leafNodeOffset = primitiveCount - 1;
-
-	// push root node
-	stack[stackpos++] = 0;
-
-	[loop]
-	while (stackpos > 0) {
-		// pop untraversed node
-		const uint nodeIndex = stack[--stackpos];
-
-		BVHNode node = bvhNodeBuffer.Load<BVHNode>(nodeIndex * sizeof(BVHNode));
-		//BVHNode node = bvhNodeBuffer[nodeIndex];
-
-		if (IntersectNode(ray, node, rcpDirection))
-		{
-			hit_counter++;
-
-			if (nodeIndex >= leafNodeOffset)
-			{
-				// Leaf node
-			}
-			else
-			{
-				// Internal node
-				if (stackpos < RAYTRACE_STACKSIZE - 1)
-				{
-					// push left child
-					stack[stackpos++] = node.LeftChildIndex;
-					// push right child
-					stack[stackpos++] = node.RightChildIndex;
-				}
-				else
-				{
-					// stack overflow, terminate
-					return 0xFFFFFFFF;
-				}
-			}
-
-		}
-
-	}
-
-
-	return hit_counter;
-
-}
 [numthreads(VISIBILITY_BLOCKSIZE, VISIBILITY_BLOCKSIZE, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
@@ -115,7 +55,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		return;
 	}
 
-	if (layer1_thick_asum[pixel] == WILDCARD_DEPTH_OUTLINE_DIRTY)
+	uint v_layer1_thich_asum = layer1_thick_asum[pixel];
+	if (v_layer1_thich_asum == WILDCARD_DEPTH_OUTLINE_DIRTY)
 	{
 		layer1_thick_asum[pixel] = 0;
 		layer1_depth[pixel] = asfloat(WILDCARD_DEPTH_OUTLINE);
@@ -175,21 +116,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		sliceThickness_os = length(end_os.xyz - origin_os.xyz);
 	}
 
-	//const float3x3 ws2os_adj = inst.transformRaw_inv.GetMatrixAdjoint();
-	const float3x3 ws2os_adj = (float3x3)inst.transformRaw_inv.GetMatrix();
+	const float3x3 ws2os_adj = inst.transformRaw_inv.GetMatrixAdjoint();
+	//const float3x3 ws2os_adj = (float3x3)inst.transformRaw_inv.GetMatrix();
 
 	float3 ray_dir_os = normalize(mul(ws2os_adj, ray_ws.Direction));
-	//float3 r0 = mul(ws2os, float3(0, 0, 0));
-	//float3 r1 = mul(ws2os, ray_ws.Direction);
-	//float3 ray_dir_os = normalize(r1 - r0);
-
-
-	if (origin_os.z == 0) origin_os.z = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (origin_os.y == 0) origin_os.y = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (origin_os.x == 0) origin_os.x = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (ray_dir_os.z == 0) ray_dir_os.z = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (ray_dir_os.y == 0) ray_dir_os.y = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (ray_dir_os.x == 0) ray_dir_os.x = 0.0001234f; // trick... for avoiding zero block skipping error
 
 	bool isInsideOnPlane = false;
 	float minDistOnPlane = FLT_MAX; // for on-the-fly zeroset contouring
@@ -449,28 +379,25 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		layer0_depth[pixel] = zdepth0;
 		layer0_thick_asum[pixel] = frag.Pack_Zthick_AlphaSum();
 		
-		inout_color[pixel] = (float4)frag.GetColor();
+		if (push.sliceThickness == 0)
+			inout_color[pixel] = (float4)frag.GetColor();
 
 		layer1_thick_asum[pixel] = 0;
 	}
 	else
 	{
-		/*
-		float4 v_rgba = float4(g_cbPobj.Kd, g_cbPobj.alpha);
-		if (v_rgba.a < 0.01)
+		if (base_color.a < (half)0.01)
 			return;
 		// always to k-buf not render-out buffer
-		float4 v_rgba0 = v_rgba;// , v_rgba1 = v_rgba;
+		half4 color_cur = base_color;
 
 		// DOJO TO consider...
 		// preserve the original alpha (i.e., v_rgba.a) or not..????
-		//v_rgba0.a *= min(thickness_through_os / (last_layer_depth - zdepth0) + 0.1f, 1.0f);
-		v_rgba0.a *= saturate(thickness_through_os / (sliceThickness_os)+0.1f);
-		if (v_rgba0.a < 0.01)
+		color_cur.a *= (half)saturate(thickness_through_os / (sliceThickness_os) + 0.1f);
+		if (color_cur.a < (half)0.01)
 			return;
-		//v_rgba0.a *= v_rgba0.a; // heuristic 
-		v_rgba0.rgb *= v_rgba0.a;
-		//v_rgba0.a = v_rgba.a;
+		//color_cur.a *= color_cur.a; // heuristic 
+		color_cur.rgb *= color_cur.a;
 
 		if (zdepth1 >= sliceThickness) // to avoid unexpected frustom culling!
 		{
@@ -478,11 +405,43 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		}
 
 		float vz_thickness = zdepth1 - zdepth0;
-		Fill_kBuffer(ss_xy, 2, v_rgba0, zdepth1, vz_thickness);
-		/**/
+
+		Fragment frag;
+		frag.SetColor(color_cur); // current
+		frag.z = zdepth1;
+		frag.zthick = (half)vz_thickness;
+		frag.opacity_sum = color_cur.a;
+
+		///Fill_kBuffer(pixel, 2, color_cur, zdepth1, vz_thickness);
+		{
+			uint color0_packed = layer0_color[pixel];
+			if (color0_packed == 0)
+			{
+				layer0_color[pixel] = frag.color_packed;
+				layer0_depth[pixel] = frag.z;
+				layer0_thick_asum[pixel] = frag.Pack_Zthick_AlphaSum();
+
+				//inout_color[pixel] = (float4)frag.GetColor(); // test //
+			}
+			else
+			{
+				uint color1_packed = layer1_color[pixel];
+				uint frag_cnt = color1_packed == 0 ? 1 : 2;
+
+				Fragment f_0;
+				f_0.color_packed = color0_packed;
+				f_0.z = layer0_depth[pixel];
+				f_0.Unpack_Zthick_AlphaSum(layer0_thick_asum[pixel]);
+
+				Fragment f_1;
+				f_1.color_packed = color1_packed;
+				f_1.z = layer1_depth[pixel];
+				f_1.Unpack_Zthick_AlphaSum(v_layer1_thich_asum);
+				Fragment fs[2] = { f_0, f_1 };
+
+				Fill_kBuffer(frag, frag_cnt, fs);
+			}
+		}
 	}
-	
-	// TODO
-    //inout_color[pixel] = float4(1, 1, 0, 1);
 	return;
 }

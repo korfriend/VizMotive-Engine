@@ -215,7 +215,6 @@ namespace vz::jobsystem
 		}
 	};
 
-	static bool alreadyShutDown = false;
 	// This structure is responsible to stop worker thread loops.
 	//	Once this is destroyed, worker threads will be woken up and end their loops.
 	struct InternalState
@@ -225,7 +224,8 @@ namespace vz::jobsystem
 		std::atomic_bool alive{ true };
 		void ShutDown()
 		{
-			alreadyShutDown = true;
+			if (IsShuttingDown())
+				return;
 			alive.store(false); // indicate that new jobs cannot be started from this point
 			bool wake_loop = true;
 			std::thread waker([&] {
@@ -241,10 +241,7 @@ namespace vz::jobsystem
 			{
 				for (auto& thread : x.threads)
 				{
-					if (thread.joinable())  // Check if the thread can be joined
-					{
-						thread.join();
-					}
+					thread.join();
 				}
 			}
 			wake_loop = false;
@@ -286,27 +283,7 @@ namespace vz::jobsystem
 		}
 		~InternalState()
 		{
-			if (!alreadyShutDown)
-			{
-				//ShutDown();
-				for (auto& x : resources)
-				{
-					x.jobQueuePerThread.reset();
-					x.jobConcurrentQueue.reset();
-					x.threads.clear();
-					x.numThreads = 0;
-				}
-			}
-			else
-			{
-				for (auto& x : resources)
-				{
-					x.jobQueuePerThread.reset();
-					x.jobConcurrentQueue.reset();
-					x.threads.clear();
-					x.numThreads = 0;
-				}
-			}
+			ShutDown();
 		}
 	} static internal_state;
 
@@ -486,6 +463,11 @@ namespace vz::jobsystem
 	void ShutDown()
 	{
 		internal_state.ShutDown();
+	}
+
+	bool IsShuttingDown()
+	{
+		return internal_state.alive.load() == false;
 	}
 
 	uint32_t GetThreadCount(Priority priority)
