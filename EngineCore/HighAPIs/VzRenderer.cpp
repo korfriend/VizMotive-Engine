@@ -1,6 +1,7 @@
 #include "VzEngineAPIs.h"
 #include "Components/GComponents.h"
 #include "Common/RenderPath3D.h"
+#include "Common/Engine_Internal.h"
 #include "GBackend/GModuleLoader.h"
 #include "Utils/Backlog.h"
 #include "Utils/Helpers.h"
@@ -153,6 +154,8 @@ namespace vzm
 	bool VzRenderer::Render(const SceneVID vidScene, const CamVID vidCam)
 	{
 		GET_RENDERPATH(renderer, false);
+
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 
 		renderer->scene = Scene::GetScene(vidScene);
 		renderer->camera = compfactory::GetCameraComponent(vidCam);
