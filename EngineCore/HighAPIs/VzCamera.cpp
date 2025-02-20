@@ -862,4 +862,17 @@ namespace vzm
 		slicer->SetHorizontalCurveControls(*(std::vector<XMFLOAT3>*)&controlPts, interval);
 		UpdateTimeStamp();
 	}
+
+	void VzSlicer::SetSlicerThickness(const float thickness)
+	{
+		GET_SLICER_COMP(slicer, );
+		slicer->SetThickness(thickness);
+		UpdateTimeStamp();
+	}
+	void VzSlicer::SetOutlineThickness(const float pixels)
+	{
+		GET_SLICER_COMP(slicer, );
+		slicer->SetOutlineThickness(pixels);
+		UpdateTimeStamp();
+	}
 }
