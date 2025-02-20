@@ -995,6 +995,8 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::ProcessDeferredResourceRequests(CommandList cmd)
 	{
+		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);
+
 		if (deferredGeometryGPUBVHGens.size() +
 			deferredMIPGens.size() +
 			deferredBCQueue.size() +
@@ -1005,7 +1007,7 @@ namespace vz::renderer
 		}
 
 		// TODO: paint texture...
-		deferredResourceLock.lock();
+		//deferredResourceLock.lock();
 
 		for (auto& it : deferredMIPGens)
 		{
@@ -1061,7 +1063,7 @@ namespace vz::renderer
 		deferredGeometryGPUBVHGens.clear();
 		deferredGeometryGPUBVHGens = wait_entities;
 
-		deferredResourceLock.unlock();
+		//deferredResourceLock.unlock();
 	}
 
 	void GRenderPath3DDetails::Postprocess_Blur_Gaussian(

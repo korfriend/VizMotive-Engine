@@ -256,6 +256,7 @@ namespace vz::renderer
 	extern std::vector<std::pair<GPUBuffer, std::pair<void*, size_t>>> deferredBufferUpdate;
 
 	extern SpinLock deferredResourceLock;
+	extern std::mutex deferredResourceMutex;
 }
 
 // ----- Rendering System Options -----

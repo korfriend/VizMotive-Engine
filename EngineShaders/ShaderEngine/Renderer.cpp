@@ -2335,38 +2335,52 @@ namespace vz
 	}
 	void AddDeferredMIPGen(const Texture& texture, bool preserve_coverage)
 	{
-		renderer::deferredResourceLock.lock();
+		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);
+		//renderer::deferredResourceLock.lock();
 		renderer::deferredMIPGens.push_back(std::make_pair(texture, preserve_coverage));
-		renderer::deferredResourceLock.unlock();
+		//renderer::deferredResourceLock.unlock();
 	}
 	void AddDeferredBlockCompression(const graphics::Texture& texture_src, const graphics::Texture& texture_bc)
 	{
-		renderer::deferredResourceLock.lock();
+		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);
+		//renderer::deferredResourceLock.lock();
 		renderer::deferredBCQueue.push_back(std::make_pair(texture_src, texture_bc));
-		renderer::deferredResourceLock.unlock();
+		//renderer::deferredResourceLock.unlock();
 	}
 	void AddDeferredTextureCopy(const graphics::Texture& texture_src, const graphics::Texture& texture_dst, const bool mipGen)
 	{
+		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);
 		if (!texture_src.IsValid() || !texture_dst.IsValid())
 		{
 			return;
 		}
-		renderer::deferredResourceLock.lock();
+		//renderer::deferredResourceLock.lock();
+		for (size_t i = 0, n = renderer::deferredTextureCopy.size(); i < n; i++)
+		{
+			auto& it = renderer::deferredTextureCopy[i];
+			if (it.first.internal_state.get() == texture_src.internal_state.get()
+				&& it.second.internal_state.get() == texture_dst.internal_state.get())
+			{
+				return;
+			}
+		}
 		renderer::deferredTextureCopy.push_back(std::make_pair(texture_src, texture_dst));
-		renderer::deferredResourceLock.unlock();
+		//renderer::deferredResourceLock.unlock();
 	}
 	void AddDeferredGeometryGPUBVHUpdate(const Entity entity)
 	{
+		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);
 		if (!compfactory::ContainGeometryComponent(entity))
 		{
 			return;
 		}
-		renderer::deferredResourceLock.lock();
+		//renderer::deferredResourceLock.lock();
 		renderer::deferredGeometryGPUBVHGens.push_back(entity);
-		renderer::deferredResourceLock.unlock();
+		//renderer::deferredResourceLock.unlock();
 	}
 	void AddDeferredBufferUpdate(const graphics::GPUBuffer& buffer, const void* data, const uint64_t size, const uint64_t offset)
 	{
+		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);
 		if (!buffer.IsValid() || data == nullptr)
 		{
 			return;
@@ -2377,9 +2391,18 @@ namespace vz
 			return;
 		}
 		uint8_t* data_ptr = (uint8_t*)data;
-		renderer::deferredResourceLock.lock();
+		for (size_t i = 0, n = renderer::deferredBufferUpdate.size(); i < n; i++)
+		{
+			auto& it = renderer::deferredBufferUpdate[i];
+			if (it.first.internal_state.get() == buffer.internal_state.get()
+				&& it.second.first == data)
+			{
+				return;
+			}
+		}
+		//renderer::deferredResourceLock.lock();
 		renderer::deferredBufferUpdate.push_back(std::make_pair(buffer, std::make_pair(data_ptr + offset, update_size)));
-		renderer::deferredResourceLock.unlock();
+		//renderer::deferredResourceLock.unlock();
 	}
 }
 
