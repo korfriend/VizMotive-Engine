@@ -109,7 +109,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     vzm::ParamMap<std::string> arguments;
     //arguments.SetString("API", "DX11");
-    arguments.SetString("GPU_VALIDATION", "VERBOSE");
+    //arguments.SetString("GPU_VALIDATION", "VERBOSE");
     //arguments.SetParam("MAX_THREADS", 1u); // ~0u
     arguments.SetParam("MAX_THREADS", ~0u); // ~0u
     if (!vzm::InitEngineLib(arguments)) {
@@ -287,8 +287,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < index0 ? 0 :
 					i < index1 ? (uint8_t)((float)(i - index0) / (float)(index1 - index0) * 255.f) : 255;
 			}
-            if (test_create__)
-			    tex_otf_test3->UpdateLookup(otf_array, index0, 256);
+			if (test_create__)
+				tex_otf_test3->UpdateLookup(otf_array, index0, 256);
         }
 
 		renderer->Render(scene, cam);
