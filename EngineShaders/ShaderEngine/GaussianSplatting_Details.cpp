@@ -32,7 +32,7 @@ namespace vz::renderer
 		}
 
 		device->EventBegin("Gaussian Splatting Render", cmd);
-		auto range = profiler::BeginRangeGPU("RenderGaussianSplatting", &cmd);
+		auto range = profiler::BeginRangeGPU("GaussianSplatting Rendering", &cmd);
 
 		BindCommonResources(cmd);
 
@@ -544,6 +544,7 @@ namespace vz::renderer
 			break; // TODO: at this moment, just a single gs is supported!
 		}
 
+		profiler::EndRange(range);
 		device->EventEnd(cmd);
 	}
 }
