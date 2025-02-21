@@ -231,6 +231,7 @@ namespace vzm
 		void SetEulerAngleZXY(const vfloat3& v); // ROLL->PITCH->YAW (mainly used CG-convention) 
 		void SetEulerAngleZXYInDegree(const vfloat3& v); // ROLL->PITCH->YAW (mainly used CG-convention) 
 		void SetQuaternion(const vfloat4& v);
+		void SetRotateAxis(const vfloat3& v, const float angle); // angle in degree
         void SetMatrix(const vfloat4x4& mat, const bool rowMajor = false);
 
 		void UpdateMatrix();	// local matrix

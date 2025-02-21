@@ -44,14 +44,22 @@ namespace vzm
 		renderable->SetMaterials(vids);
 		UpdateTimeStamp();
 	}
-	void VzActor::SetCastShadows(const bool enabled)
+	void VzActor::EnableCastShadows(const bool enabled)
 	{
 		assert(0 && "TODO");
 		UpdateTimeStamp();
 	}
-	void VzActor::SetReceiveShadows(const bool enabled)
+	void VzActor::EnableReceiveShadows(const bool enabled)
 	{
 		assert(0 && "TODO");
+		UpdateTimeStamp();
+	}
+
+
+	void VzActor::EnableSlicerSolidFill(const bool enabled)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->EnableSlicerSolidFill(enabled);
 		UpdateTimeStamp();
 	}
 

@@ -217,7 +217,6 @@ int main(int, char **)
 	VzRenderer* rendererSlicer = nullptr;
 	ImVec2 wh(512, 512);
 
-	vz::jobsystem::context ctx_stl_loader;
 	{
 		scene = NewScene("my scene");
 
@@ -248,10 +247,10 @@ int main(int, char **)
 		camera1->SetOrthogonalProjection(1, 1, 0.1f, 5000.f, 5.f);
 
 		slicer = NewSlicer("my slicer");
-		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 1, 0), at = glm::fvec3(0, 0, -1);
+		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
 		view = at - pos;
 		slicer->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		slicer->SetOrthogonalProjection(1, 1, 2.f);
+		slicer->SetOrthogonalProjection(1, 1, 10);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		scene->AppendChild(axis_helper);
@@ -260,18 +259,45 @@ int main(int, char **)
 		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 
+		vz::jobsystem::context ctx_stl_loader;
 		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
 
-			VzGeometry* geometry = vzm::NewGeometry("test geometry");
+			VzGeometry* geometry = vzm::NewGeometry("TS3M3008S.stl");
 			geometry->LoadGeometryFile("../Assets/stl_files/TS3M3008S.stl");
+			geometry->SetGPUBVHEnabled(true);
 			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
+			material_stl->SetBaseColor({ 1, 0, 0, 1 });
 			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry, material_stl);
 			actor_test3->SetScale({ 0.5f, 0.5f, 0.5f });
-			actor_test3->SetPosition({ 0, 0, 2 });
+			//actor_test3->SetPosition({ 0, 0, 2 });
+			scene->AppendChild(actor_test3);
+
+			vzm::VzMaterial* material_stl_A = vzm::NewMaterial("my stl's material_A");
+			material_stl_A->SetBaseColor({ 1, 1, 0, 1 });
+			vzm::VzActor* actor_test5 = vzm::NewActor("my actor5", geometry, material_stl_A);
+			actor_test5->SetScale({ 0.5f, 0.5f, 0.5f });
+			actor_test5->SetRotateAxis({ 0, 1, 0 }, 90.f);
+			scene->AppendChild(actor_test5);
+			});
+
+
+		vz::jobsystem::context ctx_stl_loader2;
+		vz::jobsystem::Execute(ctx_stl_loader2, [scene](vz::jobsystem::JobArgs args) {
+
+			VzGeometry* geometry = vzm::NewGeometry("PreparationScan.stl");
+			geometry->LoadGeometryFile("../Assets/stl_files/PreparationScan.stl");
+			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material 2");
+			material_stl->SetShaderType(vzm::ShaderType::PBR);
+			material_stl->SetDoubleSided(true);
+			material_stl->SetBaseColor({ 0, 1, 1, 1 });
+			vzm::VzActor* actor_test4 = vzm::NewActor("my actor4", geometry, material_stl);
+			actor_test4->SetScale({ 0.2f, 0.2f, 0.2f });
+			actor_test4->EnableSlicerSolidFill(false);
+			actor_test4->SetRotateAxis({ 0, 0, 1 }, 45.f);
 			geometry->SetGPUBVHEnabled(true);
-			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
+			scene->AppendChild(actor_test4);
 
 			});
 	}
