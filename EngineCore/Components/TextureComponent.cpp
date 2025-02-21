@@ -547,9 +547,7 @@ namespace vz
 		ctx.concurrentID = 1;
 
 		using namespace graphics;
-		GraphicsDevice* device = graphics::GetDevice();
-		CommandList cmd = device->BeginCommandList(); // QUEUE_GRAPHICS
-		jobsystem::ExecuteConcurrency(ctx, [this, entityVisibleMap, cmd, device](jobsystem::JobArgs args) {
+		jobsystem::ExecuteConcurrency(ctx, [this, entityVisibleMap](jobsystem::JobArgs args) {
 
 			GTextureComponent* otf_texture = (GTextureComponent*)compfactory::GetTextureComponent(entityVisibleMap);
 			if (!otf_texture)
@@ -638,6 +636,7 @@ namespace vz
 				desc.misc_flags = ResourceMiscFlag::NONE;
 				desc.format = Format::R32_UINT;
 
+				GraphicsDevice* device = graphics::GetDevice();
 				bool success = device->CreateBuffer(&desc, bitmask_data, &blobkBitmask.bitmaskBuffer);
 				assert(success);
 				device->SetName(&blobkBitmask.bitmaskBuffer, "GVolumeComponent::visible_block_buffer");
