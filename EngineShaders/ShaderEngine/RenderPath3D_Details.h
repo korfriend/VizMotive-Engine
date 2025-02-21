@@ -448,6 +448,7 @@ namespace vz::renderer
 
 		// ---------- Post Processings ----------
 		void ProcessDeferredResourceRequests(CommandList cmd);
+
 		void Postprocess_Blur_Gaussian(
 			const Texture& input,
 			const Texture& temp,

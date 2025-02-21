@@ -48,8 +48,8 @@ namespace vz::jobsystem
 			args.groupID = groupID;
 			if (sharedmemory_size > 0)
 			{
-				//args.sharedmemory = _malloca(sharedmemory_size);
-				args.sharedmemory = alloca(sharedmemory_size);
+				args.sharedmemory = _malloca(sharedmemory_size);
+				//args.sharedmemory = alloca(sharedmemory_size);
 			}
 			else
 			{
@@ -65,10 +65,10 @@ namespace vz::jobsystem
 				task(args);
 			}
 
-			//if (args.sharedmemory)
-			//{
-			//	_freea(args.sharedmemory);
-			//}
+			if (args.sharedmemory)
+			{
+				_freea(args.sharedmemory);
+			}
 
 			AtomicAdd(&ctx->counter, -1);
 		}
@@ -241,7 +241,10 @@ namespace vz::jobsystem
 			{
 				for (auto& thread : x.threads)
 				{
-					thread.join();
+					if (thread.joinable())  // Check if the thread can be joined
+					{
+						thread.join();
+					}
 				}
 			}
 			wake_loop = false;
