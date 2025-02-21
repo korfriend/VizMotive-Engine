@@ -207,10 +207,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DeferredProcessing_Details.cpp" />
     <ClCompile Include="DirectVolumes_Details.cpp" />
     <ClCompile Include="GaussianSplatting_Details.cpp" />
     <ClCompile Include="GPUBVH.cpp" />
     <ClCompile Include="Image.cpp" />
+    <ClCompile Include="PostProcessingChain_Details.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="RenderPath3D_Details.cpp" />
     <ClCompile Include="samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />

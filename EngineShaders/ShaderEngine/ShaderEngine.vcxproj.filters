@@ -41,6 +41,12 @@
     <ClCompile Include="RenderPath3D_Details.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
+    <ClCompile Include="PostProcessingChain_Details.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="DeferredProcessing_Details.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\dxcapi.h">
