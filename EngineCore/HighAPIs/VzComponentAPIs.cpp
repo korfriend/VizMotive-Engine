@@ -158,6 +158,12 @@ namespace vzm
 		transform->SetQuaternion(*(XMFLOAT4*)&v);
 		UpdateTimeStamp();
 	}
+	void VzSceneComp::SetRotateAxis(const vfloat3& v, const float angle)
+	{
+		GET_TRANS_COMP(transform, );
+		transform->SetRotateAxis(*(XMFLOAT3*)&v, angle);
+		UpdateTimeStamp();
+	}
 	void VzSceneComp::SetMatrix(const vfloat4x4& mat, const bool rowMajor)
 	{
 		GET_TRANS_COMP(transform, );

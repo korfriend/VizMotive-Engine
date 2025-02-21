@@ -222,6 +222,17 @@ namespace vz
 			XMConvertToRadians(rotAngles.x), XMConvertToRadians(rotAngles.y), XMConvertToRadians(rotAngles.z)
 		));
 	}
+	void TransformComponent::SetRotateAxis(const XMFLOAT3& axis, const float rotAngle)
+	{
+		XMVECTOR axisx = XMLoadFloat3(&axis);  // y축을 기준으로
+		float angle_rad = XMConvertToRadians(rotAngle);  // 45도
+
+		// 회전 쿼터니온 생성
+		XMVECTOR quaternion = XMQuaternionRotationAxis(axisx, angle_rad);
+		XMStoreFloat4(&rotation_, quaternion);
+		isDirty_ = true; 
+		timeStampSetter_ = TimerNow;
+	}
 
 	void TransformComponent::SetMatrix(const XMFLOAT4X4& local)
 	{
