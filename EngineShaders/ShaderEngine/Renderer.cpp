@@ -1692,7 +1692,7 @@ namespace vz::renderer
 			//}
 
 			});
-		
+
 		// Occlusion culling:
 		CommandList cmd_occlusionculling;
 		if (renderer::isOcclusionCullingEnabled)
@@ -2110,11 +2110,11 @@ namespace vz::renderer
 
 			if (renderer::isGaussianSplattingEnabled)
 			{
-				RenderGaussianSplatting(cmd);
+				//RenderGaussianSplatting(cmd);
 			} 
 				
 			RenderDirectVolumes(cmd);
-
+			
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{
 				GPUBarrier barriers[] = {

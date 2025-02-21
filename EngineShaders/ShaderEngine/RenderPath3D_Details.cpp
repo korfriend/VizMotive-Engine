@@ -5,14 +5,18 @@
 
 namespace vz::renderer
 {
-	void GRenderPath3DDetails::BarrierStackFlush(CommandList cmd)
+	thread_local std::vector<GPUBarrier> barrierStack;
+	void BarrierStackFlush(CommandList cmd)
 	{
 		if (barrierStack.empty())
 			return;
-		device->Barrier(barrierStack.data(), (uint32_t)barrierStack.size(), cmd);
+		graphics::GetDevice()->Barrier(barrierStack.data(), (uint32_t)barrierStack.size(), cmd);
 		barrierStack.clear();
 	}
+}
 
+namespace vz::renderer
+{
 	// camera-level GPU renderer updates
 	//	c.f., scene-level (including animations) GPU-side updates performed in GSceneDetails::Update(..)
 	// 
@@ -1865,7 +1869,7 @@ namespace vz::renderer
 		//	profiler::EndRange(range);
 		//}
 		//
-		//BarrierStackFlush(cmd); // wind/skinning flush
+		//barrierStackFlush(cmd); // wind/skinning flush
 
 		device->EventEnd(cmd);
 	}

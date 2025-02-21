@@ -512,7 +512,7 @@ namespace vz::renderer
 			//}
 
 			//barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			//BarrierStackFlush(cmd);
+			//barrierStackFlush(cmd);
 
 			//device->BindComputeShader(&shaders[CSTYPE_GS_RENDER_GAUSSIAN], cmd);
 			//// device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
@@ -534,7 +534,7 @@ namespace vz::renderer
 
 			//barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 
-			//BarrierStackFlush(cmd);
+			//barrierStackFlush(cmd);
 			// //=========================================================
 
 
