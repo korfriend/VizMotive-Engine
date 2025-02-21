@@ -404,8 +404,8 @@ namespace vz::renderer
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::UNORDERED_ACCESS));
 			BarrierStackFlush(cmd);
 
 			device->BindComputeShader(&shaders[CSTYPE_DVR_DEFAULT], cmd);
@@ -419,8 +419,8 @@ namespace vz::renderer
 			);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
-			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, rtLinearDepth.desc.layout));
+			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, rtLinearDepth.desc.layout));
 			BarrierStackFlush(cmd);
 
 			break; // TODO: at this moment, just a single volume is supported!

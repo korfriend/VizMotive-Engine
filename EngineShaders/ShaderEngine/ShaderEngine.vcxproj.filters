@@ -16,12 +16,6 @@
     <ClCompile Include="Random.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderPath3D_Details.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="SceneResUpdate.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
@@ -32,14 +26,20 @@
       <Filter>Processing</Filter>
     </ClCompile>
     <ClCompile Include="ShaderEngine.cpp" />
-    <ClCompile Include="GaussianSplatting_Details.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectVolumes_Details.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="GPUBVH.cpp">
       <Filter>Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectVolumes_Details.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="GaussianSplatting_Details.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderPath3D_Details.cpp">
+      <Filter>Renderer\Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -67,12 +67,6 @@
     <ClInclude Include="ShaderLoader.h">
       <Filter>Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="Renderer.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderPath3D_Details.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Image.h">
       <Filter>Processing</Filter>
     </ClInclude>
@@ -83,13 +77,16 @@
     <ClInclude Include="GPUBVH.h">
       <Filter>Processing</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Renderer\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPath3D_Details.h">
+      <Filter>Renderer\Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{e99cb271-8fde-4718-ac12-b01cc63fddf5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Interop">
-      <UniqueIdentifier>{2df084ac-20b5-4d9b-8276-c3c8dd9179a6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Utility">
       <UniqueIdentifier>{bf283072-045c-4e50-aa3b-198bb0c8af69}</UniqueIdentifier>
@@ -105,6 +102,12 @@
     </Filter>
     <Filter Include="Processing">
       <UniqueIdentifier>{585799be-32e6-4d47-9526-6ab374165d0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\Header">
+      <UniqueIdentifier>{13a11900-a87e-4f13-9480-8d53b53caaf1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\Source">
+      <UniqueIdentifier>{1d8dae60-c4c9-4073-8ccc-226a8828cf07}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

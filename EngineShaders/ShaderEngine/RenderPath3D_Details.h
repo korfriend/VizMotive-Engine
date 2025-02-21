@@ -305,12 +305,15 @@ namespace vz::renderer
 
 namespace vz::renderer
 {
+	constexpr float foregroundDepthRange = 0.01f;
+
 	using GPrimBuffers = GGeometryComponent::GPrimBuffers;
 	using Primitive = GeometryComponent::Primitive;
 	using GPrimEffectBuffers = GRenderableComponent::GPrimEffectBuffers;
 
-	inline static thread_local std::vector<GPUBarrier> barrierStack;
-	inline static constexpr float foregroundDepthRange = 0.01f;
+	// Note: barrierStack is used for thread-safe and independent barrier system
+	extern thread_local std::vector<GPUBarrier> barrierStack;
+	void BarrierStackFlush(CommandList cmd);
 }
 
 namespace vz::renderer
@@ -385,7 +388,6 @@ namespace vz::renderer
 		// ---------- GRenderPath3D's internal impl.: -----------------
 		//  * functions with an input 'CommandList' are to be implemented here, otherwise, implement 'renderer::' namespace
 
-		void BarrierStackFlush(CommandList cmd);
 		// call renderer::UpdatePerFrameData to update :
 		//	1. viewMain
 		//	2. frameCB
