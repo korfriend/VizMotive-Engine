@@ -128,8 +128,8 @@ void main(uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint3
     for (uint index = 0; index < g_num_blocks_per_workgroup; index++)
     {
         uint elementId = wID * g_num_blocks_per_workgroup * WORKGROUP_SIZE
-                       + index * WORKGROUP_SIZE
-                       + lID;
+            + index * WORKGROUP_SIZE
+            + lID;
 
         // Initialize bin_flags to 0 (only do so for lID < RADIX_SORT_BINS)
         if (lID < RADIX_SORT_BINS)
@@ -152,7 +152,7 @@ void main(uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint3
         {
             element_in = g_elements_in[elementId];
             payload_val = g_payload_in[elementId];
-            binID = (uint) (element_in >> g_shift) & (RADIX_SORT_BINS - 1);
+            binID = (uint)(element_in >> g_shift) & (RADIX_SORT_BINS - 1);
 
             binOffset = global_offsets[binID];
 

@@ -120,28 +120,28 @@ bool ImportModel_PLY(const std::string& fileName, vz::GeometryComponent* geometr
     size_t limit = std::min<size_t>(1, positions.size());
 
     std::cerr << "Loaded " << positions.size() << " vertices." << std::endl;
-    for (size_t i = 0; i < limit; ++i) {
-        const auto& p = positions[i];
-        const auto& scale = vertex_SOs_ref[i];
-        const auto& rotation = vertex_Qts_ref[i];
-        const auto& shs = vertex_SHs_ref[i];
+    //for (size_t i = 0; i < limit; ++i) {
+    //    const auto& p = positions[i];
+    //    const auto& scale = vertex_SOs_ref[i];
+    //    const auto& rotation = vertex_Qts_ref[i];
+    //    const auto& shs = vertex_SHs_ref[i];
 
-        std::cerr << "Vertex " << i << ": Pos("
-            << p.x << ", " << p.y << ", " << p.z << "), "
-            << "Scale(" << scale.x << ", " << scale.y << ", " << scale.z << "), "
-            << "Rotation(" << rotation.x << ", " << rotation.y << ", "
-            << rotation.z << ", " << rotation.w << ")" << std::endl;
+    //    std::cerr << "Vertex " << i << ": Pos("
+    //        << p.x << ", " << p.y << ", " << p.z << "), "
+    //        << "Scale(" << scale.x << ", " << scale.y << ", " << scale.z << "), "
+    //        << "Rotation(" << rotation.x << ", " << rotation.y << ", "
+    //        << rotation.z << ", " << rotation.w << ")" << std::endl;
 
-        std::cerr << "SH Coefficients:" << std::endl;
-        // 16개의 float3를 출력
-        for (int k = 0; k < 16; ++k) {
-            std::cerr << "("
-                << shs.dcSHs[k].x << ", "
-                << shs.dcSHs[k].y << ", "
-                << shs.dcSHs[k].z << ") " << '\n';
-        }
-        std::cerr << std::endl;
-    }
+    //    std::cerr << "SH Coefficients:" << std::endl;
+    //    // 16개의 float3를 출력
+    //    for (int k = 0; k < 16; ++k) {
+    //        std::cerr << "("
+    //            << shs.dcSHs[k].x << ", "
+    //            << shs.dcSHs[k].y << ", "
+    //            << shs.dcSHs[k].z << ") " << '\n';
+    //    }
+    //    std::cerr << std::endl;
+    //}
 
     return true;
 }

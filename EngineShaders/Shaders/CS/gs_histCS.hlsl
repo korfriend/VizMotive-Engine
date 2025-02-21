@@ -52,8 +52,8 @@ void main(
     for (uint index = 0; index < radix_constants.g_num_blocks_per_workgroup; index++)
     {
         uint elementId = wID * radix_constants.g_num_blocks_per_workgroup * WORKGROUP_SIZE
-                       + index * WORKGROUP_SIZE
-                       + lID;
+            + index * WORKGROUP_SIZE
+            + lID;
 
         if (elementId < radix_constants.g_num_elements)
         {

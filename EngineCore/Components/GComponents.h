@@ -82,7 +82,6 @@ namespace vz
 			graphics::GPUBuffer sortKBufferOdd;
 			graphics::GPUBuffer sortVBufferEven; // duplicated value buffer
 			graphics::GPUBuffer sortVBufferOdd;
-
 			graphics::GPUBuffer sortHistBuffer;
 
 			// test210 - vertexAttributes
