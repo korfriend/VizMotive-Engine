@@ -2337,6 +2337,14 @@ namespace vz
 	{
 		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);
 		//renderer::deferredResourceLock.lock();
+		for (size_t i = 0, n = renderer::deferredMIPGens.size(); i < n; i++)
+		{
+			auto& it = renderer::deferredMIPGens[i];
+			if (it.first.internal_state.get() == texture.internal_state.get())
+			{
+				return;
+			}
+		}
 		renderer::deferredMIPGens.push_back(std::make_pair(texture, preserve_coverage));
 		//renderer::deferredResourceLock.unlock();
 	}
@@ -2344,6 +2352,15 @@ namespace vz
 	{
 		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);
 		//renderer::deferredResourceLock.lock();
+		for (size_t i = 0, n = renderer::deferredBCQueue.size(); i < n; i++)
+		{
+			auto& it = renderer::deferredBCQueue[i];
+			if (it.first.internal_state.get() == texture_src.internal_state.get()
+				&& it.second.internal_state.get() == texture_bc.internal_state.get())
+			{
+				return;
+			}
+		}
 		renderer::deferredBCQueue.push_back(std::make_pair(texture_src, texture_bc));
 		//renderer::deferredResourceLock.unlock();
 	}
@@ -2373,6 +2390,14 @@ namespace vz
 		if (!compfactory::ContainGeometryComponent(entity))
 		{
 			return;
+		}
+		for (size_t i = 0, n = renderer::deferredGeometryGPUBVHGens.size(); i < n; i++)
+		{
+			auto& it = renderer::deferredGeometryGPUBVHGens[i];
+			if (it == entity)
+			{
+				return;
+			}
 		}
 		//renderer::deferredResourceLock.lock();
 		renderer::deferredGeometryGPUBVHGens.push_back(entity);
