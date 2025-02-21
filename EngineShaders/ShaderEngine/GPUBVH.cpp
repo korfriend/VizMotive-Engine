@@ -277,9 +277,6 @@ namespace vz::gpubvh
 
 				uint treeDepth = (uint)ceil(log2(primitiveCount));
 
-				NameComponent* name = compfactory::GetNameComponent(geometryEntity);
-				vzlog("(%s)'s Max TreeDepth: % d", name->GetName().c_str(), treeDepth);
-
 				GPUBarrier barriers[] = {
 					GPUBarrier::Memory()
 				};
@@ -308,6 +305,9 @@ namespace vz::gpubvh
 				device->BindResources(uavs_unbind, 0, arraysize(uavs_unbind), cmd);
 
 				device->Barrier(barriers, arraysize(barriers), cmd);
+
+				NameComponent* name = compfactory::GetNameComponent(geometryEntity);
+				vzlog("GPUBVH generation completed! --> (%s)'s Max TreeDepth: % d", name->GetName().c_str(), treeDepth);
 			}
 			device->EventEnd(cmd);
 

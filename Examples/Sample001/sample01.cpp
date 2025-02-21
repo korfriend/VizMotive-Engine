@@ -1,5 +1,6 @@
 // Filament highlevel APIs
 #include "vzm2/VzEngineAPIs.h"
+#include "vzm2/utils/JobSystem.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -138,18 +139,27 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     
     cam->SetPerspectiveProjection(1.f, 100.f, 45.f, (float)w / (float)h);
 
-	vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
-	root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
+    vz::jobsystem::context ctx_load_obj;
+    vz::jobsystem::Execute(ctx_load_obj, [scene](vz::jobsystem::JobArgs args) {
+		vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
+		root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });
 
-    for (ActorVID vid : root_obj_actor->GetChildren())
-	{
-		vzm::VzActor* obj_actor_child = (vzm::VzActor*)vzm::GetComponent(vid);
-		vzm::VzGeometry* obj_geometry = (vzm::VzGeometry*)vzm::GetComponent(obj_actor_child->GetGeometry());
-        if (obj_geometry)
-        {
-            obj_geometry->SetGPUBVHEnabled(true);
-        }
-    }
+        // just for GPUBVH generation test 
+		for (ActorVID vid : root_obj_actor->GetChildren())
+		{
+			vzm::VzActor* obj_actor_child = (vzm::VzActor*)vzm::GetComponent(vid);
+			vzm::VzGeometry* obj_geometry = (vzm::VzGeometry*)vzm::GetComponent(obj_actor_child->GetGeometry());
+			if (obj_geometry)
+			{
+				obj_geometry->SetGPUBVHEnabled(true);
+			}
+		}
+
+        scene->AppendChild(root_obj_actor);
+
+        });
+
+	
 
 	vzm::VzActor* axis_actor = vzm::LoadModelFile("../Assets/axis.obj");
     //axis_actor->SetScale({ 2000, 2000, 2000 });
@@ -237,8 +247,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::AppendSceneCompTo(actor_test3, scene);
 	vzm::AppendSceneCompTo(axis_actor, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
-    
-	vzm::AppendSceneCompTo(root_obj_actor, scene);
     
     // Main loop
     bool done = false;

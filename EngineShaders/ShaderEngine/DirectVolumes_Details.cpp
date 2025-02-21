@@ -41,7 +41,7 @@ namespace vz::renderer
 		}
 
 		device->EventBegin("Slicer Mesh Render", cmd);
-		auto range = profiler::BeginRangeGPU("RenderSlicerMeshes", &cmd);
+		auto range = profiler::BeginRangeGPU("Slicer Rendering", &cmd);
 
 		BindCommonResources(cmd);
 
@@ -77,10 +77,6 @@ namespace vz::renderer
 		{
 			// We use a policy where the closer it is to the front, the higher the priority.
 			renderQueue.sort_opaque(); // F2B
-		}
-		else
-		{
-			return;
 		}
 
 		struct InstancedBatch
@@ -196,10 +192,7 @@ namespace vz::renderer
 					BarrierStackFlush(cmd);
 
 					if (push.sliceThickness == 0.f || (push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE)) {
-						device->Barrier(GPUBarrier::Memory(), cmd);
-						//CommandList cmd_slicer = cmd;
-						//cmd = device->BeginCommandList();
-						//device->WaitQueue(cmd, QUEUE_COMPUTE);
+						//device->Barrier(GPUBarrier::Memory(), cmd);
 						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[RENDER_OUT], slicer_textures[RENDER_OUT].desc.layout, ResourceState::UNORDERED_ACCESS));
 						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_THICK_ASUM_PACKED], slicer_textures[LAYER_1_THICK_ASUM_PACKED].desc.layout, ResourceState::UNORDERED_ACCESS));
 						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_DEPTH], slicer_textures[LAYER_1_DEPTH].desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
@@ -230,6 +223,8 @@ namespace vz::renderer
 				}
 			};
 
+
+		auto range_1 = profiler::BeginRangeGPU("Slicer Ray-Processing", &cmd);
 		// The following loop is writing the instancing batches to a GPUBuffer:
 		//	RenderQueue is sorted based on mesh index, so when a new mesh or stencil request is encountered, we need to flush the batch
 		//	Imagine a scenario:
@@ -282,17 +277,18 @@ namespace vz::renderer
 			}
 		}
 		BatchDrawingFlush();
+		profiler::EndRange(range_1);
 
 		if (push.sliceThickness > 0) 
 		{
+			auto range_2 = profiler::BeginRangeGPU("Slicer Resolve", &cmd);
 			device->BindComputeShader(&shaders[CSTYPE_KBUFFER_2_RESOLVE], cmd);
 
-			device->Barrier(GPUBarrier::Memory(), cmd);
 			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
 			{
 				graphics::Texture& texture = slicer_textures[i];
 				device->BindUAV(&texture, i, cmd);
-				barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
+				barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::UNORDERED_ACCESS));
 			}
 			BarrierStackFlush(cmd);
 
@@ -310,6 +306,7 @@ namespace vz::renderer
 				barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
 			}
 			BarrierStackFlush(cmd);
+			profiler::EndRange(range_2);
 		}
 
 		profiler::EndRange(range);
@@ -329,7 +326,7 @@ namespace vz::renderer
 		}
 
 		device->EventBegin("Direct Volume Render", cmd);
-		auto range = profiler::BeginRangeGPU("RenderDirectVolumes", &cmd);
+		auto range = profiler::BeginRangeGPU("Direct Volume Rendering", &cmd);
 
 		BindCommonResources(cmd);
 
@@ -404,8 +401,7 @@ namespace vz::renderer
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::UNORDERED_ACCESS));
 			BarrierStackFlush(cmd);
 
 			device->BindComputeShader(&shaders[CSTYPE_DVR_DEFAULT], cmd);
@@ -419,8 +415,7 @@ namespace vz::renderer
 			);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, rtLinearDepth.desc.layout));
+			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, rtLinearDepth.desc.layout));
 			BarrierStackFlush(cmd);
 
 			break; // TODO: at this moment, just a single volume is supported!
