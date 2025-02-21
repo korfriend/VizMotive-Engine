@@ -202,9 +202,15 @@ namespace vz
 		scanGeometryEntities();
 		scanMaterialEntities();
 
+		static jobsystem::context ctx_bvh;
+		// note this update needs to be thread-safe
+		
+		if (!jobsystem::IsBusy(ctx_bvh))
+		{
+			scene_details->RunGeometryUpdateSystem(ctx_bvh);
+		}
+
 		// 1. fully CPU-based operations
-		jobsystem::context ctx_bvh;
-		scene_details->RunGeometryUpdateSystem(ctx_bvh);
 		
 		jobsystem::context ctx;
 
@@ -238,13 +244,13 @@ namespace vz
 		{
 			aabb_ = AABB::Merge(aabb_, group_bound);
 		}
-
+		/**/
 		// TODO: animation updates
 
 		// GPU updates
 		// note: since tasks in ctx has been completed
 		//		there is no need to pass ctx as an argument.
-		handlerScene_->Update(dt);
+		//handlerScene_->Update(dt);
 
 		isDirty_ = false;
 		recentUpdateTime_ = TimerNow;
