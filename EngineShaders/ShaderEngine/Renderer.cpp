@@ -1476,7 +1476,7 @@ namespace vz::renderer
 
 			});
 
-		static const uint32_t drawscene_regular_flags = 
+		const uint32_t drawscene_regular_flags = 
 			renderer::DRAWSCENE_OPAQUE |
 			renderer::DRAWSCENE_TESSELLATION |
 			renderer::DRAWSCENE_OCCLUSIONCULLING;
@@ -2091,40 +2091,64 @@ namespace vz::renderer
 			device->EventEnd(cmd);
 			});
 
-		// Transparents, post processes, etc:
-		cmd = device->BeginCommandList();
-		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+		// Transparents, Special Renderers, and Post Processes, etc:
+		//cmd = device->BeginCommandList();
+		//jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+		//
+		//	BindCameraCB(
+		//		*camera,
+		//		cameraPrevious,
+		//		cameraReflection,
+		//		cmd
+		//	);
+		//
+		//	//RenderLightShafts(cmd);
+		//	
+		//	//RenderVolumetrics(cmd);
+		//	
+		//	//RenderTransparents(cmd);
+		//	
+		//	// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
+		//	{
+		//		GPUBarrier barriers[] = {
+		//			GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
+		//			GPUBarrier::Image(&depthBuffer_Copy, ResourceState::SHADER_RESOURCE, depthBuffer_Copy.desc.layout),
+		//			GPUBarrier::Image(&debugUAV, ResourceState::UNORDERED_ACCESS, debugUAV.desc.layout),
+		//		};
+		//		device->Barrier(barriers, arraysize(barriers), cmd);
+		//	}
+		//});
 
-			BindCameraCB(
-				*camera,
-				cameraPrevious,
-				cameraReflection,
-				cmd
-			);
+		if (renderer::isGaussianSplattingEnabled)
+		{
+			cmd = device->BeginCommandList();
+			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
-			//RenderLightShafts(cmd);
-			
-			//RenderVolumetrics(cmd);
-			
-			//RenderTransparents(cmd);
+				BindCameraCB(
+					*camera,
+					cameraPrevious,
+					cameraReflection,
+					cmd
+				);
 
-			if (renderer::isGaussianSplattingEnabled)
-			{
-				//RenderGaussianSplatting(cmd);
-			} 
-				
-			RenderDirectVolumes(cmd);
-			
-			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
-			{
-				GPUBarrier barriers[] = {
-					GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
-					GPUBarrier::Image(&depthBuffer_Copy, ResourceState::SHADER_RESOURCE, depthBuffer_Copy.desc.layout),
-					GPUBarrier::Image(&debugUAV, ResourceState::UNORDERED_ACCESS, debugUAV.desc.layout),
-				};
-				device->Barrier(barriers, arraysize(barriers), cmd);
-			}
-		});
+				RenderGaussianSplatting(cmd);
+				});
+		}
+		else
+		{
+			cmd = device->BeginCommandList();
+			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+
+				BindCameraCB(
+					*camera,
+					cameraPrevious,
+					cameraReflection,
+					cmd
+				);
+
+				RenderDirectVolumes(cmd);
+				});
+		}
 
 		if (isWetmapRefreshEnabled)
 		{
@@ -2179,76 +2203,10 @@ namespace vz::renderer
 
 			});
 
-		// async compute parallel with depth prepass
-		cmd = device->BeginCommandList(QUEUE_COMPUTE);
-		device->WaitCommandList(cmd, cmd_prepareframe);
-
-		static const uint32_t drawscene_regular_flags =
-			renderer::DRAWSCENE_OPAQUE |
-			renderer::DRAWSCENE_OCCLUSIONCULLING;
-
-		// Main camera depth culling prepass:
-		// TODO
-		/*
 		cmd = device->BeginCommandList();
-		CommandList cmd_maincamera_prepass = cmd;
+		CommandList cmd_slicer = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
-			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
-
-			RenderPassImage rp[] = {
-				RenderPassImage::RenderTarget(
-					&depthBufferMain,
-					RenderPassImage::LoadOp::DONTCARE,
-					RenderPassImage::StoreOp::STORE,
-					ResourceState::SHADER_RESOURCE_COMPUTE,
-					ResourceState::SHADER_RESOURCE_COMPUTE
-				),
-			};
-			device->RenderPassBegin(rp, arraysize(rp), cmd);
-
-			device->EventBegin("Depth-based culling process", cmd);
-			auto range = profiler::BeginRangeGPU("Slicer Z-Prepass", (CommandList*)&cmd);
-
-			device->BindScissorRects(1, &scissor, cmd);
-
-			Viewport vp;// = downcast_camera->viewport; // TODO.. viewport just for render-out result vs. viewport for enhancing performance...?!
-			vp.width = (float)depthBufferMain.GetDesc().width;
-			vp.height = (float)depthBufferMain.GetDesc().height;
-
-			// ----- Foreground: -----
-			vp.min_depth = 1.f - foregroundDepthRange;
-			vp.max_depth = 1.f;
-			device->BindViewports(1, &vp, cmd);
-			DrawScene(
-				viewMain,
-				RENDERPASS_PREPASS,
-				cmd,
-				renderer::DRAWSCENE_OPAQUE |
-				renderer::DRAWSCENE_FOREGROUND_ONLY
-			);
-
-			// ----- Regular: -----
-			vp.min_depth = 0;
-			vp.max_depth = 1;
-			device->BindViewports(1, &vp, cmd);
-			DrawScene(
-				viewMain,
-				RENDERPASS_PREPASS,
-				cmd,
-				drawscene_regular_flags
-			);
-
-			profiler::EndRange(range);
-			device->EventEnd(cmd);
-
-			device->RenderPassEnd(cmd);
-			});
-		/**/
-
-		cmd = device->BeginCommandList();
-		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
-			device->EventBegin("Slicer Renderer", cmd);
 			BindCameraCB(
 				*camera,
 				cameraPrevious,
@@ -2257,13 +2215,6 @@ namespace vz::renderer
 			);
 
 
-			//RenderPassImage rp[] = {
-			//	RenderPassImage::Resolve(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS),
-			//	RenderPassImage::Resolve(&depthBufferMain, depthBufferMain.desc.layout, ResourceState::UNORDERED_ACCESS),
-			//	RenderPassImage::Resolve(&depthBuffer_Copy, depthBufferMain.desc.layout, ResourceState::UNORDERED_ACCESS),
-			//
-			//};
-
 			device->ClearUAV(&rtMain, 0, cmd);
 			device->ClearUAV(&rtPrimitiveID_1, 0, cmd);
 			device->ClearUAV(&rtPrimitiveID_2, 0, cmd);
@@ -2271,9 +2222,22 @@ namespace vz::renderer
 			device->ClearUAV(&rtLinearDepth, 0, cmd);
 
 			RenderSlicerMeshes(cmd);
+
+			});
+
+		cmd = device->BeginCommandList();
+		//device->WaitCommandList(cmd, cmd_slicer);
+		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+
+			BindCameraCB(
+				*camera,
+				cameraPrevious,
+				cameraReflection,
+				cmd
+			);
+
 			RenderDirectVolumes(cmd);
 
-			device->EventEnd(cmd);
 			});
 
 		cmd = device->BeginCommandList();
