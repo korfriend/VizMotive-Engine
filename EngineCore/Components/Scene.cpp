@@ -250,7 +250,7 @@ namespace vz
 		// GPU updates
 		// note: since tasks in ctx has been completed
 		//		there is no need to pass ctx as an argument.
-		//handlerScene_->Update(dt);
+		handlerScene_->Update(dt);
 
 		isDirty_ = false;
 		recentUpdateTime_ = TimerNow;
