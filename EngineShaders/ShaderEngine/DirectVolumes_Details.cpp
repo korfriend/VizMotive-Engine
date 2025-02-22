@@ -13,27 +13,15 @@ namespace vz::renderer
 			return;
 		}
 
-		enum SLICER_TEX {
-			RENDER_OUT = 0,
-			LAYER_0_COLOR_PACKED,
-			LAYER_1_COLOR_PACKED,
-			LAYER_0_DEPTH,
-			LAYER_1_DEPTH,
-			LAYER_0_THICK_ASUM_PACKED,
-			LAYER_1_THICK_ASUM_PACKED,
-		};
 		graphics::Texture slicer_textures[] = {
-			rtMain,				// inout_color, desc.layout
-			rtPrimitiveID_1,	// layer0_color, desc.layout
-			rtPrimitiveID_2,	// layer1_color, desc.layout
-			depthBufferMain,	// layer0_depth, desc.layout (FLOAT)
-			rtLinearDepth,		// layer1_depth, desc.layout (FLOAT)
-			depthBuffer_Copy,	// layer0_thick_asum, desc.layout (UINT)
-			depthBuffer_Copy1,	// layer1_thick_asum, desc.layout (UINT)
+			rtMain,				// inout_color, ResourceState::UNORDERED_ACCESS
+			rtPrimitiveID_1,	// counter (8bit) / mask (8bit) / intermediate distance map (16bit), ResourceState::UNORDERED_ACCESS
+			rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, ResourceState::UNORDERED_ACCESS
+			rtLinearDepth,		// R32G32_UINT - Layer_Packed1, ResourceState::UNORDERED_ACCESS
 		};
 		for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
 		{
-			vzlog_assert(slicer_textures[i].IsValid(), "Texture Resources must be Valid!");
+			vzlog_assert(slicer_textures[i].IsValid(), "RWTexture Resources must be Valid!");
 			if (!slicer_textures[i].IsValid())
 			{
 				return;
@@ -94,7 +82,7 @@ namespace vz::renderer
 
 		SlicerMeshPushConstants push;
 		push.sliceThickness = slicer->GetThickness();
-		// compute pixelSpace
+		// Compute pixelSpace
 		{
 			auto unproj = [&](float screenX, float screenY, float screenZ,
 				float viewportX, float viewportY, float viewportWidth, float viewportHeight,
@@ -155,14 +143,10 @@ namespace vz::renderer
 					}
 
 					device->BindComputeShader(&shaders[CSTYPE_MESH_SLICER], cmd);
-
 					for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
 					{
-						graphics::Texture& texture = slicer_textures[i];
-						device->BindUAV(&texture, i, cmd);
-						barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::UNORDERED_ACCESS));
+						device->BindUAV(&slicer_textures[i], i, cmd);
 					}
-					BarrierStackFlush(cmd);
 
 					push.instanceIndex = instancedBatch.renderableIndex;
 					push.materialIndex = material_index;
@@ -183,46 +167,30 @@ namespace vz::renderer
 						cmd
 					);
 
-					for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-					{
-						device->BindUAV(&unbind, i, cmd);
-						graphics::Texture& texture = slicer_textures[i];
-						barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
-					}
-					BarrierStackFlush(cmd);
-
 					if (push.sliceThickness == 0.f || (push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE)) {
-						//device->Barrier(GPUBarrier::Memory(), cmd);
-						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[RENDER_OUT], slicer_textures[RENDER_OUT].desc.layout, ResourceState::UNORDERED_ACCESS));
-						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_THICK_ASUM_PACKED], slicer_textures[LAYER_1_THICK_ASUM_PACKED].desc.layout, ResourceState::UNORDERED_ACCESS));
-						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_DEPTH], slicer_textures[LAYER_1_DEPTH].desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
-						BarrierStackFlush(cmd);
+
 						device->BindComputeShader(&shaders[CSTYPE_SLICER_OUTLINE], cmd);
 
-						device->BindUAV(&slicer_textures[RENDER_OUT], 0, cmd);
-						device->BindUAV(&slicer_textures[LAYER_1_THICK_ASUM_PACKED], 1, cmd);
-						device->BindResource(&slicer_textures[LAYER_1_DEPTH], 0, cmd);
-
+						{
+							for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+								barrierStack.push_back(GPUBarrier::Memory(&slicer_textures[i]));
+							BarrierStackFlush(cmd);
+						}
 						device->Dispatch(
 							tile_count.x,
 							tile_count.y,
 							1,
 							cmd
 						);
-
-						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[RENDER_OUT], ResourceState::UNORDERED_ACCESS, slicer_textures[RENDER_OUT].desc.layout));
-						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_THICK_ASUM_PACKED], ResourceState::UNORDERED_ACCESS, slicer_textures[LAYER_1_THICK_ASUM_PACKED].desc.layout));
-						barrierStack.push_back(GPUBarrier::Image(&slicer_textures[LAYER_1_DEPTH], ResourceState::SHADER_RESOURCE_COMPUTE, slicer_textures[LAYER_1_DEPTH].desc.layout));
-						BarrierStackFlush(cmd);
-
-						device->BindUAV(&unbind, 0, cmd);
-						device->BindUAV(&unbind, 1, cmd);
-						device->BindResource(&unbind, 0, cmd);
 					}
 
+					{
+						for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+							barrierStack.push_back(GPUBarrier::Memory(&slicer_textures[i]));
+						BarrierStackFlush(cmd);
+					}
 				}
 			};
-
 
 		auto range_1 = profiler::BeginRangeGPU("Slicer Ray-Processing", &cmd);
 		// The following loop is writing the instancing batches to a GPUBuffer:
@@ -230,7 +198,7 @@ namespace vz::renderer
 		//	Imagine a scenario:
 		//		* tens of sphere-shaped renderables (actors) that have the same sphere geoemtry
 		//		* multiple draw calls of the renderables vs. a single drawing of multiple instances (composed of spheres)
-		uint32_t instanceCount = 0;
+
 		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
 		{
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
@@ -282,15 +250,7 @@ namespace vz::renderer
 		if (push.sliceThickness > 0) 
 		{
 			auto range_2 = profiler::BeginRangeGPU("Slicer Resolve", &cmd);
-			device->BindComputeShader(&shaders[CSTYPE_KBUFFER_2_RESOLVE], cmd);
-
-			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-			{
-				graphics::Texture& texture = slicer_textures[i];
-				device->BindUAV(&texture, i, cmd);
-				barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::UNORDERED_ACCESS));
-			}
-			BarrierStackFlush(cmd);
+			device->BindComputeShader(&shaders[CSTYPE_SLICE_KB_2_RESOLVE], cmd);
 
 			device->Dispatch(
 				tile_count.x,
@@ -299,20 +259,17 @@ namespace vz::renderer
 				cmd
 			);
 
-			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-			{
-				device->BindUAV(&unbind, i, cmd);
-				graphics::Texture& texture = slicer_textures[i];
-				barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
-			}
-			BarrierStackFlush(cmd);
 			profiler::EndRange(range_2);
+		}
+
+		for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+		{
+			device->BindUAV(&unbind, i, cmd);
 		}
 
 		profiler::EndRange(range);
 		device->EventEnd(cmd);
 	}
-
 
 	void GRenderPath3DDetails::RenderDirectVolumes(CommandList cmd)
 	{
@@ -364,7 +321,6 @@ namespace vz::renderer
 			renderQueue.sort_opaque(); // F2B
 		}
 
-		uint32_t instanceCount = 0;
 		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
 		{
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index

@@ -1407,7 +1407,6 @@ namespace vz::renderer
 		}
 	}
 
-
 	void GRenderPath3DDetails::RefreshLightmaps(const Scene& scene, CommandList cmd)
 	{
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();

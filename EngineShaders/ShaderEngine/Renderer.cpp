@@ -671,13 +671,14 @@ namespace vz::renderer
 		{
 			return true;
 		}
+		Destroy();
+
 		firstFrame = true;
 
 		canvasWidth_ = canvasWidth;
 		canvasHeight_ = canvasHeight;
 		XMUINT2 internalResolution(canvasWidth, canvasHeight);
-
-		Destroy();
+		CreateTiledLightResources(tiledLightResources, internalResolution);
 
 		if (camera->GetComponentType() == ComponentType::SLICER)
 		{
@@ -852,7 +853,6 @@ namespace vz::renderer
 			device->CreateTexture(&desc, nullptr, &debugUAV);
 			device->SetName(&debugUAV, "debugUAV");
 		}
-		CreateTiledLightResources(tiledLightResources, internalResolution);
 
 		if (renderer::isGaussianSplattingEnabled)
 		{
@@ -884,33 +884,32 @@ namespace vz::renderer
 
 			rtMain_render = rtMain;
 		}
-
-		{ // rtPrimitiveID_1 (Layer0_color), rtPrimitiveID_2 (Layer1_color)
+				
+		/// rtPrimitiveID_1: UINT - counter (8bit) / mask (8bit) / intermediate distance map (16but)
+		/// rtPrimitiveID_2: R32G32B32A32_UINT - Layer_Packed0
+		{ 
 			TextureDesc desc;
 			desc.format = Format::R32_UINT;
-			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			desc.width = internalResolution.x;
 			desc.height = internalResolution.y;
 			desc.sample_count = 1;
 			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
 			desc.misc_flags = ResourceMiscFlag::ALIASING_TEXTURE_RT_DS;
 			device->CreateTexture(&desc, nullptr, &rtPrimitiveID_1);
-			device->CreateTexture(&desc, nullptr, &rtPrimitiveID_2);
-			if (debugMode == DEBUG_BUFFER::PRIMITIVE_ID)
-			{
-				desc.misc_flags = ResourceMiscFlag::NONE;
-				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_debug);
-				device->SetName(&rtPrimitiveID_debug, "rtPrimitiveID_debug");
-			}
 			device->SetName(&rtPrimitiveID_1, "rtPrimitiveID_1");
+
+			desc.format = Format::R32G32B32A32_UINT;
+			device->CreateTexture(&desc, nullptr, &rtPrimitiveID_2);
 			device->SetName(&rtPrimitiveID_2, "rtPrimitiveID_2");
 
 			rtPrimitiveID_1_render = rtPrimitiveID_1;
 			rtPrimitiveID_2_render = rtPrimitiveID_2;
 		}
+
 		{ // rtPostprocess
 			TextureDesc desc;
-			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			desc.format = FORMAT_rendertargetMain;
 			desc.width = internalResolution.x;
 			desc.height = internalResolution.y;
@@ -921,65 +920,20 @@ namespace vz::renderer
 		}
 
 		//----- Depth buffers: -----
-
-		TextureDesc desc;
-		//desc.layout = ResourceState::UNORDERED_ACCESS;
-		desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-		desc.format = Format::R32_FLOAT;
-		desc.width = internalResolution.x;
-		desc.height = internalResolution.y;
-		desc.sample_count = msaaSampleCount; // MUST BE 1
-		desc.mip_levels = 1;
-		desc.array_size = 1;
-		{ // depthBufferMain, depthBuffer_Copy, depthBuffer_Copy1, rtLinearDepth
-			device->CreateTexture(&desc, nullptr, &depthBufferMain); // Layer0's z
-			device->SetName(&depthBufferMain, "depthBufferMain");
-			device->CreateTexture(&desc, nullptr, &rtLinearDepth); // Layer1's z
-			device->SetName(&rtLinearDepth, "rtLinearDepth");
-
-			desc.format = Format::R32_UINT;
-			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy); // Layer0's thick_asum
-			device->SetName(&depthBuffer_Copy, "depthBuffer_Copy");
-			device->CreateTexture(&desc, nullptr, &depthBuffer_Copy1); // Layer1's thick_asum
-			device->SetName(&depthBuffer_Copy1, "depthBuffer_Copy1");
-
-			//int subresource = 0;
-			//subresource = device->CreateSubresource(&depthBufferMain, SubresourceType::SRV, 0, 1, 0, 1);
-			//assert(subresource == 0);
-			//subresource = device->CreateSubresource(&depthBufferMain, SubresourceType::UAV, 0, 1, 0, 1);
-			//assert(subresource == 0);
-			//subresource = device->CreateSubresource(&depthBuffer_Copy, SubresourceType::SRV, 0, 1, 0, 1);
-			//assert(subresource == 0);
-			//subresource = device->CreateSubresource(&depthBuffer_Copy, SubresourceType::UAV, 0, 1, 0, 1);
-			//assert(subresource == 0);
-			//subresource = device->CreateSubresource(&depthBuffer_Copy1, SubresourceType::SRV, 0, 1, 0, 1);
-			//assert(subresource == 0);
-			//subresource = device->CreateSubresource(&depthBuffer_Copy1, SubresourceType::UAV, 0, 1, 0, 1);
-			//assert(subresource == 0);
-			//subresource = device->CreateSubresource(&rtLinearDepth, SubresourceType::SRV, 0, 1, 0, 1);
-			//assert(subresource == 0);
-			//subresource = device->CreateSubresource(&rtLinearDepth, SubresourceType::UAV, 0, 1, 0, 1);
-			//assert(subresource == 0);
-		}
-
-		//----- Other resources: -----
-		{ // debugUAV
+		// rtLinearDepth: R32G32_UINT - Layer_Packed1
+		{
 			TextureDesc desc;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.format = Format::R32G32_UINT;
+			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
 			desc.width = internalResolution.x;
 			desc.height = internalResolution.y;
+			desc.sample_count = msaaSampleCount; // MUST BE 1
 			desc.mip_levels = 1;
 			desc.array_size = 1;
-			desc.format = Format::R8G8B8A8_UNORM;
-			desc.sample_count = 1;
-			desc.usage = Usage::DEFAULT;
-			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			desc.layout = ResourceState::SHADER_RESOURCE;
-
-			device->CreateTexture(&desc, nullptr, &debugUAV);
-			device->SetName(&debugUAV, "debugUAV");
+			device->CreateTexture(&desc, nullptr, &rtLinearDepth); 
+			device->SetName(&rtLinearDepth, "rtLinearDepth");
 		}
-
-		CreateTiledLightResources(tiledLightResources, internalResolution);
 
 		return true;
 	}
@@ -1913,17 +1867,8 @@ namespace vz::renderer
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderData(viewMain, frameCB, cmd);
 
-			uint32_t num_barriers = 2;
-			GPUBarrier barriers[] = {
-				GPUBarrier::Image(&debugUAV, debugUAV.desc.layout, ResourceState::UNORDERED_ACCESS),
-				GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1),
-				GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE), // prepares transition for discard in dx12
-			};
-			if (viewShadingInCS)
-			{
-				num_barriers++;
-			}
-			device->Barrier(barriers, num_barriers, cmd);
+			GPUBarrier barrier = GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1);
+			device->Barrier(&barrier, 1, cmd);
 
 			});
 
@@ -1938,12 +1883,22 @@ namespace vz::renderer
 				cmd
 			);
 
+			graphics::Texture slicer_textures[] = {
+				rtMain,				// inout_color, desc.layout
+				rtPrimitiveID_1,	// counter (can be used for clear mask) (8bit) / intermediate distance map, desc.layout
+				rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, desc.layout
+				rtLinearDepth,		// R32G32_UINT - Layer_Packed1, desc.layout
+			};
+			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+			{
+				graphics::Texture& texture = slicer_textures[i];
+				barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::UNORDERED_ACCESS));
+			}
+			BarrierStackFlush(cmd);
 
+			// These Clear'UAV' must be after the barrier transition to ResourceState::UNORDERED_ACCESS
 			device->ClearUAV(&rtMain, 0, cmd);
 			device->ClearUAV(&rtPrimitiveID_1, 0, cmd);
-			device->ClearUAV(&rtPrimitiveID_2, 0, cmd);
-			device->ClearUAV(&depthBuffer_Copy1, 0, cmd);
-			device->ClearUAV(&rtLinearDepth, 0, cmd);
 
 			RenderSlicerMeshes(cmd);
 
@@ -1961,6 +1916,19 @@ namespace vz::renderer
 			);
 
 			RenderDirectVolumes(cmd);
+
+			graphics::Texture slicer_textures[] = {
+				rtMain,				// inout_color, desc.layout
+				rtPrimitiveID_1,	// counter (can be used for clear mask) (8bit) / intermediate distance map, desc.layout
+				rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, desc.layout
+				rtLinearDepth,		// R32G32_UINT - Layer_Packed1, desc.layout
+			};
+			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+			{
+				graphics::Texture& texture = slicer_textures[i];
+				barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
+			}
+			BarrierStackFlush(cmd);
 
 			});
 
