@@ -626,7 +626,10 @@ int main(int, char **)
 				{
 					std::string performance_info, memory_info;
 					vz::profiler::GetProfileInfo(performance_info, memory_info);
+					ImGui::Text(scene->GetName().c_str());
+					ImGui::Separator();
 					ImGui::Text(performance_info.c_str());
+					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
 				}
 			}
@@ -1010,6 +1013,12 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			return 0;
 		break;
 	case WM_DESTROY:
+	{
+		// IMPORTANT NOTE: 
+		//	Job context that calls functions defined in DLL plugin MUST BE FINISHED
+		//	BEFORE application exit (releasing DLLs)
+		vz::jobsystem::WaitAllJobs();
+	}
 		::PostQuitMessage(0);
 		return 0;
 	}
