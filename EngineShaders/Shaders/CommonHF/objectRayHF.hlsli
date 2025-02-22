@@ -9,9 +9,9 @@ PUSHCONSTANT(push, SlicerMeshPushConstants);
 #define primitiveBuffer bindless_buffers[descriptor_index(push.BVH_primitives)]
 
 // magic values
-#define WILDCARD_DEPTH_OUTLINE 0x12345678
-#define WILDCARD_DEPTH_OUTLINE_DIRTY 0x12345679
-#define OUTSIDE_PLANE 0x87654321
+#define WILDCARD_DEPTH_OUTLINE 1 << 1
+#define WILDCARD_DEPTH_OUTLINE_DIRTY 1 << 2
+#define OUTSIDE_PLANE 1
 
 inline ShaderMaterial GetMaterial()
 {

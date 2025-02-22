@@ -2,11 +2,11 @@
 #include "zfragmentHF.hlsli"
 
 #define K_CORES K_NUM - 1
-void Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
+uint Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
 {
 	half4 color_in = f_in.GetColor();
 
-	if (f_in.z > 1e20 || color_in.a <= 0.01) return;
+	if (f_in.z > 1e20 || color_in.a <= 0.01) return fragCount;
 
 	int store_index = -1;
 	int core_max_idx = -1;
@@ -15,6 +15,8 @@ void Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
 	Fragment f_coremax, f_tail;
 	f_coremax.Init();
 	f_tail.Init();
+
+	uint final_frag_count = fragCount;
 
 	if (fragCount == K_NUM)
 	{
@@ -47,7 +49,7 @@ void Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
 				is_overflow = false;
 				break; // finish
 			}
-			else // if (f_i.i_vis != 0)
+			else // if (f_i.color_packed != 0)
 			{
 				if (OverlapTest(f_in, f_i))
 				{
@@ -101,6 +103,12 @@ void Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
 	{
 		fs[K_NUM - 1] = f_tail;
 	}
+
+	if (!is_overflow)
+	{
+		final_frag_count++;
+	}
+	return final_frag_count;
 }
 
 half4 Resolve_kBuffer(in uint fragCount, inout Fragment fs[K_NUM], out uint finalFragCount)
@@ -145,7 +153,7 @@ half4 Resolve_kBuffer(in uint fragCount, inout Fragment fs[K_NUM], out uint fina
 		{
 			if (finalFragCount < K_NUM - 1)
 			{
-				finalFragCount++;
+				fs[finalFragCount++] = f_1; 
 
 				half4 color = f_1.GetColor();
 				color_out += color * ((half)1.f - color_out.a);
@@ -174,7 +182,7 @@ half4 Resolve_kBuffer(in uint fragCount, inout Fragment fs[K_NUM], out uint fina
 
 	if (f_1.color_packed != 0)
 	{
-		finalFragCount++;
+		fs[finalFragCount++] = f_1;
 
 		half4 color = f_1.GetColor();
 		color_out += color * ((half)1.f - color_out.a);

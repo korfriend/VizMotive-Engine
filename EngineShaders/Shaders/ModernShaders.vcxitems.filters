@@ -391,7 +391,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerOutlineCS.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\kbuffer_2_ResolveCS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicer_kB2_ResolveCS.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
   </ItemGroup>
