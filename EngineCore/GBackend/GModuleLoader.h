@@ -8,6 +8,8 @@ namespace vz
 {
 	using Entity = uint32_t;
 
+	extern std::unordered_map<std::string, HMODULE> importedModules;
+
 	struct GBackendLoader
 	{
 		typedef bool(*PI_GraphicsInitializer)(graphics::ValidationMode validationMode, graphics::GPUPreference preference);
@@ -37,9 +39,9 @@ namespace vz
 				assert(0);
 				return false;
 			}
-			pluginInitializer = platform::LoadModule<PI_GraphicsInitializer>(moduleName, "Initialize");
-			pluginDeinitializer = platform::LoadModule<PI_GraphicsDeinitializer>(moduleName, "Deinitialize");
-			pluginGetDev = platform::LoadModule<PI_GetGraphicsDevice>(moduleName, "GetGraphicsDevice");
+			pluginInitializer = platform::LoadModule<PI_GraphicsInitializer>(moduleName, "Initialize", importedModules);
+			pluginDeinitializer = platform::LoadModule<PI_GraphicsDeinitializer>(moduleName, "Deinitialize", importedModules);
+			pluginGetDev = platform::LoadModule<PI_GetGraphicsDevice>(moduleName, "GetGraphicsDevice", importedModules);
 
 			return pluginInitializer && pluginDeinitializer && pluginGetDev;
 		}
@@ -91,21 +93,21 @@ namespace vz
 		{
 			moduleName = shaderModuleName;
 			
-			pluginInitializer = platform::LoadModule<PI_Initializer>(moduleName, "Initialize");
-			pluginDeinitializer = platform::LoadModule<PI_Deinitializer>(moduleName, "Deinitialize");
+			pluginInitializer = platform::LoadModule<PI_Initializer>(moduleName, "Initialize", importedModules);
+			pluginDeinitializer = platform::LoadModule<PI_Deinitializer>(moduleName, "Deinitialize", importedModules);
 
-			pluginLoadRenderer = platform::LoadModule<PI_LoadRenderer>(moduleName, "LoadRenderer");
+			pluginLoadRenderer = platform::LoadModule<PI_LoadRenderer>(moduleName, "LoadRenderer", importedModules);
 			
-			pluginNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>(moduleName, "NewGRenderPath");
-			pluginNewGScene = platform::LoadModule<PI_NewGScene>(moduleName, "NewGScene");
-			pluginLoadShader = platform::LoadModule<PI_LoadShader>(moduleName, "LoadShader");
-			pluginLoadShaders = platform::LoadModule<PI_LoadShaders>(moduleName, "LoadShaders");
+			pluginNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>(moduleName, "NewGRenderPath", importedModules);
+			pluginNewGScene = platform::LoadModule<PI_NewGScene>(moduleName, "NewGScene", importedModules);
+			pluginLoadShader = platform::LoadModule<PI_LoadShader>(moduleName, "LoadShader", importedModules);
+			pluginLoadShaders = platform::LoadModule<PI_LoadShaders>(moduleName, "LoadShaders", importedModules);
 
-			pluginAddDeferredMIPGen = platform::LoadModule<PI_AddDeferredMIPGen>(moduleName, "AddDeferredMIPGen");
-			pluginAddDeferredBlockCompression = platform::LoadModule<PI_AddDeferredBlockCompression>(moduleName, "AddDeferredBlockCompression");
-			pluginAddDeferredTextureCopy = platform::LoadModule<PI_AddDeferredTextureCopy>(moduleName, "AddDeferredTextureCopy");
-			pluginAddDeferredBufferUpdate = platform::LoadModule<PI_AddDeferredBufferUpdate>(moduleName, "AddDeferredBufferUpdate");
-			pluginAddDeferredGeometryGPUBVHUpdate = platform::LoadModule<PI_AddDeferredGeometryGPUBVHUpdate>(moduleName, "AddDeferredGeometryGPUBVHUpdate");
+			pluginAddDeferredMIPGen = platform::LoadModule<PI_AddDeferredMIPGen>(moduleName, "AddDeferredMIPGen", importedModules);
+			pluginAddDeferredBlockCompression = platform::LoadModule<PI_AddDeferredBlockCompression>(moduleName, "AddDeferredBlockCompression", importedModules);
+			pluginAddDeferredTextureCopy = platform::LoadModule<PI_AddDeferredTextureCopy>(moduleName, "AddDeferredTextureCopy", importedModules);
+			pluginAddDeferredBufferUpdate = platform::LoadModule<PI_AddDeferredBufferUpdate>(moduleName, "AddDeferredBufferUpdate", importedModules);
+			pluginAddDeferredGeometryGPUBVHUpdate = platform::LoadModule<PI_AddDeferredGeometryGPUBVHUpdate>(moduleName, "AddDeferredGeometryGPUBVHUpdate", importedModules);
 
 			return pluginInitializer && pluginDeinitializer && pluginLoadRenderer && pluginNewGRenderPath3D && pluginNewGScene && pluginLoadShader && pluginLoadShaders
 				&& pluginAddDeferredTextureCopy && pluginAddDeferredBufferUpdate && pluginAddDeferredGeometryGPUBVHUpdate;
