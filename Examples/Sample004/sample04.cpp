@@ -209,7 +209,6 @@ int main(int, char **)
 	VzScene *scene = nullptr;
 	VzCamera *camera = nullptr;
 	VzRenderer *renderer = nullptr;
-	ImVec2 wh(512, 512);
 
 	// add .ply load
 	{
@@ -296,25 +295,22 @@ int main(int, char **)
 		{
 			ImGui::Begin("3D Viewer");
 			{
-				static ImVec2 prevWindowSize = ImVec2(0, 0);
-				ImVec2 curWindowSize = ImGui::GetWindowSize();
+				static ImVec2 canvas_size_prev = ImVec2(0, 0);
+				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 
-				if (prevWindowSize.x * prevWindowSize.y == 0)
+				if (canvas_size_prev.x * canvas_size_prev.y == 0)
 					ImGui::SetWindowSize(ImVec2(0, 0));
 
-				bool resized = prevWindowSize.x != curWindowSize.x || prevWindowSize.y != curWindowSize.y;
-				prevWindowSize = curWindowSize;
+				bool resized = canvas_size_prev.x != canvas_size.x || canvas_size_prev.y != canvas_size.y;
+				canvas_size_prev = canvas_size;
 
 				if (resized)
 				{
-					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-					canvas_size.y = std::max(canvas_size.y, 1.f);
 					renderer->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, camera->GetVID());
-					wh = canvas_size;
 				}
 				ImVec2 win_pos = ImGui::GetWindowPos();
 				ImVec2 cur_item_pos = ImGui::GetCursorPos();
-				ImGui::InvisibleButton("render window", wh, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+				ImGui::InvisibleButton("render window", canvas_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 				ImGui::SetItemAllowOverlap();
 
 				bool is_hovered = ImGui::IsItemHovered(); // Hovered
@@ -368,7 +364,7 @@ int main(int, char **)
 					// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 					//ImGui::Image(texId, ImVec2((float)w, (float)h));
 					ImVec2 pos = ImGui::GetItemRectMin();
-					ImVec2 size = wh;
+					ImVec2 size = canvas_size;
 					ImVec2 pos_end = ImVec2(pos.x + size.x, pos.y + size.y);
 					ImGui::GetWindowDrawList()->AddImage(texId, pos, pos_end);
 				}
