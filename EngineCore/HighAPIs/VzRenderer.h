@@ -34,9 +34,12 @@ namespace vzm
 
 		void SetTonemap(const Tonemap tonemap);
 
+		void EnableFrameLock(const bool enabled, const bool frameSkip = true, const float targetFrameRate = 60.f);
 		// MUST BE CALLED WITHIN THE SAME THREAD
-		bool Render(const SceneVID vidScene, const CamVID vidCam);
-		bool Render(const VzScene* scene, const VzCamera* camera) { return Render(scene->GetVID(), camera->GetVID()); };
+		bool Render(const SceneVID vidScene, const CamVID vidCam, const float dt = -1.f);
+		bool Render(const VzScene* scene, const VzCamera* camera, const float dt = -1.f) { return Render(scene->GetVID(), camera->GetVID(), dt); };
+
+		void RenderChain(const std::vector<ChainUnitSCam>& scChain);
 
 		bool PickingList(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, 
 			std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids, std::vector<int>& pritmitiveIDs, std::vector<int>& maskValues);

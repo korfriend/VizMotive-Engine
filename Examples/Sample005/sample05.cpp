@@ -151,7 +151,7 @@ int main(int, char **)
 
 	vzm::ParamMap<std::string> arguments;
 	// arguments.SetString("API", "DX11");
-	arguments.SetString("GPU_VALIDATION", "VERBOSE");
+	//arguments.SetString("GPU_VALIDATION", "VERBOSE");
 	// arguments.SetParam("MAX_THREADS", 1u); // ~0u
 	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
 	if (!vzm::InitEngineLib(arguments))
@@ -329,6 +329,9 @@ int main(int, char **)
 
 		using namespace vzm;
 		{
+			static bool use_renderchain = true;
+			std::vector<ChainUnitRCam> render_chain;
+
 			ImGui::Begin("3D Viewer");
 			{
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);
@@ -390,7 +393,10 @@ int main(int, char **)
 
 				ImGui::SetCursorPos(cur_item_pos);
 
-				renderer3D->Render(scene, camera);
+				if (use_renderchain)
+					render_chain.push_back(ChainUnitRCam(renderer3D, camera));
+				else
+					renderer3D->Render(scene, camera);
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;
@@ -468,7 +474,10 @@ int main(int, char **)
 
 				ImGui::SetCursorPos(cur_item_pos);
 
-				renderer3D1->Render(scene, camera1);
+				if (use_renderchain)
+					render_chain.push_back(ChainUnitRCam(renderer3D1, camera1));
+				else
+					renderer3D1->Render(scene, camera1);
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;
@@ -546,7 +555,10 @@ int main(int, char **)
 
 				ImGui::SetCursorPos(cur_item_pos);
 
-				rendererSlicer->Render(scene, slicer);
+				if (use_renderchain)
+					render_chain.push_back(ChainUnitRCam(rendererSlicer, slicer));
+				else
+					rendererSlicer->Render(scene, slicer);
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;
@@ -563,12 +575,19 @@ int main(int, char **)
 			ImGui::End();
 			/**/
 
+			if (use_renderchain)
+			{
+				scene->RenderChain(render_chain);
+			}
+
 			ImGui::Begin("Controls");
 			{
 				if (ImGui::Button("Shader Reload"))
 				{
 					vzm::ReloadShader();
 				}
+
+				ImGui::Checkbox("Use Render Chain", &use_renderchain);
 
 				static float cur_otf_value = 180, cur_otf_value_prev = 180;
 				static float cur_otf_band_width = 50;

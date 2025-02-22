@@ -11,7 +11,7 @@ namespace vzm
 #define GET_NAME_COMP(COMP, RET) NameComponent* COMP = compfactory::GetNameComponent(componentVID_); \
 	if (!COMP) {post("NameComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 	
-	std::string VzBaseComp::GetName()
+	std::string VzBaseComp::GetName() const 
 	{
 		GET_NAME_COMP(comp, "");
 		return comp->GetName();
@@ -29,13 +29,13 @@ namespace vzm
 #define GET_TRANS_COMP(COMP, RET) TransformComponent* COMP = compfactory::GetTransformComponent(componentVID_); \
 	if (!COMP) {post("TransformComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
-	bool VzSceneComp::IsDirtyTransform()
+	bool VzSceneComp::IsDirtyTransform() const
 	{
 		GET_TRANS_COMP(transform, true);
 		return transform->IsDirty();
 	}
 
-	bool VzSceneComp::IsMatrixAutoUpdate()
+	bool VzSceneComp::IsMatrixAutoUpdate() const
 	{
 		GET_TRANS_COMP(transform, false);
 		return transform->IsMatrixAutoUpdate();
@@ -48,37 +48,37 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
-	void VzSceneComp::GetWorldPosition(vfloat3& v)
+	void VzSceneComp::GetWorldPosition(vfloat3& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT3*)&v = transform->GetWorldPosition();
 	}
-	void VzSceneComp::GetWorldRotation(vfloat4& v)
+	void VzSceneComp::GetWorldRotation(vfloat4& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT4*)&v = transform->GetWorldRotation();
 	}
-	void VzSceneComp::GetWorldScale(vfloat3& v)
+	void VzSceneComp::GetWorldScale(vfloat3& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT3*)&v = transform->GetWorldScale();
 	}
-	void VzSceneComp::GetWorldForward(vfloat3& v)
+	void VzSceneComp::GetWorldForward(vfloat3& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT3*)&v = transform->GetWorldForward();
 	}
-	void VzSceneComp::GetWorldRight(vfloat3& v)
+	void VzSceneComp::GetWorldRight(vfloat3& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT3*)&v = transform->GetWorldRight();
 	}
-	void VzSceneComp::GetWorldUp(vfloat3& v)
+	void VzSceneComp::GetWorldUp(vfloat3& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT3*)&v = transform->GetWorldUp();
 	}
-	void VzSceneComp::GetWorldMatrix(vfloat4x4& mat, const bool rowMajor)
+	void VzSceneComp::GetWorldMatrix(vfloat4x4& mat, const bool rowMajor) const
 	{
 		GET_TRANS_COMP(transform, );
 		const XMFLOAT4X4& world = transform->GetWorldMatrix();
@@ -96,22 +96,22 @@ namespace vzm
 		}
 	}
 
-	void VzSceneComp::GetPosition(vfloat3& v)
+	void VzSceneComp::GetPosition(vfloat3& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT3*)&v = transform->GetPosition();
 	}
-	void VzSceneComp::GetRotation(vfloat4& v)
+	void VzSceneComp::GetRotation(vfloat4& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT4*)&v = transform->GetRotation();
 	}
-	void VzSceneComp::GetScale(vfloat3& v)
+	void VzSceneComp::GetScale(vfloat3& v) const
 	{
 		GET_TRANS_COMP(transform, );
 		*(XMFLOAT3*)&v = transform->GetScale();
 	}
-	void VzSceneComp::GetLocalMatrix(vfloat4x4& mat, const bool rowMajor)
+	void VzSceneComp::GetLocalMatrix(vfloat4x4& mat, const bool rowMajor) const
 	{
 		GET_TRANS_COMP(transform, );
 		const XMFLOAT4X4& local = transform->GetLocalMatrix();
@@ -193,13 +193,13 @@ namespace vzm
 #define GET_HIER_COMP(COMP, RET) HierarchyComponent* COMP = compfactory::GetHierarchyComponent(componentVID_); \
 	if (!COMP) {post("HierarchyComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
-	VID VzSceneComp::GetParent()
+	VID VzSceneComp::GetParent() const
 	{
 		GET_HIER_COMP(hierarchy, INVALID_VID);
 		return compfactory::GetEntityByVUID(hierarchy->GetParent());
 	}
 
-	std::vector<VID> VzSceneComp::GetChildren()
+	std::vector<VID> VzSceneComp::GetChildren() const
 	{
 		std::vector<VID> children;
 		GET_HIER_COMP(hierarchy, children);
