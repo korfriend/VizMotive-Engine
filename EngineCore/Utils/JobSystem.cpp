@@ -600,6 +600,11 @@ namespace vz::jobsystem
 
 	void WaitAllJobs()
 	{
+		bool is_alive_state = internal_state.alive.load();
 		internal_state.WaitAll();
+		if (is_alive_state)
+		{
+			internal_state.alive.store(true);
+		}
 	}
 }
