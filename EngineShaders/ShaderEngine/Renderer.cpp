@@ -1024,7 +1024,6 @@ namespace vz::renderer
 			ResizeCanvas(canvasWidth_, canvasHeight_);
 		}
 
-		profiler::BeginFrame();
 		// color space check
 		// if swapChain is invalid, rtRenderFinal_ is supposed to be valid!
 		if (swapChain_.IsValid())
@@ -1098,10 +1097,6 @@ namespace vz::renderer
 			image::Draw(&rtRenderFinal_, fx, cmd);	// note: in this case, rtRenderFinal_ is used as inter-result of final render-out
 			device->RenderPassEnd(cmd);
 		}
-
-		profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
-
-		device->SubmitCommandLists();
 
 		return true;
 	}

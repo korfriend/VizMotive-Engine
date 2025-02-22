@@ -3,6 +3,7 @@
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Utils/Helpers.h"
+#include "GBackend/GModuleLoader.h"
 
 using namespace vz;
 using namespace std;
@@ -118,11 +119,11 @@ namespace vzm
 		PI_Function lpdll_function = nullptr;
 		if (ext == "STL")
 		{
-			lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_STL");
+			lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_STL", importedModules);
 		}
 		else if (ext == "PLY")
 		{
-			lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_PLY");
+			lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_PLY", importedModules);
 		}
 		else
 		{

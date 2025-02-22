@@ -16,6 +16,7 @@ namespace vz
 {
 	GBackendLoader graphicsBackend;
 	GShaderEngineLoader shaderEngine;
+	std::unordered_map<std::string, HMODULE> importedModules;
 }
 
 namespace vzm
@@ -700,7 +701,7 @@ namespace vzm
 			std::vector<Entity>& textures
 			);
 
-		PI_Function lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_OBJ");
+		PI_Function lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_OBJ", importedModules);
 		if (lpdll_function == nullptr)
 		{
 			backlog::post("vzm::LoadModelFile >> Invalid plugin function!", backlog::LogLevel::Error);
@@ -734,7 +735,7 @@ namespace vzm
 	{
 		CHECK_API_INIT_VALIDITY(false);
 		typedef bool(*PI_Function)(std::unordered_map<std::string, std::any>& io);
-		PI_Function lpdll_function = platform::LoadModule<PI_Function>(pluginFilename, functionName);
+		PI_Function lpdll_function = platform::LoadModule<PI_Function>(pluginFilename, functionName, importedModules);
 		if (lpdll_function == nullptr)
 		{
 			backlog::post("vzm::ExecutePluginFunction >> Invalid plugin function!", backlog::LogLevel::Error);
@@ -753,8 +754,12 @@ namespace vzm
 
 	bool DeinitEngineLib()
 	{
-		CHECK_API_LOCKGUARD_VALIDITY(false);
+		CHECK_API_INIT_VALIDITY(false);
 		jobsystem::ShutDown();
+
+		// lock_gaurd MUST be placed BEFORE jobsystem::ShutDown() or WaitAllJobs()!
+		std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
+
 		graphicsDevice->WaitForGPU();
 		profiler::Shutdown();
 

@@ -173,9 +173,16 @@ namespace vzm
 			dt += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
 		}
 		renderer->deltaTimeAccumulator += dt;
-
 		renderer->Update(dt);
+
+		profiler::BeginFrame();
+
 		renderer->Render(dt);
+		
+		graphics::GraphicsDevice* device = graphics::GetDevice();
+		graphics::CommandList cmd = device->BeginCommandList();
+		profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
+		device->SubmitCommandLists();
 
 		renderer->frameCount++;
 

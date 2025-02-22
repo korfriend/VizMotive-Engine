@@ -91,9 +91,8 @@ namespace vz::platform
 #endif // PLATFORM_LINUX
 	}
 
-	static std::unordered_map<std::string, HMODULE> importedModules;
 	template <typename T>
-	T LoadModule(std::string moduleName, std::string functionName)
+	T LoadModule(std::string moduleName, std::string functionName, std::unordered_map<std::string, HMODULE>& importedModules)
 	{
 		HMODULE hMouleLib = NULL;
 		auto it = importedModules.find(moduleName);
