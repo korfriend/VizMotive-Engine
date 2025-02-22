@@ -28,11 +28,6 @@ namespace vz::renderer
 			}
 		}
 
-		device->EventBegin("Slicer Mesh Render", cmd);
-		auto range = profiler::BeginRangeGPU("Slicer Rendering", &cmd);
-
-		BindCommonResources(cmd);
-
 		uint32_t filterMask = GMaterialComponent::FILTER_OPAQUE | GMaterialComponent::FILTER_TRANSPARENT;
 
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
@@ -66,6 +61,14 @@ namespace vz::renderer
 			// We use a policy where the closer it is to the front, the higher the priority.
 			renderQueue.sort_opaque(); // F2B
 		}
+		else
+		{
+			return;
+		}
+
+		device->EventBegin("Slicer Mesh Render", cmd);
+
+		BindCommonResources(cmd);
 
 		struct InstancedBatch
 		{
@@ -267,7 +270,6 @@ namespace vz::renderer
 			device->BindUAV(&unbind, i, cmd);
 		}
 
-		profiler::EndRange(range);
 		device->EventEnd(cmd);
 	}
 
@@ -281,11 +283,6 @@ namespace vz::renderer
 		{
 			return;
 		}
-
-		device->EventBegin("Direct Volume Render", cmd);
-		auto range = profiler::BeginRangeGPU("Direct Volume Rendering", &cmd);
-
-		BindCommonResources(cmd);
 
 		uint32_t filterMask = GMaterialComponent::FILTER_VOLUME;
 
@@ -320,6 +317,15 @@ namespace vz::renderer
 			// We use a policy where the closer it is to the front, the higher the priority.
 			renderQueue.sort_opaque(); // F2B
 		}
+		else
+		{
+			return;
+		}
+
+		device->EventBegin("Direct Volume Render", cmd);
+		auto range = profiler::BeginRangeGPU("Direct Volume Rendering", &cmd);
+
+		BindCommonResources(cmd);
 
 		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
 		{

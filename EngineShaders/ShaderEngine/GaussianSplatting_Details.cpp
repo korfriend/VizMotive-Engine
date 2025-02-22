@@ -31,11 +31,6 @@ namespace vz::renderer
 			return;
 		}
 
-		device->EventBegin("Gaussian Splatting Render", cmd);
-		auto range = profiler::BeginRangeGPU("GaussianSplatting Rendering", &cmd);
-
-		BindCommonResources(cmd);
-
 		uint32_t filterMask = GMaterialComponent::FILTER_GAUSSIAN_SPLATTING;
 
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
@@ -74,6 +69,15 @@ namespace vz::renderer
 			renderQueue.sort_opaque();
 			//renderQueue.sort_transparent();
 		}
+		else
+		{
+			return;
+		}
+
+		device->EventBegin("Gaussian Splatting Render", cmd);
+		auto range = profiler::BeginRangeGPU("GaussianSplatting Rendering", &cmd);
+
+		BindCommonResources(cmd);
 
 		uint32_t instanceCount = 0;
 		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
