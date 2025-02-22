@@ -193,13 +193,13 @@ namespace vzm
 			UpdateTimeStamp();
 		}
 		VID GetVID() const { return componentVID_; }
-		COMPONENT_TYPE GetType() { return type_; };
-		TimeStamp GetTimeStamp() { return timeStamp_; };
+		COMPONENT_TYPE GetType() const { return type_; };
+		TimeStamp GetTimeStamp() const { return timeStamp_; };
 		void UpdateTimeStamp()
 		{
 			timeStamp_ = std::chrono::high_resolution_clock::now();
 		}
-		std::string GetName();
+		std::string GetName() const;
 		void SetName(const std::string& name);
 	};
     struct API_EXPORT VzSceneComp : VzBaseComp
@@ -207,23 +207,23 @@ namespace vzm
 		VzSceneComp(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
 			: VzBaseComp(vid, originFrom, type) {}
 
-		bool IsDirtyTransform();
-		bool IsMatrixAutoUpdate();
+		bool IsDirtyTransform() const;
+		bool IsMatrixAutoUpdate() const;
 		void SetMatrixAutoUpdate(const bool enable);
 
-		void GetWorldPosition(vfloat3& v);
-		void GetWorldRotation(vfloat4& v);
-		void GetWorldScale(vfloat3& v);
-        void GetWorldForward(vfloat3& v);
-        void GetWorldRight(vfloat3& v);
-        void GetWorldUp(vfloat3& v);
-        void GetWorldMatrix(vfloat4x4& mat, const bool rowMajor = false);
+		void GetWorldPosition(vfloat3& v)const;
+		void GetWorldRotation(vfloat4& v)const;
+		void GetWorldScale(vfloat3& v)const;
+        void GetWorldForward(vfloat3& v)const;
+        void GetWorldRight(vfloat3& v)const;
+        void GetWorldUp(vfloat3& v)const;
+        void GetWorldMatrix(vfloat4x4& mat, const bool rowMajor = false) const;
 
         // local
-		void GetPosition(vfloat3& v);
-		void GetRotation(vfloat4& v);
-		void GetScale(vfloat3& v);
-        void GetLocalMatrix(vfloat4x4& mat, const bool rowMajor = false);
+		void GetPosition(vfloat3& v) const;
+		void GetRotation(vfloat4& v) const;
+		void GetScale(vfloat3& v) const;
+        void GetLocalMatrix(vfloat4x4& mat, const bool rowMajor = false) const;
 
 		// local transforms
 		void SetPosition(const vfloat3& v);
@@ -237,8 +237,8 @@ namespace vzm
 		void UpdateMatrix();	// local matrix
 		void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
 
-        ActorVID GetParent();
-        std::vector<ActorVID> GetChildren();
+        ActorVID GetParent() const;
+        std::vector<ActorVID> GetChildren() const;
 
 		void AppendChild(const VzBaseComp* child);
 		void DetachChild(const VzBaseComp* child);
@@ -253,6 +253,73 @@ namespace vzm
 	{
 		VzResource(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
 			: VzBaseComp(vid, originFrom, type) {}
+	};
+}
+
+namespace vzm
+{
+	struct ClearOption
+	{
+		bool enabled = false;
+		uint32_t clearColor = 0u;
+	};
+	struct Viewport
+	{
+		float topLeftX = 0;
+		float topLeftY = 0;
+		float width = 0;
+		float height = 0;
+		float min_depth = 0;
+		float max_depth = 1;
+	};
+	struct Scissor
+	{
+		int32_t left = 0;
+		int32_t top = 0;
+		int32_t right = 0;
+		int32_t bottom = 0;
+
+		constexpr void from_viewport(const Viewport& vp)
+		{
+			left = int32_t(vp.topLeftX);
+			right = int32_t(vp.topLeftX + vp.width);
+			top = int32_t(vp.topLeftY);
+			bottom = int32_t(vp.topLeftY + vp.height);
+		}
+	};
+	struct API_EXPORT ChainUnitRCam
+	{
+	private:
+		bool isValid_ = false;
+	public:
+		ClearOption co = {};
+		Scissor sc = {};
+		Viewport vp = {};
+
+		RendererVID rendererVid = INVALID_VID;
+		CamVID camVid = INVALID_VID;
+
+		ChainUnitRCam(const RendererVID rendererVid, const CamVID camVid);
+		ChainUnitRCam(const VzBaseComp* renderer, const VzBaseComp* camera) : ChainUnitRCam(renderer->GetVID(), camera->GetVID()) {}
+
+		bool IsValid() const { return isValid_; }
+	};
+	struct API_EXPORT ChainUnitSCam
+	{
+	private:
+		bool isValid_ = false;
+	public:
+		ClearOption co = {};
+		Scissor sc = {};
+		Viewport vp = {};
+
+		SceneVID sceneVid = INVALID_VID;
+		CamVID camVid = INVALID_VID;
+
+		ChainUnitSCam(const SceneVID sceneVid, const CamVID camVid);
+		ChainUnitSCam(const VzBaseComp* scene, const VzBaseComp* camera) : ChainUnitSCam(scene->GetVID(), camera->GetVID()) {}
+
+		bool IsValid() const { return isValid_; }
 	};
 }
 

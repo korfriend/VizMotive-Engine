@@ -196,6 +196,7 @@ namespace vz
 	void Scene::Update(const float dt)
 	{
 		dt_ = dt;
+		deltaTimeAccumulator_ += dt;
 
 		SceneDetails* scene_details = static_cast<SceneDetails*>(this);
 

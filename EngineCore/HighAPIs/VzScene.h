@@ -23,5 +23,7 @@ namespace vzm
 		void AppendChild(const VzBaseComp* child);
 		void DetachChild(const VzBaseComp* child);
 		void AttachToParent(const VzBaseComp* parent);
+
+		bool RenderChain(const std::vector<ChainUnitRCam>& rendererChain, const float dt = -1.f);
 	};
 }

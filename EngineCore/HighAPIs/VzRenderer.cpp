@@ -150,8 +150,16 @@ namespace vzm
 		GET_RENDERPATH(renderer, );
 	}
 
+	void VzRenderer::EnableFrameLock(const bool enabled, const bool frameSkip, const float targetFrameRate)
+	{
+		GET_RENDERPATH(renderer, );
+		renderer->framerateLock = enabled;
+		renderer->frameskip = frameSkip;
+		renderer->targetFrameRate = targetFrameRate;
+	}
+
 	// MUST BE CALLED WITHIN THE SAME THREAD
-	bool VzRenderer::Render(const SceneVID vidScene, const CamVID vidCam)
+	bool VzRenderer::Render(const SceneVID vidScene, const CamVID vidCam, const float dt)
 	{
 		GET_RENDERPATH(renderer, false);
 
@@ -165,19 +173,29 @@ namespace vzm
 			return false;
 		}
 
-		float dt = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+		auto timestamp_prev = renderer->timer.timestamp;
+		float delta_time = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
 		const float target_deltaTime = 1.0f / renderer->targetFrameRate;
-		if (renderer->framerateLock && dt < target_deltaTime)
+		if (renderer->framerateLock && delta_time < target_deltaTime)
 		{
-			helper::QuickSleep((target_deltaTime - dt) * 1000);
-			dt += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+			if (renderer->frameskip)
+			{
+				renderer->timer.timestamp = timestamp_prev;
+				return true;
+			}
+			helper::QuickSleep((target_deltaTime - delta_time) * 1000);
+			delta_time += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
 		}
-		renderer->deltaTimeAccumulator += dt;
-		renderer->Update(dt);
+		renderer->deltaTimeAccumulator += delta_time;
 
 		profiler::BeginFrame();
 
-		renderer->Render(dt);
+		// Update the target Scene of this RenderPath 
+		//	this involves Animation updates
+		float update_dt = dt > 0 ? dt : delta_time;
+		renderer->scene->Update(update_dt);
+		renderer->Update(update_dt);
+		renderer->Render(update_dt);
 		
 		graphics::GraphicsDevice* device = graphics::GetDevice();
 		graphics::CommandList cmd = device->BeginCommandList();
@@ -187,6 +205,28 @@ namespace vzm
 		renderer->frameCount++;
 
 		return true;
+	}
+
+	ChainUnitSCam::ChainUnitSCam(const SceneVID sceneVid, const CamVID camVid) : sceneVid(sceneVid), camVid(camVid)
+	{
+		VzBaseComp* scene = vzm::GetComponent(sceneVid);
+		VzBaseComp* camera = vzm::GetComponent(camVid);
+		bool is_valid = scene && camera;
+		vzlog_assert(is_valid, "ChainUnitRCam >> Invalid VzComponent!!");
+		if (!is_valid)
+			return;
+		is_valid = scene->GetType() == COMPONENT_TYPE::SCENE &&
+			(camera->GetType() == COMPONENT_TYPE::CAMERA || camera->GetType() == COMPONENT_TYPE::SLICER);
+		vzlog_assert(is_valid,
+			"ChainUnitRCam >> Component Type Matching Error!!");
+		if (!is_valid)
+			return;
+		isValid_ = true;
+	}
+
+	void VzRenderer::RenderChain(const std::vector<ChainUnitSCam>& scChain)
+	{
+
 	}
 
 	bool VzRenderer::PickingList(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, 
