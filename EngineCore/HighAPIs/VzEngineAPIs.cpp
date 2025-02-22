@@ -183,6 +183,11 @@ namespace vzm
 #ifdef _DEBUG
 		//validationMode = graphics::ValidationMode::Verbose;
 #endif
+		if (validationMode == graphics::ValidationMode::Verbose)
+		{
+			vzlog_warning("GPU Devide Debug Layer: ON >> Performance will be seriously downgraded with some memory-leakage-like profiles!!")
+		}
+
 		graphics::GPUPreference preferenceMode = graphics::GPUPreference::Discrete;
 		std::string preference = arguments.GetString("GPU_PREFERENCE", "DISCRETE");
 		if (preference == "INTEGRATED")

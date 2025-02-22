@@ -110,7 +110,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     vzm::ParamMap<std::string> arguments;
     //arguments.SetString("API", "DX11");
-    arguments.SetString("GPU_VALIDATION", "VERBOSE");
+    //arguments.SetString("GPU_VALIDATION", "VERBOSE");
     //arguments.SetParam("MAX_THREADS", 1u); // ~0u
     arguments.SetParam("MAX_THREADS", ~0u); // ~0u
     if (!vzm::InitEngineLib(arguments)) {
@@ -128,6 +128,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     vzm::VzRenderer* renderer = vzm::NewRenderer("my renderer");
     renderer->SetCanvas(w, h, dpi, hwnd);
     renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
+    renderer->EnableFrameLock(true, false);
     //renderer->SetVisibleLayerMask(0x4, 0x4);
     
     vzm::VzCamera* cam = vzm::NewCamera("my camera");

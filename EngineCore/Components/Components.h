@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250221_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250223_1";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -122,6 +122,7 @@ namespace vz
 
 		// instant parameters during render-process
 		float dt_ = 0.f;
+		float deltaTimeAccumulator_ = 0.f;
 
 		GScene* handlerScene_ = nullptr;
 
@@ -131,6 +132,17 @@ namespace vz
 	public:
 		Scene(const Entity entity, const std::string& name);
 		~Scene();
+
+		float targetFrameRate = 60;
+		bool frameskip = true; // just for fixed update (later for physics-based simulations)
+		bool framerateLock = true;
+		TimeStamp timerStamp = TimerNow;
+		double RecordElapsedSeconds() {
+			TimeStamp timestamp2 = TimerNow;
+			double duration = TimeDurationCount(timestamp2, timerStamp);
+			timerStamp = timestamp2;
+			return duration;
+		}
 
 		uint32_t mostImportantLightIndex = ~0u;
 		const void* GetTextureSkyMap() const;			// return the pointer of graphics::Texture
