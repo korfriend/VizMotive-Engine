@@ -4,12 +4,9 @@
 #include "../CommonHF/kbufferHF.hlsli"
 
 RWTexture2D<unorm float4> inout_color : register(u0);
-RWTexture2D<uint> layer0_color : register(u1); // RGBA
-RWTexture2D<uint> layer1_color : register(u2);
-RWTexture2D<float> layer0_depth : register(u3);
-RWTexture2D<float> layer1_depth : register(u4); // pixel-space distance_map
-RWTexture2D<uint> layer0_thick_asum : register(u5); // RG
-RWTexture2D<uint> layer1_thick_asum : register(u6);
+RWTexture2D<uint> counter_mask_distmap : register(u1);
+RWTexture2D<uint4> layer_packed0_RGBA : register(u2);
+RWTexture2D<uint2> layer_packed1_RG : register(u3);
 
 inline bool InsideTest(const float3 originWS, const float3 originOS, const float3 rayDirOS, const float2 minMaxT, const float4x4 os2ws, inout float minDistOnPlane)
 {
@@ -50,20 +47,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		return;
 	}
 
-	if (asuint(layer1_depth[pixel]) == WILDCARD_DEPTH_OUTLINE)
+	uint c_m_d = counter_mask_distmap[pixel];
+	uint count = c_m_d & 0xFF;
+	uint mask = (c_m_d >> 8) & 0xFF;
+
+	if (mask & WILDCARD_DEPTH_OUTLINE)
 	{
 		return;
 	}
 
-	uint v_layer1_thich_asum = layer1_thick_asum[pixel];
-	if (v_layer1_thich_asum == WILDCARD_DEPTH_OUTLINE_DIRTY)
+	if (mask & WILDCARD_DEPTH_OUTLINE_DIRTY)
 	{
-		layer1_thick_asum[pixel] = 0;
-		layer1_depth[pixel] = asfloat(WILDCARD_DEPTH_OUTLINE);
+		counter_mask_distmap[pixel] = WILDCARD_DEPTH_OUTLINE << 8 | count;
 		return;
 	}
 
-	layer1_depth[pixel] = asfloat(OUTSIDE_PLANE);
+	// preserves only counter
+	counter_mask_distmap[pixel] = OUTSIDE_PLANE << 8 | count;
 
 	bool disabled_filling = push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE;
 
@@ -139,7 +139,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	if (sliceThickness == 0)
 	{
-		layer1_depth[pixel] = minDistOnPlane;
+		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | count;
 		// DO NOT finish here (for solid filling)
 	}
 
@@ -346,8 +346,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		half zthickness = half(0.1f);
 		if (disabled_filling) 
 		{
-			base_color = half4(0.f, 0.f, 0.f, 0.01f);
-			zthickness = half(0.f);
+			return;
+			// THIS IS FOR NATURAL PICKING (HEURISTIC)
+			// when user picks the non-watertight internal-side
+			// new version implements the picking in CPU-side
+			//base_color = half4(0.f, 0.f, 0.f, 0.01f);
+			//zthickness = half(0.f);
 		}
 		
 		base_color.rgb *= base_color.a;
@@ -358,16 +362,17 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		frag.zthick = zthickness;
 		frag.opacity_sum = base_color.a;
 
-		uint color0_packed = layer0_color[pixel];
-		if (color0_packed != 0)
+		uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
+		uint color0_packed = v_layer_packed0_RGBA.r;
+		if (count != 0) // color0_packed != 0
 		{
 			Fragment fragPrev;
 			fragPrev.color_packed = color0_packed;
 
-			// Note: layer0_depth[pixel] can contain non-zero values inherited from previous thick-slicer.
+			// Note: v_layer_packed0_RGBA.g (z depth) can contain non-zero values inherited from previous thick-slicer.
 			//	This case occurs during special outline-only passes defined in Actor configuration options.
-			fragPrev.z = layer0_depth[pixel]; 
-			fragPrev.Unpack_Zthick_AlphaSum(layer0_thick_asum[pixel]);
+			fragPrev.z = asfloat(v_layer_packed0_RGBA.g);
+			fragPrev.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 			
 			half4 color_prev = fragPrev.GetColor();
 			if (color_prev.a > half(0.01f))
@@ -375,14 +380,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			frag.opacity_sum += fragPrev.opacity_sum;
 		}
 
-		layer0_color[pixel] = frag.color_packed;
-		layer0_depth[pixel] = zdepth0;
-		layer0_thick_asum[pixel] = frag.Pack_Zthick_AlphaSum();
+		layer_packed0_RGBA[pixel] = uint4(frag.color_packed, asuint(frag.z), frag.Pack_Zthick_AlphaSum(), 0);
 		
 		if (push.sliceThickness == 0)
 			inout_color[pixel] = (float4)frag.GetColor();
 
-		layer1_thick_asum[pixel] = 0;
+		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | 1;
 	}
 	else
 	{
@@ -414,32 +417,32 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		///Fill_kBuffer(pixel, 2, color_cur, zdepth1, vz_thickness);
 		{
-			uint color0_packed = layer0_color[pixel];
-			if (color0_packed == 0)
+			if (count == 0)
 			{
-				layer0_color[pixel] = frag.color_packed;
-				layer0_depth[pixel] = frag.z;
-				layer0_thick_asum[pixel] = frag.Pack_Zthick_AlphaSum();
-
+				layer_packed0_RGBA[pixel] = uint4(frag.color_packed, asuint(frag.z), frag.Pack_Zthick_AlphaSum(), 0);
+				counter_mask_distmap[pixel] = 1;
 				//inout_color[pixel] = (float4)frag.GetColor(); // test //
 			}
 			else
 			{
-				uint color1_packed = layer1_color[pixel];
-				uint frag_cnt = color1_packed == 0 ? 1 : 2;
+				uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
+				uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
 
 				Fragment f_0;
-				f_0.color_packed = color0_packed;
-				f_0.z = layer0_depth[pixel];
-				f_0.Unpack_Zthick_AlphaSum(layer0_thick_asum[pixel]);
+				f_0.color_packed = v_layer_packed0_RGBA.r;
+				f_0.z = asfloat(v_layer_packed0_RGBA.g);
+				f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 
 				Fragment f_1;
-				f_1.color_packed = color1_packed;
-				f_1.z = layer1_depth[pixel];
-				f_1.Unpack_Zthick_AlphaSum(v_layer1_thich_asum);
+				f_1.color_packed = v_layer_packed0_RGBA.a;
+				f_1.z = asfloat(v_layer_packed1_RG.r);
+				f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
 				Fragment fs[2] = { f_0, f_1 };
 
-				Fill_kBuffer(frag, frag_cnt, fs);
+				count = Fill_kBuffer(frag, count, fs);
+				layer_packed0_RGBA[pixel] = uint4(fs[0].color_packed, asuint(fs[0].z), fs[0].Pack_Zthick_AlphaSum(), fs[1].color_packed);
+				layer_packed1_RG[pixel] = uint2(asuint(fs[1].z), fs[1].Pack_Zthick_AlphaSum());
+				counter_mask_distmap[pixel] = count;
 			}
 		}
 	}

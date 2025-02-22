@@ -360,7 +360,6 @@ namespace vz::renderer
 		//graphics::Texture rtDvrDepth; // aliased to rtPrimitiveID_2
 		//graphics::Texture rtCounter; // aliased to rtPrimitiveID_1 ??
 
-
 		graphics::Texture rtMain;
 		graphics::Texture rtMain_render; // can be MSAA
 		graphics::Texture rtPrimitiveID_1;	// aliasing to rtPostprocess

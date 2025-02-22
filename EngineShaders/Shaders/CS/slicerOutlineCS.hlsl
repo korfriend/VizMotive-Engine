@@ -1,12 +1,13 @@
 #include "../Globals.hlsli"
 #include "../CommonHF/objectRayHF.hlsli"
-#include "../CommonHF/zfragmentHF.hlsli"
+#define K_NUM 2
+#include "../CommonHF/kbufferHF.hlsli"
 
 // Use the same naming convention to meshSlicerCS.hlsl
 RWTexture2D<unorm float4> inout_color : register(u0);
-RWTexture2D<uint> layer1_thick_asum : register(u1);
-
-Texture2D<float> distance_map : register(t0);
+RWTexture2D<uint> counter_mask_distmap : register(u1);
+RWTexture2D<uint4> layer_packed0_RGBA : register(u2);
+RWTexture2D<uint2> layer_packed1_RG : register(u3);
 
 // value:  [-d, d] 범위의 입력 값
 // d:      최대 범위(양/음)
@@ -43,14 +44,18 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		return;
 	}
 
-	float sd = distance_map[pixel];
-	uint wildcard_v = asuint(sd);
-	if (wildcard_v == WILDCARD_DEPTH_OUTLINE || wildcard_v == OUTSIDE_PLANE)
+	uint c_m_d = counter_mask_distmap[pixel];
+	uint count = c_m_d & 0xFF;
+	uint mask = (c_m_d >> 8) & 0xFF;
+
+	if (mask & (WILDCARD_DEPTH_OUTLINE | OUTSIDE_PLANE))
 		return;
 
 #define MIN_OUTLINE_PIXEL 2.f
 
 	const float lineThres = max(push.outlineThickness, MIN_OUTLINE_PIXEL);
+
+	float sd = f16tof32(c_m_d >> 16);
 	float distAbs = abs(sd);
 	if (distAbs >= lineThres)
 		return;
@@ -64,16 +69,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	ShaderMaterial material = GetMaterial();
 	half4 base_color = material.GetBaseColor();
 
-	float4 outline_color = float4(base_color.xyz, a); // a*a // heuristic aliasing 
+	half4 outline_color = half4(base_color.xyz, a); // a*a // heuristic aliasing 
 	outline_color.rgb *= outline_color.a;
 
-	bool disabled_filling = push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE;
+	inout_color[pixel] = (float4)outline_color;
 
-	inout_color[pixel] = outline_color;
-	if (disabled_filling) {
-		//Fill_kBuffer(ss_xy, g_cbCamState.k_value, outline_color, 0.0001, max(g_cbCamState.far_plane, 0.1));
-
-	}
-
-	layer1_thick_asum[pixel] = WILDCARD_DEPTH_OUTLINE_DIRTY;
+	counter_mask_distmap[pixel] = WILDCARD_DEPTH_OUTLINE_DIRTY << 8 | 1;
 }
