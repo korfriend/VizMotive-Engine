@@ -2,6 +2,7 @@
 #include "vzm2/VzEngineAPIs.h"
 #include "vzm2/utils/Backlog.h"
 #include "vzm2/utils/EventHandler.h"
+#include "vzm2/utils/JobSystem.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -761,6 +762,12 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			return 0;
 		break;
 	case WM_DESTROY:
+	{
+		// IMPORTANT NOTE: 
+		//	Job context that calls functions defined in DLL plugin MUST BE FINISHED
+		//	BEFORE application exit (releasing DLLs)
+		vz::jobsystem::WaitAllJobs();
+	}
 		::PostQuitMessage(0);
 		return 0;
 	}
