@@ -66,6 +66,7 @@ namespace vz::gpubvh
 
 		const std::vector<Primitive>& parts = geometry->GetPrimitives();
 
+		size_t bvh_parts = 0;
 		for (size_t i = 0; i < parts.size(); ++i)
 		{
 			const Primitive& prim = parts[i];
@@ -73,8 +74,7 @@ namespace vz::gpubvh
 			if (prim.GetPrimitiveType() != GeometryComponent::PrimitiveType::TRIANGLES
 				|| part_buffers == nullptr)
 			{
-				backlog::post("BVH is only available for triangle meshes!", backlog::LogLevel::Error);
-				return false;
+				continue;
 			}
 
 			uint totalTriangles = (uint)prim.GetNumIndices() / 3;
@@ -312,6 +312,12 @@ namespace vz::gpubvh
 			device->EventEnd(cmd);
 
 			profiler::EndRange(range); // BVH rebuild
+			bvh_parts++;
+		}
+
+		if (bvh_parts > 0)
+		{
+			geometry->timeStampGPUBVHUpdate = TimerNow;
 		}
 
 		return true;

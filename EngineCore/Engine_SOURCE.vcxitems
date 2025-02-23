@@ -86,11 +86,13 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Version.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\CameraComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentRefReset.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\RenderableComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\SlicerComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp" />

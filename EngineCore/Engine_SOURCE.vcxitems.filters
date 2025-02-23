@@ -402,6 +402,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\SlicerComponent.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private\Component Details</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\CameraComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Details</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\RenderableComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Details</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathMatrix.inl">

@@ -180,14 +180,10 @@ namespace vz
 			assert(geometry != nullptr);
 
 			bool is_dirty_bvh = geometry->IsDirtyBVH();
+
 			if (!geometry->HasBVH() || is_dirty_bvh)
 			{
 				geometry->UpdateBVH(true);
-			}
-
-			if (geometry->IsGPUBVHEnabled() && is_dirty_bvh)
-			{
-				shaderEngine.pluginAddDeferredGeometryGPUBVHUpdate(entity);
 			}
 
 			});

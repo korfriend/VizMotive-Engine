@@ -108,6 +108,10 @@ namespace vz
 				}
 			}
 
+			if (geometry.IsGPUBVHEnabled() && geometry.IsDirtyGPUBVH() && geometry.HasRenderData())
+			{
+				AddDeferredGeometryGPUBVHUpdate(geometry.GetEntity());
+			}
 			});
 	}
 	void GSceneDetails::RunMaterialUpdateSystem(jobsystem::context& ctx)

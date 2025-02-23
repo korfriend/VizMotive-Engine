@@ -71,14 +71,7 @@ private:
 // Transform the data from OBJ space to engine-space:
 static const bool transform_to_LH = false;
 
-Entity ImportModel_OBJ(const std::string& fileName,
-	std::vector<Entity>& actors,
-	std::vector<Entity>& cameras, // obj does not include camera
-	std::vector<Entity>& lights,
-	std::vector<Entity>& geometries,
-	std::vector<Entity>& materials,
-	std::vector<Entity>& textures
-)
+Entity ImportModel_OBJ(const std::string& fileName)
 {
 	std::string directory = helper::GetDirectoryFromPath(fileName);
 	std::string name = helper::GetFileNameFromPath(fileName);
@@ -114,30 +107,32 @@ Entity ImportModel_OBJ(const std::string& fileName,
 	if (success)
 	{
 		// root actor //
-		root_entity = CreateNode(ALLOC_NODES, ACTOR, name);
+		root_entity = compfactory::NewNodeActor(name);
+
+		std::vector<Entity> materials;
 
 		// Load material library:
 		for (auto& obj_material : obj_materials)
 		{
-			Entity material_entity = CreateNode(ALLOC_NODES, MATERIAL, obj_material.name);
+			Entity material_entity = compfactory::NewResMaterial(obj_material.name);
+			materials.push_back(material_entity);
 			MaterialComponent& material = *compfactory::GetMaterialComponent(material_entity);
 			material.SetShaderType(MaterialComponent::ShaderType::PBR);
 			material.SetBaseColor(XMFLOAT4(obj_material.diffuse[0], obj_material.diffuse[1], obj_material.diffuse[2], 1));
 
 			// textures //
-			auto registerMaterial = [&material, &directory, &textures](const std::string& obj_mat_name, const MaterialComponent::TextureSlot slot)
+			auto registerMaterial = [&material, &directory](const std::string& obj_mat_name, const MaterialComponent::TextureSlot slot)
 				{
 					std::vector<Entity> dummy;
 					if (obj_mat_name == "") return;
 					std::string mat_filename = directory + obj_mat_name;
 					if (helper::FileExists(mat_filename))
 					{
-						Entity texture_entity = CreateNode(dummy, dummy, dummy, dummy, dummy, textures, TEXTURE, obj_mat_name);
+						Entity texture_entity = compfactory::NewResTexture(obj_mat_name);
 						TextureComponent& texture = *compfactory::GetTextureComponent(texture_entity);
 						if (!texture.LoadImageFile(mat_filename))
 						{
-							compfactory::Destroy(texture_entity);
-							textures.pop_back();
+							compfactory::RemoveEntity(texture_entity);
 						}
 						else
 						{
@@ -171,15 +166,15 @@ Entity ImportModel_OBJ(const std::string& fileName,
 		if (materials.empty())
 		{
 			// Create default material if nothing was found:
-			CreateNode(ALLOC_NODES, MATERIAL, "OBJImport_defaultMaterial");
+			materials.push_back(compfactory::NewResMaterial("OBJImport_defaultMaterial::" + name));
 		}
 
 		// Load actors, meshes:
 		for (auto& shape : obj_shapes)
 		{
-			Entity actor_entity = CreateNode(ALLOC_NODES, ACTOR, shape.name, root_entity);
+			Entity actor_entity = compfactory::NewNodeActor(shape.name, root_entity);
 
-			Entity mesh_entity = CreateNode(ALLOC_NODES, GEOMETRY, shape.name + "_mesh");
+			Entity mesh_entity = compfactory::NewResGeometry(shape.name + "_mesh");
 			
 			RenderableComponent& renderable = *compfactory::GetRenderableComponent(actor_entity);
 			renderable.SetGeometry(mesh_entity);

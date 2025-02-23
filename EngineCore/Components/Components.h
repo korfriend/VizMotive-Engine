@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250223_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250224_1";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -826,12 +826,17 @@ namespace vz
 		// GPU interfaces //
 		bool HasRenderData() const { return hasRenderData_; }
 		bool IsGPUBVHEnabled() const { return isGPUBVHEnabled_; }
-		void SetGPUBVHEnabled(const bool enabled) { isGPUBVHEnabled_ = enabled; }
+		void EnableGPUBVH(const bool enabled) { isGPUBVHEnabled_ = enabled; }
 
 		virtual void DeleteRenderData() = 0;
 		virtual void UpdateRenderData() = 0;
 		virtual size_t GetMemoryUsageCPU() const = 0;
 		virtual size_t GetMemoryUsageGPU() const = 0;
+
+		// Basic Geometry Helpers //
+		bool MakeSphere(const XMFLOAT3 center, float radius);
+		bool MakeCube(const XMFLOAT3 center, XMFLOAT3 whd);
+		bool MakeCylinder(const XMFLOAT3 p0, const float r0, const XMFLOAT3 p1, const float r1);
 
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};
@@ -1449,9 +1454,12 @@ namespace vz
 	{
 	private:
 		float thickness_ = 0.f;
+		float outlineThickness_ = 1.f; // in pixel unit
+
+		// Curved-slicer attributes
 		std::vector<XMFLOAT3> horizontalCurveControls_;
 		float curveInterpolationInterval_ = 0.01f;
-		float outlineThickness_ = 1.f; // in pixel unit
+		float curvedPlaneHeight_ = 1.f;
 
 		// Non-serialized attributes:
 		bool isDirtyCurve_ = true;
@@ -1465,11 +1473,15 @@ namespace vz
 
 		inline void SetThickness(const float value) { thickness_ = value; timeStampSetter_ = TimerNow; }
 		inline float GetThickness() const { return thickness_; }
-		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; };
+		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; timeStampSetter_ = TimerNow; };
 
 		// if value <= 0. then, apply Actor's outlineThickess to the slicer's outline
 		inline void SetOutlineThickness(const float value) { outlineThickness_ = value; timeStampSetter_ = TimerNow; }
 		inline float GetOutlineThickness() const { return outlineThickness_; }
+
+		inline void SetCurvedPlaneHeight(const float value) { curvedPlaneHeight_ = value; timeStampSetter_ = TimerNow; }
+
+		inline bool MakeCurvedSlicerHelperGeometry(const Entity geometryEntity);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -1489,68 +1501,69 @@ namespace vz::compfactory
 	// calling in other built object files ignores the inlining
 
 	// VUID Manager
-	CORE_EXPORT inline ComponentBase* GetComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline Entity GetEntityByVUID(const VUID vuid);
+	CORE_EXPORT ComponentBase* GetComponentByVUID(const VUID vuid);
+	CORE_EXPORT Entity GetEntityByVUID(const VUID vuid);
 
 	// Component Manager
-	CORE_EXPORT inline size_t SetSceneComponentsDirty(const Entity entity);
+	CORE_EXPORT size_t SetSceneComponentsDirty(const Entity entity);
 
-	CORE_EXPORT inline NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
-	CORE_EXPORT inline TransformComponent* CreateTransformComponent(const Entity entity);
-	CORE_EXPORT inline HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
-	CORE_EXPORT inline MaterialComponent* CreateMaterialComponent(const Entity entity);
-	CORE_EXPORT inline GeometryComponent* CreateGeometryComponent(const Entity entity);
-	CORE_EXPORT inline TextureComponent* CreateTextureComponent(const Entity entity);
-	CORE_EXPORT inline VolumeComponent* CreateVolumeComponent(const Entity entity);
-	CORE_EXPORT inline LightComponent* CreateLightComponent(const Entity entity);
-	CORE_EXPORT inline CameraComponent* CreateCameraComponent(const Entity entity);
-	CORE_EXPORT inline SlicerComponent* CreateSlicerComponent(const Entity entity);
-	CORE_EXPORT inline RenderableComponent* CreateRenderableComponent(const Entity entity);
+	CORE_EXPORT NameComponent* GetNameComponent(const Entity entity);
+	CORE_EXPORT TransformComponent* GetTransformComponent(const Entity entity);
+	CORE_EXPORT HierarchyComponent* GetHierarchyComponent(const Entity entity);
+	CORE_EXPORT MaterialComponent* GetMaterialComponent(const Entity entity);
+	CORE_EXPORT GeometryComponent* GetGeometryComponent(const Entity entity);
+	CORE_EXPORT TextureComponent* GetTextureComponent(const Entity entity);
+	CORE_EXPORT VolumeComponent* GetVolumeComponent(const Entity entity);
+	CORE_EXPORT RenderableComponent* GetRenderableComponent(const Entity entity);
+	CORE_EXPORT LightComponent* GetLightComponent(const Entity entity);
+	CORE_EXPORT CameraComponent* GetCameraComponent(const Entity entity);
+	CORE_EXPORT SlicerComponent* GetSlicerComponent(const Entity entity);
 
-	CORE_EXPORT inline NameComponent* GetNameComponent(const Entity entity);
-	CORE_EXPORT inline TransformComponent* GetTransformComponent(const Entity entity);
-	CORE_EXPORT inline HierarchyComponent* GetHierarchyComponent(const Entity entity);
-	CORE_EXPORT inline MaterialComponent* GetMaterialComponent(const Entity entity);
-	CORE_EXPORT inline GeometryComponent* GetGeometryComponent(const Entity entity);
-	CORE_EXPORT inline TextureComponent* GetTextureComponent(const Entity entity);
-	CORE_EXPORT inline VolumeComponent* GetVolumeComponent(const Entity entity);
-	CORE_EXPORT inline RenderableComponent* GetRenderableComponent(const Entity entity);
-	CORE_EXPORT inline LightComponent* GetLightComponent(const Entity entity);
-	CORE_EXPORT inline CameraComponent* GetCameraComponent(const Entity entity);
-	CORE_EXPORT inline SlicerComponent* GetSlicerComponent(const Entity entity);
+	CORE_EXPORT NameComponent* GetNameComponentByVUID(const VUID vuid);
+	CORE_EXPORT TransformComponent* GetTransformComponentByVUID(const VUID vuid);
+	CORE_EXPORT HierarchyComponent* GetHierarchyComponentByVUID(const VUID vuid);
+	CORE_EXPORT MaterialComponent* GetMaterialComponentByVUID(const VUID vuid);
+	CORE_EXPORT GeometryComponent* GetGeometryComponentByVUID(const VUID vuid);
+	CORE_EXPORT TextureComponent* GetTextureComponentByVUID(const VUID vuid);
+	CORE_EXPORT VolumeComponent* GetVolumeComponentByVUID(const VUID vuid);
+	CORE_EXPORT RenderableComponent* GetRenderableComponentByVUID(const VUID vuid);
+	CORE_EXPORT LightComponent* GetLightComponentByVUID(const VUID vuid);
+	CORE_EXPORT CameraComponent* GetCameraComponentByVUID(const VUID vuid);
+	CORE_EXPORT SlicerComponent* GetSlicerComponentByVUID(const VUID vuid);
 
-	CORE_EXPORT inline NameComponent* GetNameComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline TransformComponent* GetTransformComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline HierarchyComponent* GetHierarchyComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline MaterialComponent* GetMaterialComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline GeometryComponent* GetGeometryComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline TextureComponent* GetTextureComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline VolumeComponent* GetVolumeComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline RenderableComponent* GetRenderableComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline LightComponent* GetLightComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline CameraComponent* GetCameraComponentByVUID(const VUID vuid);
-	CORE_EXPORT inline SlicerComponent* GetSlicerComponentByVUID(const VUID vuid);
+	CORE_EXPORT size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
+	CORE_EXPORT size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
+	CORE_EXPORT size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps);
+	CORE_EXPORT size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps);
 
-	CORE_EXPORT inline size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
-	CORE_EXPORT inline size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
-	CORE_EXPORT inline size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps);
-	CORE_EXPORT inline size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps);
+	CORE_EXPORT bool ContainNameComponent(const Entity entity);
+	CORE_EXPORT bool ContainTransformComponent(const Entity entity);
+	CORE_EXPORT bool ContainHierarchyComponent(const Entity entity);
+	CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
+	CORE_EXPORT bool ContainGeometryComponent(const Entity entity);
+	CORE_EXPORT bool ContainRenderableComponent(const Entity entity);
+	CORE_EXPORT bool ContainLightComponent(const Entity entity);
+	CORE_EXPORT bool ContainCameraComponent(const Entity entity);
+	CORE_EXPORT bool ContainSlicerComponent(const Entity entity);
+	CORE_EXPORT bool ContainTextureComponent(const Entity entity);
+	CORE_EXPORT bool ContainVolumeComponent(const Entity entity);
 
-	CORE_EXPORT inline bool ContainNameComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainTransformComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainHierarchyComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainMaterialComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainGeometryComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainRenderableComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainLightComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainCameraComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainSlicerComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainTextureComponent(const Entity entity);
-	CORE_EXPORT inline bool ContainVolumeComponent(const Entity entity);
-
-	CORE_EXPORT inline size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
-	CORE_EXPORT inline size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
+	CORE_EXPORT size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
+	CORE_EXPORT size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
 	CORE_EXPORT Entity GetFirstEntityByName(const std::string& name);
 
-	CORE_EXPORT size_t Destroy(const Entity entity);
+	//----- Highlevel APIs-mapping -----//
+	// To create ECS-based components, 
+	//	engine developers are restricted to using node-based components 
+	//	(which are composed of groups of ECS-based components) defined in high-level APIs
+	// ** NOTE: Only Engine Framework owners are allowed to create specific ECS-based components
+	CORE_EXPORT Entity NewNodeActor(const std::string& name, const Entity parentEntity = 0u);
+	CORE_EXPORT Entity NewNodeCamera(const std::string& name, const Entity parentEntity = 0u);
+	CORE_EXPORT Entity NewNodeSlicer(const std::string& name, const Entity parentEntity = 0u);
+	CORE_EXPORT Entity NewNodeLight(const std::string& name, const Entity parentEntity = 0u);
+	CORE_EXPORT Entity NewResGeometry(const std::string& name);
+	CORE_EXPORT Entity NewResMaterial(const std::string& name);
+	CORE_EXPORT Entity NewResTexture(const std::string& name);
+	CORE_EXPORT Entity NewResVolume(const std::string& name);
+	CORE_EXPORT size_t RemoveEntity(const Entity entity, const bool includeDescendants = false); // Only ECS compoenents
 }

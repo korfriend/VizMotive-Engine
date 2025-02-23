@@ -114,7 +114,7 @@ namespace vzm
 			return false;
 		}
 
-		typedef Entity(*PI_Function)(const std::string& fileName, vz::GeometryComponent* geometry);
+		typedef Entity(*PI_Function)(const std::string& fileName, const Entity geometryEntity);
 
 		PI_Function lpdll_function = nullptr;
 		if (ext == "STL")
@@ -136,7 +136,7 @@ namespace vzm
 			return false;
 		}
 		GET_GEO_COMP(geometry, false);
-		if (lpdll_function(filename, geometry))
+		if (lpdll_function(filename, componentVID_))
 		{
 			geometry->UpdateRenderData();
 			return true;
@@ -158,6 +158,6 @@ namespace vzm
 	void VzGeometry::SetGPUBVHEnabled(const bool enabled)
 	{
 		GET_GEO_COMP(geometry, );
-		geometry->SetGPUBVHEnabled(enabled);
+		geometry->EnableGPUBVH(enabled);
 	}
 }
