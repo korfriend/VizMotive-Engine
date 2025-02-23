@@ -21,7 +21,7 @@ namespace vz
 	graphics::GraphicsDevice* graphicsDevice = nullptr;
 }
 
-namespace vzcomp
+namespace vzcompmanager
 {
 	using namespace vz;
 	using namespace vzm;
@@ -175,28 +175,28 @@ namespace vzm
 		case COMPONENT_TYPE::ACTOR:
 			compfactory::CreateRenderableComponent(entity);
 			{
-				auto it = vzcomp::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewActor"));
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewActor"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::LIGHT:
 			compfactory::CreateLightComponent(entity);
 			{
-				auto it = vzcomp::lights.emplace(vid, std::make_unique<VzLight>(vid, "vzm::NewLight"));
+				auto it = vzcompmanager::lights.emplace(vid, std::make_unique<VzLight>(vid, "vzm::NewLight"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::CAMERA:
 			compfactory::CreateCameraComponent(entity);
 			{
-				auto it = vzcomp::cameras.emplace(vid, std::make_unique<VzCamera>(vid, "vzm::NewCamera"));
+				auto it = vzcompmanager::cameras.emplace(vid, std::make_unique<VzCamera>(vid, "vzm::NewCamera"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::SLICER:
 			compfactory::CreateSlicerComponent(entity);
 			{
-				auto it = vzcomp::cameras.emplace(vid, std::make_unique<VzSlicer>(vid, "vzm::NewSlicer"));
+				auto it = vzcompmanager::cameras.emplace(vid, std::make_unique<VzSlicer>(vid, "vzm::NewSlicer"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
@@ -210,7 +210,7 @@ namespace vzm
 			AppendSceneCompVidTo(vid, parentVid);
 		}
 
-		vzcomp::lookup[vid] = hlcomp;
+		vzcompmanager::lookup[vid] = hlcomp;
 		return hlcomp;
 	}
 
@@ -240,28 +240,28 @@ namespace vzm
 		case COMPONENT_TYPE::GEOMETRY:
 			compfactory::CreateGeometryComponent(entity);
 			{
-				auto it = vzcomp::geometries.emplace(vid, std::make_unique<VzGeometry>(vid, "vzm::NewGeometry"));
+				auto it = vzcompmanager::geometries.emplace(vid, std::make_unique<VzGeometry>(vid, "vzm::NewGeometry"));
 				hlcomp = (VzGeometry*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::MATERIAL:
 			compfactory::CreateMaterialComponent(entity);
 			{
-				auto it = vzcomp::materials.emplace(vid, std::make_unique<VzMaterial>(vid, "vzm::NewMaterial"));
+				auto it = vzcompmanager::materials.emplace(vid, std::make_unique<VzMaterial>(vid, "vzm::NewMaterial"));
 				hlcomp = (VzMaterial*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::TEXTURE:
 			compfactory::CreateTextureComponent(entity);
 			{
-				auto it = vzcomp::textures.emplace(vid, std::make_unique<VzTexture>(vid, "vzm::NewTexture"));
+				auto it = vzcompmanager::textures.emplace(vid, std::make_unique<VzTexture>(vid, "vzm::NewTexture"));
 				hlcomp = (VzTexture*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::VOLUME:
 			compfactory::CreateVolumeComponent(entity);
 			{
-				auto it = vzcomp::volumes.emplace(vid, std::make_unique<VzVolume>(vid, "vzm::NewVolume"));
+				auto it = vzcompmanager::volumes.emplace(vid, std::make_unique<VzVolume>(vid, "vzm::NewVolume"));
 				hlcomp = (VzVolume*)it.first->second.get();
 			}
 			break;
@@ -269,7 +269,7 @@ namespace vzm
 			backlog::post("vzm::NewResComponent >> Invalid COMPONENT_TYPE", backlog::LogLevel::Error);
 			return nullptr;
 		}
-		vzcomp::lookup[vid] = hlcomp;
+		vzcompmanager::lookup[vid] = hlcomp;
 		return hlcomp;
 	}
 }
@@ -355,9 +355,9 @@ namespace vzm
 		Archive* archive = Archive::CreateArchive(name); // lock_guard (recursive mutex)
 		ArchiveVID vid = archive->GetArchiveEntity();
 		vid = archive->GetArchiveEntity();
-		auto it = vzcomp::archives.emplace(vid, std::make_unique<VzArchive>(vid, "vzm::NewArchive"));
+		auto it = vzcompmanager::archives.emplace(vid, std::make_unique<VzArchive>(vid, "vzm::NewArchive"));
 		compfactory::CreateNameComponent(vid, name); // lock_guard (recursive mutex)
-		vzcomp::lookup[vid] = it.first->second.get();
+		vzcompmanager::lookup[vid] = it.first->second.get();
 		return it.first->second.get();
 	}
 	VzScene* NewScene(const std::string& name)
@@ -365,9 +365,9 @@ namespace vzm
 		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		Scene* scene = Scene::CreateScene(name);
 		SceneVID vid = scene->GetSceneEntity();
-		auto it = vzcomp::scenes.emplace(vid, std::make_unique<VzScene>(vid, "vzm::NewScene"));
+		auto it = vzcompmanager::scenes.emplace(vid, std::make_unique<VzScene>(vid, "vzm::NewScene"));
 		compfactory::CreateNameComponent(vid, name);
-		vzcomp::lookup[vid] = it.first->second.get();
+		vzcompmanager::lookup[vid] = it.first->second.get();
 		return it.first->second.get();
 	}
 	VzRenderer* NewRenderer(const std::string& name)
@@ -375,9 +375,9 @@ namespace vzm
 		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		RenderPath3D* renderer = canvas::CreateRenderPath3D(graphicsDevice, name);
 		RendererVID vid = renderer->GetEntity();
-		auto it = vzcomp::renderers.emplace(vid, std::make_unique<VzRenderer>(vid, "vzm::NewRenderer"));
+		auto it = vzcompmanager::renderers.emplace(vid, std::make_unique<VzRenderer>(vid, "vzm::NewRenderer"));
 		compfactory::CreateNameComponent(vid, name);
-		vzcomp::lookup[vid] = it.first->second.get();
+		vzcompmanager::lookup[vid] = it.first->second.get();
 		return it.first->second.get();
 	}
 
@@ -443,21 +443,21 @@ namespace vzm
 				*scene = Scene::GetScene(vid_scene);
 				if (*scene == nullptr)
 				{
-					auto itr = vzcomp::actors.find(vid);
-					auto itl = vzcomp::lights.find(vid);
-					auto itc = vzcomp::cameras.find(vid);
-					if (itr == vzcomp::actors.end()
-						&& itl == vzcomp::lights.end()
-						&& itc == vzcomp::cameras.end())
+					auto itr = vzcompmanager::actors.find(vid);
+					auto itl = vzcompmanager::lights.find(vid);
+					auto itc = vzcompmanager::cameras.find(vid);
+					if (itr == vzcompmanager::actors.end()
+						&& itl == vzcompmanager::lights.end()
+						&& itc == vzcompmanager::cameras.end())
 					{
 						vid_scene = INVALID_VID;
 					}
 					else
 					{
 						vid_scene = std::max(
-							std::max(itl != vzcomp::lights.end() ? itl->second.get()->sceneVid : INVALID_VID,
-								itr != vzcomp::actors.end() ? itr->second.get()->sceneVid : INVALID_VID), 
-							itc != vzcomp::cameras.end() ? itc->second.get()->sceneVid : INVALID_VID 
+							std::max(itl != vzcompmanager::lights.end() ? itl->second.get()->sceneVid : INVALID_VID,
+								itr != vzcompmanager::actors.end() ? itr->second.get()->sceneVid : INVALID_VID), 
+							itc != vzcompmanager::cameras.end() ? itc->second.get()->sceneVid : INVALID_VID 
 						);
 						//assert(vid_scene != INVALID_VID); can be INVALID_VID
 						*scene = Scene::GetScene(vid_scene);
@@ -555,14 +555,14 @@ namespace vzm
 
 		for (auto& it : entities_moving)
 		{
-			auto itr = vzcomp::actors.find(it);
-			auto itl = vzcomp::lights.find(it);
-			auto itc = vzcomp::cameras.find(it);
-			if (itr != vzcomp::actors.end())
+			auto itr = vzcompmanager::actors.find(it);
+			auto itl = vzcompmanager::lights.find(it);
+			auto itc = vzcompmanager::cameras.find(it);
+			if (itr != vzcompmanager::actors.end())
 				itr->second.get()->sceneVid = 0;
-			else if (itl != vzcomp::lights.end())
+			else if (itl != vzcompmanager::lights.end())
 				itl->second.get()->sceneVid = 0;
-			else if (itc != vzcomp::cameras.end())
+			else if (itc != vzcompmanager::cameras.end())
 				itc->second.get()->sceneVid = 0;
 			if (scene_src)
 			{
@@ -577,14 +577,14 @@ namespace vzm
 				// The entity is ignored if it doesn't have a Renderable or Light component.
 				scene_dst->AddEntity(it);
 
-				auto itr = vzcomp::actors.find(it);
-				auto itl = vzcomp::lights.find(it);
-				auto itc = vzcomp::cameras.find(it);
-				if (itr != vzcomp::actors.end())
+				auto itr = vzcompmanager::actors.find(it);
+				auto itl = vzcompmanager::lights.find(it);
+				auto itc = vzcompmanager::cameras.find(it);
+				if (itr != vzcompmanager::actors.end())
 					itr->second.get()->sceneVid = vid_scene_dst;
-				if (itl != vzcomp::lights.end())
+				if (itl != vzcompmanager::lights.end())
 					itl->second.get()->sceneVid = vid_scene_dst;
-				if (itc != vzcomp::cameras.end())
+				if (itc != vzcompmanager::cameras.end())
 					itc->second.get()->sceneVid = vid_scene_dst;
 			}
 		}
@@ -607,14 +607,14 @@ namespace vzm
 		}
 
 		SceneVID vid_scene = INVALID_VID;
-		auto itr = vzcomp::actors.find(vid);
-		auto itl = vzcomp::lights.find(vid);
-		auto itc = vzcomp::cameras.find(vid);
-		if (itr != vzcomp::actors.end())
+		auto itr = vzcompmanager::actors.find(vid);
+		auto itl = vzcompmanager::lights.find(vid);
+		auto itc = vzcompmanager::cameras.find(vid);
+		if (itr != vzcompmanager::actors.end())
 			vid_scene = itr->second.get()->sceneVid;
-		if (itl != vzcomp::lights.end())
+		if (itl != vzcompmanager::lights.end())
 			vid_scene = itl->second.get()->sceneVid;
-		if (itc != vzcomp::cameras.end())
+		if (itc != vzcompmanager::cameras.end())
 			vid_scene = itc->second.get()->sceneVid;
 
 		//assert(vis_scene);
@@ -624,8 +624,8 @@ namespace vzm
 	VzScene* AppendSceneCompTo(const VZ_NONNULL VzBaseComp* comp, const VZ_NONNULL VzBaseComp* parentComp)
 	{
 		Scene* scene = Scene::GetScene(AppendSceneCompVidTo(comp->GetVID(), parentComp ? parentComp->GetVID() : 0));
-		auto it = vzcomp::scenes.find(scene->GetSceneEntity());
-		if (it == vzcomp::scenes.end())
+		auto it = vzcompmanager::scenes.find(scene->GetSceneEntity());
+		if (it == vzcompmanager::scenes.end())
 		{
 			return nullptr;
 		}
@@ -645,8 +645,8 @@ namespace vzm
 		{
 			return nullptr;
 		}
-		auto it = vzcomp::lookup.find(vid);
-		assert(it != vzcomp::lookup.end());
+		auto it = vzcompmanager::lookup.find(vid);
+		assert(it != vzcompmanager::lookup.end());
 		return it->second;
 	}
 
@@ -670,8 +670,8 @@ namespace vzm
 		components.reserve(n);
 		for (size_t i = 0; i < n; ++i)
 		{
-			auto it = vzcomp::lookup.find(vids[i]);
-			assert(it != vzcomp::lookup.end());
+			auto it = vzcompmanager::lookup.find(vids[i]);
+			assert(it != vzcompmanager::lookup.end());
 			components.push_back(it->second);
 		}
 		return n;
@@ -687,14 +687,14 @@ namespace vzm
 	VzBaseComp* GetComponent(const VID vid)
 	{
 		CHECK_API_INIT_VALIDITY(nullptr);
-		auto it = vzcomp::lookup.find(vid);
-		return it == vzcomp::lookup.end() ? nullptr : it->second;
+		auto it = vzcompmanager::lookup.find(vid);
+		return it == vzcompmanager::lookup.end() ? nullptr : it->second;
 	}
 	
 	bool RemoveComponent(const VID vid, const bool includeDescendants)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(false);
-		return vzcomp::Destroy(vid, includeDescendants);	// jobsystem
+		return vzcompmanager::Destroy(vid, includeDescendants);	// jobsystem
 	}
 
 	VzActor* LoadModelFile(const std::string& filename)
@@ -711,8 +711,8 @@ namespace vzm
 		}
 		Entity root_entity = lpdll_function(filename);
 
-		auto it = vzcomp::actors.find(root_entity);
-		assert(it != vzcomp::actors.end());
+		auto it = vzcompmanager::actors.find(root_entity);
+		assert(it != vzcompmanager::actors.end());
 		return it->second.get();
 	}
 
@@ -749,7 +749,7 @@ namespace vzm
 		profiler::Shutdown();
 
 		// high-level apis handle engine components via functions defined in vzcomp namespace
-		vzcomp::DestroyAll();	// here, after-shutdown drives a single threaded process
+		vzcompmanager::DestroyAll();	// here, after-shutdown drives a single threaded process
 
 		graphicsBackend.pluginDeinitializer();
 		shaderEngine.pluginDeinitializer();
