@@ -101,7 +101,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp" />
