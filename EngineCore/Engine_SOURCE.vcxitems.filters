@@ -360,7 +360,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.cpp">
       <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineAPIs.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineManager.cpp">
       <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.cpp">
