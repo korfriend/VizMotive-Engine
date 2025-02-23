@@ -1,17 +1,23 @@
 #include "AssetIO.h"
+#include "Utils/Backlog.h"
+#include "Utils/Helpers.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <iostream>
 
-#include "Utils/Backlog.h"
-#include "Utils/Helpers.h"
-
 using namespace vz;
 
-bool ImportModel_STL(const std::string& fileName, vz::GeometryComponent* geometry)
+bool ImportModel_STL(const std::string& fileName, const Entity geometryEntity)
 {
+	vz::GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
+	if (geometry == nullptr)
+	{
+		vzlog_error("Invalid Entity(%d)!", geometryEntity);
+		return false;
+	}
+
 	Assimp::Importer importer;
 
 	// dummy

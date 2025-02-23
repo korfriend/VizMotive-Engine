@@ -294,6 +294,8 @@ namespace vz
 
 	void Primitive::updateBVH(const bool enabled)
 	{
+		vzlog_assert(ptype_ == PrimitiveType::TRIANGLES, "BVH is allowed only for triangle mesh (no stripe)");
+
 		if (!enabled)
 		{
 			bvhLeafAabbs_.clear();
@@ -733,7 +735,10 @@ namespace vz
 		timeStampBVHUpdate_ = TimerNow;
 		for (Primitive& prim : parts_)
 		{
-			prim.updateBVH(enabled);
+			if (prim.GetPrimitiveType() == PrimitiveType::TRIANGLES)
+			{
+				prim.updateBVH(enabled);
+			}
 		}
 		hasBVH_ = enabled;
 		busyUpdateBVH_->store(false);
@@ -1445,7 +1450,9 @@ namespace vz
 	//}
 }
 
+// geometry helper generation
 namespace vz
 {
-
+	bool MakeCurvedSlicerHelperGeometry(const Entity slicerEntity);
+	bool MakeSphere(const XMFLOAT3 center, float radius);
 }

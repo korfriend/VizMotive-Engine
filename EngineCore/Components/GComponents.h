@@ -161,7 +161,9 @@ namespace vz
 		uint32_t geometryOffset = 0; // (including # of parts)
 
 		// ----- BVH -----
+		TimeStamp timeStampGPUBVHUpdate = TimerMin;
 		bool isBVHEnabled = true;
+		bool IsDirtyGPUBVH() const { return TimeDurationCount(timeStampPrimitiveUpdate_, timeStampGPUBVHUpdate) >= 0; }
 		// ----- Gaussian Splatting -----
 		bool allowGaussianSplatting = false;
 		// ----- Meshlet -----
