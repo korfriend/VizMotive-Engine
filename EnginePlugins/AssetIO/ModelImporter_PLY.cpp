@@ -1,15 +1,21 @@
 #include "AssetIO.h"
+#include "Utils/Backlog.h"
+#include "Utils/Helpers.h"
+
 #include <fstream>
 #include <iostream>
 #include <vector>
 #include <cstring>
 
-#include "Utils/Backlog.h"
-#include "Utils/Helpers.h"
-
 using namespace vz;
-bool ImportModel_PLY(const std::string& fileName, vz::GeometryComponent* geometry)
+bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
 {
+    vz::GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
+    if (geometry == nullptr)
+    {
+        vzlog_error("Invalid Entity(%d)!", geometryEntity);
+        return false;
+    }
     std::ifstream file(fileName, std::ios::binary);
     if (!file.is_open())
     {

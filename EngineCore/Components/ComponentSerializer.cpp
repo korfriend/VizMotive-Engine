@@ -493,16 +493,20 @@ namespace vz
 		if (archive.IsReadMode())
 		{
 			archive >> thickness_;
+			archive >> outlineThickness_;
+
 			archive >> horizontalCurveControls_;
 			archive >> curveInterpolationInterval_;
-			archive >> outlineThickness_;
+			archive >> curvedPlaneHeight_;
 		}
 		else
 		{
 			archive << thickness_;
+			archive << outlineThickness_;
+
 			archive << horizontalCurveControls_;
 			archive << curveInterpolationInterval_;
-			archive << outlineThickness_;
+			archive << curvedPlaneHeight_;
 		}
 	}
 }
