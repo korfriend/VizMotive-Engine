@@ -322,7 +322,7 @@ namespace vz::compfactory
 	{
 		return volumeManager.Contains(entity);
 	}
-		
+
 	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components)
 	{
 		components.clear();
@@ -337,7 +337,7 @@ namespace vz::compfactory
 		GET_COMP_BY_ENTITY(materialManager);
 		GET_COMP_BY_ENTITY(geometryManager);
 		GET_COMP_BY_ENTITY(textureManager);
-		
+
 		return components.size();
 	}
 	size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities)
@@ -374,6 +374,15 @@ namespace vz::compfactory
 		return *it->second.begin();
 	}
 
+	void EntitySafeExecute(const std::function<void(const std::vector<Entity>&)>& task, const std::vector<Entity>& entities)
+	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+		task(entities);
+	}
+}
+	
+namespace vz::compfactory
+{
 	size_t Destroy(const Entity entity)
 	{
 		std::unordered_set<VUID> vuids;

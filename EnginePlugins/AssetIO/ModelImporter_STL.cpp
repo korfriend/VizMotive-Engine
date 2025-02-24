@@ -12,12 +12,11 @@ using namespace vz;
 bool ImportModel_STL(const std::string& fileName, const Entity geometryEntity)
 {
 	vz::GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
-	if (geometry == nullptr)
+	if (!compfactory::ContainGeometryComponent(geometryEntity))
 	{
 		vzlog_error("Invalid Entity(%d)!", geometryEntity);
 		return false;
 	}
-
 	Assimp::Importer importer;
 
 	// dummy
@@ -42,12 +41,11 @@ bool ImportModel_STL(const std::string& fileName, const Entity geometryEntity)
 
 	using Primitive = GeometryComponent::Primitive;
 	std::vector<Primitive> parts(scene->mNumMeshes);
-	geometry->CopyPrimitivesFrom(parts);
 
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
 		const aiMesh* mesh = scene->mMeshes[i];
 
-		Primitive* mutable_primitive = geometry->GetMutablePrimitive(i);
+		Primitive* mutable_primitive = &parts[i];
 		mutable_primitive->SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
 		//PrintMeshInfo(mesh);
 
@@ -86,5 +84,11 @@ bool ImportModel_STL(const std::string& fileName, const Entity geometryEntity)
 		}
 	}
 
+	geometry->MovePrimitivesFrom(std::move(parts));
+	// thread safe!
+	//compfactory::EntitySafeExecute([&parts](const std::vector<Entity>& entities) {
+	//	vz::GeometryComponent* geometry = compfactory::GetGeometryComponent(entities[0]);
+	//	geometry->MovePrimitivesFrom(std::move(parts));
+	//	}, { geometryEntity });
 	return true;
 }

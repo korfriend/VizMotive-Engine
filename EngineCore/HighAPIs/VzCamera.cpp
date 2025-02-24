@@ -863,6 +863,19 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
+	void VzSlicer::SetCurvedPlaneHeight(const float value)
+	{
+		GET_SLICER_COMP(slicer, );
+		slicer->SetCurvedPlaneHeight(value);
+		UpdateTimeStamp();
+	}
+
+	bool VzSlicer::MakeCurvedSlicerHelperGeometry(const GeometryVID vid)
+	{
+		GET_SLICER_COMP(slicer, false);
+		return slicer->MakeCurvedSlicerHelperGeometry(vid);
+	}
+
 	void VzSlicer::SetSlicerThickness(const float thickness)
 	{
 		GET_SLICER_COMP(slicer, );
