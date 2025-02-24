@@ -1,4 +1,4 @@
-#include "RenderPath3D_Details.h"
+#include "RenderPath3D_Detail.h"
 #include "GPUBVH.h"
 
 namespace vz::renderer
