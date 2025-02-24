@@ -33,7 +33,6 @@ namespace vz::rcommon
 	extern GPUBuffer			buffers[BUFFERTYPE_COUNT];
 	extern Sampler				samplers[SAMPLER_COUNT];
 
-	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	extern PipelineState		PSO_wireframe;
 	extern PipelineState		PSO_occlusionquery;
 	extern std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
@@ -658,112 +657,6 @@ namespace vz::shader
 		//
 		//	device->CreatePipelineState(&desc, &PSO_outline);
 		//	});
-		jobsystem::Dispatch(ctx, DEBUGRENDERING_COUNT, 1, [](jobsystem::JobArgs args) {
-			PipelineStateDesc desc;
-
-			switch (args.jobIndex)
-			{
-			case DEBUGRENDERING_GRID:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::LINELIST;
-				break;
-			case DEBUGRENDERING_CUBE:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::LINELIST;
-				break;
-			case DEBUGRENDERING_CUBE_DEPTH:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::LINELIST;
-				break;
-			case DEBUGRENDERING_LINES:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::LINELIST;
-				break;
-			case DEBUGRENDERING_LINES_DEPTH:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::LINELIST;
-				break;
-			case DEBUGRENDERING_TRIANGLE_SOLID:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &rasterizers[RSTYPE_DOUBLESIDED];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::TRIANGLELIST;
-				break;
-			case DEBUGRENDERING_TRIANGLE_WIREFRAME:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
-				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::TRIANGLELIST;
-				break;
-			case DEBUGRENDERING_TRIANGLE_SOLID_DEPTH:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rasterizers[RSTYPE_DOUBLESIDED];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::TRIANGLELIST;
-				break;
-			case DEBUGRENDERING_TRIANGLE_WIREFRAME_DEPTH:
-				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
-				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
-				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
-				desc.pt = PrimitiveTopology::TRIANGLELIST;
-				break;
-			case DEBUGRENDERING_EMITTER:
-				desc.vs = &shaders[VSTYPE_MESH_DEBUG];
-				desc.ps = &shaders[PSTYPE_MESH_DEBUG];
-				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
-				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_OPAQUE];
-				desc.pt = PrimitiveTopology::TRIANGLELIST;
-				break;
-			//case DEBUGRENDERING_RAYTRACE_BVH:
-			//	desc.vs = &common::shaders[VSTYPE_RAYTRACE_SCREEN];
-			//	desc.ps = &common::shaders[PSTYPE_RAYTRACE_DEBUGBVH];
-			//	desc.dss = &common::depthStencils[DSSTYPE_DEPTHDISABLED];
-			//	desc.rs = &common::rasterizers[RSTYPE_DOUBLESIDED];
-			//	desc.bs = &common::blendStates[BSTYPE_TRANSPARENT];
-			//	desc.pt = PrimitiveTopology::TRIANGLELIST;
-			//	break;
-			}
-
-			device->CreatePipelineState(&desc, &PSO_debug[args.jobIndex]);
-		});
 
 		jobsystem::Wait(ctx);
 

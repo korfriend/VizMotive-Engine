@@ -818,9 +818,9 @@ namespace vz
 
 		const size_t position_stride = GetFormatStride(positionFormat);
 
-		if (parts_.size() == 0 || !parts_[0].IsValid())
+		hasRenderData_ = false;
+		if (parts_.size() == 0)
 		{
-			hasRenderData_ = false;
 			return;
 		}
 
@@ -828,6 +828,19 @@ namespace vz
 		for (size_t part_index = 0, n = parts_.size(); part_index < n; ++part_index)
 		{
 			Primitive& primitive = parts_[part_index];
+			switch (primitive.GetPrimitiveType())
+			{
+			case PrimitiveType::POINTS:
+			case PrimitiveType::LINE_STRIP:
+			case PrimitiveType::LINES:
+				continue;
+			default:
+				break;
+			}
+			if (!parts_[part_index].IsValid())
+			{
+				continue;
+			}
 			primitive.bufferHandle_ = std::make_shared<GPrimBuffers>();
 			GPrimBuffers& part_buffers = *(GPrimBuffers*)primitive.bufferHandle_.get();
 			part_buffers.slot = part_index;
@@ -1168,6 +1181,8 @@ namespace vz
 				//assert(success);
 				//device->SetName(&part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer, "GGeometryComponent::bufferHandle_::tileBoundaryBuffer");
 			}
+			
+			hasRenderData_ = true;
 		}
 
 		std::vector<ShaderCluster> clusters;
@@ -1281,8 +1296,6 @@ namespace vz
 			bd.size = AlignTo(bd.size + cluster_bounds.size() * sizeof(ShaderClusterBounds), alignment);
 			/**/
 		}
-
-		hasRenderData_ = true;
 	}
 
 	void GGeometryComponent::UpdateStreamoutRenderData()
@@ -1309,6 +1322,16 @@ namespace vz
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& primitive = parts_[i];
+			switch (primitive.GetPrimitiveType())
+			{
+			case PrimitiveType::POINTS:
+			case PrimitiveType::LINE_STRIP:
+			case PrimitiveType::LINES:
+				continue;
+			default:
+				break;
+			}
+
 			primitive.bufferHandle_ = std::make_shared<GPrimBuffers>();
 			GPrimBuffers& part_buffers = *(GPrimBuffers*)primitive.bufferHandle_.get();
 
@@ -1453,6 +1476,21 @@ namespace vz
 // geometry helper generation
 namespace vz
 {
-	bool MakeCurvedSlicerHelperGeometry(const Entity slicerEntity);
-	bool MakeSphere(const XMFLOAT3 center, float radius);
+	// refer to three.js
+	bool GeometryComponent::MakeSphere(const XMFLOAT3 center, float radius)
+	{
+		vzlog_assert(0, "TODO");
+		return true;
+	}
+	bool GeometryComponent::MakeCube(const XMFLOAT3 center, XMFLOAT3 whd)
+	{
+		vzlog_assert(0, "TODO");
+		return true;
+	}
+	bool GeometryComponent::MakeCylinder(const XMFLOAT3 p0, const float r0, const XMFLOAT3 p1, const float r1)
+	{
+		vzlog_assert(0, "TODO");
+		return true;
+	}
+
 }

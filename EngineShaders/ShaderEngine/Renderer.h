@@ -176,28 +176,6 @@ namespace vz::renderer
 		RENDERPASS_VOXELIZE,
 		RENDERPASS_COUNT
 	};
-
-	enum DEBUGRENDERING
-	{
-		//DEBUGRENDERING_ENVPROBE,
-		//DEBUGRENDERING_DDGI,
-		DEBUGRENDERING_GRID,
-		DEBUGRENDERING_CUBE,
-		DEBUGRENDERING_CUBE_DEPTH,
-		DEBUGRENDERING_LINES,
-		DEBUGRENDERING_LINES_DEPTH,
-		DEBUGRENDERING_TRIANGLE_SOLID,
-		DEBUGRENDERING_TRIANGLE_WIREFRAME,
-		DEBUGRENDERING_TRIANGLE_SOLID_DEPTH,
-		DEBUGRENDERING_TRIANGLE_WIREFRAME_DEPTH,
-		DEBUGRENDERING_EMITTER,
-		//DEBUGRENDERING_PAINTRADIUS,
-		//DEBUGRENDERING_VOXEL,
-		//DEBUGRENDERING_FORCEFIELD_POINT,
-		//DEBUGRENDERING_FORCEFIELD_PLANE,
-		//DEBUGRENDERING_RAYTRACE_BVH,
-		DEBUGRENDERING_COUNT
-	};
 }
 
 //----- renderer interfaces -----
@@ -244,7 +222,6 @@ namespace vz::renderer
 	PipelineState* GetObjectPSO(MeshRenderingVariant variant);
 
 	extern jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
-	extern PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	extern PipelineState		PSO_wireframe;
 	extern PipelineState		PSO_occlusionquery;
 
@@ -281,3 +258,5 @@ namespace vz::renderer
 	extern bool isColorGradingEnabled;
 	extern bool isGaussianSplattingEnabled;
 }
+
+#define ReleaseRenderRes(SRC, R_COUNT) for (size_t i = 0, n = (size_t)R_COUNT; i < n; ++i) SRC[i] = {};

@@ -348,12 +348,34 @@ namespace vz::renderer
 		std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_;
 		std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_depth_;
 
-		void drawAndClearLines(const CameraComponent& camera, std::vector<RenderableLine>& renderableLines, CommandList cmd);
+
+		void drawAndClearLines(const CameraComponent& camera, std::vector<RenderableLine>& renderableLines, CommandList cmd, bool clearEnabled);
 	public:
-		void DrawLines(const CameraComponent& camera, CommandList cmd)
+		static void Initialize();
+		static void Deinitialize();
+
+		void AddDrawLine(const RenderableLine& line, bool depth)
 		{
-			drawAndClearLines(camera, renderableLines_, cmd);
-			drawAndClearLines(camera, renderableLines_depth_, cmd);
+			if (depth)
+				renderableLines_depth_.push_back(line);
+			else
+				renderableLines_.push_back(line);
+		}
+		void DrawLines(const CameraComponent& camera, CommandList cmd, bool clearEnabled = true);
+
+		void Clear()
+		{
+			// *this = RenderableShapeCollection(); // not recommend this due to inefficient memory footprint
+			renderableLines_.clear();
+			renderableLines_depth_.clear();
+			renderablePoints_.clear();
+			renderablePoints_depth_.clear();
+			renderableBoxes_.clear();
+			renderableBoxes_depth_.clear();
+			renderableSpheres_.clear();
+			renderableSpheres_depth_.clear();
+			renderableCapsules_.clear();
+			renderableCapsules_depth_.clear();
 		}
 	};
 

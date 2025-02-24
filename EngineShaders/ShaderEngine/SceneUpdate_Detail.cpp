@@ -363,6 +363,7 @@ namespace vz
 			// Note : SceneDetails::RunRenderableUpdateSystem computes raw world matrix and its prev.
 			XMFLOAT4X4 world_matrix_prev = scene_->GetRenderableWorldMatricesPrev()[args.jobIndex];
 			XMFLOAT4X4 world_matrix = scene_->GetRenderableWorldMatrices()[args.jobIndex];
+			XMMATRIX W = XMLoadFloat4x4(&world_matrix);
 
 			renderable.renderFlags = 0u;
 			renderable.renderableIndex = ~0u;
@@ -413,6 +414,48 @@ namespace vz
 					const Primitive& part = primitives[part_index];
 					Entity material_entity = renderable.GetMaterial(part_index);
 					const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
+					XMFLOAT4 line_color = material.GetBaseColor();
+					if (!part.HasRenderData())
+					{
+						switch (part.GetPrimitiveType())
+						{
+						case GeometryComponent::PrimitiveType::LINE_STRIP:
+						{
+							const std::vector<XMFLOAT3>& positions = part.GetVtxPositions();
+							size_t n = part.GetNumVertices() - 1;
+							for (size_t line_idx = 0; line_idx < n; ++line_idx)
+							{
+								RenderableLine line;
+								XMStoreFloat3(&line.start, XMVector3TransformCoord(XMLoadFloat3(&positions[line_idx]), W));
+								XMStoreFloat3(&line.end, XMVector3TransformCoord(XMLoadFloat3(&positions[line_idx + 1]), W));
+								line.color_start = line.color_end = line_color;
+								renderableShapes.AddDrawLine(line, true);
+							}
+						} break;
+						case GeometryComponent::PrimitiveType::LINES:
+						{
+							const std::vector<XMFLOAT3>& positions = part.GetVtxPositions();
+							const std::vector<uint32_t>& indices = part.GetIdxPrimives();
+							size_t n = part.GetNumIndices() / 2;
+							for (size_t line_idx = 0; line_idx < n; ++line_idx)
+							{
+								RenderableLine line;
+								uint32_t idx0 = indices[2 * line_idx + 0];
+								uint32_t idx1 = indices[2 * line_idx + 1];
+								XMStoreFloat3(&line.start, XMVector3TransformCoord(XMLoadFloat3(&positions[idx0]), W));
+								XMStoreFloat3(&line.end, XMVector3TransformCoord(XMLoadFloat3(&positions[idx1]), W));
+								line.color_start = line.color_end = line_color;
+								renderableShapes.AddDrawLine(line, true);
+							}
+						} break;
+							break;
+						case GeometryComponent::PrimitiveType::POINTS:
+						default:
+							break;
+						}
+
+						continue;
+					}
 
 					ShaderInstanceResLookup inst_res_lookup;
 					inst_res_lookup.Init();
@@ -641,6 +684,8 @@ namespace vz
 
 	bool GSceneDetails::Update(const float dt)
 	{
+		renderableShapes.Clear();
+
 		deltaTime = dt;
 		jobsystem::context ctx;
 
