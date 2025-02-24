@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250224_2";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250225_0";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -723,6 +723,7 @@ namespace vz
 				return sphere;
 			}
 			inline PrimitiveType GetPrimitiveType() const { return ptype_; }
+			inline bool HasRenderData() const { return bufferHandle_ != nullptr; }
 			inline bool IsValid() const { return vertexPositions_.size() > 0 && aabb_.IsValid(); }
 			inline void SetAABB(const geometrics::AABB& aabb) { aabb_ = aabb; }
 			inline void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
@@ -1142,7 +1143,7 @@ namespace vz
 		inline bool IsMeshRenderable() const { return flags_ & RenderableFlags::MESH_RENDERABLE; }
 		inline bool IsVolumeRenderable() const { return flags_ & RenderableFlags::VOLUME_RENDERABLE; }
 
-		inline void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
+		inline void EnableForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
 
 		inline uint32_t GetFlags() const { return flags_; }
@@ -1197,8 +1198,9 @@ namespace vz
 		inline std::vector<Entity> GetMaterials() const;
 		inline size_t GetNumParts() const;
 		inline size_t GetMaterials(Entity* entities) const;
-		inline void Update();
 		inline geometrics::AABB GetAABB() const { return aabb_; }
+
+		inline void Update();
 
 		void ResetRefComponents(const VUID vuidRef) override;
 		void Serialize(vz::Archive& archive, const uint64_t version) override;

@@ -11,7 +11,6 @@ using namespace vz;
 
 bool ImportModel_STL(const std::string& fileName, const Entity geometryEntity)
 {
-	vz::GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
 	if (!compfactory::ContainGeometryComponent(geometryEntity))
 	{
 		vzlog_error("Invalid Entity(%d)!", geometryEntity);
@@ -84,6 +83,7 @@ bool ImportModel_STL(const std::string& fileName, const Entity geometryEntity)
 		}
 	}
 
+	vz::GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
 	geometry->MovePrimitivesFrom(std::move(parts));
 	// thread safe!
 	//compfactory::EntitySafeExecute([&parts](const std::vector<Entity>& entities) {

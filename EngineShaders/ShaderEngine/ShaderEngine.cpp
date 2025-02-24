@@ -4,6 +4,7 @@
 #include "SortLib.h"
 #include "GPUBVH.h"
 #include "ShaderLoader.h"
+#include "RenderPath3D_Detail.h"
 #include "../Shaders/ShaderInterop.h"
 
 #include "sheenLUT.h"
@@ -59,7 +60,6 @@ namespace vz::renderer
 	}
 
 	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
-	PipelineState		PSO_debug[DEBUGRENDERING_COUNT];
 	PipelineState		PSO_wireframe;
 	PipelineState		PSO_occlusionquery;
 
@@ -485,7 +485,10 @@ namespace vz::renderer
 		static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
 
 		jobsystem::context ctx;
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::LoadShaders(); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { 
+			shader::LoadShaders();
+			renderer::RenderableShapeCollection::Initialize(); 
+			});
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { image::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpubvh::Initialize(); });
@@ -498,14 +501,11 @@ namespace vz::renderer
 	}
 	void Deinitialize()
 	{
-#define ReleaseRenderRes(SRC, R_COUNT) for (size_t i = 0, n = (size_t)R_COUNT; i < n; ++i) SRC[i] = {};
-
 		jobsystem::WaitAllJobs();
 		ReleaseRenderRes(shaders, SHADERTYPE_COUNT);
 		ReleaseRenderRes(buffers, BUFFERTYPE_COUNT);
 		ReleaseRenderRes(samplers, SAMPLER_COUNT);
 		ReleaseRenderRes(textures, TEXTYPE_COUNT);
-		ReleaseRenderRes(PSO_debug, DEBUGRENDERING_COUNT);
 		PSO_wireframe = {};
 		PSO_occlusionquery = {};
 
@@ -525,6 +525,7 @@ namespace vz::renderer
 		image::Deinitialize();
 		gpubvh::Deinitialize();
 		gpusortlib::Deinitialize();
+		renderer::RenderableShapeCollection::Deinitialize();
 		renderer::initialized.store(false);
 	}
 }

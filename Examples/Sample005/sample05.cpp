@@ -267,10 +267,16 @@ int main(int, char **)
 		{
 			vzm::VzGeometry* geometry_cslicer_helper = vzm::NewGeometry("geometry helper for curved slicer");
 			slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
-			vzm::VzMaterial* material_curvedslicer = vzm::NewMaterial("curved slicer helper material");
-			material_curvedslicer->SetShaderType(vzm::ShaderType::PBR);
-			material_curvedslicer->SetDoubleSided(true);
-			vzm::VzActor* actor_cslicer_helper = vzm::NewActor("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer);
+			vzm::VzMaterial* material_curvedslicer0 = vzm::NewMaterial("curved slicer helper material: Plane");
+			material_curvedslicer0->SetShaderType(vzm::ShaderType::PBR);
+			material_curvedslicer0->SetDoubleSided(true);
+			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Centerline");
+			material_curvedslicer1->SetBaseColor({ 1, 0, 0, 1 });
+			vzm::VzMaterial* material_curvedslicer2 = vzm::NewMaterial("curved slicer helper material: Outline");
+			material_curvedslicer2->SetBaseColor({ 0, 1, 0, 1 });
+			vzm::VzActor* actor_cslicer_helper = vzm::NewActor("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer0);
+			actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
+			actor_cslicer_helper->SetMaterial(material_curvedslicer2, 2);
 			scene->AppendChild(actor_cslicer_helper);
 			vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
 		}
@@ -287,7 +293,7 @@ int main(int, char **)
 
 			VzGeometry* geometry = vzm::NewGeometry("TS3M3008S.stl");
 			geometry->LoadGeometryFile("../Assets/stl_files/TS3M3008S.stl");
-			geometry->SetGPUBVHEnabled(true);
+			geometry->EnableGPUBVH(true);
 			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
@@ -319,7 +325,7 @@ int main(int, char **)
 			actor_test4->SetScale({ 0.2f, 0.2f, 0.2f });
 			actor_test4->EnableSlicerSolidFill(false);
 			actor_test4->SetRotateAxis({ 0, 0, 1 }, 45.f);
-			geometry->SetGPUBVHEnabled(true);
+			geometry->EnableGPUBVH(true);
 			scene->AppendChild(actor_test4);
 
 			});

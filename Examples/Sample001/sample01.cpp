@@ -150,10 +150,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		{
 			vzm::VzActor* obj_actor_child = (vzm::VzActor*)vzm::GetComponent(vid);
 			vzm::VzGeometry* obj_geometry = (vzm::VzGeometry*)vzm::GetComponent(obj_actor_child->GetGeometry());
-			if (obj_geometry)
-			{
-				obj_geometry->SetGPUBVHEnabled(true);
-			}
+			//if (obj_geometry)
+			//{
+			//	obj_geometry->EnableGPUBVH(true);
+			//}
 		}
 
         scene->AppendChild(root_obj_actor);

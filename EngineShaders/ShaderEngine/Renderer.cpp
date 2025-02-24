@@ -439,6 +439,10 @@ namespace vz::renderer
 				for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 				{
 					const Primitive& part = parts[part_index];
+					if (!part.HasRenderData())
+					{
+						continue;
+					}
 					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGPrimBuffer(part_index);
 
 					uint32_t material_index = instancedBatch.materialIndices[part_index];
@@ -1747,6 +1751,8 @@ namespace vz::renderer
 			}
 
 			//RenderOutline(cmd);
+			GSceneDetails* scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
+			scene_Gdetails->renderableShapes.DrawLines(*camera, cmd, false);
 
 			device->RenderPassEnd(cmd);
 

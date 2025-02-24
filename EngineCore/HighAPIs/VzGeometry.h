@@ -17,6 +17,6 @@ namespace vzm
 		size_t GetNumParts() const;
 
 		bool IsGPUBVHEnabled() const;
-		void SetGPUBVHEnabled(const bool enabled);
+		void EnableGPUBVH(const bool enabled);
 	};
 }

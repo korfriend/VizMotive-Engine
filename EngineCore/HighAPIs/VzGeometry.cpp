@@ -155,7 +155,7 @@ namespace vzm
 		GET_GEO_COMP(geometry, false);
 		return geometry->IsGPUBVHEnabled();
 	}
-	void VzGeometry::SetGPUBVHEnabled(const bool enabled)
+	void VzGeometry::EnableGPUBVH(const bool enabled)
 	{
 		GET_GEO_COMP(geometry, );
 		geometry->EnableGPUBVH(enabled);
