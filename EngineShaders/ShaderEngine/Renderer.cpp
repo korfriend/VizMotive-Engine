@@ -1792,7 +1792,6 @@ namespace vz::renderer
 		//	}
 		//});
 
-		if (renderer::isGaussianSplattingEnabled)
 		{
 			cmd = device->BeginCommandList();
 			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
@@ -1804,20 +1803,8 @@ namespace vz::renderer
 					cmd
 				);
 
-				RenderGaussianSplatting(cmd);
-				});
-		}
-		else
-		{
-			cmd = device->BeginCommandList();
-			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
-
-				BindCameraCB(
-					*camera,
-					cameraPrevious,
-					cameraReflection,
-					cmd
-				);
+				if (renderer::isGaussianSplattingEnabled)
+					RenderGaussianSplatting(cmd);
 
 				RenderDirectVolumes(cmd);
 				});
