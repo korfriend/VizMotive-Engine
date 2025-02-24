@@ -481,11 +481,12 @@ int main(int, char**)
 				static bool orthographics = false;
 				if (ImGui::Checkbox("ORTHOGONAL", &orthographics))
 				{
+					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 					if (orthographics) {
-						camera->SetOrthogonalProjection(curWindowSize.x, curWindowSize.y, camera->GetNear(), camera->GetCullingFar(), -1);
+						camera->SetOrthogonalProjection(canvas_size.x, canvas_size.y, camera->GetNear(), camera->GetCullingFar(), -1);
 					}
 					else {
-						camera->SetPerspectiveProjection(camera->GetNear(), camera->GetCullingFar(), 45.f, curWindowSize.x / (float)curWindowSize.y);
+						camera->SetPerspectiveProjection(camera->GetNear(), camera->GetCullingFar(), 45.f, canvas_size.x / (float)canvas_size.y);
 					}
 				}
 
