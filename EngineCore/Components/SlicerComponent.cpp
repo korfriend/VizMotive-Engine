@@ -164,7 +164,7 @@ namespace vz
 			vector<uint32_t>& idx_outline = primitive_outline.GetMutableIdxPrimives();
 			idx_outline.resize(num_pts * 2 * 2);
 			aabb = geometrics::AABB();
-			for (size_t i = 0, n = pos_outline.size(); i < n; ++i)
+			for (size_t i = 0, n = num_pts; i < n; ++i)
 			{
 				XMStoreFloat3(&pos_outline[i], XMLoadFloat3(&pos_curve_pts[i]) + vec_up * curve_plane_height * 0.5f);
 				XMStoreFloat3(&pos_outline[i + num_pts], XMLoadFloat3(&pos_curve_pts[i]) - vec_up * curve_plane_height * 0.5f);
@@ -209,6 +209,7 @@ namespace vz
 			vector<XMFLOAT3>& pos_panoplane = primitive_panoplane.GetMutableVtxPositions();
 			vector<XMFLOAT3>& nrl_panoplane = primitive_panoplane.GetMutableVtxNormals();
 			pos_panoplane.resize(num_pts * 2);
+			nrl_panoplane.resize(num_pts * 2);
 			vector<uint32_t>& idx_panoplane = primitive_panoplane.GetMutableIdxPrimives();
 			idx_panoplane.resize(((num_pts - 1) * 2) * 3);
 			primitive_panoplane.SetAABB(primitive_outline.GetAABB());

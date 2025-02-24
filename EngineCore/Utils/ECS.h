@@ -6,12 +6,15 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <deque>
 
 #include <cstdint>
 #include <cassert>
 #include <atomic>
 #include <memory>
 #include <string>
+
+#define THREAD_SAFE_ECS_COMPONENTS
 
 // Entity-Component System
 namespace vz::ecs
@@ -36,14 +39,16 @@ namespace vz::ecs
 	{
 	public:
 		virtual ~ComponentManager_Interface() = default;
+#ifndef THREAD_SAFE_ECS_COMPONENTS
 		virtual void Copy(const ComponentManager_Interface& other) = 0;
 		virtual void Merge(ComponentManager_Interface& other) = 0;
+		virtual void MoveItem(size_t index_from, size_t index_to) = 0;
+#endif
 		virtual void Clear() = 0;
 		virtual void Serialize(vz::Archive& archive, EntityMapper& entityMapper, const uint64_t version) = 0;
 		virtual void EntitySerialize(const Entity entity, const uint64_t version, vz::Archive& archive, EntityMapper& entityMapper) = 0;
 		virtual void Remove(Entity entity) = 0;
 		virtual void RemoveKeepSorted(Entity entity) = 0;
-		virtual void MoveItem(size_t index_from, size_t index_to) = 0;
 		virtual bool Contains(Entity entity) const = 0;
 		virtual size_t GetIndex(Entity entity) const = 0;
 		virtual size_t GetCount() const = 0;
@@ -136,7 +141,9 @@ namespace vz::ecs
 		// reservedCount : how much components can be held initially before growing the container
 		ComponentManager(size_t reservedCount = 0)
 		{
+#ifndef THREAD_SAFE_ECS_COMPONENTS
 			components.reserve(reservedCount);
+#endif
 			entities.reserve(reservedCount);
 			lookup.reserve(reservedCount);
 			lookupVUID.reserve(reservedCount);
@@ -151,6 +158,7 @@ namespace vz::ecs
 			lookupVUID.clear();
 		}
 
+#ifndef THREAD_SAFE_ECS_COMPONENTS
 		// Perform deep copy of all the contents of "other" into this
 		inline void Copy(const ComponentManager<Component>& other)
 		{
@@ -179,7 +187,7 @@ namespace vz::ecs
 			entities.reserve(GetCount() + other.GetCount());
 			lookup.reserve(GetCount() + other.GetCount());
 			lookupVUID.reserve(GetCount() + other.GetCount());
-
+		
 			for (size_t i = 0; i < other.GetCount(); ++i)
 			{
 				Entity entity = other.entities[i];
@@ -191,9 +199,10 @@ namespace vz::ecs
 				lookupVUID[vuid] = components.size();
 				components.push_back(std::move(other.components[i]));
 			}
-
+		
 			other.Clear();
 		}
+#endif
 
 		inline void Copy(const ComponentManager_Interface& other)
 		{
@@ -578,7 +587,11 @@ namespace vz::ecs
 
 	private:
 		// This is a linear array of alive components
+#ifdef THREAD_SAFE_ECS_COMPONENTS
+		std::deque<Component> components;
+#else
 		std::vector<Component> components;
+#endif
 		// This is a linear array of entities corresponding to each alive component
 		std::vector<Entity> entities;
 		// This is a lookup table for entities

@@ -212,9 +212,11 @@ int main(int, char **)
 	VzCamera* camera = nullptr;
 	VzCamera* camera1 = nullptr;
 	VzSlicer* slicer = nullptr;
+	VzSlicer* slicer_curved = nullptr;
 	VzRenderer* renderer3D = nullptr;
 	VzRenderer* renderer3D1 = nullptr;
-	VzRenderer* rendererSlicer = nullptr;
+	VzRenderer* renderer_slicer = nullptr;
+	VzRenderer* renderer_curvedslicer = nullptr;
 
 	{
 		ImVec2 wh(512, 512);
@@ -231,8 +233,11 @@ int main(int, char **)
 		renderer3D1 = NewRenderer("my renderer1");
 		renderer3D1->SetCanvas(1, 1, 96.f, nullptr);
 
-		rendererSlicer = NewRenderer("my slicer");
-		rendererSlicer->SetCanvas(1, 1, 96.f, nullptr);
+		renderer_slicer = NewRenderer("my slicer");
+		renderer_slicer->SetCanvas(1, 1, 96.f, nullptr);
+
+		renderer_curvedslicer = NewRenderer("my curved slicer");
+		renderer_curvedslicer->SetCanvas(1, 1, 96.f, nullptr);
 
 		// === camera ===
 		camera = NewCamera("my camera");
@@ -251,6 +256,18 @@ int main(int, char **)
 		view = at - pos;
 		slicer->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		slicer->SetOrthogonalProjection(1, 1, 10);
+
+		slicer_curved = NewSlicer("my curved slicer");
+		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
+		view = at - pos;
+		slicer_curved->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+		slicer_curved->SetOrthogonalProjection(1, 1, 10);
+		slicer_curved->SetHorizontalCurveControls({ {-5, -3, 0}, {0, 2, 0}, {3, -3, 0} }, 0.01);
+		slicer_curved->SetCurvedPlaneHeight(5.f);
+		{
+			vzm::VzGeometry* geometry_cslicer_helper = vzm::NewGeometry("geometry helper for curved slicer");
+			slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
+		}
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		scene->AppendChild(axis_helper);
@@ -338,7 +355,11 @@ int main(int, char **)
 				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
+				{
 					ImGui::SetWindowSize(ImVec2(0, 0));
+					canvas_size.x = std::max(canvas_size.x, 1.f);
+					canvas_size.y = std::max(canvas_size.y, 1.f);
+				}
 
 				bool resized = canvas_size_prev.x != canvas_size.x || canvas_size_prev.y != canvas_size.y;
 				canvas_size_prev = canvas_size;
@@ -411,7 +432,6 @@ int main(int, char **)
 				}
 			}
 			ImGui::End();
-			/**/
 
 			ImGui::Begin("3D Viewer Multi-Test");
 			{
@@ -419,7 +439,11 @@ int main(int, char **)
 				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
+				{
 					ImGui::SetWindowSize(ImVec2(0, 0));
+					canvas_size.x = std::max(canvas_size.x, 1.f);
+					canvas_size.y = std::max(canvas_size.y, 1.f);
+				}
 
 				bool resized = canvas_size_prev.x != canvas_size.x || canvas_size_prev.y != canvas_size.y;
 				canvas_size_prev = canvas_size;
@@ -492,7 +516,6 @@ int main(int, char **)
 				}
 			}
 			ImGui::End();
-			/**/
 
 			ImGui::Begin("Slicer Viewer");
 			{
@@ -500,14 +523,18 @@ int main(int, char **)
 				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
+				{
 					ImGui::SetWindowSize(ImVec2(0, 0));
+					canvas_size.x = std::max(canvas_size.x, 1.f);
+					canvas_size.y = std::max(canvas_size.y, 1.f);
+				}
 
 				bool resized = canvas_size_prev.x != canvas_size.x || canvas_size_prev.y != canvas_size.y;
 				canvas_size_prev = canvas_size;
 
 				if (resized)
 				{
-					rendererSlicer->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, slicer->GetVID());
+					renderer_slicer->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, slicer->GetVID());
 				}
 				ImVec2 win_pos = ImGui::GetWindowPos();
 				ImVec2 cur_item_pos = ImGui::GetCursorPos();
@@ -526,7 +553,7 @@ int main(int, char **)
 					glm::fvec2 pos_ss = m_pos;
 
 					SlicerControl* slice_control = slicer->GetSlicerControl();
-					slice_control->Initialize(rendererSlicer->GetVID(), { 0, 0, 0 });
+					slice_control->Initialize(renderer_slicer->GetVID(), { 0, 0, 0 });
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
@@ -556,13 +583,13 @@ int main(int, char **)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
-					render_chain.push_back(ChainUnitRCam(rendererSlicer, slicer));
+					render_chain.push_back(ChainUnitRCam(renderer_slicer, slicer));
 				else
-					rendererSlicer->Render(scene, slicer);
+					renderer_slicer->Render(scene, slicer);
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;
-				if (rendererSlicer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 2, srt, &w, &h)) {
+				if (renderer_slicer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 2, srt, &w, &h)) {
 					ImTextureID texId = (ImTextureID)srt.descriptorHandle;
 					// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 					//ImGui::Image(texId, ImVec2((float)w, (float)h));
@@ -574,6 +601,90 @@ int main(int, char **)
 			}
 			ImGui::End();
 			/**/
+
+			ImGui::Begin("Curved Slicer Viewer");
+			{
+				static ImVec2 canvas_size_prev = ImVec2(0, 0);
+				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+
+				if (canvas_size_prev.x * canvas_size_prev.y == 0)
+				{
+					ImGui::SetWindowSize(ImVec2(0, 0));
+					canvas_size.x = std::max(canvas_size.x, 1.f);
+					canvas_size.y = std::max(canvas_size.y, 1.f);
+				}
+
+				bool resized = canvas_size_prev.x != canvas_size.x || canvas_size_prev.y != canvas_size.y;
+				canvas_size_prev = canvas_size;
+
+				if (resized)
+				{
+					renderer_curvedslicer->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, slicer_curved->GetVID());
+				}
+				ImVec2 win_pos = ImGui::GetWindowPos();
+				ImVec2 cur_item_pos = ImGui::GetCursorPos();
+				ImGui::InvisibleButton("curved slicer window", canvas_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+				ImGui::SetItemAllowOverlap();
+
+				bool is_hovered = ImGui::IsItemHovered(); // Hovered
+
+				if (is_hovered && !resized)
+				{
+					static glm::fvec2 prevMousePos(0);
+					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
+					glm::fvec2 s_pos = *(glm::fvec2*)&cur_item_pos;
+					glm::fvec2 w_pos = *(glm::fvec2*)&win_pos;
+					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
+					glm::fvec2 pos_ss = m_pos;
+
+					SlicerControl* slice_control = slicer_curved->GetSlicerControl();
+					slice_control->Initialize(renderer_curvedslicer->GetVID(), { 0, 0, 0 });
+
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+					{
+						slice_control->Start(__FC2 pos_ss);
+					}
+					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f)) && glm::length2(prevMousePos - m_pos) > 0)
+					{
+						if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+							slice_control->PanMove(__FC2 pos_ss);
+						else
+							slice_control->Zoom(__FC2 pos_ss, false);
+					}
+					else if (io.MouseWheel != 0)
+					{
+						//glm::fvec3 pos, view, up;
+						//camera->GetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						//if (io.MouseWheel > 0)
+						//	pos += 0.2f * view;
+						//else
+						//	pos -= 0.2f * view;
+						//camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+						slice_control->Move(io.MouseWheel, 0.01f);
+					}
+					prevMousePos = pos_ss;
+				}
+
+				ImGui::SetCursorPos(cur_item_pos);
+
+				if (use_renderchain)
+					render_chain.push_back(ChainUnitRCam(renderer_curvedslicer, slicer_curved));
+				else
+					renderer_curvedslicer->Render(scene, slicer_curved);
+
+				uint32_t w, h;
+				VzRenderer::SharedResourceTarget srt;
+				if (renderer_curvedslicer->GetSharedRenderTarget(g_pd3dDevice, g_pd3dSrvDescHeap, 4, srt, &w, &h)) {
+					ImTextureID texId = (ImTextureID)srt.descriptorHandle;
+					// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
+					//ImGui::Image(texId, ImVec2((float)w, (float)h));
+					ImVec2 pos = ImGui::GetItemRectMin();
+					ImVec2 size = canvas_size;
+					ImVec2 pos_end = ImVec2(pos.x + size.x, pos.y + size.y);
+					ImGui::GetWindowDrawList()->AddImage(texId, pos, pos_end);
+				}
+			}
+			ImGui::End();
 
 			if (use_renderchain)
 			{

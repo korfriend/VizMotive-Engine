@@ -66,9 +66,13 @@ namespace vzm
 		void SetOrthogonalProjection(const float width, const float height, const float orthoVerticalSize = -1) { VzCamera::SetOrthogonalProjection(width, height, 0, 10000.f, orthoVerticalSize); }
 		void GetOrthogonalProjection(float* width, float* height, float* orthoVerticalSize) const { VzCamera::GetOrthogonalProjection(nullptr, nullptr, width, height, orthoVerticalSize); }
 
-		void SetHorizontalCurveControls(const std::vector<vfloat3>& controlPts, const float interval);
 		void SetSlicerThickness(const float thickness);
 		void SetOutlineThickness(const float pixels);
+
+		// Curved slicer attributes
+		void SetHorizontalCurveControls(const std::vector<vfloat3>& controlPts, const float interval);
+		void SetCurvedPlaneHeight(const float value);
+		bool MakeCurvedSlicerHelperGeometry(const GeometryVID vid);
 
 		SliceControl* GetSlicerControl() const { return slicerControl_.get(); }
 	};
