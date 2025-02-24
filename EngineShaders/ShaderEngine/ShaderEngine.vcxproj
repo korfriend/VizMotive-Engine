@@ -207,16 +207,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DeferredProcessing_Details.cpp" />
-    <ClCompile Include="DirectVolumes_Details.cpp" />
-    <ClCompile Include="GaussianSplatting_Details.cpp" />
+    <ClCompile Include="DeferredProcessing_Detail.cpp" />
+    <ClCompile Include="DirectVolumes_Detail.cpp" />
+    <ClCompile Include="GaussianSplatting_Detail.cpp" />
     <ClCompile Include="GPUBVH.cpp" />
     <ClCompile Include="Image.cpp" />
-    <ClCompile Include="PostProcessingChain_Details.cpp" />
+    <ClCompile Include="PostProcessingChain_Detail.cpp" />
     <ClCompile Include="Random.cpp" />
-    <ClCompile Include="RenderPath3D_Details.cpp" />
+    <ClCompile Include="RenderableShapes_Detail.cpp" />
+    <ClCompile Include="RenderPath3D_Detail.cpp" />
     <ClCompile Include="samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
-    <ClCompile Include="SceneResUpdate.cpp" />
+    <ClCompile Include="SceneUpdate_Detail.cpp" />
     <ClCompile Include="ShaderEngine.cpp" />
     <ClCompile Include="ShaderCompiler.cpp" />
     <ClCompile Include="ShaderLoader.cpp" />
@@ -228,7 +229,7 @@
     <ClInclude Include="GPUBVH.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="Noise.h" />
-    <ClInclude Include="RenderPath3D_Details.h" />
+    <ClInclude Include="RenderPath3D_Detail.h" />
     <ClInclude Include="ShaderEngine.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Renderer.h" />
