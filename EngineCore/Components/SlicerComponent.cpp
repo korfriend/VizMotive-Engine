@@ -236,7 +236,8 @@ namespace vz
 			nrl_panoplane[num_pts - 1] = nrl_panoplane[2 * num_pts - 1] = nrl_panoplane[num_pts - 2];
 		}
 
-		geometry->MovePrimitivesFrom(std::move(primitives));
+		//geometry->MovePrimitivesFrom(std::move(primitives));
+		geometry->MovePrimitiveFrom(std::move(primitives[1]), 0);
 		geometry->UpdateRenderData();
 
 		return true;

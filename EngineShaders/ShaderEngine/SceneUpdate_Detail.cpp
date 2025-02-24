@@ -1,5 +1,5 @@
 #include "Renderer.h"
-#include "RenderPath3D_Details.h"
+#include "RenderPath3D_Detail.h"
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"

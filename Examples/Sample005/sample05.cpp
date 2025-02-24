@@ -267,6 +267,12 @@ int main(int, char **)
 		{
 			vzm::VzGeometry* geometry_cslicer_helper = vzm::NewGeometry("geometry helper for curved slicer");
 			slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
+			vzm::VzMaterial* material_curvedslicer = vzm::NewMaterial("curved slicer helper material");
+			material_curvedslicer->SetShaderType(vzm::ShaderType::PBR);
+			material_curvedslicer->SetDoubleSided(true);
+			vzm::VzActor* actor_cslicer_helper = vzm::NewActor("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer);
+			scene->AppendChild(actor_cslicer_helper);
+			vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
 		}
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");

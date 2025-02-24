@@ -318,6 +318,45 @@ namespace vz::renderer
 
 namespace vz::renderer
 {
+	struct RenderableLine
+	{
+		XMFLOAT3 start = XMFLOAT3(0, 0, 0);
+		XMFLOAT3 end = XMFLOAT3(0, 0, 0);
+		XMFLOAT4 color_start = XMFLOAT4(1, 1, 1, 1);
+		XMFLOAT4 color_end = XMFLOAT4(1, 1, 1, 1);
+	};
+
+	struct RenderablePoint
+	{
+		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
+		float size = 1.0f;
+		XMFLOAT4 color = XMFLOAT4(1, 1, 1, 1);
+	};
+
+	struct RenderableShapeCollection
+	{
+	private:
+		std::vector<RenderableLine> renderableLines_;
+		std::vector<RenderableLine> renderableLines_depth_;
+		std::vector<RenderablePoint> renderablePoints_;
+		std::vector<RenderablePoint> renderablePoints_depth_;
+
+		std::vector<std::pair<XMFLOAT4X4, XMFLOAT4>> renderableBoxes_;
+		std::vector<std::pair<XMFLOAT4X4, XMFLOAT4>> renderableBoxes_depth_;
+		std::vector<std::pair<Sphere, XMFLOAT4>> renderableSpheres_;
+		std::vector<std::pair<Sphere, XMFLOAT4>> renderableSpheres_depth_;
+		std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_;
+		std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_depth_;
+
+		void drawAndClearLines(const CameraComponent& camera, std::vector<RenderableLine>& renderableLines, CommandList cmd);
+	public:
+		void DrawLines(const CameraComponent& camera, CommandList cmd)
+		{
+			drawAndClearLines(camera, renderableLines_, cmd);
+			drawAndClearLines(camera, renderableLines_depth_, cmd);
+		}
+	};
+
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
 		GRenderPath3DDetails(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
@@ -383,6 +422,8 @@ namespace vz::renderer
 		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
 
 		ViewResources viewResources;	// dynamic allocation
+
+		RenderableShapeCollection renderableShapes; // dynamic allocation
 
 		// ---------- GRenderPath3D's internal impl.: -----------------
 		//  * functions with an input 'CommandList' are to be implemented here, otherwise, implement 'renderer::' namespace
@@ -580,6 +621,8 @@ namespace vz::renderer
 		graphics::GPUBuffer queryPredicationBuffer = {};
 		uint32_t queryheapIdx = 0;
 		mutable std::atomic<uint32_t> queryAllocator{ 0 };
+
+		RenderableShapeCollection renderableShapes; // dynamic allocation
 
 		bool Update(const float dt) override;
 		bool Destroy() override;

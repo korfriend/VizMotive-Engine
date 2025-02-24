@@ -16,9 +16,6 @@
     <ClCompile Include="Random.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
-    <ClCompile Include="SceneResUpdate.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
     <ClCompile Include="Image.cpp">
       <Filter>Processing</Filter>
     </ClCompile>
@@ -29,22 +26,28 @@
     <ClCompile Include="GPUBVH.cpp">
       <Filter>Processing</Filter>
     </ClCompile>
-    <ClCompile Include="DirectVolumes_Details.cpp">
+    <ClCompile Include="DirectVolumes_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="GaussianSplatting_Details.cpp">
+    <ClCompile Include="GaussianSplatting_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
     <ClCompile Include="Renderer.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="RenderPath3D_Details.cpp">
+    <ClCompile Include="RenderPath3D_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="PostProcessingChain_Details.cpp">
+    <ClCompile Include="PostProcessingChain_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="DeferredProcessing_Details.cpp">
+    <ClCompile Include="DeferredProcessing_Detail.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneUpdate_Detail.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderableShapes_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -86,7 +89,7 @@
     <ClInclude Include="Renderer.h">
       <Filter>Renderer\Header</Filter>
     </ClInclude>
-    <ClInclude Include="RenderPath3D_Details.h">
+    <ClInclude Include="RenderPath3D_Detail.h">
       <Filter>Renderer\Header</Filter>
     </ClInclude>
   </ItemGroup>
@@ -102,9 +105,6 @@
     </Filter>
     <Filter Include="Renderer">
       <UniqueIdentifier>{de20a3d7-11bc-43e1-bc7c-58aef3807cc1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Scene">
-      <UniqueIdentifier>{d912dc8d-dec7-48f8-8abc-e92d2570f031}</UniqueIdentifier>
     </Filter>
     <Filter Include="Processing">
       <UniqueIdentifier>{585799be-32e6-4d47-9526-6ab374165d0e}</UniqueIdentifier>
