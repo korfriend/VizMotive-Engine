@@ -29,7 +29,13 @@ namespace vz
 		}
 		else
 		{
-			ret = (geo_comp->GetNumParts() == vuidMaterials.size() && geo_comp->GetNumParts() > 0) ? 1 : 0;
+			size_t num_parts = geo_comp->GetNumParts();
+			size_t num_mats = geo_comp->GetNumParts();
+			ret = (num_parts == num_mats && num_parts > 0) ? 1 : 0;
+			if (!ret && num_parts * num_mats > 0)
+			{
+				vzlog_warning("Not Renderable--> # of Parts: %d != # of Materials: %d", (int)num_parts, (int)num_mats);
+			}
 		}
 		return ret;
 	}
