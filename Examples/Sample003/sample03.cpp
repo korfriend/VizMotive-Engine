@@ -336,7 +336,11 @@ int main(int, char**)
 				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
+				{
 					ImGui::SetWindowSize(ImVec2(0, 0));
+					canvas_size.x = std::max(canvas_size.x, 1.f);
+					canvas_size.y = std::max(canvas_size.y, 1.f);
+				}
 
 				bool resized = canvas_size_prev.x != canvas_size.x || canvas_size_prev.y != canvas_size.y;
 				canvas_size_prev = canvas_size;

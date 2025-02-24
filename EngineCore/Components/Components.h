@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250224_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250224_2";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -1551,6 +1551,8 @@ namespace vz::compfactory
 	CORE_EXPORT size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	CORE_EXPORT size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
 	CORE_EXPORT Entity GetFirstEntityByName(const std::string& name);
+
+	CORE_EXPORT void EntitySafeExecute(const std::function<void(const std::vector<Entity>&)>& task, const std::vector<Entity>& entities);	// this is for engine-thread safe call
 
 	//----- Highlevel APIs-mapping -----//
 	// To create ECS-based components, 
