@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250225_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250225_2";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -1054,6 +1054,8 @@ namespace vz
 
 		// Non-serialized attributes:
 		bool isDirty_ = true; // for matAlign_
+
+		friend TextureComponent;
 	public:
 		VolumeComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid) {}
 
@@ -1454,7 +1456,7 @@ namespace vz
 
 	struct CORE_EXPORT SlicerComponent : CameraComponent
 	{
-	private:
+	protected:
 		float thickness_ = 0.f;
 		float outlineThickness_ = 1.f; // in pixel unit
 
@@ -1465,8 +1467,8 @@ namespace vz
 
 		// Non-serialized attributes:
 		bool isDirtyCurve_ = true;
-		std::vector<XMFLOAT3> horizontalCurvePoints_;
-		void updateCurve();
+		std::vector<XMFLOAT3> horizontalCurveInterpPoints_;
+		virtual void updateCurve() = 0;
 	public:
 		SlicerComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(ComponentType::SLICER, entity, vuid) {
 			flags_ = CamFlags::ORTHOGONAL | CamFlags::SLICER;
@@ -1476,7 +1478,8 @@ namespace vz
 		inline void SetThickness(const float value) { thickness_ = value; timeStampSetter_ = TimerNow; }
 		inline float GetThickness() const { return thickness_; }
 		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; timeStampSetter_ = TimerNow; };
-
+		inline std::vector<XMFLOAT3> GetHorizontalCurveControls() const { return horizontalCurveControls_; }
+		inline std::vector<XMFLOAT3> GetHorizontalCurveInterpPoints() const { return horizontalCurveInterpPoints_; }
 		// if value <= 0. then, apply Actor's outlineThickess to the slicer's outline
 		inline void SetOutlineThickness(const float value) { outlineThickness_ = value; timeStampSetter_ = TimerNow; }
 		inline float GetOutlineThickness() const { return outlineThickness_; }
