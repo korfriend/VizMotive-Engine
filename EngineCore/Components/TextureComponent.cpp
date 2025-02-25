@@ -178,6 +178,26 @@ namespace vz
 		const std::vector<uint8_t>& data, const TextureFormat textureFormat,
 		const uint32_t w, const uint32_t h, const uint32_t d)
 	{
+		if (cType_ == ComponentType::VOLUMETEXTURE)
+		{
+			VolumeComponent* volume = (VolumeComponent*)this;
+			switch (textureFormat)
+			{
+			case TextureFormat::R8_UNORM:
+				volume->volFormat_ = VolumeComponent::VolumeFormat::UINT8;
+				break;
+			case TextureFormat::R16_UNORM:
+				volume->volFormat_ = VolumeComponent::VolumeFormat::UINT16;
+				break;
+			case TextureFormat::R32_FLOAT:
+				volume->volFormat_ = VolumeComponent::VolumeFormat::FLOAT;
+				break;
+			default:
+				vzlog_error("Invalid (Volume) Texture format for VolumeComponent");
+				return false;
+			}
+		}
+
 		resource_ = std::make_shared<Resource>(
 			resourcemanager::LoadMemory(name, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, data.data(), w, h, d, textureFormat, false)
 		);
