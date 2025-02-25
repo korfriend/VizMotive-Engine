@@ -48,8 +48,8 @@ namespace vz
 		if (curve_interpolation.empty())
 			return;
 
-		horizontalCurvePoints_.clear();
-		horizontalCurvePoints_.push_back(curve_interpolation.front());
+		horizontalCurveInterpPoints_.clear();
+		horizontalCurveInterpPoints_.push_back(curve_interpolation.front());
 
 		// reparameterize by arc length
 		float accumulated_distance = 0.0f;
@@ -70,7 +70,7 @@ namespace vz
 				XMFLOAT3 new_point;
 				XMStoreFloat3(&new_point, interp_p);
 
-				horizontalCurvePoints_.push_back(new_point);
+				horizontalCurveInterpPoints_.push_back(new_point);
 
 				target_distance += curveInterpolationInterval_;
 			}
@@ -80,14 +80,35 @@ namespace vz
 
 		// Add the endpoint if the last sampled point is not sufficiently close to the curve's end		
 		{
-			XMFLOAT3 last_sampled_p = horizontalCurvePoints_.back();
+			XMFLOAT3 last_sampled_p = horizontalCurveInterpPoints_.back();
 			XMFLOAT3 curve_end_p = curve_interpolation.back();
 			float end_distance = XMVectorGetX(XMVector3Length(XMLoadFloat3(&last_sampled_p) - XMLoadFloat3(&curve_end_p)));
 
 			if (end_distance > curveInterpolationInterval_ * 0.5f) {
-				horizontalCurvePoints_.push_back(curve_end_p);
+				horizontalCurveInterpPoints_.push_back(curve_end_p);
 			}
 		}
+	}
+
+	void GSlicerComponent::updateCurve()
+	{
+		SlicerComponent::updateCurve();
+
+		using namespace graphics;
+		GraphicsDevice* device = GetDevice();
+
+		// TODO
+		//GPUBufferDesc desc;
+		//
+		//desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+		//desc.stride = sizeof(float);
+		//desc.size = desc.stride * curveInterpolationInterval_ * 3;
+		//desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+		//desc.usage = Usage::DEFAULT;
+		//device->CreateBuffer(&desc, nullptr, &bvhBuffers.bvhNodeBuffer);
+		//device->SetName(&bvhBuffers.bvhNodeBuffer, "GPUBVH::BVHNodeBuffer");
+		//
+		//curveInterpPointsBuffer
 	}
 
 	bool SlicerComponent::MakeCurvedSlicerHelperGeometry(const Entity geometryEntity)
@@ -103,7 +124,7 @@ namespace vz
 			updateCurve();
 		}
 
-		if (horizontalCurvePoints_.size() == 0)
+		if (horizontalCurveInterpPoints_.size() == 0)
 		{
 			vzlog_error("Slicer (%d) has NO curve setting", entity_);
 			return false;
@@ -118,7 +139,7 @@ namespace vz
 		Primitive& primitive_centerline = primitives[1];
 		Primitive& primitive_outline = primitives[2];
 
-		vector<XMFLOAT3>& pos_curve_pts = horizontalCurvePoints_;
+		vector<XMFLOAT3>& pos_curve_pts = horizontalCurveInterpPoints_;
 		size_t num_pts = pos_curve_pts.size();
 
 		XMVECTOR vec_up = XMLoadFloat3(&up_);
