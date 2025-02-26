@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250225_2";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250226_1";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -1315,7 +1315,7 @@ namespace vz
 			CLIP_PLANE = 1 << 3,
 			CLIP_BOX = 1 << 4,
 			SLICER = 1 << 5, // must be ORTHOGONAL
-			PANORAMIC = 1 << 6, // must be SLICER
+			CURVED = 1 << 6, // must be SLICER
 		};
 
 		float zNearP_ = 0.1f;
@@ -1382,15 +1382,13 @@ namespace vz
 
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
 		inline bool SetWorldLookAtFromHierarchyTransforms();
-		inline void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up);
 		inline void SetWorldLookTo(const XMFLOAT3& eye, const XMFLOAT3& view, const XMFLOAT3& up) {
-			eye_ = eye; XMStoreFloat3(&at_, XMLoadFloat3(&eye) + XMLoadFloat3(&view)); up_ = up; forward_ = view;
-			SetWorldLookAt(eye_, at_, up_);
-			isDirty_ = true;
-			timeStampSetter_ = TimerNow;
+			XMFLOAT3 at; XMStoreFloat3(&at, XMLoadFloat3(&eye) + XMLoadFloat3(&view)); SetWorldLookAt(eye, at, up);
 		}
-		inline void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f);
-		inline void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize);
+
+		virtual void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up);
+		virtual void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f);
+		virtual void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize);
 
 		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= CamFlags::CLIP_BOX : flags_ &= ~CamFlags::CLIP_BOX;
@@ -1419,7 +1417,9 @@ namespace vz
 		inline const XMFLOAT4X4& GetInvViewProjection() const { return invViewProjection_; }
 		inline const geometrics::Frustum& GetFrustum() const { return frustum_; }
 
-		inline bool IsOrtho() const { return flags_ & ORTHOGONAL; }
+		inline bool IsOrtho() const { return flags_ & ORTHOGONAL; } // if not perspective
+		inline bool IsSlicer() const { return flags_ & SLICER; }	// implying OTRHOGONAL
+		inline bool IsCurvedSlicer() const { return flags_ & CURVED; }	// implying SLICER
 		inline float GetFovVertical() const { return fovY_; }
 		inline float GetFocalLength() const { return focalLength_; }
 		inline float GetApertureSize() const { return apertureSize_; }
@@ -1464,28 +1464,42 @@ namespace vz
 		std::vector<XMFLOAT3> horizontalCurveControls_;
 		float curveInterpolationInterval_ = 0.01f;
 		float curvedPlaneHeight_ = 1.f;
+		bool isReverseSide_ = false;
+		XMFLOAT3 curvedSlicerUp_ = XMFLOAT3(0, 0, 1);
 
 		// Non-serialized attributes:
+		float curvedPlaneWidth_ = 1.f;
 		bool isDirtyCurve_ = true;
 		std::vector<XMFLOAT3> horizontalCurveInterpPoints_;
 		virtual void updateCurve() = 0;
 	public:
-		SlicerComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(ComponentType::SLICER, entity, vuid) {
-			flags_ = CamFlags::ORTHOGONAL | CamFlags::SLICER;
+		SlicerComponent(const Entity entity, const bool curvedSlicer, const VUID vuid = 0) : CameraComponent(ComponentType::SLICER, entity, vuid) {
+			flags_ = CamFlags::ORTHOGONAL | CamFlags::SLICER | (curvedSlicer? CamFlags::CURVED : 0);
 			zNearP_ = 0.f;
 		}
 
 		inline void SetThickness(const float value) { thickness_ = value; timeStampSetter_ = TimerNow; }
 		inline float GetThickness() const { return thickness_; }
-		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; timeStampSetter_ = TimerNow; };
-		inline std::vector<XMFLOAT3> GetHorizontalCurveControls() const { return horizontalCurveControls_; }
-		inline std::vector<XMFLOAT3> GetHorizontalCurveInterpPoints() const { return horizontalCurveInterpPoints_; }
 		// if value <= 0. then, apply Actor's outlineThickess to the slicer's outline
 		inline void SetOutlineThickness(const float value) { outlineThickness_ = value; timeStampSetter_ = TimerNow; }
 		inline float GetOutlineThickness() const { return outlineThickness_; }
 
-		inline void SetCurvedPlaneHeight(const float value) { curvedPlaneHeight_ = value; timeStampSetter_ = TimerNow; }
+		void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up) override;
+		void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f) override;
+		void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize) override;
 
+		// Interfaces for Curved Slicer
+		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; timeStampSetter_ = TimerNow; };
+		inline const std::vector<XMFLOAT3>& GetHorizontalCurveControls() const { return horizontalCurveControls_; }
+		inline const std::vector<XMFLOAT3>& GetHorizontalCurveInterpPoints() const { return horizontalCurveInterpPoints_; }
+		inline void SetCurvedPlaneHeight(const float value) { curvedPlaneHeight_ = value; timeStampSetter_ = TimerNow; }
+		inline float GetCurvedPlaneWidth() const { return curvedPlaneWidth_; }
+		inline float GetCurvedPlaneHeight() const { return curvedPlaneHeight_; }
+		inline void SetCurvedPlaneUp(const XMFLOAT3& up) { curvedSlicerUp_ = up; timeStampSetter_ = TimerNow; };
+		inline XMFLOAT3 GetCurvedPlaneUp() const { return curvedSlicerUp_;  }
+		inline void SetReverseSide(const bool reversed) { isReverseSide_ = reversed; timeStampSetter_ = TimerNow; }
+		inline bool IsReverseSide() const { return isReverseSide_; }
+		inline bool IsValidCurvedPlane() const { return horizontalCurveControls_.size() > 2 && curvedPlaneHeight_ > 0; }
 		inline bool MakeCurvedSlicerHelperGeometry(const Entity geometryEntity);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
@@ -1566,7 +1580,7 @@ namespace vz::compfactory
 	// ** NOTE: Only Engine Framework owners are allowed to create specific ECS-based components
 	CORE_EXPORT Entity NewNodeActor(const std::string& name, const Entity parentEntity = 0u);
 	CORE_EXPORT Entity NewNodeCamera(const std::string& name, const Entity parentEntity = 0u);
-	CORE_EXPORT Entity NewNodeSlicer(const std::string& name, const Entity parentEntity = 0u);
+	CORE_EXPORT Entity NewNodeSlicer(const std::string& name, const bool curvedSlicer, const Entity parentEntity = 0u);
 	CORE_EXPORT Entity NewNodeLight(const std::string& name, const Entity parentEntity = 0u);
 	CORE_EXPORT Entity NewResGeometry(const std::string& name);
 	CORE_EXPORT Entity NewResMaterial(const std::string& name);

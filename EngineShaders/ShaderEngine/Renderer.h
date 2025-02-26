@@ -222,8 +222,10 @@ namespace vz::renderer
 	PipelineState* GetObjectPSO(MeshRenderingVariant variant);
 
 	extern jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
+
 	extern PipelineState		PSO_wireframe;
 	extern PipelineState		PSO_occlusionquery;
+	extern PipelineState		PSO_RenderableShapes[SHAPE_RENDERING_COUNT];
 
 	// progressive components
 	extern std::vector<Entity> deferredGeometryGPUBVHGens; // BVHBuffers

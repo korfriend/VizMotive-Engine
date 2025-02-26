@@ -14,7 +14,7 @@ namespace vz
 		VolumeComponent* CreateVolumeComponent(const Entity entity);
 		LightComponent* CreateLightComponent(const Entity entity);
 		CameraComponent* CreateCameraComponent(const Entity entity);
-		SlicerComponent* CreateSlicerComponent(const Entity entity);
+		SlicerComponent* CreateSlicerComponent(const Entity entity, const bool curvedSlicer = false);
 		RenderableComponent* CreateRenderableComponent(const Entity entity);
 
 		size_t Destroy(const Entity entity);

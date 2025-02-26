@@ -5,7 +5,8 @@
 static const uint DVR_BLOCKSIZE = VISIBILITY_BLOCKSIZE;
 static const float FLT_OPACITY_MIN = 1.f/255.f;		// trival storage problem 
 
-#define SLICER_FLAG_ONLY_OUTLINE 1u << 0
+#define SLICER_FLAG_ONLY_OUTLINE (1u << 0)
+#define SLICER_FLAG_REVERSE_SIDE (1u << 1)
 
 struct VolumePushConstants
 {
@@ -35,7 +36,7 @@ struct SlicerMeshPushConstants
 	float pixelSize; // NOTE: Slicer assumes ORTHOGONAL PROJECTION
 
 	float outlineThickness; // in pixel
-	uint padding0;
+	int curvePointsBufferIndex;
 	uint padding1;
 	uint padding2;
 };

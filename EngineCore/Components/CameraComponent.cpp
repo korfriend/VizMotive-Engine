@@ -113,7 +113,6 @@ namespace vz
 
 		timeStampSetter_ = TimerNow;
 	}
-
 	void CameraComponent::SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY)
 	{
 		width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY;
@@ -146,6 +145,32 @@ namespace vz
 			height_ = orthoVerticalSize_;
 		}
 		isDirty_ = true; timeStampSetter_ = TimerNow;
+	}
+
+	void SlicerComponent::SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up)
+	{
+		if (IsCurvedSlicer())
+		{
+			XMFLOAT3 at;
+			XMStoreFloat3(&at, XMLoadFloat3(&eye) + XMVectorSet(0, 0, 1, 0));
+			CameraComponent::SetWorldLookAt(eye, at, { 0, 1.f, 0 });
+		}
+		else
+		{
+			CameraComponent::SetWorldLookAt(eye, at, up);
+		}
+	}
+	void SlicerComponent::SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY)
+	{
+		vzlog_assert(0, "SLICER does NOT support PERSPECTIE PROJECTION!");
+	}
+	void SlicerComponent::SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize)
+	{
+		if (nearP != 0 || farP != 10000.f)
+		{
+			vzlog_warning("Slicer's ORTHO projection is forced to set nearP to 0! (farP is set to 10000.f)")
+		}
+		CameraComponent::SetOrtho(width, height, 0.f, 10000.f, orthoVerticalSize);
 	}
 
 	void CameraComponent::UpdateMatrix()

@@ -142,10 +142,10 @@ namespace vz::compfactory
 		CameraComponent* comp = &cameraManager.Create(entity_update);
 		return comp;
 	}
-	SlicerComponent* CreateSlicerComponent(const Entity entity)
+	SlicerComponent* CreateSlicerComponent(const Entity entity, const bool curvedSlicer)
 	{
 		ENTITY_UPDATE(entity_update);
-		SlicerComponent* comp = &slicerManager.Create(entity_update);
+		SlicerComponent* comp = &slicerManager.Create(entity_update, curvedSlicer);
 		return comp;
 	}
 	RenderableComponent* CreateRenderableComponent(const Entity entity)

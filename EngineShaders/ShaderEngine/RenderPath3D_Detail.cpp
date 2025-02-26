@@ -1027,15 +1027,67 @@ namespace vz::renderer
 		{
 			shadercam.frustum.planes[i] = cam_frustum.planes[i];
 		}
-		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[0], XMVector3TransformCoord(XMVectorSet(-1, 1, 1, 1), invVP));
-		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[1], XMVector3TransformCoord(XMVectorSet(1, 1, 1, 1), invVP));
-		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[2], XMVector3TransformCoord(XMVectorSet(-1, -1, 1, 1), invVP));
-		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[3], XMVector3TransformCoord(XMVectorSet(1, -1, 1, 1), invVP));
 
-		XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[0], XMVector3TransformCoord(XMVectorSet(-1, 1, 0, 1), invVP));
-		XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[1], XMVector3TransformCoord(XMVectorSet(1, 1, 0, 1), invVP));
-		XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[2], XMVector3TransformCoord(XMVectorSet(-1, -1, 0, 1), invVP));
-		XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[3], XMVector3TransformCoord(XMVectorSet(1, -1, 0, 1), invVP));
+		XMVECTOR cornersNEAR[4];
+		cornersNEAR[0] = XMVector3TransformCoord(XMVectorSet(-1, 1, 1, 1), invVP);
+		cornersNEAR[1] = XMVector3TransformCoord(XMVectorSet(1, 1, 1, 1), invVP);
+		cornersNEAR[2] = XMVector3TransformCoord(XMVectorSet(-1, -1, 1, 1), invVP);
+		cornersNEAR[3] = XMVector3TransformCoord(XMVectorSet(1, -1, 1, 1), invVP);
+
+		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[0], cornersNEAR[0]);
+		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[1], cornersNEAR[1]);
+		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[2], cornersNEAR[2]);
+		XMStoreFloat4(&shadercam.frustum_corners.cornersNEAR[3], cornersNEAR[3]);
+
+		if (!camera.IsCurvedSlicer())
+		{
+			XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[0], XMVector3TransformCoord(XMVectorSet(-1, 1, 0, 1), invVP));
+			XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[1], XMVector3TransformCoord(XMVectorSet(1, 1, 0, 1), invVP));
+			XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[2], XMVector3TransformCoord(XMVectorSet(-1, -1, 0, 1), invVP));
+			XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[3], XMVector3TransformCoord(XMVectorSet(1, -1, 0, 1), invVP));
+		}
+		else
+		{
+			float dot_v = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&camera.GetWorldForward()), XMVectorSet(0, 0, 1, 0))) - 1.f;
+			float dot_up = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&camera.GetWorldUp()), XMVectorSet(0, 1, 0, 0))) - 1.f;
+			vzlog_assert(dot_v * dot_v < 0.001f, "camera.GetWorldForward() must be (0, 0, 1)!");
+			vzlog_assert(dot_up * dot_up < 0.001f, "camera.GetWorldUp() must be (0, 1, 0)!");
+			//XMMATRIX invP = XMLoadFloat4x4(&shadercam.inverse_projection);
+			//cornersNEAR[0] = XMVector3TransformCoord(XMVectorSet(-1, 1, 1, 1), invP);
+			//cornersNEAR[1] = XMVector3TransformCoord(XMVectorSet(1, 1, 1, 1), invP);
+			//cornersNEAR[2] = XMVector3TransformCoord(XMVectorSet(-1, -1, 1, 1), invP);
+			//cornersNEAR[3] = XMVector3TransformCoord(XMVectorSet(1, -1, 1, 1), invP);
+
+			// SLICER
+			SlicerComponent* slicer = (SlicerComponent*)&camera;
+			float cplane_width = slicer->GetCurvedPlaneWidth();
+			float cplane_height = slicer->GetCurvedPlaneHeight();
+			//float cplane_thickness = slicer->GetThickness(); // to Push Constant
+
+			int num_interpolation = slicer->GetHorizontalCurveInterpPoints().size();
+			float cplane_width_pixel = (float)num_interpolation;
+			float pitch = cplane_width / cplane_width_pixel;
+			float cplane_height_pixel = cplane_height / pitch;
+
+			float cplane_width_half = (cplane_width * 0.5f);
+			float cplane_height_half = (cplane_height * 0.5f);
+
+			XMMATRIX S = XMMatrixScaling(pitch, pitch, pitch);
+			XMMATRIX T = XMMatrixTranslation(-cplane_width_half, -cplane_height_half, -pitch * 0.5f);
+
+			XMMATRIX mat_COS2CWS = S * T;
+			XMMATRIX mat_CWS2COS = XMMatrixInverse(nullptr, mat_COS2CWS);
+
+			// PACKED TO shadercam.frustum_corners.cornersFAR[0-3]
+			XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[0], XMVector3TransformCoord(cornersNEAR[0], mat_CWS2COS)); // TL
+			XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[1], XMVector3TransformCoord(cornersNEAR[1], mat_CWS2COS)); // TR
+			XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[2], XMVector3TransformCoord(cornersNEAR[2], mat_CWS2COS)); // BL
+			XMStoreFloat4(&shadercam.frustum_corners.cornersFAR[3], XMVector3TransformCoord(cornersNEAR[3], mat_CWS2COS)); // BR
+			shadercam.frustum_corners.cornersFAR[0].w = cplane_width_pixel;
+			shadercam.frustum_corners.cornersFAR[1].w = pitch;
+			shadercam.frustum_corners.cornersFAR[2].w = cplane_height_pixel;
+			shadercam.up = slicer->GetCurvedPlaneUp();
+		}
 
 		shadercam.temporalaa_jitter = camera.jitter;
 		shadercam.temporalaa_jitter_prev = cameraPrevious.jitter;

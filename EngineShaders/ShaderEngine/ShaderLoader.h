@@ -98,8 +98,9 @@ namespace vz::shader
 		// Direct Volume Rendering and Mesh Slicer
 		CSTYPE_DVR_DEFAULT, // VER 0.1
 		CSTYPE_MESH_SLICER, // VER 0.2
+		CSTYPE_MESH_CURVED_SLICER, // VER 0.2
 		CSTYPE_SLICER_OUTLINE, // VER 0.2
-		CSTYPE_SLICE_KB_2_RESOLVE, // VER 0.2
+		CSTYPE_SLICE_RESOLVE_KB2, // VER 0.2
 
 		// Gaussian Splatting
 		CSTYPE_GS_PREPROCESS,
@@ -157,6 +158,13 @@ namespace vz::shader
 		SHADERTYPE_COUNT,
 	};
 
+	enum SHAPE_RENDERING
+	{
+		SHAPE_RENDERING_LINES,
+		SHAPE_RENDERING_LINES_DEPTH,
+		SHAPE_RENDERING_COUNT
+	};
+
 	bool LoadShader(
 		ShaderStage stage,
 		Shader& shader,
@@ -166,4 +174,7 @@ namespace vz::shader
 	);
 
 	void LoadShaders();
+
+	void Initialize();
+	void Deinitialize();
 }

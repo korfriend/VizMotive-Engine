@@ -96,7 +96,8 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_preprocessCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_renderCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicer_kB2_ResolveCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS_curvedplane.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerResolveCS_KB2.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_ADVANCED.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_ADVANCED_DEBUG.hlsl" />

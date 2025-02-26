@@ -1,10 +1,15 @@
 #include "GComponents.h"
+#include "GBackend/GModuleLoader.h" // deferred task for streaming
 #include "Utils/Backlog.h"
 
 namespace vz
 {
+	extern GShaderEngineLoader shaderEngine;
+
 	void SlicerComponent::updateCurve()
 	{
+		vzlog_assert(IsCurvedSlicer(), "SlicerComponent::updateCurve() is allowed only for curved slicer!");
+
 		isDirtyCurve_ = false;
 		size_t num_ctrs = horizontalCurveControls_.size();
 		if (num_ctrs < 2)
@@ -78,6 +83,8 @@ namespace vz
 			accumulated_distance += segment_length;
 		}
 
+		curvedPlaneWidth_ = accumulated_distance;
+
 		// Add the endpoint if the last sampled point is not sufficiently close to the curve's end		
 		{
 			XMFLOAT3 last_sampled_p = horizontalCurveInterpPoints_.back();
@@ -94,25 +101,31 @@ namespace vz
 	{
 		SlicerComponent::updateCurve();
 
+		curveInterpPointsBuffer = {};
+
 		using namespace graphics;
 		GraphicsDevice* device = GetDevice();
 
-		// TODO
-		//GPUBufferDesc desc;
-		//
-		//desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-		//desc.stride = sizeof(float);
-		//desc.size = desc.stride * curveInterpolationInterval_ * 3;
-		//desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
-		//desc.usage = Usage::DEFAULT;
-		//device->CreateBuffer(&desc, nullptr, &bvhBuffers.bvhNodeBuffer);
-		//device->SetName(&bvhBuffers.bvhNodeBuffer, "GPUBVH::BVHNodeBuffer");
-		//
-		//curveInterpPointsBuffer
+		GPUBufferDesc desc;
+		desc.stride = sizeof(float);
+		desc.size = desc.stride * horizontalCurveInterpPoints_.size() * 3;
+
+		desc.bind_flags = BindFlag::SHADER_RESOURCE;
+		desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+		desc.usage = Usage::DEFAULT;
+		device->CreateBuffer(&desc, nullptr, &curveInterpPointsBuffer);
+		device->SetName(&curveInterpPointsBuffer, "GSlicerComponent::curveInterpPointsBuffer");
+
+		if (shaderEngine.pluginAddDeferredBufferUpdate)
+		{
+			shaderEngine.pluginAddDeferredBufferUpdate(curveInterpPointsBuffer, horizontalCurveInterpPoints_.data(), desc.size, 0);
+		}
 	}
 
 	bool SlicerComponent::MakeCurvedSlicerHelperGeometry(const Entity geometryEntity)
 	{
+		vzlog_assert(IsCurvedSlicer(), "SlicerComponent::MakeCurvedSlicerHelperGeometry() is allowed only for curved slicer!");
+
 		GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
 		if (geometry == nullptr)
 		{
@@ -142,7 +155,7 @@ namespace vz
 		vector<XMFLOAT3>& pos_curve_pts = horizontalCurveInterpPoints_;
 		size_t num_pts = pos_curve_pts.size();
 
-		XMVECTOR vec_up = XMLoadFloat3(&up_);
+		XMVECTOR vec_up = XMLoadFloat3(&curvedSlicerUp_);
 		
 		float curve_plane_height = curvedPlaneHeight_;
 
