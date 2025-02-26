@@ -350,7 +350,7 @@ namespace vz::renderer
 
 		void drawAndClearLines(const CameraComponent& camera, std::vector<RenderableLine>& renderableLines, CommandList cmd, bool clearEnabled);
 	public:
-		float depthLineThicknessPixel = 1.5f;
+		float depthLineThicknessPixel = 1.3f;
 
 		void AddDrawLine(const RenderableLine& line, bool depth)
 		{
