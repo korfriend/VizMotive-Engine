@@ -70,5 +70,6 @@ dxc -T cs_6_6 ./CS/gs_sortCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gs_renderCS.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/meshSlicerCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/meshSlicerCS_curvedplane.hlsl -spirv
 dxc -T cs_6_0 ./CS/slicerOutlineCS.hlsl -spirv
-dxc -T cs_6_0 ./CS/kbuffer_2_ResolveCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/slicerResolveCS_KB2.hlsl -spirv

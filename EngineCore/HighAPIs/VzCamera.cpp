@@ -22,7 +22,16 @@ namespace vzm
 	void VzCamera::SetWorldPose(const vfloat3& pos, const vfloat3& view, const vfloat3& up)
 	{
 		GET_CAM_COMP(camera, );
-		camera->SetWorldLookTo(*(XMFLOAT3*)&pos, *(XMFLOAT3*)&view, *(XMFLOAT3*)&up);
+
+		if (camera->IsSlicer())
+		{
+			((SlicerComponent*)camera)->SetWorldLookTo(*(XMFLOAT3*)&pos, *(XMFLOAT3*)&view, *(XMFLOAT3*)&up);
+		}
+		else
+		{
+			camera->SetWorldLookTo(*(XMFLOAT3*)&pos, *(XMFLOAT3*)&view, *(XMFLOAT3*)&up);
+		}
+
 		camera->UpdateMatrix();
 		UpdateTimeStamp();
 	}
@@ -30,15 +39,15 @@ namespace vzm
 	{
 		GET_CAM_COMP(camera, );
 
-		if (camera->GetComponentType() == ComponentType::SLICER)
+		if (camera->IsSlicer())
 		{
-			if (zNearP != 0)
-			{
-				vzlog_warning("Slicer normally requires zero-nearplane setting, current setting is %f", zNearP);
-			}
+			((SlicerComponent*)camera)->SetOrtho(width, height, zNearP, zFarP, orthoVerticalSize);
+		}
+		else
+		{
+			camera->SetOrtho(width, height, zNearP, zFarP, orthoVerticalSize);
 		}
 
-		camera->SetOrtho(width, height, zNearP, zFarP, orthoVerticalSize);
 		camera->UpdateMatrix();
 		UpdateTimeStamp();
 	}
@@ -52,7 +61,16 @@ namespace vzm
 			return;
 		}
 
-		camera->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
+
+		if (camera->IsSlicer())
+		{
+			((SlicerComponent*)camera)->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
+		}
+		else
+		{
+			camera->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
+		}
+
 		camera->UpdateMatrix();
 		UpdateTimeStamp();
 	}
@@ -854,6 +872,13 @@ namespace vzm
 		SlicerControlDetail* slicerControl_detail = (SlicerControlDetail*)slicerControl_.get();
 		slicerControl_detail->slicerVid = vid;
 		slicerControl_detail->vzSlicer = this;
+	}
+
+	void VzSlicer::SetCurvedPlaneUp(const vfloat3& up)
+	{
+		GET_SLICER_COMP(slicer, );
+		slicer->SetCurvedPlaneUp(*(XMFLOAT3*)&up);
+		UpdateTimeStamp();
 	}
 
 	void VzSlicer::SetHorizontalCurveControls(const std::vector<vfloat3>& controlPts, const float interval)

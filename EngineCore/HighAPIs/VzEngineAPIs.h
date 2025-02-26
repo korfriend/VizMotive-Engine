@@ -32,7 +32,7 @@ namespace vzm
 	//  - parentVid cannot be a scene (renderable or 0)
 	//  - return the generated scene component or nullptr in case of failure (invalid sceneID or overflow VID)
 	API_EXPORT VzCamera* NewCamera(const std::string& name, const VID parentVid = 0u);
-	API_EXPORT VzSlicer* NewSlicer(const std::string& name, const VID parentVid = 0u);
+	API_EXPORT VzSlicer* NewSlicer(const std::string& name, const bool curvedSlicer, const VID parentVid = 0u);
 	API_EXPORT VzActor* NewActor(const std::string& name, const GeometryVID vidGeo = 0u, const MaterialVID vidMat = 0u, const VID parentVid = 0u);
 	API_EXPORT VzActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid = 0u);
 	API_EXPORT VzLight* NewLight(const std::string& name, const VID parentVid = 0u);

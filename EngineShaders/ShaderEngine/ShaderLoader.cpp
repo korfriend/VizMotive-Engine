@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "ShaderLoader.h"
 #include "ShaderCompiler.h"
+#include "RenderPath3D_Detail.h"
 
 #include "Utils/Backlog.h"
 #include "Utils/Helpers.h"
@@ -22,24 +23,6 @@ std::atomic<size_t> SHADER_ERRORS{ 0 };
 std::atomic<size_t> SHADER_MISSING{ 0 };
 
 using namespace vz::renderer;
-
-namespace vz::rcommon
-{
-	extern InputLayout			inputLayouts[ILTYPE_COUNT];
-	extern RasterizerState		rasterizers[RSTYPE_COUNT];
-	extern DepthStencilState	depthStencils[DSSTYPE_COUNT];
-	extern BlendState			blendStates[BSTYPE_COUNT];
-	extern Shader				shaders[SHADERTYPE_COUNT];
-	extern GPUBuffer			buffers[BUFFERTYPE_COUNT];
-	extern Sampler				samplers[SAMPLER_COUNT];
-
-	extern PipelineState		PSO_wireframe;
-	extern PipelineState		PSO_occlusionquery;
-	extern std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
-
-	extern jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
-}
-
 
 namespace vz
 {
@@ -457,6 +440,28 @@ namespace vz::shader
 		return false;
 	}
 
+	void Initialize()
+	{
+		LoadShaders();
+	}
+
+	void Deinitialize()
+	{
+		ReleaseRenderRes(shaders, SHADERTYPE_COUNT);
+
+		PSO_wireframe = {};
+		PSO_occlusionquery = {};
+		ReleaseRenderRes(PSO_RenderableShapes, SHAPE_RENDERING_COUNT);
+
+		for (size_t i = 0, n = (size_t)RENDERPASS_COUNT; i < n; ++i)
+		{
+			for (size_t j = 0; j < (size_t)SHADERTYPE_BIN_COUNT; ++j)
+			{
+				PSO_render[i][j].clear();
+			}
+		}
+	}
+
 	void LoadShaders()
 	{
 		// check shader interop check
@@ -575,11 +580,11 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_IDENTIFY_TILE_RANGES], "gs_identifyTileRangesCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_RENDER_GAUSSIAN], "gs_renderCS.cso"); });
 
-
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_DEFAULT], "dvrCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_MESH_SLICER], "meshSlicerCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_MESH_CURVED_SLICER], "meshSlicerCS_curvedplane.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SLICER_OUTLINE], "slicerOutlineCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SLICE_KB_2_RESOLVE], "slicer_kB2_ResolveCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_SLICE_RESOLVE_KB2], "slicerResolveCS_KB2.cso"); });
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_MESHLET_PREPARE], "meshlet_prepareCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_VIEW_RESOLVE], "view_resolveCS.cso"); });
@@ -657,6 +662,34 @@ namespace vz::shader
 		//
 		//	device->CreatePipelineState(&desc, &PSO_outline);
 		//	});
+
+		jobsystem::Dispatch(ctx, SHAPE_RENDERING_COUNT, 1, [](jobsystem::JobArgs args) {
+			PipelineStateDesc desc;
+
+			switch (args.jobIndex)
+			{
+			case SHAPE_RENDERING_LINES:
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
+				desc.pt = PrimitiveTopology::LINELIST;
+				break;
+			case SHAPE_RENDERING_LINES_DEPTH:
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
+				desc.pt = PrimitiveTopology::LINELIST;
+				break;
+			}
+
+			device->CreatePipelineState(&desc, &PSO_RenderableShapes[args.jobIndex]);
+			});
 
 		jobsystem::Wait(ctx);
 

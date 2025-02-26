@@ -351,9 +351,6 @@ namespace vz::renderer
 
 		void drawAndClearLines(const CameraComponent& camera, std::vector<RenderableLine>& renderableLines, CommandList cmd, bool clearEnabled);
 	public:
-		static void Initialize();
-		static void Deinitialize();
-
 		void AddDrawLine(const RenderableLine& line, bool depth)
 		{
 			if (depth)

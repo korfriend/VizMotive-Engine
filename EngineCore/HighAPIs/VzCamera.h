@@ -70,6 +70,7 @@ namespace vzm
 		void SetOutlineThickness(const float pixels);
 
 		// Curved slicer attributes
+		void SetCurvedPlaneUp(const vfloat3& up);
 		void SetHorizontalCurveControls(const std::vector<vfloat3>& controlPts, const float interval);
 		void SetCurvedPlaneHeight(const float value);
 		bool MakeCurvedSlicerHelperGeometry(const GeometryVID vid);
