@@ -456,7 +456,6 @@ namespace vz
 
 			isDirty_ = true;
 			SetWorldLookAtFromHierarchyTransforms();
-			//UpdateMatrix();
 		}
 		else
 		{
@@ -498,6 +497,9 @@ namespace vz
 			archive >> horizontalCurveControls_;
 			archive >> curveInterpolationInterval_;
 			archive >> curvedPlaneHeight_;
+			archive >> isReverseSide_;
+
+			archive >> curvedSlicerUp_;
 		}
 		else
 		{
@@ -507,6 +509,9 @@ namespace vz
 			archive << horizontalCurveControls_;
 			archive << curveInterpolationInterval_;
 			archive << curvedPlaneHeight_;
+			archive << isReverseSide_;
+
+			archive << curvedSlicerUp_;
 		}
 	}
 }

@@ -251,16 +251,17 @@ int main(int, char **)
 		//camera1->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
 		camera1->SetOrthogonalProjection(1, 1, 0.1f, 5000.f, 5.f);
 
-		slicer = NewSlicer("my slicer");
+		slicer = NewSlicer("my slicer", false);
 		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
 		view = at - pos;
 		slicer->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		slicer->SetOrthogonalProjection(1, 1, 10);
 
-		slicer_curved = NewSlicer("my curved slicer");
-		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
-		view = at - pos;
-		slicer_curved->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+		slicer_curved = NewSlicer("my curved slicer", true);
+		//pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
+		//view = at - pos;
+		//slicer_curved->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
+		slicer_curved->SetCurvedPlaneUp({0, 0, 1});
 		slicer_curved->SetOrthogonalProjection(1, 1, 10);
 		slicer_curved->SetHorizontalCurveControls({ {-5, -3, 0}, {0, 2, 0}, {3, -3, 0} }, 0.01);
 		slicer_curved->SetCurvedPlaneHeight(5.f);

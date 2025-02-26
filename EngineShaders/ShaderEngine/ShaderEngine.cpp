@@ -4,7 +4,6 @@
 #include "SortLib.h"
 #include "GPUBVH.h"
 #include "ShaderLoader.h"
-#include "RenderPath3D_Detail.h"
 #include "../Shaders/ShaderInterop.h"
 
 #include "sheenLUT.h"
@@ -44,33 +43,36 @@ namespace vz::renderer
 
 namespace vz::renderer 
 {
-	InputLayout			inputLayouts[ILTYPE_COUNT];
-	RasterizerState		rasterizers[RSTYPE_COUNT];
-	DepthStencilState	depthStencils[DSSTYPE_COUNT];
-	BlendState			blendStates[BSTYPE_COUNT];
-	Shader				shaders[SHADERTYPE_COUNT];
-	GPUBuffer			buffers[BUFFERTYPE_COUNT];
-	Sampler				samplers[SAMPLER_COUNT];
-	Texture				textures[TEXTYPE_COUNT];
-	std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
+	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];	// shaders
+
+	InputLayout			inputLayouts[ILTYPE_COUNT];		// shaders
+	Shader				shaders[SHADERTYPE_COUNT];		// shaders
+
+	std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];	// shaders
+	PipelineState		PSO_wireframe;											// shaders
+	PipelineState		PSO_occlusionquery;										// shaders
+	PipelineState		PSO_RenderableShapes[SHAPE_RENDERING_COUNT];			// shaders
+
+	RasterizerState		rasterizers[RSTYPE_COUNT];		// engine
+	DepthStencilState	depthStencils[DSSTYPE_COUNT];	// engine
+	BlendState			blendStates[BSTYPE_COUNT];		// engine
+	Sampler				samplers[SAMPLER_COUNT];		// engine
+	// must be released
+	GPUBuffer			buffers[BUFFERTYPE_COUNT];		// engine
+	Texture				textures[TEXTYPE_COUNT];		// engine
 
 	PipelineState* GetObjectPSO(MeshRenderingVariant variant)
 	{
 		return &PSO_render[variant.bits.renderpass][variant.bits.shadertype][variant.value];
 	}
 
-	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];
-	PipelineState		PSO_wireframe;
-	PipelineState		PSO_occlusionquery;
-
 	// progressive components
-	std::vector<Entity> deferredGeometryGPUBVHGens; // BVHBuffers
-	std::vector<std::pair<Texture, bool>> deferredMIPGens;
-	std::vector<std::pair<Texture, Texture>> deferredBCQueue; // BC : Block Compression
-	std::vector<std::pair<Texture, Texture>> deferredTextureCopy;
-	std::vector<std::pair<GPUBuffer, std::pair<void*, size_t>>> deferredBufferUpdate;
+	std::vector<Entity> deferredGeometryGPUBVHGens;								// engine
+	std::vector<std::pair<Texture, bool>> deferredMIPGens;						// engine
+	std::vector<std::pair<Texture, Texture>> deferredBCQueue;					// engine, BC : Block Compression
+	std::vector<std::pair<Texture, Texture>> deferredTextureCopy;				// engine
+	std::vector<std::pair<GPUBuffer, std::pair<void*, size_t>>> deferredBufferUpdate;	// engine
 
-	//SpinLock deferredResourceLock;
 	std::mutex deferredResourceMutex;
 }
 
@@ -479,16 +481,13 @@ namespace vz::renderer
 	{
 		Timer timer;
 
-		renderer::SetUpStates();
-		renderer::LoadBuffers();
+		renderer::SetUpStates();	// depthStencils, blendStates, samplers
+		renderer::LoadBuffers();	// buffers, textures
 
 		static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
 
 		jobsystem::context ctx;
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { 
-			shader::LoadShaders();
-			renderer::RenderableShapeCollection::Initialize(); 
-			});
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { image::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpubvh::Initialize(); });
@@ -502,30 +501,25 @@ namespace vz::renderer
 	void Deinitialize()
 	{
 		jobsystem::WaitAllJobs();
-		ReleaseRenderRes(shaders, SHADERTYPE_COUNT);
+
 		ReleaseRenderRes(buffers, BUFFERTYPE_COUNT);
-		ReleaseRenderRes(samplers, SAMPLER_COUNT);
 		ReleaseRenderRes(textures, TEXTYPE_COUNT);
-		PSO_wireframe = {};
-		PSO_occlusionquery = {};
+
+		ReleaseRenderRes(rasterizers, SAMPLER_COUNT);
+		ReleaseRenderRes(depthStencils, SAMPLER_COUNT);
+		ReleaseRenderRes(blendStates, SAMPLER_COUNT);
+		ReleaseRenderRes(samplers, SAMPLER_COUNT);
 
 		deferredTextureCopy.clear();
 		deferredBufferUpdate.clear();
 		deferredBCQueue.clear();
 		deferredMIPGens.clear();
+		deferredGeometryGPUBVHGens.clear();
 
-		for (size_t i = 0, n = (size_t)RENDERPASS_COUNT; i < n; ++i)
-		{
-			for (size_t j = 0; j < (size_t)SHADERTYPE_BIN_COUNT; ++j)
-			{
-				PSO_render[i][j].clear();
-			}
-		}
-
+		shader::Deinitialize();
 		image::Deinitialize();
 		gpubvh::Deinitialize();
 		gpusortlib::Deinitialize();
-		renderer::RenderableShapeCollection::Deinitialize();
 		renderer::initialized.store(false);
 	}
 }

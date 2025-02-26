@@ -196,6 +196,7 @@ namespace vz
 				vzlog_error("Invalid (Volume) Texture format for VolumeComponent");
 				return false;
 			}
+			vzlog_warning("Use VolumeTexture::LoadVolume instead of using TextureComponent::LoadMemory");
 		}
 
 		resource_ = std::make_shared<Resource>(

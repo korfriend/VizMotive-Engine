@@ -391,7 +391,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerOutlineCS.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicer_kB2_ResolveCS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerResolveCS_KB2.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS_curvedplane.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
   </ItemGroup>

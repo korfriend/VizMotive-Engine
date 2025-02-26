@@ -10,6 +10,9 @@ RWTexture2D<uint2> layer_packed1_RG : register(u3);
 
 inline bool InsideTest(const float3 originWS, const float3 originOS, const float3 rayDirOS, const float2 minMaxT, const float4x4 os2ws, inout float minDistOnPlane)
 {
+	if (length(rayDirOS) < 0.00001)
+		return false;
+
 	RayDesc ray;
 	ray.Origin = originOS;
 	ray.Direction = rayDirOS;
@@ -75,6 +78,11 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 #ifndef CURVEDPLANE
 	RayDesc ray_ws = CreateCameraRay(clipspace);
 #else
+	RayDesc ray_ws = CreateCurvedSlicerRay(pixel);
+	if (ray_ws.TMin >= FLT_MAX - 1)
+	{
+		return;
+	}
 #endif
 
 	ShaderClipper clipper; // TODO
@@ -118,15 +126,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	const float3x3 ws2os_adj = inst.transformRaw_inv.GetMatrixAdjoint();
 	//const float3x3 ws2os_adj = (float3x3)inst.transformRaw_inv.GetMatrix();
-
 	float3 ray_dir_os = normalize(mul(ws2os_adj, ray_ws.Direction));
+	float3 up_os = normalize(mul(ws2os_adj, camera.up));
+	float3 right_os = normalize(cross(ray_dir_os, up_os));
 
 	bool isInsideOnPlane = false;
 	float minDistOnPlane = FLT_MAX; // for on-the-fly zeroset contouring
-
-
-	float3 up_os = normalize(mul(ws2os_adj, camera.up));
-	float3 right_os = normalize(cross(ray_dir_os, up_os));
 
 	// safe inside test (up- and down-side)
 	bool isInsideOnPlaneUp0 = InsideTest(ray_ws.Origin, origin_os.xyz, up_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
@@ -446,5 +451,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			}
 		}
 	}
+
+
+
 	return;
 }

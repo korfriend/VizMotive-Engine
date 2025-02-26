@@ -80,7 +80,7 @@ namespace vz::renderer
 			uint32_t lod = 0;
 		} instancedBatch = {};
 
-		SlicerComponent* slicer = (SlicerComponent*)this->camera;
+		GSlicerComponent* slicer = (GSlicerComponent*)this->camera;
 		assert(slicer->GetComponentType() == ComponentType::SLICER);
 
 		SlicerMeshPushConstants push;
@@ -149,12 +149,6 @@ namespace vz::renderer
 						continue;
 					}
 
-					device->BindComputeShader(&shaders[CSTYPE_MESH_SLICER], cmd);
-					for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-					{
-						device->BindUAV(&slicer_textures[i], i, cmd);
-					}
-
 					push.instanceIndex = instancedBatch.renderableIndex;
 					push.materialIndex = material_index;
 					push.BVH_counter = device->GetDescriptorIndex(&part_buffer.bvhBuffers.primitiveCounterBuffer, SubresourceType::SRV);
@@ -163,8 +157,21 @@ namespace vz::renderer
 					
 					renderable.IsSlicerSolidFill() ? 
 						push.sliceFlags &= ~SLICER_FLAG_ONLY_OUTLINE : push.sliceFlags |= SLICER_FLAG_ONLY_OUTLINE;
+
+					slicer->IsReverseSide() ?
+						push.sliceFlags |= SLICER_FLAG_REVERSE_SIDE : push.sliceFlags &= ~SLICER_FLAG_REVERSE_SIDE;
+
 					push.outlineThickness = slicer->GetOutlineThickness() <= 0? renderable.GetOutlineThickness() : slicer->GetOutlineThickness();
-					
+					push.curvePointsBufferIndex = device->GetDescriptorIndex(&slicer->curveInterpPointsBuffer, SubresourceType::SRV);
+
+					device->BindComputeShader(
+						&shaders[slicer->IsCurvedSlicer()? CSTYPE_MESH_CURVED_SLICER : CSTYPE_MESH_SLICER], cmd);
+
+					for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+					{
+						device->BindUAV(&slicer_textures[i], i, cmd);
+					}
+
 					device->PushConstants(&push, sizeof(push), cmd);
 
 					device->Dispatch(
@@ -257,7 +264,7 @@ namespace vz::renderer
 		if (push.sliceThickness > 0) 
 		{
 			auto range_2 = profiler::BeginRangeGPU("Slicer Resolve", &cmd);
-			device->BindComputeShader(&shaders[CSTYPE_SLICE_KB_2_RESOLVE], cmd);
+			device->BindComputeShader(&shaders[CSTYPE_SLICE_RESOLVE_KB2], cmd);
 
 			device->Dispatch(
 				tile_count.x,

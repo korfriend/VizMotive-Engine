@@ -146,7 +146,7 @@ namespace vzm
 		return result;
 	}
 
-	VzSceneComp* newSceneComponent(const COMPONENT_TYPE compType, const std::string& compName, const VID parentVid)
+	VzSceneComp* newSceneComponent(const COMPONENT_TYPE compType, const std::string& compName, const VID parentVid, const uint64_t userData = 0)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		switch (compType)
@@ -169,7 +169,8 @@ namespace vzm
 
 		VID vid = entity;
 		VzSceneComp* hlcomp = nullptr;
-
+		
+		VID parent_vid = parentVid;
 		switch (compType)
 		{
 		case COMPONENT_TYPE::ACTOR:
@@ -194,10 +195,16 @@ namespace vzm
 			}
 			break;
 		case COMPONENT_TYPE::SLICER:
-			compfactory::CreateSlicerComponent(entity);
+			compfactory::CreateSlicerComponent(entity, userData != 0);
 			{
 				auto it = vzcompmanager::cameras.emplace(vid, std::make_unique<VzSlicer>(vid, "vzm::NewSlicer"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
+
+				if (userData != 0 && parent_vid != 0)
+				{
+					vzlog_assert(0, "Curved Slicer is NOT allow to have a parent! Force to set Null parent!");
+					parent_vid = 0u;
+				}
 			}
 			break;
 		default:
@@ -207,7 +214,7 @@ namespace vzm
 
 		if (parentVid != INVALID_VID)
 		{
-			AppendSceneCompVidTo(vid, parentVid);
+			AppendSceneCompVidTo(vid, parent_vid);
 		}
 
 		vzcompmanager::lookup[vid] = hlcomp;
@@ -385,9 +392,9 @@ namespace vzm
 	{
 		return (VzCamera*)newSceneComponent(COMPONENT_TYPE::CAMERA, name, parentVid);
 	}
-	VzSlicer* NewSlicer(const std::string& name, const VID parentVid)
+	VzSlicer* NewSlicer(const std::string& name, const bool curvedSlicer, const VID parentVid)
 	{
-		return (VzSlicer*)newSceneComponent(COMPONENT_TYPE::SLICER, name, parentVid);
+		return (VzSlicer*)newSceneComponent(COMPONENT_TYPE::SLICER, name, parentVid, curvedSlicer? 1 : 0);
 	}
 	VzActor* NewActor(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
 	{
@@ -617,7 +624,6 @@ namespace vzm
 		if (itc != vzcompmanager::cameras.end())
 			vid_scene = itc->second.get()->sceneVid;
 
-		//assert(vis_scene);
 		return vid_scene;
 	}
 
@@ -740,13 +746,12 @@ namespace vzm
 	bool DeinitEngineLib()
 	{
 		CHECK_API_INIT_VALIDITY(false);
+		graphicsDevice->WaitForGPU();
 		jobsystem::ShutDown();
 
-		// lock_gaurd MUST be placed BEFORE jobsystem::ShutDown() or WaitAllJobs()!
+		// lock_gaurd MUST be placed AFTER jobsystem::ShutDown() or WaitAllJobs()!
 		std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
-
-		graphicsDevice->WaitForGPU();
-		profiler::Shutdown();
+		graphicsDevice->WaitForGPU();	// double check for safe
 
 		// high-level apis handle engine components via functions defined in vzcomp namespace
 		vzcompmanager::DestroyAll();	// here, after-shutdown drives a single threaded process
@@ -756,9 +761,7 @@ namespace vzm
 		
 		eventhandler::Destroy();
 
-		vzlog("=======================");
-		vzlog("Engine Finished Bye ^^!");
-		vzlog("=======================");
+		vzlog("\n Safely Engine Finished!\n ---------------------------- \n Bye Bye ^^! \n ----------------------------");
 		backlog::Destroy();
 
 		return true;
@@ -783,7 +786,11 @@ namespace vz::compfactory
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
 	Entity NewNodeCamera(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Camera) }
-	Entity NewNodeSlicer(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Slicer) }
+	Entity NewNodeSlicer(const std::string& name, const bool curvedSlicer, const Entity parentEntity) 
+	{
+		VzBaseComp* comp = NewSlicer(name, curvedSlicer, parentEntity);
+		return comp ? comp->GetVID() : INVALID_ENTITY;
+	}
 	Entity NewNodeLight(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Light) }
 	Entity NewResGeometry(const std::string& name) { DEFINE_NEW_RES_FUNC(Geometry) }
 	Entity NewResMaterial(const std::string& name) { DEFINE_NEW_RES_FUNC(Material) }
