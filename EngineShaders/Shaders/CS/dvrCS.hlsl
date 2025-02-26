@@ -1,3 +1,4 @@
+#define K_NUM 2
 #include "../CommonHF/dvrHF.hlsli"
 
 [numthreads(DVR_BLOCKSIZE, DVR_BLOCKSIZE, 1)]
@@ -12,7 +13,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
         return;
     }
 
-	const float2 uv = ((float2)pixel + 0.5) * camera.internal_resolution_rcp;
+	const float2 uv = ((float2)pixel + (float2)0.5) * camera.internal_resolution_rcp;
 	const float2 clipspace = uv_to_clipspace(uv);
 	RayDesc ray = CreateCameraRay(clipspace);
 
@@ -117,27 +118,29 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	// dominant light 1 and light field for multiple lights
 	// tiled lighting?!
 	// ... light map ...
+	half opacity_correction = (half)push.opacity_correction;
+	half sample_dist = (half)vol_instance.sample_dist;
 
-	float4 color_out = (float4)0; // output
+	half4 color_out = (half4)0; // output
 	float cos = dot(cam_forward, ray.Direction);
-	float4 prev_color = inout_color[pixel];
+
+	float4 prev_color = inout_color[pixel].rgba;
 	uint num_frags = 0;
-	Fragment fs[2];
-	if (prev_color.a > 0 && prev_z < 1.f) 
+	Fragment fs[K_NUM];
+	if (prev_z < 1e20 && prev_z < 1.f)
 	{
 		Fragment f;
-		f.color = float4(prev_color.rgb, 1);
+		//f.SetColor(half4(prev_color.rgb, (half)1.f));
+		f.color_packed = pack_R11G11B10_rgba8(prev_color.rgb);
 		float z = prev_z * camera.z_far;
-		f.rayDist = z / cos;
-#ifdef FRAG_MERGING
-		f.thick = vol_instance.sample_dist;
-		f.opacitySum = 1.f;//prev_color.a;
-#endif
+		f.z = z / cos;
+		f.zthick = sample_dist;
+		f.opacity_sum = (half)1.f;
 		fs[0] = f;
 		num_frags++;
 	}
-	fs[num_frags] = (Fragment)0;
-	fs[num_frags].rayDist = FLT_MAX;
+	fs[num_frags].Init();
+
 	//num_frags++;
 	uint index_frag = 0;
 	Fragment f_next_layer = fs[0];
@@ -160,19 +163,20 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	float sample_value_prev = volume_main.SampleLevel(sampler_linear_clamp, pos_ray_start_ts - v_v, 0).r;
 
+
 	if (dvr_hit_enc == DVR_SURFACE_ON_CLIPPLANE) // on the clip plane
 	{
-		float4 color = (float4) 0;
+		half4 color = (half4)0;
 		start_step++;
 
 		// unlit here
 #ifdef OTF_PREINTEGRATION
-		if (Vis_Volume_And_Check_Slab(color, sample_value, sample_value_prev, pos_ray_start_ts, volume_main, otf))
+		if (Vis_Volume_And_Check_Slab(color, sample_value, sample_value_prev, pos_ray_start_ts, opacity_correction, volume_main, otf))
 #else
-		if (Vis_Volume_And_Check(color, sample_value, pos_ray_start_ts, volume_main, otf))
+		if (Vis_Volume_And_Check(color, sample_value, pos_ray_start_ts, opacity_correction, volume_main, otf))
 #endif
 		{
-			IntermixSample(color_out, f_next_layer, index_frag, color, ray_dist_o2start, vol_instance.sample_dist, num_frags, fs, 1.0);
+			IntermixSample(color_out, f_next_layer, index_frag, color, ray_dist_o2start, sample_dist, num_frags, fs);
 		}
 		sample_value_prev = sample_value;
 	}
@@ -206,26 +210,26 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 				//float3 pos_sample_blk_ws = pos_hit_ws + dir_sample_ws * (float) i;
 				float3 pos_sample_blk_ts = pos_ray_start_ts + dir_sample_ts * (float)(step + sub_step);
 
-				float4 color = (float4) 0;
+				half4 color = (half4) 0;
 				if (sample_value_prev < 0) {
 					sample_value_prev = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_blk_ts - v_v, 0).r;
 				}
 				sample_count++;
 #if OTF_PREINTEGRATION
-				if (Vis_Volume_And_Check_Slab(color, sample_value, sample_value_prev, pos_sample_blk_ts, volume_main, otf))
+				if (Vis_Volume_And_Check_Slab(color, sample_value, sample_value_prev, pos_sample_blk_ts, opacity_correction, volume_main, otf))
 #else
-				if (Vis_Volume_And_Check(color, sample_value, pos_sample_blk_ts, volume_main, otf))
+				if (Vis_Volume_And_Check(color, sample_value, pos_sample_blk_ts, opacity_correction, volume_main, otf))
 #endif
 				{
 					float3 G = GradientVolume3(sample_value, sample_value_prev, pos_sample_blk_ts, 
 												v_v, v_u, v_r, uv_v, uv_u, uv_r, volume_main);
 					float length_G = length(G);
 
-					float lighting = 1.f;
+					half lighting = (half)1.f;
 					if (length_G > 0) {
 						// TODO using material attributes
 						float3 N = G / length_G;
-						lighting = saturate(PhongBlinnVR(V, L, N, float4(0.3, 0.3, 1.0, 100)));
+						lighting = (half)saturate(PhongBlinnVR(V, L, N, float4(0.3, 0.3, 1.0, 100)));
 
 						// TODO
 						// 
@@ -234,15 +238,15 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 						// TiledLighting or ForwardLighting
 					}
 
-					color = float4(lighting * color.rgb, color.a);
+					color = half4(lighting * color.rgb, color.a);
 					float ray_dist = ray_dist_o2start + (float)(step + sub_step) * vol_instance.sample_dist;
-					IntermixSample(color_out, f_next_layer, index_frag, color, ray_dist, vol_instance.sample_dist, num_frags, fs, 1.0);
+					IntermixSample(color_out, f_next_layer, index_frag, color, ray_dist, sample_dist, num_frags, fs);
 
-					if (color_out.a >= ERT_ALPHA)
+					if (color_out.a >= ERT_ALPHA_HALF)
 					{
 						sub_step = num_ray_samples;
 						step = num_ray_samples;
-						color_out.a = 1.f;
+						color_out.a = (half)1.f;
 						break;
 					}
 				} // if (Vis_Volume_And_...
@@ -257,14 +261,14 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		//step -= 1;
 	} // for (int step = start_step; step < num_ray_samples; step++)
 
-	if (color_out.a < ERT_ALPHA)
+	if (color_out.a < ERT_ALPHA_HALF)
 	{
 		for (; index_frag < num_frags; ++index_frag)
 		{
-			float4 color = fs[index_frag].color;
-			color_out += color * (1.f - color_out.a);
+			half4 color = fs[index_frag].GetColor();
+			color_out += color * ((half)1.f - color_out.a);
 		}
 	}
 	
-    inout_color[pixel] = color_out;
+    inout_color[pixel] = (float4)color_out;
 }

@@ -3,7 +3,7 @@
 #include "ShaderInterop.h"
 
 static const uint DVR_BLOCKSIZE = VISIBILITY_BLOCKSIZE;
-static const float FLT_OPACITY_MIN = 1.f/255.f;		// trival storage problem 
+static const float FLT_OPACITY_MIN = 1.f / 255.f;		// trival storage problem 
 
 #define SLICER_FLAG_ONLY_OUTLINE (1u << 0)
 #define SLICER_FLAG_REVERSE_SIDE (1u << 1)
