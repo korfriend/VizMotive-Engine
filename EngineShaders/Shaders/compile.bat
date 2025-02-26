@@ -73,3 +73,5 @@ dxc -T cs_6_0 ./CS/meshSlicerCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/meshSlicerCS_curvedplane.hlsl -spirv
 dxc -T cs_6_0 ./CS/slicerOutlineCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/slicerResolveCS_KB2.hlsl -spirv
+
+dxc -T gs_6_0 ./GS/thicknessLineGS.hlsl -spirv

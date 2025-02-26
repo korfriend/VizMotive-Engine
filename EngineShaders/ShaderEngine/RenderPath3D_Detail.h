@@ -348,9 +348,10 @@ namespace vz::renderer
 		std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_;
 		std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_depth_;
 
-
 		void drawAndClearLines(const CameraComponent& camera, std::vector<RenderableLine>& renderableLines, CommandList cmd, bool clearEnabled);
 	public:
+		float depthLineThicknessPixel = 1.5f;
+
 		void AddDrawLine(const RenderableLine& line, bool depth)
 		{
 			if (depth)

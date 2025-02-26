@@ -12,6 +12,7 @@ namespace vz::renderer
 		MiscCB sb;
 		sb.g_xTransform = camera.GetViewProjection();
 		sb.g_xColor = XMFLOAT4(1, 1, 1, 1);
+		sb.g_xThickness = depthLineThicknessPixel;
 		device->BindDynamicConstantBuffer(sb, CB_GETBINDSLOT(MiscCB), cmd);
 
 		struct LineSegment

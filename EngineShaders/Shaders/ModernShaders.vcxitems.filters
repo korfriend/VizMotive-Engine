@@ -52,6 +52,9 @@
     <Filter Include="Compute Shaders\Direct Volumes">
       <UniqueIdentifier>{8ff856cc-1a39-4b5e-abcb-42eb66603b6c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Raster-Pipeline Shaders\GS">
+      <UniqueIdentifier>{37a809a9-c201-4850-b1b6-6a94c0608a54}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)compile.bat">
@@ -396,6 +399,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS_curvedplane.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)GS\thicknessLineGS.hlsl">
+      <Filter>Raster-Pipeline Shaders\GS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

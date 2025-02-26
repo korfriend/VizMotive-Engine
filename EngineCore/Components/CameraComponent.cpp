@@ -151,9 +151,15 @@ namespace vz
 	{
 		if (IsCurvedSlicer())
 		{
-			XMFLOAT3 at;
-			XMStoreFloat3(&at, XMLoadFloat3(&eye) + XMVectorSet(0, 0, 1, 0));
-			CameraComponent::SetWorldLookAt(eye, at, { 0, 1.f, 0 });
+			XMFLOAT3 eye_valid = eye;
+			if (eye_valid.z * eye_valid.z > 0.0000001f)
+			{
+				vzlog_warning("Curved Slicer forces to set eye.z to zero!");
+			}
+			eye_valid.z = 0;
+			XMFLOAT3 at_valid;
+			XMStoreFloat3(&at_valid, XMLoadFloat3(&eye_valid) + XMVectorSet(0, 0, 1, 0));
+			CameraComponent::SetWorldLookAt(eye_valid, at_valid, { 0, 1.f, 0 });
 		}
 		else
 		{
