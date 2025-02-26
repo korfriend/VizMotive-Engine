@@ -10,7 +10,7 @@ RWTexture2D<uint2> layer_packed1_RG : register(u3);
 
 inline bool InsideTest(const float3 originWS, const float3 originOS, const float3 rayDirOS, const float2 minMaxT, const float4x4 os2ws, inout float minDistOnPlane)
 {
-	if (length(rayDirOS) < 0.00001)
+	if (length(rayDirOS) < 0.0001)
 		return false;
 
 	RayDesc ray;
@@ -132,16 +132,16 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	bool isInsideOnPlane = false;
 	float minDistOnPlane = FLT_MAX; // for on-the-fly zeroset contouring
-
+#ifdef CURVEDPLANE
+	//return;
+#endif
 	// safe inside test (up- and down-side)
 	bool isInsideOnPlaneUp0 = InsideTest(ray_ws.Origin, origin_os.xyz, up_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
 	bool isInsideOnPlaneUp1 = InsideTest(ray_ws.Origin, origin_os.xyz, -up_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
-
 	// safe inside test (right- and left-side)
 	bool isInsideOnPlaneRight0 = InsideTest(ray_ws.Origin, origin_os.xyz, right_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
 	bool isInsideOnPlaneRight1 = InsideTest(ray_ws.Origin, origin_os.xyz, -right_os, float2(ray_tmin, ray_tmax), os2ws, minDistOnPlane);
 	isInsideOnPlane = isInsideOnPlaneUp0 && isInsideOnPlaneUp1 && isInsideOnPlaneRight0 && isInsideOnPlaneRight1;
-
 	if (sliceThickness == 0)
 	{
 		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | count;
@@ -165,7 +165,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		is_front_forward_face = !hit.is_backface;
 		hit_on_forward_ray = hitTriIdx >= 0;
 	}
-
 	if (!hit_on_forward_ray) {
 		// note ... when ray passes through a triangle edge or vertex, hit may not be detected
 		return;

@@ -129,7 +129,6 @@ half4 Resolve_kBuffer(in uint fragCount, inout Fragment fs[K_NUM], out uint fina
 	//	}
 	//}
 
-	const float merging_beta = 0.5f;
 	half4 color_out = (half4)0;
 	finalFragCount = 0;
 
@@ -146,7 +145,7 @@ half4 Resolve_kBuffer(in uint fragCount, inout Fragment fs[K_NUM], out uint fina
 		if (i_next < fragCount)
 		{
 			f_2 = fs[i_next];
-			f_merge = MergeFragments(f_1, f_2, merging_beta);
+			f_merge = MergeFragments(f_1, f_2);
 		}
 
 		if (f_merge.color_packed == 0)
