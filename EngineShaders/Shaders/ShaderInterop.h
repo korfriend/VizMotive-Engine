@@ -1624,6 +1624,11 @@ CBUFFER(MiscCB, CBSLOT_RENDERER_MISC)
 {
 	float4x4	g_xTransform;
 	float4		g_xColor;
+
+	float		g_xThickness;
+	float		padding0;
+	float		padding1;
+	float		padding2;
 };
 
 CBUFFER(ForwardEntityMaskCB, CBSLOT_RENDERER_FORWARD_LIGHTMASK)

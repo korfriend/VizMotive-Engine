@@ -533,6 +533,9 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_OCCLUDEE], "occludeeVS.cso"); });
 
+		//----- GS -----
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::GS, shaders[GSTYPE_LINE_ASSIGNTHICKNESS], "thicknessLineGS.cso"); });
+
 		//----- PS -----
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_DEBUG], "meshPS_debug.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_SIMPLE], "meshPS_simple.cso"); });
@@ -696,6 +699,7 @@ namespace vz::shader
 				break;
 			case SHAPE_RENDERING_LINES_DEPTH:
 				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.gs = &shaders[GSTYPE_LINE_ASSIGNTHICKNESS];
 				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
 				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
 				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];

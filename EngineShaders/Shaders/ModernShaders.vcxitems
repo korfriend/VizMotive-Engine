@@ -109,6 +109,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\wetmap_updateCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)GS\thicknessLineGS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\debugPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS.hlsl" />
