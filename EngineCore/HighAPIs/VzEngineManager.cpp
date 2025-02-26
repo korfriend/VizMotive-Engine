@@ -761,7 +761,7 @@ namespace vzm
 		
 		eventhandler::Destroy();
 
-		vzlog("\n Safely Engine Finished!\n ---------------------------- \n Bye Bye ^^! \n ----------------------------");
+		vzlog("\n\n Safely Engine Finished!\n ---------------------------- \n Bye Bye ^^! \n ----------------------------");
 		backlog::Destroy();
 
 		return true;
