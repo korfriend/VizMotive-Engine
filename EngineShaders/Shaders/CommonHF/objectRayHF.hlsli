@@ -148,6 +148,10 @@ inline bool IntersectNode(
 inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 {
 	const float3 rcpDirection = rcp(ray.Direction);
+	//float3 rcpDirection;
+	//rcpDirection.x = (abs(ray.Direction.x) < eps) ? 1000000 : 1.0 / ray.Direction.x;
+	//rcpDirection.y = (abs(ray.Direction.y) < eps) ? 1000000 : 1.0 / ray.Direction.y;
+	//rcpDirection.z = (abs(ray.Direction.z) < eps) ? 1000000 : 1.0 / ray.Direction.z;
 	
 	RayHit bestHit = CreateRayHit();
 
@@ -163,8 +167,10 @@ inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 	// push root node
 	stack[stackpos++][groupIndex] = 0;
 
+	uint count = 0;
+
 	[loop]
-	while (stackpos > 0) {
+	while (stackpos > 0 && count < 1000u) {
 		// pop untraversed node
 		const uint nodeIndex = stack[--stackpos][groupIndex];
 
@@ -202,6 +208,7 @@ inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 			}
 
 		}
+		count++;
 
 	} //while (stackpos > 0);
 
