@@ -51,7 +51,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	if (mask & (WILDCARD_DEPTH_OUTLINE | OUTSIDE_PLANE))
 		return;
 
-#define MIN_OUTLINE_PIXEL 2.f
+#define MIN_OUTLINE_PIXEL 1.3f
 
 	const float lineThres = max(push.outlineThickness, MIN_OUTLINE_PIXEL);
 

@@ -1,37 +1,38 @@
 #include "../Globals.hlsli"
 
-struct VertexToPixel 
+struct VertexToPixel
 {
-	float4 pos	: SV_POSITION;
-	float4 col	: COLOR;
+    float4 pos : SV_POSITION;
+    float4 col : COLOR;
 };
 
-void AddHalfCircle(inout TriangleStream<VertexToPixel> triangleStream, VertexToPixel input, int nCountTriangles, float4 linePointToConnect, float pos_w, float angle, float pixel_thicknessX, float pixel_thicknessY)
+// Creates a half-circle cap at line endpoints using triangle primitives
+void AddHalfCircle(inout TriangleStream<VertexToPixel> triangleStream, VertexToPixel input,
+    int segments, float4 center, float w, float angle,
+    float radiusX, float radiusY)
 {
-    // projection position : linePointToConnect
-
     VertexToPixel output = input;
-    for (int nI = 0; nI < nCountTriangles; ++nI)
+
+    for (int i = 0; i < segments; ++i)
     {
-        output.pos = linePointToConnect;
-        output.pos.x += cos(angle + (PI / nCountTriangles * nI)) * pixel_thicknessX;
-        output.pos.y += sin(angle + (PI / nCountTriangles * nI)) * pixel_thicknessY;
-        //output.pos.z = 0.0f;
-        //output.pos.w = 0.0f;
-        //output.pos += linePointToConnect;
-        output.pos *= pos_w;
+        // First vertex: point on circle
+        float currentAngle = angle + (PI / segments * i);
+        output.pos = center;
+        output.pos.x += cos(currentAngle) * radiusX;
+        output.pos.y += sin(currentAngle) * radiusY;
+        output.pos *= w; // Restore perspective w component
         triangleStream.Append(output);
 
-        output.pos = linePointToConnect * pos_w;
+        // Second vertex: center point
+        output.pos = center * w;
         triangleStream.Append(output);
 
-        output.pos = linePointToConnect;
-        output.pos.x += cos(angle + (PI / nCountTriangles * (nI + 1))) * pixel_thicknessX;
-        output.pos.y += sin(angle + (PI / nCountTriangles * (nI + 1))) * pixel_thicknessY;
-        //output.pos.z = 0.0f;
-        //output.pos.w = 0.0f;
-        //output.pos += linePointToConnect;
-        output.pos *= pos_w;
+        // Third vertex: next point on circle
+        float nextAngle = angle + (PI / segments * (i + 1));
+        output.pos = center;
+        output.pos.x += cos(nextAngle) * radiusX;
+        output.pos.y += sin(nextAngle) * radiusY;
+        output.pos *= w;
         triangleStream.Append(output);
 
         triangleStream.RestartStrip();
@@ -40,82 +41,97 @@ void AddHalfCircle(inout TriangleStream<VertexToPixel> triangleStream, VertexToP
 
 void MakeThickLinesTriStream(VertexToPixel input[2], inout TriangleStream<VertexToPixel> triangleStream)
 {
-    float4 positionPoint0Transformed = input[0].pos;
-    float4 positionPoint1Transformed = input[1].pos;
+    // Get the line endpoints in screen space
+    float4 p0 = input[0].pos;
+    float4 p1 = input[1].pos;
 
-    float pos0_w = positionPoint0Transformed.w;
-    float pos1_w = positionPoint1Transformed.w;
+    // Store original w components for later restoration
+    float w0 = p0.w;
+    float w1 = p1.w;
 
-    //calculate out the W parameter, because of usage of perspective rendering
-    positionPoint0Transformed.xyz = positionPoint0Transformed.xyz / positionPoint0Transformed.w;
-    positionPoint0Transformed.w = 1.0f;
-    positionPoint1Transformed.xyz = positionPoint1Transformed.xyz / positionPoint1Transformed.w;
-    positionPoint1Transformed.w = 1.0f;
+    // Convert to normalized device coordinates by dividing by w
+    p0.xyz /= p0.w;
+    p0.w = 1.0f;
+    p1.xyz /= p1.w;
+    p1.w = 1.0f;
 
-    //calculate the angle between the 2 points on the screen
-    float3 positionDifference = positionPoint0Transformed.xyz - positionPoint1Transformed.xyz;
-    float3 coordinateSystem = float3(1.0f, 0.0f, 0.0f);
+    // Calculate the angle between the line and positive x-axis
+    float3 lineDirection = p0.xyz - p1.xyz;
+    float3 xAxis = float3(1.0f, 0.0f, 0.0f);
 
-    positionDifference.z = 0.0f;
-    coordinateSystem.z = 0.0f;
+    lineDirection.z = 0.0f; // Ensure we're working in 2D space
 
-    float angle = acos(dot(positionDifference.xy, coordinateSystem.xy) / (length(positionDifference.xy) * length(coordinateSystem.xy)));
+    float lineLength = length(lineDirection.xy);
+    float angle = acos(dot(lineDirection.xy, xAxis.xy) / lineLength);
 
-    if (cross(positionDifference, coordinateSystem).z < 0.0f)
+    // Determine if angle is clockwise or counter-clockwise
+    if (cross(lineDirection, xAxis).z < 0.0f)
     {
         angle = 2.0f * PI - angle;
     }
 
+    // Adjust angle to be perpendicular to line direction
     angle *= -1.0f;
     angle -= PI * 0.5f;
 
-    const float pixel_thicknessX = g_xThickness * (float)g_xCamera.cameras[0].internal_resolution_rcp.x;
-    const float pixel_thicknessY = g_xThickness * (float)g_xCamera.cameras[0].internal_resolution_rcp.y;
-    //first half circle of the line
-    int nCountTriangles = 6;
-    AddHalfCircle(triangleStream, input[0], nCountTriangles, positionPoint0Transformed, pos0_w, angle, pixel_thicknessX, pixel_thicknessY);
-    AddHalfCircle(triangleStream, input[1], nCountTriangles, positionPoint1Transformed, pos1_w, angle + PI, pixel_thicknessX, pixel_thicknessY);
+    // Calculate thickness in screen space
+    const float thicknessX = g_xThickness * g_xCamera.cameras[0].internal_resolution_rcp.x;
+    const float thicknessY = g_xThickness * g_xCamera.cameras[0].internal_resolution_rcp.y;
 
-    //connection between the two circles
-    //triangle1
-    VertexToPixel output0 = input[0];
-    VertexToPixel output1 = input[1];
-    output0.pos = positionPoint0Transformed;
-    output0.pos.x += cos(angle) * pixel_thicknessX;
-    output0.pos.y += sin(angle) * pixel_thicknessY;
-    output0.pos *= pos0_w; //undo calculate out the W parameter, because of usage of perspective rendering
-    triangleStream.Append(output0);
+    // Number of segments for rounded caps (higher = smoother circles)
+    const int segments = 6;
 
-    output0.pos = positionPoint0Transformed;
-    output0.pos.x += cos(angle + (PI / nCountTriangles * (nCountTriangles))) * pixel_thicknessX;
-    output0.pos.y += sin(angle + (PI / nCountTriangles * (nCountTriangles))) * pixel_thicknessY;
-    output0.pos *= pos0_w;
-    triangleStream.Append(output0);
+    // Generate half-circle caps at both endpoints
+    AddHalfCircle(triangleStream, input[0], segments, p0, w0, angle, thicknessX, thicknessY);
+    AddHalfCircle(triangleStream, input[1], segments, p1, w1, angle + PI, thicknessX, thicknessY);
 
-    output1.pos = positionPoint1Transformed;
-    output1.pos.x += cos(angle + (PI / nCountTriangles * (nCountTriangles))) * pixel_thicknessX;
-    output1.pos.y += sin(angle + (PI / nCountTriangles * (nCountTriangles))) * pixel_thicknessY;
-    output1.pos *= pos1_w;
-    triangleStream.Append(output1);
+    // Connect the two half-circles with a quad (2 triangles)
+    VertexToPixel v0 = input[0];
+    VertexToPixel v1 = input[1];
 
-    //triangle2
-    output0.pos = positionPoint0Transformed;
-    output0.pos.x += cos(angle) * pixel_thicknessX;
-    output0.pos.y += sin(angle) * pixel_thicknessY;
-    output0.pos *= pos0_w;
-    triangleStream.Append(output0);
+    // First triangle
+    // Vertex 1: first point of first cap
+    v0.pos = p0;
+    v0.pos.x += cos(angle) * thicknessX;
+    v0.pos.y += sin(angle) * thicknessY;
+    v0.pos *= w0;
+    triangleStream.Append(v0);
 
-    output1.pos = positionPoint1Transformed;
-    output1.pos.x += cos(angle) * pixel_thicknessX;
-    output1.pos.y += sin(angle) * pixel_thicknessY;
-    output1.pos *= pos1_w;
-    triangleStream.Append(output1);
+    // Vertex 2: last point of first cap
+    v0.pos = p0;
+    v0.pos.x += cos(angle + PI) * thicknessX;
+    v0.pos.y += sin(angle + PI) * thicknessY;
+    v0.pos *= w0;
+    triangleStream.Append(v0);
 
-    output1.pos = positionPoint1Transformed;
-    output1.pos.x += cos(angle + (PI / nCountTriangles * (nCountTriangles))) * pixel_thicknessX;
-    output1.pos.y += sin(angle + (PI / nCountTriangles * (nCountTriangles))) * pixel_thicknessY;
-    output1.pos *= pos1_w;
-    triangleStream.Append(output1);
+    // Vertex 3: last point of second cap
+    v1.pos = p1;
+    v1.pos.x += cos(angle + PI) * thicknessX;
+    v1.pos.y += sin(angle + PI) * thicknessY;
+    v1.pos *= w1;
+    triangleStream.Append(v1);
+
+    // Second triangle
+    // Vertex 1: first point of first cap
+    v0.pos = p0;
+    v0.pos.x += cos(angle) * thicknessX;
+    v0.pos.y += sin(angle) * thicknessY;
+    v0.pos *= w0;
+    triangleStream.Append(v0);
+
+    // Vertex 2: first point of second cap
+    v1.pos = p1;
+    v1.pos.x += cos(angle) * thicknessX;
+    v1.pos.y += sin(angle) * thicknessY;
+    v1.pos *= w1;
+    triangleStream.Append(v1);
+
+    // Vertex 3: last point of second cap
+    v1.pos = p1;
+    v1.pos.x += cos(angle + PI) * thicknessX;
+    v1.pos.y += sin(angle + PI) * thicknessY;
+    v1.pos *= w1;
+    triangleStream.Append(v1);
 }
 
 [maxvertexcount(42)]
