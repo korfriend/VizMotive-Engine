@@ -43,16 +43,6 @@ namespace vz::renderer
 
 namespace vz::renderer 
 {
-	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];	// shaders
-
-	InputLayout			inputLayouts[ILTYPE_COUNT];		// shaders
-	Shader				shaders[SHADERTYPE_COUNT];		// shaders
-
-	std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];	// shaders
-	PipelineState		PSO_wireframe;											// shaders
-	PipelineState		PSO_occlusionquery;										// shaders
-	PipelineState		PSO_RenderableShapes[SHAPE_RENDERING_COUNT];			// shaders
-
 	RasterizerState		rasterizers[RSTYPE_COUNT];		// engine
 	DepthStencilState	depthStencils[DSSTYPE_COUNT];	// engine
 	BlendState			blendStates[BSTYPE_COUNT];		// engine
@@ -60,11 +50,6 @@ namespace vz::renderer
 	// must be released
 	GPUBuffer			buffers[BUFFERTYPE_COUNT];		// engine
 	Texture				textures[TEXTYPE_COUNT];		// engine
-
-	PipelineState* GetObjectPSO(MeshRenderingVariant variant)
-	{
-		return &PSO_render[variant.bits.renderpass][variant.bits.shadertype][variant.value];
-	}
 
 	// progressive components
 	std::vector<Entity> deferredGeometryGPUBVHGens;								// engine
@@ -544,12 +529,6 @@ namespace vz
 	{
 		return renderer::Initialize();
 	}
-
-	//extern "C" DX12_EXPORT bool IsInitialized();
-	//bool IsInitialized()
-	//{
-	//	return renderer::IsInitialized();
-	//}
 
 	void Deinitialize()
 	{

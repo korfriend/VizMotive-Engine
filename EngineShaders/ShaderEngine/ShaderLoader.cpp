@@ -41,6 +41,23 @@ namespace vz
 		return true;
 	}
 }
+namespace vz::renderer
+{
+	jobsystem::context	CTX_renderPSO[RENDERPASS_COUNT][MESH_SHADER_PSO_COUNT];	// shaders
+
+	InputLayout			inputLayouts[ILTYPE_COUNT];		// shaders
+	Shader				shaders[SHADERTYPE_COUNT];		// shaders
+
+	std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];	// shaders
+	PipelineState		PSO_wireframe;											// shaders
+	PipelineState		PSO_occlusionquery;										// shaders
+	PipelineState		PSO_RenderableShapes[SHAPE_RENDERING_COUNT];			// shaders
+
+	PipelineState* GetObjectPSO(MeshRenderingVariant variant)
+	{
+		return &PSO_render[variant.bits.renderpass][variant.bits.shadertype][variant.value];
+	}
+}
 
 namespace vz::shader
 {
@@ -447,11 +464,11 @@ namespace vz::shader
 
 	void Deinitialize()
 	{
-		ReleaseRenderRes(shaders, SHADERTYPE_COUNT);
+		ReleaseRenderRes(renderer::shaders, SHADERTYPE_COUNT);
 
-		PSO_wireframe = {};
-		PSO_occlusionquery = {};
-		ReleaseRenderRes(PSO_RenderableShapes, SHAPE_RENDERING_COUNT);
+		renderer::PSO_wireframe = {};
+		renderer::PSO_occlusionquery = {};
+		ReleaseRenderRes(renderer::PSO_RenderableShapes, SHAPE_RENDERING_COUNT);
 
 		for (size_t i = 0, n = (size_t)RENDERPASS_COUNT; i < n; ++i)
 		{
