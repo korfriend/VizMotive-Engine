@@ -151,7 +151,7 @@ int main(int, char **)
 
 	vzm::ParamMap<std::string> arguments;
 	// arguments.SetString("API", "DX11");
-	//arguments.SetString("GPU_VALIDATION", "VERBOSE");
+	arguments.SetString("GPU_VALIDATION", "VERBOSE");
 	// arguments.SetParam("MAX_THREADS", 1u); // ~0u
 	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
 	if (!vzm::InitEngineLib(arguments))
@@ -289,8 +289,8 @@ int main(int, char **)
 		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 
-		vz::jobsystem::context ctx_stl_loader;
-		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
+		vz::jobsystem::context ctx_stl_loader1;
+		vz::jobsystem::Execute(ctx_stl_loader1, [scene](vz::jobsystem::JobArgs args) {
 
 			VzGeometry* geometry = vzm::NewGeometry("TS3M3008S.stl");
 			geometry->LoadGeometryFile("../Assets/stl_files/TS3M3008S.stl");
@@ -312,7 +312,6 @@ int main(int, char **)
 			scene->AppendChild(actor_test5);
 			});
 
-
 		vz::jobsystem::context ctx_stl_loader2;
 		vz::jobsystem::Execute(ctx_stl_loader2, [scene](vz::jobsystem::JobArgs args) {
 
@@ -330,6 +329,55 @@ int main(int, char **)
 			scene->AppendChild(actor_test4);
 
 			});
+
+		vz::jobsystem::context ctx_vol_loader;
+		vz::jobsystem::Execute(ctx_vol_loader, [scene](vz::jobsystem::JobArgs args) {
+
+			vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
+			{
+				vzm::ParamMap<std::string> io;
+				io.SetParam("filename", std::string("d:/aaa.dcm"));
+				io.SetParam("volume texture entity", volume->GetVID());
+				vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
+			}
+
+			vzm::VzTexture* otf_volume = vzm::NewTexture("volume material's OTF");
+			const uint32_t otf_w = 256;
+			std::vector<uint8_t> otf_array(otf_w * 4 * 3);
+			for (size_t i = 0; i < otf_w; i++)
+			{
+				otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
+				otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
+				otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
+				otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
+					i < 210 ? (uint8_t)((float)(i - 180) / 30.f * 255.f) : 255;
+
+				otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
+				otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
+				otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
+				otf_array[(otf_w * 4 * 1) + 4 * i + 3] = i < 100 ? 0 :
+					i < 200 ? (uint8_t)((float)(i - 100) / 100.f * 255.f) : 255;
+
+				otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
+				otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
+				otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
+				otf_array[(otf_w * 4 * 2) + 4 * i + 3] = i < 100 ? 0 :
+					i < 130 ? (uint8_t)((float)(i - 100) / 30.f * 255.f) : 255;
+
+			}
+			otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
+			otf_volume->UpdateLookup(otf_array, 180, 255);
+
+			vzm::VzMaterial* material_volume = vzm::NewMaterial("volume material");
+			material_volume->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
+			material_volume->SetLookupTable(otf_volume, vzm::LookupTableSlot::LOOKUP_OTF);
+
+			vzm::VzActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
+			volume_actor->SetScale({ 3, 3, 3 });
+			scene->AppendChild(volume_actor);
+
+			});
+		
 	}
 
 	// Our state
@@ -719,34 +767,34 @@ int main(int, char **)
 				if (cur_otf_value_prev != cur_otf_value)
 				{
 					cur_otf_value_prev = cur_otf_value;
-					//vzm::VzTexture* otf_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's OTF");
-					//if (otf_volume)
-					//{
-					//	const uint32_t otf_w = 256;
-					//	std::vector<uint8_t> otf_array(otf_w * 4 * 3);
-					//	for (size_t i = 0; i < otf_w; i++)
-					//	{
-					//		uint8_t a = i < cur_otf_value ? 0 :
-					//			i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / 30.f * 255.f) : 255;
-					//		otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
-					//		otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
-					//		otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
-					//		otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-					//
-					//		otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
-					//		otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
-					//		otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
-					//		otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-					//
-					//		otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
-					//		otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
-					//		otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
-					//		otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-					//
-					//	}
-					//
-					//	otf_volume->UpdateLookup(otf_array, (uint)cur_otf_value, (uint)(cur_otf_value + cur_otf_band_width));
-					//}
+					vzm::VzTexture* otf_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's OTF");
+					if (otf_volume)
+					{
+						const uint32_t otf_w = 256;
+						std::vector<uint8_t> otf_array(otf_w * 4 * 3);
+						for (size_t i = 0; i < otf_w; i++)
+						{
+							uint8_t a = i < cur_otf_value ? 0 :
+								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / 30.f * 255.f) : 255;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
+
+							otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
+							otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
+							otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
+
+							otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
+							otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
+							otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
+							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
+
+						}
+
+						otf_volume->UpdateLookup(otf_array, (uint)cur_otf_value, (uint)(cur_otf_value + cur_otf_band_width));
+					}
 				}
 
 				static float cur_slicer_thickess = 0, cur_slicer_thickess_prev = 0;

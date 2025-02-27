@@ -21,9 +21,11 @@ namespace vz
 				{
 					VUID vuid0 = material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP);
 					VUID vuid1 = material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF);
+					VUID vuid2 = material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_WINDOWING);
 					bool hasRenderableVolume = compfactory::ContainVolumeComponent(compfactory::GetEntityByVUID(vuid0));
-					bool hasLookupTable = compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid1));
-					ret = (hasRenderableVolume && hasLookupTable) ? 2 : 0;
+					bool hasLookupTable1 = compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid1));
+					bool hasLookupTable2 = compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid2));
+					ret = (hasRenderableVolume && (hasLookupTable1 || hasLookupTable2)) ? 2 : 0;
 				}
 			}
 		}
