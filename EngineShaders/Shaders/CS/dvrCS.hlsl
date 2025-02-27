@@ -156,24 +156,27 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		RWTexture2D<float> inout_linear_depth = bindless_rwtextures_float[descriptor_index(push.inout_linear_depth_Index)];
 		float prev_z = inout_linear_depth[pixel];
 		if (linear_depth >= prev_z)
+		{
 			return;
+		}
 #endif
 
 #ifdef SLICER_BUFFERS
 		uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
 		uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
 
+		// 8 bit color
 		Fragment f_0;
-		f_0.color_packed = v_layer_packed0_RGBA.r;
+		f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
 		f_0.z = asfloat(v_layer_packed0_RGBA.g);
 		f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 
 		Fragment f_1;
-		f_1.color_packed = v_layer_packed0_RGBA.a;
+		f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
 		f_1.z = asfloat(v_layer_packed1_RG.r);
 		f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
 
-		//float prev_z = f_0.z;
+		float prev_z = f_0.z; // just for exclusive mode btw. WITHOUT_KB and SLICER_BUFFERS
 #endif
 
 
@@ -193,10 +196,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 #ifdef WITHOUT_KB
 		inout_linear_depth[pixel] = linear_depth;
-#endif
-
-#ifdef SLICER_BUFFERS
-		// maybe... rtPrimitiveID_1?!
 #endif
 		// TODO: PROGRESSIVE SCHEME
 		// light map can be updated asynch as long as it can be used as UAV
@@ -220,8 +219,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		if (prev_z < 1.f)
 		{
 			Fragment f;
-			//f.SetColor(half4(prev_color.rgb, (half)1.f));
-			f.color_packed = pack_R11G11B10_rgba8(prev_color.rgb);
+			f.color = half4(prev_color.rgb, (half)1.f);
 			float z = prev_z * camera.z_far;
 			f.z = z / cos;
 			f.zthick = sample_dist;
@@ -230,6 +228,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			num_frags++;
 		}
 		fs[num_frags].Init();
+		inout_color[pixel] = fs[0].color;
 #endif
 
 #ifdef SLICER_BUFFERS
@@ -360,7 +359,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		{
 			for (; index_frag < num_frags; ++index_frag)
 			{
-				half4 color = fs[index_frag].GetColor();
+				half4 color = fs[index_frag].color;
 				color_out += color * ((half)1.f - color_out.a);
 			}
 		}
@@ -477,8 +476,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		if (prev_z < 1.f)
 		{
 			Fragment f;
-			//f.SetColor(half4(prev_color.rgb, (half)1.f));
-			f.color_packed = pack_R11G11B10_rgba8(prev_color.rgb);
+			f.color = half4(prev_color.rgb, 1.f);
 			float z = prev_z * camera.z_far;
 			f.z = z / cos;
 			f.zthick = (half)vol_instance.sample_dist;
@@ -494,12 +492,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
 
 		Fragment f_0;
-		f_0.color_packed = v_layer_packed0_RGBA.r;
+		f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
 		f_0.z = asfloat(v_layer_packed0_RGBA.g);
 		f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 
 		Fragment f_1;
-		f_1.color_packed = v_layer_packed0_RGBA.a;
+		f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
 		f_1.z = asfloat(v_layer_packed1_RG.r);
 		f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
 

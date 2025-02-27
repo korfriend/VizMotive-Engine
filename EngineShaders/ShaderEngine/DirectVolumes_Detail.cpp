@@ -301,7 +301,6 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::RenderDirectVolumes(CommandList cmd)
 	{
-		return;
 		if (viewMain.visibleRenderables.empty())
 			return;
 
