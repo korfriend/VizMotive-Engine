@@ -38,12 +38,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
 
 	Fragment f_0;
-	f_0.color_packed = v_layer_packed0_RGBA.r;
+	f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
 	f_0.z = asfloat(v_layer_packed0_RGBA.g);
 	f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 
 	Fragment f_1;
-	f_1.color_packed = v_layer_packed0_RGBA.a;
+	f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
 	f_1.z = asfloat(v_layer_packed1_RG.r);
 	f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
 
