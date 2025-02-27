@@ -1,34 +1,42 @@
 #include "../Globals.hlsli"
 
+#define SAFE_MIN_HALF (half)(1.f/255.f)
 #define SAFE_OPAQUEALPHA_HALF 	(half)0.99f		// ERT_ALPHA
 
 inline uint pack_R11G11B10_rgba8(in float3 rgb) {
 	uint retVal = 0;
-	retVal |= (uint)(clamp(rgb.r, 0.0, 1.0) * 255.0 + 0.5) << 0u;
-	retVal |= (uint)(clamp(rgb.g, 0.0, 1.0) * 255.0 + 0.5) << 8u;
-	retVal |= (uint)(clamp(rgb.b, 0.0, 1.0) * 255.0 + 0.5) << 16u;
+	retVal |= (uint)(clamp(rgb.r, 0.0, 1.0) * 255.0) << 0u;
+	retVal |= (uint)(clamp(rgb.g, 0.0, 1.0) * 255.0) << 8u;
+	retVal |= (uint)(clamp(rgb.b, 0.0, 1.0) * 255.0) << 16u;
 	retVal |= 255u << 24u; // Alpha는 1(255)로 설정
 	return retVal;
 }
 
 struct Fragment
 {
-	uint color_packed;
+	half4 color;
 	float z;
 	half zthick;
 	half opacity_sum;
 
-	inline half4 GetColor() { return unpack_rgba(color_packed); }
-	inline void SetColor(half4 color) { color_packed = pack_rgba(color); }
 	inline uint Pack_Zthick_AlphaSum() { return pack_half2(zthick, opacity_sum); }
 	inline void Unpack_Zthick_AlphaSum(in uint value) { 
 		zthick = (half)f16tof32(value.x);
 		opacity_sum = (half)f16tof32(value.x >> 16u);
 	}
 	inline half GetZ_Half() { return (half)z; }
+	inline void Unpack_8bitUIntRGBA(in uint value)
+	{
+		color.x = (half)((value >> 0u) & 0xFF) / 255.0;
+		color.y = (half)((value >> 8u) & 0xFF) / 255.0;
+		color.z = (half)((value >> 16u) & 0xFF) / 255.0;
+		color.w = (half)((value >> 24u) & 0xFF) / 255.0;
+	}
+	inline uint Pack_8bitUIntRGBA() { return pack_rgba(color); }
+
 	void Init()
 	{
-		color_packed = 0;
+		color = (half4)0;
 		zthick = opacity_sum = 0;
 		z = FLT_MAX;
 	}
@@ -52,11 +60,7 @@ half4 MixOpt(const in half4 vis1, const in half alphaw1, const in half4 vis2, co
 
 void Fragment_OrderIndependentMerge(inout Fragment f_buf, const in Fragment f_in)
 {
-	half4 f_buf_color = f_buf.GetColor();
-	half4 f_in_color = f_in.GetColor();
-
-	half4 f_mix_vis = MixOpt(f_buf_color, f_buf.opacity_sum, f_in_color, f_in.opacity_sum);
-	f_buf.SetColor(f_mix_vis);
+	f_buf.color = MixOpt(f_buf.color, f_buf.opacity_sum, f_in.color, f_in.opacity_sum);
 	f_buf.opacity_sum = f_buf.opacity_sum + f_in.opacity_sum;
 	float z_front = min(f_buf.z - (float)f_buf.zthick, f_in.z - (float)f_in.zthick);
 	f_buf.z = max(f_buf.z, f_in.z);
@@ -78,7 +82,8 @@ int OverlapFragments(Fragment f_prior, Fragment f_posterior, out Fragment f_prio
 	// : 3 branches, 2 visibility interpolations, 2 visibility integrations, and 1 fusion of overlapping ray-segments
 
 	// f_prior and f_posterior mean f_prior.z >= f_prior.z
-	Fragment f_out = (Fragment)0;
+	Fragment f_out;
+	f_out.Init();
 
 	float zfront_posterior_f = f_posterior.z - (float)f_posterior.zthick;
 	int case_ret = 0;
@@ -94,8 +99,8 @@ int OverlapFragments(Fragment f_prior, Fragment f_posterior, out Fragment f_prio
 	{
 		Fragment f_m_prior;
 		half4 f_m_prior_vis;
-		half4 f_prior_vis = f_prior.GetColor();
-		half4 f_posterior_vis = f_posterior.GetColor();
+		half4 f_prior_vis = f_prior.color;
+		half4 f_posterior_vis = f_posterior.color;
 		f_prior_vis.a = min(f_prior_vis.a, SAFE_OPAQUEALPHA_HALF);
 		f_posterior_vis.a = min(f_posterior_vis.a, SAFE_OPAQUEALPHA_HALF);
 
@@ -152,17 +157,17 @@ int OverlapFragments(Fragment f_prior, Fragment f_posterior, out Fragment f_prio
 
 
 		// ---------------
-		f_posterior.SetColor(f_posterior_vis);
-		f_prior_out.SetColor(f_m_prior_vis);
+		f_posterior.color = f_posterior_vis;
+		f_prior_out.color = f_m_prior_vis;
 
 		if (f_posterior_vis.a < (half)(1.f / 255.f))
 		{
-			f_posterior.color_packed = 0;
+			f_posterior.color = (half4)0;
 			f_posterior.zthick = 0;
 		}
 		if (f_m_prior_vis.a < (half)(1.f / 255.f))
 		{
-			f_posterior.color_packed = 0;
+			f_posterior.color = (half4)0;
 			f_posterior.zthick = 0;
 		}
 	}
@@ -176,12 +181,12 @@ Fragment MergeFragments(Fragment f_prior, Fragment f_posterior)
 	Fragment f_prior_out, f_posterior_out, f_out;
 	OverlapFragments(f_prior, f_posterior, f_prior_out, f_posterior_out);
 
-	half4 vis0 = f_prior_out.GetColor();
-	half4 vis1 = f_posterior_out.GetColor();
+	half4 vis0 = f_prior_out.color;
+	half4 vis1 = f_posterior_out.color;
 	half4 vis_out = vis0 + vis1 * ((half)1.f - vis0.a);
 	if (vis_out.a > (half)(1.f / 255.f))
 	{
-		f_out.SetColor(vis_out);
+		f_out.color = vis_out;
 		f_out.zthick = f_prior_out.zthick + f_posterior_out.zthick;
 		f_out.z = f_posterior_out.z;
 		f_out.opacity_sum = f_prior_out.opacity_sum + f_posterior_out.opacity_sum;

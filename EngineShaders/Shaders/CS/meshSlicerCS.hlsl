@@ -366,39 +366,40 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		base_color.rgb *= base_color.a;
 		
 		Fragment frag;
-		frag.SetColor(base_color); // current
+		frag.color = base_color; // current
 		frag.z = zdepth0;
 		frag.zthick = zthickness;
 		frag.opacity_sum = base_color.a;
 
 		uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
-		uint color0_packed = v_layer_packed0_RGBA.r;
-		if (count != 0) // color0_packed != 0
+		if (count != 0) // v_layer_packed0_RGBA.r != 0
 		{
 			Fragment fragPrev;
-			fragPrev.color_packed = color0_packed;
+			fragPrev.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
 
 			// Note: v_layer_packed0_RGBA.g (z depth) can contain non-zero values inherited from previous thick-slicer.
 			//	This case occurs during special outline-only passes defined in Actor configuration options.
 			fragPrev.z = asfloat(v_layer_packed0_RGBA.g);
 			fragPrev.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 			
-			half4 color_prev = fragPrev.GetColor();
-			if (color_prev.a > half(0.01f))
-				frag.SetColor(MixOpt(base_color, base_color.a, color_prev, fragPrev.opacity_sum));
+			half4 color_prev = fragPrev.color;
+			if (color_prev.a >= SAFE_MIN_HALF)
+			{
+				frag.color = MixOpt(base_color, base_color.a, color_prev, fragPrev.opacity_sum);
+			}
 			frag.opacity_sum += fragPrev.opacity_sum;
 		}
 
-		layer_packed0_RGBA[pixel] = uint4(frag.color_packed, asuint(frag.z), frag.Pack_Zthick_AlphaSum(), 0);
+		layer_packed0_RGBA[pixel] = uint4(frag.Pack_8bitUIntRGBA(), asuint(frag.z), frag.Pack_Zthick_AlphaSum(), 0);
 		
 		if (camera.sliceThickness == 0)
-			inout_color[pixel] = (float4)frag.GetColor();
+			inout_color[pixel] = (float4)frag.color;
 
 		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | 1;
 	}
 	else
 	{
-		if (base_color.a < (half)0.01)
+		if (base_color.a < SAFE_MIN_HALF)
 			return;
 		// always to k-buf not render-out buffer
 		half4 color_cur = base_color;
@@ -406,7 +407,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		// DOJO TO consider...
 		// preserve the original alpha (i.e., v_rgba.a) or not..????
 		color_cur.a *= (half)saturate(thickness_through_os / (sliceThickness_os) + 0.1f);
-		if (color_cur.a < (half)0.01)
+		if (color_cur.a < SAFE_MIN_HALF)
 			return;
 		//color_cur.a *= color_cur.a; // heuristic 
 		color_cur.rgb *= color_cur.a;
@@ -419,7 +420,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		float vz_thickness = zdepth1 - zdepth0;
 
 		Fragment frag;
-		frag.SetColor(color_cur); // current
+		frag.color = color_cur; // current
 		frag.z = zdepth1;
 		frag.zthick = (half)vz_thickness;
 		frag.opacity_sum = color_cur.a;
@@ -428,9 +429,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		{
 			if (count == 0)
 			{
-				layer_packed0_RGBA[pixel] = uint4(frag.color_packed, asuint(frag.z), frag.Pack_Zthick_AlphaSum(), 0);
+				layer_packed0_RGBA[pixel] = uint4(frag.Pack_8bitUIntRGBA(), asuint(frag.z), frag.Pack_Zthick_AlphaSum(), 0);
 				counter_mask_distmap[pixel] = 1;
-				//inout_color[pixel] = (float4)frag.GetColor(); // test //
 			}
 			else
 			{
@@ -438,25 +438,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 				uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
 
 				Fragment f_0;
-				f_0.color_packed = v_layer_packed0_RGBA.r;
+				f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
 				f_0.z = asfloat(v_layer_packed0_RGBA.g);
 				f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 
 				Fragment f_1;
-				f_1.color_packed = v_layer_packed0_RGBA.a;
+				f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
 				f_1.z = asfloat(v_layer_packed1_RG.r);
 				f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
 				Fragment fs[2] = { f_0, f_1 };
 
 				count = Fill_kBuffer(frag, count, fs);
-				layer_packed0_RGBA[pixel] = uint4(fs[0].color_packed, asuint(fs[0].z), fs[0].Pack_Zthick_AlphaSum(), fs[1].color_packed);
+				layer_packed0_RGBA[pixel] = uint4(fs[0].Pack_8bitUIntRGBA(), asuint(fs[0].z), fs[0].Pack_Zthick_AlphaSum(), fs[1].Pack_8bitUIntRGBA());
 				layer_packed1_RG[pixel] = uint2(asuint(fs[1].z), fs[1].Pack_Zthick_AlphaSum());
 				counter_mask_distmap[pixel] = count;
 			}
 		}
 	}
-
-
 
 	return;
 }

@@ -570,24 +570,24 @@ inline void IntermixSample(inout half4 colorIntegrated, inout Fragment f_next_la
     {
         Fragment f_cur;
 		/*conversion to integer causes some color difference.. but negligible*/
-        f_cur.SetColor(color);
+        f_cur.color = color;
 
         f_cur.z = rayDist;
         f_cur.zthick = sampleThick;
 		f_cur.opacity_sum = color.a;
       
 		[loop]
-        while (indexFrag < numFrags && f_cur.color_packed != 0)
+        while (indexFrag < numFrags && f_cur.color.a >= SAFE_MIN_HALF)
         {
 			if (f_cur.z < f_next_layer.z - (float)f_next_layer.zthick)
             {
 				colorIntegrated += color * ((half)1.f - colorIntegrated.a);
-				f_cur.color_packed = 0;
+				f_cur.color = (half4)0;
                 break;
             }
 			else if (f_next_layer.z < f_cur.z - (float)f_cur.zthick)
             {
-				colorIntegrated += f_next_layer.GetColor() * ((half)1.f - colorIntegrated.a);
+				colorIntegrated += f_next_layer.color * ((half)1.f - colorIntegrated.a);
 				f_next_layer = fs[++indexFrag];
             }
 			else
@@ -605,7 +605,7 @@ inline void IntermixSample(inout half4 colorIntegrated, inout Fragment f_next_la
 				}
 				Fragment f_0_out, f_1_out;
 				OverlapFragments(f_prior, f_posterior, f_0_out, f_1_out);
-				colorIntegrated += f_0_out.GetColor() * ((half)1.f - colorIntegrated.a);
+				colorIntegrated += f_0_out.color * ((half)1.f - colorIntegrated.a);
 				if (f_cur.z > f_next_layer.z)
 				{
 					f_cur = f_1_out;
@@ -613,8 +613,8 @@ inline void IntermixSample(inout half4 colorIntegrated, inout Fragment f_next_la
 				}
 				else
 				{
-					f_cur.color_packed = 0;
-					if (f_1_out.color_packed == 0)
+					f_cur.color = (half4)0;
+					if (f_1_out.color.a < SAFE_MIN_HALF)
 					{
 						f_next_layer = fs[++indexFrag];
 					}
@@ -632,9 +632,9 @@ inline void IntermixSample(inout half4 colorIntegrated, inout Fragment f_next_la
 			}
 
         } // while (indexFrag < numFrags && f_cur.color.a > 0)
-		if (f_cur.color_packed != 0)
+		if (f_cur.color.a >= SAFE_MIN_HALF)
 		{
-			colorIntegrated += f_cur.GetColor() * ((half)1.f - colorIntegrated.a);
+			colorIntegrated += f_cur.color * ((half)1.f - colorIntegrated.a);
 		}
     } // if (indexFrag >= numFrags)
 }

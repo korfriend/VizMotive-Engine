@@ -4,7 +4,7 @@
 #define K_CORES K_NUM - 1
 uint Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
 {
-	half4 color_in = f_in.GetColor();
+	half4 color_in = f_in.color;
 
 	if (f_in.z > 1e20 || color_in.a <= 0.01) return fragCount;
 
@@ -42,14 +42,14 @@ uint Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
 				f_i = fs[i];
 			}
 
-			if (f_i.color_packed == 0) // empty slot by being 1) merged out or 2) not yet filled
+			if (f_i.color.a < SAFE_MIN_HALF) // empty slot by being 1) merged out or 2) not yet filled
 			{
 				store_index = i;
 				core_max_idx = -2;
 				is_overflow = false;
 				break; // finish
 			}
-			else // if (f_i.color_packed != 0)
+			else // if (f_i.color.a >= SAFE_MIN_HALF)
 			{
 				if (OverlapTest(f_in, f_i))
 				{
@@ -148,25 +148,24 @@ half4 Resolve_kBuffer(in uint fragCount, inout Fragment fs[K_NUM], out uint fina
 			f_merge = MergeFragments(f_1, f_2);
 		}
 
-		if (f_merge.color_packed == 0)
+		if (f_merge.color.a < SAFE_MIN_HALF)
 		{
 			if (finalFragCount < K_NUM - 1)
 			{
 				fs[finalFragCount++] = f_1; 
 
-				half4 color = f_1.GetColor();
-				color_out += color * ((half)1.f - color_out.a);
+				color_out += f_1.color * ((half)1.f - color_out.a);
 				f_1 = f_2;
 			}
 			else
 			{
 				// tail //
-				if (f_2.color_packed != 0)
+				if (f_2.color.a >= SAFE_MIN_HALF)
 				{
-					half4 f_1_vis = f_1.GetColor();
-					half4 f_2_vis = f_2.GetColor();
+					half4 f_1_vis = f_1.color;
+					half4 f_2_vis = f_2.color;
 					f_1_vis += f_2_vis * ((half)1.f - f_1_vis.a);
-					f_1.SetColor(f_1_vis);
+					f_1.color = f_1_vis;
 					f_1.zthick = (half)(f_2.z - f_1.z + (float)f_1.zthick);
 					f_1.z = f_2.z;
 					f_1.opacity_sum += f_2.opacity_sum;
@@ -179,12 +178,11 @@ half4 Resolve_kBuffer(in uint fragCount, inout Fragment fs[K_NUM], out uint fina
 		}
 	}
 
-	if (f_1.color_packed != 0)
+	if (f_1.color.a >= SAFE_MIN_HALF)
 	{
 		fs[finalFragCount++] = f_1;
 
-		half4 color = f_1.GetColor();
-		color_out += color * ((half)1.f - color_out.a);
+		color_out += f_1.color * ((half)1.f - color_out.a);
 	}
 
 	return color_out;
