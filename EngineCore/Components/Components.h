@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250226_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250227_0";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -459,14 +459,6 @@ namespace vz
 
 			COUNT	// UPDATE ShaderInterop.h's SHADERTYPE_BIN_COUNT when modifying ShaderType elements
 		};
-		enum class DirectVolumeShaderType : uint32_t
-		{
-			DEFAULT = 0,
-			//MULTI_OTF_DEFAULT,
-			//ALPHA_MODULATION,
-			//MULTI_OTF_ALPHA_MODULATION,
-			COUNT
-		};
 		enum class TextureSlot : uint32_t
 		{
 			BASECOLORMAP = 0,
@@ -538,7 +530,6 @@ namespace vz
 		ShaderType shaderType_ = ShaderType::PHONG;
 		BlendMode blendMode_ = BlendMode::BLENDMODE_OPAQUE;
 		StencilRef engineStencilRef_ = StencilRef::STENCILREF_DEFAULT;
-		DirectVolumeShaderType dvrShaderType_ = DirectVolumeShaderType::DEFAULT;
 
 		float alphaRef_ = 1.f;
 		XMFLOAT4 baseColor_ = XMFLOAT4(1, 1, 1, 1);
@@ -558,6 +549,10 @@ namespace vz
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 
+		LookupTableSlot meshLookup_ = LookupTableSlot::LOOKUP_COLOR;
+		LookupTableSlot volumeSlicerLookup_ = LookupTableSlot::LOOKUP_WINDOWING;
+		LookupTableSlot volume3DLookup_ = LookupTableSlot::LOOKUP_OTF;
+
 		// Non-serialized Attributes:
 		bool isDirty_ = true;
 	public:
@@ -568,20 +563,20 @@ namespace vz
 		inline const XMFLOAT4& GetSpecularColor() const { return specularColor_; }
 		inline const XMFLOAT4& GetEmissiveColor() const { return emissiveColor_; }	// w is emissive strength
 
-		inline void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; }
-		inline void SetSaturate(const float saturate) { saturate_ = saturate; }
-		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; }
-		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; }
-		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; }
-		inline void SetMatalness(const float metalness) { metalness_ = metalness; isDirty_ = true; }
-		inline void SetRoughness(const float roughness) { roughness_ = roughness; isDirty_ = true; }
-		inline void SetWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; }
-		inline void SetCastShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; }
-		inline void SetReceiveShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; }
-		inline void SetShaderType(const ShaderType shaderType) { shaderType_ = shaderType; }
-		inline void SetDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; }
-		inline void SetGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; }
-		inline void SetWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; }
+		inline void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; timeStampSetter_ = TimerNow; }
+		inline void SetSaturate(const float saturate) { saturate_ = saturate; timeStampSetter_ = TimerNow; }
+		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; timeStampSetter_ = TimerNow;}
+		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; timeStampSetter_ = TimerNow;}
+		inline void SetMatalness(const float metalness) { metalness_ = metalness; isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetRoughness(const float roughness) { roughness_ = roughness; isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetCastShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetReceiveShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetShaderType(const ShaderType shaderType) { shaderType_ = shaderType; timeStampSetter_ = TimerNow; }
+		inline void SetDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; timeStampSetter_ = TimerNow; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
@@ -614,6 +609,13 @@ namespace vz
 		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return lookupComponents_[SCU32(slot)]; }
 		inline const XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
+
+		void SetMeshLookup(const LookupTableSlot slot) { meshLookup_ = slot; timeStampSetter_ = TimerNow; }
+		void SetSlicerLookup(const LookupTableSlot slot) { volumeSlicerLookup_ = slot; timeStampSetter_ = TimerNow; }
+		void Set3DLookup(const LookupTableSlot slot) { volume3DLookup_ = slot; timeStampSetter_ = TimerNow; }
+		LookupTableSlot GetMeshLookup() const { return meshLookup_; }
+		LookupTableSlot GetSlicerLookup() const { return volumeSlicerLookup_; }
+		LookupTableSlot Get3DLookup() const { return volume3DLookup_; }
 
 		virtual void UpdateAssociatedTextures() = 0;
 
@@ -1108,7 +1110,7 @@ namespace vz
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
 
-		uint8_t visibleLayerMask_ = 0x7;
+		uint32_t visibleLayerMask_ = 0x7;
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
 
@@ -1179,8 +1181,8 @@ namespace vz
 		}
 		inline bool IsSlicerSolidFill() const { return !(flags_ & RenderableFlags::SLICER_NO_SOLID_FILL); };
 
-		inline bool IsVisibleWith(uint8_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
-		inline uint8_t GetVisibleMask() const { return visibleLayerMask_; }
+		inline bool IsVisibleWith(uint32_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
+		inline uint32_t GetVisibleMask() const { return visibleLayerMask_; }
 		inline float GetFadeDistance() const { return fadeDistance_; }
 		inline float GetVisibleRadius() const { return visibleRadius_; }
 		inline XMFLOAT3 GetVisibleCenter() const { return visibleCenter_; }
@@ -1306,8 +1308,14 @@ namespace vz
 
 	struct CORE_EXPORT CameraComponent : ComponentBase
 	{
+		enum class DVR_TYPE : uint8_t
+		{
+			// XRAY_[mode] uses 
+			DEFAULT = 0,
+			XRAY_AVERAGE,
+		};
 	protected:
-		enum CamFlags : uint8_t
+		enum CamFlags : uint32_t
 		{
 			EMPTY = 0,
 			ORTHOGONAL = 1 << 0,    // if not, PERSPECTIVE
@@ -1345,7 +1353,11 @@ namespace vz
 		float height_ = 0.0f;
 
 		uint8_t visibleLayerMask_ = ~0;
-		uint8_t flags_ = CamFlags::EMPTY;
+		uint32_t flags_ = CamFlags::EMPTY;
+		DVR_TYPE dvrType_ = DVR_TYPE::DEFAULT;
+
+		// LOOKUPTABLE_COUNT refers to UNDEFINED
+		MaterialComponent::LookupTableSlot forceToLookup_ = MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT;
 
 		// clipper
 		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube
@@ -1448,6 +1460,12 @@ namespace vz
 		inline bool IsSensorEyeAdaptationEnabled() const { return eyeAdaptionEnabled_; }
 		inline bool IsSensorBloomEnabled() const { return bloomEnabled_; }
 		inline float GetSensorHdrCalibration() const { return hdrCalibration_; }
+
+		inline void SetForceToUseLookupTable(const MaterialComponent::LookupTableSlot slot) { forceToLookup_ = slot; timeStampSetter_ = TimerNow; }
+		inline MaterialComponent::LookupTableSlot GetForceToUseLookupTable() const { return forceToLookup_; }
+
+		inline void SetDVRType(const DVR_TYPE type) { dvrType_ = type; timeStampSetter_ = TimerNow; }
+		inline DVR_TYPE GetDVRType() const { return dvrType_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 

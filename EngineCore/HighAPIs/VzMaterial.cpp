@@ -15,24 +15,28 @@ namespace vzm
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetTexture(vid, static_cast<MaterialComponent::TextureSlot>(slot));
+		UpdateTimeStamp();
 	}
 
 	void VzMaterial::SetVolumeTexture(const VID vid, const VolumeTextureSlot slot)
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetVolumeTexture(vid, static_cast<MaterialComponent::VolumeTextureSlot>(slot));
+		UpdateTimeStamp();
 	}
 
 	void VzMaterial::SetLookupTable(const VID vid, const LookupTableSlot slot)
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetLookupTable(vid, static_cast<MaterialComponent::LookupTableSlot>(slot));
+		UpdateTimeStamp();
 	}
 
 	void VzMaterial::SetShaderType(const ShaderType shaderType)
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetShaderType(static_cast<MaterialComponent::ShaderType>(shaderType));
+		UpdateTimeStamp();
 	}
 
 	ShaderType VzMaterial::GetShaderType() const
@@ -45,24 +49,62 @@ namespace vzm
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetDoubleSided(enabled);
+		UpdateTimeStamp();
 	}
 
 	void VzMaterial::SetBaseColor(const vfloat4& color)
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetBaseColor(*(XMFLOAT4*)&color);
+		UpdateTimeStamp();
 	}
 
 	void VzMaterial::SetGaussianSplattingEnabled(const bool enabled)
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetGaussianSplatting(enabled);
+		UpdateTimeStamp();
 	}
 
 	void VzMaterial::SetWireframe(const bool enabled)
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetWireframe(enabled);
+		UpdateTimeStamp();
+	}
+
+	void VzMaterial::SetMeshLookup(const LookupTableSlot slot)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetMeshLookup((MaterialComponent::LookupTableSlot)slot);
+		UpdateTimeStamp();
+	}
+	void VzMaterial::SetSlicerLookup(const LookupTableSlot slot)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetSlicerLookup((MaterialComponent::LookupTableSlot)slot);
+		UpdateTimeStamp();
+	}
+	void VzMaterial::Set3DLookup(const LookupTableSlot slot)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->Set3DLookup((MaterialComponent::LookupTableSlot)slot);
+		UpdateTimeStamp();
+	}
+	LookupTableSlot VzMaterial::GetMeshLookup() const
+	{
+		GET_MATERIAL_COMP(material, {});
+		return (LookupTableSlot)material->GetMeshLookup();
+	}
+	LookupTableSlot VzMaterial::GetSlicerLookup() const
+	{
+		GET_MATERIAL_COMP(material, {});
+		return (LookupTableSlot)material->GetSlicerLookup();
+	}
+	LookupTableSlot VzMaterial::Get3DLookup() const
+	{
+		GET_MATERIAL_COMP(material, {});
+		return (LookupTableSlot)material->Get3DLookup();
 	}
 
 	vfloat4 VzMaterial::GetBaseColor() const

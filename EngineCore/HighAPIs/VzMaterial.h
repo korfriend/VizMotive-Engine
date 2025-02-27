@@ -67,6 +67,13 @@ namespace vzm
 		void SetGaussianSplattingEnabled(const bool enabled);
 		void SetWireframe(const bool enabled);
 		
+		void SetMeshLookup(const LookupTableSlot slot);
+		void SetSlicerLookup(const LookupTableSlot slot);
+		void Set3DLookup(const LookupTableSlot slot);
+		LookupTableSlot GetMeshLookup() const;
+		LookupTableSlot GetSlicerLookup() const;
+		LookupTableSlot Get3DLookup() const;
+
 		ShaderType GetShaderType() const;
 		vfloat4 GetBaseColor() const;
 		bool IsDoubleSided() const;

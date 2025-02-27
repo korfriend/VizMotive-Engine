@@ -20,6 +20,7 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\blockCompress.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\brdf.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\cullingShaderHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\curvedSlicerHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\dvrHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\fogHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\imageHF.hlsli" />
@@ -76,7 +77,13 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryspace.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_propagateaabbCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrPrepassCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_2KB.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_xray_2KB.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_2KB.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_xray_2KB.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_woKB.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_woKB_xray.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_zerothick.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain2DCS_float4.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain2DCS_unorm4.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain3DCS_float4.hlsl" />

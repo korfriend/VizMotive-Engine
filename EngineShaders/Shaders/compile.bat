@@ -60,7 +60,6 @@ dxc -T cs_6_0 ./CS/wetmap_updateCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/meshlet_prepareCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv
 
-dxc -T cs_6_0 ./CS/dvrCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gs_preprocessCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gs_offsetCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gs_duplicateWithKeysCS.hlsl -spirv
@@ -75,3 +74,12 @@ dxc -T cs_6_0 ./CS/slicerOutlineCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/slicerResolveCS_KB2.hlsl -spirv
 
 dxc -T gs_6_0 ./GS/thicknessLineGS.hlsl -spirv
+
+dxc -T cs_6_0 ./CS/dvrCS_curved_slicer_2KB.hlsl -spirv
+dxc -T cs_6_0 ./CS/dvrCS_slicer_2KB.hlsl -spirv
+dxc -T cs_6_0 ./CS/dvrCS_woKB.hlsl -spirv
+dxc -T cs_6_0 ./CS/dvrCS_zerothick.hlsl -spirv
+dxc -T cs_6_0 ./CS/dvrCS_woKB_xray.hlsl -spirv
+
+dxc -T cs_6_0 ./CS/dvrCS_curved_slicer_xray_2KB.hlsl -spirv
+dxc -T cs_6_0 ./CS/dvrCS_slicer_xray_2KB.hlsl -spirv

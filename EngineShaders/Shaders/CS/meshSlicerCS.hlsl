@@ -1,5 +1,8 @@
 #include "../Globals.hlsli"
 #include "../CommonHF/objectRayHF.hlsli"
+#ifdef CURVED_PLANE
+#include "../CommonHF/curvedSlicerHF.hlsli"
+#endif
 #define K_NUM 2
 #include "../CommonHF/kbufferHF.hlsli"
 
@@ -8,7 +11,9 @@ RWTexture2D<uint> counter_mask_distmap : register(u1);
 RWTexture2D<uint4> layer_packed0_RGBA : register(u2);
 RWTexture2D<uint2> layer_packed1_RG : register(u3);
 
-inline bool InsideTest(const float3 originWS, const float3 originOS, const float3 rayDirOS, const float2 minMaxT, const float4x4 os2ws, inout float minDistOnPlane)
+inline bool InsideTest(const float3 originWS, 
+	const float3 originOS, const float3 rayDirOS, 
+	const float2 minMaxT, const float4x4 os2ws, inout float minDistOnPlane)
 {
 	if (length(rayDirOS) < 0.0001)
 		return false;
@@ -29,7 +34,7 @@ inline bool InsideTest(const float3 originWS, const float3 originOS, const float
 		float3 hit_os = ray.Origin + hit.distance * ray.Direction;
 		float4 hit_ws = mul(os2ws, float4(hit_os, 1));
 		hit_ws.xyz /= hit_ws.w;
-		float dist_pixels = length(hit_ws.xyz - originWS) / push.pixelSize;
+		float dist_pixels = length(hit_ws.xyz - originWS) / GetCamera().pixelSize;
 
 		if (minDistOnPlane * minDistOnPlane > dist_pixels * dist_pixels) {
 			minDistOnPlane = localInside ? -dist_pixels : dist_pixels;
@@ -72,10 +77,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	const float2 uv = ((float2)pixel + (float2)0.5) * camera.internal_resolution_rcp;
 	const float2 clipspace = uv_to_clipspace(uv);
-	const float pixelSize = push.pixelSize;
+	const float pixelSize = camera.pixelSize;
 
 	// IMPORTANT NOTE: Slicer assumes ORTHOGONAL PROJECTION!!!
-#ifndef CURVEDPLANE
+#ifndef CURVED_PLANE
 	RayDesc ray_ws = CreateCameraRay(clipspace);
 #else
 	RayDesc ray_ws = CreateCurvedSlicerRay(pixel);
@@ -95,7 +100,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	float4x4 ws2os = inst.transformRaw_inv.GetMatrix();
 	float4x4 os2ws = inst.transformRaw.GetMatrix();
 
-	float sliceThickness = push.sliceThickness;
+	float sliceThickness = camera.sliceThickness;
 	if (sliceThickness > 0 && !disabled_filling)
 	{
 		// correction ray
@@ -132,7 +137,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	bool isInsideOnPlane = false;
 	float minDistOnPlane = FLT_MAX; // for on-the-fly zeroset contouring
-#ifdef CURVEDPLANE
+#ifdef CURVED_PLANE
 	//return;
 #endif
 	// safe inside test (up- and down-side)
@@ -386,7 +391,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		layer_packed0_RGBA[pixel] = uint4(frag.color_packed, asuint(frag.z), frag.Pack_Zthick_AlphaSum(), 0);
 		
-		if (push.sliceThickness == 0)
+		if (camera.sliceThickness == 0)
 			inout_color[pixel] = (float4)frag.GetColor();
 
 		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | 1;

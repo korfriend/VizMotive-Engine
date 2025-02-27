@@ -179,16 +179,19 @@ namespace vzm
 	{
 		GET_CAM_COMP(camera, );
 		camera->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
+		UpdateTimeStamp();
 	}
 	void VzCamera::SetClipPlane(const vfloat4& clipPlane)
 	{
 		GET_CAM_COMP(camera, );
 		camera->SetClipPlane(*(XMFLOAT4*)&clipPlane);
+		UpdateTimeStamp();
 	}
 	void VzCamera::SetClipBox(const vfloat4x4& clipBox)
 	{
 		GET_CAM_COMP(camera, );
 		camera->SetClipBox(*(XMFLOAT4X4*)&clipBox);
+		UpdateTimeStamp();
 	}
 	bool VzCamera::IsClipperEnabled(bool* clipBoxEnabled, bool* clipPlaneEnabled) const
 	{
@@ -198,6 +201,19 @@ namespace vzm
 		if (clipBoxEnabled) *clipBoxEnabled = box_clipped;
 		if (clipPlaneEnabled) *clipPlaneEnabled = plane_clipped;
 		return box_clipped || plane_clipped;
+	}
+
+	void VzCamera::SetDVRType(const DVR_TYPE type)
+	{
+		GET_CAM_COMP(camera, );
+		camera->SetDVRType((CameraComponent::DVR_TYPE)type);
+		UpdateTimeStamp();
+	}
+
+	VzCamera::DVR_TYPE VzCamera::GetDVRType() const
+	{
+		GET_CAM_COMP(camera, DVR_TYPE::DEFAULT);
+		return (VzCamera::DVR_TYPE)camera->GetDVRType();
 	}
 }
 

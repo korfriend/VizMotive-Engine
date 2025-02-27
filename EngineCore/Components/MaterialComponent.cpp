@@ -12,6 +12,7 @@ namespace vz
 			return;
 		}
 		textureComponents_[SCU32(textureSlot)] = texture->GetVUID();
+		timeStampSetter_ = TimerNow;
 	}
 
 	void MaterialComponent::SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot)
@@ -23,6 +24,7 @@ namespace vz
 			return;
 		}
 		volumeComponents_[SCU32(volumetextureSlot)] = volume->GetVUID();
+		timeStampSetter_ = TimerNow;
 	}
 
 	void MaterialComponent::SetLookupTable(const Entity lookuptextureEntity, const LookupTableSlot lookuptextureSlot)
@@ -34,6 +36,7 @@ namespace vz
 			return;
 		}
 		lookupComponents_[SCU32(lookuptextureSlot)] = texture->GetVUID();
+		timeStampSetter_ = TimerNow;
 	}
 }
 

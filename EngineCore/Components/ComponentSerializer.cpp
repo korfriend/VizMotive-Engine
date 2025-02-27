@@ -108,9 +108,6 @@ namespace vz
 			archive >> u32_data;
 			engineStencilRef_ = static_cast<StencilRef>(u32_data);
 
-			archive >> u32_data;
-			dvrShaderType_ = static_cast<DirectVolumeShaderType>(u32_data);
-
 			// need to check version 
 			archive >> u32_data;
 			assert(u32_data <= SCU32(TextureSlot::TEXTURESLOT_COUNT));
@@ -134,6 +131,11 @@ namespace vz
 			}
 
 			archive >> texMulAdd_;
+
+			archive >> u32_data; meshLookup_ = static_cast<LookupTableSlot>(u32_data);
+			archive >> u32_data; volumeSlicerLookup_ = static_cast<LookupTableSlot>(u32_data);
+			archive >> u32_data; volume3DLookup_ = static_cast<LookupTableSlot>(u32_data);
+
 			isDirty_ = true;
 		}
 		else
@@ -154,7 +156,6 @@ namespace vz
 			archive << wireframe_;
 
 			archive << SCU32(engineStencilRef_);
-			archive << SCU32(dvrShaderType_);
 
 			uint32_t tex_slot_count = SCU32(TextureSlot::TEXTURESLOT_COUNT);
 			archive << tex_slot_count;
@@ -176,6 +177,10 @@ namespace vz
 			}
 
 			archive << texMulAdd_;
+
+			archive << static_cast<uint32_t>(meshLookup_);
+			archive << static_cast<uint32_t>(volumeSlicerLookup_);
+			archive << static_cast<uint32_t>(volume3DLookup_);
 		}
 	}
 
@@ -453,6 +458,8 @@ namespace vz
 			archive >> eyeAdaptionEnabled_;
 			archive >> bloomEnabled_;
 			archive >> hdrCalibration_;
+			uint32_t u32_data;
+			archive >> u32_data; forceToLookup_ = static_cast<MaterialComponent::LookupTableSlot>(u32_data);
 
 			isDirty_ = true;
 			SetWorldLookAtFromHierarchyTransforms();
@@ -483,6 +490,7 @@ namespace vz
 			archive << eyeAdaptionEnabled_;
 			archive << bloomEnabled_;
 			archive << hdrCalibration_;
+			archive << static_cast<uint32_t>(forceToLookup_);
 		}
 	}
 

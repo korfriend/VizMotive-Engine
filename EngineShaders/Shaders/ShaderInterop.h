@@ -1325,6 +1325,9 @@ enum SHADERCAMERA_OPTIONS
 	SHADERCAMERA_OPTION_NONE = 0,
 	SHADERCAMERA_OPTION_USE_SHADOW_MASK = 1 << 0,
 	SHADERCAMERA_OPTION_ORTHO = 1 << 1,
+	SHADERCAMERA_OPTION_SLICER = 1 << 2,
+	SHADERCAMERA_OPTION_CURVED_SLICER = 1 << 3, // implying SHADERCAMERA_OPTION_SLICER
+	SHADERCAMERA_OPTION_CURVED_SLICER_REVERSE_SIDE = 1 << 4,
 };
 struct alignas(16) ShaderFrustumCorners
 {
@@ -1458,9 +1461,9 @@ struct alignas(16) ShaderCamera
 	int texture_vxgi_specular_index;
 
 	int texture_reprojected_depth_index;
-	uint padding0;
-	uint padding1;
-	uint padding2;
+	float pixelSize;			// slicer
+	float sliceThickness;		// slicer
+	int curvePointsBufferIndex;	// slicer
 
 #ifdef __cplusplus
 	void Init()

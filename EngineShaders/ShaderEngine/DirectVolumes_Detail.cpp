@@ -83,35 +83,9 @@ namespace vz::renderer
 		GSlicerComponent* slicer = (GSlicerComponent*)this->camera;
 		assert(slicer->GetComponentType() == ComponentType::SLICER);
 
+		const float slicer_thickness = slicer->GetThickness();
+
 		SlicerMeshPushConstants push;
-		push.sliceThickness = slicer->GetThickness();
-		// Compute pixelSpace
-		{
-			auto unproj = [&](float screenX, float screenY, float screenZ,
-				float viewportX, float viewportY, float viewportWidth, float viewportHeight,
-				const XMMATRIX& invViewProj)
-				{
-					float ndcX = ((screenX - viewportX) / viewportWidth) * 2.0f - 1.0f;
-					float ndcY = 1.0f - ((screenY - viewportY) / viewportHeight) * 2.0f; // y는 반전
-					float ndcZ = screenZ; // 보통 0~1 범위로 제공됨
-
-					XMVECTOR ndcPos = XMVectorSet(ndcX, ndcY, ndcZ, 1.0f);
-
-					XMVECTOR worldPos = XMVector4Transform(ndcPos, invViewProj);
-
-					worldPos = XMVectorScale(worldPos, 1.0f / XMVectorGetW(worldPos));
-
-					return worldPos;
-				};
-			
-			XMMATRIX inv_vp = XMLoadFloat4x4(&slicer->GetInvViewProjection());
-			XMVECTOR world_pos0 = unproj(0.0f, 0.0f, 0.0f, viewport.top_left_x, viewport.top_left_y, viewport.width, viewport.height, inv_vp);
-			XMVECTOR world_pos1 = unproj(1.0f, 0.0f, 0.0f, viewport.top_left_x, viewport.top_left_y, viewport.width, viewport.height, inv_vp);
-
-			XMVECTOR diff = XMVectorSubtract(world_pos0, world_pos1);
-			push.pixelSize = XMVectorGetX(XMVector3Length(diff));
-		}
-
 
 		// This will be called every time we start a new draw call:
 		//	calls draw per a geometry part
@@ -158,11 +132,7 @@ namespace vz::renderer
 					renderable.IsSlicerSolidFill() ? 
 						push.sliceFlags &= ~SLICER_FLAG_ONLY_OUTLINE : push.sliceFlags |= SLICER_FLAG_ONLY_OUTLINE;
 
-					slicer->IsReverseSide() ?
-						push.sliceFlags |= SLICER_FLAG_REVERSE_SIDE : push.sliceFlags &= ~SLICER_FLAG_REVERSE_SIDE;
-
 					push.outlineThickness = slicer->GetOutlineThickness() <= 0? renderable.GetOutlineThickness() : slicer->GetOutlineThickness();
-					push.curvePointsBufferIndex = device->GetDescriptorIndex(&slicer->curveInterpPointsBuffer, SubresourceType::SRV);
 
 					device->BindComputeShader(
 						&shaders[slicer->IsCurvedSlicer()? CSTYPE_MESH_CURVED_SLICER : CSTYPE_MESH_SLICER], cmd);
@@ -181,7 +151,7 @@ namespace vz::renderer
 						cmd
 					);
 
-					if (push.sliceThickness == 0.f || (push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE)) {
+					if (slicer_thickness == 0.f || (push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE)) {
 
 						device->BindComputeShader(&shaders[CSTYPE_SLICER_OUTLINE], cmd);
 
@@ -261,7 +231,7 @@ namespace vz::renderer
 		BatchDrawingFlush();
 		profiler::EndRange(range_1);
 
-		if (push.sliceThickness > 0) 
+		if (slicer_thickness > 0)
 		{
 			auto range_2 = profiler::BeginRangeGPU("Slicer Resolve", &cmd);
 			device->BindComputeShader(&shaders[CSTYPE_SLICE_RESOLVE_KB2], cmd);
@@ -284,8 +254,54 @@ namespace vz::renderer
 		device->EventEnd(cmd);
 	}
 
+
+	SHADERTYPE selectVolumeShader(CameraComponent* camera, VolumePushConstants& push)
+	{
+		SHADERTYPE shader_type = CSTYPE_DVR_WITHOUT_KB;
+		
+		if (camera->IsSlicer())
+		{
+			SlicerComponent* slicer = (SlicerComponent*)camera;
+			if (slicer->GetThickness() == 0)
+			{
+				shader_type = CSTYPE_DVR_ZEROTHICK;
+			}
+			if (camera->IsCurvedSlicer())
+			{
+				switch (camera->GetDVRType())
+				{
+				case CameraComponent::DVR_TYPE::DEFAULT: 
+					shader_type = CSTYPE_DVR_CURVED_SLICER_2KB;
+					break;
+				case CameraComponent::DVR_TYPE::XRAY_AVERAGE:
+					shader_type = CSTYPE_DVR_XRAY_CURVED_SLICER_2KB;
+					break;
+				}
+			}
+			else
+			{
+				switch (camera->GetDVRType())
+				{
+				case CameraComponent::DVR_TYPE::DEFAULT:
+					shader_type = CSTYPE_DVR_SLICER_2KB;
+					break;
+				case CameraComponent::DVR_TYPE::XRAY_AVERAGE:
+					shader_type = CSTYPE_DVR_XRAY_SLICER_2KB;
+					break;
+				}
+			}
+		}
+		else
+		{
+			shader_type = CSTYPE_DVR_WITHOUT_KB;
+		}
+
+		return shader_type;
+	}
+
 	void GRenderPath3DDetails::RenderDirectVolumes(CommandList cmd)
 	{
+		return;
 		if (viewMain.visibleRenderables.empty())
 			return;
 
@@ -374,10 +390,27 @@ namespace vz::renderer
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::UNORDERED_ACCESS));
-			BarrierStackFlush(cmd);
+			if (camera->IsSlicer())
+			{
+				//rtPrimitiveID_1,	// counter (8bit) / mask (8bit) / intermediate distance map (16bit), ResourceState::UNORDERED_ACCESS
+				//rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, ResourceState::UNORDERED_ACCESS
+				//rtLinearDepth,	// R32G32_UINT - Layer_Packed1, ResourceState::UNORDERED_ACCESS
+				//barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_1, rtPrimitiveID_1.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
+				//barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_2, rtPrimitiveID_2.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
+				//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
+				//BarrierStackFlush(cmd);
 
-			device->BindComputeShader(&shaders[CSTYPE_DVR_DEFAULT], cmd);
+				device->BindUAV(&rtPrimitiveID_1, 0, cmd);
+				device->BindUAV(&rtPrimitiveID_2, 1, cmd);
+				device->BindUAV(&rtLinearDepth, 2, cmd);
+			}
+			else
+			{
+				barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::UNORDERED_ACCESS));
+				BarrierStackFlush(cmd);
+			}
+
+			device->BindComputeShader(&shaders[selectVolumeShader(camera, volume_push)], cmd);
 			device->PushConstants(&volume_push, sizeof(VolumePushConstants), cmd);
 
 			device->Dispatch(
@@ -388,8 +421,23 @@ namespace vz::renderer
 			);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
-			barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, rtLinearDepth.desc.layout));
-			BarrierStackFlush(cmd);
+
+			if (camera->IsSlicer())
+			{
+				//barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_1, ResourceState::SHADER_RESOURCE_COMPUTE, rtPrimitiveID_1.desc.layout));
+				//barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_2, ResourceState::SHADER_RESOURCE_COMPUTE, rtPrimitiveID_2.desc.layout));
+				//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE_COMPUTE, rtLinearDepth.desc.layout));
+				//BarrierStackFlush(cmd);
+
+				device->BindUAV(&unbind, 0, cmd);
+				device->BindUAV(&unbind, 1, cmd);
+				device->BindUAV(&unbind, 2, cmd);
+			}
+			else
+			{
+				barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, rtLinearDepth.desc.layout));
+				BarrierStackFlush(cmd);
+			}
 
 			break; // TODO: at this moment, just a single volume is supported!
 		}
