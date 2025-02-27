@@ -1087,6 +1087,44 @@ namespace vz::renderer
 			shadercam.frustum_corners.cornersFAR[1].w = pitch;
 			shadercam.frustum_corners.cornersFAR[2].w = cplane_height_pixel;
 			shadercam.up = slicer->GetCurvedPlaneUp();
+
+			shadercam.options |= SHADERCAMERA_OPTION_CURVED_SLICER;
+			shadercam.options |= slicer->IsReverseSide()? SHADERCAMERA_OPTION_CURVED_SLICER_REVERSE_SIDE : 0;
+		}
+
+		if (camera.IsSlicer())
+		{
+			GSlicerComponent* slicer = (GSlicerComponent*)&camera;
+			shadercam.curvePointsBufferIndex = device->GetDescriptorIndex(&slicer->curveInterpPointsBuffer, SubresourceType::SRV);
+			shadercam.sliceThickness = slicer->GetThickness();
+			// Compute pixelSpace
+			{
+				auto unproj = [&](float screenX, float screenY, float screenZ,
+					float viewportX, float viewportY, float viewportWidth, float viewportHeight,
+					const XMMATRIX& invViewProj)
+					{
+						float ndcX = ((screenX - viewportX) / viewportWidth) * 2.0f - 1.0f;
+						float ndcY = 1.0f - ((screenY - viewportY) / viewportHeight) * 2.0f; // y는 반전
+						float ndcZ = screenZ; // 보통 0~1 범위로 제공됨
+
+						XMVECTOR ndcPos = XMVectorSet(ndcX, ndcY, ndcZ, 1.0f);
+
+						XMVECTOR worldPos = XMVector4Transform(ndcPos, invViewProj);
+
+						worldPos = XMVectorScale(worldPos, 1.0f / XMVectorGetW(worldPos));
+
+						return worldPos;
+					};
+
+				XMMATRIX inv_vp = XMLoadFloat4x4(&slicer->GetInvViewProjection());
+				XMVECTOR world_pos0 = unproj(0.0f, 0.0f, 0.0f, viewport.top_left_x, viewport.top_left_y, viewport.width, viewport.height, inv_vp);
+				XMVECTOR world_pos1 = unproj(1.0f, 0.0f, 0.0f, viewport.top_left_x, viewport.top_left_y, viewport.width, viewport.height, inv_vp);
+
+				XMVECTOR diff = XMVectorSubtract(world_pos0, world_pos1);
+				shadercam.pixelSize = XMVectorGetX(XMVector3Length(diff));
+
+				shadercam.options |= SHADERCAMERA_OPTION_SLICER;
+			}
 		}
 
 		shadercam.temporalaa_jitter = camera.jitter;

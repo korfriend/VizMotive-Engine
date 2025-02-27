@@ -123,6 +123,9 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\kbufferHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\curvedSlicerHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GS.h">
@@ -184,7 +187,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrPrepassCS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_woKB.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortCS.hlsl">
@@ -402,6 +405,24 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)GS\thicknessLineGS.hlsl">
       <Filter>Raster-Pipeline Shaders\GS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_2KB.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_2KB.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_zerothick.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_woKB_xray.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_xray_2KB.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_xray_2KB.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
