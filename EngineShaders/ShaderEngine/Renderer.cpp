@@ -25,7 +25,7 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::UpdateProcess(const float dt)
 	{
-		// Frustum culling for main camera:
+		// Frustum culling for main camera:l,k
 		viewMain.layerMask = ~0;
 		viewMain.scene = scene;
 		viewMain.camera = camera;
@@ -1855,12 +1855,19 @@ namespace vz::renderer
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderData(viewMain, frameCB, cmd);
 
-			GPUBarrier barrier = GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1);
-			device->Barrier(&barrier, 1, cmd);
+			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_1, rtPrimitiveID_1.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1));
+			BarrierStackFlush(cmd);
+
+			// These Clear'UAV' must be after the barrier transition to ResourceState::UNORDERED_ACCESS
+			device->ClearUAV(&rtMain, 0, cmd);
+			device->ClearUAV(&rtPrimitiveID_1, 0, cmd);
 
 			});
 
 		cmd = device->BeginCommandList();
+		device->WaitCommandList(cmd, cmd_prepareframe);
 		CommandList cmd_slicer = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
@@ -1871,29 +1878,12 @@ namespace vz::renderer
 				cmd
 			);
 
-			graphics::Texture slicer_textures[] = {
-				rtMain,				// inout_color, desc.layout
-				rtPrimitiveID_1,	// counter (can be used for clear mask) (8bit) / intermediate distance map, desc.layout
-				rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, desc.layout
-				rtLinearDepth,		// R32G32_UINT - Layer_Packed1, desc.layout
-			};
-			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-			{
-				graphics::Texture& texture = slicer_textures[i];
-				barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::UNORDERED_ACCESS));
-			}
-			BarrierStackFlush(cmd);
-
-			// These Clear'UAV' must be after the barrier transition to ResourceState::UNORDERED_ACCESS
-			device->ClearUAV(&rtMain, 0, cmd);
-			device->ClearUAV(&rtPrimitiveID_1, 0, cmd);
-
 			RenderSlicerMeshes(cmd);
 
 			});
 
 		cmd = device->BeginCommandList();
-		//device->WaitCommandList(cmd, cmd_slicer);
+		device->WaitCommandList(cmd, cmd_slicer);
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(
@@ -1903,20 +1893,8 @@ namespace vz::renderer
 				cmd
 			);
 
+			// camera->IsSlicer()
 			RenderDirectVolumes(cmd);
-
-			graphics::Texture slicer_textures[] = {
-				rtMain,				// inout_color, desc.layout
-				rtPrimitiveID_1,	// counter (can be used for clear mask) (8bit) / intermediate distance map, desc.layout
-				rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, desc.layout
-				rtLinearDepth,		// R32G32_UINT - Layer_Packed1, desc.layout
-			};
-			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-			{
-				graphics::Texture& texture = slicer_textures[i];
-				barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
-			}
-			BarrierStackFlush(cmd);
 
 			});
 

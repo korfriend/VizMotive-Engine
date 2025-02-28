@@ -13,21 +13,6 @@ namespace vz::renderer
 			return;
 		}
 
-		graphics::Texture slicer_textures[] = {
-			rtMain,				// inout_color, ResourceState::UNORDERED_ACCESS
-			rtPrimitiveID_1,	// counter (8bit) / mask (8bit) / intermediate distance map (16bit), ResourceState::UNORDERED_ACCESS
-			rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, ResourceState::UNORDERED_ACCESS
-			rtLinearDepth,		// R32G32_UINT - Layer_Packed1, ResourceState::UNORDERED_ACCESS
-		};
-		for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-		{
-			vzlog_assert(slicer_textures[i].IsValid(), "RWTexture Resources must be Valid!");
-			if (!slicer_textures[i].IsValid())
-			{
-				return;
-			}
-		}
-
 		uint32_t filterMask = GMaterialComponent::FILTER_OPAQUE | GMaterialComponent::FILTER_TRANSPARENT;
 
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
@@ -56,6 +41,14 @@ namespace vz::renderer
 
 			renderQueue.add(renderable.geometryIndex, instanceIndex, distance, renderable.sortBits);
 		}
+
+		graphics::Texture slicer_textures[] = {
+			rtMain,				// inout_color, ResourceState::UNORDERED_ACCESS
+			rtPrimitiveID_1,	// counter (8bit) / mask (8bit) / intermediate distance map (16bit), ResourceState::UNORDERED_ACCESS
+			rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, ResourceState::UNORDERED_ACCESS
+			rtLinearDepth,		// R32G32_UINT - Layer_Packed1, ResourceState::UNORDERED_ACCESS
+		};
+
 		if (!renderQueue.empty())
 		{
 			// We use a policy where the closer it is to the front, the higher the priority.
@@ -63,10 +56,34 @@ namespace vz::renderer
 		}
 		else
 		{
+			for (size_t i = 0, n = 2; i < n; ++i)
+			{
+				graphics::Texture& texture = slicer_textures[i];
+				barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
+			}
+			BarrierStackFlush(cmd);
 			return;
 		}
 
+
+		for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+		{
+			vzlog_assert(slicer_textures[i].IsValid(), "RWTexture Resources must be Valid!");
+			if (!slicer_textures[i].IsValid())
+			{
+				return;
+			}
+		}
+
 		device->EventBegin("Slicer Mesh Render", cmd);
+
+		// NOTE: rtMain and rtPrimitiveID_1 are already UAV state
+		for (size_t i = 2, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+		{
+			graphics::Texture& texture = slicer_textures[i];
+			barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::UNORDERED_ACCESS));
+		}
+		BarrierStackFlush(cmd);
 
 		BindCommonResources(cmd);
 
@@ -251,49 +268,43 @@ namespace vz::renderer
 			device->BindUAV(&unbind, i, cmd);
 		}
 
+		for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
+		{
+			graphics::Texture& texture = slicer_textures[i];
+			barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
+		}
+		BarrierStackFlush(cmd);
+
 		device->EventEnd(cmd);
 	}
 
 
 	SHADERTYPE selectVolumeShader(CameraComponent* camera, VolumePushConstants& push)
 	{
-		SHADERTYPE shader_type = CSTYPE_DVR_WITHOUT_KB;
+		SHADERTYPE shader_type = CSTYPE_DVR_WoKB;
 		
 		if (camera->IsSlicer())
 		{
 			SlicerComponent* slicer = (SlicerComponent*)camera;
 			if (slicer->GetThickness() == 0)
 			{
-				shader_type = CSTYPE_DVR_ZEROTHICK;
-			}
-			if (camera->IsCurvedSlicer())
-			{
-				switch (camera->GetDVRType())
-				{
-				case CameraComponent::DVR_TYPE::DEFAULT: 
-					shader_type = CSTYPE_DVR_CURVED_SLICER_2KB;
-					break;
-				case CameraComponent::DVR_TYPE::XRAY_AVERAGE:
-					shader_type = CSTYPE_DVR_XRAY_CURVED_SLICER_2KB;
-					break;
-				}
+				shader_type = camera->IsCurvedSlicer() ? CSTYPE_DVR_SLICER_CURVED_NOTHICKNESS : CSTYPE_DVR_SLICER_NOTHICKNESS;
 			}
 			else
 			{
-				switch (camera->GetDVRType())
+				if (camera->IsCurvedSlicer())
 				{
-				case CameraComponent::DVR_TYPE::DEFAULT:
-					shader_type = CSTYPE_DVR_SLICER_2KB;
-					break;
-				case CameraComponent::DVR_TYPE::XRAY_AVERAGE:
-					shader_type = CSTYPE_DVR_XRAY_SLICER_2KB;
-					break;
+					shader_type = (SHADERTYPE)((uint32_t)CSTYPE_DVR_SLICER_CURVED_2KB + (uint32_t)camera->GetDVRType());
+				}
+				else
+				{
+					shader_type = (SHADERTYPE)((uint32_t)CSTYPE_DVR_SLICER_2KB + (uint32_t)camera->GetDVRType());
 				}
 			}
 		}
 		else
 		{
-			shader_type = CSTYPE_DVR_WITHOUT_KB;
+			shader_type = (SHADERTYPE)((uint32_t)CSTYPE_DVR_WoKB + (uint32_t)camera->GetDVRType());
 		}
 
 		return shader_type;
@@ -353,7 +364,9 @@ namespace vz::renderer
 
 		BindCommonResources(cmd);
 
-		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
+		// TODO 
+		// JUST SINGLE DRAWING for MULTIPLE VOLUMES
+		const RenderBatch& batch = renderQueue.batches[0];
 		{
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
@@ -391,23 +404,21 @@ namespace vz::renderer
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			if (camera->IsSlicer())
 			{
-				//rtPrimitiveID_1,	// counter (8bit) / mask (8bit) / intermediate distance map (16bit), ResourceState::UNORDERED_ACCESS
-				//rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, ResourceState::UNORDERED_ACCESS
-				//rtLinearDepth,	// R32G32_UINT - Layer_Packed1, ResourceState::UNORDERED_ACCESS
+				// note that rtPrimitiveID_1.desc.layout is ResourceState::SHADER_RESOURCE_COMPUTE
+				//  so, the following barriers causes unintended barrier transition warning (breakdown when GPU debugging layer is activated)
 				//barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_1, rtPrimitiveID_1.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
 				//barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_2, rtPrimitiveID_2.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
 				//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE));
-				//BarrierStackFlush(cmd);
 
-				device->BindUAV(&rtPrimitiveID_1, 0, cmd);
-				device->BindUAV(&rtPrimitiveID_2, 1, cmd);
-				device->BindUAV(&rtLinearDepth, 2, cmd);
+				device->BindResource(&rtPrimitiveID_1, 0, cmd);
+				device->BindResource(&rtPrimitiveID_2, 1, cmd);
+				device->BindResource(&rtLinearDepth, 2, cmd);
 			}
 			else
 			{
 				barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, rtLinearDepth.desc.layout, ResourceState::UNORDERED_ACCESS));
-				BarrierStackFlush(cmd);
 			}
+			BarrierStackFlush(cmd);
 
 			device->BindComputeShader(&shaders[selectVolumeShader(camera, volume_push)], cmd);
 			device->PushConstants(&volume_push, sizeof(VolumePushConstants), cmd);
@@ -426,7 +437,6 @@ namespace vz::renderer
 				//barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_1, ResourceState::SHADER_RESOURCE_COMPUTE, rtPrimitiveID_1.desc.layout));
 				//barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_2, ResourceState::SHADER_RESOURCE_COMPUTE, rtPrimitiveID_2.desc.layout));
 				//barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE_COMPUTE, rtLinearDepth.desc.layout));
-				//BarrierStackFlush(cmd);
 
 				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
@@ -435,10 +445,8 @@ namespace vz::renderer
 			else
 			{
 				barrierStack.push_back(GPUBarrier::Image(&rtLinearDepth, ResourceState::UNORDERED_ACCESS, rtLinearDepth.desc.layout));
-				BarrierStackFlush(cmd);
 			}
-
-			break; // TODO: at this moment, just a single volume is supported!
+			BarrierStackFlush(cmd);
 		}
 
 		profiler::EndRange(range);
