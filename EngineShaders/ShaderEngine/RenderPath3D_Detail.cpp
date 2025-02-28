@@ -1073,7 +1073,8 @@ namespace vz::renderer
 			float cplane_height_half = (cplane_height * 0.5f);
 
 			XMMATRIX S = XMMatrixScaling(pitch, pitch, pitch);
-			XMMATRIX T = XMMatrixTranslation(-cplane_width_half, -cplane_height_half, -pitch * 0.5f);
+			//XMMATRIX T = XMMatrixTranslation(-cplane_width_half, -cplane_height_half, -pitch * 0.5f);
+			XMMATRIX T = XMMatrixTranslation(-cplane_width_half, -cplane_height_half, 0.f);
 
 			XMMATRIX mat_COS2CWS = S * T;
 			XMMATRIX mat_CWS2COS = XMMatrixInverse(nullptr, mat_COS2CWS);

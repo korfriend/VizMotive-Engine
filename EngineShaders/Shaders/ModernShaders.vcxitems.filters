@@ -412,16 +412,19 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_2KB.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_zerothick.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_nothickness.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_woKB_xray.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_xray_woKB.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_xray_2KB.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_xray_2KB.hlsl">
+      <Filter>Compute Shaders\Direct Volumes</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_nothickness.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>
     </FxCompile>
   </ItemGroup>
