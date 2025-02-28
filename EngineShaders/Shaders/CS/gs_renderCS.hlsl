@@ -6,7 +6,7 @@
 //PUSHCONSTANT(gaussians, GaussianPushConstants);
 PUSHCONSTANT(totalSum, GaussianSortConstants);
 
-// UINT2 (width, height) ¸¦ ¹Þ¾Æ¾ß ÇÔ.
+// UINT2 (width, height) ï¿½ï¿½ ï¿½Þ¾Æ¾ï¿½ ï¿½ï¿½.
 
 //Buffer<float4> gs_vertexAttr = bindless_buffers_float4[gaussiansSorts.gaussian_Vertex_Attributes_index];
 // vertexAttrs consists of 16 elements (4 + 4 + 4 + 4 = 16)
@@ -14,13 +14,16 @@ PUSHCONSTANT(totalSum, GaussianSortConstants);
 // second 4 elements : color + radius
 // third 4 elements : bounding box (aabb)
 // fourth 4 elements : uv + depth + padding
+PUSHCONSTANT(totalSum, GaussianSortConstants);
 
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWTexture2D<unorm float4> prefixSum : register(u1);
 
 StructuredBuffer<VertexAttribute> Vertices : register(t0);
 StructuredBuffer<uint> offsetTiles : register(t1); // -> tileBoundaryBuffer
-StructuredBuffer<uint> sortValueEven : register(t2); // -> sortVBufferEven
+StructuredBuffer<uint> sortVBufferEven : register(t2); // -> sortVBufferEven
+StructuredBuffer<uint> tileBoundaryBuffer : register(t3); // -> tileBoundaryBuffer
+
 
 [numthreads(256, 1, 1)] // 16 x 16 x 1
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
@@ -44,6 +47,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     {
         //if (v.color_radii.w >= 4)
         if (sortValueEven[10000] == 0)
+
         {
             inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
         }
@@ -54,7 +58,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     }
     
     //Buffer<float> totalSumPrefix = bindless_buffers_float4[gaussiansSorts.gaussian_Vertex_Attributes_index];
-    //¸ÕÀú ¹öÆÛ ÀÎµ¦½º¸¦ ºÒ·¯¿Í¾ßÇÔ -> push constant ¿¡ index ¸¸µé±â 
+    //ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ò·ï¿½ï¿½Í¾ï¿½ï¿½ï¿½ -> push constant ï¿½ï¿½ index ï¿½ï¿½ï¿½ï¿½ï¿½ 
     
     //uint2 localID = DTid - Gid * GS_TILESIZE;
 
@@ -108,4 +112,5 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     //}
 
     //inout_color[curr_uv] = float4(c, 1.0f);
+
 }

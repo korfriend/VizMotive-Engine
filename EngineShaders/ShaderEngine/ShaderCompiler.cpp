@@ -31,7 +31,7 @@
 #include <d3dcompiler.h>
 #endif // SHADERCOMPILER_ENABLED_D3DCOMPILER
 
-namespace vz::graphics::shadercompiler
+namespace vz::shadercompiler
 {
 
 #ifdef SHADERCOMPILER_ENABLED_DXCOMPILER
@@ -751,6 +751,12 @@ namespace vz::graphics::shadercompiler
 
 		return false;
 	}
+
+	uint64_t interopHeaderTimestamp = 0;
+	void SetRecentHeaderTimeStamp(const uint64_t timestamp)
+	{
+		interopHeaderTimestamp = timestamp;
+	}
 	bool IsShaderOutdated(const std::string& shaderfilename)
 	{
 #ifdef SHADERCOMPILER_ENABLED
@@ -783,7 +789,7 @@ namespace vz::graphics::shadercompiler
 				{
 					const uint64_t dep_tim = vz::helper::FileTimestamp(dependencypath);
 
-					if (tim < dep_tim)
+					if (tim < std::max(dep_tim, interopHeaderTimestamp))
 					{
 						return true;
 					}

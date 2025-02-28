@@ -162,7 +162,9 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;VizEngined.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)\Install\lib; C:\Users\jihun\VizMotive-Engine\bin\x64_Debug</AdditionalLibraryDirectories>
+
+      <AdditionalLibraryDirectories>$(SolutionDir)\Install\lib;C:\VizMotive-Engine\bin\x64_Debug</AdditionalLibraryDirectories>
+
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>

@@ -1,8 +1,5 @@
 #include "../CommonHF/dvrHF.hlsli"
 
-RWTexture2D<unorm float4> inout_color : register(u0);
-RWTexture2D<float> inout_linear_depth : register(u1);
-
 [numthreads(DVR_BLOCKSIZE, DVR_BLOCKSIZE, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {	
@@ -54,7 +51,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	float3 pos_start_ws = ray.Origin + ray.Direction * hits_t.x;
     float3 dir_sample_ws = ray.Direction * vol_instance.sample_dist;
 
-	SearchForemostSurface(hit_step, pos_start_ws, dir_sample_ws, num_ray_samples, vol_instance.mat_ws2ts, volume_main, buffer_bitmask
+	const float3 singleblock_size_ts = vol_instance.ComputeSingleBlockTS();
+	const uint2 blocks_wwh = uint2(vol_instance.num_blocks.x, vol_instance.num_blocks.x * vol_instance.num_blocks.y);
+
+	SearchForemostSurface(hit_step, pos_start_ws, dir_sample_ws, num_ray_samples, vol_instance.mat_ws2ts, singleblock_size_ts, blocks_wwh, volume_main, buffer_bitmask
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
 			, volume_mask
 #endif
@@ -85,13 +85,16 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	// 	store a value to the PIXEL MASK (bitpacking...)
 	//	use RWBuffer<UINT> atomic operation...
 
+	RWTexture2D<float4> inout_color = bindless_rwtextures[push.inout_color_Index];
+	RWTexture2D<float> inout_linear_depth = bindless_rwtextures_float[push.inout_linear_depth_Index];
+
 	float prev_z = inout_linear_depth[pixel];
 	if (linear_depth >= prev_z)
 		return;
 
 	uint dvr_hit_enc = length(pos_hit_ws - pos_start_ws) < vol_instance.sample_dist ? DVR_SURFACE_ON_CLIPPLANE : DVR_SURFACE_OUTSIDE_CLIPPLANE;
 
-	if (BitCheck(vol_instance.flags, INST_JITTERING))
+	if (vol_instance.flags & INST_JITTERING)
 	{
 		RNG rng;
 		rng.init(uint2(pixel), GetFrameCount());
