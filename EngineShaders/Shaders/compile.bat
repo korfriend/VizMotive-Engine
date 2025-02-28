@@ -78,7 +78,8 @@ dxc -T gs_6_0 ./GS/thicknessLineGS.hlsl -spirv
 dxc -T cs_6_0 ./CS/dvrCS_curved_slicer_2KB.hlsl -spirv
 dxc -T cs_6_0 ./CS/dvrCS_slicer_2KB.hlsl -spirv
 dxc -T cs_6_0 ./CS/dvrCS_woKB.hlsl -spirv
-dxc -T cs_6_0 ./CS/dvrCS_zerothick.hlsl -spirv
+dxc -T cs_6_0 ./CS/dvrCS_zerothick_slicer.hlsl -spirv
+dxc -T cs_6_0 ./CS/dvrCS_curved_slicer_nothickness.hlsl -spirv
 dxc -T cs_6_0 ./CS/dvrCS_woKB_xray.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/dvrCS_curved_slicer_xray_2KB.hlsl -spirv

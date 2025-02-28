@@ -45,6 +45,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	}
 #endif
 
+	ray.Origin -= ray.Direction * camera.sliceThickness * 0.5f;
+
 	VolumeInstance vol_instance = GetVolumeInstance();
 	ShaderClipper clipper; // TODO
 	clipper.Init();
