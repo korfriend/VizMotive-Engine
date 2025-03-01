@@ -436,7 +436,7 @@ namespace vz::profiler
 			const float graph_max_memory = std::max(graph_max_cpu_memory, graph_max_gpu_memory) * 1.1f;
 
 			std::stringstream ss;
-			ss.precision(1);
+			ss << std::fixed << std::setprecision(1);
 			ss.str(""); // new
 			ss << "cpu: " << cpu_graph[0] << " ms" << std::endl;
 			ss << "gpu: " << gpu_graph[0] << " ms" << std::endl;

@@ -59,19 +59,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	uint count = c_m_d & 0xFF;
 	uint mask = (c_m_d >> 8) & 0xFF;
 
-	if (mask & WILDCARD_DEPTH_OUTLINE)
+	if (mask & SLICER_DEPTH_OUTLINE)
 	{
 		return;
 	}
 
-	if (mask & WILDCARD_DEPTH_OUTLINE_DIRTY)
+	if (mask & SLICER_DEPTH_OUTLINE_DIRTY)
 	{
-		counter_mask_distmap[pixel] = WILDCARD_DEPTH_OUTLINE << 8 | count;
+		counter_mask_distmap[pixel] = SLICER_DEPTH_OUTLINE << 8 | count;
 		return;
 	}
 
 	// preserves only counter
-	counter_mask_distmap[pixel] = OUTSIDE_PLANE << 8 | count;
+	if (mask == 0)
+	{
+		mask = SLICER_OUTSIDE_PLANE;
+	}
+	counter_mask_distmap[pixel] = mask << 8 | count;
 
 	bool disabled_filling = push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE;
 
@@ -89,6 +93,14 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		return;
 	}
 #endif
+	if (ray_ws.Origin.x == 0) ray_ws.Origin.x = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray_ws.Origin.y == 0) ray_ws.Origin.y = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray_ws.Origin.z == 0) ray_ws.Origin.z = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray_ws.Direction.x == 0) ray_ws.Direction.x = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray_ws.Direction.y == 0) ray_ws.Direction.y = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray_ws.Direction.z == 0) ray_ws.Direction.z = 0.0001234f; // trick... for avoiding zero block skipping error
+
+	mask = SLICER_DIRTY;
 
 	ShaderClipper clipper; // TODO
 	clipper.Init();
@@ -149,7 +161,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	isInsideOnPlane = isInsideOnPlaneUp0 && isInsideOnPlaneUp1 && isInsideOnPlaneRight0 && isInsideOnPlaneRight1;
 	if (sliceThickness == 0)
 	{
-		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | count;
+		counter_mask_distmap[pixel] = (f32tof16(minDistOnPlane) << 16) | (mask << 8) | count;
 		// DO NOT finish here (for solid filling)
 	}
 
@@ -171,12 +183,16 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		hit_on_forward_ray = hitTriIdx >= 0;
 	}
 	if (!hit_on_forward_ray) {
+		//counter_mask_distmap[pixel] = (SLICER_DEBUG << 8) | count;
+		//inout_color[pixel] = float4(1, 0, 0, 1);
 		// note ... when ray passes through a triangle edge or vertex, hit may not be detected
 		return;
 	}
 
 	if (!isInsideOnPlane && forward_hit_depth > sliceThickness_os)
 	{
+		//counter_mask_distmap[pixel] = (SLICER_DEBUG << 8) | count;
+		//inout_color[pixel] = float4(1, 1, 0, 1);
 		return;
 	}
 
@@ -202,7 +218,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		hit_on_backward_ray = hitTriIdx >= 0;
 		if (hit_on_backward_ray) last_layer_depth = sliceThickness_os - backward_hit_depth;
 	}
-
+	////////////////////////////////////////
 	float thickness_through_os = 0.f;
 	[branch]
 	if (sliceThickness > 0)
@@ -395,7 +411,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		if (camera.sliceThickness == 0)
 			inout_color[pixel] = (float4)frag.color;
 
-		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | 1;
+		counter_mask_distmap[pixel] = (f32tof16(minDistOnPlane) << 16) | (SLICER_SOLID_FILL_PLANE << 8) | 1;
 	}
 	else
 	{
