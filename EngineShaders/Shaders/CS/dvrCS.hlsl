@@ -59,10 +59,17 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	// 1st Exit in the case that there is no ray-intersecting boundary in the volume box
 	hits_t.y = min(camera.z_far, hits_t.y); // only available in orthogonal view (thickness slicer)
 #ifdef SLICER_BUFFERS
-	hits_t.y = min(camera.sliceThickness, hits_t.y);
+	if (camera.sliceThickness > 0)
+	{
+		hits_t.y = min(camera.sliceThickness * 0.5f, hits_t.y);
+		hits_t.x = -camera.sliceThickness * 0.5f;
+	}
 #endif
 	int num_ray_samples = (int)((hits_t.y - hits_t.x) / vol_instance.sample_dist + 0.5f);
 	if (num_ray_samples <= 0)
+		return;
+#else // #ifdef ZERO_THICKNESS
+	if (!IsInsideClipBox(ray.Origin, vol_instance.mat_alignedvbox_ws2bs))
 		return;
 #endif
 
@@ -90,9 +97,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	//num_frags = c_m_d & 0xFF;
 	uint mask = (c_m_d >> 8) & 0xFF;
 
-	half4 prev_color = half4(saturate(inout_color[pixel].rgb), 1.f);
+	half4 prev_color = half4(saturate(inout_color[pixel].rgb), (half)1.f);
 	float3 pos_sample_ts = TransformPoint(ray.Origin, vol_instance.mat_ws2ts);
-	float sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, 0).r;
+
+	float sample_v = volume_main.SampleLevel(sampler_linear_wrap, pos_sample_ts, 0).r;
 
 	half4 color = ApplyOTF(otf, sample_v, 0, (half)push.opacity_correction);
 
@@ -139,69 +147,36 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 				, volume_mask
 #endif				
 			);
-			pos_hit_ws -= dir_sample_ws;
+			// unintended refinement that moves backward posterior to the starting point
 			if (dot(pos_hit_ws - pos_start_ws, dir_sample_ws) <= 0)
 				pos_hit_ws = pos_start_ws;
+
+			pos_hit_ws -= dir_sample_ws;
 		}
 
 		float3 vec_o2start = pos_hit_ws - ray.Origin;
-		float3 cam_forward = camera.forward; // supposed to be a unit vector
-		float z_hit = dot(vec_o2start, cam_forward);
-		float linear_depth = z_hit * camera.z_far_rcp;
-
 
 		// TODO : PIXELMASK for drawing outline (if required!!)
 		// 	store a value to the PIXEL MASK (bitpacking...)
 		//	use RWBuffer<UINT> atomic operation...
 
 #ifdef WITHOUT_KB
+		// NOTE:
+		// The linear_depth is a normalized depth [0, 1]
+		//  where the depth is defined along the z-axis from the plane where CAMERA places
+		//	refer to "view_resolveCS.hlsl" 152-th line
+		float3 cam_forward = camera.forward; // supposed to be a unit vector
+		float z_hit = dot(vec_o2start, cam_forward) + camera.z_near;
+		float linear_depth = z_hit * camera.z_far_rcp;
+
 		RWTexture2D<float> inout_linear_depth = bindless_rwtextures_float[descriptor_index(push.inout_linear_depth_Index)];
-		float prev_z = inout_linear_depth[pixel];
-		if (linear_depth >= prev_z)
+		float prev_linear_depth = inout_linear_depth[pixel];
+		if (linear_depth >= prev_linear_depth)
 		{
 			return;
 		}
-#endif
-
-#ifdef SLICER_BUFFERS
-		uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
-		uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
-
-		// 8 bit color
-		Fragment f_0;
-		f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
-		f_0.z = asfloat(v_layer_packed0_RGBA.g);
-		f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
-
-		Fragment f_1;
-		f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
-		f_1.z = asfloat(v_layer_packed1_RG.r);
-		f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
-
-		float prev_z = f_0.z; // just for exclusive mode btw. WITHOUT_KB and SLICER_BUFFERS
-#endif
-
-
-		uint dvr_hit_enc = length(pos_hit_ws - pos_start_ws) < vol_instance.sample_dist ? DVR_SURFACE_ON_CLIPPLANE : DVR_SURFACE_OUTSIDE_CLIPPLANE;
-
-		if (vol_instance.flags & INST_JITTERING)
-		{
-			RNG rng;
-			rng.init(uint2(pixel), GetFrameCount());
-			// additional feature : https://koreascience.kr/article/JAKO201324947256830.pdf
-			float ray_dist_jitter = rng.next_float() * vol_instance.sample_dist;
-			pos_hit_ws -= ray_dist_jitter * ray.Direction;
-			linear_depth -= ray_dist_jitter;
-			vec_o2start = pos_hit_ws - ray.Origin;
-		}
-		float ray_dist_o2start = length(vec_o2start);
-
-#ifdef WITHOUT_KB
 		inout_linear_depth[pixel] = linear_depth;
 #endif
-		// TODO: PROGRESSIVE SCHEME
-		// light map can be updated asynch as long as it can be used as UAV
-		// 1. two types of UAVs : lightmap (using mesh's lightmap and ?!)
 
 		// dvr depth??
 		// inlinear depth , normal depth to ... tiled...
@@ -213,33 +188,69 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		half4 color_out = (half4)0; // output
 
-		float4 prev_color = inout_color[pixel].rgba;
 		uint num_frags = 0;
+		Fragment fs[K_NUM];
+
+#ifdef SLICER_BUFFERS
+		// ORGONAL CASE 
+		//	cam_forward is parallel with dir_sample_ws
+		//	fragment z and zthick is computed w.r.t. the ray from the near-plane
+		uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
+		uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
+
+		// 8 bit color
+		Fragment f_0;
+		f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
+		f_0.z = asfloat(v_layer_packed0_RGBA.g);
+		f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
+		fs[0] = f_0;
+
+		Fragment f_1;
+		f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
+		f_1.z = asfloat(v_layer_packed1_RG.r);
+		f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
+		fs[1] = f_1;
+
+		uint c_m_d = counter_mask_distmap[pixel];
+		num_frags = c_m_d & 0xFF;
+		//uint mask = (c_m_d >> 8) & 0xFF;
+#endif
+
 #ifdef WITHOUT_KB
 		float cos = dot(cam_forward, ray.Direction);
-		Fragment fs[K_NUM];
-		if (prev_z < 1.f)
+		if (prev_linear_depth < 1.f)
 		{
 			Fragment f;
-			f.color = half4(prev_color.rgb, (half)1.f);
-			float z = prev_z * camera.z_far;
-			f.z = z / cos;
+			float3 prev_color_10 = inout_color[pixel].rgb;
+			f.color = half4(prev_color_10.rgb, (half)1.f);
+			float z = prev_linear_depth * camera.z_far - camera.z_near;
+			f.z = z / cos;	// along the ray-caster's ray direction
 			f.zthick = sample_dist;
 			f.opacity_sum = (half)1.f;
 			fs[0] = f;
 			num_frags++;
 		}
 		fs[num_frags].Init();
-		inout_color[pixel] = fs[0].color;
 #endif
 
-#ifdef SLICER_BUFFERS
-		uint c_m_d = counter_mask_distmap[pixel];
-		num_frags = c_m_d & 0xFF;
-		uint mask = (c_m_d >> 8) & 0xFF;
+		uint dvr_hit_enc = length(pos_hit_ws - pos_start_ws) < vol_instance.sample_dist ? DVR_SURFACE_ON_CLIPPLANE : DVR_SURFACE_OUTSIDE_CLIPPLANE;
 
-		Fragment fs[K_NUM] = { f_0, f_1 };
-#endif
+		if (vol_instance.flags & INST_JITTERING)
+		{
+			RNG rng;
+			rng.init(uint2(pixel), GetFrameCount());
+			// additional feature : https://koreascience.kr/article/JAKO201324947256830.pdf
+			float ray_dist_jitter = rng.next_float() * vol_instance.sample_dist;
+			pos_hit_ws -= ray_dist_jitter * ray.Direction;
+			vec_o2start = pos_hit_ws - ray.Origin;
+		}
+		float ray_dist_o2start = length(vec_o2start);
+
+		// TODO: PROGRESSIVE SCHEME
+		// light map can be updated asynch as long as it can be used as UAV
+		// 1. two types of UAVs : lightmap (using mesh's lightmap and ?!)
+
+
 		uint index_frag = 0;
 		Fragment f_next_layer = fs[0];
 
@@ -259,7 +270,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		int start_step = 0;
 		float sample_value = volume_main.SampleLevel(sampler_linear_clamp, pos_ray_start_ts, 0).r;
 		float sample_value_prev = volume_main.SampleLevel(sampler_linear_clamp, pos_ray_start_ts - v_v, 0).r;
-
 
 		if (dvr_hit_enc == DVR_SURFACE_ON_CLIPPLANE) // on the clip plane
 		{
@@ -467,19 +477,19 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		half4 color_out = (half4)0; // output
 
-		float4 prev_color = inout_color[pixel].rgba;
 		uint num_frags = 0;
 #ifdef WITHOUT_KB
 		float cos = dot(camera.forward, ray.Direction);
 		RWTexture2D<float> inout_linear_depth = bindless_rwtextures_float[descriptor_index(push.inout_linear_depth_Index)];
-		float prev_z = inout_linear_depth[pixel];
+		float prev_linear_depth = inout_linear_depth[pixel];
 
 		Fragment fs[K_NUM];
-		if (prev_z < 1.f)
+		if (prev_linear_depth < 1.f)
 		{
 			Fragment f;
-			f.color = half4(prev_color.rgb, 1.f);
-			float z = prev_z * camera.z_far;
+			float4 prev_color_10 = inout_color[pixel].rgba;
+			f.color = half4(prev_color_10.rgb, (half)1.f);
+			float z = prev_linear_depth * camera.z_far - camera.z_near;
 			f.z = z / cos;
 			f.zthick = (half)vol_instance.sample_dist;
 			f.opacity_sum = (half)1.f;

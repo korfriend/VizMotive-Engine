@@ -456,7 +456,7 @@ int main(int, char**)
 						for (size_t i = 0; i < otf_w; i++)
 						{
 							uint8_t a = i < cur_otf_value ? 0 :
-								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / 30.f * 255.f) : 255;
+								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / cur_otf_band_width * 255.f) : 255;
 							otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
 							otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
 							otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;

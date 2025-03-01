@@ -266,7 +266,7 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 
 half4 ApplyOTF(const Texture2D otf, const float sample_v, const float idv, const half opacity_correction)
 {
-	half4 color = (half4)otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
+	half4 color = (half4)otf.SampleLevel(sampler_point_clamp, float2(sample_v, idv), 0);
 	color.rgb *= color.a * opacity_correction; // associated color
 	return color;
 }
@@ -285,8 +285,8 @@ half4 ApplyPreintOTF(const Texture2D otf, const float sample_v, float sample_v_p
 
 	half diff_rcp = (half)1.f / (half)diff;
 
-	float4 color0 = otf.SampleLevel(sampler_point_wrap, float2(sample_v_prev, idv), 0);
-	float4 color1 = otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
+	float4 color0 = otf.SampleLevel(sampler_point_clamp, float2(sample_v_prev, idv), 0);
+	float4 color1 = otf.SampleLevel(sampler_point_clamp, float2(sample_v, idv), 0);
 
 	color.rgb = (half3)(color1.rgb - color0.rgb) * diff_rcp;
 	color.a = (half)(color1.a - color0.a) * diff_rcp * opacity_correction;
