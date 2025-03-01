@@ -15,8 +15,8 @@ inline uint pack_R11G11B10_rgba8(in float3 rgb) {
 struct Fragment
 {
 	half4 color;
-	float z;
-	half zthick;
+	float z;		// along the ray (not z-axis)
+	half zthick;	// along the ray (not z-axis)
 	half opacity_sum;
 
 	inline uint Pack_Zthick_AlphaSum() { return pack_half2(zthick, opacity_sum); }
@@ -76,102 +76,96 @@ inline bool OverlapTest(const in Fragment f_1, const in Fragment f_2)
 }
 
 // refer to Algorithm 1 in https://onlinelibrary.wiley.com/doi/full/10.1111/cgf.14409
+// f_prior and f_posterior mean f_prior.z >= f_prior.z
 int OverlapFragments(Fragment f_prior, Fragment f_posterior, out Fragment f_prior_out, out Fragment f_posterior_out)
 {
 	// Overall algorithm computation cost 
 	// : 3 branches, 2 visibility interpolations, 2 visibility integrations, and 1 fusion of overlapping ray-segments
 
-	// f_prior and f_posterior mean f_prior.z >= f_prior.z
-	Fragment f_out;
-	f_out.Init();
+	f_prior.color.a = min(f_prior.color.a, SAFE_OPAQUEALPHA_HALF);
+	f_posterior.color.a = min(f_posterior.color.a, SAFE_OPAQUEALPHA_HALF);
 
-	float zfront_posterior_f = f_posterior.z - (float)f_posterior.zthick;
 	int case_ret = 0;
 	// f_prior and f_posterior mean f_prior.z >= f_prior.z
-
+	float zfront_posterior_f = f_posterior.z - (float)f_posterior.zthick;
 	if (f_prior.z <= zfront_posterior_f)
 	{
 		// Case 1 : No Overlapping
 		f_prior_out = f_prior;
+		f_posterior_out = f_posterior;
 		case_ret = 1;
 	}
 	else // if (f_prior.z > zfront_posterior_f) // overlapping test
 	{
-		Fragment f_m_prior;
 		half4 f_m_prior_vis;
 		half4 f_prior_vis = f_prior.color;
 		half4 f_posterior_vis = f_posterior.color;
-		f_prior_vis.a = min(f_prior_vis.a, SAFE_OPAQUEALPHA_HALF);
-		f_posterior_vis.a = min(f_posterior_vis.a, SAFE_OPAQUEALPHA_HALF);
 
 		float zfront_prior_f = f_prior.z - (float)f_prior.zthick;
 		if (zfront_prior_f < zfront_posterior_f)
 		{
 			// Case 2 : Intersecting each other
-			f_m_prior.zthick = (half)(zfront_posterior_f - zfront_prior_f);
-			f_m_prior.z = zfront_posterior_f;
+			f_prior_out.zthick = (half)(zfront_posterior_f - zfront_prior_f);
+			f_prior_out.z = zfront_posterior_f;
 			{
-				f_m_prior_vis = f_prior_vis * (f_m_prior.zthick / f_prior.zthick);
+				f_m_prior_vis = f_prior_vis * (f_prior_out.zthick / f_prior.zthick);
 			}
 			half old_alpha = f_prior_vis.a;
-			f_prior.zthick -= f_m_prior.zthick;
+			f_prior.zthick -= f_prior_out.zthick;
 			f_prior_vis = (f_prior_vis - f_m_prior_vis) / ((half)1.f - f_m_prior_vis.a);
 
-			f_m_prior.opacity_sum = f_prior.opacity_sum * f_m_prior_vis.a / old_alpha;
-			f_prior.opacity_sum = f_prior.opacity_sum * f_prior_vis.a / old_alpha;
+			f_prior_out.opacity_sum = f_prior.opacity_sum * f_m_prior_vis.a / old_alpha;
+			f_prior.opacity_sum = f_prior.opacity_sum - f_prior_out.opacity_sum;
 			case_ret = 2;
 		}
 		else
 		{
 			// Case 3 : f_prior belongs to f_posterior
-			f_m_prior.zthick = half(zfront_prior_f - zfront_posterior_f);
-			f_m_prior.z = zfront_prior_f;
+			f_prior_out.zthick = half(zfront_prior_f - zfront_posterior_f);
+			f_prior_out.z = zfront_prior_f;
 			{
-				f_m_prior_vis = f_posterior_vis * (f_m_prior.zthick / f_posterior.zthick);
+				f_m_prior_vis = f_posterior_vis * (f_prior_out.zthick / f_posterior.zthick);
 			}
 
 			half old_alpha = f_posterior_vis.a;
-			f_posterior.zthick -= f_m_prior.zthick;
+			f_posterior.zthick -= f_prior_out.zthick;
 			f_posterior_vis = (f_posterior_vis - f_m_prior_vis) / ((half)1.f - f_m_prior_vis.a);
 
-			f_m_prior.opacity_sum = f_posterior.opacity_sum * f_m_prior_vis.a / old_alpha;
-			f_posterior.opacity_sum = f_posterior.opacity_sum * f_posterior_vis.a / old_alpha;
+			f_prior_out.opacity_sum = f_posterior.opacity_sum * f_m_prior_vis.a / old_alpha;
+			f_posterior.opacity_sum = f_posterior.opacity_sum - f_prior_out.opacity_sum;
 			case_ret = 3;
 		}
 
 		// merge the fusion (remained) f_prior to f_m_prior
-		f_m_prior.zthick += f_prior.zthick;
-		f_m_prior.z = f_prior.z;
+		f_prior_out.zthick += f_prior.zthick;
+		f_prior_out.z = f_prior.z;
 		half4 f_mid_vis = f_posterior_vis * (f_prior.zthick / f_posterior.zthick); // REDESIGN
 		half f_mid_alphaw = f_posterior.opacity_sum * f_mid_vis.a / f_posterior_vis.a;
 
 		half4 f_mid_mix_vis = MixOpt(f_mid_vis, f_mid_alphaw, f_prior_vis, f_prior.opacity_sum);
 		f_m_prior_vis += f_mid_mix_vis * ((half)1.f - f_m_prior_vis.a); // OV operator
-		f_m_prior.opacity_sum += f_mid_alphaw + f_prior.opacity_sum;
+		f_prior_out.opacity_sum += f_mid_alphaw + f_prior.opacity_sum;
 
 		f_posterior.zthick -= f_prior.zthick;
 		half old_alpha = f_posterior_vis.a;
 		f_posterior_vis = (f_posterior_vis - f_mid_vis) / ((half)1.f - f_mid_vis.a);
-		//f_posterior.opacity_sum -= f_mid_alphaw;
-		f_posterior.opacity_sum *= f_posterior_vis.a / old_alpha;
+		f_posterior.opacity_sum -= f_mid_alphaw;
 
-
+		// HERE, saturate is to avoid overflow error (noisy dots appear) due to precision limitation
+		f_prior_out.color = saturate(f_m_prior_vis);
+		f_posterior.color = saturate(f_posterior_vis);
 		// ---------------
-		f_posterior.color = f_posterior_vis;
-		f_prior_out.color = f_m_prior_vis;
 
-		if (f_posterior_vis.a < (half)(1.f / 255.f))
+		if (f_posterior.color.a < SAFE_MIN_HALF)
 		{
-			f_posterior.color = (half4)0;
-			f_posterior.zthick = 0;
+			f_posterior.Init();
 		}
-		if (f_m_prior_vis.a < (half)(1.f / 255.f))
+		if (f_prior_out.color.a < SAFE_MIN_HALF)
 		{
-			f_posterior.color = (half4)0;
-			f_posterior.zthick = 0;
+			f_prior_out.Init();
 		}
+		f_posterior_out = f_posterior;
 	}
-	f_posterior_out = f_posterior;
 
 	return case_ret;
 }
@@ -184,7 +178,7 @@ Fragment MergeFragments(Fragment f_prior, Fragment f_posterior)
 	half4 vis0 = f_prior_out.color;
 	half4 vis1 = f_posterior_out.color;
 	half4 vis_out = vis0 + vis1 * ((half)1.f - vis0.a);
-	if (vis_out.a > (half)(1.f / 255.f))
+	if (vis_out.a > SAFE_MIN_HALF)
 	{
 		f_out.color = vis_out;
 		f_out.zthick = f_prior_out.zthick + f_posterior_out.zthick;
