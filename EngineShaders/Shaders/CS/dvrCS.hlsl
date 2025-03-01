@@ -104,22 +104,27 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	half4 color = ApplyOTF(otf, sample_v, 0, (half)push.opacity_correction);
 
-	if (mask == 0)
-	{
-		prev_color.a = 0;
-	}
-	else if (mask & OUTSIDE_PLANE)
-	{
-		prev_color.a = (half)0.3f;
-	}
-	else // if (mask & (WILDCARD_DEPTH_OUTLINE | WILDCARD_DEPTH_OUTLINE_DIRTY))
+	if (mask & (SLICER_DEPTH_OUTLINE | SLICER_DEPTH_OUTLINE_DIRTY))
 	{
 		prev_color.a = (half)0.8f;
 	}
-	prev_color.rgb *= prev_color.a;
+	else if (mask & SLICER_SOLID_FILL_PLANE)
+	{
+		prev_color.a = (half)0.3f;
+	}
+	else if (mask & SLICER_DEBUG)
+	{
+		prev_color.a = (half)1.f;
+	}
+	else 
+	{
+		prev_color.a = 0;
+	}
+	//prev_color.rgb *= prev_color.a;
 	color = prev_color + color * ((half)1.f - prev_color.a);
 
-	inout_color[pixel] = (float4)color;
+	inout_color[pixel] = color;// (float4)prev_color;
+	return;
 #else
 
 	int hit_step = -1;
