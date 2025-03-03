@@ -30,7 +30,7 @@ namespace vz::renderer
 		viewMain.scene = scene;
 		viewMain.camera = camera;
 		viewMain.flags = renderer::View::ALLOW_EVERYTHING;
-		if (!renderer::isOcclusionCullingEnabled)
+		if (!renderer::isOcclusionCullingEnabled || camera->IsSlicer())
 		{
 			viewMain.flags &= ~renderer::View::ALLOW_OCCLUSION_CULLING;
 		}
@@ -1844,7 +1844,7 @@ namespace vz::renderer
 
 		// Preparing the frame:
 		CommandList cmd = device->BeginCommandList();
-		device->WaitQueue(cmd, QUEUE_COMPUTE); // sync to prev frame compute (disallow prev frame overlapping a compute task into updating global scene resources for this frame)
+		// DO NOT 'device->WaitQueue(cmd, QUEUE_COMPUTE)' when there is NO QUEUE_COMPUTE commmand list!
 		ProcessDeferredResourceRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
 
 		CommandList cmd_prepareframe = cmd;
@@ -1884,6 +1884,7 @@ namespace vz::renderer
 
 		cmd = device->BeginCommandList();
 		device->WaitCommandList(cmd, cmd_slicer);
+		CommandList cmd_dvr = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(
@@ -1899,6 +1900,7 @@ namespace vz::renderer
 			});
 
 		cmd = device->BeginCommandList();
+		//device->WaitCommandList(cmd, cmd_dvr);
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 			RenderPostprocessChain(cmd);
 			});

@@ -63,6 +63,8 @@ RayDesc CreateCurvedSlicerRay(const uint2 pixel)
 	int lookup_index = (int)floor(pos_inter_top_cos.x);
 	float interpolate_ratio = pos_inter_top_cos.x - (float)lookup_index;
 
+	lookup_index = clamp(lookup_index, 0, plane_width_pixel_1_int - 2);
+
 	int lookup_index0 = clamp(lookup_index + 0, 0, plane_width_pixel_1_int);
 	int lookup_index1 = clamp(lookup_index + 1, 0, plane_width_pixel_1_int);
 	int lookup_index2 = clamp(lookup_index + 2, 0, plane_width_pixel_1_int);

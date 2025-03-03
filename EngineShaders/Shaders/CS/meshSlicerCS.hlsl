@@ -93,12 +93,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		return;
 	}
 #endif
-	if (ray_ws.Origin.x == 0) ray_ws.Origin.x = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (ray_ws.Origin.y == 0) ray_ws.Origin.y = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (ray_ws.Origin.z == 0) ray_ws.Origin.z = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (ray_ws.Direction.x == 0) ray_ws.Direction.x = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (ray_ws.Direction.y == 0) ray_ws.Direction.y = 0.0001234f; // trick... for avoiding zero block skipping error
-	if (ray_ws.Direction.z == 0) ray_ws.Direction.z = 0.0001234f; // trick... for avoiding zero block skipping error
 
 	mask = SLICER_DIRTY;
 
@@ -245,27 +239,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			float ray_march_dist = forward_hit_depth;
 
 			[loop]
+			[allow_uav_condition]
 			for (uint i = 0; i < HITBUFFERSIZE; i++)
 			{
 				RayHit hit = TraceRay_Closest(ray);
 				int hitTriIdx = hit.distance >= FLT_MAX - 1 ? -1 : hit.primitiveID.primitiveIndex;
-				float hitDistance = hit.distance;
-
-				ray.Origin += ray.Direction * hit.distance;
-				ray.TMin = ray_tmin; // small offset!
-				ray.TMax = ray_tmax;
-
 				if (hitTriIdx < 0)
 				{
 					break;
 				}
-				ray_march_dist += hitDistance;
 
-#ifdef BVH_LEGACY
-				bool localInside = dot(trinormal, test_raydir.xyz) > 0;
-#else
+				float hitDistance = hit.distance;
+				ray.Origin += ray.Direction * (hitDistance + ray_tmin);
+				ray.TMin = 0;// ray_tmin; // small offset!
+				ray.TMax = ray_tmax;
+
+				ray_march_dist += hitDistance;
 				bool localInside = hit.is_backface;
-#endif
 				if (localInside)
 				{
 					if (ray_march_dist < sliceThickness_os)

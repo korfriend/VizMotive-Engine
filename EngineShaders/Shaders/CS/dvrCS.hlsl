@@ -218,7 +218,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		uint c_m_d = counter_mask_distmap[pixel];
 		num_frags = c_m_d & 0xFF;
-		//uint mask = (c_m_d >> 8) & 0xFF;
+		uint mask = (c_m_d >> 8) & 0xFF;
+
+		if (mask & (SLICER_DEPTH_OUTLINE_DIRTY | SLICER_DEPTH_OUTLINE))
+		{
+			return;
+		}
 #endif
 
 #ifdef WITHOUT_KB

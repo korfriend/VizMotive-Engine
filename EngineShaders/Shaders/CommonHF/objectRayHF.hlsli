@@ -48,10 +48,10 @@ inline RayHit CreateRayHit()
 }
 
 #ifndef RAYTRACE_STACKSIZE
-#define RAYTRACE_STACKSIZE 32
+#define RAYTRACE_STACKSIZE 64
 #endif // RAYTRACE_STACKSIZE
 
-static const float eps = 1e-6;
+static const float eps = 1e-8;
 
 inline void IntersectTriangle(
 	in RayDesc ray,
@@ -119,25 +119,33 @@ inline bool IntersectNode(
 	const float tmin = max(max(min(t0, t1), min(t2, t3)), min(t4, t5)); // close intersection point's distance on ray
 	const float tmax = min(min(max(t0, t1), max(t2, t3)), max(t4, t5)); // far intersection point's distance on ray
 
-	//return (tmax < -eps || tmin > tmax + eps || tmin > primitive_best_distance) ? false : true;
-	if (tmax < 0 || tmin > tmax || tmin > primitive_best_distance) // this also checks if a better primitive was already hit or not and skips if yes
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
+	return (tmax < -eps || tmin > tmax + eps || tmin > primitive_best_distance) ? false : true;
+	//if (tmax < 0 || tmin > tmax || tmin > primitive_best_distance) // this also checks if a better primitive was already hit or not and skips if yes
+	//{
+	//	return false;
+	//}
+	//else
+	//{
+	//	return true;
+	//}
 }
 
 // Returns the closest hit primitive if any (useful for generic trace). If nothing was hit, then rayHit.distance will be equal to FLT_MAX
 inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 {
-	const float3 rcpDirection = rcp(ray.Direction);
 	//float3 rcpDirection;
-	//rcpDirection.x = (abs(ray.Direction.x) < eps) ? FLT_MAX : 1.0 / ray.Direction.x;
-	//rcpDirection.y = (abs(ray.Direction.y) < eps) ? FLT_MAX : 1.0 / ray.Direction.y;
-	//rcpDirection.z = (abs(ray.Direction.z) < eps) ? FLT_MAX : 1.0 / ray.Direction.z;
+	//rcpDirection.x = (abs(ray.Direction.x) < eps) ? 100000 : 1.0 / ray.Direction.x;
+	//rcpDirection.y = (abs(ray.Direction.y) < eps) ? 100000 : 1.0 / ray.Direction.y;
+	//rcpDirection.z = (abs(ray.Direction.z) < eps) ? 100000 : 1.0 / ray.Direction.z;
+
+	if (ray.Origin.x == 0) ray.Origin.x = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Origin.y == 0) ray.Origin.y = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Origin.z == 0) ray.Origin.z = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Direction.x == 0) ray.Direction.x = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Direction.y == 0) ray.Direction.y = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Direction.z == 0) ray.Direction.z = 0.0001234f; // trick... for avoiding zero block skipping error
+
+	const float3 rcpDirection = rcp(ray.Direction);
 	
 	RayHit bestHit = CreateRayHit();
 
