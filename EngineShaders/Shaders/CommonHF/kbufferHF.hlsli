@@ -6,7 +6,7 @@ uint Fill_kBuffer(in Fragment f_in, in uint fragCount, inout Fragment fs[K_NUM])
 {
 	half4 color_in = f_in.color;
 
-	if (f_in.z > 1e20 || color_in.a <= 0.01) return fragCount;
+	if (f_in.z > 1e20 || color_in.a < SAFE_MIN_HALF) return fragCount;
 
 	int store_index = -1;
 	int core_max_idx = -1;
