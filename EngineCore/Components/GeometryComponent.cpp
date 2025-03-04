@@ -326,16 +326,16 @@ namespace vz
 				}
 				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
 
-				backlog::post("BVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
+				backlog::post("CPUBVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
 			}
 			else
 			{
-				backlog::post("Current BVH is only supported for triangle meshes!", backlog::LogLevel::Warn);
+				backlog::post("Current CPUBVH is only supported for triangle meshes!", backlog::LogLevel::Warn);
 			}
 		}
 		else
 		{
-			backlog::post("BVH is already updated. so ignore the update request!", backlog::LogLevel::Warn);
+			backlog::post("CPUBVH is already updated. so ignore the update request!", backlog::LogLevel::Warn);
 		}
 	}
 

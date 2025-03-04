@@ -131,20 +131,29 @@ namespace vz
 					assert(volume);
 					assert(volume->IsValidVolume());
 
-					TextureComponent* otf = compfactory::GetTextureComponentByVUID(
-						material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
-					assert(otf);
-					Entity entity_otf = otf->GetEntity();
-
 					if (!volume->GetBlockTexture().IsValid())
 					{
 						volume->UpdateVolumeMinMaxBlocks({ 8, 8, 8 });
 					}
-					XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
-					if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
-						|| volume->GetTimeStamp() < otf->GetTimeStamp())
+
+					TimeStamp volume_timeStamp = volume->GetTimeStamp();
+					for (size_t i = 0, n = SCU32(MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT); i < n; ++i)
 					{
-						volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
+						VUID vuid = material->GetLookupTableVUID(static_cast<MaterialComponent::LookupTableSlot>(i));
+						if (vuid == INVALID_VUID)
+							continue;
+						TextureComponent* otf = compfactory::GetTextureComponentByVUID(vuid);
+						if (otf == nullptr)
+						{
+							continue;
+						}
+						Entity entity_otf = otf->GetEntity();
+						XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
+						if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
+							|| volume_timeStamp < otf->GetTimeStamp())
+						{
+							volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
+						}
 					}
 				}
 			}

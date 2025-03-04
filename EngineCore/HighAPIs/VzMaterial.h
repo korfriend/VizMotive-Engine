@@ -33,14 +33,6 @@ namespace vzm
 
 			VOLUME_TEXTURESLOT_COUNT
 		};
-		enum class LookupTableSlot : uint32_t
-		{
-			LOOKUP_COLOR,
-			LOOKUP_OTF,
-			LOOKUP_WINDOWING,
-
-			LOOKUPTABLE_COUNT
-		};
 
 		enum class ShaderType : uint32_t
 		{
@@ -68,19 +60,11 @@ namespace vzm
 		void SetWireframe(const bool enabled);
 		void SetPhongFactors(const vfloat4 phongFactors);
 
-		void SetMeshLookup(const LookupTableSlot slot);
-		void SetSlicerLookup(const LookupTableSlot slot);
-		void Set3DLookup(const LookupTableSlot slot);
-		LookupTableSlot GetMeshLookup() const;
-		LookupTableSlot GetSlicerLookup() const;
-		LookupTableSlot Get3DLookup() const;
-
 		ShaderType GetShaderType() const;
 		vfloat4 GetBaseColor() const;
 		bool IsDoubleSided() const;
 	};
 	using TextureSlot = VzMaterial::TextureSlot;
 	using VolumeTextureSlot = VzMaterial::VolumeTextureSlot;
-	using LookupTableSlot = VzMaterial::LookupTableSlot;
 	using ShaderType = VzMaterial::ShaderType;
 }
