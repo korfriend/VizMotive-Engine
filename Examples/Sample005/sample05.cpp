@@ -67,7 +67,7 @@ void EnableDpiAwareness() {
 /**/
 struct FrameContext
 {
-	ID3D12CommandAllocator *CommandAllocator;
+	ID3D12CommandAllocator* CommandAllocator;
 	UINT64 FenceValue;
 };
 
@@ -77,17 +77,17 @@ static FrameContext g_frameContext[NUM_FRAMES_IN_FLIGHT] = {};
 static UINT g_frameIndex = 0;
 
 static int const NUM_BACK_BUFFERS = 3;
-static ID3D12Device *g_pd3dDevice = nullptr;
+static ID3D12Device* g_pd3dDevice = nullptr;
 static ID3D12DescriptorHeap* g_pd3dRtvDescHeap = nullptr;
 static ID3D12DescriptorHeap* g_pd3dSrvDescHeap = nullptr;
-static ID3D12CommandQueue *g_pd3dCommandQueue = nullptr;
-static ID3D12GraphicsCommandList *g_pd3dCommandList = nullptr;
-static ID3D12Fence *g_fence = nullptr;
+static ID3D12CommandQueue* g_pd3dCommandQueue = nullptr;
+static ID3D12GraphicsCommandList* g_pd3dCommandList = nullptr;
+static ID3D12Fence* g_fence = nullptr;
 static HANDLE g_fenceEvent = nullptr;
 static UINT64 g_fenceLastSignaledValue = 0;
-static IDXGISwapChain3 *g_pSwapChain = nullptr;
+static IDXGISwapChain3* g_pSwapChain = nullptr;
 static HANDLE g_hSwapChainWaitableObject = nullptr;
-static ID3D12Resource *g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
+static ID3D12Resource* g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
 static D3D12_CPU_DESCRIPTOR_HANDLE g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
 
 // Forward declarations of helper functions
@@ -96,7 +96,7 @@ void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
 void WaitForLastSubmittedFrame();
-FrameContext *WaitForNextFrameResources();
+FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
@@ -106,7 +106,7 @@ void EnableDpiAwareness()
 	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
 	if (hUser32)
 	{
-		typedef BOOL(WINAPI * SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
+		typedef BOOL(WINAPI* SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
 		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
 			(SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
 
@@ -120,7 +120,7 @@ void EnableDpiAwareness()
 			HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
 			if (hShcore)
 			{
-				typedef HRESULT(WINAPI * SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
+				typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
 				SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
 					(SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
 
@@ -138,20 +138,25 @@ void EnableDpiAwareness()
 // Main code
 DXGI_SWAP_CHAIN_DESC1 sd;
 
-int main(int, char **)
+const uint32_t otfW = 256;
+static float curOtfBandWidth = 50.f;
+static float curWindowBandWidth = 100.f;
+static float curWindowCenter = 100.f;
+
+int main(int, char**)
 {
 	// DPI 인식을 활성화
 	EnableDpiAwareness();
 
 	// Create application window
 	// ImGui_ImplWin32_EnableDpiAwareness();
-	WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
+	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
 	::RegisterClassExW(&wc);
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::ParamMap<std::string> arguments;
 	// arguments.SetString("API", "DX11");
-	//arguments.SetString("GPU_VALIDATION", "VERBOSE");
+	arguments.SetString("GPU_VALIDATION", "VERBOSE");
 	// arguments.SetParam("MAX_THREADS", 1u); // ~0u
 	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
 	if (!vzm::InitEngineLib(arguments))
@@ -175,7 +180,7 @@ int main(int, char **)
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO &io = ImGui::GetIO();
+	ImGuiIO& io = ImGui::GetIO();
 	(void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
@@ -187,9 +192,9 @@ int main(int, char **)
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hwnd);
 	ImGui_ImplDX12_Init(g_pd3dDevice, NUM_FRAMES_IN_FLIGHT,
-						sd.Format, g_pd3dSrvDescHeap, // DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
-						g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
-						g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
+		sd.Format, g_pd3dSrvDescHeap, // DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
+		g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
+		g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -222,10 +227,10 @@ int main(int, char **)
 		ImVec2 wh(512, 512);
 		scene = NewScene("my scene");
 
-		VzLight *light = NewLight("my light");
+		VzLight* light = NewLight("my light");
 		light->SetIntensity(5.f);
-		light->SetPosition({0.f, 0.f, 100.f});
-		light->SetEulerAngleZXYInDegree({0, 180, 0});
+		light->SetPosition({ 0.f, 0.f, 100.f });
+		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
 		renderer3D = NewRenderer("my renderer");
 		renderer3D->SetCanvas(1, 1, 96.f, nullptr);
@@ -261,7 +266,7 @@ int main(int, char **)
 		//pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
 		//view = at - pos;
 		//slicer_curved->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		slicer_curved->SetCurvedPlaneUp({0, 0, 1});
+		slicer_curved->SetCurvedPlaneUp({ 0, 0, 1 });
 		slicer_curved->SetOrthogonalProjection(1, 1, 10);
 		slicer_curved->SetHorizontalCurveControls({ {-5, -3, 0}, {0, 2, 0}, {3, -3, 0} }, 0.01);
 		slicer_curved->SetCurvedPlaneHeight(5.f);
@@ -286,7 +291,7 @@ int main(int, char **)
 		scene->AppendChild(axis_helper);
 		vzm::AppendSceneCompTo(light, scene);
 
-		VzArchive *archive = vzm::NewArchive("test archive");
+		VzArchive* archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 
 		vz::jobsystem::context ctx_stl_loader1;
@@ -342,31 +347,28 @@ int main(int, char **)
 			}
 
 			vzm::VzTexture* otf_volume = vzm::NewTexture("volume material's OTF");
-			const uint32_t otf_w = 256;
-			std::vector<uint8_t> otf_array(otf_w * 4 * 3);
-			for (size_t i = 0; i < otf_w; i++)
+			std::vector<uint8_t> otf_array(otfW * 4 * 1);
+			for (size_t i = 0; i < otfW; i++)
 			{
-				otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
-				otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
-				otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
-				otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
-					i < 210 ? (uint8_t)((float)(i - 180) / 30.f * 255.f) : 255;
-
-				otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
-				otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
-				otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
-				otf_array[(otf_w * 4 * 1) + 4 * i + 3] = i < 100 ? 0 :
-					i < 200 ? (uint8_t)((float)(i - 100) / 100.f * 255.f) : 255;
-
-				otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
-				otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
-				otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
-				otf_array[(otf_w * 4 * 2) + 4 * i + 3] = i < 100 ? 0 :
-					i < 130 ? (uint8_t)((float)(i - 100) / 30.f * 255.f) : 255;
+				otf_array[(otfW * 4 * 0) + 4 * i + 0] = 255;
+				otf_array[(otfW * 4 * 0) + 4 * i + 1] = 0;
+				otf_array[(otfW * 4 * 0) + 4 * i + 2] = 0;
+				otf_array[(otfW * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
+					i < 210 ? (uint8_t)((float)(i - 180) / curOtfBandWidth * 255.f) : 255;
 
 			}
-			otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
+			otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
 			otf_volume->UpdateLookup(otf_array, 180, 255);
+
+			//vzm::VzTexture* windowing_volume = vzm::NewTexture("volume material's windowing");
+			//for (size_t i = 0; i < otf_w; i++)
+			//{
+			//	otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
+			//	otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
+			//	otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
+			//	otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
+			//		i < 210 ? (uint8_t)((float)(i - 180) / 30.f * 255.f) : 255;
+			//}
 
 			vzm::VzMaterial* material_volume = vzm::NewMaterial("volume material");
 			material_volume->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
@@ -377,7 +379,7 @@ int main(int, char **)
 			scene->AppendChild(volume_actor);
 
 			});
-		
+
 	}
 
 	// Our state
@@ -439,14 +441,14 @@ int main(int, char **)
 				if (is_hovered && !resized)
 				{
 					static glm::fvec2 prevMousePos(0);
-					glm::fvec2 ioPos = *(glm::fvec2 *)&io.MousePos;
-					glm::fvec2 s_pos = *(glm::fvec2 *)&cur_item_pos;
-					glm::fvec2 w_pos = *(glm::fvec2 *)&win_pos;
+					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
+					glm::fvec2 s_pos = *(glm::fvec2*)&cur_item_pos;
+					glm::fvec2 w_pos = *(glm::fvec2*)&win_pos;
 					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
 					glm::fvec2 pos_ss = m_pos;
 
-					OrbitalControl *orbit_control = camera->GetOrbitControl();
-					orbit_control->Initialize(renderer3D->GetVID(), {0, 0, 0}, 2.f);
+					OrbitalControl* orbit_control = camera->GetOrbitControl();
+					orbit_control->Initialize(renderer3D->GetVID(), { 0, 0, 0 }, 2.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
@@ -661,7 +663,6 @@ int main(int, char **)
 				}
 			}
 			ImGui::End();
-			/**/
 
 			ImGui::Begin("Curved Slicer Viewer");
 			{
@@ -762,7 +763,6 @@ int main(int, char **)
 				ImGui::Checkbox("Use Render Chain", &use_renderchain);
 
 				static float cur_otf_value = 180, cur_otf_value_prev = 180;
-				static float cur_otf_band_width = 50;
 				ImGui::SliderFloat("OTF Slider", &cur_otf_value, 0.f, 250.f);
 				if (cur_otf_value_prev != cur_otf_value)
 				{
@@ -770,30 +770,18 @@ int main(int, char **)
 					vzm::VzTexture* otf_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's OTF");
 					if (otf_volume)
 					{
-						const uint32_t otf_w = 256;
-						std::vector<uint8_t> otf_array(otf_w * 4 * 3);
-						for (size_t i = 0; i < otf_w; i++)
+						std::vector<uint8_t> otf_array(otfW * 4 * 1);
+						for (size_t i = 0; i < otfW; i++)
 						{
 							uint8_t a = i < cur_otf_value ? 0 :
-								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / cur_otf_band_width * 255.f) : 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
-							otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
-							otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
-							otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
-							otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
-							otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
-							otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
+								i < cur_otf_value + curOtfBandWidth ? (uint8_t)((float)(i - cur_otf_value) / curOtfBandWidth * 255.f) : 255;
+							otf_array[(otfW * 4 * 0) + 4 * i + 0] = 255;
+							otf_array[(otfW * 4 * 0) + 4 * i + 1] = 0;
+							otf_array[(otfW * 4 * 0) + 4 * i + 2] = 0;
+							otf_array[(otfW * 4 * 0) + 4 * i + 3] = a;
 						}
 
-						otf_volume->UpdateLookup(otf_array, (uint)cur_otf_value, (uint)(cur_otf_value + cur_otf_band_width));
+						otf_volume->UpdateLookup(otf_array, (uint)cur_otf_value, 255);
 					}
 				}
 
@@ -831,7 +819,7 @@ int main(int, char **)
 		// Rendering
 		ImGui::Render();
 
-		FrameContext *frameCtx = WaitForNextFrameResources();
+		FrameContext* frameCtx = WaitForNextFrameResources();
 		UINT backBufferIdx = g_pSwapChain->GetCurrentBackBufferIndex();
 		frameCtx->CommandAllocator->Reset();
 
@@ -846,7 +834,7 @@ int main(int, char **)
 		g_pd3dCommandList->ResourceBarrier(1, &barrier);
 
 		// Render Dear ImGui graphics
-		const float clear_color_with_alpha[4] = {clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w};
+		const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
 		g_pd3dCommandList->ClearRenderTargetView(g_mainRenderTargetDescriptor[backBufferIdx], clear_color_with_alpha, 0, nullptr);
 		g_pd3dCommandList->OMSetRenderTargets(1, &g_mainRenderTargetDescriptor[backBufferIdx], FALSE, nullptr);
 		g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
@@ -856,7 +844,7 @@ int main(int, char **)
 		g_pd3dCommandList->ResourceBarrier(1, &barrier);
 		g_pd3dCommandList->Close();
 
-		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList *const *)&g_pd3dCommandList);
+		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&g_pd3dCommandList);
 
 		g_pSwapChain->Present(1, 0); // Present with vsync
 		// g_pSwapChain->Present(0, 0); // Present without vsync
@@ -905,7 +893,7 @@ bool CreateDeviceD3D(HWND hWnd)
 
 	// [DEBUG] Enable debug interface
 #ifdef DX12_ENABLE_DEBUG_LAYER
-	ID3D12Debug *pdx12Debug = nullptr;
+	ID3D12Debug* pdx12Debug = nullptr;
 	// note : only one debug_layer is available
 	// if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pdx12Debug))))
 	//	pdx12Debug->EnableDebugLayer();
@@ -916,11 +904,11 @@ bool CreateDeviceD3D(HWND hWnd)
 	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
 		return false;
 
-		// [DEBUG] Setup debug interface to break on any warnings/errors
+	// [DEBUG] Setup debug interface to break on any warnings/errors
 #ifdef DX12_ENABLE_DEBUG_LAYER
 	if (pdx12Debug != nullptr)
 	{
-		ID3D12InfoQueue *pInfoQueue = nullptr;
+		ID3D12InfoQueue* pInfoQueue = nullptr;
 		g_pd3dDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue));
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -982,8 +970,8 @@ bool CreateDeviceD3D(HWND hWnd)
 		return false;
 
 	{
-		IDXGIFactory4 *dxgiFactory = nullptr;
-		IDXGISwapChain1 *swapChain1 = nullptr;
+		IDXGIFactory4* dxgiFactory = nullptr;
+		IDXGISwapChain1* swapChain1 = nullptr;
 		if (CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)) != S_OK)
 			return false;
 		if (dxgiFactory->CreateSwapChainForHwnd(g_pd3dCommandQueue, hWnd, &sd, nullptr, nullptr, &swapChain1) != S_OK)
@@ -1056,7 +1044,7 @@ void CleanupDeviceD3D()
 	}
 
 #ifdef DX12_ENABLE_DEBUG_LAYER
-	IDXGIDebug1 *pDebug = nullptr;
+	IDXGIDebug1* pDebug = nullptr;
 	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDebug))))
 	{
 		pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY);
@@ -1069,7 +1057,7 @@ void CreateRenderTarget()
 {
 	for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
 	{
-		ID3D12Resource *pBackBuffer = nullptr;
+		ID3D12Resource* pBackBuffer = nullptr;
 		g_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer));
 		g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, g_mainRenderTargetDescriptor[i]);
 		g_mainRenderTargetResource[i] = pBackBuffer;
@@ -1090,7 +1078,7 @@ void CleanupRenderTarget()
 
 void WaitForLastSubmittedFrame()
 {
-	FrameContext *frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
+	FrameContext* frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
 
 	UINT64 fenceValue = frameCtx->FenceValue;
 	if (fenceValue == 0)
@@ -1104,15 +1092,15 @@ void WaitForLastSubmittedFrame()
 	WaitForSingleObject(g_fenceEvent, INFINITE);
 }
 
-FrameContext *WaitForNextFrameResources()
+FrameContext* WaitForNextFrameResources()
 {
 	UINT nextFrameIndex = g_frameIndex + 1;
 	g_frameIndex = nextFrameIndex;
 
-	HANDLE waitableObjects[] = {g_hSwapChainWaitableObject, nullptr};
+	HANDLE waitableObjects[] = { g_hSwapChainWaitableObject, nullptr };
 	DWORD numWaitableObjects = 1;
 
-	FrameContext *frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
+	FrameContext* frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
 	UINT64 fenceValue = frameCtx->FenceValue;
 	if (fenceValue != 0) // means no fence was signaled
 	{
@@ -1140,10 +1128,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
 
-	vzm::VzRenderer *renderer = nullptr;
+	vzm::VzRenderer* renderer = nullptr;
 	if (vzm::IsValidEngineLib())
 	{
-		renderer = (vzm::VzRenderer *)vzm::GetFirstComponentByName("my renderer");
+		renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
 	}
 
 	switch (msg)
@@ -1173,16 +1161,16 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case 'N':
 		{
 			using namespace vzm;
-			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
-			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Store(camera);
 		}
 		break;
 		case 'M':
 		{
 			using namespace vzm;
-			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
-			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Load(camera);
 		}
 		break;
