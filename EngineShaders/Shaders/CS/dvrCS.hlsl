@@ -61,8 +61,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 #ifdef SLICER_BUFFERS
 	if (camera.sliceThickness > 0)
 	{
-		hits_t.y = min(camera.sliceThickness * 0.5f, hits_t.y);
-		hits_t.x = -camera.sliceThickness * 0.5f;
+		hits_t.y = min(camera.sliceThickness, hits_t.y);
 	}
 #endif
 	int num_ray_samples = (int)((hits_t.y - hits_t.x) / vol_instance.sample_dist + 0.5f);
