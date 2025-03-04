@@ -381,11 +381,14 @@ namespace vz::renderer
 			assert(volume);
 			assert(volume->IsValidVolume());
 
-			GTextureComponent* otf = (GTextureComponent*)compfactory::GetTextureComponentByVUID(
-				material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
+			MaterialComponent::LookupTableSlot target_lookup_slot = camera->GetDVRLookupSlot();
+			GTextureComponent* otf = (GTextureComponent*)compfactory::GetTextureComponentByVUID(material->GetLookupTableVUID(target_lookup_slot));
 			assert(otf);
 			Entity entity_otf = otf->GetEntity();
 			XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
+
+			const GPUBuffer& bitmask_buffer = volume->GetVisibleBitmaskBuffer(entity_otf);
+			int bitmaskbuffer = device->GetDescriptorIndex(&bitmask_buffer, SubresourceType::SRV);
 
 			VolumePushConstants volume_push;
 			{
@@ -394,8 +397,10 @@ namespace vz::renderer
 				volume_push.sculptStep = -1;
 				volume_push.opacity_correction = 1.f;
 				volume_push.main_visible_min_sample = tableValidBeginEndRatioX.x;
-				volume_push.mask_value_range = 255.f;
-				volume_push.mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
+				volume_push.target_otf_slot = SCU32(target_lookup_slot);
+				volume_push.bitmaskbuffer = bitmaskbuffer;
+
+				//volume_push.mask_unormid_otf_map = volume_push.mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
 
 				volume_push.inout_color_Index = device->GetDescriptorIndex(&rtMain, SubresourceType::UAV);
 				volume_push.inout_linear_depth_Index = device->GetDescriptorIndex(&rtLinearDepth, SubresourceType::UAV);

@@ -651,10 +651,6 @@ namespace vz
 				float mask_unormid_otf_map = mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
 				inst.baseGeometryOffset = *(uint*)&mask_unormid_otf_map;
 
-				const GPUBuffer& bitmask_buffer = volume->GetVisibleBitmaskBuffer(otf->GetEntity());
-				int bitmaskbuffer = device->GetDescriptorIndex(&bitmask_buffer, SubresourceType::SRV);
-				inst.baseGeometryCount = *(uint*)&bitmaskbuffer;
-
 				const Texture vol_blk_texture = volume->GetBlockTexture();
 				int texture_volume_blocks = device->GetDescriptorIndex(&vol_blk_texture, SubresourceType::SRV);
 				inst.meshletOffset = *(uint*)&texture_volume_blocks;

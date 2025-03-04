@@ -212,8 +212,21 @@ namespace vzm
 
 	VzCamera::DVR_TYPE VzCamera::GetDVRType() const
 	{
-		GET_CAM_COMP(camera, DVR_TYPE::DEFAULT);
+		GET_CAM_COMP(camera, VzCamera::DVR_TYPE::DEFAULT);
 		return (VzCamera::DVR_TYPE)camera->GetDVRType();
+	}
+
+	void VzCamera::SetDVRLookupSlot(const LookupTableSlot slot)
+	{
+		GET_CAM_COMP(camera, );
+		camera->SetDVRLookupSlot((MaterialComponent::LookupTableSlot)slot);
+		UpdateTimeStamp();
+	}
+
+	LookupTableSlot VzCamera::GetDVRLookupSlot() const
+	{
+		GET_CAM_COMP(camera, LookupTableSlot::LOOKUP_OTF);
+		return (LookupTableSlot)camera->GetDVRLookupSlot();
 	}
 }
 
