@@ -66,7 +66,8 @@ namespace vzm
 		void SetBaseColor(const vfloat4& color);
 		void SetGaussianSplattingEnabled(const bool enabled);
 		void SetWireframe(const bool enabled);
-		
+		void SetPhongFactors(const vfloat4 phongFactors);
+
 		void SetMeshLookup(const LookupTableSlot slot);
 		void SetSlicerLookup(const LookupTableSlot slot);
 		void Set3DLookup(const LookupTableSlot slot);

@@ -73,6 +73,13 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
+	void VzMaterial::SetPhongFactors(const vfloat4 phongFactors)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetPhongFactors(*(XMFLOAT4*)&phongFactors);
+		UpdateTimeStamp();
+	}
+
 	void VzMaterial::SetMeshLookup(const LookupTableSlot slot)
 	{
 		GET_MATERIAL_COMP(material, );

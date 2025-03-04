@@ -355,7 +355,7 @@ bool Vis_Volume_And_Check(inout half4 color, const float3 pos_sample_ts, const h
 	color = (half4)0;
 	[unroll]
 	for (int m = 0; m < 8; m++) {
-		half4 vis = ApplyOTF(otf, samples[m], opacity_correction, 0);
+		half4 vis = ApplyOTF(otf, samples[m], 0, opacity_correction);
 		color += vis * (half)fInterpolateWeights[m];
 	}
 	return color.a >= (half)FLT_OPACITY_MIN;

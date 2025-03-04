@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250227_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250304_0";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -577,6 +577,7 @@ namespace vz
 		inline void SetDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetPhongFactors(const XMFLOAT4 phongFactors) { phongFactors_ = phongFactors; timeStampSetter_ = TimerNow; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
@@ -607,8 +608,9 @@ namespace vz
 		inline VUID GetTextureVUID(const TextureSlot slot) const { return textureComponents_[SCU32(slot)]; }
 		inline VUID GetVolumeTextureVUID(const VolumeTextureSlot slot) const { return volumeComponents_[SCU32(slot)]; }
 		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return lookupComponents_[SCU32(slot)]; }
-		inline const XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
+		inline XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
+		inline XMFLOAT4 GetPhongFactors() const { return phongFactors_; }
 
 		void SetMeshLookup(const LookupTableSlot slot) { meshLookup_ = slot; timeStampSetter_ = TimerNow; }
 		void SetSlicerLookup(const LookupTableSlot slot) { volumeSlicerLookup_ = slot; timeStampSetter_ = TimerNow; }
