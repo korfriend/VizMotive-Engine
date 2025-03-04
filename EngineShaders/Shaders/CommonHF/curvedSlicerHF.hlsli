@@ -84,7 +84,7 @@ RayDesc CreateCurvedSlicerRay(const uint2 pixel)
 	if (is_reverse_side)
 		ray_dir_ws *= -1.f;
 
-	float3 ray_origin_ws = pos_ws_c_ + ray_dir_ws * (thickness_position - sliceThickness * 0.5f);
+	float3 ray_origin_ws = pos_ws_c_;// +ray_dir_ws * (thickness_position - sliceThickness * 0.5f);
 
 	// start position //
 	ray.Origin = ray_origin_ws + plane_up * pitch * (pos_cos.y - plane_vertical_center_pixel);

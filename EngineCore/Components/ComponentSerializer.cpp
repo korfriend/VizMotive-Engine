@@ -132,10 +132,6 @@ namespace vz
 
 			archive >> texMulAdd_;
 
-			archive >> u32_data; meshLookup_ = static_cast<LookupTableSlot>(u32_data);
-			archive >> u32_data; volumeSlicerLookup_ = static_cast<LookupTableSlot>(u32_data);
-			archive >> u32_data; volume3DLookup_ = static_cast<LookupTableSlot>(u32_data);
-
 			isDirty_ = true;
 		}
 		else
@@ -177,10 +173,6 @@ namespace vz
 			}
 
 			archive << texMulAdd_;
-
-			archive << static_cast<uint32_t>(meshLookup_);
-			archive << static_cast<uint32_t>(volumeSlicerLookup_);
-			archive << static_cast<uint32_t>(volume3DLookup_);
 		}
 	}
 
@@ -459,7 +451,7 @@ namespace vz
 			archive >> bloomEnabled_;
 			archive >> hdrCalibration_;
 			uint32_t u32_data;
-			archive >> u32_data; forceToLookup_ = static_cast<MaterialComponent::LookupTableSlot>(u32_data);
+			archive >> u32_data; dvrLookup_ = static_cast<MaterialComponent::LookupTableSlot>(u32_data);
 
 			isDirty_ = true;
 			SetWorldLookAtFromHierarchyTransforms();
@@ -490,7 +482,7 @@ namespace vz
 			archive << eyeAdaptionEnabled_;
 			archive << bloomEnabled_;
 			archive << hdrCalibration_;
-			archive << static_cast<uint32_t>(forceToLookup_);
+			archive << static_cast<uint32_t>(dvrLookup_);
 		}
 	}
 

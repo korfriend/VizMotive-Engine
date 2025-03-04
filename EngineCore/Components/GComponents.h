@@ -419,6 +419,7 @@ namespace vz
 		{
 			graphics::GPUBuffer bitmaskBuffer;
 			std::vector<uint32_t> bitmask;
+			TimeStamp updateTime = {};
 		};
 		std::unordered_map<Entity, GPUBlockBitmask> visibleBlockBitmasks_; // for blocks
 	public:

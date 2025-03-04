@@ -66,7 +66,9 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 #endif
 	int num_ray_samples = (int)((hits_t.y - hits_t.x) / vol_instance.sample_dist + 0.5f);
 	if (num_ray_samples <= 0)
+	{
 		return;
+	}
 #else // #ifdef ZERO_THICKNESS
 	if (!IsInsideClipBox(ray.Origin, vol_instance.mat_alignedvbox_ws2bs))
 		return;
@@ -76,8 +78,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	int texture_index_volume_main = material.volume_textures[VOLUME_MAIN_MAP].texture_descriptor;
 	int texture_index_volume_mask = material.volume_textures[VOLUME_SEMANTIC_MAP].texture_descriptor;
-	int texture_index_otf = material.lookup_textures[LOOKUP_OTF].texture_descriptor;
-	int buffer_index_bitmask = vol_instance.bitmaskbuffer;
+	int texture_index_otf = material.lookup_textures[push.target_otf_slot].texture_descriptor; // LOOKUP_OTF
+	int buffer_index_bitmask = push.bitmaskbuffer;
 
 	if (texture_index_volume_main < 0)
 		return;
@@ -142,7 +144,9 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		);
 
 		if (hit_step < 0)
+		{
 			return;
+		}
 
 		float3 pos_hit_ws = pos_start_ws + dir_sample_ws * (float)hit_step;
 		if (hit_step > 0) {
@@ -458,7 +462,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			float sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, 0).r;
 #ifdef OTF_MASK
 			float id = volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, 0).r;
-			float4 vis_otf = (float4)ApplyOTF(otf, sample_v, id * push.mask_unormid_otf_map, opacity_correction);
+			float4 vis_otf = (float4)ApplyOTF(otf, sample_v, id * vol_instance.mask_unormid_otf_map, opacity_correction);
 #else
 			float4 vis_otf = (float4)ApplyOTF(otf, sample_v, 0, opacity_correction);
 #endif
@@ -474,7 +478,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 #if defined(MAX_RAY) || defined(MIN_RAY)
 #ifdef OTF_MASK
 		float id = volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, 0).r;
-		half4 vis_otf = ApplyOTF(otf, sample_v_prev, id * push.mask_unormid_otf_map, opacity_correction);
+		half4 vis_otf = ApplyOTF(otf, sample_v_prev, id * vol_instance.mask_unormid_otf_map, opacity_correction);
 #else
 		half4 vis_otf = ApplyOTF(otf, sample_v_prev, 0, opacity_correction);
 #endif

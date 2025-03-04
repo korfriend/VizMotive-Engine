@@ -323,6 +323,18 @@ namespace vzm
 	};
 }
 
+namespace vzm
+{
+	enum class LookupTableSlot : uint32_t
+	{
+		LOOKUP_COLOR,
+		LOOKUP_OTF,
+		LOOKUP_WINDOWING,
+
+		LOOKUPTABLE_COUNT
+	};
+}
+
 #include "VzArchive.h"
 #include "VzActor.h"
 #include "VzCamera.h"

@@ -139,9 +139,29 @@ void EnableDpiAwareness()
 DXGI_SWAP_CHAIN_DESC1 sd;
 
 const uint32_t otfW = 256;
+static float curOtfValue = 180, curOtfValuePrev = 180;
 static float curOtfBandWidth = 50.f;
-static float curWindowBandWidth = 100.f;
-static float curWindowCenter = 100.f;
+static float curWindowBandWidth = 100.f, curWindowBandWidthPrev = 100.f;
+static float curWindowCenter = 100.f, curWindowCenterPrev = 100.f;
+
+inline float linearWindowing(float value, float windowCenter, float windowWidth) {
+	// Calculate half window width
+	float halfWidth = windowWidth / 2.0f;
+
+	// Calculate window boundaries
+	float lowerBound = windowCenter - halfWidth;
+	float upperBound = windowCenter + halfWidth;
+
+	// Apply windowing function
+	if (value <= lowerBound) {
+		return 0.0f;
+	}
+	else if (value >= upperBound) {
+		return 1.0f;
+	}
+	// Linear interpolation between 0 and 1
+	return (value - lowerBound) / windowWidth;
+}
 
 int main(int, char**)
 {
@@ -156,7 +176,7 @@ int main(int, char**)
 
 	vzm::ParamMap<std::string> arguments;
 	// arguments.SetString("API", "DX11");
-	arguments.SetString("GPU_VALIDATION", "VERBOSE");
+	//arguments.SetString("GPU_VALIDATION", "VERBOSE");
 	// arguments.SetParam("MAX_THREADS", 1u); // ~0u
 	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
 	if (!vzm::InitEngineLib(arguments))
@@ -336,7 +356,7 @@ int main(int, char**)
 			});
 
 		vz::jobsystem::context ctx_vol_loader;
-		vz::jobsystem::Execute(ctx_vol_loader, [scene](vz::jobsystem::JobArgs args) {
+		vz::jobsystem::Execute(ctx_vol_loader, [scene, slicer, slicer_curved](vz::jobsystem::JobArgs args) {
 
 			vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
 			{
@@ -360,19 +380,24 @@ int main(int, char**)
 			otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
 			otf_volume->UpdateLookup(otf_array, 180, 255);
 
-			//vzm::VzTexture* windowing_volume = vzm::NewTexture("volume material's windowing");
-			//for (size_t i = 0; i < otf_w; i++)
-			//{
-			//	otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
-			//	otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
-			//	otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
-			//	otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
-			//		i < 210 ? (uint8_t)((float)(i - 180) / 30.f * 255.f) : 255;
-			//}
+			vzm::VzTexture* windowing_volume = vzm::NewTexture("volume material's windowing");
+			for (size_t i = 0; i < otfW; i++)
+			{
+				otf_array[4 * i + 0] = 255;
+				otf_array[4 * i + 1] = 255;
+				otf_array[4 * i + 2] = 255;
+				otf_array[4 * i + 3] = std::max(std::min((uint)(linearWindowing(i, curWindowCenter, curWindowBandWidth) * 255.f), 255u), 0u);
+			}
+			windowing_volume->CreateLookupTexture("windowing otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
+			windowing_volume->UpdateLookup(otf_array, curWindowCenter - curWindowBandWidth * 0.5f, curWindowCenter + curWindowBandWidth * 0.5f);
 
 			vzm::VzMaterial* material_volume = vzm::NewMaterial("volume material");
 			material_volume->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
 			material_volume->SetLookupTable(otf_volume, vzm::LookupTableSlot::LOOKUP_OTF);
+			material_volume->SetLookupTable(windowing_volume, vzm::LookupTableSlot::LOOKUP_WINDOWING);
+
+			slicer->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
+			slicer_curved->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
 
 			vzm::VzActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
 			volume_actor->SetScale({ 3, 3, 3 });
@@ -762,26 +787,49 @@ int main(int, char**)
 
 				ImGui::Checkbox("Use Render Chain", &use_renderchain);
 
-				static float cur_otf_value = 180, cur_otf_value_prev = 180;
-				ImGui::SliderFloat("OTF Slider", &cur_otf_value, 0.f, 250.f);
-				if (cur_otf_value_prev != cur_otf_value)
+				ImGui::SliderFloat("OTF Slider", &curOtfValue, 0.f, 250.f);
+				if (curOtfValuePrev != curOtfValue)
 				{
-					cur_otf_value_prev = cur_otf_value;
+					curOtfValuePrev = curOtfValue;
 					vzm::VzTexture* otf_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's OTF");
 					if (otf_volume)
 					{
 						std::vector<uint8_t> otf_array(otfW * 4 * 1);
 						for (size_t i = 0; i < otfW; i++)
 						{
-							uint8_t a = i < cur_otf_value ? 0 :
-								i < cur_otf_value + curOtfBandWidth ? (uint8_t)((float)(i - cur_otf_value) / curOtfBandWidth * 255.f) : 255;
+							uint8_t a = i < curOtfValue ? 0 :
+								i < curOtfValue + curOtfBandWidth ? (uint8_t)((float)(i - curOtfValue) / curOtfBandWidth * 255.f) : 255;
 							otf_array[(otfW * 4 * 0) + 4 * i + 0] = 255;
 							otf_array[(otfW * 4 * 0) + 4 * i + 1] = 0;
 							otf_array[(otfW * 4 * 0) + 4 * i + 2] = 0;
 							otf_array[(otfW * 4 * 0) + 4 * i + 3] = a;
 						}
 
-						otf_volume->UpdateLookup(otf_array, (uint)cur_otf_value, 255);
+						otf_volume->UpdateLookup(otf_array, (uint)curOtfValue, 255);
+					}
+				}
+
+				ImGui::SliderFloat("Windowing Center", &curWindowCenter, 0.f, 250.f);
+				ImGui::SliderFloat("Windowing Width", &curWindowBandWidth, 0.f, 250.f);
+				if (curWindowCenter != curWindowCenterPrev
+					|| curWindowBandWidth != curWindowBandWidthPrev)
+				{
+					curWindowCenterPrev = curWindowCenter;
+					curWindowBandWidthPrev = curWindowBandWidth;					
+					vzm::VzTexture* windowing_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's windowing");
+					if (windowing_volume)
+					{
+						std::vector<uint8_t> otf_array(otfW * 4 * 1);
+						for (size_t i = 0; i < otfW; i++)
+						{
+							otf_array[4 * i + 0] = 255;
+							otf_array[4 * i + 1] = 255;
+							otf_array[4 * i + 2] = 255;
+							otf_array[4 * i + 3] = std::max(std::min((uint)(linearWindowing(i, curWindowCenter, curWindowBandWidth) * 255.f), 255u), 0u);
+						}
+
+						windowing_volume->CreateLookupTexture("windowing otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
+						windowing_volume->UpdateLookup(otf_array, curWindowCenter - curWindowBandWidth * 0.5f, curWindowCenter + curWindowBandWidth * 0.5f);
 					}
 				}
 

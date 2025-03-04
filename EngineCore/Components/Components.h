@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250304_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250305_1";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -549,10 +549,6 @@ namespace vz
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 
-		LookupTableSlot meshLookup_ = LookupTableSlot::LOOKUP_COLOR;
-		LookupTableSlot volumeSlicerLookup_ = LookupTableSlot::LOOKUP_WINDOWING;
-		LookupTableSlot volume3DLookup_ = LookupTableSlot::LOOKUP_OTF;
-
 		// Non-serialized Attributes:
 		bool isDirty_ = true;
 	public:
@@ -611,13 +607,6 @@ namespace vz
 		inline XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
 		inline XMFLOAT4 GetPhongFactors() const { return phongFactors_; }
-
-		void SetMeshLookup(const LookupTableSlot slot) { meshLookup_ = slot; timeStampSetter_ = TimerNow; }
-		void SetSlicerLookup(const LookupTableSlot slot) { volumeSlicerLookup_ = slot; timeStampSetter_ = TimerNow; }
-		void Set3DLookup(const LookupTableSlot slot) { volume3DLookup_ = slot; timeStampSetter_ = TimerNow; }
-		LookupTableSlot GetMeshLookup() const { return meshLookup_; }
-		LookupTableSlot GetSlicerLookup() const { return volumeSlicerLookup_; }
-		LookupTableSlot Get3DLookup() const { return volume3DLookup_; }
 
 		virtual void UpdateAssociatedTextures() = 0;
 
@@ -1356,10 +1345,9 @@ namespace vz
 
 		uint8_t visibleLayerMask_ = ~0;
 		uint32_t flags_ = CamFlags::EMPTY;
-		DVR_TYPE dvrType_ = DVR_TYPE::DEFAULT;
 
-		// LOOKUPTABLE_COUNT refers to UNDEFINED
-		MaterialComponent::LookupTableSlot forceToLookup_ = MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT;
+		DVR_TYPE dvrType_ = DVR_TYPE::DEFAULT;
+		MaterialComponent::LookupTableSlot dvrLookup_ = MaterialComponent::LookupTableSlot::LOOKUP_OTF;
 
 		// clipper
 		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube
@@ -1463,8 +1451,8 @@ namespace vz
 		inline bool IsSensorBloomEnabled() const { return bloomEnabled_; }
 		inline float GetSensorHdrCalibration() const { return hdrCalibration_; }
 
-		inline void SetForceToUseLookupTable(const MaterialComponent::LookupTableSlot slot) { forceToLookup_ = slot; timeStampSetter_ = TimerNow; }
-		inline MaterialComponent::LookupTableSlot GetForceToUseLookupTable() const { return forceToLookup_; }
+		inline void SetDVRLookupSlot(const MaterialComponent::LookupTableSlot slot) { dvrLookup_ = slot; timeStampSetter_ = TimerNow; }
+		inline MaterialComponent::LookupTableSlot GetDVRLookupSlot() const { return dvrLookup_; }
 
 		inline void SetDVRType(const DVR_TYPE type) { dvrType_ = type; timeStampSetter_ = TimerNow; }
 		inline DVR_TYPE GetDVRType() const { return dvrType_; }
