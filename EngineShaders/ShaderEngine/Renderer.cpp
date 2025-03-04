@@ -1845,6 +1845,7 @@ namespace vz::renderer
 		// Preparing the frame:
 		CommandList cmd = device->BeginCommandList();
 		// DO NOT 'device->WaitQueue(cmd, QUEUE_COMPUTE)' when there is NO QUEUE_COMPUTE commmand list!
+		//device->WaitQueue(cmd, QUEUE_COMPUTE);
 		ProcessDeferredResourceRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
 
 		CommandList cmd_prepareframe = cmd;

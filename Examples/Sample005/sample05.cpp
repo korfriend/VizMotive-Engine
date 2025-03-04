@@ -798,11 +798,12 @@ int main(int, char **)
 				}
 
 				static float cur_slicer_thickess = 0, cur_slicer_thickess_prev = 0;
-				ImGui::SliderFloat("Slicer Thickness", &cur_slicer_thickess, 0.f, 100.f);
+				ImGui::SliderFloat("Slicer Thickness", &cur_slicer_thickess, 0.f, 10.f);
 				if (cur_slicer_thickess != cur_slicer_thickess_prev)
 				{
 					cur_slicer_thickess_prev = cur_slicer_thickess;
 					slicer->SetSlicerThickness(cur_slicer_thickess);
+					slicer_curved->SetSlicerThickness(cur_slicer_thickess);
 				}
 
 
