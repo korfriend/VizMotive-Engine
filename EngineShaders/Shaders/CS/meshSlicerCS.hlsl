@@ -427,8 +427,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		Fragment frag;
 		frag.color = color_cur; // current
-		frag.z = zdepth1;
-		frag.zthick = (half)vz_thickness;
+		frag.z = zdepth0;
+		frag.zthick = (half)(vz_thickness + 2.f);
 		frag.opacity_sum = color_cur.a;
 
 		///Fill_kBuffer(pixel, 2, color_cur, zdepth1, vz_thickness);
@@ -441,7 +441,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			else
 			{
 				uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
-				uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
 
 				Fragment f_0;
 				f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
@@ -449,9 +448,17 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 				f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 
 				Fragment f_1;
-				f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
-				f_1.z = asfloat(v_layer_packed1_RG.r);
-				f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
+				if (count >= 2)
+				{
+					uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
+					f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
+					f_1.z = asfloat(v_layer_packed1_RG.r);
+					f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
+				}
+				else
+				{
+					f_1.Init();
+				}
 				Fragment fs[2] = { f_0, f_1 };
 
 				count = Fill_kBuffer(frag, count, fs);

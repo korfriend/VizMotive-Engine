@@ -397,7 +397,9 @@ int main(int, char**)
 			material_volume->SetLookupTable(windowing_volume, vzm::LookupTableSlot::LOOKUP_WINDOWING);
 
 			slicer->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
+			slicer->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
 			slicer_curved->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
+			slicer_curved->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
 
 			vzm::VzActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
 			volume_actor->SetScale({ 3, 3, 3 });
@@ -831,6 +833,16 @@ int main(int, char**)
 						windowing_volume->CreateLookupTexture("windowing otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
 						windowing_volume->UpdateLookup(otf_array, curWindowCenter - curWindowBandWidth * 0.5f, curWindowCenter + curWindowBandWidth * 0.5f);
 					}
+				}
+
+				static int dvr_mode = 1, dvr_mode_prev = 1;
+				ImGui::RadioButton("Slicer Default", &dvr_mode, 0);
+				ImGui::RadioButton("Slicer X-RAY", &dvr_mode, 1);
+				if (dvr_mode != dvr_mode_prev)
+				{
+					dvr_mode_prev = dvr_mode;
+					slicer->SetDVRType((DVR_TYPE)dvr_mode);
+					slicer_curved->SetDVRType((DVR_TYPE)dvr_mode);
 				}
 
 				static float cur_slicer_thickess = 0, cur_slicer_thickess_prev = 0;
