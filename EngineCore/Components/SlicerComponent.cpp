@@ -1,6 +1,7 @@
 #include "GComponents.h"
 #include "GBackend/GModuleLoader.h" // deferred task for streaming
 #include "Utils/Backlog.h"
+#include "Utils/Color.h"
 
 namespace vz
 {
@@ -147,10 +148,9 @@ namespace vz
 		using PrimitiveType = GeometryComponent::PrimitiveType;
 		using namespace std;
 
-		vector<Primitive> primitives(3);
+		vector<Primitive> primitives(2);
 		Primitive& primitive_panoplane = primitives[0];
-		Primitive& primitive_centerline = primitives[1];
-		Primitive& primitive_outline = primitives[2];
+		Primitive& primitive_lines = primitives[1];
 
 		vector<XMFLOAT3>& pos_curve_pts = horizontalCurveInterpPoints_;
 		size_t num_pts = pos_curve_pts.size();
@@ -160,81 +160,175 @@ namespace vz
 		float curve_plane_height = curvedPlaneHeight_;
 
 		geometrics::AABB aabb;
+		geometrics::AABB aabb_plane;
 
-		// Center line
+		// lines
 		{
-			primitive_centerline.SetPrimitiveType(PrimitiveType::LINES);
-			vector<XMFLOAT3>& pos_centerline = primitive_centerline.GetMutableVtxPositions();
-			pos_centerline.resize(num_pts);
-			vector<uint32_t>& idx_centerline = primitive_centerline.GetMutableIdxPrimives();
-			idx_centerline.resize((num_pts - 1) * 2);
-			aabb = geometrics::AABB();
-			for (size_t i = 0, n = pos_centerline.size(); i < n; ++i)
+			// outline + center line + thickness lines
+			size_t num_line_points = num_pts * 2 + num_pts;
+			size_t num_indices = num_pts * 2 * 2 + (num_pts - 1) * 2;
+			if (thickness_ > FLT_EPSILON)
 			{
-				XMFLOAT3 p = pos_curve_pts[i];
-				pos_centerline[i] = p;
+				num_line_points += num_pts * 2 * 2;
+				num_indices += num_pts * 2 * 2 * 2 + 4 * 2;
+			}
 
-				aabb._max.x = max(aabb._max.x, p.x);
-				aabb._max.y = max(aabb._max.y, p.y);
-				aabb._max.z = max(aabb._max.z, p.z);
-				aabb._min.x = min(aabb._min.x, p.x);
-				aabb._min.y = min(aabb._min.y, p.y);
-				aabb._min.z = min(aabb._min.z, p.z);
+			primitive_lines.SetPrimitiveType(PrimitiveType::LINES);
+			vector<XMFLOAT3>& pos_lines = primitive_lines.GetMutableVtxPositions();
+			pos_lines.resize(num_line_points);
+			vector<uint32_t>& color_lines = primitive_lines.GetMutableVtxColors();
+			color_lines.resize(num_line_points);
+			vector<uint32_t>& idx_lines = primitive_lines.GetMutableIdxPrimives();
+			idx_lines.resize(num_indices);
+			aabb = geometrics::AABB();
 
-				if (i < num_pts - 1)
+			uint32_t vtx_offset = 0;
+			uint32_t idx_offset = 0;
+			// outline
+			{
+				Color outline_color(0, 255, 0, 255);
+				for (size_t i = 0, n = num_pts; i < n; ++i)
 				{
-					idx_centerline[2 * i + 0] = i;
-					idx_centerline[2 * i + 1] = i + 1;
+					XMStoreFloat3(&pos_lines[vtx_offset + i], XMLoadFloat3(&pos_curve_pts[i]) + vec_up * curve_plane_height * 0.5f);
+					XMStoreFloat3(&pos_lines[vtx_offset + i + num_pts], XMLoadFloat3(&pos_curve_pts[i]) - vec_up * curve_plane_height * 0.5f);
+					color_lines[vtx_offset + i] = outline_color;
+					color_lines[vtx_offset + i + num_pts] = outline_color;
+
+					XMFLOAT3 p = pos_lines[vtx_offset + i];
+					aabb._max.x = max(aabb._max.x, p.x);
+					aabb._max.y = max(aabb._max.y, p.y);
+					aabb._max.z = max(aabb._max.z, p.z);
+					aabb._min.x = min(aabb._min.x, p.x);
+					aabb._min.y = min(aabb._min.y, p.y);
+					aabb._min.z = min(aabb._min.z, p.z);
+
+					p = pos_lines[vtx_offset + i + num_pts];
+					aabb._max.x = max(aabb._max.x, p.x);
+					aabb._max.y = max(aabb._max.y, p.y);
+					aabb._max.z = max(aabb._max.z, p.z);
+					aabb._min.x = min(aabb._min.x, p.x);
+					aabb._min.y = min(aabb._min.y, p.y);
+					aabb._min.z = min(aabb._min.z, p.z);
+
+					if (i < num_pts - 1)
+					{
+						idx_lines[idx_offset + 2 * i + 0] = vtx_offset + i;
+						idx_lines[idx_offset + 2 * i + 1] = vtx_offset + i + 1;
+
+						idx_lines[idx_offset + 2 * i + 0 + 2 * (num_pts - 1)] = vtx_offset + i + num_pts;
+						idx_lines[idx_offset + 2 * i + 1 + 2 * (num_pts - 1)] = vtx_offset + i + 1 + num_pts;
+					}
+				}
+				idx_lines[idx_offset + 4 * (num_pts - 1) + 0] = vtx_offset + 0;
+				idx_lines[idx_offset + 4 * (num_pts - 1) + 1] = vtx_offset + num_pts;
+
+				idx_lines[idx_offset + 4 * (num_pts - 1) + 2] = vtx_offset + num_pts - 1;
+				idx_lines[idx_offset + 4 * (num_pts - 1) + 3] = vtx_offset + 2 * num_pts - 1;
+			}
+			aabb_plane = aabb;
+
+			// center line
+			{
+				vtx_offset += num_pts * 2;
+				idx_offset += num_pts * 2 * 2;
+				Color centerline_color(255, 0, 0, 255);
+				for (size_t i = 0, n = num_pts; i < n; ++i)
+				{
+					XMFLOAT3 p = pos_curve_pts[i];
+					pos_lines[vtx_offset + i] = p;
+					color_lines[vtx_offset + i] = centerline_color;
+
+					if (i < num_pts - 1)
+					{
+						idx_lines[idx_offset + 2 * i + 0] = vtx_offset + i;
+						idx_lines[idx_offset + 2 * i + 1] = vtx_offset + i + 1;
+					}
 				}
 			}
-			primitive_centerline.SetAABB(aabb);
-		}
 
-		// Out line
-		{
-			primitive_outline.SetPrimitiveType(PrimitiveType::LINES);
-			vector<XMFLOAT3>& pos_outline = primitive_outline.GetMutableVtxPositions();
-			pos_outline.resize(num_pts * 2);
-			vector<uint32_t>& idx_outline = primitive_outline.GetMutableIdxPrimives();
-			idx_outline.resize(num_pts * 2 * 2);
-			aabb = geometrics::AABB();
-			for (size_t i = 0, n = num_pts; i < n; ++i)
+			// thickness line
+			if (thickness_ > FLT_EPSILON)
 			{
-				XMStoreFloat3(&pos_outline[i], XMLoadFloat3(&pos_curve_pts[i]) + vec_up * curve_plane_height * 0.5f);
-				XMStoreFloat3(&pos_outline[i + num_pts], XMLoadFloat3(&pos_curve_pts[i]) - vec_up * curve_plane_height * 0.5f);
+				vtx_offset += num_pts;
+				idx_offset += (num_pts - 1) * 2;
 
-				XMFLOAT3 p = pos_outline[i];
-				aabb._max.x = max(aabb._max.x, p.x);
-				aabb._max.y = max(aabb._max.y, p.y);
-				aabb._max.z = max(aabb._max.z, p.z);
-				aabb._min.x = min(aabb._min.x, p.x);
-				aabb._min.y = min(aabb._min.y, p.y);
-				aabb._min.z = min(aabb._min.z, p.z);
+				Color outline_color(55, 255, 55, 255);
+				XMVECTOR vec_tan;
+				assert(num_pts >= 2);
 
-				p = pos_outline[i + num_pts];
-				aabb._max.x = max(aabb._max.x, p.x);
-				aabb._max.y = max(aabb._max.y, p.y);
-				aabb._max.z = max(aabb._max.z, p.z);
-				aabb._min.x = min(aabb._min.x, p.x);
-				aabb._min.y = min(aabb._min.y, p.y);
-				aabb._min.z = min(aabb._min.z, p.z);
-
-				if (i < num_pts - 1)
+				uint32_t corners[8];
+				for (size_t k = 0; k < 2; ++k)
 				{
-					idx_outline[2 * i + 0] = i;
-					idx_outline[2 * i + 1] = i + 1;
+					float signed_thickness = k == 0 ? thickness_ : -thickness_;
 
-					idx_outline[2 * i + 0 + 2 * (num_pts - 1)] = i + num_pts;
-					idx_outline[2 * i + 1 + 2 * (num_pts - 1)] = i + 1 + num_pts;
+					for (size_t i = 0, n = num_pts; i < n; ++i)
+					{
+						if (i < num_pts - 1)
+						{
+							vec_tan = XMLoadFloat3(&pos_curve_pts[i + 1]) - XMLoadFloat3(&pos_curve_pts[i]);
+						}
+						XMVECTOR vec_dir = XMVector3Normalize(XMVector3Cross(vec_up, vec_tan));
+
+						XMStoreFloat3(&pos_lines[vtx_offset + i], XMLoadFloat3(&pos_curve_pts[i]) + vec_up * curve_plane_height * 0.5f + vec_dir * signed_thickness * 0.5f);
+						XMStoreFloat3(&pos_lines[vtx_offset + i + num_pts], XMLoadFloat3(&pos_curve_pts[i]) - vec_up * curve_plane_height * 0.5f + vec_dir * signed_thickness * 0.5f);
+
+						color_lines[vtx_offset + i] = outline_color;
+						color_lines[vtx_offset + i + num_pts] = outline_color;
+
+						XMFLOAT3 p = pos_lines[vtx_offset + i];
+						aabb._max.x = max(aabb._max.x, p.x);
+						aabb._max.y = max(aabb._max.y, p.y);
+						aabb._max.z = max(aabb._max.z, p.z);
+						aabb._min.x = min(aabb._min.x, p.x);
+						aabb._min.y = min(aabb._min.y, p.y);
+						aabb._min.z = min(aabb._min.z, p.z);
+
+						p = pos_lines[vtx_offset + i + num_pts];
+						aabb._max.x = max(aabb._max.x, p.x);
+						aabb._max.y = max(aabb._max.y, p.y);
+						aabb._max.z = max(aabb._max.z, p.z);
+						aabb._min.x = min(aabb._min.x, p.x);
+						aabb._min.y = min(aabb._min.y, p.y);
+						aabb._min.z = min(aabb._min.z, p.z);
+
+						if (i < num_pts - 1)
+						{
+							idx_lines[idx_offset + 2 * i + 0] = vtx_offset + i;
+							idx_lines[idx_offset + 2 * i + 1] = vtx_offset + i + 1;
+
+							idx_lines[idx_offset + 2 * i + 0 + 2 * (num_pts - 1)] = vtx_offset + i + num_pts;
+							idx_lines[idx_offset + 2 * i + 1 + 2 * (num_pts - 1)] = vtx_offset + i + 1 + num_pts;
+						}
+					}
+					idx_lines[idx_offset + 4 * (num_pts - 1) + 0] = vtx_offset + 0;
+					idx_lines[idx_offset + 4 * (num_pts - 1) + 1] = vtx_offset + num_pts;
+
+					idx_lines[idx_offset + 4 * (num_pts - 1) + 2] = vtx_offset + num_pts - 1;
+					idx_lines[idx_offset + 4 * (num_pts - 1) + 3] = vtx_offset + 2 * num_pts - 1;
+
+					corners[k * 4 + 0] = vtx_offset + 0;
+					corners[k * 4 + 1] = vtx_offset + num_pts;
+					corners[k * 4 + 2] = vtx_offset + num_pts - 1;
+					corners[k * 4 + 3] = vtx_offset + 2 * num_pts - 1;
+
+					vtx_offset += num_pts * 2;
+					idx_offset += num_pts * 2 * 2;
 				}
+
+				idx_lines[idx_offset + 0] = corners[0];
+				idx_lines[idx_offset + 1] = corners[4 + 0];
+
+				idx_lines[idx_offset + 2] = corners[1];
+				idx_lines[idx_offset + 3] = corners[4 + 1];
+
+				idx_lines[idx_offset + 4] = corners[2];
+				idx_lines[idx_offset + 5] = corners[4 + 2];
+
+				idx_lines[idx_offset + 6] = corners[3];
+				idx_lines[idx_offset + 7] = corners[4 + 3];
 			}
-			idx_outline[4 * (num_pts - 1) + 0] = 0;
-			idx_outline[4 * (num_pts - 1) + 1] = num_pts;
 
-			idx_outline[4 * (num_pts - 1) + 2] = num_pts - 1;
-			idx_outline[4 * (num_pts - 1) + 3] = 2 * num_pts - 1;
-
-			primitive_outline.SetAABB(aabb);
+			primitive_lines.SetAABB(aabb);
 		}
 
 		// Panorama Plane
@@ -246,9 +340,9 @@ namespace vz
 			nrl_panoplane.resize(num_pts * 2);
 			vector<uint32_t>& idx_panoplane = primitive_panoplane.GetMutableIdxPrimives();
 			idx_panoplane.resize(((num_pts - 1) * 2) * 3);
-			primitive_panoplane.SetAABB(primitive_outline.GetAABB());
+			primitive_panoplane.SetAABB(primitive_lines.GetAABB());
 
-			memcpy(pos_panoplane.data(), primitive_outline.GetVtxPositions().data(), sizeof(XMFLOAT3)* pos_panoplane.size());
+			memcpy(pos_panoplane.data(), primitive_lines.GetVtxPositions().data(), sizeof(XMFLOAT3)* pos_panoplane.size());
 
 			for (size_t i = 0, n = num_pts; i < n - 1; ++i)
 			{

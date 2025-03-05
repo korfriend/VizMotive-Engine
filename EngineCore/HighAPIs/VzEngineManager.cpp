@@ -290,7 +290,7 @@ namespace vzm
 	{
 		std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
 		engineThreadId = std::this_thread::get_id();
-		vzlog("Engine API's thread is assigned to %lld", threadToInteger(engineThreadId));
+		vzlog("Engine API's thread is assigned to thread ID (%lld)", threadToInteger(engineThreadId));
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
 #if defined(_DEBUG) && defined(_MT_LEAK_CHECK)

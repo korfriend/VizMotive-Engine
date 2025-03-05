@@ -292,13 +292,10 @@ int main(int, char**)
 			vzm::VzMaterial* material_curvedslicer0 = vzm::NewMaterial("curved slicer helper material: Plane");
 			material_curvedslicer0->SetShaderType(vzm::ShaderType::PBR);
 			material_curvedslicer0->SetDoubleSided(true);
-			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Centerline");
-			material_curvedslicer1->SetBaseColor({ 1, 0, 0, 1 });
-			vzm::VzMaterial* material_curvedslicer2 = vzm::NewMaterial("curved slicer helper material: Outline");
-			material_curvedslicer2->SetBaseColor({ 0, 1, 0, 1 });
+			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Lines");
+			material_curvedslicer1->SetBaseColor({ 1, 1, 1, 1 });
 			vzm::VzActor* actor_cslicer_helper = vzm::NewActor("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer0);
 			actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
-			actor_cslicer_helper->SetMaterial(material_curvedslicer2, 2);
 			scene->AppendChild(actor_cslicer_helper);
 			vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
 		}
@@ -848,6 +845,9 @@ int main(int, char**)
 					cur_slicer_thickess_prev = cur_slicer_thickess;
 					slicer->SetSlicerThickness(cur_slicer_thickess);
 					slicer_curved->SetSlicerThickness(cur_slicer_thickess);
+
+					vzm::VzGeometry* geometry_cslicer_helper = (vzm::VzGeometry*)vzm::GetFirstComponentByName("geometry helper for curved slicer");
+					slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
 				}
 
 
