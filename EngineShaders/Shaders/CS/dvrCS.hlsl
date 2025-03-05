@@ -145,6 +145,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		if (hit_step < 0)
 		{
+			inout_color[pixel] = float4(1, 1, 0, 1);
 			return;
 		}
 
@@ -268,6 +269,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		Fragment f_next_layer = fs[0];
 
 		float3 dir_sample_ts = TransformVector(dir_sample_ws, vol_instance.mat_ws2ts);
+		float3 dir_sample_ts_rcp = safe_rcp3(dir_sample_ts);
 		float3 pos_ray_start_ts = TransformPoint(pos_hit_ws, vol_instance.mat_ws2ts);
 
 		// --- gradient setting ---
@@ -319,7 +321,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		{
 			float3 pos_sample_ts = pos_ray_start_ts + dir_sample_ts * (float)step;
 
-			LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, step, buffer_bitmask)
+			LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts_rcp, num_ray_samples, step, buffer_bitmask)
 
 				[branch]
 			if (blkSkip.visible)
@@ -398,6 +400,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		float3 pos_ray_start_ts = TransformPoint(pos_start_ws, vol_instance.mat_ws2ts);
 		float depth_begin = depth_out = length(pos_start_ws - ray.Origin);
 		float3 dir_sample_ts = TransformVector(dir_sample_ws, vol_instance.mat_ws2ts);
+		float3 dir_sample_ts_rcp = safe_rcp3(dir_sample_ts);
+
 #if defined(MAX_RAY) || defined(MIN_RAY)
 		RNG rng;
 		rng.init(uint2(pixel), GetFrameCount());
@@ -429,7 +433,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			float3 pos_sample_ts = pos_ray_start_ts + dir_sample_ts * (float)i;
 
 #if defined(MAX_RAY) || defined(MIN_RAY)
-			LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, i, buffer_bitmask)
+			LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts_rcp, num_ray_samples, i, buffer_bitmask)
 #ifdef MAX_RAY
 				if (blkSkip.blk_value > sample_v_prev)
 #else MIN_RAY
@@ -531,6 +535,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		uint c_m_d = counter_mask_distmap[pixel];
 		num_frags = c_m_d & 0xFF;
 		uint mask = (c_m_d >> 8) & 0xFF;
+		if (mask & (SLICER_DEPTH_OUTLINE_DIRTY | SLICER_DEPTH_OUTLINE))
+		{
+			return;
+		}
 
 		Fragment fs[K_NUM] = { f_0, f_1 };
 #endif
