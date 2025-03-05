@@ -90,4 +90,5 @@ namespace vzm
 	};
 
 	using SlicerControl = VzSlicer::SliceControl;
+	using DVR_TYPE = VzCamera::DVR_TYPE;
 }
