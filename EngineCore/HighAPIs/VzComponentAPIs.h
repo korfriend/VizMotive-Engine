@@ -85,7 +85,7 @@ namespace vzm
 			__params.clear();
 		}
 		std::unordered_map<ID, std::any>& GetMap() { return __params; }
-        bool FindParam(const ID& param_name) {
+        bool FindParam(const ID& param_name) const {
             auto it = __params.find(param_name);
             return !(it == __params.end());
         }

@@ -2,10 +2,12 @@
 #include "Common/Engine_Internal.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
+#include "Common/Config.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Utils/EventHandler.h"
 #include "Utils/ECS.h"
+#include "Utils/Helpers.h"
 #include "Utils/PrivateInterface.h"
 #include "GBackend/GBackendDevice.h"
 #include "GBackend/GModuleLoader.h"
@@ -19,6 +21,7 @@ namespace vz
 	std::unordered_map<std::string, HMODULE> importedModules;
 
 	graphics::GraphicsDevice* graphicsDevice = nullptr;
+	config::File configFile;
 }
 
 namespace vzcompmanager
@@ -300,8 +303,50 @@ namespace vzm
 			return false;
 		}
 
+		{
+			// CONFIG FILE
+			// backlog has been already initialized!
+			std::string config_filename = arguments.GetString("CONFIG", std::string(backlog::GetLogPath()) + "vzConfig.ini");
+			if (!helper::FileExists(config_filename))
+			{
+				std::ofstream file(config_filename);
+				file.close();
+			}
+			assert(configFile.Open(config_filename.c_str()));
+			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			if (!section.Has("API"))
+			{
+				section.Set("API", "DX12");
+			}
+			if (!section.Has("GPU_VALIDATION"))
+			{
+				section.Set("GPU_VALIDATION", "DISABLED");
+			}
+			if (!section.Has("GPU_PREFERENCE"))
+			{
+				section.Set("GPU_PREFERENCE", "DISCRETE");
+			}
+			if (!section.Has("MAX_THREADS"))
+			{
+				section.Set("MAX_THREADS", "MAXIMUM");
+			}
+			configFile.Commit();
+		}
+
+		std::string api = "DX12";
 		// assume DX12 rendering engine
-		std::string api = arguments.GetString("API", "DX12");
+		if (arguments.FindParam("API"))
+		{
+			api = arguments.GetString("API", "DX12");
+		}
+		else
+		{
+			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			if (section.Has("API"))
+			{
+				api = section.GetText("API");
+			}
+		}
 		if (!graphicsBackend.Init(api))
 		{
 			vzlog_error("Invalid Graphics API : %s", api.c_str());
@@ -315,7 +360,19 @@ namespace vzm
 
 		// initialize the graphics backend
 		graphics::ValidationMode validationMode = graphics::ValidationMode::Disabled;
-		std::string validation = arguments.GetString("GPU_VALIDATION", "DISABLED");
+		std::string validation = "DISABLED";
+		if (arguments.FindParam("DISABLED"))
+		{
+			validation = arguments.GetString("GPU_VALIDATION", "DISABLED");
+		}
+		else
+		{
+			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			if (section.Has("GPU_VALIDATION"))
+			{
+				validation = section.GetText("GPU_VALIDATION");
+			}
+		}
 		if (validation == "VERBOSE")
 		{
 			validationMode = graphics::ValidationMode::Verbose;
@@ -329,7 +386,19 @@ namespace vzm
 		}
 
 		graphics::GPUPreference preferenceMode = graphics::GPUPreference::Discrete;
-		std::string preference = arguments.GetString("GPU_PREFERENCE", "DISCRETE");
+		std::string preference = "DISCRETE";
+		if (arguments.FindParam("GPU_PREFERENCE"))
+		{
+			preference = arguments.GetString("GPU_PREFERENCE", "DISCRETE");
+		}
+		else
+		{
+			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			if (section.Has("GPU_PREFERENCE"))
+			{
+				preference = section.GetText("GPU_PREFERENCE");
+			}
+		}
 		if (preference == "INTEGRATED")
 		{
 			preferenceMode = graphics::GPUPreference::Integrated;
@@ -342,7 +411,33 @@ namespace vzm
 		shaderEngine.pluginInitializer(graphicsDevice);
 
 		// engine core initializer
-		uint32_t num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
+
+		uint32_t num_max_threads = ~0u;
+		if (arguments.FindParam("MAX_THREADS"))
+		{
+			num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
+		}
+		else
+		{
+			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			if (section.Has("MAX_THREADS"))
+			{
+				std::string max_thread_str = section.GetText("MAX_THREADS");
+				if (max_thread_str != "MAXIMUM")
+				{
+					try {
+						num_max_threads = std::stoi(max_thread_str);
+					}
+					catch (const std::invalid_argument& e) {
+						vzlog_warning(e.what());
+					}
+					catch (const std::out_of_range& e) {
+						vzlog_warning(e.what());
+					}
+				}
+			}
+		}
+
 		initializer::SetMaxThreadCount(num_max_threads);
 		initializer::InitializeComponentsAsync();	// involving jobsystem initializer
 		//initializer::InitializeComponentsImmediate();	// involving jobsystem initializer
