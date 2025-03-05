@@ -1,4 +1,5 @@
 #include "GComponents.h"
+#include "Common/Engine_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/Timer.h"
 
@@ -325,7 +326,7 @@ namespace vz
 					bvhLeafAabbs_.push_back(aabb);
 				}
 				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
-
+				
 				backlog::post("CPUBVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
 			}
 			else
@@ -797,6 +798,8 @@ namespace vz
 
 	void GGeometryComponent::DeleteRenderData()
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& primitive = parts_[i];
@@ -807,6 +810,8 @@ namespace vz
 	}
 	void GGeometryComponent::UpdateRenderData()
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+
 		DeleteRenderData();
 
 		if (isDirty_)
