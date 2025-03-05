@@ -203,21 +203,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		// ORGONAL CASE 
 		//	cam_forward is parallel with dir_sample_ws
 		//	fragment z and zthick is computed w.r.t. the ray from the near-plane
-		uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
-		uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
-
-		// 8 bit color
-		Fragment f_0;
-		f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
-		f_0.z = asfloat(v_layer_packed0_RGBA.g);
-		f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
-		fs[0] = f_0;
-
-		Fragment f_1;
-		f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
-		f_1.z = asfloat(v_layer_packed1_RG.r);
-		f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
-		fs[1] = f_1;
 
 		uint c_m_d = counter_mask_distmap[pixel];
 		num_frags = c_m_d & 0xFF;
@@ -227,6 +212,28 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		{
 			return;
 		}
+
+		Fragment f_0, f_1;
+		f_0.Init();
+		f_1.Init();
+		if (num_frags > 0)
+		{
+			uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
+
+			f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
+			f_0.z = asfloat(v_layer_packed0_RGBA.g);
+			f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
+
+			if (num_frags > 1)
+			{
+				uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
+				f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
+				f_1.z = asfloat(v_layer_packed1_RG.r);
+				f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
+			}
+		}
+		fs[0] = f_0;
+		fs[1] = f_1;
 #endif
 
 #ifdef WITHOUT_KB
@@ -494,12 +501,13 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		half4 color_out = (half4)0; // output
 
 		uint num_frags = 0;
+		Fragment fs[K_NUM];
+
 #ifdef WITHOUT_KB
 		float cos = dot(camera.forward, ray.Direction);
 		RWTexture2D<float> inout_linear_depth = bindless_rwtextures_float[descriptor_index(push.inout_linear_depth_Index)];
 		float prev_linear_depth = inout_linear_depth[pixel];
 
-		Fragment fs[K_NUM];
 		if (prev_linear_depth < 1.f)
 		{
 			Fragment f;
@@ -516,30 +524,40 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 #endif
 
 #ifdef SLICER_BUFFERS
-		uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
-		uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
-
-		Fragment f_0;
-		f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
-		f_0.z = asfloat(v_layer_packed0_RGBA.g);
-		f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
-
-		Fragment f_1;
-		f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
-		f_1.z = asfloat(v_layer_packed1_RG.r);
-		f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
-
-		//float prev_z = f_0.z;
+		// ORGONAL CASE 
+		//	cam_forward is parallel with dir_sample_ws
+		//	fragment z and zthick is computed w.r.t. the ray from the near-plane
 
 		uint c_m_d = counter_mask_distmap[pixel];
 		num_frags = c_m_d & 0xFF;
 		uint mask = (c_m_d >> 8) & 0xFF;
+
 		if (mask & (SLICER_DEPTH_OUTLINE_DIRTY | SLICER_DEPTH_OUTLINE))
 		{
 			return;
 		}
 
-		Fragment fs[K_NUM] = { f_0, f_1 };
+		Fragment f_0, f_1;
+		f_0.Init();
+		f_1.Init();
+		if (num_frags > 0)
+		{
+			uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
+
+			f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
+			f_0.z = asfloat(v_layer_packed0_RGBA.g);
+			f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
+
+			if (num_frags > 1)
+			{
+				uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
+				f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
+				f_1.z = asfloat(v_layer_packed1_RG.r);
+				f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
+			}
+		}
+		fs[0] = f_0;
+		fs[1] = f_1;
 #endif
 
 		uint index_frag = 0;
@@ -547,6 +565,14 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		IntermixSample(color_out, f_next_layer, index_frag, vis_otf, depth_sample, (half)(hits_t.y - hits_t.x), num_frags, fs);
 
+		if (color_out.a < ERT_ALPHA_HALF)
+		{
+			for (; index_frag < num_frags; ++index_frag)
+			{
+				half4 color = fs[index_frag].color;
+				color_out += color * ((half)1.f - color_out.a);
+			}
+		}
 		inout_color[pixel] = (float4)color_out;
 	}
 #endif 
