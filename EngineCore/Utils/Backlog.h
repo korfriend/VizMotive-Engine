@@ -37,7 +37,9 @@ namespace vz::backlog
 
 	extern "C" UTIL_EXPORT LogLevel getLogLevel();
 
-	void Destroy();
+	extern "C" UTIL_EXPORT const char* GetLogPath();
+
+	void Destroy(); // Available only for Engine Manager
 };
 
 namespace vz

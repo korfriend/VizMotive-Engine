@@ -16,9 +16,6 @@
     <Filter Include="ThirdParty\meshoptimizer">
       <UniqueIdentifier>{1845c6fe-c447-47a6-aad9-0b8b888b445f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="HighAPIs %28API_EXPORT%29\Private">
-      <UniqueIdentifier>{d6b212d0-c61d-4fdc-9bef-6a692fc64042}</UniqueIdentifier>
-    </Filter>
     <Filter Include="HighAPIs %28API_EXPORT%29\Public %28APIs%29">
       <UniqueIdentifier>{38103698-f842-44d4-9f97-60f80578e7c0}</UniqueIdentifier>
     </Filter>
@@ -60,6 +57,12 @@
     </Filter>
     <Filter Include="Components %28CORE_EXPORT%29\Private\Component Detail">
       <UniqueIdentifier>{5beea166-6e5f-4119-8e5a-4d98f96dbf9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HighAPIs %28API_EXPORT%29\Private %28Manager%29">
+      <UniqueIdentifier>{e9ab0fa7-0bcd-48af-9ee7-35eaaf6a2cf7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HighAPIs %28API_EXPORT%29\Private %28Components%29">
+      <UniqueIdentifier>{d6b212d0-c61d-4fdc-9bef-6a692fc64042}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -274,19 +277,19 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzRenderer.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzComponentAPIs.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzGeometry.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzMaterial.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp">
       <Filter>Common</Filter>
@@ -358,13 +361,10 @@
       <Filter>ThirdParty\meshoptimizer</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzTexture.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineManager.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzLight.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
@@ -379,13 +379,13 @@
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzScene.cpp">
-      <Filter>HighAPIs %28API_EXPORT%29\Private</Filter>
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentRefReset.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
@@ -407,6 +407,12 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\RenderableComponent.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private\Component Detail</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Config.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineManager.cpp">
+      <Filter>HighAPIs %28API_EXPORT%29\Private %28Manager%29</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

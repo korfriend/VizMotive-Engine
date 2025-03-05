@@ -81,6 +81,7 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Canvas.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Config.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />

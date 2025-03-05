@@ -144,10 +144,6 @@ int main(int, char**)
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::ParamMap<std::string> arguments;
-	//arguments.SetString("API", "DX11");
-	arguments.SetString("GPU_VALIDATION", "VERBOSE");
-	//arguments.SetParam("MAX_THREADS", 1u); // ~0u
-	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
 	if (!vzm::InitEngineLib(arguments)) {
 		std::cerr << "Failed to initialize engine library." << std::endl;
 		return -1;

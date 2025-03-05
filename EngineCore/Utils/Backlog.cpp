@@ -32,10 +32,16 @@ namespace vz::backlog
 
 	LogLevel logLevel = LogLevel::Trace;
 	bool isInitialized = false;
+	std::string logPath;
+
+	const char* GetLogPath() 
+	{
+		return logPath.c_str();
+	}
 
 	static void intialize()
 	{
-		std::string log_path = helper::GetTempDirectoryPath();
+		logPath = helper::GetTempDirectoryPath();
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
 		WCHAR path[2048];
@@ -43,16 +49,16 @@ namespace vz::backlog
 		if (result == S_OK)
 		{
 			std::wstring path_w = std::wstring(path);
-			helper::StringConvert(path_w, log_path);
+			helper::StringConvert(path_w, logPath);
 #ifdef PLATFORM_WINDOWS_DESKTOP
-			log_path += "\\";
+			logPath += "\\";
 #else
-			log_path += "/";
+			logPath += "/";
 #endif
 		}
 #endif
 
-		std::string log_file_path = log_path + "vzEngine.log";
+		std::string log_file_path = logPath + "vzEngine.log";
 
 		apiLogger->set_level(spdlog::level::trace);
 
