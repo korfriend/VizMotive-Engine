@@ -114,11 +114,10 @@ inline bool IsInsideClipBox(const float3 pos_target, const float4x4 mat_2_bs)
 	return _dot.x <= 0 && _dot.y <= 0 && _dot.z <= 0;
 }
 
-inline float2 ComputeAaBbHits(const float3 pos_start, float3 pos_min, const float3 pos_max, const float3 vec_dir)
+inline float2 ComputeAaBbHits(const float3 pos_start, float3 pos_min, const float3 pos_max, const float3 vec_dir_rcp)
 {
 	// intersect ray with a box
-	// http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
-	float3 invR = float3(1.0f, 1.0f, 1.0f) / vec_dir;
+	float3 invR = vec_dir_rcp;// float3(1.0f, 1.0f, 1.0f) / vec_dir;
 	float3 tbot = invR * (pos_min - pos_start);
 	float3 ttop = invR * (pos_max - pos_start);
 
@@ -139,7 +138,8 @@ float2 ComputeClipBoxHits(const float3 pos_start, const float3 vec_dir, const fl
 {
 	float3 pos_src_bs = TransformPoint(pos_start, mat_vbox_2bs);
 	float3 vec_dir_bs = TransformVector(vec_dir, mat_vbox_2bs);
-	float2 hit_t = ComputeAaBbHits(pos_src_bs, float3(-0.5, -0.5, -0.5), float3(0.5, 0.5, 0.5), vec_dir_bs);
+	float3 vec_dir_bs_rcp = 1.f / vec_dir_bs;
+	float2 hit_t = ComputeAaBbHits(pos_src_bs, float3(-0.5, -0.5, -0.5), float3(0.5, 0.5, 0.5), vec_dir_bs_rcp);
 	return hit_t;
 }
 
@@ -246,7 +246,7 @@ struct BlockSkip
 	bool visible;
 	int num_skip_steps;
 };
-BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const uint2 blocks_wwh, const Buffer<uint> buffer_bitmask)
+BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts_rcp, const float3 singleblock_size_ts, const uint2 blocks_wwh, const Buffer<uint> buffer_bitmask)
 {
 	BlockSkip blk_v = (BlockSkip)0;
 	int3 blk_id = pos_start_ts / singleblock_size_ts;
@@ -256,7 +256,7 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 
 	float3 pos_min_ts = float3(blk_id.x * singleblock_size_ts.x, blk_id.y * singleblock_size_ts.y, blk_id.z * singleblock_size_ts.z);
 	float3 pos_max_ts = pos_min_ts + singleblock_size_ts;
-	float2 hits_t = ComputeAaBbHits(pos_start_ts, pos_min_ts, pos_max_ts, vec_sample_ts);
+	float2 hits_t = ComputeAaBbHits(pos_start_ts, pos_min_ts, pos_max_ts, vec_sample_ts_rcp);
 	float dist_skip_ts = hits_t.y - hits_t.x;
 	
 	// here, max is for avoiding machine computation error
@@ -446,6 +446,8 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     float3 pos_ray_start_ts = TransformPoint(pos_ray_start_ws, mat_ws2ts);
     float3 dir_sample_ts = TransformVector(dir_sample_ws, mat_ws2ts);
 	half opacity_correction = (half)push.opacity_correction;
+
+	float3 dir_sample_ts_rcp = safe_rcp3(dir_sample_ts);
     
 	[branch]
     if (Sample_Volume_And_Check(sample_v, pos_ray_start_ts, push.main_visible_min_sample, opacity_correction, volume_main
@@ -463,7 +465,7 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     {
         float3 pos_sample_ts = pos_ray_start_ts + dir_sample_ts * (float) i;
 
-        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, i, buffer_bitmask)
+        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts_rcp, num_ray_samples, i, buffer_bitmask)
 			
 		[branch]
         if (blkSkip.visible)

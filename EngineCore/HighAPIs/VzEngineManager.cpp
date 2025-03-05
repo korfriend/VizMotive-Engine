@@ -302,7 +302,9 @@ namespace vzm
 			backlog::post("Already initialized!", backlog::LogLevel::Warn);
 			return false;
 		}
-
+		
+		std::string ems_string = "ENGINE_MANAGER_SETTINGS";
+		const char* ems_string_c = ems_string.c_str();
 		{
 			// CONFIG FILE
 			// backlog has been already initialized!
@@ -313,7 +315,7 @@ namespace vzm
 				file.close();
 			}
 			assert(configFile.Open(config_filename.c_str()));
-			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			config::Section& section = configFile.GetSection(ems_string_c);
 			if (!section.Has("API"))
 			{
 				section.Set("API", "DX12");
@@ -341,7 +343,7 @@ namespace vzm
 		}
 		else
 		{
-			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			config::Section& section = configFile.GetSection(ems_string_c);
 			if (section.Has("API"))
 			{
 				api = section.GetText("API");
@@ -367,7 +369,7 @@ namespace vzm
 		}
 		else
 		{
-			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			config::Section& section = configFile.GetSection(ems_string_c);
 			if (section.Has("GPU_VALIDATION"))
 			{
 				validation = section.GetText("GPU_VALIDATION");
@@ -393,7 +395,7 @@ namespace vzm
 		}
 		else
 		{
-			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			config::Section& section = configFile.GetSection(ems_string_c);
 			if (section.Has("GPU_PREFERENCE"))
 			{
 				preference = section.GetText("GPU_PREFERENCE");
@@ -419,7 +421,7 @@ namespace vzm
 		}
 		else
 		{
-			config::Section& section = configFile.GetSection("ENGINE MANAGER SETTINGS");
+			config::Section& section = configFile.GetSection(ems_string_c);
 			if (section.Has("MAX_THREADS"))
 			{
 				std::string max_thread_str = section.GetText("MAX_THREADS");
