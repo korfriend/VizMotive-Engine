@@ -145,7 +145,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		if (hit_step < 0)
 		{
-			inout_color[pixel] = float4(1, 1, 0, 1);
 			return;
 		}
 
