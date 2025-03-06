@@ -250,6 +250,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Engine_Internal.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\GeometryGenerator.h">
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28APIs managed by core%29</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -413,6 +416,9 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzEngineManager.cpp">
       <Filter>HighAPIs %28API_EXPORT%29\Private %28Manager%29</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\GeometryGenerator.cpp">
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
