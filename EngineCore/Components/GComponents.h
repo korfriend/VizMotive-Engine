@@ -537,7 +537,7 @@ namespace vz
 	{
 		GSlicerComponent(const Entity entity, const VUID vuid = 0) : SlicerComponent(entity, vuid), GCameraInterface(entity) {}
 
-		void updateCurve() override;
+		void UpdateCurve() override;
 
 		graphics::GPUBuffer curveInterpPointsBuffer;
 	};

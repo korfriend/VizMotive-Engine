@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250305_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250306_0";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
@@ -1479,7 +1479,6 @@ namespace vz
 		float curvedPlaneWidth_ = 1.f;
 		bool isDirtyCurve_ = true;
 		std::vector<XMFLOAT3> horizontalCurveInterpPoints_;
-		virtual void updateCurve() = 0;
 	public:
 		SlicerComponent(const Entity entity, const bool curvedSlicer, const VUID vuid = 0) : CameraComponent(ComponentType::SLICER, entity, vuid) {
 			flags_ = CamFlags::ORTHOGONAL | CamFlags::SLICER | (curvedSlicer? CamFlags::CURVED : 0);
@@ -1509,6 +1508,8 @@ namespace vz
 		inline bool IsReverseSide() const { return isReverseSide_; }
 		inline bool IsValidCurvedPlane() const { return horizontalCurveControls_.size() > 2 && curvedPlaneHeight_ > 0; }
 		inline bool MakeCurvedSlicerHelperGeometry(const Entity geometryEntity);
+
+		virtual void UpdateCurve() = 0;
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
