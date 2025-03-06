@@ -13,6 +13,8 @@ namespace vz
 #define MAX_GEOMETRY_PARTS 32 // ShaderInterop.h's `#define MAXPARTS 32`
 	void GeometryComponent::MovePrimitivesFrom(std::vector<Primitive>&& primitives)
 	{
+		waiter_->waitForFree();
+
 		parts_ = std::move(primitives);
 		//parts_.assign(primitives.size(), Primitive());
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
@@ -26,6 +28,8 @@ namespace vz
 	}
 	void GeometryComponent::CopyPrimitivesFrom(const std::vector<Primitive>& primitives)
 	{
+		waiter_->waitForFree();
+
 		parts_ = primitives;
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
@@ -55,6 +59,8 @@ namespace vz
 	}
 	void GeometryComponent::MovePrimitiveFrom(Primitive&& primitive, const size_t slot)
 	{
+		waiter_->waitForFree();
+
 		tryAssignParts(slot, parts_);
 		Primitive& prim = parts_[slot];
 		prim.MoveFrom(std::move(primitive));
@@ -64,6 +70,8 @@ namespace vz
 	}
 	void GeometryComponent::CopyPrimitiveFrom(const Primitive& primitive, const size_t slot)
 	{
+		waiter_->waitForFree();
+
 		tryAssignParts(slot, parts_);
 		parts_[slot] = primitive;
 		Primitive& prim = parts_[slot];
@@ -73,6 +81,8 @@ namespace vz
 	}
 	void GeometryComponent::AddMovePrimitiveFrom(Primitive&& primitive)
 	{
+		waiter_->waitForFree();
+
 		parts_.push_back(std::move(primitive));
 		parts_.back().recentBelongingGeometry_ = entity_;
 		isDirty_ = true;
@@ -84,6 +94,18 @@ namespace vz
 		parts_.back().recentBelongingGeometry_ = entity_;
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
+	}
+
+	void GeometryComponent::ClearGeometry()
+	{
+		waiter_->waitForFree();
+
+		parts_.clear();
+		DeleteRenderData();
+
+		isDirty_ = true;
+		hasBVH_ = false;
+		aabb_ = geometrics::AABB();
 	}
 	const Primitive* GeometryComponent::GetPrimitive(const size_t slot) const
 	{
@@ -100,6 +122,7 @@ namespace vz
 			backlog::post("slot is over # of parts!", backlog::LogLevel::Error);
 			return nullptr;
 		}
+		waiter_->waitForFree();
 		return &parts_[slot];
 	}
 
@@ -342,6 +365,28 @@ namespace vz
 
 #define AUTO_RENDER_DATA GeometryComponent* geometry = compfactory::GetGeometryComponent(recentBelongingGeometry_);\
 	if (geometry && autoUpdateRenderData) geometry->UpdateRenderData();
+
+	void Primitive::FillIndicesFromTriVertices()
+	{
+		if (ptype_ != PrimitiveType::TRIANGLES)
+		{
+			vzlog_error("FillIndicesFromTriVertices is allowed for Triangular mesh");
+			return;
+		}
+
+		size_t n = vertexPositions_.size();
+		if (n < 3 || n % 3 != 0)
+		{
+			vzlog_error("Invalid triangles");
+			return;
+		}
+
+		indexPrimitives_.resize(n);
+		for (size_t i = 0; i < n; ++i)
+		{
+			indexPrimitives_[i] = i;
+		}
+	}
 
 	void Primitive::ComputeNormals(NormalComputeMethod computeMode)
 	{
@@ -641,6 +686,17 @@ namespace vz
 
 		AUTO_RENDER_DATA;
 	}
+	void Primitive::ComputeAABB()
+	{
+		geometrics::AABB aabb;
+		for (size_t i = 0, n = vertexPositions_.size(); i < n; ++i)
+		{
+			XMFLOAT3& p = vertexPositions_[i];
+			aabb._min = math::Min(aabb._min, p);
+			aabb._max = math::Max(aabb._max, p);
+		}
+		aabb_ = aabb;
+	}
 	void Primitive::FlipCulling()
 	{
 		for (size_t face = 0; face < indexPrimitives_.size() / 3; face++)
@@ -730,10 +786,7 @@ namespace vz
 {
 	void GeometryComponent::UpdateBVH(const bool enabled)
 	{
-		if (busyUpdateBVH_->load())
-			return;
-		busyUpdateBVH_->store(true);
-		timeStampBVHUpdate_ = TimerNow;
+		waiter_->setWait();
 		for (Primitive& prim : parts_)
 		{
 			if (prim.GetPrimitiveType() == PrimitiveType::TRIANGLES)
@@ -742,7 +795,8 @@ namespace vz
 			}
 		}
 		hasBVH_ = enabled;
-		busyUpdateBVH_->store(false);
+		timeStampBVHUpdate_ = TimerNow;
+		waiter_->setFree();
 	}
 }
 
@@ -1476,26 +1530,4 @@ namespace vz
 	//	}
 	//	bvh.Build(bvh_leaf_aabbs.data(), (uint32_t)bvh_leaf_aabbs.size());
 	//}
-}
-
-// geometry helper generation
-namespace vz
-{
-	// refer to three.js
-	bool GeometryComponent::MakeSphere(const XMFLOAT3 center, float radius)
-	{
-		vzlog_assert(0, "TODO");
-		return true;
-	}
-	bool GeometryComponent::MakeCube(const XMFLOAT3 center, XMFLOAT3 whd)
-	{
-		vzlog_assert(0, "TODO");
-		return true;
-	}
-	bool GeometryComponent::MakeCylinder(const XMFLOAT3 p0, const float r0, const XMFLOAT3 p1, const float r1)
-	{
-		vzlog_assert(0, "TODO");
-		return true;
-	}
-
 }

@@ -32,13 +32,70 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250306_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250307_3";
 	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
 	struct GScene;
 	struct Resource;
+
+	class WaitForBool {
+	private:
+		std::atomic<bool> flag; // if false, then wait!
+		std::mutex mtx;
+		std::condition_variable cv;
+
+	public:
+		WaitForBool() : flag(true) {}
+
+		// Called from another thread to set the flag to true
+		void setFree() {
+			flag.store(true, std::memory_order_release);
+			// Notify all waiting threads
+			cv.notify_all();
+		}
+
+		// Wait until flag becomes true
+		void waitForFree() {
+			// Quick check before locking (optimization)
+			if (flag.load(std::memory_order_acquire)) {
+				return;
+			}
+
+			std::unique_lock<std::mutex> lock(mtx);
+			// Wait until flag becomes true
+			cv.wait(lock, [this]() {
+				return flag.load(std::memory_order_acquire);
+				});
+			// At this point, flag is true
+		}
+
+		// Alternative wait method with timeout
+		template<typename Rep, typename Period>
+		bool waitForFree(const std::chrono::duration<Rep, Period>& timeout) {
+			// Quick check before locking
+			if (flag.load(std::memory_order_acquire)) {
+				return true;
+			}
+
+			std::unique_lock<std::mutex> lock(mtx);
+			// Wait until flag becomes true or timeout
+			return cv.wait_for(lock, timeout, [this]() {
+				return flag.load(std::memory_order_acquire);
+				});
+		}
+
+		// Check current flag value without waiting
+		bool isFree() const {
+			return flag.load(std::memory_order_acquire);
+		}
+
+		// Reset flag to false
+		void setWait() {
+			flag.store(false, std::memory_order_release);
+		}
+	};
 
 	enum class RenderableFilterFlags
 	{
@@ -695,6 +752,7 @@ namespace vz
 			void updateGpuEssentials(); // supposed to be called in GeometryComponent
 
 			// CPU-side BVH acceleration structure
+			//  this is supposed to be called by GeometryComponent!
 			//	true: BVH will be built immediately if it doesn't exist yet
 			//	false: BVH will be deleted immediately if it exists
 			void updateBVH(const bool enabled);
@@ -764,7 +822,9 @@ namespace vz
 			void SetIdxPrimives(std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, SCU32(BufferDefinition::INDICES)) }
 
 			// Helpers for adding useful attributes to Primitive
+			void FillIndicesFromTriVertices();
 			void ComputeNormals(NormalComputeMethod computeMode);
+			void ComputeAABB();
 			void FlipCulling();
 			void FlipNormals();
 			// These are to replace memory-stored positions
@@ -787,7 +847,7 @@ namespace vz
 		bool hasRenderData_ = false;
 		bool hasBVH_ = false;
 		geometrics::AABB aabb_; // not serialized (automatically updated)
-		std::shared_ptr<std::atomic<bool>> busyUpdateBVH_ = std::make_shared<std::atomic<bool>>(false);
+		std::shared_ptr<WaitForBool> waiter_ = std::make_shared<WaitForBool>();
 
 		TimeStamp timeStampPrimitiveUpdate_ = TimerMin;
 		TimeStamp timeStampBVHUpdate_ = TimerMin;
@@ -800,14 +860,19 @@ namespace vz
 		bool HasBVH() const { return hasBVH_; }
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
+
+		// ----- WaitForBool -----
 		void MovePrimitivesFrom(std::vector<Primitive>&& primitives);
 		void CopyPrimitivesFrom(const std::vector<Primitive>& primitives);
 		void MovePrimitiveFrom(Primitive&& primitive, const size_t slot);
 		void CopyPrimitiveFrom(const Primitive& primitive, const size_t slot);
 		void AddMovePrimitiveFrom(Primitive&& primitive);
 		void AddCopyPrimitiveFrom(const Primitive& primitive);
-		const Primitive* GetPrimitive(const size_t slot) const;
+		void ClearGeometry();
 		Primitive* GetMutablePrimitive(const size_t slot);
+		// ----- ----------- -----
+		
+		const Primitive* GetPrimitive(const size_t slot) const;
 		const std::vector<Primitive>& GetPrimitives() const { return parts_; }
 		size_t GetNumParts() const { return parts_.size(); }
 		void SetTessellationFactor(const float tessllationFactor) { tessellationFactor_ = tessllationFactor; }
@@ -826,11 +891,6 @@ namespace vz
 		virtual void UpdateRenderData() = 0;
 		virtual size_t GetMemoryUsageCPU() const = 0;
 		virtual size_t GetMemoryUsageGPU() const = 0;
-
-		// Basic Geometry Helpers //
-		bool MakeSphere(const XMFLOAT3 center, float radius);
-		bool MakeCube(const XMFLOAT3 center, XMFLOAT3 whd);
-		bool MakeCylinder(const XMFLOAT3 p0, const float r0, const XMFLOAT3 p1, const float r1);
 
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};

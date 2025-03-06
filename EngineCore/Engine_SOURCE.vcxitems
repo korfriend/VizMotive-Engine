@@ -67,6 +67,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\ECS.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\EventHandler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Geometrics.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\GeometryGenerator.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Helpers2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h" />
@@ -130,6 +131,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\GeometryGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp" />
