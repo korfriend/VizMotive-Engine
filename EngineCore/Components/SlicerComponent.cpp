@@ -7,11 +7,14 @@ namespace vz
 {
 	extern GShaderEngineLoader shaderEngine;
 
-	void SlicerComponent::updateCurve()
+	void SlicerComponent::UpdateCurve()
 	{
+		if (!isDirtyCurve_)
+		{
+			return;
+		}
 		vzlog_assert(IsCurvedSlicer(), "SlicerComponent::updateCurve() is allowed only for curved slicer!");
 
-		isDirtyCurve_ = false;
 		size_t num_ctrs = horizontalCurveControls_.size();
 		if (num_ctrs < 2)
 		{
@@ -96,11 +99,13 @@ namespace vz
 				horizontalCurveInterpPoints_.push_back(curve_end_p);
 			}
 		}
+
+		isDirtyCurve_ = false;
 	}
 
-	void GSlicerComponent::updateCurve()
+	void GSlicerComponent::UpdateCurve()
 	{
-		SlicerComponent::updateCurve();
+		SlicerComponent::UpdateCurve();
 
 		curveInterpPointsBuffer = {};
 
@@ -135,7 +140,7 @@ namespace vz
 
 		if (isDirtyCurve_)
 		{
-			updateCurve();
+			UpdateCurve();
 		}
 
 		if (horizontalCurveInterpPoints_.size() == 0)

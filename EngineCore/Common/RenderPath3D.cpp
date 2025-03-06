@@ -125,6 +125,11 @@ namespace vz
 		{
 			camera->SetWorldLookAtFromHierarchyTransforms();
 		}
+
+		if (camera->IsCurvedSlicer())
+		{
+			((SlicerComponent*)camera)->UpdateCurve(); // include dirty check!
+		}
 	}
 	
 	void RenderPath3D::Render(const float dt)
