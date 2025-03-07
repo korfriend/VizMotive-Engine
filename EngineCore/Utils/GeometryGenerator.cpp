@@ -5,7 +5,7 @@
 
 namespace vz::geogen
 {
-	// source from https://github.com/mrdoob/three.js/blob/dev/src/geometries/PolyhedronGeometry.js
+	// source from https://github.com/mrdoob/three.js/blob/dev/src/geometries/
 
 	using Primitive = GeometryComponent::Primitive;
 	using PrimitiveType = GeometryComponent::PrimitiveType;
@@ -737,6 +737,164 @@ namespace vz::geogen
 
 		// Get the primitive
 		Primitive& GetPrimitive() { return primitive; }
+	};
+
+	class SphereGeometry
+	{
+		/**
+		 * Constructs a new sphere geometry.
+		 *
+		 * @param {number} [radius=1] - The radius of the sphere.
+		 * @param {number} [widthSegments=32] - The number of segments horizontally.
+		 * @param {number} [heightSegments=16] - The number of segments vertically.
+		 * @param {number} [phiStart=0] - The starting angle in the horizontal plane.
+		 * @param {number} [phiLength=2*PI] - The angle size in the horizontal plane.
+		 * @param {number} [thetaStart=0] - The starting angle in the vertical plane.
+		 * @param {number} [thetaLength=PI] - The angle size in the vertical plane.
+		 */
+
+		Primitive primitive;
+
+		// Parameters
+		float radius = 1.0f;
+		uint32_t widthSegments = 32;
+		uint32_t heightSegments = 16;
+		float phiStart = 0.0f;
+		float phiLength = XM_2PI;
+		float thetaStart = 0.0f;
+		float thetaLength = XM_PI;
+
+	private:
+		// Build the geometry data
+		void buildGeometry() {
+			// Clear any existing data
+			primitive.GetMutableVtxPositions().clear();
+			primitive.GetMutableVtxNormals().clear();
+			primitive.GetMutableVtxUVSet0().clear();
+			primitive.GetMutableIdxPrimives().clear();
+
+			// Ensure parameters are valid
+			widthSegments = std::max(3u, widthSegments);
+			heightSegments = std::max(2u, heightSegments);
+			const float thetaEnd = std::min(thetaStart + thetaLength, XM_PI);
+
+			// Temporary storage for building the mesh
+			std::vector<std::vector<uint32_t>> grid;
+			uint32_t index = 0;
+
+			// Vertex position and normal
+			XMFLOAT3 vertex;
+			XMFLOAT3 normal;
+
+			// Generate vertices, normals and uvs
+			for (uint32_t iy = 0; iy <= heightSegments; iy++) {
+				std::vector<uint32_t> verticesRow;
+
+				const float v = static_cast<float>(iy) / heightSegments;
+
+				// Special case for the poles
+				float uOffset = 0.0f;
+
+				if (iy == 0 && thetaStart == 0.0f) {
+					uOffset = 0.5f / widthSegments;
+				}
+				else if (iy == heightSegments && thetaEnd == XM_PI) {
+					uOffset = -0.5f / widthSegments;
+				}
+
+				for (uint32_t ix = 0; ix <= widthSegments; ix++) {
+					const float u = static_cast<float>(ix) / widthSegments;
+
+					// Calculate vertex position
+					vertex.x = -radius * cosf(phiStart + u * phiLength) * sinf(thetaStart + v * thetaLength);
+					vertex.y = radius * cosf(thetaStart + v * thetaLength);
+					vertex.z = radius * sinf(phiStart + u * phiLength) * sinf(thetaStart + v * thetaLength);
+
+					// Add vertex position
+					primitive.GetMutableVtxPositions().push_back(vertex);
+
+					// Calculate and add normal (normalized position vector)
+					XMVECTOR normalVec = XMVectorSet(vertex.x, vertex.y, vertex.z, 0.0f);
+					normalVec = XMVector3Normalize(normalVec);
+					XMStoreFloat3(&normal, normalVec);
+					primitive.GetMutableVtxNormals().push_back(normal);
+
+					// Add UV coordinate
+					primitive.GetMutableVtxUVSet0().push_back(XMFLOAT2(u + uOffset, 1.0f - v));
+
+					verticesRow.push_back(index++);
+				}
+
+				grid.push_back(verticesRow);
+			}
+
+			// Generate indices for triangles
+			for (uint32_t iy = 0; iy < heightSegments; iy++) {
+				for (uint32_t ix = 0; ix < widthSegments; ix++) {
+					const uint32_t a = grid[iy][ix + 1];
+					const uint32_t b = grid[iy][ix];
+					const uint32_t c = grid[iy + 1][ix];
+					const uint32_t d = grid[iy + 1][ix + 1];
+
+					// Create two triangles for each quad in the grid
+					if (iy != 0 || thetaStart > 0.0f) {
+						primitive.GetMutableIdxPrimives().push_back(a);
+						primitive.GetMutableIdxPrimives().push_back(b);
+						primitive.GetMutableIdxPrimives().push_back(d);
+					}
+
+					if (iy != heightSegments - 1 || thetaEnd < XM_PI) {
+						primitive.GetMutableIdxPrimives().push_back(b);
+						primitive.GetMutableIdxPrimives().push_back(c);
+						primitive.GetMutableIdxPrimives().push_back(d);
+					}
+				}
+			}
+
+			// Set primitive type
+			primitive.SetPrimitiveType(PrimitiveType::TRIANGLES);
+
+			// Compute bounding box
+			primitive.ComputeAABB();
+		}
+
+	public:
+		SphereGeometry(float radius = 1.0f,
+			uint32_t widthSegments = 32,
+			uint32_t heightSegments = 16,
+			float phiStart = 0.0f,
+			float phiLength = XM_2PI,
+			float thetaStart = 0.0f,
+			float thetaLength = XM_PI) {
+
+			// Store input parameters
+			this->radius = radius;
+			this->widthSegments = widthSegments;
+			this->heightSegments = heightSegments;
+			this->phiStart = phiStart;
+			this->phiLength = phiLength;
+			this->thetaStart = thetaStart;
+			this->thetaLength = thetaLength;
+
+			// Build the geometry
+			buildGeometry();
+		}
+
+		// Get the primitive
+		Primitive& GetPrimitive() { return primitive; }
+
+		// Copy constructor
+		SphereGeometry(const SphereGeometry& source) {
+			this->radius = source.radius;
+			this->widthSegments = source.widthSegments;
+			this->heightSegments = source.heightSegments;
+			this->phiStart = source.phiStart;
+			this->phiLength = source.phiLength;
+			this->thetaStart = source.thetaStart;
+			this->thetaLength = source.thetaLength;
+
+			this->primitive = source.primitive;
+		}
 	};
 
 	class LatheGeometry
