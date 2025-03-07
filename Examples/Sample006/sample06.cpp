@@ -4,6 +4,7 @@
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/JobSystem.h"
 #include "vzm2/utils/GeometryGenerator.h"
+#include "vzm2/utils/Profiler.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -223,26 +224,25 @@ int main(int, char **)
 
 		// === camera ===
 		camera = NewCamera("my camera");
-		glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
-		glm::fvec3 view = at - pos;
+		glm::fvec3 pos(0, 0, 100), up(0, 1, 0), view(0, 0, -1);
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+		camera->SetPerspectiveProjection(0.1f, 5000.f, 60.f, 1.f);
 
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
-		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 1.f, 0);
+		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 0);
 		vzm::VzMaterial *material_test = vzm::NewMaterial("icosahedron's material");
 
 		vzm::VzActor *actor_test = vzm::NewActor("my actor", geometry_test, material_test);
-		actor_test->SetPosition({0, 0, -5.f}); 
 		scene->AppendChild(actor_test);
 
 		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
-		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 1.f);
+		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 8.f, 3, 128, 16);
 		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
 		vzm::VzActor* actor_test2 = vzm::NewActor("my actor2", geometry_test2, material_test2);
 		scene->AppendChild(actor_test2);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		axis_helper->SetScale({ 10, 10, 10 });
 		scene->AppendChild(axis_helper);
 
 		//vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
@@ -290,6 +290,39 @@ int main(int, char **)
 
 		using namespace vzm;
 		{
+			static auto since = std::chrono::system_clock::now();
+			auto now = std::chrono::system_clock::now();
+			auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
+			float time = msTime.count() / 1000.f;
+			glm::fvec3 geo1_pos, geo2_pos;
+			geo1_pos.x = cos(time) * 30;
+			geo1_pos.y = sin(time) * 30;
+			geo1_pos.z = sin(time) * 30;
+
+			vzm::VzActor* actor_test = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor");
+			if (actor_test)
+			{
+				actor_test->SetPosition(*(vfloat3*)&geo1_pos);
+				static glm::fvec3 rot(0, 0, 0);
+				rot.x += 0.02;
+				rot.y += 0.03;
+				actor_test->SetEulerAngleZXY(*(vfloat3*)&rot);
+			}
+
+			geo2_pos.x = cos(time + 10) * 30;
+			geo2_pos.y = sin(time + 10) * 30;
+			geo2_pos.z = sin(time + 10) * 30;
+
+			vzm::VzActor* actor_test2 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor2");
+			if (actor_test2)
+			{
+				actor_test2->SetPosition(*(vfloat3*)&geo2_pos);
+				static glm::fvec3 rot(0, 0, 0);
+				rot.x += 0.02;
+				rot.y += 0.03;
+				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
+			}
+
 			ImGui::Begin("3D Viewer");
 			{
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);
@@ -326,7 +359,7 @@ int main(int, char **)
 					glm::fvec2 pos_ss = m_pos;
 
 					OrbitalControl *orbit_control = camera->GetOrbitControl();
-					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 2.f);
+					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 10.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
@@ -388,6 +421,22 @@ int main(int, char **)
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+				static bool profile_enabled = false;
+				if (ImGui::Checkbox("Profile Enabled", &profile_enabled))
+				{
+					vz::profiler::SetEnabled(profile_enabled);
+				}
+				if (profile_enabled)
+				{
+					std::string performance_info, memory_info;
+					vz::profiler::GetProfileInfo(performance_info, memory_info);
+					ImGui::Text(scene->GetName().c_str());
+					ImGui::Separator();
+					ImGui::Text(performance_info.c_str());
+					ImGui::Separator();
+					ImGui::Text(memory_info.c_str());
+				}
 			}
 			ImGui::End();
 		}
