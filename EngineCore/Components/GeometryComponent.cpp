@@ -418,8 +418,8 @@ namespace vz
 				XMFLOAT3& p1 = vertexPositions_[i1];
 				XMFLOAT3& p2 = vertexPositions_[i2];
 
-				XMVECTOR U = XMLoadFloat3(&p2) - XMLoadFloat3(&p0);
-				XMVECTOR V = XMLoadFloat3(&p1) - XMLoadFloat3(&p0);
+				XMVECTOR U = XMLoadFloat3(&p1) - XMLoadFloat3(&p0);
+				XMVECTOR V = XMLoadFloat3(&p2) - XMLoadFloat3(&p0);
 
 				XMVECTOR N = XMVector3Cross(U, V);
 				N = XMVector3Normalize(N);
@@ -519,8 +519,8 @@ namespace vz
 
 					if (match_pos0 || match_pos1 || match_pos2)
 					{
-						XMVECTOR U = XMLoadFloat3(&v2) - XMLoadFloat3(&v0);
-						XMVECTOR V = XMLoadFloat3(&v1) - XMLoadFloat3(&v0);
+						XMVECTOR U = XMLoadFloat3(&v1) - XMLoadFloat3(&v0);
+						XMVECTOR V = XMLoadFloat3(&v2) - XMLoadFloat3(&v0);
 
 						XMVECTOR N = XMVector3Cross(U, V);
 						N = XMVector3Normalize(N);
@@ -645,8 +645,8 @@ namespace vz
 				uint32_t index2 = indexPrimitives_[i * 3 + 1];
 				uint32_t index3 = indexPrimitives_[i * 3 + 2];
 
-				XMVECTOR side1 = XMLoadFloat3(&vertexPositions_[index1]) - XMLoadFloat3(&vertexPositions_[index3]);
-				XMVECTOR side2 = XMLoadFloat3(&vertexPositions_[index1]) - XMLoadFloat3(&vertexPositions_[index2]);
+				XMVECTOR side1 = XMLoadFloat3(&vertexPositions_[index2]) - XMLoadFloat3(&vertexPositions_[index1]);
+				XMVECTOR side2 = XMLoadFloat3(&vertexPositions_[index3]) - XMLoadFloat3(&vertexPositions_[index1]);
 				XMVECTOR N = XMVector3Normalize(XMVector3Cross(side1, side2));
 				XMFLOAT3 normal;
 				XMStoreFloat3(&normal, N);

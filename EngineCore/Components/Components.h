@@ -32,8 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250307_3";
-	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250307_4";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
