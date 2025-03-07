@@ -39,7 +39,7 @@ namespace vz::canvas
 		auto it = renderPaths.find(entity);
 		if (it == renderPaths.end())
 		{
-			backlog::post("Scene::DestroyCanvas >> Invalid Entity! " + stringEntity(entity), backlog::LogLevel::Error);
+			vzlog_error("Scene::DestroyCanvas >> Invalid Entity! (%d)", entity);
 			return false;
 		}
 		it->second.reset();

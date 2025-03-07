@@ -233,15 +233,17 @@ int main(int, char **)
 		vzm::VzMaterial *material_test = vzm::NewMaterial("icosahedron's material");
 
 		vzm::VzActor *actor_test = vzm::NewActor("my actor", geometry_test, material_test);
-		actor_test->SetScale({2.f, 2.f, 2.f});
-		actor_test->SetPosition({0, 0, -1.f}); 
+		actor_test->SetPosition({0, 0, -5.f}); 
 		scene->AppendChild(actor_test);
 
 		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
+		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 1.f);
 		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
-		geometry_test2->MakeTestQuadWithUVs();
 		vzm::VzActor* actor_test2 = vzm::NewActor("my actor2", geometry_test2, material_test2);
 		scene->AppendChild(actor_test2);
+
+		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		scene->AppendChild(axis_helper);
 
 		//vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
 		//
