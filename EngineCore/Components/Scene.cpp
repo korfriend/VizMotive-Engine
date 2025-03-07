@@ -694,7 +694,7 @@ namespace vz
 		auto it = scenes.find(entity);
 		if (it == scenes.end())
 		{
-			backlog::post("Scene::DestroyScene >> Invalid Entity! " + stringEntity(entity), backlog::LogLevel::Error);
+			vzlog_error("Scene::DestroyScene >> Invalid Entity! (%d)", entity);
 			return false;
 		}
 		it->second.reset();
