@@ -47,9 +47,9 @@ namespace vz
 		// framerate controllers
 		uint64_t frameCount = 0;
 		float deltaTimeAccumulator = 0;
-		float targetFrameRate = 60;
-		bool frameskip = true; // just for fixed update (later for physics-based simulations)
-		bool framerateLock = true;
+		inline static float targetFrameRate = 60;
+		inline static bool frameskip = true; // just for fixed update (later for physics-based simulations)
+		inline static bool framerateLock = true;
 		vz::Timer timer;
 
 		bool UpdateResizedCanvas() {

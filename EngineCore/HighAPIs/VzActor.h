@@ -40,6 +40,8 @@ namespace vzm
 		void SetUndercutDirection(const vfloat3 v);
 		void SetUndercutColor(const vfloat3 v);
 
+		bool CollisionCheck(const ActorVID targetActorVID, int& partIndexSrc, int& triIndexSrc, int& partIndexTarget, int& triIndexTarget);
+
 		std::vector<MaterialVID> GetMaterials() const;
 		MaterialVID GetMaterial(const int slot = 0) const;
 		GeometryVID GetGeometry() const;

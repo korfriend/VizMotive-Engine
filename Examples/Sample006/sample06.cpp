@@ -232,31 +232,31 @@ int main(int, char **)
 		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 0);
 		vzm::VzMaterial *material_test = vzm::NewMaterial("icosahedron's material");
 
-		vzm::VzActor *actor_test = vzm::NewActor("my actor", geometry_test, material_test);
+		vzm::VzActor *actor_test = vzm::NewActor("my actor1-IcosahedronGeometry", geometry_test, material_test);
 		scene->AppendChild(actor_test);
 
 		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
 		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 8.f, 3, 128, 16);
 		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
-		vzm::VzActor* actor_test2 = vzm::NewActor("my actor2", geometry_test2, material_test2);
+		vzm::VzActor* actor_test2 = vzm::NewActor("my actor2-TorusKnot", geometry_test2, material_test2);
 		scene->AppendChild(actor_test2);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 10, 10, 10 });
 		scene->AppendChild(axis_helper);
 
-		//vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
-		//
-		//	vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
-		//	geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
-		//	vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
-		//	material_stl->SetShaderType(vzm::ShaderType::PBR);
-		//	material_stl->SetDoubleSided(true);
-		//	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
-		//	actor_test3->SetScale({ 0.1f, 0.1f, 0.1f });
-		//	scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
-		//
-		//	});
+		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
+
+			vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
+			geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
+			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
+			material_stl->SetShaderType(vzm::ShaderType::PBR);
+			material_stl->SetDoubleSided(true);
+			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
+			actor_test3->SetScale({ 1.f, 1.f, 1.f });
+			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
+
+			});
 		scene->AppendChild(light);
 
 		VzArchive *archive = vzm::NewArchive("test archive");
@@ -291,6 +291,7 @@ int main(int, char **)
 		using namespace vzm;
 		{
 			static auto since = std::chrono::system_clock::now();
+			static bool play = true;
 			auto now = std::chrono::system_clock::now();
 			auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
 			float time = msTime.count() / 1000.f;
@@ -299,21 +300,21 @@ int main(int, char **)
 			geo1_pos.y = sin(time) * 30;
 			geo1_pos.z = sin(time) * 30;
 
-			vzm::VzActor* actor_test = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor");
-			if (actor_test)
+			vzm::VzActor* actor_test1 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor1-IcosahedronGeometry");
+			if (actor_test1)
 			{
-				actor_test->SetPosition(*(vfloat3*)&geo1_pos);
+				actor_test1->SetPosition(*(vfloat3*)&geo1_pos);
 				static glm::fvec3 rot(0, 0, 0);
 				rot.x += 0.02;
 				rot.y += 0.03;
-				actor_test->SetEulerAngleZXY(*(vfloat3*)&rot);
+				actor_test1->SetEulerAngleZXY(*(vfloat3*)&rot);
 			}
 
 			geo2_pos.x = cos(time + 10) * 30;
 			geo2_pos.y = sin(time + 10) * 30;
 			geo2_pos.z = sin(time + 10) * 30;
 
-			vzm::VzActor* actor_test2 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor2");
+			vzm::VzActor* actor_test2 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor2-TorusKnot");
 			if (actor_test2)
 			{
 				actor_test2->SetPosition(*(vfloat3*)&geo2_pos);
@@ -321,6 +322,33 @@ int main(int, char **)
 				rot.x += 0.02;
 				rot.y += 0.03;
 				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
+			}
+
+			// collision test! (pairwise)
+			{
+				VzActor* actor_test3 = (VzActor*)vzm::GetFirstComponentByName("my actor3");
+				if (actor_test3 && play)
+				{
+					// note:
+					//	Actor world matrices are updated during the rendering phase (within the scene update cycle)
+					//	For accurate real-time collision detection between source and destination actors, explicit matrix updates must occur before rendering
+					//	This can be accomplished by calling the actor's UpdateWorldMatrix() function
+					actor_test1->UpdateWorldMatrix();
+					actor_test2->UpdateWorldMatrix();
+
+					int partSrc_index = -1, partDst_index = -1;
+					int triSrc_index = -1, triDst_index = -1;
+					if (actor_test3->CollisionCheck(actor_test1->GetVID(), partSrc_index, triSrc_index, partDst_index, triDst_index))
+					{
+						vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)", 
+							actor_test3->GetName().c_str(), actor_test1->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
+					}
+					if (actor_test3->CollisionCheck(actor_test2->GetVID(), partSrc_index, triSrc_index, partDst_index, triDst_index))
+					{
+						vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)",
+							actor_test3->GetName().c_str(), actor_test2->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
+					}
+				}
 			}
 
 			ImGui::Begin("3D Viewer");
@@ -412,12 +440,16 @@ int main(int, char **)
 				{
 					vzm::ReloadShader();
 				}
+				if (ImGui::Button(play ? "Stop" : "Play"))
+				{
+					play = !play;
+				}
 
 				static int detail_Icosahedron = 0;
 				if (ImGui::SliderInt("Icosahedron's detail", &detail_Icosahedron, 0, 10))
 				{
 					VID geometry_vid = vzm::GetFirstVidByName("my icosahedron");
-					vz::geogen::GenerateIcosahedronGeometry(geometry_vid, 1.f, detail_Icosahedron);
+					vz::geogen::GenerateIcosahedronGeometry(geometry_vid, 15.f, detail_Icosahedron);
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
