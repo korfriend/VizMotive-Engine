@@ -256,6 +256,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\SimpleCollision.h">
       <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Utils_Internal.h">
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">

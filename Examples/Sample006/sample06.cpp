@@ -3,6 +3,7 @@
 #include "vzm2/utils/Backlog.h"
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/JobSystem.h"
+#include "vzm2/utils/Geometrics.h"
 #include "vzm2/utils/GeometryGenerator.h"
 #include "vzm2/utils/Profiler.h"
 
@@ -339,6 +340,7 @@ int main(int, char **)
 					//	Actor world matrices are updated during the rendering phase (within the scene update cycle)
 					//	For accurate real-time collision detection between source and destination actors, explicit matrix updates must occur before rendering
 					//	This can be accomplished by calling the actor's UpdateWorldMatrix() function
+
 					actor_test1->UpdateWorldMatrix();
 					actor_test2->UpdateWorldMatrix();
 
@@ -412,7 +414,7 @@ int main(int, char **)
 					glm::fvec2 pos_ss = m_pos;
 
 					OrbitalControl *orbit_control = camera->GetOrbitControl();
-					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 10.f);
+					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 20.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
