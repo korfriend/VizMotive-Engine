@@ -78,6 +78,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\SimpleCollision.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Utils_Internal.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\vzMath.h" />
   </ItemGroup>
   <ItemGroup>

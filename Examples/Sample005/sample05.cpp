@@ -430,6 +430,10 @@ int main(int, char**)
 		using namespace vzm;
 		{
 			static bool use_renderchain = true;
+			if (!use_renderchain)
+			{
+				vzm::PendingSubmitCommand(true);
+			}
 			std::vector<ChainUnitRCam> render_chain;
 
 			ImGui::Begin("3D Viewer");
@@ -752,7 +756,10 @@ int main(int, char**)
 				if (use_renderchain)
 					render_chain.push_back(ChainUnitRCam(renderer_curvedslicer, slicer_curved));
 				else
+				{
+					vzm::PendingSubmitCommand(false);
 					renderer_curvedslicer->Render(scene, slicer_curved);
+				}
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;

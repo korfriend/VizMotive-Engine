@@ -140,6 +140,27 @@ namespace vzm
 		return engineMutex;
 	}
 
+	std::atomic_bool isPandingSubmitCommand{ false };
+	bool IsPendingSubmitCommand()
+	{
+		return isPandingSubmitCommand.load();
+	}
+
+	std::atomic<uint32_t> countPendingSubmitCommand{ 0u };
+	void ResetPendingSubmitCommand()
+	{
+		isPandingSubmitCommand.store(false);
+		countPendingSubmitCommand.store(0u);
+	}
+	void CountPendingSubmitCommand()
+	{
+		countPendingSubmitCommand.fetch_add(1);
+	}
+	size_t GetCountPendingSubmitCommand()
+	{
+		return countPendingSubmitCommand.load();
+	}
+
 	std::thread::id engineThreadId;
 	inline uint64_t threadToInteger(const std::thread::id& id) {
 		std::stringstream ss;
@@ -844,6 +865,12 @@ namespace vzm
 		}
 		std::unordered_map<std::string, std::any>& io_map = io.GetMap();
 		return lpdll_function(io_map);
+	}
+
+	void PendingSubmitCommand(const bool pending)
+	{
+		CHECK_API_LOCKGUARD_VALIDITY(;);
+		isPandingSubmitCommand.store(pending);
 	}
 
 	void ReloadShader()

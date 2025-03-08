@@ -1,6 +1,7 @@
 #include "SimpleCollision.h"
 #include "Utils/Backlog.h"
 #include "Utils/Jobsystem.h"
+#include "Utils/Profiler.h"
 #include "Components/Components.h"
 
 namespace vz::bvhcollision
@@ -384,6 +385,7 @@ namespace vz::bvhcollision
 
 		XMMATRIX T = XMMatrixMultiply(m1os2ws, m2ws2os);
 
+		auto range = profiler::BeginRangeCPU("Collision Detection");
 		bool is_collision = false;
 		partIndex1 = partIndex2 = -1;
 		triIndex1 = triIndex2 = -1;
@@ -400,6 +402,7 @@ namespace vz::bvhcollision
 				}
 			}
 		}
+		profiler::EndRange(range);
 		return is_collision;
 	}
 }

@@ -30,16 +30,11 @@ namespace vz::profiler
 {
 	typedef size_t range_id;
 
-	// Begin collecting profiling data for the current frame
-	UTIL_EXPORT void BeginFrame();
-
-	// Finalize collecting profiling data for the current frame
-	UTIL_EXPORT void EndFrame(graphics::CommandList* cmd);
-
 	// Start a CPU profiling range
 	UTIL_EXPORT range_id BeginRangeCPU(const char* name);
 
 	// Start a GPU profiling range
+	//	Allows for engine module using the VZM's GPU-backend
 	UTIL_EXPORT range_id BeginRangeGPU(const char* name, graphics::CommandList* cmd);
 
 	// End a profiling range

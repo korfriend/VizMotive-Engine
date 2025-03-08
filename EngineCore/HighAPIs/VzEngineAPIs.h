@@ -75,6 +75,7 @@ namespace vzm
 
 	API_EXPORT bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io);
 
+	API_EXPORT void PendingSubmitCommand(const bool pending);
 	// Reload shaders
 	API_EXPORT void ReloadShader();
 }

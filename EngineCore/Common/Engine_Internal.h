@@ -25,4 +25,8 @@ namespace vz
 namespace vzm
 {
 	std::recursive_mutex& GetEngineMutex();
+	bool IsPendingSubmitCommand();
+	void ResetPendingSubmitCommand();
+	void CountPendingSubmitCommand();
+	size_t GetCountPendingSubmitCommand();
 }
