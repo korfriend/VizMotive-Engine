@@ -345,9 +345,9 @@ namespace vz::bvhcollision
 		{
 			if (!geometry1->IsBusyForBVH())
 			{
+				vzlog_warning("preparing BVH... (%d)", geometryEntity1);
 				jobsystem::context ctx;
 				jobsystem::Execute(ctx, [geometryEntity1](jobsystem::JobArgs args) {
-					vzlog_warning("preparing BVH... (%d)", geometryEntity1);
 					GeometryComponent* geometry1 = compfactory::GetGeometryComponent(geometryEntity1);
 					geometry1->UpdateBVH(true);
 					});
@@ -360,11 +360,11 @@ namespace vz::bvhcollision
 
 		if (!geometry2->HasBVH() || geometry2->IsDirtyBVH())
 		{
-			jobsystem::context ctx;
 			if (!geometry1->IsBusyForBVH())
 			{
+				vzlog_warning("preparing BVH... (%d)", geometryEntity2);
+				jobsystem::context ctx;
 				jobsystem::Execute(ctx, [geometryEntity2](jobsystem::JobArgs args) {
-					vzlog_warning("preparing BVH... (%d)", geometryEntity2);
 					GeometryComponent* geometry2 = compfactory::GetGeometryComponent(geometryEntity2);
 					geometry2->UpdateBVH(true);
 					});
