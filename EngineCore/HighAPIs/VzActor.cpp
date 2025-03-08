@@ -115,7 +115,7 @@ namespace vzm
 		renderable->SetUndercutColor(*(XMFLOAT3*)&v);
 	}
 
-	bool VzActor::CollisionCheck(const ActorVID targetActorVID, int& partIndexSrc, int& triIndexSrc, int& partIndexTarget, int& triIndexTarget)
+	bool VzActor::CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc, int* partIndexTarget, int* triIndexSrc, int* triIndexTarget)
 	{
 		GET_RENDERABLE_COMP(renderable, false);
 		RenderableComponent* renderable_target = compfactory::GetRenderableComponent(targetActorVID);
@@ -124,7 +124,13 @@ namespace vzm
 			vzlog_error("Invalid Target Actor!");
 			return false;
 		}
-		return bvhcollision::CollisionPairwiseCheck(renderable->GetGeometry(), componentVID_, renderable_target->GetGeometry(), targetActorVID, partIndexSrc, triIndexSrc, partIndexTarget, triIndexTarget);
+		int partIndexSrc_v, partIndexTarget_v, triIndexSrc_v, triIndexTarget_v;
+		bool detected = bvhcollision::CollisionPairwiseCheck(renderable->GetGeometry(), componentVID_, renderable_target->GetGeometry(), targetActorVID, partIndexSrc_v, triIndexSrc_v, partIndexTarget_v, triIndexTarget_v);
+		if (partIndexSrc) *partIndexSrc = partIndexSrc_v;
+		if (partIndexTarget) *partIndexTarget = partIndexTarget_v;
+		if (triIndexSrc) *triIndexSrc = triIndexSrc_v;
+		if (triIndexTarget) *triIndexTarget = triIndexTarget_v;
+		return detected;
 	}
 
 	std::vector<MaterialVID> VzActor::GetMaterials() const

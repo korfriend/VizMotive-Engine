@@ -231,15 +231,20 @@ int main(int, char **)
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
 		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 0);
 		vzm::VzMaterial *material_test = vzm::NewMaterial("icosahedron's material");
-
-		vzm::VzActor *actor_test = vzm::NewActor("my actor1-IcosahedronGeometry", geometry_test, material_test);
-		scene->AppendChild(actor_test);
+		vzm::VzActor *actor_test1 = vzm::NewActor("my actor1-IcosahedronGeometry", geometry_test, material_test);
+		scene->AppendChild(actor_test1);
 
 		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
 		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 8.f, 3, 128, 16);
 		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
 		vzm::VzActor* actor_test2 = vzm::NewActor("my actor2-TorusKnot", geometry_test2, material_test2);
 		scene->AppendChild(actor_test2);
+
+		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
+		vz::geogen::GenerateTubeGeometry(geometry_canal->GetVID(), {{ -10, -10, 0 }, { 0, 0, 0 }, { 10, -10, 0 } });
+		vzm::VzMaterial* material_canal = vzm::NewMaterial("my material canal");
+		vzm::VzActor* actor_canal = vzm::NewActor("my actor-canal", geometry_canal, material_canal);
+		scene->AppendChild(actor_canal);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 10, 10, 10 });
@@ -252,6 +257,7 @@ int main(int, char **)
 			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
+			material_stl->SetBaseColor({1, 1, 0, 1});
 			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
 			actor_test3->SetScale({ 1.f, 1.f, 1.f });
 			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
@@ -305,8 +311,8 @@ int main(int, char **)
 			{
 				actor_test1->SetPosition(*(vfloat3*)&geo1_pos);
 				static glm::fvec3 rot(0, 0, 0);
-				rot.x += 0.02;
-				rot.y += 0.03;
+				rot.x += 0.02f;
+				rot.y += 0.03f;
 				actor_test1->SetEulerAngleZXY(*(vfloat3*)&rot);
 			}
 
@@ -319,8 +325,8 @@ int main(int, char **)
 			{
 				actor_test2->SetPosition(*(vfloat3*)&geo2_pos);
 				static glm::fvec3 rot(0, 0, 0);
-				rot.x += 0.02;
-				rot.y += 0.03;
+				rot.x += 0.02f;
+				rot.y += 0.03f;
 				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
 			}
 
@@ -338,15 +344,34 @@ int main(int, char **)
 
 					int partSrc_index = -1, partDst_index = -1;
 					int triSrc_index = -1, triDst_index = -1;
-					if (actor_test3->CollisionCheck(actor_test1->GetVID(), partSrc_index, triSrc_index, partDst_index, triDst_index))
+					if (actor_test3->CollisionCheck(actor_test1->GetVID(), &partSrc_index, &partDst_index, &triSrc_index, &triDst_index))
 					{
-						vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)", 
-							actor_test3->GetName().c_str(), actor_test1->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
+						//vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)", 
+						//	actor_test3->GetName().c_str(), actor_test1->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
+						VzMaterial* mat = (VzMaterial*)vzm::GetComponent(actor_test1->GetMaterial(partDst_index));
+						mat->SetBaseColor({ 1, 0, 0, 1 });
 					}
-					if (actor_test3->CollisionCheck(actor_test2->GetVID(), partSrc_index, triSrc_index, partDst_index, triDst_index))
+					else
 					{
-						vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)",
-							actor_test3->GetName().c_str(), actor_test2->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
+						for (VID vid : actor_test1->GetMaterials())
+						{
+							((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
+						}
+					}
+
+					if (actor_test3->CollisionCheck(actor_test2->GetVID(), &partSrc_index, &partDst_index, &triSrc_index, &triDst_index))
+					{
+						//vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)",
+						//	actor_test3->GetName().c_str(), actor_test2->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
+						VzMaterial* mat = (VzMaterial*)vzm::GetComponent(actor_test2->GetMaterial(partDst_index));
+						mat->SetBaseColor({ 0, 1, 0, 1 });
+					}
+					else
+					{
+						for (VID vid : actor_test2->GetMaterials())
+						{
+							((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
+						}
 					}
 				}
 			}

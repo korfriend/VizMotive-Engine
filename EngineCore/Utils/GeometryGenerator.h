@@ -22,5 +22,5 @@ namespace vz::geogen
 	UTIL_EXPORT bool GenerateSphereGeometry(Entity geometryEntity, const float radius = 1.f, const uint32_t widthSegments = 32u, const uint32_t heightSegments = 16u, 
 		const float phiStart = 0.f, const float phiLength = 0.f, const float thetaStart = 0.f, const float thetaLength = 0.f);
 	UTIL_EXPORT bool GenerateCapsuleGeometry(Entity geometryEntity, const float radius = 1.f, const float length = 1.f, const uint32_t capSegments = 4u, const uint32_t radialSegments = 8u);
-	UTIL_EXPORT bool GenerateTubeGeometry(Entity geometryEntity, const std::vector<XMFLOAT3>& path, uint32_t tubularSegments = 64u, const float radius = 1.f, uint32_t radialSegments = 8u, const bool closed = true);
+	UTIL_EXPORT bool GenerateTubeGeometry(Entity geometryEntity, const std::vector<XMFLOAT3>& path, uint32_t tubularSegments = 64u, const float radius = 1.f, uint32_t radialSegments = 8u, const bool closed = false);
 }
