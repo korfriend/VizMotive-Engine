@@ -332,9 +332,14 @@ namespace vzm
 			{
 				section.Set("MAX_THREADS", "MAXIMUM");
 			}
+			if (!section.Has("TARGET_FPS"))
+			{
+				section.Set("TARGET_FPS", -1);
+			}
 			configFile.Commit();
 		}
 
+		config::Section& section = configFile.GetSection(ems_string_c);
 		std::string api = "DX12";
 		// assume DX12 rendering engine
 		if (arguments.FindParam("API"))
@@ -343,7 +348,6 @@ namespace vzm
 		}
 		else
 		{
-			config::Section& section = configFile.GetSection(ems_string_c);
 			if (section.Has("API"))
 			{
 				api = section.GetText("API");
@@ -358,6 +362,16 @@ namespace vzm
 		{
 			vzlog_error("Invalid Shader Engine");
 			return false;
+		}
+
+		if (int targetFPS = section.GetInt("TARGET_FPS") > 0)
+		{
+			RenderPath::framerateLock = true;
+			RenderPath::targetFrameRate = (float)targetFPS;
+		}
+		else
+		{
+			RenderPath::framerateLock = false;
 		}
 
 		// initialize the graphics backend
@@ -442,7 +456,6 @@ namespace vzm
 
 		initializer::SetMaxThreadCount(num_max_threads);
 		initializer::InitializeComponentsAsync();	// involving jobsystem initializer
-		//initializer::InitializeComponentsImmediate();	// involving jobsystem initializer
 		
 		initialized = true;
 		return true;
