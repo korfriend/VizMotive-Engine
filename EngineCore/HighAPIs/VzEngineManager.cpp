@@ -155,6 +155,11 @@ namespace vzm
 	void CountPendingSubmitCommand()
 	{
 		countPendingSubmitCommand.fetch_add(1);
+
+		if (uint32_t n = countPendingSubmitCommand.load() > 10)
+		{
+			vzlog_warning("# of PendingSubmitCommand (%d) is over 10!\n\t\tPlease Check unintended pending...\n\t\tRecommend to Use the RenderChain!", n);
+		}
 	}
 	size_t GetCountPendingSubmitCommand()
 	{

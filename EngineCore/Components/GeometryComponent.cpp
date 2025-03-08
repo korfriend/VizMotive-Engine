@@ -786,6 +786,8 @@ namespace vz
 {
 	void GeometryComponent::UpdateBVH(const bool enabled)
 	{
+		std::lock_guard<std::mutex> lock(*mutex_);
+
 		if (!waiter_->isFree())
 		{
 			return;
