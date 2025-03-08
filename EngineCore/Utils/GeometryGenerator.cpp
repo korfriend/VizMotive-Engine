@@ -543,12 +543,12 @@ namespace vz::geogen
 			return false;
 		}
 
-		TorusKnotGeometry plolyhedron(radius, tube, tubularSegments, radialSegments, p, q);
+		TorusKnotGeometry torusknot(radius, tube, tubularSegments, radialSegments, p, q);
 
 		{
 			std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 			geometry->ClearGeometry();
-			geometry->AddMovePrimitiveFrom(std::move(plolyhedron.GetPrimitive()));
+			geometry->AddMovePrimitiveFrom(std::move(torusknot.GetPrimitive()));
 			geometry->UpdateRenderData();
 		}
 
@@ -1346,30 +1346,29 @@ namespace vz::geogen
 			}
 		}
 	};
-
 	class TubeGeometry
 	{
 		/**
-		 * Constructs a new tube geometry.
+		 * Constructs a new tube geometry around a 3D curve path.
 		 *
-		 * @param {Path} [path=new QuadraticBezierCurve3(new Vector3(-1,-1,0), new Vector3(-1,1,0), new Vector3(1,1,0))] - A 3D path.
-		 * @param {number} [tubularSegments=64] - The number of segments that make up the tube.
+		 * @param {Path} [path=new QuadraticBezierCurve3((-1,-1,0), (-1,1,0), (1,1,0))] - The path to create a tube around.
+		 * @param {number} [tubularSegments=64] - The number of segments around the tube.
 		 * @param {number} [radius=1] - The radius of the tube.
-		 * @param {number} [radialSegments=8] - The number of segments that make up the cross-section.
+		 * @param {number} [radialSegments=8] - The number of segments around the circumference of the tube.
 		 * @param {boolean} [closed=false] - Whether the tube is closed.
 		 */
 
-		Primitive primtive;
+		Primitive primitive;
 
-		// Path object reference (abstract base class in C++)
+		// Parameters
 		IPath3D* path = nullptr;
 		uint32_t tubularSegments = 64;
-		float radius = 1.f;
+		float radius = 1.0f;
 		uint32_t radialSegments = 8;
 		bool closed = false;
 		bool needToDeletePath = false;
 
-		// exposed internals
+		// Exposed internals
 		std::vector<XMFLOAT3> tangents;
 		std::vector<XMFLOAT3> normals;
 		std::vector<XMFLOAT3> binormals;
@@ -1381,12 +1380,13 @@ namespace vz::geogen
 			std::vector<XMFLOAT3> binormals;
 		};
 
-		// helper functions
+	private:
+		// Generate buffer data
 		void generateBufferData() {
-			std::vector<XMFLOAT3>& positions = primtive.GetMutableVtxPositions();
-			std::vector<XMFLOAT3>& vertexNormals = primtive.GetMutableVtxNormals();
-			std::vector<XMFLOAT2>& uvs = primtive.GetMutableVtxUVSet0();
-			std::vector<uint32_t>& indices = primtive.GetMutableIdxPrimives();
+			std::vector<XMFLOAT3>& positions = primitive.GetMutableVtxPositions();
+			std::vector<XMFLOAT3>& vertexNormals = primitive.GetMutableVtxNormals();
+			std::vector<XMFLOAT2>& uvs = primitive.GetMutableVtxUVSet0();
+			std::vector<uint32_t>& indices = primitive.GetMutableIdxPrimives();
 
 			// Reserve memory for better performance
 			const size_t vertexCount = (tubularSegments + 1) * (radialSegments + 1);
@@ -1414,8 +1414,8 @@ namespace vz::geogen
 		}
 
 		void generateSegment(uint32_t i) {
-			std::vector<XMFLOAT3>& positions = primtive.GetMutableVtxPositions();
-			std::vector<XMFLOAT3>& vertexNormals = primtive.GetMutableVtxNormals();
+			std::vector<XMFLOAT3>& positions = primitive.GetMutableVtxPositions();
+			std::vector<XMFLOAT3>& vertexNormals = primitive.GetMutableVtxNormals();
 
 			// Get point on path
 			XMFLOAT3 P;
@@ -1427,9 +1427,11 @@ namespace vz::geogen
 
 			// Generate normals and vertices for the current segment
 			for (uint32_t j = 0; j <= radialSegments; j++) {
-				const float v = (float)j / (float)radialSegments * math::PI * 2.f;
+				const float v = (float)j / (float)radialSegments * math::PI * 2.0f;
+
+				// Using sin and -cos for Right-Handed System (RHS)
 				const float sin_v = sin(v);
-				const float cos_v = -cos(v); // Negative for RHS
+				const float cos_v = -cos(v);
 
 				// Normal
 				XMFLOAT3 normal;
@@ -1455,7 +1457,7 @@ namespace vz::geogen
 		}
 
 		void generateIndices() {
-			std::vector<uint32_t>& indices = primtive.GetMutableIdxPrimives();
+			std::vector<uint32_t>& indices = primitive.GetMutableIdxPrimives();
 
 			for (uint32_t j = 1; j <= tubularSegments; j++) {
 				for (uint32_t i = 1; i <= radialSegments; i++) {
@@ -1464,20 +1466,20 @@ namespace vz::geogen
 					const uint32_t c = (radialSegments + 1) * j + i;
 					const uint32_t d = (radialSegments + 1) * (j - 1) + i;
 
-					// faces with winding order for RHS
+					// Faces with winding order for RHS (Counter-Clockwise)
 					indices.push_back(a);
-					indices.push_back(d);
 					indices.push_back(b);
+					indices.push_back(d);
 
-					indices.push_back(b);
 					indices.push_back(d);
+					indices.push_back(b);
 					indices.push_back(c);
 				}
 			}
 		}
 
 		void generateUVs() {
-			std::vector<XMFLOAT2>& uvs = primtive.GetMutableVtxUVSet0();
+			std::vector<XMFLOAT2>& uvs = primitive.GetMutableVtxUVSet0();
 
 			for (uint32_t i = 0; i <= tubularSegments; i++) {
 				for (uint32_t j = 0; j <= radialSegments; j++) {
@@ -1493,13 +1495,13 @@ namespace vz::geogen
 		// Compute the Frenet frames for the tube
 		FrenetFrames computeFrenetFrames(uint32_t segments, bool closed) {
 			FrenetFrames frames;
-			frames.tangents.resize(segments);
-			frames.normals.resize(segments);
-			frames.binormals.resize(segments);
+			frames.tangents.resize(segments + 1); // +1 to handle the case where closed is false
+			frames.normals.resize(segments + 1);
+			frames.binormals.resize(segments + 1);
 
 			// Calculate tangent vectors for each segment
-			for (uint32_t i = 0; i < segments; i++) {
-				const float u = (float)i / (float)(segments - 1);
+			for (uint32_t i = 0; i <= segments; i++) {
+				const float u = (closed && i == segments) ? 0.0f : (float)i / (float)segments;
 
 				// Tangent calculation
 				XMFLOAT3 tangent;
@@ -1513,22 +1515,19 @@ namespace vz::geogen
 				frames.tangents[i] = tangent;
 			}
 
-			// Use the first tangent as previous for closed or open path
-			XMFLOAT3 vec = XMFLOAT3(0, 1, 0);
-			float smallest = 1.f;
+			// Find a suitable vector for generating the initial normal
+			XMFLOAT3 vec = XMFLOAT3(0.0f, 1.0f, 0.0f);
+			float smallest = 1.0f;
 
-			// Find the initial normal
-			for (uint32_t i = 0; i < segments; i++) {
+			// Find the initial normal - look for a vector that's not parallel to any tangent
+			for (uint32_t i = 0; i <= segments; i++) {
 				XMVECTOR vT = XMLoadFloat3(&frames.tangents[i]);
 				XMVECTOR vVec = XMLoadFloat3(&vec);
 				float mag = fabsf(XMVectorGetX(XMVector3Dot(vT, vVec)));
 
 				if (mag < smallest) {
 					smallest = mag;
-					XMFLOAT3 temp;
-					temp.x = 0;
-					temp.y = 0;
-					temp.z = 1;
+					XMFLOAT3 temp = XMFLOAT3(0.0f, 0.0f, 1.0f);
 					vec = temp;
 
 					// Check if we're still too close
@@ -1537,9 +1536,7 @@ namespace vz::geogen
 
 					if (mag < smallest) {
 						smallest = mag;
-						temp.x = 1;
-						temp.y = 0;
-						temp.z = 0;
+						temp = XMFLOAT3(1.0f, 0.0f, 0.0f);
 						vec = temp;
 					}
 				}
@@ -1549,11 +1546,11 @@ namespace vz::geogen
 			XMVECTOR vInitTangent = XMLoadFloat3(&frames.tangents[0]);
 			XMVECTOR vTemp = XMLoadFloat3(&vec);
 
-			// Normal is cross product of tangent and temp vector (for RHS)
+			// For RHS: normal = cross(temp, tangent)
 			XMVECTOR vInitNormal = XMVector3Cross(vTemp, vInitTangent);
 			vInitNormal = XMVector3Normalize(vInitNormal);
 
-			// Binormal is cross product of normal and tangent (for RHS)
+			// For RHS: binormal = cross(tangent, normal)
 			XMVECTOR vInitBinormal = XMVector3Cross(vInitTangent, vInitNormal);
 			vInitBinormal = XMVector3Normalize(vInitBinormal);
 
@@ -1565,43 +1562,80 @@ namespace vz::geogen
 			frames.normals[0] = initNormal;
 			frames.binormals[0] = initBinormal;
 
-			// Calculate the rest of the frames
-			for (uint32_t i = 1; i < segments; i++) {
-				// Copy previous frame
-				frames.normals[i] = frames.normals[i - 1];
-				frames.binormals[i] = frames.binormals[i - 1];
-
-				// Adjust to next tangent using Rotation Minimizing Frames
+			// Calculate the rest of the frames using Parallel Transport method
+			for (uint32_t i = 1; i <= segments; i++) {
 				XMVECTOR vPrevTangent = XMLoadFloat3(&frames.tangents[i - 1]);
 				XMVECTOR vCurrTangent = XMLoadFloat3(&frames.tangents[i]);
 
-				// Dot products for vector projections
+				// Dot product between current and previous tangents
 				float dot = XMVectorGetX(XMVector3Dot(vPrevTangent, vCurrTangent));
 
-				// Handle almost parallel tangents
+				// If tangents are nearly parallel, just copy the previous frame
 				if (fabsf(dot) > 0.99999f) {
-					// Just keep the previous frame
+					frames.normals[i] = frames.normals[i - 1];
+					frames.binormals[i] = frames.binormals[i - 1];
 					continue;
 				}
 
-				// Rotate normal and binormal to align with current tangent
+				// Get rotation axis (cross product) and angle (acos of dot product)
+				XMVECTOR vRotAxis = XMVector3Cross(vPrevTangent, vCurrTangent);
+				vRotAxis = XMVector3Normalize(vRotAxis);
+				float angle = acosf(std::min(1.0f, std::max(-1.0f, dot)));
+
+				// Create rotation matrix around the rotation axis
+				XMMATRIX rotMatrix = XMMatrixRotationAxis(vRotAxis, angle);
+
+				// Rotate previous normal and binormal
 				XMVECTOR vPrevNormal = XMLoadFloat3(&frames.normals[i - 1]);
 				XMVECTOR vPrevBinormal = XMLoadFloat3(&frames.binormals[i - 1]);
 
-				// For RHS: use appropriate cross products
-				XMVECTOR vNewNormal = XMVector3Cross(vCurrTangent, vPrevBinormal);
+				XMVECTOR vNewNormal = XMVector3Transform(vPrevNormal, rotMatrix);
+				XMVECTOR vNewBinormal = XMVector3Transform(vPrevBinormal, rotMatrix);
+
+				// Ensure orthogonality for RHS
 				vNewNormal = XMVector3Normalize(vNewNormal);
 
-				XMVECTOR vNewBinormal = XMVector3Cross(vNewNormal, vCurrTangent);
+				// Ensure binormal is perpendicular to tangent and normal (for RHS)
+				vNewBinormal = XMVector3Cross(vCurrTangent, vNewNormal);
 				vNewBinormal = XMVector3Normalize(vNewBinormal);
+
+				// Double-check normal is perpendicular to tangent and binormal
+				vNewNormal = XMVector3Cross(vNewBinormal, vCurrTangent);
+				vNewNormal = XMVector3Normalize(vNewNormal);
 
 				XMStoreFloat3(&frames.normals[i], vNewNormal);
 				XMStoreFloat3(&frames.binormals[i], vNewBinormal);
 			}
 
-			// If closed, calculate frames for the connecting segment
+			// Handle closed path by smoothing the connection
 			if (closed) {
-				// TODO: Implement additional smoothing for closed paths
+				// For a closed path, we need to adjust the last frame to match the first
+				// Calculate rotation to align last frame with first frame
+				XMVECTOR vFirstTangent = XMLoadFloat3(&frames.tangents[0]);
+				XMVECTOR vLastTangent = XMLoadFloat3(&frames.tangents[segments]);
+
+				// Blend normals and binormals for a smooth transition
+				XMVECTOR vFirstNormal = XMLoadFloat3(&frames.normals[0]);
+				XMVECTOR vLastNormal = XMLoadFloat3(&frames.normals[segments]);
+
+				XMVECTOR vFirstBinormal = XMLoadFloat3(&frames.binormals[0]);
+				XMVECTOR vLastBinormal = XMLoadFloat3(&frames.binormals[segments]);
+
+				// Blend factor (can adjust for smoother transition)
+				const float blend = 0.5f;
+
+				XMVECTOR vBlendedNormal = XMVectorLerp(vFirstNormal, vLastNormal, blend);
+				vBlendedNormal = XMVector3Normalize(vBlendedNormal);
+
+				XMVECTOR vBlendedBinormal = XMVectorLerp(vFirstBinormal, vLastBinormal, blend);
+				vBlendedBinormal = XMVector3Normalize(vBlendedBinormal);
+
+				// Update the first and last frames
+				XMStoreFloat3(&frames.normals[0], vBlendedNormal);
+				XMStoreFloat3(&frames.normals[segments], vBlendedNormal);
+
+				XMStoreFloat3(&frames.binormals[0], vBlendedBinormal);
+				XMStoreFloat3(&frames.binormals[segments], vBlendedBinormal);
 			}
 
 			return frames;
@@ -1609,15 +1643,15 @@ namespace vz::geogen
 
 	public:
 		TubeGeometry(IPath3D* path = nullptr, const uint32_t tubularSegments = 64,
-			const float radius = 1.f, const uint32_t radialSegments = 8, const bool closed = false) {
+			const float radius = 1.0f, const uint32_t radialSegments = 8, const bool closed = false) {
 
 			// If no path provided, create a default path
 			if (path == nullptr) {
 				// Create default path (using SimplePath3D instead of QuadraticBezierCurve)
 				std::vector<XMFLOAT3> pathPoints = {
-					{-1.f, -1.f, 0.f},
-					{-1.f, 1.f, 0.f},
-					{1.f, 1.f, 0.f}
+					{-1.0f, -1.0f, 0.0f},
+					{-1.0f, 1.0f, 0.0f},
+					{1.0f, 1.0f, 0.0f}
 				};
 				path = new SimplePath3D(pathPoints);
 				needToDeletePath = true;
@@ -1646,8 +1680,24 @@ namespace vz::geogen
 			generateBufferData();
 
 			// Set primitive type
-			primtive.SetPrimitiveType(GeometryComponent::PrimitiveType::TRIANGLES);
-			primtive.ComputeAABB();
+			primitive.SetPrimitiveType(PrimitiveType::TRIANGLES);
+			primitive.ComputeAABB();
+		}
+
+		// Copy constructor
+		TubeGeometry(const TubeGeometry& source) {
+			this->path = source.path;
+			this->tubularSegments = source.tubularSegments;
+			this->radius = source.radius;
+			this->radialSegments = source.radialSegments;
+			this->closed = source.closed;
+			this->needToDeletePath = false; // Don't delete the path in copy
+
+			this->tangents = source.tangents;
+			this->normals = source.normals;
+			this->binormals = source.binormals;
+
+			this->primitive = source.primitive;
 		}
 
 		// Cleanup
@@ -1659,7 +1709,7 @@ namespace vz::geogen
 			}
 		}
 
-		Primitive& GetPrimitive() { return primtive; }
+		Primitive& GetPrimitive() { return primitive; }
 	};
 
 	bool GenerateTubeGeometry(Entity geometryEntity, const std::vector<XMFLOAT3>& path, uint32_t tubularSegments, const float radius, uint32_t radialSegments, const bool closed)
@@ -1668,6 +1718,25 @@ namespace vz::geogen
 		{
 			return false;
 		}
+
+		GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
+		if (geometry == nullptr)
+		{
+			vzlog_error("Invalid geometryEntity");
+			return false;
+		}
+
+		SimplePath3D ipath(path, closed);
+
+		TubeGeometry tube(&ipath, tubularSegments, radius, radialSegments, closed);
+
+		{
+			std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+			geometry->ClearGeometry();
+			geometry->AddMovePrimitiveFrom(std::move(tube.GetPrimitive()));
+			geometry->UpdateRenderData();
+		}
+
 		return true;
 	}
 }

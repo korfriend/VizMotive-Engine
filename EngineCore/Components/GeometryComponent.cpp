@@ -786,6 +786,10 @@ namespace vz
 {
 	void GeometryComponent::UpdateBVH(const bool enabled)
 	{
+		if (!waiter_->isFree())
+		{
+			return;
+		}
 		waiter_->setWait();
 		for (Primitive& prim : parts_)
 		{
