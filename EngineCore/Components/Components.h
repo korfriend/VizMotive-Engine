@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250308_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250309_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -49,14 +49,14 @@ namespace vz
 		WaitForBool() : flag(true) {}
 
 		// Called from another thread to set the flag to true
-		void setFree() {
+		inline void setFree() {
 			flag.store(true, std::memory_order_release);
 			// Notify all waiting threads
 			cv.notify_all();
 		}
 
 		// Wait until flag becomes true
-		void waitForFree() {
+		inline void waitForFree() {
 			// Quick check before locking (optimization)
 			if (flag.load(std::memory_order_acquire)) {
 				return;
@@ -72,7 +72,7 @@ namespace vz
 
 		// Alternative wait method with timeout
 		template<typename Rep, typename Period>
-		bool waitForFree(const std::chrono::duration<Rep, Period>& timeout) {
+		inline bool waitForFree(const std::chrono::duration<Rep, Period>& timeout) {
 			// Quick check before locking
 			if (flag.load(std::memory_order_acquire)) {
 				return true;
@@ -86,12 +86,12 @@ namespace vz
 		}
 
 		// Check current flag value without waiting
-		bool isFree() const {
+		inline bool isFree() const {
 			return flag.load(std::memory_order_acquire);
 		}
 
 		// Reset flag to false
-		void setWait() {
+		inline void setWait() {
 			flag.store(false, std::memory_order_release);
 		}
 	};
@@ -360,7 +360,7 @@ namespace vz
 		// non-serialized attributes
 		TimeStamp timeStampSetter_ = TimerMin;
 		Entity entity_ = INVALID_ENTITY;
-		//std::atomic_bool isLocked_ = {};
+		std::shared_ptr<std::mutex> mutex_ = std::make_shared<std::mutex>();
 
 	public:
 		ComponentBase() = default;
