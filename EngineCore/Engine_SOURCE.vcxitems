@@ -75,6 +75,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\PrivateInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\SimpleCollision.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\vzMath.h" />
@@ -135,6 +136,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\JobSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Profiler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\SimpleCollision.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathMatrix.inl" />

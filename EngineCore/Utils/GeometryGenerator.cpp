@@ -1,4 +1,6 @@
 #include "GeometryGenerator.h"
+
+//#include "CommonInclude.h"
 #include "Common/Engine_Internal.h"
 #include "Utils/Backlog.h"
 #include "Components/Components.h"
@@ -738,6 +740,11 @@ namespace vz::geogen
 		// Get the primitive
 		Primitive& GetPrimitive() { return primitive; }
 	};
+	
+	bool GenerateBoxGeometry(Entity geometryEntity, const float width, const float height, const float depth, const uint32_t widthSegments, const uint32_t heightSegments, const uint32_t depthSegments)
+	{
+		return true;
+	}
 
 	class SphereGeometry
 	{
@@ -896,6 +903,16 @@ namespace vz::geogen
 			this->primitive = source.primitive;
 		}
 	};
+	
+	bool GenerateSphereGeometry(Entity geometryEntity, const float radius, const uint32_t widthSegments, const uint32_t heightSegments, const float phiStart, const float phiLength, const float thetaStart, const float thetaLength)
+	{
+		if (widthSegments < 3 || widthSegments < 2)
+		{
+			vzlog_warning("SphereGeometry: widthSegments >= 3 && widthSegments >= 2");
+			return false;
+		}
+		return true;
+	}
 
 	class LatheGeometry
 	{
@@ -1075,6 +1092,11 @@ namespace vz::geogen
 		// Get the primitive
 		Primitive& GetPrimitive() { return primitive; }
 	};
+
+	bool GenerateCapsuleGeometry(Entity geometryEntity, const float radius, const float length, const uint32_t capSegments, const uint32_t radialSegments)
+	{
+		return true;
+	}
 
 	// IPath3D - Interface for 3D path operations
 	class IPath3D {
@@ -1639,4 +1661,13 @@ namespace vz::geogen
 
 		Primitive& GetPrimitive() { return primtive; }
 	};
+
+	bool GenerateTubeGeometry(Entity geometryEntity, const std::vector<XMFLOAT3>& path, uint32_t tubularSegments, const float radius, uint32_t radialSegments, const bool closed)
+	{
+		if (path.size() < 2)
+		{
+			return false;
+		}
+		return true;
+	}
 }

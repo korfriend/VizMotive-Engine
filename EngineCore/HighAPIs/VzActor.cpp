@@ -1,6 +1,7 @@
 #include "VzEngineAPIs.h"
 #include "Components/Components.h"
 #include "Utils/Backlog.h"
+#include "Utils/SimpleCollision.h"
 
 using namespace vz;
 using namespace std;
@@ -112,6 +113,18 @@ namespace vzm
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetUndercutColor(*(XMFLOAT3*)&v);
+	}
+
+	bool VzActor::CollisionCheck(const ActorVID targetActorVID, int& partIndexSrc, int& triIndexSrc, int& partIndexTarget, int& triIndexTarget)
+	{
+		GET_RENDERABLE_COMP(renderable, false);
+		RenderableComponent* renderable_target = compfactory::GetRenderableComponent(targetActorVID);
+		if (renderable_target == nullptr)
+		{
+			vzlog_error("Invalid Target Actor!");
+			return false;
+		}
+		return bvhcollision::CollisionPairwiseCheck(renderable->GetGeometry(), componentVID_, renderable_target->GetGeometry(), targetActorVID, partIndexSrc, triIndexSrc, partIndexTarget, triIndexTarget);
 	}
 
 	std::vector<MaterialVID> VzActor::GetMaterials() const
