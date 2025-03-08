@@ -1,7 +1,9 @@
 #include "Profiler.h"
+#include "Utils_Internal.h"
 #include "GBackend/GBackendDevice.h"
 #include "GBackend/GModuleLoader.h"
 #include "Common/Canvas.h"
+//#include "Common/Engine_Internal.h"
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
 #include "Utils/Timer.h"
@@ -66,6 +68,7 @@ namespace vz::profiler
 	};
 	std::unordered_map<size_t, Range> ranges;
 	static std::string warnningProfile = "";
+	static std::atomic_bool beginRetreived{ true };
 
 	void BeginFrame()
 	{
@@ -76,7 +79,7 @@ namespace vz::profiler
 			ENABLED = ENABLED_REQUEST;
 		}
 
-		if (!ENABLED)
+		if (!ENABLED || !beginRetreived.load())
 			return;
 
 		if (!initialized)
@@ -128,7 +131,6 @@ namespace vz::profiler
 #endif // PERFORMANCEAPI_ENABLED
 		}
 
-
 		if (retreiveCountProfile < 0)
 		{
 			warnningProfile = "** The profile of the previous frame was not reflected. (" + std::to_string(retreiveCountProfile) + ")";
@@ -138,6 +140,7 @@ namespace vz::profiler
 			warnningProfile = "";
 		}
 
+		beginRetreived.store(false);
 		cpu_frame = BeginRangeCPU("CPU Frame");
 
 		GraphicsDevice* device = graphics::GetDevice();
@@ -199,6 +202,11 @@ namespace vz::profiler
 			return;
 
 		GraphicsDevice* device = graphics::GetDevice();
+		if (!device)
+		{
+			vzlog_error("Engine is NOT initialized!");
+			return;
+		}
 
 		// note: read the GPU Frame end range manually because it will be on a separate command list than start point:
 		auto& gpu_range = ranges[gpu_frame];
@@ -217,6 +225,7 @@ namespace vz::profiler
 		);
 
 		nextQuery.store(0);
+		beginRetreived.store(true);
 		retreiveCountProfile--;
 	}
 
@@ -231,6 +240,11 @@ namespace vz::profiler
 			superluminal_functions.BeginEvent(name, nullptr, 0xFF0000FF);
 		}
 #endif // PERFORMANCEAPI_ENABLED
+
+		if (beginRetreived.load())
+		{
+			BeginFrame();
+		}
 
 		range_id id = helper::string_hash(name);
 

@@ -3,6 +3,7 @@
 #include "Common/RenderPath3D.h"
 #include "Common/Engine_Internal.h"
 #include "GBackend/GModuleLoader.h"
+#include "Utils/Utils_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/Helpers.h"
 #include "Utils/Profiler.h"
@@ -196,11 +197,19 @@ namespace vzm
 		renderer->scene->Update(update_dt);
 		renderer->Update(update_dt);
 		renderer->Render(update_dt);
-		
-		graphics::GraphicsDevice* device = graphics::GetDevice();
-		graphics::CommandList cmd = device->BeginCommandList();
-		profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
-		device->SubmitCommandLists();
+
+		if (!IsPendingSubmitCommand())
+		{
+			graphics::GraphicsDevice* device = graphics::GetDevice();
+			graphics::CommandList cmd = device->BeginCommandList();
+			profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
+			device->SubmitCommandLists();
+			vzm::ResetPendingSubmitCommand();
+		}
+		else
+		{
+			vzm::CountPendingSubmitCommand();
+		}
 
 		renderer->frameCount++;
 
