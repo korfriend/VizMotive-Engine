@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250307_4";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250308_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -878,6 +878,7 @@ namespace vz
 		float GetTessellationFactor() const { return tessellationFactor_; }
 
 		void UpdateBVH(const bool enabled);
+		bool IsBusyForBVH() { return !waiter_->isFree(); }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 

@@ -1,5 +1,6 @@
 #include "SimpleCollision.h"
 #include "Utils/Backlog.h"
+#include "Utils/Jobsystem.h"
 #include "Components/Components.h"
 
 namespace vz::bvhcollision
@@ -338,13 +339,43 @@ namespace vz::bvhcollision
 			return false;
 		}
 
-		if (!geometry1->HasBVH())
+		size_t count_has_bvh = 0;
+		if (!geometry1->HasBVH() || geometry1->IsDirtyBVH())
 		{
-			geometry1->UpdateBVH(true);
+			if (!geometry1->IsBusyForBVH())
+			{
+				jobsystem::context ctx;
+				jobsystem::Execute(ctx, [geometryEntity1](jobsystem::JobArgs args) {
+					vzlog_warning("preparing BVH... (%d)", geometryEntity1);
+					GeometryComponent* geometry1 = compfactory::GetGeometryComponent(geometryEntity1);
+					geometry1->UpdateBVH(true);
+					});
+			}
 		}
-		if (!geometry2->HasBVH())
+		else
 		{
-			geometry2->UpdateBVH(true);
+			count_has_bvh++;
+		}
+
+		if (!geometry2->HasBVH() || geometry2->IsDirtyBVH())
+		{
+			jobsystem::context ctx;
+			if (!geometry1->IsBusyForBVH())
+			{
+				jobsystem::Execute(ctx, [geometryEntity2](jobsystem::JobArgs args) {
+					vzlog_warning("preparing BVH... (%d)", geometryEntity2);
+					GeometryComponent* geometry2 = compfactory::GetGeometryComponent(geometryEntity2);
+					geometry2->UpdateBVH(true);
+					});
+			}
+		}
+		else
+		{
+			count_has_bvh++;
+		}
+		if (count_has_bvh < 2)
+		{
+			return false;
 		}
 		
 		XMMATRIX m1os2ws = XMLoadFloat4x4(&transform1->GetWorldMatrix());
