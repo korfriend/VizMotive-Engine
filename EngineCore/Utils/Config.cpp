@@ -3,6 +3,12 @@
 
 #include <unordered_set>
 
+namespace vzm
+{
+	extern std::string configFilename;
+	extern vz::config::File configFile;
+}
+
 namespace vz::config
 {
 	bool Section::Has(const char* name) const
@@ -313,5 +319,36 @@ namespace vz::config
 	Section& File::GetSection(const char* name)
 	{
 		return sections[name];
+	}
+
+	std::string GetConfigFile(const std::string& sectionName, const std::string& optionName)
+	{
+		return vzm::configFilename;
+	}
+
+	bool GetBoolConfig(const std::string& sectionName, const std::string& optionName)
+	{
+		const char* string_c = sectionName.c_str();
+		config::Section& section = vzm::configFile.GetSection(string_c);
+		return section.GetBool(optionName.c_str());
+	}
+
+	int GetIntConfig(const std::string& sectionName, const std::string& optionName)
+	{
+		const char* string_c = sectionName.c_str();
+		config::Section& section = vzm::configFile.GetSection(string_c);
+		return section.GetInt(optionName.c_str());
+	}
+	float GetFloatConfig(const std::string& sectionName, const std::string& optionName)
+	{
+		const char* string_c = sectionName.c_str();
+		config::Section& section = vzm::configFile.GetSection(string_c);
+		return section.GetFloat(optionName.c_str());
+	}
+	std::string GetStringConfig(const std::string& sectionName, const std::string& optionName)
+	{
+		const char* string_c = sectionName.c_str();
+		config::Section& section = vzm::configFile.GetSection(string_c);
+		return section.GetText(optionName.c_str());
 	}
 }
