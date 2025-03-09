@@ -74,4 +74,11 @@ namespace vz::config
 		};
 		std::vector<Line> opened_order;
 	};
+
+	// Engine Config Helper
+	UTIL_EXPORT std::string GetConfigFile(const std::string& sectionName, const std::string& optionName);
+	UTIL_EXPORT bool GetBoolConfig(const std::string& sectionName, const std::string& optionName);
+	UTIL_EXPORT int GetIntConfig(const std::string& sectionName, const std::string& optionName);
+	UTIL_EXPORT float GetFloatConfig(const std::string& sectionName, const std::string& optionName);
+	UTIL_EXPORT std::string GetStringConfig(const std::string& sectionName, const std::string& optionName);
 }

@@ -21,8 +21,6 @@ namespace vz
 	std::unordered_map<std::string, HMODULE> importedModules;
 
 	graphics::GraphicsDevice* graphicsDevice = nullptr;
-
-	config::File configFile;
 }
 
 namespace vzcompmanager
@@ -311,6 +309,7 @@ namespace vzm
 	}
 
 	std::string configFilename;
+	vz::config::File configFile;
 	void setDefaultConfig()
 	{
 		if (!helper::FileExists(configFilename))
@@ -916,14 +915,6 @@ namespace vzm
 	void SetConfigure(const vzm::ParamMap<std::string>& configure)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(;);
-
-		if (!helper::FileExists(configFilename))
-		{
-			std::ofstream file(configFilename);
-			file.close();
-			vzlog_error("Invald Configue File!! %s", configFilename.c_str());
-		}
-		assert(configFile.Open(configFilename.c_str()));
 
 		std::string ses_string = "SHADER_ENGINE_SETTINGS";
 		const char* ses_string_c = ses_string.c_str();
