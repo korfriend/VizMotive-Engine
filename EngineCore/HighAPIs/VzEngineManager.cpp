@@ -136,7 +136,7 @@ namespace vzm
 	bool initialized = false;
 	std::recursive_mutex& GetEngineMutex()
 	{
-		static std::recursive_mutex  engineMutex;
+		static std::recursive_mutex engineMutex;
 		return engineMutex;
 	}
 

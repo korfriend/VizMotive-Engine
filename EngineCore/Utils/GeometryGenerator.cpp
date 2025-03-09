@@ -1,4 +1,4 @@
-#include "GeometryGenerator.h"
+﻿#include "GeometryGenerator.h"
 
 //#include "CommonInclude.h"
 #include "Common/Engine_Internal.h"
@@ -459,10 +459,10 @@ namespace vz::geogen
 				// N = P2 + P1
 				XMVECTOR vN = XMVectorAdd(vP2, vP1);
 
-				// B = T �� N (cross product)
+				// B = T × N (cross product)
 				XMVECTOR vB = XMVector3Cross(vT, vN);
 
-				// N = B �� T (cross product)
+				// N = B × T (cross product)
 				vN = XMVector3Cross(vB, vT);
 
 				// Normalize B, N. T can be ignored, we don't use it
@@ -1346,6 +1346,7 @@ namespace vz::geogen
 			}
 		}
 	};
+
 	class TubeGeometry
 	{
 		/**
@@ -1356,6 +1357,7 @@ namespace vz::geogen
 		 * @param {number} [radius=1] - The radius of the tube.
 		 * @param {number} [radialSegments=8] - The number of segments around the circumference of the tube.
 		 * @param {boolean} [closed=false] - Whether the tube is closed.
+		 * @param {boolean} [addCaps=false] - Whether to add caps to the tube ends.
 		 */
 
 		Primitive primitive;
@@ -1366,6 +1368,8 @@ namespace vz::geogen
 		float radius = 1.0f;
 		uint32_t radialSegments = 8;
 		bool closed = false;
+		bool flatCaps = false;
+		bool addCaps = false;
 		bool needToDeletePath = false;
 
 		// Exposed internals
@@ -1388,14 +1392,34 @@ namespace vz::geogen
 			std::vector<XMFLOAT2>& uvs = primitive.GetMutableVtxUVSet0();
 			std::vector<uint32_t>& indices = primitive.GetMutableIdxPrimives();
 
-			// Reserve memory for better performance
-			const size_t vertexCount = (tubularSegments + 1) * (radialSegments + 1);
-			positions.reserve(vertexCount);
-			vertexNormals.reserve(vertexCount);
-			uvs.reserve(vertexCount);
-			indices.reserve(tubularSegments * radialSegments * 6);
+			// Calculate vertex count including potential caps
+			size_t tubeVertexCount = (tubularSegments + 1) * (radialSegments + 1);
+			size_t capsVertexCount = 0;
 
-			// Generate segments
+			// If we're adding caps and the tube is not closed, we need additional vertices
+			if (addCaps && !closed) {
+				// Each cap requires radialSegments + 1 vertices for the rim 
+				// plus 1 vertex for the center point
+				capsVertexCount = 2 * ((radialSegments + 1) + 1);
+			}
+
+			// Reserve memory for better performance
+			positions.reserve(tubeVertexCount + capsVertexCount);
+			vertexNormals.reserve(tubeVertexCount + capsVertexCount);
+			uvs.reserve(tubeVertexCount + capsVertexCount);
+
+			// Calculate indices count including potential caps
+			size_t tubeIndicesCount = tubularSegments * radialSegments * 6;
+			size_t capsIndicesCount = 0;
+
+			if (addCaps && !closed) {
+				// Each cap consists of radialSegments triangles
+				capsIndicesCount = 2 * (radialSegments * 3);
+			}
+
+			indices.reserve(tubeIndicesCount + capsIndicesCount);
+
+			// Generate tube segments
 			for (uint32_t i = 0; i < tubularSegments; i++) {
 				generateSegment(i);
 			}
@@ -1406,11 +1430,19 @@ namespace vz::geogen
 			// If the geometry is closed, duplicate the first row of vertices and normals (uvs will differ)
 			generateSegment((closed == false) ? tubularSegments : 0);
 
-			// Generate UVs
+			// Generate UVs for the tube
 			generateUVs();
 
-			// Generate indices
+			// Generate indices for the tube
 			generateIndices();
+
+			// Generate caps if requested and tube is not closed
+			if (addCaps && !closed) {
+				if (flatCaps)
+					generateFlatCaps();
+				else
+					generateHemisphereCaps();
+			}
 		}
 
 		void generateSegment(uint32_t i) {
@@ -1491,6 +1523,266 @@ namespace vz::geogen
 				}
 			}
 		}
+
+		// New method to generate caps for the tube ends
+		void generateFlatCaps() {
+			std::vector<XMFLOAT3>& positions = primitive.GetMutableVtxPositions();
+			std::vector<XMFLOAT3>& vertexNormals = primitive.GetMutableVtxNormals();
+			std::vector<XMFLOAT2>& uvs = primitive.GetMutableVtxUVSet0();
+			std::vector<uint32_t>& indices = primitive.GetMutableIdxPrimives();
+
+			// Get the starting vertex index for caps
+			uint32_t startVertexIndex = static_cast<uint32_t>(positions.size());
+
+			// Generate caps for both ends
+			for (uint32_t capIndex = 0; capIndex < 2; capIndex++) {
+				// For capIndex = 0: start cap, capIndex = 1: end cap
+
+				// Get path position and tangent at the cap location
+				XMFLOAT3 centerPoint;
+				XMFLOAT3 tangent;
+
+				if (capIndex == 0) {
+					// Start cap (path position at u=0)
+					path->GetPointAt(0.0f, centerPoint);
+					path->GetTangentAt(0.0f, tangent);
+				}
+				else {
+					// End cap (path position at u=1)
+					path->GetPointAt(1.0f, centerPoint);
+					path->GetTangentAt(1.0f, tangent);
+
+					// Flip tangent for end cap to point outward
+					tangent.x = -tangent.x;
+					tangent.y = -tangent.y;
+					tangent.z = -tangent.z;
+				}
+
+				// Normalize tangent to use as cap normal
+				XMVECTOR vTangent = XMLoadFloat3(&tangent);
+				vTangent = XMVector3Normalize(vTangent);
+				XMStoreFloat3(&tangent, vTangent);
+
+				// Get current normal and binormal
+				const XMFLOAT3& N = normals[capIndex == 0 ? 0 : tubularSegments];
+				const XMFLOAT3& B = binormals[capIndex == 0 ? 0 : tubularSegments];
+
+				// Add center vertex of the cap
+				positions.push_back(centerPoint);
+				vertexNormals.push_back(tangent);
+				uvs.push_back(XMFLOAT2(0.5f, 0.5f)); // Center of cap UV
+
+				uint32_t centerVertexIndex = startVertexIndex;
+				startVertexIndex++;
+
+				// Add vertices for the cap rim
+				for (uint32_t j = 0; j <= radialSegments; j++) {
+					const float v = (float)j / (float)radialSegments * math::PI * 2.0f;
+
+					// Using sin and -cos for Right-Handed System (RHS)
+					const float sin_v = sin(v);
+					const float cos_v = -cos(v);
+
+					// Calculate normal for the rim vertices (same as tube vertices)
+					XMFLOAT3 normal;
+					normal.x = (cos_v * N.x + sin_v * B.x);
+					normal.y = (cos_v * N.y + sin_v * B.y);
+					normal.z = (cos_v * N.z + sin_v * B.z);
+
+					// Normalize normal
+					XMVECTOR vNormal = XMLoadFloat3(&normal);
+					vNormal = XMVector3Normalize(vNormal);
+					XMStoreFloat3(&normal, vNormal);
+
+					// Calculate rim vertex position
+					XMFLOAT3 vertex;
+					vertex.x = centerPoint.x + radius * normal.x;
+					vertex.y = centerPoint.y + radius * normal.y;
+					vertex.z = centerPoint.z + radius * normal.z;
+
+					// Add rim vertex with the cap normal
+					positions.push_back(vertex);
+					vertexNormals.push_back(tangent); // All vertices use the same normal (along tangent)
+
+					// UV coordinates for rim vertices
+					float u_cap = 0.5f + 0.5f * cos_v;
+					float v_cap = 0.5f + 0.5f * sin_v;
+					uvs.push_back(XMFLOAT2(u_cap, v_cap));
+
+					// Create triangles connecting center to rim
+					if (j < radialSegments) {
+						if (capIndex == 0) {
+							// Start cap - counter-clockwise winding for RHS
+							indices.push_back(centerVertexIndex);
+							indices.push_back(startVertexIndex + j);
+							indices.push_back(startVertexIndex + j + 1);
+						}
+						else {
+							// End cap - clockwise winding for RHS (to face outward)
+							indices.push_back(centerVertexIndex);
+							indices.push_back(startVertexIndex + j + 1);
+							indices.push_back(startVertexIndex + j);
+						}
+					}
+				}
+
+				// Update startVertexIndex for the next cap
+				startVertexIndex += radialSegments + 1;
+			}
+		}
+
+		// New method to generate hemispherical caps for the tube ends
+		void generateHemisphereCaps() {
+			// 메쉬 버퍼 참조
+			std::vector<XMFLOAT3>& positions = primitive.GetMutableVtxPositions();
+			std::vector<XMFLOAT3>& vertexNormals = primitive.GetMutableVtxNormals();
+			std::vector<XMFLOAT2>& uvs = primitive.GetMutableVtxUVSet0();
+			std::vector<uint32_t>& indices = primitive.GetMutableIdxPrimives();
+
+			// 시작 캡과 끝 캡에 대해 반복
+			for (uint32_t capIndex = 0; capIndex < 2; capIndex++) {
+				// 캡 위치 및 접선 계산
+				XMFLOAT3 centerPoint;
+				XMFLOAT3 tangent;
+				if (capIndex == 0) {
+					// 시작 캡 (u = 0)
+					path->GetPointAt(0.0f, centerPoint);
+					path->GetTangentAt(0.0f, tangent);
+				}
+				else {
+					// 끝 캡 (u = 1): 외향을 위해 접선 반전
+					path->GetPointAt(1.0f, centerPoint);
+					path->GetTangentAt(1.0f, tangent);
+					tangent.x = -tangent.x;
+					tangent.y = -tangent.y;
+					tangent.z = -tangent.z;
+				}
+				// 접선을 정규화
+				XMVECTOR vTangent = XMLoadFloat3(&tangent);
+				vTangent = XMVector3Normalize(vTangent);
+				XMStoreFloat3(&tangent, vTangent);
+
+				// 튜브 프레임: N(노말), B(바이노말)
+				const XMFLOAT3& N = normals[capIndex == 0 ? 0 : tubularSegments];
+				const XMFLOAT3& B = binormals[capIndex == 0 ? 0 : tubularSegments];
+
+				// hemisphere 세분화 파라미터 (수직: stacks, 수평: slices)
+				uint32_t stacks = radialSegments;  // 0: apex, stacks: 리ム
+				uint32_t slices = radialSegments;  // 0 ~ slices: 360도 분할
+
+				// 현재 캡 정점 시작 인덱스
+				uint32_t startVertexIndex = static_cast<uint32_t>(positions.size());
+
+				// === 정점 생성 ===
+				// r == 0: apex – 기존 tangent 방향 대신 반대로 설정
+				// r == 1 ~ stacks: 각 링 정점 (구의 좌표 계산 시 tangent 항의 부호를 반전)
+				for (uint32_t r = 0; r <= stacks; r++) {
+					// theta: 0 (apex) ~ π/2 (리ム)
+					float theta = (float)r / (float)stacks * XM_PIDIV2;
+					float sinTheta = sin(theta);
+					float cosTheta = cos(theta);
+
+					if (r == 0) {
+						// apex: 구의 방향을 반대로 -> centerPoint - radius * tangent
+						XMFLOAT3 offset = { -tangent.x * radius, -tangent.y * radius, -tangent.z * radius };
+						XMFLOAT3 pos = { centerPoint.x + offset.x, centerPoint.y + offset.y, centerPoint.z + offset.z };
+						positions.push_back(pos);
+
+						// 법선: offset을 정규화
+						XMVECTOR vOff = XMLoadFloat3(&offset);
+						vOff = XMVector3Normalize(vOff);
+						XMFLOAT3 norm;
+						XMStoreFloat3(&norm, vOff);
+						vertexNormals.push_back(norm);
+
+						// UV: apex의 UV (필요에 따라 수정)
+						uvs.push_back(XMFLOAT2(0.5f, 0.0f));
+					}
+					else {
+						// r > 0: 각 링의 정점 생성 (phi: 0~2π)
+						for (uint32_t slice = 0; slice <= slices; slice++) {
+							float phi = (float)slice / (float)slices * 2.0f * math::PI;
+							float cosPhi = cos(phi);
+							float sinPhi = sin(phi);
+
+							// 원래 공식: 
+							// offset = radius * ( sinTheta*cosPhi * N + sinTheta*sinPhi * B + cosTheta * tangent )
+							// 여기서는 구의 방향 반전을 위해 tangent 항의 부호를 뒤집음
+							XMFLOAT3 offset;
+							offset.x = radius * (sinTheta * cosPhi * N.x + sinTheta * sinPhi * B.x - cosTheta * tangent.x);
+							offset.y = radius * (sinTheta * cosPhi * N.y + sinTheta * sinPhi * B.y - cosTheta * tangent.y);
+							offset.z = radius * (sinTheta * cosPhi * N.z + sinTheta * sinPhi * B.z - cosTheta * tangent.z);
+
+							XMFLOAT3 pos = { centerPoint.x + offset.x, centerPoint.y + offset.y, centerPoint.z + offset.z };
+							positions.push_back(pos);
+
+							// 법선 계산: offset을 정규화
+							XMVECTOR vOff = XMLoadFloat3(&offset);
+							vOff = XMVector3Normalize(vOff);
+							XMFLOAT3 norm;
+							XMStoreFloat3(&norm, vOff);
+							vertexNormals.push_back(norm);
+
+							// 간단한 구면 UV 매핑
+							float u = phi / (2.0f * math::PI);
+							float v = theta / XM_PIDIV2;
+							uvs.push_back(XMFLOAT2(u, v));
+						}
+					}
+				}
+
+				// === 인덱스 생성 ===
+				// 첫번째: apex와 첫 링 사이의 삼각팬 생성
+				uint32_t apexIndex = startVertexIndex;       // r = 0
+				uint32_t firstRingStart = startVertexIndex + 1;  // r = 1 시작 인덱스
+
+				// RHS에 맞게 winding order 조정
+				for (uint32_t slice = 0; slice < slices; slice++) {
+					if (capIndex == 0) {
+						// 시작 캡: 원래 winding order를 반전시킴
+						indices.push_back(apexIndex);
+						indices.push_back(firstRingStart + slice + 1);
+						indices.push_back(firstRingStart + slice);
+					}
+					else {
+						// 끝 캡: 반대 winding order
+						indices.push_back(apexIndex);
+						indices.push_back(firstRingStart + slice);
+						indices.push_back(firstRingStart + slice + 1);
+					}
+				}
+
+				// 두번째: 인접 링들을 쿼드(두 삼각형)로 연결
+				for (uint32_t r = 1; r < stacks; r++) {
+					uint32_t ringStart = startVertexIndex + 1 + (r - 1) * (slices + 1);
+					uint32_t nextRingStart = ringStart + (slices + 1);
+					for (uint32_t slice = 0; slice < slices; slice++) {
+						if (capIndex == 0) {
+							// 시작 캡: winding order 반전
+							indices.push_back(ringStart + slice);
+							indices.push_back(ringStart + slice + 1);
+							indices.push_back(nextRingStart + slice);
+
+							indices.push_back(ringStart + slice + 1);
+							indices.push_back(nextRingStart + slice + 1);
+							indices.push_back(nextRingStart + slice);
+						}
+						else {
+							// 끝 캡: 반대 winding order
+							indices.push_back(ringStart + slice);
+							indices.push_back(nextRingStart + slice);
+							indices.push_back(ringStart + slice + 1);
+
+							indices.push_back(ringStart + slice + 1);
+							indices.push_back(nextRingStart + slice);
+							indices.push_back(nextRingStart + slice + 1);
+						}
+					}
+				}
+			}
+		}
+
+
 
 		// Compute the Frenet frames for the tube
 		FrenetFrames computeFrenetFrames(uint32_t segments, bool closed) {
@@ -1643,7 +1935,8 @@ namespace vz::geogen
 
 	public:
 		TubeGeometry(IPath3D* path = nullptr, const uint32_t tubularSegments = 64,
-			const float radius = 1.0f, const uint32_t radialSegments = 8, const bool closed = false) {
+			const float radius = 1.0f, const uint32_t radialSegments = 8,
+			const bool closed = false, const bool addCaps = false, const bool flatCaps = false) {
 
 			// If no path provided, create a default path
 			if (path == nullptr) {
@@ -1667,6 +1960,13 @@ namespace vz::geogen
 			this->radius = radius;
 			this->radialSegments = radialSegments;
 			this->closed = closed;
+			this->addCaps = addCaps;
+			this->flatCaps = flatCaps;
+
+			// Note: Caps are only added if the tube is not closed
+			if (closed) {
+				this->addCaps = false;  // No need for caps if the tube is closed
+			}
 
 			// Compute Frenet frames for the path
 			FrenetFrames frames = computeFrenetFrames(tubularSegments, closed);
@@ -1691,6 +1991,7 @@ namespace vz::geogen
 			this->radius = source.radius;
 			this->radialSegments = source.radialSegments;
 			this->closed = source.closed;
+			this->addCaps = source.addCaps;
 			this->needToDeletePath = false; // Don't delete the path in copy
 
 			this->tangents = source.tangents;
@@ -1728,7 +2029,7 @@ namespace vz::geogen
 
 		SimplePath3D ipath(path, closed);
 
-		TubeGeometry tube(&ipath, tubularSegments, radius, radialSegments, closed);
+		TubeGeometry tube(&ipath, tubularSegments, radius, radialSegments, closed, true, false);
 
 		{
 			std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
