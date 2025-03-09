@@ -42,6 +42,8 @@ namespace vzm
 
 		bool CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc = nullptr, int* partIndexTarget = nullptr, int* triIndexSrc = nullptr, int* triIndexTarget = nullptr);
 
+		void DebugRender(const std::string& debugScript);
+
 		std::vector<MaterialVID> GetMaterials() const;
 		MaterialVID GetMaterial(const int slot = 0) const;
 		GeometryVID GetGeometry() const;

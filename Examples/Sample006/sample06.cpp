@@ -328,6 +328,11 @@ int main(int, char **)
 				rot.x += 0.02f;
 				rot.y += 0.03f;
 				actor_test1->SetEulerAngleZXY(*(vfloat3*)&rot);
+
+				for (VID vid : actor_test1->GetMaterials())
+				{
+					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
+				}
 			}
 
 			geo2_pos.x = cos(time + 10) * 30;
@@ -342,6 +347,11 @@ int main(int, char **)
 				rot.x += 0.02f;
 				rot.y += 0.03f;
 				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
+
+				for (VID vid : actor_test2->GetMaterials())
+				{
+					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
+				}
 			}
 
 			// collision test! (pairwise)
@@ -373,31 +383,15 @@ int main(int, char **)
 						};
 
 					VzActor* actor_test3 = (VzActor*)vzm::GetFirstComponentByName("my actor3");
-					uint count_det_actor1 = 0, count_det_actor2 = 0;
 					if (actor_test3)
 					{
-						count_det_actor1 += (uint)PairwiseCollision(actor_test3, actor_test1, { 1, 0, 0, 1 });
-						count_det_actor2 += (uint)PairwiseCollision(actor_test3, actor_test2, { 0, 1, 0, 1 });
+						PairwiseCollision(actor_test3, actor_test1, { 1, 0, 0, 1 });
+						PairwiseCollision(actor_test3, actor_test2, { 0, 1, 0, 1 });
 					}
 
 					VzActor* actor_canal = (VzActor*)vzm::GetFirstComponentByName("my actor-canal");
-					count_det_actor1 += PairwiseCollision(actor_canal, actor_test1, { 1, 1, 0, 1 } );
-					count_det_actor2 += PairwiseCollision(actor_canal, actor_test2, { 0, 1, 1, 1 });
-						
-					if (count_det_actor1 == 0)
-					{
-						for (VID vid : actor_test1->GetMaterials())
-						{
-							((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
-						}
-					}
-					if (count_det_actor2 == 0)
-					{
-						for (VID vid : actor_test2->GetMaterials())
-						{
-							((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
-						}
-					}
+					PairwiseCollision(actor_canal, actor_test1, { 1, 1, 0, 1 } );
+					PairwiseCollision(actor_canal, actor_test2, { 0, 1, 1, 1 });
 				}
 				
 			}

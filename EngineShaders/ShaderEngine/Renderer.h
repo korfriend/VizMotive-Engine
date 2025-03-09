@@ -13,6 +13,8 @@
 #include "../Shaders/ShaderInterop_DVR.h"
 #include "../Shaders/ShaderInterop_GS.h"
 #include "../Shaders/ShaderInterop_BVH.h"
+#include "../Shaders/ShaderInterop_FSR2.h"
+
 
 using namespace vz::graphics;
 using namespace vz::shader;
@@ -248,6 +250,7 @@ namespace vz::renderer
 	extern bool isWetmapRefreshEnabled;
 	extern bool isSceneUpdateEnabled;
 	extern bool isTemporalAAEnabled;
+	extern bool isTemporalAADebugEnabled;
 	extern bool isTessellationEnabled;
 	extern bool isFSREnabled;
 	extern bool isWireRender;

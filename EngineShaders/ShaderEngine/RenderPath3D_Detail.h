@@ -133,6 +133,55 @@ namespace vz::renderer
 		const graphics::Texture* GetHistory() const { return &textureTemporal[(frame + 1) % arraysize(textureTemporal)]; }
 	};
 
+	struct FSR2Resources
+	{
+		struct Fsr2Constants
+		{
+			int32_t   renderSize[2];
+			int32_t   displaySize[2];
+			uint32_t  lumaMipDimensions[2];
+			uint32_t  lumaMipLevelToUse;
+			uint32_t  frameIndex;
+			float     displaySizeRcp[2];
+			float     jitterOffset[2];
+			float     deviceToViewDepth[4];
+			float     depthClipUVScale[2];
+			float     postLockStatusUVScale[2];
+			float     reactiveMaskDimRcp[2];
+			float     motionVectorScale[2];
+			float     downscaleFactor[2];
+			float     preExposure;
+			float     tanHalfFOV;
+			float     motionVectorJitterCancellation[2];
+			float     jitterPhaseCount;
+			float     lockInitialLifetime;
+			float     lockTickDelta;
+			float     deltaTime;
+			float     dynamicResChangeFactor;
+			float     lumaMipRcp;
+		};
+		mutable Fsr2Constants fsr2_constants = {};
+		graphics::Texture adjusted_color;
+		graphics::Texture luminance_current;
+		graphics::Texture luminance_history;
+		graphics::Texture exposure;
+		graphics::Texture previous_depth;
+		graphics::Texture dilated_depth;
+		graphics::Texture dilated_motion;
+		graphics::Texture dilated_reactive;
+		graphics::Texture disocclusion_mask;
+		graphics::Texture lock_status[2];
+		graphics::Texture reactive_mask;
+		graphics::Texture lanczos_lut;
+		graphics::Texture maximum_bias_lut;
+		graphics::Texture spd_global_atomic;
+		graphics::Texture output_internal[2];
+
+		bool IsValid() const { return adjusted_color.IsValid(); }
+
+		XMFLOAT2 GetJitter() const;
+	};
+
 	struct TiledLightResources
 	{
 		XMUINT2 tileCount = {};
@@ -400,6 +449,7 @@ namespace vz::renderer
 
 		// resources associated with render target buffers and textures
 		TemporalAAResources temporalAAResources; // dynamic allocation
+		FSR2Resources fsr2Resources;
 		TiledLightResources tiledLightResources;
 		//TiledLightResources tiledLightResources_planarReflection; // dynamic allocation
 		LuminanceResources luminanceResources; // dynamic allocation
@@ -517,6 +567,12 @@ namespace vz::renderer
 			int mip_src,
 			int mip_dst,
 			bool wide
+		);
+
+		void Postprocess_TemporalAA(
+			const TemporalAAResources& res,
+			const Texture& input,
+			CommandList cmd
 		);
 
 		void Postprocess_Tonemap(
