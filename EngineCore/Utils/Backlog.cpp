@@ -84,6 +84,13 @@ namespace vz::backlog
 		intialize();
 	}
 
+	std::mutex mutex;
+	void postThreadSafe(const std::string& input, LogLevel level)
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		post(input, level);
+	}
+
 	void post(const std::string& input, LogLevel level)
 	{
 		if (!isInitialized)

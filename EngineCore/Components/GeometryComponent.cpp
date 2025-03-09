@@ -350,16 +350,16 @@ namespace vz
 				}
 				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
 				
-				backlog::post("CPUBVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
+				backlog::postThreadSafe("CPUBVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
 			}
 			else
 			{
-				backlog::post("Current CPUBVH is only supported for triangle meshes!", backlog::LogLevel::Warn);
+				backlog::postThreadSafe("Current CPUBVH is only supported for triangle meshes!", backlog::LogLevel::Warn);
 			}
 		}
 		else
 		{
-			backlog::post("CPUBVH is already updated. so ignore the update request!", backlog::LogLevel::Warn);
+			backlog::postThreadSafe("CPUBVH is already updated. so ignore the update request!", backlog::LogLevel::Warn);
 		}
 	}
 
@@ -787,12 +787,17 @@ namespace vz
 	void GeometryComponent::UpdateBVH(const bool enabled)
 	{
 		std::lock_guard<std::mutex> lock(*mutex_);
-
-		if (!waiter_->isFree())
+		bool expected = true;
+		if (!waiter_->freeTestAndSetWait())
 		{
 			return;
 		}
-		waiter_->setWait();
+		//if (!waiter_->isFree())
+		//{
+		//	return;
+		//}
+		//waiter_->setWait();
+		
 		for (Primitive& prim : parts_)
 		{
 			if (prim.GetPrimitiveType() == PrimitiveType::TRIANGLES)

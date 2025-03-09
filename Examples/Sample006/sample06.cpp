@@ -261,19 +261,19 @@ int main(int, char **)
 		axis_helper->SetScale({ 10, 10, 10 });
 		scene->AppendChild(axis_helper);
 
-		//vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
-		//
-		//	vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
-		//	geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
-		//	vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
-		//	material_stl->SetShaderType(vzm::ShaderType::PBR);
-		//	material_stl->SetDoubleSided(true);
-		//	material_stl->SetBaseColor({ 1, 0.5, 0.5, 1 });
-		//	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
-		//	actor_test3->SetScale({ 1.f, 1.f, 1.f });
-		//	scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
-		//
-		//	});
+		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
+		
+			vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
+			geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
+			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
+			material_stl->SetShaderType(vzm::ShaderType::PBR);
+			material_stl->SetDoubleSided(true);
+			material_stl->SetBaseColor({ 1, 0.5, 0.5, 1 });
+			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
+			actor_test3->SetScale({ 1.f, 1.f, 1.f });
+			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
+		
+			});
 
 		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
