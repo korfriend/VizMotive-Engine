@@ -428,13 +428,12 @@ namespace vz::renderer
 
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
-		GRenderPath3DDetails(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
-			: GRenderPath3D(vp, swapChain, rtRenderFinal)
+		GRenderPath3DDetails(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
+			: GRenderPath3D(swapChain, rtRenderFinal)
 		{
 			device = GetDevice();
 		}
 
-		GraphicsDevice* device = nullptr;
 		bool viewShadingInCS = false;
 		mutable bool firstFrame = true;
 

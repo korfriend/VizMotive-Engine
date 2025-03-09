@@ -55,7 +55,7 @@ namespace vz
 		typedef bool(*PI_LoadRenderer)();
 		typedef bool(*PI_ApplyConfiguration)();
 
-		typedef GRenderPath3D* (*PI_NewGRenderPath3D)(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
+		typedef GRenderPath3D* (*PI_NewGRenderPath3D)(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
 		typedef GScene* (*PI_NewGScene)(Scene* scene);
 		typedef void(*PI_AddDeferredMIPGen)(const graphics::Texture& texture, bool preserve_coverage);
 		typedef void(*PI_AddDeferredBlockCompression)(const graphics::Texture& texture_src, const graphics::Texture& texture_bc);

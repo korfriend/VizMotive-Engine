@@ -252,6 +252,8 @@ namespace vz::image
 	// Draw the specified texture with the specified parameters
 	void Draw(const graphics::Texture* texture, const Params& params, graphics::CommandList cmd);
 
+	bool IsInitialized();
+
 	// Initializes the image renderer
 	void Initialize();
 	void Deinitialize();

@@ -208,7 +208,7 @@ namespace vz
 		scanGeometryEntities();
 		scanMaterialEntities();
 
-		static jobsystem::context ctx_bvh; // must be static to avoid context overflow thereby thread access violation
+		static jobsystem::context ctx_bvh; // Must be declared static to prevent context overflow, which could lead to thread access violations
 		// note this update needs to be thread-safe
 		
 		if (!jobsystem::IsBusy(ctx_bvh))
