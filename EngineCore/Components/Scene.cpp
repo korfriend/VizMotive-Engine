@@ -190,7 +190,7 @@ namespace vz
 
 			bool is_dirty_bvh = geometry->IsDirtyBVH();
 
-			if (!geometry->HasBVH() || is_dirty_bvh)
+			if ((!geometry->HasBVH() || is_dirty_bvh) && !geometry->IsBusyForBVH())
 			{
 				geometry->UpdateBVH(true);
 			}
@@ -208,7 +208,7 @@ namespace vz
 		scanGeometryEntities();
 		scanMaterialEntities();
 
-		static jobsystem::context ctx_bvh;
+		static jobsystem::context ctx_bvh; // must be static to avoid context overflow thereby thread access violation
 		// note this update needs to be thread-safe
 		
 		if (!jobsystem::IsBusy(ctx_bvh))

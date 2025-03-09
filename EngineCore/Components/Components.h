@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250309_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250309_2";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -93,6 +93,11 @@ namespace vz
 		// Reset flag to false
 		inline void setWait() {
 			flag.store(false, std::memory_order_release);
+		}
+
+		inline bool freeTestAndSetWait() {
+			bool expected = true;
+			return flag.compare_exchange_strong(expected, false);
 		}
 	};
 
