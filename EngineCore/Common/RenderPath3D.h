@@ -21,7 +21,6 @@ namespace vz
 		GRenderPath3D* handlerRenderPath3D_ = nullptr;
 
 		graphics::Viewport viewport_;
-		graphics::Rect scissor_;
 
 		XMFLOAT4X4 matScreen_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 matScreenInv_ = math::IDENTITY_MATRIX;
@@ -48,7 +47,6 @@ namespace vz
 		// cpu side... in scene
 		void Update(const float dt) override;
 		void Render(const float dt) override;
-		void Compose() override;
 		
 		void GetViewportTransforms(XMFLOAT4X4* matScreen, XMFLOAT4X4* matScreenInv) const {
 			if (matScreen) *matScreen = matScreen_;

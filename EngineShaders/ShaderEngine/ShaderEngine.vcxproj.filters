@@ -50,6 +50,9 @@
     <ClCompile Include="RenderableShapes_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
+    <ClCompile Include="RenderPath2D_Detail.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\dxcapi.h">

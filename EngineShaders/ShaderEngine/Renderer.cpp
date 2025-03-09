@@ -670,7 +670,6 @@ namespace vz::renderer
 
 	bool GRenderPath3DDetails::ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight)
 	{
-		vzlog_assert(IsInitialized(), "ShaderEngine must be Initialized!");
 		if (!camera || (canvasWidth_ == canvasWidth && canvasHeight_ == canvasHeight))
 		{
 			return true;
@@ -1073,7 +1072,7 @@ namespace vz::renderer
 		graphics::Viewport viewport_composite; // full buffer
 		viewport_composite.width = (float)canvasWidth_;
 		viewport_composite.height = (float)canvasHeight_;
-		device->BindViewports(1, &viewport, cmd);
+		device->BindViewports(1, &viewport_composite, cmd);
 
 		if (rtRenderFinal_.IsValid())
 		{
@@ -1954,10 +1953,11 @@ namespace vz::renderer
 
 namespace vz
 {
-	GRenderPath3D* NewGRenderPath(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
+	GRenderPath3D* NewGRenderPath(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
 	{
-		return new renderer::GRenderPath3DDetails(vp, swapChain, rtRenderFinal);
+		return new renderer::GRenderPath3DDetails(swapChain, rtRenderFinal);
 	}
+
 	void AddDeferredMIPGen(const Texture& texture, bool preserve_coverage)
 	{
 		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);

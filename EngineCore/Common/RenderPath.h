@@ -76,6 +76,5 @@ namespace vz
 		virtual void ResizeResources() = 0;
 		virtual void Update(const float dt) = 0;
 		virtual void Render(const float dt) = 0;
-		virtual void Compose() = 0;
 	};
 }

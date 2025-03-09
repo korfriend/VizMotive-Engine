@@ -347,7 +347,7 @@ namespace vz::bvhcollision
 			if (!geometry1->IsBusyForBVH())
 			{
 				vzlog_warning("preparing BVH... (%d)", geometryEntity1);
-				static jobsystem::context ctx; // must be static to avoid context overflow thereby thread access violation
+				static jobsystem::context ctx; // Must be declared static to prevent context overflow, which could lead to thread access violations
 				jobsystem::Execute(ctx, [geometryEntity1](jobsystem::JobArgs args) {
 					GeometryComponent* geometry1 = compfactory::GetGeometryComponent(geometryEntity1);
 					geometry1->UpdateBVH(true);
@@ -364,7 +364,7 @@ namespace vz::bvhcollision
 			if (!geometry1->IsBusyForBVH())
 			{
 				vzlog_warning("preparing BVH... (%d)", geometryEntity2);
-				static jobsystem::context ctx; // must be static to avoid context overflow thereby thread access violation
+				static jobsystem::context ctx; // Must be declared static to prevent context overflow, which could lead to thread access violations
 				jobsystem::Execute(ctx, [geometryEntity2](jobsystem::JobArgs args) {
 					GeometryComponent* geometry2 = compfactory::GetGeometryComponent(geometryEntity2);
 					geometry2->UpdateBVH(true);
