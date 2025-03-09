@@ -926,7 +926,7 @@ namespace vzm
 		CONFIG_SET("GAUSSIAN_SPLATTING", GetBool);
 		configFile.Commit();
 
-		shaderEngine.pluginSetConfigure(configFilename);
+		shaderEngine.pluginApplyConfiguration();
 	}
 
 	bool DeinitEngineLib()

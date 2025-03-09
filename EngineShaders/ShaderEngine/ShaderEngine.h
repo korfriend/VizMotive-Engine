@@ -19,7 +19,7 @@ namespace vz
 	// ShaderEngine.cpp
 	extern "C" DX12_EXPORT bool Initialize(graphics::GraphicsDevice* device);
 	extern "C" DX12_EXPORT bool LoadRenderer();
-	extern "C" DX12_EXPORT bool SetConfigure(const std::string& configFilename);
+	extern "C" DX12_EXPORT bool ApplyConfiguration();
 	extern "C" DX12_EXPORT void Deinitialize();
 
 	// Renderer.cpp
