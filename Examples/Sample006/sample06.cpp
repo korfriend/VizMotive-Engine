@@ -217,7 +217,8 @@ int main(int, char **)
 		VzLight *light = NewLight("my light");
 		light->SetIntensity(5.f);
 		light->SetPosition({0.f, 0.f, 100.f});
-		light->SetEulerAngleZXYInDegree({0, 180, 0});
+		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
+		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
 		renderer->SetCanvas(1, 1, 96.f, nullptr);
@@ -230,7 +231,7 @@ int main(int, char **)
 		camera->SetPerspectiveProjection(0.1f, 5000.f, 60.f, 1.f);
 
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
-		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 0);
+		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 5);
 		vzm::VzMaterial *material_test = vzm::NewMaterial("icosahedron's material");
 		vzm::VzActor *actor_test1 = vzm::NewActor("my actor1-IcosahedronGeometry", geometry_test, material_test);
 		scene->AppendChild(actor_test1);
@@ -243,7 +244,7 @@ int main(int, char **)
 
 		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
 		{
-			vz::geometrics::Curve curve({ { -20, -20, -5 }, { 0, 0, -5 }, { 20, -20, -5 } });
+			vz::geometrics::Curve curve({ { -30, -30, -5 }, { 20, -10, -5 }, { -20, 10, -5 }, { 10, 20, -5 } });
 			std::vector<XMFLOAT3> curve_points(1000);
 			for (size_t i = 0, n = curve_points.size(); i < n; ++i)
 			{
@@ -252,6 +253,7 @@ int main(int, char **)
 			vz::geogen::GenerateTubeGeometry(geometry_canal->GetVID(), curve_points, 64, 3.f);
 		}
 		vzm::VzMaterial* material_canal = vzm::NewMaterial("my material canal");
+		material_canal->SetBaseColor({ 0.5, 0.5, 1, 1 });
 		vzm::VzActor* actor_canal = vzm::NewActor("my actor-canal", geometry_canal, material_canal);
 		scene->AppendChild(actor_canal);
 
@@ -266,13 +268,12 @@ int main(int, char **)
 		//	vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
 		//	material_stl->SetShaderType(vzm::ShaderType::PBR);
 		//	material_stl->SetDoubleSided(true);
-		//	material_stl->SetBaseColor({1, 1, 0, 1});
+		//	material_stl->SetBaseColor({ 1, 0.5, 0.5, 1 });
 		//	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
 		//	actor_test3->SetScale({ 1.f, 1.f, 1.f });
 		//	scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
 		//
 		//	});
-		scene->AppendChild(light);
 
 		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
@@ -343,21 +344,6 @@ int main(int, char **)
 				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
 			}
 
-			VzActor* actor_canal = (VzActor*)vzm::GetFirstComponentByName("my actor-canal");
-			if (actor_canal && play)
-			{
-				//vz::geometrics::Curve curve({ 
-				//	{ -20 + cos(time) * 30, -20 + sin(time) * 30, -5 }, 
-				//	{ 0, 0, -5 }, 
-				//	{ 20 + sin(time) * 30, -20 + cos(time) * 30, -5 } });
-				//std::vector<XMFLOAT3> curve_points(1000);
-				//for (size_t i = 0, n = curve_points.size(); i < n; ++i)
-				//{
-				//	curve_points[i] = curve.getPoint(i / (float)(n - 1));
-				//}
-				//vz::geogen::GenerateTubeGeometry(actor_canal->GetGeometry(), curve_points, 64, 3.f);
-			}
-
 			// collision test! (pairwise)
 			{
 				if (play)
@@ -380,25 +366,38 @@ int main(int, char **)
 							//	actorSrc->GetName().c_str(), actorDst->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
 							VzMaterial* mat = (VzMaterial*)vzm::GetComponent(actorDst->GetMaterial(partDst_index));
 							mat->SetBaseColor(*(vfloat4*)&collisionColor);
+
+							return true;
 						}
-						else
-						{
-							for (VID vid : actorDst->GetMaterials())
-							{
-								((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
-							}
-						}
+						return false;
 						};
 
 					VzActor* actor_test3 = (VzActor*)vzm::GetFirstComponentByName("my actor3");
+					uint count_det_actor1 = 0, count_det_actor2 = 0;
 					if (actor_test3)
 					{
-						PairwiseCollision(actor_test3, actor_test1, { 1, 0, 0, 1 });
-						PairwiseCollision(actor_test3, actor_test2, { 0, 1, 0, 1 });
+						count_det_actor1 += (uint)PairwiseCollision(actor_test3, actor_test1, { 1, 0, 0, 1 });
+						count_det_actor2 += (uint)PairwiseCollision(actor_test3, actor_test2, { 0, 1, 0, 1 });
 					}
 
-					PairwiseCollision(actor_canal, actor_test1, { 1, 1, 0, 1 } );
-					PairwiseCollision(actor_canal, actor_test2, { 0, 1, 1, 1 } );
+					VzActor* actor_canal = (VzActor*)vzm::GetFirstComponentByName("my actor-canal");
+					count_det_actor1 += PairwiseCollision(actor_canal, actor_test1, { 1, 1, 0, 1 } );
+					count_det_actor2 += PairwiseCollision(actor_canal, actor_test2, { 0, 1, 1, 1 });
+						
+					if (count_det_actor1 == 0)
+					{
+						for (VID vid : actor_test1->GetMaterials())
+						{
+							((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
+						}
+					}
+					if (count_det_actor2 == 0)
+					{
+						for (VID vid : actor_test2->GetMaterials())
+						{
+							((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
+						}
+					}
 				}
 				
 			}
@@ -497,7 +496,7 @@ int main(int, char **)
 					play = !play;
 				}
 
-				static int detail_Icosahedron = 0;
+				static int detail_Icosahedron = 5;
 				if (ImGui::SliderInt("Icosahedron's detail", &detail_Icosahedron, 0, 10))
 				{
 					VID geometry_vid = vzm::GetFirstVidByName("my icosahedron");

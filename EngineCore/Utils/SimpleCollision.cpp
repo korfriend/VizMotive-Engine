@@ -346,7 +346,7 @@ namespace vz::bvhcollision
 			if (!geometry1->IsBusyForBVH())
 			{
 				vzlog_warning("preparing BVH... (%d)", geometryEntity1);
-				jobsystem::context ctx;
+				static jobsystem::context ctx;
 				jobsystem::Execute(ctx, [geometryEntity1](jobsystem::JobArgs args) {
 					GeometryComponent* geometry1 = compfactory::GetGeometryComponent(geometryEntity1);
 					geometry1->UpdateBVH(true);
