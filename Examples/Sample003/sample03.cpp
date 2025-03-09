@@ -135,7 +135,7 @@ DXGI_SWAP_CHAIN_DESC1 sd;
 int main(int, char**)
 {
 	// DPI 인식을 활성화
-	EnableDpiAwareness();
+	//EnableDpiAwareness();
 
 	// Create application window
 	//ImGui_ImplWin32_EnableDpiAwareness();
