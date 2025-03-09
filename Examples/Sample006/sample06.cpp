@@ -6,6 +6,7 @@
 #include "vzm2/utils/Geometrics.h"
 #include "vzm2/utils/GeometryGenerator.h"
 #include "vzm2/utils/Profiler.h"
+#include "vzm2/utils/Config.h"
 
 #include <iostream>
 #include <windowsx.h>

@@ -4,6 +4,7 @@
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/Profiler.h"
 #include "vzm2/utils/JobSystem.h"
+#include "vzm2/utils/Config.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -867,7 +868,7 @@ int main(int, char**)
 
 				ImGui::Separator();
 				ImGui::Text("Rendering Options");
-				static bool TAA_enabled = true;
+				static bool TAA_enabled = vz::config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
 				if (ImGui::Checkbox("TAA", &TAA_enabled))
 				{
 					vzm::ParamMap<std::string> config_options;
