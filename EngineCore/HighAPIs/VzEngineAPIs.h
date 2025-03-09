@@ -78,4 +78,6 @@ namespace vzm
 	API_EXPORT void PendingSubmitCommand(const bool pending);
 	// Reload shaders
 	API_EXPORT void ReloadShader();
+
+	API_EXPORT void SetConfigure(const vzm::ParamMap<std::string>& configure);
 }

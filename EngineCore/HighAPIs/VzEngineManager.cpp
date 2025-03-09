@@ -2,13 +2,13 @@
 #include "Common/Engine_Internal.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
-#include "Common/Config.h"
+#include "Utils/Config.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Utils/EventHandler.h"
 #include "Utils/ECS.h"
 #include "Utils/Helpers.h"
-#include "Utils/PrivateInterface.h"
+#include "Utils/Utils_Internal.h"
 #include "GBackend/GBackendDevice.h"
 #include "GBackend/GModuleLoader.h"
 
@@ -21,6 +21,7 @@ namespace vz
 	std::unordered_map<std::string, HMODULE> importedModules;
 
 	graphics::GraphicsDevice* graphicsDevice = nullptr;
+
 	config::File configFile;
 }
 
@@ -308,39 +309,23 @@ namespace vzm
 		vzcompmanager::lookup[vid] = hlcomp;
 		return hlcomp;
 	}
-}
 
-namespace vzm
-{
-	bool InitEngineLib(const vzm::ParamMap<std::string>& arguments)
+	std::string configFilename;
+	void setDefaultConfig()
 	{
-		std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
-		engineThreadId = std::this_thread::get_id();
-		vzlog("Engine API's thread is assigned to thread ID (%lld)", threadToInteger(engineThreadId));
-
-#ifdef PLATFORM_WINDOWS_DESKTOP
-#if defined(_DEBUG) && defined(_MT_LEAK_CHECK)
-		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-#endif
-		if (initialized)
+		if (!helper::FileExists(configFilename))
 		{
-			backlog::post("Already initialized!", backlog::LogLevel::Warn);
-			return false;
+			std::ofstream file(configFilename);
+			file.close();
+			vzlog_error("Invald Configue File!! %s", configFilename.c_str());
 		}
-		
+		assert(configFile.Open(configFilename.c_str()));
+
+		// COMMON OPTIONS //
+		// RENDERING OPTIONS //
 		std::string ems_string = "ENGINE_MANAGER_SETTINGS";
 		const char* ems_string_c = ems_string.c_str();
 		{
-			// CONFIG FILE
-			// backlog has been already initialized!
-			std::string config_filename = arguments.GetString("CONFIG", std::string(backlog::GetLogPath()) + "vzConfig.ini");
-			if (!helper::FileExists(config_filename))
-			{
-				std::ofstream file(config_filename);
-				file.close();
-			}
-			assert(configFile.Open(config_filename.c_str()));
 			config::Section& section = configFile.GetSection(ems_string_c);
 			if (!section.Has("API"))
 			{
@@ -365,6 +350,47 @@ namespace vzm
 			configFile.Commit();
 		}
 
+		std::string ses_string = "SHADER_ENGINE_SETTINGS";
+		const char* ses_string_c = ses_string.c_str();
+		config::Section& ses_section = configFile.GetSection(ses_string_c);
+		{
+			if (!ses_section.Has("TEMPORAL_AA"))
+			{
+				ses_section.Set("TEMPORAL_AA", true);
+			}
+			if (!ses_section.Has("GAUSSIAN_SPLATTING"))
+			{
+				ses_section.Set("GAUSSIAN_SPLATTING", false);
+			}
+			configFile.Commit();
+		}
+	}
+}
+
+namespace vzm
+{
+	bool InitEngineLib(const vzm::ParamMap<std::string>& arguments)
+	{
+		std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
+		engineThreadId = std::this_thread::get_id();
+		vzlog("Engine API's thread is assigned to thread ID (%lld)", threadToInteger(engineThreadId));
+
+#ifdef PLATFORM_WINDOWS_DESKTOP
+#if defined(_DEBUG) && defined(_MT_LEAK_CHECK)
+		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+#endif
+		if (initialized)
+		{
+			backlog::post("Already initialized!", backlog::LogLevel::Warn);
+			return false;
+		}
+
+		configFilename = arguments.GetString("CONFIG", std::string(backlog::GetLogPath()) + "vzConfig.ini");
+		setDefaultConfig();
+
+		std::string ems_string = "ENGINE_MANAGER_SETTINGS";
+		const char* ems_string_c = ems_string.c_str();
 		config::Section& section = configFile.GetSection(ems_string_c);
 		std::string api = "DX12";
 		// assume DX12 rendering engine
@@ -482,8 +508,10 @@ namespace vzm
 
 		initializer::SetMaxThreadCount(num_max_threads);
 		initializer::InitializeComponentsAsync();	// involving jobsystem initializer
-		
+
 		initialized = true;
+		SetConfigure(arguments);
+
 		return true;
 	}
 
@@ -883,6 +911,31 @@ namespace vzm
 		CHECK_API_LOCKGUARD_VALIDITY(;);
 		eventhandler::FireEvent(eventhandler::EVENT_RELOAD_SHADERS, 0);
 		graphicsDevice->ClearPipelineStateCache();
+	}
+
+	void SetConfigure(const vzm::ParamMap<std::string>& configure)
+	{
+		CHECK_API_LOCKGUARD_VALIDITY(;);
+
+		if (!helper::FileExists(configFilename))
+		{
+			std::ofstream file(configFilename);
+			file.close();
+			vzlog_error("Invald Configue File!! %s", configFilename.c_str());
+		}
+		assert(configFile.Open(configFilename.c_str()));
+
+		std::string ses_string = "SHADER_ENGINE_SETTINGS";
+		const char* ses_string_c = ses_string.c_str();
+		config::Section& ses_section = configFile.GetSection(ses_string_c);
+
+#define CONFIG_SET(STR, FUNC) ses_section.Set(STR, configure.GetParam(STR, ses_section.FUNC(STR)));
+
+		CONFIG_SET("TEMPORAL_AA", GetBool);
+		CONFIG_SET("GAUSSIAN_SPLATTING", GetBool);
+		configFile.Commit();
+
+		shaderEngine.pluginSetConfigure(configFilename);
 	}
 
 	bool DeinitEngineLib()

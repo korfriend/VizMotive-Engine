@@ -18,7 +18,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)CommonInclude.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Archive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Canvas.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Common\Config.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Engine_Internal.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\Initializer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Common\RenderPath.h" />
@@ -59,6 +58,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ThirdParty\stb_truetype.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Backlog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Color.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Config.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXCollision.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXColors.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMath.h" />
@@ -73,7 +73,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Invocable.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\PrivateInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\SimpleCollision.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
@@ -84,7 +83,6 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Canvas.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Common\Config.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Initializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />
@@ -132,6 +130,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vfetchoptimizer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Config.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\GeometryGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Helpers2.cpp" />

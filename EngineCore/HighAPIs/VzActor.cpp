@@ -133,6 +133,11 @@ namespace vzm
 		return detected;
 	}
 
+	void VzActor::DebugRender(const std::string& debugScript)
+	{
+
+	}
+
 	std::vector<MaterialVID> VzActor::GetMaterials() const
 	{
 		GET_RENDERABLE_COMP(renderable, std::vector<MaterialVID>());

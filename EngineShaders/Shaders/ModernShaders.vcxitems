@@ -47,6 +47,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_DDGI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_DVR.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_FSR2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GPUSortLib.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GS.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Image.h" />
@@ -113,6 +114,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshlet_prepareCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerOutlineCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\temporalaaCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\tonemapCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl" />

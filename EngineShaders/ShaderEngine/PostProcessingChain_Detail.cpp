@@ -25,37 +25,36 @@ namespace vz::renderer
 		// 1.) HDR post process chain
 		{
 			// TODO: TAA, FSR, DOF, MBlur
-			/*
-			if (getFSR2Enabled() && fsr2Resources.IsValid())
+			if (renderer::isFSREnabled && fsr2Resources.IsValid())
 			{
-				renderer::Postprocess_FSR2(
-					fsr2Resources,
-					*camera,
-					rtFSR[1],
-					*rt_read,
-					depthBuffer_Copy,
-					rtVelocity,
-					rtFSR[0],
-					cmd,
-					scene->dt,
-					getFSR2Sharpness()
-				);
-
-				// rebind these, because FSR2 binds other things to those constant buffers:
-				renderer::BindCameraCB(
-					*camera,
-					camera_previous,
-					camera_reflection,
-					cmd
-				);
-				renderer::BindCommonResources(cmd);
-
-				rt_read = &rtFSR[0];
-				rt_write = &rtFSR[1];
+				//renderer::Postprocess_FSR2(
+				//	fsr2Resources,
+				//	*camera,
+				//	rtFSR[1],
+				//	*rt_read,
+				//	depthBuffer_Copy,
+				//	rtVelocity,
+				//	rtFSR[0],
+				//	cmd,
+				//	scene->dt,
+				//	getFSR2Sharpness()
+				//);
+				//
+				//// rebind these, because FSR2 binds other things to those constant buffers:
+				//renderer::BindCameraCB(
+				//	*camera,
+				//	camera_previous,
+				//	camera_reflection,
+				//	cmd
+				//);
+				//renderer::BindCommonResources(cmd);
+				//
+				//rt_read = &rtFSR[0];
+				//rt_write = &rtFSR[1];
 			}
-			else if (renderer::GetTemporalAAEnabled() && !renderer::GetTemporalAADebugEnabled() && temporalAAResources.IsValid())
+			else if (renderer::isTemporalAAEnabled && !renderer::isTemporalAADebugEnabled && temporalAAResources.IsValid())
 			{
-				renderer::Postprocess_TemporalAA(
+				Postprocess_TemporalAA(
 					temporalAAResources,
 					*rt_read,
 					cmd
@@ -63,34 +62,33 @@ namespace vz::renderer
 				rt_first = temporalAAResources.GetCurrent();
 			}
 
-			if (getDepthOfFieldEnabled() && camera->aperture_size > 0.001f && getDepthOfFieldStrength() > 0.001f && depthoffieldResources.IsValid())
-			{
-				renderer::Postprocess_DepthOfField(
-					depthoffieldResources,
-					rt_first == nullptr ? *rt_read : *rt_first,
-					*rt_write,
-					cmd,
-					getDepthOfFieldStrength()
-				);
-
-				rt_first = nullptr;
-				std::swap(rt_read, rt_write);
-			}
-
-			if (getMotionBlurEnabled() && getMotionBlurStrength() > 0 && motionblurResources.IsValid())
-			{
-				renderer::Postprocess_MotionBlur(
-					motionblurResources,
-					rt_first == nullptr ? *rt_read : *rt_first,
-					*rt_write,
-					cmd,
-					getMotionBlurStrength()
-				);
-
-				rt_first = nullptr;
-				std::swap(rt_read, rt_write);
-			}
-			/**/
+			//if (getDepthOfFieldEnabled() && camera->aperture_size > 0.001f && getDepthOfFieldStrength() > 0.001f && depthoffieldResources.IsValid())
+			//{
+			//	renderer::Postprocess_DepthOfField(
+			//		depthoffieldResources,
+			//		rt_first == nullptr ? *rt_read : *rt_first,
+			//		*rt_write,
+			//		cmd,
+			//		getDepthOfFieldStrength()
+			//	);
+			//
+			//	rt_first = nullptr;
+			//	std::swap(rt_read, rt_write);
+			//}
+			//
+			//if (getMotionBlurEnabled() && getMotionBlurStrength() > 0 && motionblurResources.IsValid())
+			//{
+			//	renderer::Postprocess_MotionBlur(
+			//		motionblurResources,
+			//		rt_first == nullptr ? *rt_read : *rt_first,
+			//		*rt_write,
+			//		cmd,
+			//		getMotionBlurStrength()
+			//	);
+			//
+			//	rt_first = nullptr;
+			//	std::swap(rt_read, rt_write);
+			//}
 		}
 
 		// 2.) Tone mapping HDR -> LDR
@@ -416,6 +414,88 @@ namespace vz::renderer
 
 		}
 
+		device->EventEnd(cmd);
+	}
+
+	void GRenderPath3DDetails::Postprocess_TemporalAA(
+		const TemporalAAResources& res,
+		const Texture& input,
+		CommandList cmd
+	)
+	{
+		device->EventBegin("Postprocess_TemporalAA", cmd);
+		auto range = profiler::BeginRangeGPU("Temporal AA Resolve", &cmd);
+		const bool first_frame = res.frame == 0;
+		res.frame++;
+
+		if (first_frame)
+		{
+			GPUBarrier barriers[] = {
+				GPUBarrier::Image(&res.textureTemporal[0], res.textureTemporal[0].desc.layout, ResourceState::UNORDERED_ACCESS),
+				GPUBarrier::Image(&res.textureTemporal[1], res.textureTemporal[1].desc.layout, ResourceState::UNORDERED_ACCESS),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+
+			device->ClearUAV(&res.textureTemporal[0], 0, cmd);
+			device->ClearUAV(&res.textureTemporal[1], 0, cmd);
+
+			std::swap(barriers[0].image.layout_before, barriers[0].image.layout_after);
+			std::swap(barriers[1].image.layout_before, barriers[1].image.layout_after);
+			device->Barrier(barriers, arraysize(barriers), cmd);
+		}
+
+		device->BindComputeShader(&shaders[CSTYPE_POSTPROCESS_TEMPORALAA], cmd);
+
+		device->BindResource(&input, 0, cmd); // input_current
+
+		if (first_frame)
+		{
+			device->BindResource(&input, 1, cmd); // input_history
+		}
+		else
+		{
+			device->BindResource(res.GetHistory(), 1, cmd); // input_history
+		}
+
+		const TextureDesc& desc = res.textureTemporal[0].GetDesc();
+
+		PostProcess postprocess = {};
+		postprocess.resolution.x = desc.width;
+		postprocess.resolution.y = desc.height;
+		postprocess.resolution_rcp.x = 1.0f / postprocess.resolution.x;
+		postprocess.resolution_rcp.y = 1.0f / postprocess.resolution.y;
+		postprocess.params0.x = first_frame ? 1.0f : 0.0f;
+		device->PushConstants(&postprocess, sizeof(postprocess), cmd);
+
+		const Texture* output = res.GetCurrent();
+
+		const GPUResource* uavs[] = {
+			output,
+		};
+		device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
+
+		{
+			GPUBarrier barriers[] = {
+				GPUBarrier::Image(output, output->GetDesc().layout, ResourceState::UNORDERED_ACCESS),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+		}
+
+		device->Dispatch(
+			(desc.width + POSTPROCESS_BLOCKSIZE - 1) / POSTPROCESS_BLOCKSIZE,
+			(desc.height + POSTPROCESS_BLOCKSIZE - 1) / POSTPROCESS_BLOCKSIZE,
+			1,
+			cmd
+		);
+
+		{
+			GPUBarrier barriers[] = {
+				GPUBarrier::Image(output, ResourceState::UNORDERED_ACCESS, output->GetDesc().layout),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+		}
+
+		profiler::EndRange(range);
 		device->EventEnd(cmd);
 	}
 }
