@@ -1,5 +1,14 @@
 #pragma once
-#include "CommonInclude.h"
+//#include "CommonInclude.h"
+#pragma warning (disable : 4251)
+
+#ifndef UTIL_EXPORT
+#ifdef _WIN32
+#define UTIL_EXPORT __declspec(dllexport)
+#else
+#define UTIL_EXPORT __attribute__((visibility("default")))
+#endif
+#endif
 
 #include <string>
 #include <vector>
@@ -8,7 +17,7 @@
 namespace vz::config
 {
 	struct File;
-	struct Section
+	struct UTIL_EXPORT Section
 	{
 		virtual ~Section() = default;
 
@@ -39,7 +48,7 @@ namespace vz::config
 		std::unordered_map<std::string, std::string> values;
 	};
 
-	struct File : public Section
+	struct UTIL_EXPORT File : public Section
 	{
 		// Open a config file (.ini format)
 		bool Open(const char* filename);

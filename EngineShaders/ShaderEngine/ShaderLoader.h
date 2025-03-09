@@ -126,6 +126,7 @@ namespace vz::shader
 
 		// Post-Processing Chain
 		CSTYPE_POSTPROCESS_TONEMAP,
+		CSTYPE_POSTPROCESS_TEMPORALAA,
 
 		// Difered Mipmap
 		CSTYPE_GENERATEMIPCHAINCUBEARRAY_FLOAT4,

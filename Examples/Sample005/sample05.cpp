@@ -502,7 +502,9 @@ int main(int, char**)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
+				{
 					render_chain.push_back(ChainUnitRCam(renderer3D, camera));
+				}
 				else
 					renderer3D->Render(scene, camera);
 
@@ -586,7 +588,9 @@ int main(int, char**)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
+				{
 					render_chain.push_back(ChainUnitRCam(renderer3D1, camera1));
+				}
 				else
 					renderer3D1->Render(scene, camera1);
 
@@ -670,7 +674,9 @@ int main(int, char**)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
+				{
 					render_chain.push_back(ChainUnitRCam(renderer_slicer, slicer));
+				}
 				else
 					renderer_slicer->Render(scene, slicer);
 
@@ -754,7 +760,9 @@ int main(int, char**)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
+				{
 					render_chain.push_back(ChainUnitRCam(renderer_curvedslicer, slicer_curved));
+				}
 				else
 				{
 					vzm::PendingSubmitCommand(false);
@@ -857,7 +865,17 @@ int main(int, char**)
 					slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
 				}
 
+				ImGui::Separator();
+				ImGui::Text("Rendering Options");
+				static bool TAA_enabled = true;
+				if (ImGui::Checkbox("TAA", &TAA_enabled))
+				{
+					vzm::ParamMap<std::string> config_options;
+					config_options.SetParam("TEMPORAL_AA", TAA_enabled);
+					vzm::SetConfigure(config_options);
+				}
 
+				ImGui::Separator();
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
 				static bool profile_enabled = false;

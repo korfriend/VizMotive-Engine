@@ -12,7 +12,8 @@
 #include "Utils/Backlog.h"
 #include "Utils/JobSystem.h"
 #include "Utils/EventHandler.h"
-#include "Utils/Spinlock.h"
+#include "Utils/Config.h"
+#include "Utils/Helpers.h"
 
 #include <memory>
 
@@ -27,7 +28,8 @@ namespace vz::renderer
 	bool isFreezeCullingCameraEnabled = false;
 	bool isWetmapRefreshEnabled = false;
 	bool isSceneUpdateEnabled = true;
-	bool isTemporalAAEnabled = false;
+	bool isTemporalAAEnabled = true;
+	bool isTemporalAADebugEnabled = false;
 	bool isTessellationEnabled = false;
 	bool isFSREnabled = false;
 	bool isWireRender = false;
@@ -528,6 +530,29 @@ namespace vz
 	bool LoadRenderer()
 	{
 		return renderer::Initialize();
+	}
+
+	bool SetConfigure(const std::string& configFilename)
+	{
+		config::File configFile;
+
+		if (!helper::FileExists(configFilename))
+		{
+			std::ofstream file(configFilename);
+			file.close();
+			vzlog_error("Invald Configue File!! %s", configFilename.c_str());
+		}
+		assert(configFile.Open(configFilename.c_str()));
+
+		std::string ses_string = "SHADER_ENGINE_SETTINGS";
+		const char* ses_string_c = ses_string.c_str();
+		config::Section& ses_section = configFile.GetSection(ses_string_c);
+		{
+			renderer::isTemporalAAEnabled = ses_section.GetBool("TEMPORAL_AA");
+			renderer::isGaussianSplattingEnabled = ses_section.GetBool("GAUSSIAN_SPLATTING");
+		}
+
+		return true;
 	}
 
 	void Deinitialize()
