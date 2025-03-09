@@ -532,26 +532,10 @@ namespace vz
 		return renderer::Initialize();
 	}
 
-	bool SetConfigure(const std::string& configFilename)
+	bool ApplyConfiguration()
 	{
-		config::File configFile;
-
-		if (!helper::FileExists(configFilename))
-		{
-			std::ofstream file(configFilename);
-			file.close();
-			vzlog_error("Invald Configue File!! %s", configFilename.c_str());
-		}
-		assert(configFile.Open(configFilename.c_str()));
-
-		std::string ses_string = "SHADER_ENGINE_SETTINGS";
-		const char* ses_string_c = ses_string.c_str();
-		config::Section& ses_section = configFile.GetSection(ses_string_c);
-		{
-			renderer::isTemporalAAEnabled = ses_section.GetBool("TEMPORAL_AA");
-			renderer::isGaussianSplattingEnabled = ses_section.GetBool("GAUSSIAN_SPLATTING");
-		}
-
+		renderer::isTemporalAAEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
+		renderer::isGaussianSplattingEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
 		return true;
 	}
 
