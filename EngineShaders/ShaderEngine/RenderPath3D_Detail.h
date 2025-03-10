@@ -436,7 +436,6 @@ namespace vz::renderer
 
 		bool viewShadingInCS = false;
 		mutable bool firstFrame = true;
-		size_t stableFrameCount = 0;
 
 		FrameCB frameCB = {};
 		// separate graphics pipelines for the combination of special rendering effects

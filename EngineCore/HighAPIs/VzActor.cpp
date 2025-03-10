@@ -1,4 +1,5 @@
 #include "VzEngineAPIs.h"
+#include "Common/Engine_Internal.h"
 #include "Components/Components.h"
 #include "Utils/Backlog.h"
 #include "Utils/SimpleCollision.h"
@@ -137,7 +138,7 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
-	bool VzActor::CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc, int* partIndexTarget, int* triIndexSrc, int* triIndexTarget)
+	bool VzActor::CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc, int* partIndexTarget, int* triIndexSrc, int* triIndexTarget) const
 	{
 		GET_RENDERABLE_COMP(renderable, false);
 		RenderableComponent* renderable_target = compfactory::GetRenderableComponent(targetActorVID);
@@ -174,5 +175,26 @@ namespace vzm
 	{
 		GET_RENDERABLE_COMP(renderable, INVALID_VID);
 		return renderable->GetGeometry();
+	}
+
+	void VzActor::AssignCollider()
+	{
+		if (compfactory::ContainColliderComponent(componentVID_))
+		{
+			vzlog_warning("%s already has collider!", GetName().c_str());
+			return;
+		}
+		compfactory::CreateColliderComponent(componentVID_);
+	}
+
+	bool VzActor::HasCollider() const
+	{
+		return compfactory::ContainColliderComponent(componentVID_);
+	}
+
+	bool VzActor::ColliderCollisionCheck(const ActorVID targetActorVID) const
+	{
+		assert(0 && "TODO");
+		return false;
 	}
 }
