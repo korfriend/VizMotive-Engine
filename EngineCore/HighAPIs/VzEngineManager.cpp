@@ -346,6 +346,10 @@ namespace vzm
 			{
 				section.Set("TARGET_FPS", -1);
 			}
+			if (!section.Has("RENDERING_SKIP_STABLES"))
+			{
+				section.Set("RENDERING_SKIP_STABLES", 30);
+			}
 			configFile.Commit();
 		}
 
@@ -424,6 +428,8 @@ namespace vzm
 		{
 			RenderPath::framerateLock = false;
 		}
+
+		RenderPath3D::skipStableCount = section.GetInt("RENDERING_SKIP_STABLES");
 
 		// initialize the graphics backend
 		graphics::ValidationMode validationMode = graphics::ValidationMode::Disabled;
