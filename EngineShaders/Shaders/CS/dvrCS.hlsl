@@ -65,10 +65,13 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	}
 #endif
 	int num_ray_samples = (int)((hits_t.y - hits_t.x) / vol_instance.sample_dist + 0.5f);
-	if (num_ray_samples <= 0)
+	if (num_ray_samples <= 0 || num_ray_samples > 100000)
 	{
+		// (num_ray_samples > 100000) means that camera or volume actor is placed at wrong location (NAN)
+		//	so vol_instance.mat_alignedvbox_ws2bs has invalid values
 		return;
 	}
+
 #else // #ifdef ZERO_THICKNESS
 	if (!IsInsideClipBox(ray.Origin, vol_instance.mat_alignedvbox_ws2bs))
 		return;

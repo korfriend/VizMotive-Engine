@@ -474,8 +474,8 @@ namespace vz::renderer
 		static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
 
 		jobsystem::context ctx;
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { image::Initialize(); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpubvh::Initialize(); });
 

@@ -64,7 +64,7 @@ namespace vz::renderer
 		);
 
 
-		if (renderer::isTemporalAAEnabled)
+		if (renderer::isTemporalAAEnabled && !camera->IsSlicer())
 		{
 			const XMFLOAT4& halton = math::GetHaltonSequence(graphics::GetDevice()->GetFrameCount() % 256);
 			camera->jitter.x = (halton.x * 2 - 1) / (float)internalResolution.x;
@@ -247,6 +247,9 @@ namespace vz::renderer
 			viewResources.primitiveID_1_resolved = nullptr;
 			viewResources.primitiveID_2_resolved = nullptr;
 		}
+
+		cameraReflectionPrevious = cameraReflection;
+		cameraPrevious = *camera;
 	}
 
 	// based on graphics pipeline
@@ -1901,6 +1904,7 @@ namespace vz::renderer
 
 		cmd = device->BeginCommandList();
 		//device->WaitCommandList(cmd, cmd_dvr);
+
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 			RenderPostprocessChain(cmd);
 			});

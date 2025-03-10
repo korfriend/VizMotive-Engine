@@ -326,10 +326,11 @@ int main(int, char**)
 
 		using namespace vzm;
 		{
+			ImVec2 canvas_size;
 			ImGui::Begin("3D Viewer");
 			{
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);
-				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+				canvas_size = ImGui::GetContentRegionAvail();
 
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
 				{
@@ -477,7 +478,6 @@ int main(int, char**)
 				static bool orthographics = false;
 				if (ImGui::Checkbox("ORTHOGONAL", &orthographics))
 				{
-					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 					if (orthographics) {
 						camera->SetOrthogonalProjection(canvas_size.x, canvas_size.y, camera->GetNear(), camera->GetCullingFar(), -1);
 					}

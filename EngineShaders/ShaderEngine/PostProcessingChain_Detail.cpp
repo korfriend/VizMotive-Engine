@@ -52,7 +52,7 @@ namespace vz::renderer
 				//rt_read = &rtFSR[0];
 				//rt_write = &rtFSR[1];
 			}
-			else if (renderer::isTemporalAAEnabled && !renderer::isTemporalAADebugEnabled && temporalAAResources.IsValid())
+			else if (renderer::isTemporalAAEnabled && !renderer::isTemporalAADebugEnabled && temporalAAResources.IsValid() && !camera->IsSlicer())
 			{
 				Postprocess_TemporalAA(
 					temporalAAResources,
