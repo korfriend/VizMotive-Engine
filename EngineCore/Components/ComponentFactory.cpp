@@ -18,6 +18,7 @@ namespace vz::compfactory
 	ComponentManager<NameComponent>& nameManager = componentLibrary.Register<NameComponent>("NAME");
 	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>("TANSFORM");
 	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>("HIERARCHY");
+	ComponentManager<ColliderComponent>& colliderManager = componentLibrary.Register<ColliderComponent>("COLLIDER");
 
 	// ----- Graphics-related components -----
 	ComponentManager<GRenderableComponent>& renderableManager = componentLibrary.Register<GRenderableComponent>("RENDERABLE");
@@ -106,6 +107,12 @@ namespace vz::compfactory
 		}
 		return comp;
 	}
+	ColliderComponent* CreateColliderComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		ColliderComponent* comp = &colliderManager.Create(entity_update);
+		return comp;
+	}
 	MaterialComponent* CreateMaterialComponent(const Entity entity)
 	{
 		ENTITY_UPDATE(entity_update);
@@ -190,6 +197,10 @@ namespace vz::compfactory
 	{
 		RETURN_GET_COMP(VolumeComponent, volumeManager, entity);
 	}
+	ColliderComponent* GetColliderComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(ColliderComponent, colliderManager, entity);
+	}
 	RenderableComponent* GetRenderableComponent(const Entity entity)
 	{
 		RETURN_GET_COMP(RenderableComponent, renderableManager, entity);
@@ -224,6 +235,10 @@ namespace vz::compfactory
 	{
 		return GetHierarchyComponent(GetEntityByVUID(vuid));
 	}
+	ColliderComponent* GetColliderComponentByVUID(const VUID vuid)
+	{
+		return GetColliderComponent(GetEntityByVUID(vuid));
+	}
 	MaterialComponent* GetMaterialComponentByVUID(const VUID vuid)
 	{
 		return GetMaterialComponent(GetEntityByVUID(vuid));
@@ -257,27 +272,6 @@ namespace vz::compfactory
 		return GetSlicerComponent(GetEntityByVUID(vuid));
 	}
 
-#define GET_COMPONENTS(T, TM) comps.clear(); size_t n = entities.size(); comps.reserve(n); \
-	for (size_t i = 0; i < n; ++i) { T* comp = TM.GetComponent(entities[i]); assert(comp); comps.push_back(comp); } \
-	return comps.size();
-
-	size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps)
-	{
-		GET_COMPONENTS(TransformComponent, transformManager);
-	}
-	size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps)
-	{
-		GET_COMPONENTS(HierarchyComponent, hierarchyManager);
-	}
-	size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps)
-	{
-		GET_COMPONENTS(MaterialComponent, materialManager);
-	}
-	size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps)
-	{
-		GET_COMPONENTS(LightComponent, lightManager);
-	}
-
 	bool ContainNameComponent(const Entity entity)
 	{
 		return nameManager.Contains(entity);
@@ -289,6 +283,10 @@ namespace vz::compfactory
 	bool ContainHierarchyComponent(const Entity entity)
 	{
 		return hierarchyManager.Contains(entity);
+	}
+	bool ContainColliderComponent(const Entity entity)
+	{
+		return colliderManager.Contains(entity);
 	}
 	bool ContainMaterialComponent(const Entity entity)
 	{

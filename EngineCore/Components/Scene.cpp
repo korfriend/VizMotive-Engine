@@ -71,6 +71,12 @@ namespace vz
 			//TransformComponent* transform = transforms[args.jobIndex];
 			TransformComponent* transform = compfactory::GetTransformComponent(renderables_[args.jobIndex]);
 			transform->UpdateMatrix();
+
+			if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
+			{
+				isContentChanged_ = true;
+			}
+
 			});
 	}
 	void SceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
@@ -92,6 +98,10 @@ namespace vz
 			if (transform == nullptr)
 				return;
 			transform->UpdateWorldMatrix();
+			if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
+			{
+				isContentChanged_ = true;
+			}
 
 			RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
 			if (renderable)
@@ -103,8 +113,15 @@ namespace vz
 				matrixRenderablesPrev_[args.jobIndex] = matrixRenderables_[args.jobIndex];
 				matrixRenderables_[args.jobIndex] = transform->GetWorldMatrix();
 
+				MaterialComponent* material = nullptr;
 				if (renderable->IsMeshRenderable() || renderable->IsVolumeRenderable())
 				{
+					material = compfactory::GetMaterialComponent(renderable->GetMaterial(0));
+					assert(material);
+					if (TimeDurationCount(material->GetTimeStamp(), recentUpdateTime_) > 0)
+					{
+						isContentChanged_ = true;
+					}
 
 					AABB* shared_bounds = (AABB*)args.sharedmemory;
 					if (args.isFirstJobInGroup)
@@ -124,7 +141,6 @@ namespace vz
 				if (renderable->IsVolumeRenderable())
 				{
 					MaterialComponent* material = compfactory::GetMaterialComponent(renderable->GetMaterial(0));
-					assert(material);
 
 					GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
 						material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
@@ -154,9 +170,24 @@ namespace vz
 						{
 							volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
 						}
+						if (TimeDurationCount(otf->GetTimeStamp(), recentUpdateTime_) > 0)
+						{
+							isContentChanged_ = true;
+						}
+					}
+
+					if (TimeDurationCount(volume->GetTimeStamp(), recentUpdateTime_) > 0)
+					{
+						isContentChanged_ = true;
 					}
 				}
+
+				if (TimeDurationCount(renderable->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
+				}
 			}
+
 		}, sizeof(geometrics::AABB));
 	}
 
@@ -175,7 +206,13 @@ namespace vz
 			if (light)
 			{
 				light->Update();	// AABB
+
+				if (TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
+				}
 			}
+
 			});
 	}
 
@@ -195,11 +232,16 @@ namespace vz
 				geometry->UpdateBVH(true);
 			}
 
+			if (TimeDurationCount(geometry->GetTimeStamp(), recentUpdateTime_) > 0)
+			{
+				isContentChanged_ = true;
+			}
 			});
 	}
 
 	void Scene::Update(const float dt)
 	{
+		isContentChanged_ = false;
 		dt_ = dt;
 		deltaTimeAccumulator_ += dt;
 
@@ -252,14 +294,21 @@ namespace vz
 		}
 		/**/
 		// TODO: animation updates
-
+			
 		// GPU updates
 		// note: since tasks in ctx has been completed
 		//		there is no need to pass ctx as an argument.
 		handlerScene_->Update(dt);
 
-		isDirty_ = false;
 		recentUpdateTime_ = TimerNow;
+		if (!isContentChanged_)
+		{
+			stableCount++;
+		}
+		else
+		{
+			stableCount = 0;
+		}
 	}
 
 	void Scene::Clear()
@@ -276,8 +325,6 @@ namespace vz
 		//
 		//scene_details->matrixRenderables.clear();
 		//scene_details->matrixRenderablesPrev.clear();
-
-		isDirty_ = true;
 	}
 
 	void Scene::AddEntity(const Entity entity)
@@ -289,7 +336,6 @@ namespace vz
 			{
 				lookupRenderables_[entity] = renderables_.size();
 				renderables_.push_back(entity);
-				isDirty_ = true;
 				timeStampSetter_ = TimerNow;
 			}
 		}
@@ -300,7 +346,6 @@ namespace vz
 			{
 				lookupLights_[entity] = renderables_.size();
 				lights_.push_back(entity);
-				isDirty_ = true;
 				timeStampSetter_ = TimerNow;
 			}
 		}
@@ -336,7 +381,6 @@ namespace vz
 
 		remove_entity(lookupRenderables_, renderables_, entity);
 		remove_entity(lookupLights_, lights_, entity);
-		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 

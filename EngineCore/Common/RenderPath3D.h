@@ -25,13 +25,19 @@ namespace vz
 		XMFLOAT4X4 matScreen_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 matScreenInv_ = math::IDENTITY_MATRIX;
 
+		size_t stableCount_ = 0;
+
 		void updateViewportTransforms();
+		void stableCountTest();
 
 	public:
+		inline static int skipStableCount = -1; // -1 refers to ignore the skip
+
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
 		~RenderPath3D();
 
 		CameraComponent* camera = nullptr; // can be used for SlicerComponent
+		CameraComponent cameraPrevious = CameraComponent(0);
 		Scene* scene = nullptr;
 
 		bool useManualSetViewport = false;

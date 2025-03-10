@@ -320,6 +320,32 @@ namespace vz
 		}
 	}
 
+	void ColliderComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		if (archive.IsReadMode())
+		{
+			uint8_t u8_data;
+			archive >> u8_data;
+			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
+
+			archive >> flags_;
+			archive >> u8_data; shape_ = (Shape)u8_data;
+			archive >> radius_;
+			archive >> offset_;
+			archive >> tail_;
+		}
+		else
+		{
+			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
+
+			archive << flags_;
+			archive << (uint8_t)shape_;
+			archive << radius_;
+			archive << offset_;
+			archive << tail_;
+		}
+	}
+
 	void RenderableComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
 		if (archive.IsReadMode())

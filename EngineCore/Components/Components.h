@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250310_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250311_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -176,14 +176,14 @@ namespace vz
 		geometrics::AABB aabb_;
 
 		Entity entity_ = INVALID_ENTITY;
-		TimeStamp recentUpdateTime_ = TimerMin;	// world update time
-		TimeStamp timeStampSetter_ = TimerMin;
-		
-		bool isDirty_ = true;
 
+		// Non-serialized attributes:
 		// instant parameters during render-process
 		float dt_ = 0.f;
 		float deltaTimeAccumulator_ = 0.f;
+		bool isContentChanged_ = true;	// since last recentUpdateTime_
+		TimeStamp recentUpdateTime_ = TimerMin;	// world update time
+		TimeStamp timeStampSetter_ = TimerMin;	// add or remove scene components
 
 		GScene* handlerScene_ = nullptr;
 
@@ -194,6 +194,7 @@ namespace vz
 		Scene(const Entity entity, const std::string& name);
 		~Scene();
 
+		size_t stableCount = 0;
 		float targetFrameRate = 60;
 		bool frameskip = true; // just for fixed update (later for physics-based simulations)
 		bool framerateLock = true;
@@ -209,8 +210,7 @@ namespace vz
 		const void* GetTextureSkyMap() const;			// return the pointer of graphics::Texture
 		const void* GetTextureGradientMap() const;	// return the pointer of graphics::Texture
 
-		void SetDirty() { isDirty_ = true; }
-		bool IsDirty() const { return isDirty_; }
+		bool IsContentChanged() const { return isContentChanged_; }
 
 		inline const std::string GetSceneName() const { return name_; }
 		inline const Entity GetSceneEntity() const { return entity_; }
@@ -348,6 +348,7 @@ namespace vz
 		MATERIAL,
 		GEOMETRY,
 		RENDERABLE,
+		COLLIDER,
 		TEXTURE,
 		VOLUMETEXTURE,
 		LIGHT,
@@ -362,7 +363,7 @@ namespace vz
 		ComponentType cType_ = ComponentType::UNDEFINED;
 		VUID vuid_ = INVALID_VUID;
 
-		// non-serialized attributes
+		// Non-serialized attributes:
 		TimeStamp timeStampSetter_ = TimerMin;
 		Entity entity_ = INVALID_ENTITY;
 		std::shared_ptr<std::mutex> mutex_ = std::make_shared<std::mutex>();
@@ -444,8 +445,7 @@ namespace vz
 		inline void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; timeStampSetter_ = TimerNow; }
 		inline void SetRotateAxis(const XMFLOAT3& axis, const float rotAngle);
 		inline void SetMatrix(const XMFLOAT4X4& local);
-			
-		inline void SetWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = TimerNow; };
+		inline void SetWorldMatrix(const XMFLOAT4X4& world);
 
 		inline void UpdateMatrix();	// local matrix
 		inline void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
@@ -1146,6 +1146,55 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::VOLUMETEXTURE;
 	};
 
+	// physics
+	struct CORE_EXPORT ColliderComponent : ComponentBase
+	{
+		enum FLAGS : uint32_t
+		{
+			EMPTY = 0,
+			CPU = 1 << 0,
+			GPU = 1 << 1,
+			CAPSULE_SHADOW = 1 << 2,
+		};
+
+		enum class Shape : uint8_t
+		{
+			Sphere,
+			Capsule,
+			Plane,
+		};
+
+	protected:
+		uint32_t flags_ = CPU;
+		Shape shape_ = Shape::Sphere;
+
+		float radius_ = 0;
+		XMFLOAT3 offset_ = {};
+		XMFLOAT3 tail_ = {};
+
+		// Non-serialized attributes:
+		geometrics::Sphere sphere_;
+		geometrics::Capsule capsule_;
+		geometrics::Plane plane_;
+		uint32_t layerMask_ = ~0u;
+		float dist_ = 0;
+
+	public:
+		ColliderComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::COLLIDER, entity, vuid) {}
+
+		constexpr void SetCPUEnabled(bool value = true) { if (value) { flags_ |= CPU; } else { flags_ &= ~CPU; } }
+		constexpr void SetGPUEnabled(bool value = true) { if (value) { flags_ |= GPU; } else { flags_ &= ~GPU; } }
+		constexpr void SetCapsuleShadowEnabled(bool value = true) { if (value) { flags_ |= CAPSULE_SHADOW; } else { flags_ &= ~CAPSULE_SHADOW; } }
+
+		constexpr bool IsCPUEnabled() const { return flags_ & CPU; }
+		constexpr bool IsGPUEnabled() const { return flags_ & GPU; }
+		constexpr bool IsCapsuleShadowEnabled() const { return flags_ & CAPSULE_SHADOW; }
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		inline static const ComponentType IntrinsicType = ComponentType::COLLIDER;
+	};
+
 	// scene 
 	struct CORE_EXPORT RenderableComponent : ComponentBase
 	{
@@ -1607,6 +1656,7 @@ namespace vz::compfactory
 	CORE_EXPORT NameComponent* GetNameComponent(const Entity entity);
 	CORE_EXPORT TransformComponent* GetTransformComponent(const Entity entity);
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponent(const Entity entity);
+	CORE_EXPORT ColliderComponent* GetColliderComponent(const Entity entity);
 	CORE_EXPORT MaterialComponent* GetMaterialComponent(const Entity entity);
 	CORE_EXPORT GeometryComponent* GetGeometryComponent(const Entity entity);
 	CORE_EXPORT TextureComponent* GetTextureComponent(const Entity entity);
@@ -1619,6 +1669,7 @@ namespace vz::compfactory
 	CORE_EXPORT NameComponent* GetNameComponentByVUID(const VUID vuid);
 	CORE_EXPORT TransformComponent* GetTransformComponentByVUID(const VUID vuid);
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponentByVUID(const VUID vuid);
+	CORE_EXPORT ColliderComponent* GetColliderComponentByVUID(const VUID vuid);
 	CORE_EXPORT MaterialComponent* GetMaterialComponentByVUID(const VUID vuid);
 	CORE_EXPORT GeometryComponent* GetGeometryComponentByVUID(const VUID vuid);
 	CORE_EXPORT TextureComponent* GetTextureComponentByVUID(const VUID vuid);
@@ -1628,14 +1679,10 @@ namespace vz::compfactory
 	CORE_EXPORT CameraComponent* GetCameraComponentByVUID(const VUID vuid);
 	CORE_EXPORT SlicerComponent* GetSlicerComponentByVUID(const VUID vuid);
 
-	CORE_EXPORT size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
-	CORE_EXPORT size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
-	CORE_EXPORT size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps);
-	CORE_EXPORT size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps);
-
 	CORE_EXPORT bool ContainNameComponent(const Entity entity);
 	CORE_EXPORT bool ContainTransformComponent(const Entity entity);
 	CORE_EXPORT bool ContainHierarchyComponent(const Entity entity);
+	CORE_EXPORT bool ContainColliderComponent(const Entity entity);
 	CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
 	CORE_EXPORT bool ContainGeometryComponent(const Entity entity);
 	CORE_EXPORT bool ContainRenderableComponent(const Entity entity);

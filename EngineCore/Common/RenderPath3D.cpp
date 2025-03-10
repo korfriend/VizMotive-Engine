@@ -51,6 +51,27 @@ namespace vz
 		XMStoreFloat4x4(&matScreenInv_, CreateScreenToProjectionMatrix(viewport_));
 	}
 
+	void RenderPath3D::stableCountTest()
+	{
+		if (frameCount == 0)
+		{
+			return;
+		}
+
+		if (TimeDurationCount(camera->GetTimeStamp(), cameraPrevious.GetTimeStamp()) == 0)
+		{
+			stableCount_++;
+		}
+		else
+		{
+			//if (stableCount > 0)
+			//{
+			//	vzlog("Camera has been changed (%d)", (uint32_t)stableCount);
+			//}
+			stableCount_ = 0;
+		}
+	}
+
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
 		: RenderPath2D(entity, graphicsDevice) 
 	{
@@ -115,6 +136,8 @@ namespace vz
 
 		if (camera == nullptr || scene == nullptr) return;
 
+		stableCountTest();
+
 		// this must be called after scene's update
 		HierarchyComponent* hier = compfactory::GetHierarchyComponent(camera->GetEntity());
 		if (hier->GetParentEntity() != INVALID_ENTITY)
@@ -126,6 +149,13 @@ namespace vz
 		{
 			((SlicerComponent*)camera)->UpdateCurve(); // include dirty check!
 		}
+		else
+		{
+			if (camera->IsDirty())
+			{
+				camera->UpdateMatrix();
+			}
+		}
 	}
 	
 	void RenderPath3D::Render(const float dt)
@@ -134,6 +164,14 @@ namespace vz
 		{
 			vzlog_warning("RenderPath3D::Render >> No Scene or No Camera/Slicer in RenderPath!");
 			return;
+		}
+
+		if (skipStableCount > 0)
+		{
+			if (scene->stableCount > skipStableCount && stableCount_ > skipStableCount)
+			{
+				return;
+			}
 		}
 
 		// This involves the following process
@@ -182,6 +220,8 @@ namespace vz
 		}
 
 		RenderPath2D::Render(dt);
+
+		cameraPrevious = *camera;
 	}
 
 	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {

@@ -665,6 +665,7 @@ namespace vz
 
 			resourcemanager::AddBufferUpdate(blobkBitmask.bitmaskBuffer, bitmask_data);
 			blobkBitmask.updateTime = TimerNow;
+			timeStampSetter_ = TimerNow;
 		});
 
 		// garbage collection
