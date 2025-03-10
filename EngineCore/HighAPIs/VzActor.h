@@ -29,6 +29,8 @@ namespace vzm
 		void EnableReceiveShadows(const bool enabled);
 		void EnableSlicerSolidFill(const bool enabled);
 		void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled);
+		void EnableOutline(const bool enabled);
+		void EnableUndercut(const bool enabled);
 
 		void SetClipPlane(const vfloat4& clipPlane);
 		void SetClipBox(const vfloat4x4& clipBox);

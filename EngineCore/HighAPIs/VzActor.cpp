@@ -68,16 +68,33 @@ namespace vzm
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
+		UpdateTimeStamp();
 	}
+
+	void VzActor::EnableOutline(const bool enabled)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->EnableOutline(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActor::EnableUndercut(const bool enabled)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->EnableUndercut(enabled);
+		UpdateTimeStamp();
+	}
+
 	void VzActor::SetClipPlane(const vfloat4& clipPlane)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetClipPlane(*(XMFLOAT4*)&clipPlane);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetClipBox(const vfloat4x4& clipBox)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetClipBox(*(XMFLOAT4X4*)&clipBox);
+		UpdateTimeStamp();
 	}
 	bool VzActor::IsClipperEnabled(bool* clipBoxEnabled, bool* clipPlaneEnabled) const
 	{
@@ -93,26 +110,31 @@ namespace vzm
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineThickness(v);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetOutineColor(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineColor(*(XMFLOAT3*)&v);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetOutineThreshold(const float v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineThreshold(v);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetUndercutDirection(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetUndercutDirection(*(XMFLOAT3*)&v);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetUndercutColor(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetUndercutColor(*(XMFLOAT3*)&v);
+		UpdateTimeStamp();
 	}
 
 	bool VzActor::CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc, int* partIndexTarget, int* triIndexSrc, int* triIndexTarget)
