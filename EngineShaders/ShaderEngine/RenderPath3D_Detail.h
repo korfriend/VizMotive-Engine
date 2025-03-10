@@ -436,6 +436,7 @@ namespace vz::renderer
 
 		bool viewShadingInCS = false;
 		mutable bool firstFrame = true;
+		size_t stableFrameCount = 0;
 
 		FrameCB frameCB = {};
 		// separate graphics pipelines for the combination of special rendering effects
@@ -444,6 +445,7 @@ namespace vz::renderer
 
 		// auxiliary cameras for special rendering effects
 		CameraComponent cameraReflection = CameraComponent(0);
+		CameraComponent cameraReflectionPrevious = CameraComponent(0);
 		CameraComponent cameraPrevious = CameraComponent(0);
 
 		// resources associated with render target buffers and textures

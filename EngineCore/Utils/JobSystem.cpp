@@ -142,7 +142,7 @@ namespace vz::jobsystem
 			if (max_concurrent_queue_count.load() < queue.size())
 			{
 				max_concurrent_queue_count++;
-				backlog::post("Increases the number of concurrent job queues to " + std::to_string(max_concurrent_queue_count));
+				backlog::post("Increases the capacity of concurrent job queues to " + std::to_string(max_concurrent_queue_count));
 			}
 			if (queue.size() > MAX_QUEUE)
 			{
