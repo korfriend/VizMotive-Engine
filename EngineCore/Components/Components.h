@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250309_2";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250310_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1162,6 +1162,8 @@ namespace vz
 			CLIP_PLANE = 1 << 10,
 			JITTER_SAMPLE = 1 << 11,
 			SLICER_NO_SOLID_FILL = 1 << 12, // in the case that the geometry is NOT water-tight
+			OUTLINE = 1 << 13,
+			UNDERCUT = 1 << 14
 		};
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
@@ -1230,6 +1232,8 @@ namespace vz
 		inline void SetOutineThreshold(const float v) { outlineThreshold_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutDirection(const XMFLOAT3& v) { undercutDirection_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutColor(const XMFLOAT3& v) { undercutColor_ = v; timeStampSetter_ = TimerNow; }
+		inline void EnableOutline(const bool enabled) { enabled ? flags_ |= RenderableFlags::OUTLINE : flags_ &= ~RenderableFlags::OUTLINE; timeStampSetter_ = TimerNow; }
+		inline void EnableUndercut(const bool enabled) { enabled ? flags_ |= RenderableFlags::UNDERCUT : flags_ &= ~RenderableFlags::UNDERCUT; timeStampSetter_ = TimerNow; }
 
 		inline void EnableSlicerSolidFill(const bool enabled) { 
 			enabled? flags_ &= ~RenderableFlags::SLICER_NO_SOLID_FILL : flags_ |= RenderableFlags::SLICER_NO_SOLID_FILL; 
