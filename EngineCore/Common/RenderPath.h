@@ -50,7 +50,8 @@ namespace vz
 		inline static float targetFrameRate = 60;
 		inline static bool frameskip = true; // just for fixed update (later for physics-based simulations)
 		inline static bool framerateLock = true;
-		vz::Timer timer;
+		vz::Timer timer; // this is for computing fps
+		TimeStamp recentRender3D_UpdateTime = TimerMin;
 
 		bool UpdateResizedCanvas() {
 			if (swapChain_.IsValid())

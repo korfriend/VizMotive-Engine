@@ -316,7 +316,7 @@ namespace vzm
 		{
 			std::ofstream file(configFilename);
 			file.close();
-			vzlog_error("Invald Configue File!! %s", configFilename.c_str());
+			vzlog_error("The configue file (%s) does NOT exist, so create new config file!", configFilename.c_str());
 		}
 		assert(configFile.Open(configFilename.c_str()));
 

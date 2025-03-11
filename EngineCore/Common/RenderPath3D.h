@@ -37,7 +37,6 @@ namespace vz
 		~RenderPath3D();
 
 		CameraComponent* camera = nullptr; // can be used for SlicerComponent
-		CameraComponent cameraPrevious = CameraComponent(0);
 		Scene* scene = nullptr;
 
 		bool useManualSetViewport = false;
