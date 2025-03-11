@@ -53,8 +53,9 @@ namespace vz
 		typedef bool(*PI_Deinitializer)();
 
 		typedef bool(*PI_LoadRenderer)();
+		typedef bool(*PI_ApplyConfiguration)();
 
-		typedef GRenderPath3D* (*PI_NewGRenderPath3D)(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
+		typedef GRenderPath3D* (*PI_NewGRenderPath3D)(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal);
 		typedef GScene* (*PI_NewGScene)(Scene* scene);
 		typedef void(*PI_AddDeferredMIPGen)(const graphics::Texture& texture, bool preserve_coverage);
 		typedef void(*PI_AddDeferredBlockCompression)(const graphics::Texture& texture_src, const graphics::Texture& texture_bc);
@@ -74,6 +75,7 @@ namespace vz
 		PI_Initializer pluginInitializer = nullptr;
 		PI_Deinitializer pluginDeinitializer = nullptr;
 		PI_LoadRenderer pluginLoadRenderer = nullptr;
+		PI_ApplyConfiguration pluginApplyConfiguration = nullptr;
 		PI_NewGRenderPath3D pluginNewGRenderPath3D = nullptr;
 		PI_NewGScene pluginNewGScene = nullptr;
 		PI_LoadShader pluginLoadShader = nullptr;
@@ -97,6 +99,7 @@ namespace vz
 			pluginDeinitializer = platform::LoadModule<PI_Deinitializer>(moduleName, "Deinitialize", importedModules);
 
 			pluginLoadRenderer = platform::LoadModule<PI_LoadRenderer>(moduleName, "LoadRenderer", importedModules);
+			pluginApplyConfiguration = platform::LoadModule<PI_ApplyConfiguration>(moduleName, "ApplyConfiguration", importedModules);
 			
 			pluginNewGRenderPath3D = platform::LoadModule<PI_NewGRenderPath3D>(moduleName, "NewGRenderPath", importedModules);
 			pluginNewGScene = platform::LoadModule<PI_NewGScene>(moduleName, "NewGScene", importedModules);
@@ -109,7 +112,7 @@ namespace vz
 			pluginAddDeferredBufferUpdate = platform::LoadModule<PI_AddDeferredBufferUpdate>(moduleName, "AddDeferredBufferUpdate", importedModules);
 			pluginAddDeferredGeometryGPUBVHUpdate = platform::LoadModule<PI_AddDeferredGeometryGPUBVHUpdate>(moduleName, "AddDeferredGeometryGPUBVHUpdate", importedModules);
 
-			return pluginInitializer && pluginDeinitializer && pluginLoadRenderer && pluginNewGRenderPath3D && pluginNewGScene && pluginLoadShader && pluginLoadShaders
+			return pluginInitializer && pluginDeinitializer && pluginLoadRenderer && pluginApplyConfiguration && pluginNewGRenderPath3D && pluginNewGScene && pluginLoadShader && pluginLoadShaders
 				&& pluginAddDeferredTextureCopy && pluginAddDeferredBufferUpdate && pluginAddDeferredGeometryGPUBVHUpdate;
 		}
 	};

@@ -8,6 +8,7 @@ namespace vz
 		NameComponent* CreateNameComponent(const Entity entity, const std::string& name);
 		TransformComponent* CreateTransformComponent(const Entity entity);
 		HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
+		ColliderComponent* CreateColliderComponent(const Entity entity);
 		MaterialComponent* CreateMaterialComponent(const Entity entity);
 		GeometryComponent* CreateGeometryComponent(const Entity entity);
 		TextureComponent* CreateTextureComponent(const Entity entity);
@@ -25,4 +26,8 @@ namespace vz
 namespace vzm
 {
 	std::recursive_mutex& GetEngineMutex();
+	bool IsPendingSubmitCommand();
+	void ResetPendingSubmitCommand();
+	void CountPendingSubmitCommand();
+	size_t GetCountPendingSubmitCommand();
 }

@@ -2,6 +2,7 @@
 #include "Components/Components.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Engine_Internal.h"
+#include "Utils/Utils_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/Profiler.h"
 #include "Utils/Helpers.h"
@@ -104,10 +105,18 @@ namespace vzm
 			renderer->frameCount++;
 		}
 
-		graphics::GraphicsDevice* device = graphics::GetDevice();
-		graphics::CommandList cmd = device->BeginCommandList();
-		profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
-		device->SubmitCommandLists();
+		if (!IsPendingSubmitCommand())
+		{
+			graphics::GraphicsDevice* device = graphics::GetDevice();
+			graphics::CommandList cmd = device->BeginCommandList();
+			profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
+			device->SubmitCommandLists();
+			vzm::ResetPendingSubmitCommand();
+		}
+		else
+		{
+			vzm::CountPendingSubmitCommand();
+		}
 
 		return true;
 	}

@@ -4,6 +4,7 @@
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/Profiler.h"
 #include "vzm2/utils/JobSystem.h"
+#include "vzm2/utils/Config.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -67,7 +68,7 @@ void EnableDpiAwareness() {
 /**/
 struct FrameContext
 {
-	ID3D12CommandAllocator *CommandAllocator;
+	ID3D12CommandAllocator* CommandAllocator;
 	UINT64 FenceValue;
 };
 
@@ -77,17 +78,17 @@ static FrameContext g_frameContext[NUM_FRAMES_IN_FLIGHT] = {};
 static UINT g_frameIndex = 0;
 
 static int const NUM_BACK_BUFFERS = 3;
-static ID3D12Device *g_pd3dDevice = nullptr;
+static ID3D12Device* g_pd3dDevice = nullptr;
 static ID3D12DescriptorHeap* g_pd3dRtvDescHeap = nullptr;
 static ID3D12DescriptorHeap* g_pd3dSrvDescHeap = nullptr;
-static ID3D12CommandQueue *g_pd3dCommandQueue = nullptr;
-static ID3D12GraphicsCommandList *g_pd3dCommandList = nullptr;
-static ID3D12Fence *g_fence = nullptr;
+static ID3D12CommandQueue* g_pd3dCommandQueue = nullptr;
+static ID3D12GraphicsCommandList* g_pd3dCommandList = nullptr;
+static ID3D12Fence* g_fence = nullptr;
 static HANDLE g_fenceEvent = nullptr;
 static UINT64 g_fenceLastSignaledValue = 0;
-static IDXGISwapChain3 *g_pSwapChain = nullptr;
+static IDXGISwapChain3* g_pSwapChain = nullptr;
 static HANDLE g_hSwapChainWaitableObject = nullptr;
-static ID3D12Resource *g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
+static ID3D12Resource* g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
 static D3D12_CPU_DESCRIPTOR_HANDLE g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
 
 // Forward declarations of helper functions
@@ -96,7 +97,7 @@ void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
 void WaitForLastSubmittedFrame();
-FrameContext *WaitForNextFrameResources();
+FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
@@ -106,7 +107,7 @@ void EnableDpiAwareness()
 	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
 	if (hUser32)
 	{
-		typedef BOOL(WINAPI * SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
+		typedef BOOL(WINAPI* SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
 		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
 			(SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
 
@@ -120,7 +121,7 @@ void EnableDpiAwareness()
 			HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
 			if (hShcore)
 			{
-				typedef HRESULT(WINAPI * SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
+				typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
 				SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
 					(SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
 
@@ -138,22 +139,43 @@ void EnableDpiAwareness()
 // Main code
 DXGI_SWAP_CHAIN_DESC1 sd;
 
-int main(int, char **)
+const uint32_t otfW = 256;
+static float curOtfValue = 180, curOtfValuePrev = 180;
+static float curOtfBandWidth = 50.f;
+static float curWindowBandWidth = 100.f, curWindowBandWidthPrev = 100.f;
+static float curWindowCenter = 100.f, curWindowCenterPrev = 100.f;
+
+inline float linearWindowing(float value, float windowCenter, float windowWidth) {
+	// Calculate half window width
+	float halfWidth = windowWidth / 2.0f;
+
+	// Calculate window boundaries
+	float lowerBound = windowCenter - halfWidth;
+	float upperBound = windowCenter + halfWidth;
+
+	// Apply windowing function
+	if (value <= lowerBound) {
+		return 0.0f;
+	}
+	else if (value >= upperBound) {
+		return 1.0f;
+	}
+	// Linear interpolation between 0 and 1
+	return (value - lowerBound) / windowWidth;
+}
+
+int main(int, char**)
 {
 	// DPI 인식을 활성화
 	EnableDpiAwareness();
 
 	// Create application window
 	// ImGui_ImplWin32_EnableDpiAwareness();
-	WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
+	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
 	::RegisterClassExW(&wc);
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::ParamMap<std::string> arguments;
-	// arguments.SetString("API", "DX11");
-	arguments.SetString("GPU_VALIDATION", "VERBOSE");
-	// arguments.SetParam("MAX_THREADS", 1u); // ~0u
-	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
 	if (!vzm::InitEngineLib(arguments))
 	{
 		std::cerr << "Failed to initialize engine library." << std::endl;
@@ -175,7 +197,7 @@ int main(int, char **)
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO &io = ImGui::GetIO();
+	ImGuiIO& io = ImGui::GetIO();
 	(void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
@@ -187,9 +209,9 @@ int main(int, char **)
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hwnd);
 	ImGui_ImplDX12_Init(g_pd3dDevice, NUM_FRAMES_IN_FLIGHT,
-						sd.Format, g_pd3dSrvDescHeap, // DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
-						g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
-						g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
+		sd.Format, g_pd3dSrvDescHeap, // DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
+		g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
+		g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -222,10 +244,10 @@ int main(int, char **)
 		ImVec2 wh(512, 512);
 		scene = NewScene("my scene");
 
-		VzLight *light = NewLight("my light");
+		VzLight* light = NewLight("my light");
 		light->SetIntensity(5.f);
-		light->SetPosition({0.f, 0.f, 100.f});
-		light->SetEulerAngleZXYInDegree({0, 180, 0});
+		light->SetPosition({ 0.f, 0.f, 100.f });
+		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
 		renderer3D = NewRenderer("my renderer");
 		renderer3D->SetCanvas(1, 1, 96.f, nullptr);
@@ -261,7 +283,7 @@ int main(int, char **)
 		//pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
 		//view = at - pos;
 		//slicer_curved->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		slicer_curved->SetCurvedPlaneUp({0, 0, 1});
+		slicer_curved->SetCurvedPlaneUp({ 0, 0, 1 });
 		slicer_curved->SetOrthogonalProjection(1, 1, 10);
 		slicer_curved->SetHorizontalCurveControls({ {-5, -3, 0}, {0, 2, 0}, {3, -3, 0} }, 0.01);
 		slicer_curved->SetCurvedPlaneHeight(5.f);
@@ -271,13 +293,10 @@ int main(int, char **)
 			vzm::VzMaterial* material_curvedslicer0 = vzm::NewMaterial("curved slicer helper material: Plane");
 			material_curvedslicer0->SetShaderType(vzm::ShaderType::PBR);
 			material_curvedslicer0->SetDoubleSided(true);
-			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Centerline");
-			material_curvedslicer1->SetBaseColor({ 1, 0, 0, 1 });
-			vzm::VzMaterial* material_curvedslicer2 = vzm::NewMaterial("curved slicer helper material: Outline");
-			material_curvedslicer2->SetBaseColor({ 0, 1, 0, 1 });
+			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Lines");
+			material_curvedslicer1->SetBaseColor({ 1, 1, 1, 1 });
 			vzm::VzActor* actor_cslicer_helper = vzm::NewActor("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer0);
 			actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
-			actor_cslicer_helper->SetMaterial(material_curvedslicer2, 2);
 			scene->AppendChild(actor_cslicer_helper);
 			vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
 		}
@@ -286,7 +305,7 @@ int main(int, char **)
 		scene->AppendChild(axis_helper);
 		vzm::AppendSceneCompTo(light, scene);
 
-		VzArchive *archive = vzm::NewArchive("test archive");
+		VzArchive* archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 
 		vz::jobsystem::context ctx_stl_loader1;
@@ -331,7 +350,7 @@ int main(int, char **)
 			});
 
 		vz::jobsystem::context ctx_vol_loader;
-		vz::jobsystem::Execute(ctx_vol_loader, [scene](vz::jobsystem::JobArgs args) {
+		vz::jobsystem::Execute(ctx_vol_loader, [scene, slicer, slicer_curved](vz::jobsystem::JobArgs args) {
 
 			vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
 			{
@@ -342,42 +361,46 @@ int main(int, char **)
 			}
 
 			vzm::VzTexture* otf_volume = vzm::NewTexture("volume material's OTF");
-			const uint32_t otf_w = 256;
-			std::vector<uint8_t> otf_array(otf_w * 4 * 3);
-			for (size_t i = 0; i < otf_w; i++)
+			std::vector<uint8_t> otf_array(otfW * 4 * 1);
+			for (size_t i = 0; i < otfW; i++)
 			{
-				otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
-				otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
-				otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
-				otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
-					i < 210 ? (uint8_t)((float)(i - 180) / 30.f * 255.f) : 255;
-
-				otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
-				otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
-				otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
-				otf_array[(otf_w * 4 * 1) + 4 * i + 3] = i < 100 ? 0 :
-					i < 200 ? (uint8_t)((float)(i - 100) / 100.f * 255.f) : 255;
-
-				otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
-				otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
-				otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
-				otf_array[(otf_w * 4 * 2) + 4 * i + 3] = i < 100 ? 0 :
-					i < 130 ? (uint8_t)((float)(i - 100) / 30.f * 255.f) : 255;
+				otf_array[(otfW * 4 * 0) + 4 * i + 0] = 255;
+				otf_array[(otfW * 4 * 0) + 4 * i + 1] = 0;
+				otf_array[(otfW * 4 * 0) + 4 * i + 2] = 0;
+				otf_array[(otfW * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
+					i < 210 ? (uint8_t)((float)(i - 180) / curOtfBandWidth * 255.f) : 255;
 
 			}
-			otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
+			otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
 			otf_volume->UpdateLookup(otf_array, 180, 255);
+
+			vzm::VzTexture* windowing_volume = vzm::NewTexture("volume material's windowing");
+			for (size_t i = 0; i < otfW; i++)
+			{
+				otf_array[4 * i + 0] = 255;
+				otf_array[4 * i + 1] = 255;
+				otf_array[4 * i + 2] = 255;
+				otf_array[4 * i + 3] = std::max(std::min((uint)(linearWindowing(i, curWindowCenter, curWindowBandWidth) * 255.f), 255u), 0u);
+			}
+			windowing_volume->CreateLookupTexture("windowing otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
+			windowing_volume->UpdateLookup(otf_array, curWindowCenter - curWindowBandWidth * 0.5f, curWindowCenter + curWindowBandWidth * 0.5f);
 
 			vzm::VzMaterial* material_volume = vzm::NewMaterial("volume material");
 			material_volume->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
 			material_volume->SetLookupTable(otf_volume, vzm::LookupTableSlot::LOOKUP_OTF);
+			material_volume->SetLookupTable(windowing_volume, vzm::LookupTableSlot::LOOKUP_WINDOWING);
+
+			slicer->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
+			slicer->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
+			slicer_curved->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
+			slicer_curved->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
 
 			vzm::VzActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
 			volume_actor->SetScale({ 3, 3, 3 });
 			scene->AppendChild(volume_actor);
 
 			});
-		
+
 	}
 
 	// Our state
@@ -408,6 +431,10 @@ int main(int, char **)
 		using namespace vzm;
 		{
 			static bool use_renderchain = true;
+			if (!use_renderchain)
+			{
+				vzm::PendingSubmitCommand(true);
+			}
 			std::vector<ChainUnitRCam> render_chain;
 
 			ImGui::Begin("3D Viewer");
@@ -439,14 +466,14 @@ int main(int, char **)
 				if (is_hovered && !resized)
 				{
 					static glm::fvec2 prevMousePos(0);
-					glm::fvec2 ioPos = *(glm::fvec2 *)&io.MousePos;
-					glm::fvec2 s_pos = *(glm::fvec2 *)&cur_item_pos;
-					glm::fvec2 w_pos = *(glm::fvec2 *)&win_pos;
+					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
+					glm::fvec2 s_pos = *(glm::fvec2*)&cur_item_pos;
+					glm::fvec2 w_pos = *(glm::fvec2*)&win_pos;
 					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
 					glm::fvec2 pos_ss = m_pos;
 
-					OrbitalControl *orbit_control = camera->GetOrbitControl();
-					orbit_control->Initialize(renderer3D->GetVID(), {0, 0, 0}, 2.f);
+					OrbitalControl* orbit_control = camera->GetOrbitControl();
+					orbit_control->Initialize(renderer3D->GetVID(), { 0, 0, 0 }, 2.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
@@ -476,7 +503,9 @@ int main(int, char **)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
+				{
 					render_chain.push_back(ChainUnitRCam(renderer3D, camera));
+				}
 				else
 					renderer3D->Render(scene, camera);
 
@@ -560,7 +589,9 @@ int main(int, char **)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
+				{
 					render_chain.push_back(ChainUnitRCam(renderer3D1, camera1));
+				}
 				else
 					renderer3D1->Render(scene, camera1);
 
@@ -644,7 +675,9 @@ int main(int, char **)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
+				{
 					render_chain.push_back(ChainUnitRCam(renderer_slicer, slicer));
+				}
 				else
 					renderer_slicer->Render(scene, slicer);
 
@@ -661,7 +694,6 @@ int main(int, char **)
 				}
 			}
 			ImGui::End();
-			/**/
 
 			ImGui::Begin("Curved Slicer Viewer");
 			{
@@ -729,9 +761,14 @@ int main(int, char **)
 				ImGui::SetCursorPos(cur_item_pos);
 
 				if (use_renderchain)
+				{
 					render_chain.push_back(ChainUnitRCam(renderer_curvedslicer, slicer_curved));
+				}
 				else
+				{
+					vzm::PendingSubmitCommand(false);
 					renderer_curvedslicer->Render(scene, slicer_curved);
+				}
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;
@@ -761,51 +798,85 @@ int main(int, char **)
 
 				ImGui::Checkbox("Use Render Chain", &use_renderchain);
 
-				static float cur_otf_value = 180, cur_otf_value_prev = 180;
-				static float cur_otf_band_width = 50;
-				ImGui::SliderFloat("OTF Slider", &cur_otf_value, 0.f, 250.f);
-				if (cur_otf_value_prev != cur_otf_value)
+				ImGui::SliderFloat("OTF Slider", &curOtfValue, 0.f, 250.f);
+				if (curOtfValuePrev != curOtfValue)
 				{
-					cur_otf_value_prev = cur_otf_value;
+					curOtfValuePrev = curOtfValue;
 					vzm::VzTexture* otf_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's OTF");
 					if (otf_volume)
 					{
-						const uint32_t otf_w = 256;
-						std::vector<uint8_t> otf_array(otf_w * 4 * 3);
-						for (size_t i = 0; i < otf_w; i++)
+						std::vector<uint8_t> otf_array(otfW * 4 * 1);
+						for (size_t i = 0; i < otfW; i++)
 						{
-							uint8_t a = i < cur_otf_value ? 0 :
-								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / 30.f * 255.f) : 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
-							otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
-							otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
-							otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
-							otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
-							otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
-							otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
+							uint8_t a = i < curOtfValue ? 0 :
+								i < curOtfValue + curOtfBandWidth ? (uint8_t)((float)(i - curOtfValue) / curOtfBandWidth * 255.f) : 255;
+							otf_array[(otfW * 4 * 0) + 4 * i + 0] = 255;
+							otf_array[(otfW * 4 * 0) + 4 * i + 1] = 0;
+							otf_array[(otfW * 4 * 0) + 4 * i + 2] = 0;
+							otf_array[(otfW * 4 * 0) + 4 * i + 3] = a;
 						}
 
-						otf_volume->UpdateLookup(otf_array, (uint)cur_otf_value, (uint)(cur_otf_value + cur_otf_band_width));
+						otf_volume->UpdateLookup(otf_array, (uint)curOtfValue, 255);
 					}
 				}
 
+				ImGui::SliderFloat("Windowing Center", &curWindowCenter, 0.f, 250.f);
+				ImGui::SliderFloat("Windowing Width", &curWindowBandWidth, 0.f, 250.f);
+				if (curWindowCenter != curWindowCenterPrev
+					|| curWindowBandWidth != curWindowBandWidthPrev)
+				{
+					curWindowCenterPrev = curWindowCenter;
+					curWindowBandWidthPrev = curWindowBandWidth;					
+					vzm::VzTexture* windowing_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's windowing");
+					if (windowing_volume)
+					{
+						std::vector<uint8_t> otf_array(otfW * 4 * 1);
+						for (size_t i = 0; i < otfW; i++)
+						{
+							otf_array[4 * i + 0] = 255;
+							otf_array[4 * i + 1] = 255;
+							otf_array[4 * i + 2] = 255;
+							otf_array[4 * i + 3] = std::max(std::min((uint)(linearWindowing(i, curWindowCenter, curWindowBandWidth) * 255.f), 255u), 0u);
+						}
+
+						windowing_volume->CreateLookupTexture("windowing otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
+						windowing_volume->UpdateLookup(otf_array, curWindowCenter - curWindowBandWidth * 0.5f, curWindowCenter + curWindowBandWidth * 0.5f);
+					}
+				}
+
+				static int dvr_mode = 1, dvr_mode_prev = 1;
+				ImGui::RadioButton("Slicer Default", &dvr_mode, 0);
+				ImGui::RadioButton("Slicer X-RAY", &dvr_mode, 1);
+				if (dvr_mode != dvr_mode_prev)
+				{
+					dvr_mode_prev = dvr_mode;
+					slicer->SetDVRType((DVR_TYPE)dvr_mode);
+					slicer_curved->SetDVRType((DVR_TYPE)dvr_mode);
+				}
+
 				static float cur_slicer_thickess = 0, cur_slicer_thickess_prev = 0;
-				ImGui::SliderFloat("Slicer Thickness", &cur_slicer_thickess, 0.f, 100.f);
+				ImGui::SliderFloat("Slicer Thickness", &cur_slicer_thickess, 0.f, 10.f);
 				if (cur_slicer_thickess != cur_slicer_thickess_prev)
 				{
 					cur_slicer_thickess_prev = cur_slicer_thickess;
 					slicer->SetSlicerThickness(cur_slicer_thickess);
+					slicer_curved->SetSlicerThickness(cur_slicer_thickess);
+
+					vzm::VzGeometry* geometry_cslicer_helper = (vzm::VzGeometry*)vzm::GetFirstComponentByName("geometry helper for curved slicer");
+					slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
 				}
 
+				ImGui::Separator();
+				ImGui::Text("Rendering Options");
+				static bool TAA_enabled = vz::config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
+				if (ImGui::Checkbox("TAA", &TAA_enabled))
+				{
+					vzm::ParamMap<std::string> config_options;
+					config_options.SetParam("TEMPORAL_AA", TAA_enabled);
+					vzm::SetConfigure(config_options);
+				}
 
+				ImGui::Separator();
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
 				static bool profile_enabled = false;
@@ -830,7 +901,7 @@ int main(int, char **)
 		// Rendering
 		ImGui::Render();
 
-		FrameContext *frameCtx = WaitForNextFrameResources();
+		FrameContext* frameCtx = WaitForNextFrameResources();
 		UINT backBufferIdx = g_pSwapChain->GetCurrentBackBufferIndex();
 		frameCtx->CommandAllocator->Reset();
 
@@ -845,7 +916,7 @@ int main(int, char **)
 		g_pd3dCommandList->ResourceBarrier(1, &barrier);
 
 		// Render Dear ImGui graphics
-		const float clear_color_with_alpha[4] = {clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w};
+		const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
 		g_pd3dCommandList->ClearRenderTargetView(g_mainRenderTargetDescriptor[backBufferIdx], clear_color_with_alpha, 0, nullptr);
 		g_pd3dCommandList->OMSetRenderTargets(1, &g_mainRenderTargetDescriptor[backBufferIdx], FALSE, nullptr);
 		g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
@@ -855,7 +926,7 @@ int main(int, char **)
 		g_pd3dCommandList->ResourceBarrier(1, &barrier);
 		g_pd3dCommandList->Close();
 
-		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList *const *)&g_pd3dCommandList);
+		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&g_pd3dCommandList);
 
 		g_pSwapChain->Present(1, 0); // Present with vsync
 		// g_pSwapChain->Present(0, 0); // Present without vsync
@@ -904,7 +975,7 @@ bool CreateDeviceD3D(HWND hWnd)
 
 	// [DEBUG] Enable debug interface
 #ifdef DX12_ENABLE_DEBUG_LAYER
-	ID3D12Debug *pdx12Debug = nullptr;
+	ID3D12Debug* pdx12Debug = nullptr;
 	// note : only one debug_layer is available
 	// if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pdx12Debug))))
 	//	pdx12Debug->EnableDebugLayer();
@@ -915,11 +986,11 @@ bool CreateDeviceD3D(HWND hWnd)
 	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
 		return false;
 
-		// [DEBUG] Setup debug interface to break on any warnings/errors
+	// [DEBUG] Setup debug interface to break on any warnings/errors
 #ifdef DX12_ENABLE_DEBUG_LAYER
 	if (pdx12Debug != nullptr)
 	{
-		ID3D12InfoQueue *pInfoQueue = nullptr;
+		ID3D12InfoQueue* pInfoQueue = nullptr;
 		g_pd3dDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue));
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -981,8 +1052,8 @@ bool CreateDeviceD3D(HWND hWnd)
 		return false;
 
 	{
-		IDXGIFactory4 *dxgiFactory = nullptr;
-		IDXGISwapChain1 *swapChain1 = nullptr;
+		IDXGIFactory4* dxgiFactory = nullptr;
+		IDXGISwapChain1* swapChain1 = nullptr;
 		if (CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)) != S_OK)
 			return false;
 		if (dxgiFactory->CreateSwapChainForHwnd(g_pd3dCommandQueue, hWnd, &sd, nullptr, nullptr, &swapChain1) != S_OK)
@@ -1055,7 +1126,7 @@ void CleanupDeviceD3D()
 	}
 
 #ifdef DX12_ENABLE_DEBUG_LAYER
-	IDXGIDebug1 *pDebug = nullptr;
+	IDXGIDebug1* pDebug = nullptr;
 	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDebug))))
 	{
 		pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY);
@@ -1068,7 +1139,7 @@ void CreateRenderTarget()
 {
 	for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
 	{
-		ID3D12Resource *pBackBuffer = nullptr;
+		ID3D12Resource* pBackBuffer = nullptr;
 		g_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer));
 		g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, g_mainRenderTargetDescriptor[i]);
 		g_mainRenderTargetResource[i] = pBackBuffer;
@@ -1089,7 +1160,7 @@ void CleanupRenderTarget()
 
 void WaitForLastSubmittedFrame()
 {
-	FrameContext *frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
+	FrameContext* frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
 
 	UINT64 fenceValue = frameCtx->FenceValue;
 	if (fenceValue == 0)
@@ -1103,15 +1174,15 @@ void WaitForLastSubmittedFrame()
 	WaitForSingleObject(g_fenceEvent, INFINITE);
 }
 
-FrameContext *WaitForNextFrameResources()
+FrameContext* WaitForNextFrameResources()
 {
 	UINT nextFrameIndex = g_frameIndex + 1;
 	g_frameIndex = nextFrameIndex;
 
-	HANDLE waitableObjects[] = {g_hSwapChainWaitableObject, nullptr};
+	HANDLE waitableObjects[] = { g_hSwapChainWaitableObject, nullptr };
 	DWORD numWaitableObjects = 1;
 
-	FrameContext *frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
+	FrameContext* frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
 	UINT64 fenceValue = frameCtx->FenceValue;
 	if (fenceValue != 0) // means no fence was signaled
 	{
@@ -1139,10 +1210,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
 
-	vzm::VzRenderer *renderer = nullptr;
+	vzm::VzRenderer* renderer = nullptr;
 	if (vzm::IsValidEngineLib())
 	{
-		renderer = (vzm::VzRenderer *)vzm::GetFirstComponentByName("my renderer");
+		renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
 	}
 
 	switch (msg)
@@ -1172,16 +1243,16 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case 'N':
 		{
 			using namespace vzm;
-			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
-			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Store(camera);
 		}
 		break;
 		case 'M':
 		{
 			using namespace vzm;
-			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
-			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Load(camera);
 		}
 		break;

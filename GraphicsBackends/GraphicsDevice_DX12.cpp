@@ -1622,9 +1622,43 @@ std::mutex queue_locker;
 	{
 		if (queue == nullptr)
 			return;
+		if (semaphore.fence->GetCompletedValue() >= semaphore.fenceValue)
+		{
+			return; // signal has already occurred
+		}
 		HRESULT hr = queue->Wait(semaphore.fence.Get(), semaphore.fenceValue);
 		assert(SUCCEEDED(hr));
 	}
+
+	//void GraphicsDevice_DX12::CommandQueue::wait(const Semaphore& semaphore)
+	//{
+	//	if (queue == nullptr)
+	//		return;
+	//	// Create an event handle (auto-reset event)
+	//	HANDLE eventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+	//	if (eventHandle == nullptr)
+	//	{
+	//		vzlog_error("Failed to create event handle for CommandQueue::wait.");
+	//		return;
+	//	}
+	//	// Signal the event when the fence reaches semaphore.fenceValue
+	//	HRESULT hr = semaphore.fence->SetEventOnCompletion(semaphore.fenceValue, eventHandle);
+	//	if (FAILED(hr))
+	//	{
+	//		vzlog_error("SetEventOnCompletion failed in CommandQueue::wait.");
+	//		CloseHandle(eventHandle);
+	//		return;
+	//	}
+	//	// Wait for the event with a 1000ms (1 second) timeout
+	//	DWORD waitResult = WaitForSingleObject(eventHandle, 1000);
+	//	if (waitResult != WAIT_OBJECT_0)
+	//	{
+	//		vzlog_error("Timeout waiting for semaphore signal in CommandQueue::wait.");
+	//		// Additional recovery logic can be placed here
+	//	}
+	//	CloseHandle(eventHandle);
+	//}
+
 	void GraphicsDevice_DX12::CommandQueue::submit()
 	{
 		if (queue == nullptr)
@@ -5462,6 +5496,13 @@ std::mutex queue_locker;
 					{
 						CommandQueue& waitqueue = queues[wait.first];
 						const Semaphore& semaphore = wait.second;
+						
+						// If the queue doesn't exist, signal the semaphore immediately without waiting
+						if (waitqueue.queue == nullptr) {
+							vzlog_warning("waitqueue.queue is nullptr!");
+							free_semaphore(semaphore);
+							continue;
+						}
 
 						// The WaitQueue operation will submit and signal the specified dependency queue:
 						waitqueue.submit();

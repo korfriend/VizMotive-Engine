@@ -601,13 +601,14 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_RENDER_GAUSSIAN], "gs_renderCS.cso"); });
 
 		// DVR
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_WITHOUT_KB], "dvrCS_woKB.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_WoKB], "dvrCS_woKB.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_XRAY_WoKB], "dvrCS_xray_woKB.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_SLICER_NOTHICKNESS], "dvrCS_slicer_nothickness.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_SLICER_CURVED_NOTHICKNESS], "dvrCS_curved_slicer_nothickness.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_SLICER_2KB], "dvrCS_slicer_2KB.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_CURVED_SLICER_2KB], "dvrCS_curved_slicer_2KB.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_XRAY_WITHOUT_KB], "dvrCS_woKB_xray.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_XRAY_SLICER_2KB], "dvrCS_slicer_xray_2KB.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_XRAY_CURVED_SLICER_2KB], "dvrCS_curved_slicer_xray_2KB.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_ZEROTHICK], "dvrCS_zerothick.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_SLICER_XRAY_2KB], "dvrCS_slicer_xray_2KB.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_SLICER_CURVED_2KB], "dvrCS_curved_slicer_2KB.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_SLICER_CURVED_XRAY_2KB], "dvrCS_curved_slicer_xray_2KB.cso"); });
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_MESH_SLICER], "meshSlicerCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_MESH_CURVED_SLICER], "meshSlicerCS_curvedplane.cso"); });
@@ -648,6 +649,7 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_WETMAP_UPDATE], "wetmap_updateCS.cso"); });
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_TONEMAP], "tonemapCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_POSTPROCESS_TEMPORALAA], "temporalaaCS.cso"); });
 
 		jobsystem::Wait(ctx);
 

@@ -716,6 +716,15 @@ float4 med3(float4 a, float4 b, float4 c)
     return float4(med3(a.x, b.x, c.x), med3(a.y, b.y, c.y), med3(a.z, b.z, c.z), med3(a.w, b.w, c.w));
 }
 
+float3 safe_rcp3(float3 v)
+{
+    float3 v_rcp = rcp(v);
+    if (abs(v.x) < FLT_EPSILON) v_rcp.x = 1000000.f;
+    if (abs(v.y) < FLT_EPSILON) v_rcp.y = 1000000.f;
+    if (abs(v.z) < FLT_EPSILON) v_rcp.z = 1000000.f;
+    return v_rcp;
+}
+
 // attribute computation with barycentric interpolation
 //	a0 : attribute at triangle corner 0
 //	a1 : attribute at triangle corner 1

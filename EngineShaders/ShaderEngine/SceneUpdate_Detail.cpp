@@ -3,6 +3,7 @@
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
+#include "Utils/Color.h"
 
 using namespace vz::renderer;
 namespace vz
@@ -414,28 +415,45 @@ namespace vz
 					const Primitive& part = primitives[part_index];
 					Entity material_entity = renderable.GetMaterial(part_index);
 					const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
-					XMFLOAT4 line_color = material.GetBaseColor();
+					XMFLOAT4 line_baseColor = material.GetBaseColor();
+					XMVECTOR xline_baseColor = XMLoadFloat4(&line_baseColor);
 					if (!part.HasRenderData())
 					{
+						auto colorLine = [&xline_baseColor](const Color& color) {
+							XMFLOAT4 color4 = color.toFloat4();
+							XMStoreFloat4(&color4, XMLoadFloat4(&color4)* xline_baseColor);
+							return color4;
+							};
+
+						const std::vector<XMFLOAT3>& positions = part.GetVtxPositions();
+						const std::vector<uint>& colors = part.GetVtxColors();
+						bool is_color_vtx = positions.size() == colors.size();
+						const std::vector<uint32_t>& indices = part.GetIdxPrimives();
+
 						switch (part.GetPrimitiveType())
 						{
 						case GeometryComponent::PrimitiveType::LINE_STRIP:
 						{
-							const std::vector<XMFLOAT3>& positions = part.GetVtxPositions();
 							size_t n = part.GetNumVertices() - 1;
 							for (size_t line_idx = 0; line_idx < n; ++line_idx)
 							{
 								RenderableLine line;
 								XMStoreFloat3(&line.start, XMVector3TransformCoord(XMLoadFloat3(&positions[line_idx]), W));
 								XMStoreFloat3(&line.end, XMVector3TransformCoord(XMLoadFloat3(&positions[line_idx + 1]), W));
-								line.color_start = line.color_end = line_color;
+								if (is_color_vtx)
+								{
+									line.color_start = colorLine(Color(colors[line_idx]));
+									line.color_end = colorLine(Color(colors[line_idx + 1]));
+								}
+								else
+								{
+									line.color_start = line.color_end = line_baseColor;
+								}
 								renderableShapes.AddDrawLine(line, true);
 							}
 						} break;
 						case GeometryComponent::PrimitiveType::LINES:
 						{
-							const std::vector<XMFLOAT3>& positions = part.GetVtxPositions();
-							const std::vector<uint32_t>& indices = part.GetIdxPrimives();
 							size_t n = part.GetNumIndices() / 2;
 							for (size_t line_idx = 0; line_idx < n; ++line_idx)
 							{
@@ -444,7 +462,15 @@ namespace vz
 								uint32_t idx1 = indices[2 * line_idx + 1];
 								XMStoreFloat3(&line.start, XMVector3TransformCoord(XMLoadFloat3(&positions[idx0]), W));
 								XMStoreFloat3(&line.end, XMVector3TransformCoord(XMLoadFloat3(&positions[idx1]), W));
-								line.color_start = line.color_end = line_color;
+								if (is_color_vtx)
+								{
+									line.color_start = colorLine(Color(colors[idx0]));
+									line.color_end = colorLine(Color(colors[idx1]));
+								}
+								else
+								{
+									line.color_start = line.color_end = line_baseColor;
+								}
 								renderableShapes.AddDrawLine(line, true);
 							}
 						} break;
@@ -650,10 +676,6 @@ namespace vz
 				inst.geometryCount = *(uint*)&mask_value_range;
 				float mask_unormid_otf_map = mask_value_range / (otf->GetHeight() > 1 ? otf->GetHeight() - 1 : 1.f);
 				inst.baseGeometryOffset = *(uint*)&mask_unormid_otf_map;
-
-				const GPUBuffer& bitmask_buffer = volume->GetVisibleBitmaskBuffer(otf->GetEntity());
-				int bitmaskbuffer = device->GetDescriptorIndex(&bitmask_buffer, SubresourceType::SRV);
-				inst.baseGeometryCount = *(uint*)&bitmaskbuffer;
 
 				const Texture vol_blk_texture = volume->GetBlockTexture();
 				int texture_volume_blocks = device->GetDescriptorIndex(&vol_blk_texture, SubresourceType::SRV);

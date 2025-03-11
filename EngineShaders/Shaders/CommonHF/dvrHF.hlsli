@@ -29,10 +29,9 @@ struct VolumeInstance
  
 	uint materialIndex;				// aliased from ShaderMeshInstance::resLookupIndex
 	float value_range;				// aliased from ShaderMeshInstance::geometryOffset
-	float mask_value_range;		// aliased from ShaderMeshInstance::geometryCount
-    float mask_unormid_otf_map; // aliased from ShaderMeshInstance::baseGeometryOffset
+	float mask_value_range;		// aliased from ShaderMeshInstance::geometryCount , TODO: will be packed
+    float mask_unormid_otf_map; // aliased from ShaderMeshInstance::baseGeometryOffset , this is for the difference between mask value's range and # of multi-OTF
 
-	int bitmaskbuffer;				// aliased from ShaderMeshInstance::baseGeometryCount
 	// we can texture_volume and texture_volume_mask from ShaderMaterial
 	int texture_volume_blocks;		// aliased from ShaderMeshInstance::meshletOffset
 	float sample_dist;				// WS unit, aliased from ShaderMeshInstance::alphaTest_size
@@ -51,6 +50,7 @@ struct VolumeInstance
 	uint2 color;
 	int lightmap;
 	uint2 rimHighlight;
+	int baseGeometryCount;
 
 #ifndef __cplusplus
     void Init()
@@ -72,7 +72,6 @@ struct VolumeInstance
 		texture_volume_blocks = asint(meshInst.meshletOffset);
 		sample_dist = asfloat(meshInst.alphaTest_size);
 
-		bitmaskbuffer = asint(meshInst.baseGeometryCount);
 		vol_size = uint3(meshInst.emissive.x, meshInst.emissive.y & 0xFFFF, meshInst.emissive.y >> 16);
 		num_blocks = uint3((meshInst.layerMask >> 0) & 0x7FF, (meshInst.layerMask >> 11) & 0x7FF, (meshInst.layerMask >> 22) & 0x3FF);
 		block_pitches = uint3((meshInst.padding0 >> 0) & 0x7FF, (meshInst.padding0 >> 11) & 0x7FF, (meshInst.padding0 >> 22) & 0x3FF);
@@ -87,6 +86,7 @@ struct VolumeInstance
 		color = meshInst.color;
 		lightmap = meshInst.lightmap;
 		rimHighlight = meshInst.rimHighlight;
+		//baseGeometryCount = meshInst.baseGeometryCount;
 	}
 #endif
 
@@ -114,11 +114,10 @@ inline bool IsInsideClipBox(const float3 pos_target, const float4x4 mat_2_bs)
 	return _dot.x <= 0 && _dot.y <= 0 && _dot.z <= 0;
 }
 
-inline float2 ComputeAaBbHits(const float3 pos_start, float3 pos_min, const float3 pos_max, const float3 vec_dir)
+inline float2 ComputeAaBbHits(const float3 pos_start, float3 pos_min, const float3 pos_max, const float3 vec_dir_rcp)
 {
 	// intersect ray with a box
-	// http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
-	float3 invR = float3(1.0f, 1.0f, 1.0f) / vec_dir;
+	float3 invR = vec_dir_rcp;// float3(1.0f, 1.0f, 1.0f) / vec_dir;
 	float3 tbot = invR * (pos_min - pos_start);
 	float3 ttop = invR * (pos_max - pos_start);
 
@@ -139,7 +138,8 @@ float2 ComputeClipBoxHits(const float3 pos_start, const float3 vec_dir, const fl
 {
 	float3 pos_src_bs = TransformPoint(pos_start, mat_vbox_2bs);
 	float3 vec_dir_bs = TransformVector(vec_dir, mat_vbox_2bs);
-	float2 hit_t = ComputeAaBbHits(pos_src_bs, float3(-0.5, -0.5, -0.5), float3(0.5, 0.5, 0.5), vec_dir_bs);
+	float3 vec_dir_bs_rcp = 1.f / vec_dir_bs;
+	float2 hit_t = ComputeAaBbHits(pos_src_bs, float3(-0.5, -0.5, -0.5), float3(0.5, 0.5, 0.5), vec_dir_bs_rcp);
 	return hit_t;
 }
 
@@ -246,7 +246,7 @@ struct BlockSkip
 	bool visible;
 	int num_skip_steps;
 };
-BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts, const float3 singleblock_size_ts, const uint2 blocks_wwh, const Buffer<uint> buffer_bitmask)
+BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts_rcp, const float3 singleblock_size_ts, const uint2 blocks_wwh, const Buffer<uint> buffer_bitmask)
 {
 	BlockSkip blk_v = (BlockSkip)0;
 	int3 blk_id = pos_start_ts / singleblock_size_ts;
@@ -256,7 +256,7 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 
 	float3 pos_min_ts = float3(blk_id.x * singleblock_size_ts.x, blk_id.y * singleblock_size_ts.y, blk_id.z * singleblock_size_ts.z);
 	float3 pos_max_ts = pos_min_ts + singleblock_size_ts;
-	float2 hits_t = ComputeAaBbHits(pos_start_ts, pos_min_ts, pos_max_ts, vec_sample_ts);
+	float2 hits_t = ComputeAaBbHits(pos_start_ts, pos_min_ts, pos_max_ts, vec_sample_ts_rcp);
 	float dist_skip_ts = hits_t.y - hits_t.x;
 	
 	// here, max is for avoiding machine computation error
@@ -266,7 +266,7 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 
 half4 ApplyOTF(const Texture2D otf, const float sample_v, const float idv, const half opacity_correction)
 {
-	half4 color = (half4)otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
+	half4 color = (half4)otf.SampleLevel(sampler_point_clamp, float2(sample_v, idv), 0);
 	color.rgb *= color.a * opacity_correction; // associated color
 	return color;
 }
@@ -285,8 +285,8 @@ half4 ApplyPreintOTF(const Texture2D otf, const float sample_v, float sample_v_p
 
 	half diff_rcp = (half)1.f / (half)diff;
 
-	float4 color0 = otf.SampleLevel(sampler_point_wrap, float2(sample_v_prev, idv), 0);
-	float4 color1 = otf.SampleLevel(sampler_point_wrap, float2(sample_v, idv), 0);
+	float4 color0 = otf.SampleLevel(sampler_point_clamp, float2(sample_v_prev, idv), 0);
+	float4 color1 = otf.SampleLevel(sampler_point_clamp, float2(sample_v, idv), 0);
 
 	color.rgb = (half3)(color1.rgb - color0.rgb) * diff_rcp;
 	color.a = (half)(color1.a - color0.a) * diff_rcp * opacity_correction;
@@ -355,7 +355,7 @@ bool Vis_Volume_And_Check(inout half4 color, const float3 pos_sample_ts, const h
 	color = (half4)0;
 	[unroll]
 	for (int m = 0; m < 8; m++) {
-		half4 vis = ApplyOTF(otf, samples[m], opacity_correction, 0);
+		half4 vis = ApplyOTF(otf, samples[m], 0, opacity_correction);
 		color += vis * (half)fInterpolateWeights[m];
 	}
 	return color.a >= (half)FLT_OPACITY_MIN;
@@ -364,14 +364,14 @@ bool Vis_Volume_And_Check(inout half4 color, const float3 pos_sample_ts, const h
 bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, const float visible_min_sample, const half opacity_correction,
 	const Texture3D volume_main
 #ifdef SCULPT_MASK
-	, const Texture3D volume_mask
+	, const Texture3D volume_mask, const float mask_value_range,
 #endif 
 	)
 {
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 
 #ifdef SCULPT_MASK
-	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, 0).r * push.mask_value_range + 0.5f);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, 0).r * mask_value_range + 0.5f);
     return sample_v >= visible_min_sample && (sculpt_step == 0 || sculpt_step > push.sculptStep);
 #else 
     return sample_v >= visible_min_sample;
@@ -381,18 +381,18 @@ bool Sample_Volume_And_Check(inout float sample_v, const float3 pos_sample_ts, c
 bool Vis_Volume_And_Check(inout half4 color, inout float sample_v, const float3 pos_sample_ts, const half opacity_correction,
 	const Texture3D volume_main, const Texture2D otf
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
-	, const Texture3D volume_mask
+	, const Texture3D volume_mask, const float mask_value_range, const float mask_unormid_otf_map
 #endif
 	)
 {
 	sample_v = volume_main.SampleLevel(sampler_linear_clamp, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
 #ifdef OTF_MASK
 	float id = volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
-	color = ApplyOTF(otf, sample_v, id * push.mask_unormid_otf_map, opacity_correction);
+	color = ApplyOTF(otf, sample_v, id * mask_unormid_otf_map, opacity_correction);
 	return color.a >= (half)FLT_OPACITY_MIN;
 #else
 #ifdef SCULPT_MASK
-	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * push.mask_value_range + 0.5f);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * mask_value_range + 0.5f);
     color = ApplyOTF(otf, sample_v, 0, opacity_correction);
     return color.a >= (half)FLT_OPACITY_MIN && (mask_vint == 0 || sculpt_step > push.sculptStep);
 #else 
@@ -406,7 +406,7 @@ bool Vis_Volume_And_Check_Slab(inout half4 color, inout float sample_v, float sa
 	const half opacity_correction,
 	const Texture3D volume_main, const Texture2D otf
 #if defined(OTF_MASK) || defined(SCULPT_MASK)
-	, const Texture3D volume_mask
+	, const Texture3D volume_mask, const float mask_value_range, const float mask_unormid_otf_map
 #endif
 )
 {
@@ -414,10 +414,10 @@ bool Vis_Volume_And_Check_Slab(inout half4 color, inout float sample_v, float sa
 
 #if OTF_MASK==1
 	float id = volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r;
-	color = ApplyPreintOTF(otf, sample_v, sample_prev, id * push.mask_unormid_otf_map);
+	color = ApplyPreintOTF(otf, sample_v, sample_prev, id * mask_unormid_otf_map);
 	return color.a >= (half)FLT_OPACITY_MIN;
 #elif SCULPT_MASK == 1
-	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * push.mask_value_range + 0.5f);
+	int sculpt_step = (int)(volume_mask.SampleLevel(sampler_point_wrap, pos_sample_ts, SAMPLE_LEVEL_TEST).r * mask_value_range + 0.5f);
     color = ApplyPreintOTF(otf, sample_v, sample_prev, 0);
     return color.a >= (half)FLT_OPACITY_MIN && (sculpt_step == 0 || sculpt_step > push.sculptStep);
 #else 
@@ -446,6 +446,8 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     float3 pos_ray_start_ts = TransformPoint(pos_ray_start_ws, mat_ws2ts);
     float3 dir_sample_ts = TransformVector(dir_sample_ws, mat_ws2ts);
 	half opacity_correction = (half)push.opacity_correction;
+
+	float3 dir_sample_ts_rcp = safe_rcp3(dir_sample_ts);
     
 	[branch]
     if (Sample_Volume_And_Check(sample_v, pos_ray_start_ts, push.main_visible_min_sample, opacity_correction, volume_main
@@ -463,7 +465,7 @@ void SearchForemostSurface(inout int step, const float3 pos_ray_start_ws, const 
     {
         float3 pos_sample_ts = pos_ray_start_ts + dir_sample_ts * (float) i;
 
-        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts, num_ray_samples, i, buffer_bitmask)
+        LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts_rcp, num_ray_samples, i, buffer_bitmask)
 			
 		[branch]
         if (blkSkip.visible)

@@ -51,6 +51,8 @@ inline RayHit CreateRayHit()
 #define RAYTRACE_STACKSIZE 64
 #endif // RAYTRACE_STACKSIZE
 
+static const float eps = 1e-8;
+
 inline void IntersectTriangle(
 	in RayDesc ray,
 	inout RayHit bestHit,
@@ -63,7 +65,7 @@ inline void IntersectTriangle(
 	float det = dot(v0v1, pvec);
 
 	// ray and triangle are parallel if det is close to 0
-	if (abs(det) < 1e-6f)
+	if (abs(det) < eps)
 		return;
 	float invDet = rcp(det);
 
@@ -91,8 +93,6 @@ inline void IntersectTriangle(
 	}
 }
 
-static const float eps = 1e-6;
-
 inline bool IntersectNode(
 	in RayDesc ray,
 	in BVHNode box,
@@ -100,6 +100,16 @@ inline bool IntersectNode(
 	in float primitive_best_distance
 )
 {
+	// check if the ray Origin is inside the node
+	//bool originInside = (ray.Origin.x >= box.min.x && ray.Origin.x <= box.max.x &&
+	//	ray.Origin.y >= box.min.y && ray.Origin.y <= box.max.y &&
+	//	ray.Origin.z >= box.min.z && ray.Origin.z <= box.max.z);
+	//float3 check = (ray.Origin - box.max) * (ray.Origin - box.min);
+	//bool originInside = check.x <= 0 && check.y <= 0 && check.z <= 0;
+	//if (originInside) {
+	//	return true; // always TRUE intersection when the ray Origin is inside the node
+	//}
+
 	const float t0 = (box.min.x - ray.Origin.x) * rcpDirection.x;
 	const float t1 = (box.max.x - ray.Origin.x) * rcpDirection.x;
 	const float t2 = (box.min.y - ray.Origin.y) * rcpDirection.y;
@@ -120,33 +130,17 @@ inline bool IntersectNode(
 	//}
 }
 
-inline bool IntersectNode(
-	in RayDesc ray,
-	in BVHNode box,
-	in float3 rcpDirection
-)
-{
-	const float t0 = (box.min.x - ray.Origin.x) * rcpDirection.x;
-	const float t1 = (box.max.x - ray.Origin.x) * rcpDirection.x;
-	const float t2 = (box.min.y - ray.Origin.y) * rcpDirection.y;
-	const float t3 = (box.max.y - ray.Origin.y) * rcpDirection.y;
-	const float t4 = (box.min.z - ray.Origin.z) * rcpDirection.z;
-	const float t5 = (box.max.z - ray.Origin.z) * rcpDirection.z;
-	const float tmin = max(max(min(t0, t1), min(t2, t3)), min(t4, t5)); // close intersection point's distance on ray
-	const float tmax = min(min(max(t0, t1), max(t2, t3)), max(t4, t5)); // far intersection point's distance on ray
-
-	//return (tmax < 0 || tmin > tmax) ? false : true;
-	return (tmax < -eps || tmin > tmax + eps) ? false : true;
-}
-
 // Returns the closest hit primitive if any (useful for generic trace). If nothing was hit, then rayHit.distance will be equal to FLT_MAX
 inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 {
+	if (ray.Origin.x == 0) ray.Origin.x = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Origin.y == 0) ray.Origin.y = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Origin.z == 0) ray.Origin.z = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Direction.x == 0) ray.Direction.x = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Direction.y == 0) ray.Direction.y = 0.0001234f; // trick... for avoiding zero block skipping error
+	if (ray.Direction.z == 0) ray.Direction.z = 0.0001234f; // trick... for avoiding zero block skipping error
+
 	const float3 rcpDirection = rcp(ray.Direction);
-	//float3 rcpDirection;
-	//rcpDirection.x = (abs(ray.Direction.x) < eps) ? 1000000 : 1.0 / ray.Direction.x;
-	//rcpDirection.y = (abs(ray.Direction.y) < eps) ? 1000000 : 1.0 / ray.Direction.y;
-	//rcpDirection.z = (abs(ray.Direction.z) < eps) ? 1000000 : 1.0 / ray.Direction.z;
 	
 	RayHit bestHit = CreateRayHit();
 
@@ -165,7 +159,7 @@ inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 	uint count = 0;
 
 	[loop]
-	while (stackpos > 0 && count < 1000u) {
+	while (stackpos > 0 && count < 5000u) {
 		// pop untraversed node
 		const uint nodeIndex = stack[--stackpos][groupIndex];
 

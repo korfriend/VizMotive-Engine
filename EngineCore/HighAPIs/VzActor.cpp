@@ -1,6 +1,8 @@
 #include "VzEngineAPIs.h"
+#include "Common/Engine_Internal.h"
 #include "Components/Components.h"
 #include "Utils/Backlog.h"
+#include "Utils/SimpleCollision.h"
 
 using namespace vz;
 using namespace std;
@@ -67,16 +69,33 @@ namespace vzm
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
+		UpdateTimeStamp();
 	}
+
+	void VzActor::EnableOutline(const bool enabled)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->EnableOutline(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActor::EnableUndercut(const bool enabled)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->EnableUndercut(enabled);
+		UpdateTimeStamp();
+	}
+
 	void VzActor::SetClipPlane(const vfloat4& clipPlane)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetClipPlane(*(XMFLOAT4*)&clipPlane);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetClipBox(const vfloat4x4& clipBox)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetClipBox(*(XMFLOAT4X4*)&clipBox);
+		UpdateTimeStamp();
 	}
 	bool VzActor::IsClipperEnabled(bool* clipBoxEnabled, bool* clipPlaneEnabled) const
 	{
@@ -92,26 +111,54 @@ namespace vzm
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineThickness(v);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetOutineColor(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineColor(*(XMFLOAT3*)&v);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetOutineThreshold(const float v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineThreshold(v);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetUndercutDirection(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetUndercutDirection(*(XMFLOAT3*)&v);
+		UpdateTimeStamp();
 	}
 	void VzActor::SetUndercutColor(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetUndercutColor(*(XMFLOAT3*)&v);
+		UpdateTimeStamp();
+	}
+
+	bool VzActor::CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc, int* partIndexTarget, int* triIndexSrc, int* triIndexTarget) const
+	{
+		GET_RENDERABLE_COMP(renderable, false);
+		RenderableComponent* renderable_target = compfactory::GetRenderableComponent(targetActorVID);
+		if (renderable_target == nullptr)
+		{
+			vzlog_error("Invalid Target Actor!");
+			return false;
+		}
+		int partIndexSrc_v, partIndexTarget_v, triIndexSrc_v, triIndexTarget_v;
+		bool detected = bvhcollision::CollisionPairwiseCheck(renderable->GetGeometry(), componentVID_, renderable_target->GetGeometry(), targetActorVID, partIndexSrc_v, triIndexSrc_v, partIndexTarget_v, triIndexTarget_v);
+		if (partIndexSrc) *partIndexSrc = partIndexSrc_v;
+		if (partIndexTarget) *partIndexTarget = partIndexTarget_v;
+		if (triIndexSrc) *triIndexSrc = triIndexSrc_v;
+		if (triIndexTarget) *triIndexTarget = triIndexTarget_v;
+		return detected;
+	}
+
+	void VzActor::DebugRender(const std::string& debugScript)
+	{
+
 	}
 
 	std::vector<MaterialVID> VzActor::GetMaterials() const
@@ -128,5 +175,26 @@ namespace vzm
 	{
 		GET_RENDERABLE_COMP(renderable, INVALID_VID);
 		return renderable->GetGeometry();
+	}
+
+	void VzActor::AssignCollider()
+	{
+		if (compfactory::ContainColliderComponent(componentVID_))
+		{
+			vzlog_warning("%s already has collider!", GetName().c_str());
+			return;
+		}
+		compfactory::CreateColliderComponent(componentVID_);
+	}
+
+	bool VzActor::HasCollider() const
+	{
+		return compfactory::ContainColliderComponent(componentVID_);
+	}
+
+	bool VzActor::ColliderCollisionCheck(const ActorVID targetActorVID) const
+	{
+		assert(0 && "TODO");
+		return false;
 	}
 }
