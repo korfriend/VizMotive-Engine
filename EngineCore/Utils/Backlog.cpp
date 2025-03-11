@@ -44,13 +44,13 @@ namespace vz::backlog
 		logPath = helper::GetTempDirectoryPath();
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
+		SetConsoleOutputCP(CP_UTF8);
 		WCHAR path[2048];
 		HRESULT result = SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, 0, path);
 		if (result == S_OK)
 		{
 			std::wstring path_w = std::wstring(path);
 			helper::StringConvert(path_w, logPath);
-#ifdef PLATFORM_WINDOWS_DESKTOP
 			// accessible folder test
 			std::string initialize_log = "";
 			{
@@ -91,7 +91,6 @@ namespace vz::backlog
 			logPath += "/";
 #endif
 		}
-#endif
 
 		std::string log_file_path = logPath + "vzEngine.log";
 
