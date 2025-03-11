@@ -58,7 +58,7 @@ namespace vz
 			return;
 		}
 
-		if (TimeDurationCount(camera->GetTimeStamp(), cameraPrevious.GetTimeStamp()) == 0)
+		if (TimeDurationCount(recentRender3D_UpdateTime, camera->GetTimeStamp()) > 0)
 		{
 			stableCount_++;
 		}
@@ -217,11 +217,10 @@ namespace vz
 		if (initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
 		{
 			handlerRenderPath3D_->Render(dt);
+			recentRender3D_UpdateTime = TimerNow;
 		}
 
 		RenderPath2D::Render(dt);
-
-		cameraPrevious = *camera;
 	}
 
 	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {
