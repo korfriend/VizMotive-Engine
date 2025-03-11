@@ -10,8 +10,7 @@ PUSHCONSTANT(gaussians, GaussianPushConstants);
 
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWStructuredBuffer<uint> touchedTiles : register(u1);
-RWStructuredBuffer<uint> offsetTiles : register(u2);
-RWStructuredBuffer<VertexAttribute> vertexAttributes : register(u3);
+RWStructuredBuffer<VertexAttribute> vertexAttributes : register(u2);
 
 float3 get_sh_float3(Buffer<float> gs_shs, int index) {
     int start = index * 3;
@@ -66,9 +65,6 @@ float3 compute_sh(Buffer<float> gs_shs, float3 pos, int idx, float3 camPos)
 // Function: getrect, inline function in cuda(auxiliary)
 void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2 rect_max)
 {
-    const uint BLOCK_X = 16;
-    const uint BLOCK_Y = 16;
-
     // Calculate rect_min
     rect_min.x = min(grid.x, max(0, (int) ((p.x - max_radius) / BLOCK_X)));
     rect_min.y = min(grid.y, max(0, (int) ((p.y - max_radius) / BLOCK_Y)));
@@ -77,7 +73,6 @@ void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2
     rect_max.x = min(grid.x, max(0, (int) ((p.x + max_radius + BLOCK_X - 1) / BLOCK_X)));
     rect_max.y = min(grid.y, max(0, (int) ((p.y + max_radius + BLOCK_Y - 1) / BLOCK_Y)));
 }
-
 // Function: Convert world position to pixel coordinates
 float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
 {
@@ -92,7 +87,6 @@ float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
         (p_proj.y * 0.5f + 0.5f) * (float) H
     );
 }
-
 // Function: Compute the 3D covariance matrix for a Gaussian
 float3x3 computeCov3D(float3 scale, float4 rotation)
 {
@@ -129,15 +123,8 @@ float3x3 computeCov3D(float3 scale, float4 rotation)
         0.0f, 0.0f, Sigma[2][2]
     );
 }
-
 // Function: Compute the 2D covariance matrix for a Gaussian
-float3 computeCov2D(
-    float3 mean,
-    float focal_length, // Single focal length
-    uint2 resolution, // Screen resolution
-    float3x3 cov3D, // 3D covariance matrix
-    float4x4 viewmatrix // Camera view matrix
-)
+float3 computeCov2D(float3 mean, float focal_length, uint2 resolution, float3x3 cov3D, float4x4 viewmatrix)
 {
     // Calculate aspect ratio
     float aspect_ratio = (float) resolution.x / (float) resolution.y;
@@ -251,8 +238,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     // compute RGB from SH coefficients
     float3 rgb_sh = compute_sh(gs_shs, pos, idx, camPos);
     float4 final_RGB = float4(rgb_sh, 1.0f);
-
-    // test210
+    
     float4 p_view = mul(float4(pos, 1.0f), camera.view);
     touchedTiles[idx] = total_tiles;
     vertexAttributes[idx].conic_opacity = float4(conic.x, conic.y, conic.z, opacity);
@@ -266,66 +252,25 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     //{
     //    inout_color[pixel_coord] = float4(final_RGB);
     //}
+    
+    // for debugging bounding box
+    //uint2 pixel_rect_min = rect_min * 16;
+    //uint2 pixel_rect_max = rect_max * 16;
+    
+    //pixel_rect_min.x = min(pixel_rect_min.x, W);
+    //pixel_rect_min.y = min(pixel_rect_min.y, H);
+    //pixel_rect_max.x = min(pixel_rect_max.x, W);
+    //pixel_rect_max.y = min(pixel_rect_max.y, H);
+    
+    //for (uint py = pixel_rect_min.y; py < pixel_rect_max.y; py++)
+    //{
+    //    for (uint px = pixel_rect_min.x; px < pixel_rect_max.x; px++)
+    //    {
+    //        if (px == pixel_rect_min.x || px == pixel_rect_max.x - 1 ||
+    //            py == pixel_rect_min.y || py == pixel_rect_max.y - 1)
+    //        {
+    //            inout_color[uint2(px, py)] = float4(1.0f, 1.0f, 0.0f, 1.0f);
+    //        }
+    //    }
+    //}
 }
-
-// ========= check pos,scale,rot values =========
-//// test value for idx == 0
-//float3 t_pos = gs_position[0].xyz;
-//float3 t_scale = gs_scale_opacity[0].xyz;
-//float4 t_rot = gs_quaternion[0];
-
-// t_pos = (0.580303, -3.68339, 3.44946)
-// t_scale = (-4.44527, -4.37531, -5.52493)
-// t_rot = (0.666832, 0.0965957, -0.328523, 0.0227409)
-// focal length = 1.0f
-//if (t_rot.x > -4.5f && t_rot.x < -4.4f) 
-// {
-//    inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f);
-// }
-
-// ========= check radius =========
-//if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
-//{
-//    if (radius >= 4)
-//    {
-//        inout_color[pixel_coord] = float4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
-//    }
-//    else
-//    {
-//        inout_color[pixel_coord] = float4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
-//    }
-//}
-
-// ========= check SH =========
-//float aa = gs_shs[0]; // 2.20295
-//float bb = gs_shs[1]; // 1.60472
-//float cc = gs_shs[2]; // 1.68436
-//
-//float dd = gs_shs[3]; // 0.0468679
-//float ee = gs_shs[4]; // 0.0708462
-//float ff = gs_shs[5]; // 0.0480314
-
-//uint test_idx = 16;
-//float3 pos_test = gs_position[test_idx].xyz;
-//float3 RGB_Test = compute_sh(gs_shs, pos_test, test_idx, camPos);
-//float4 final_RGB = float4(RGB_Test, 1.0f);
-
-// SH color for gaussian 16: [0.8455225  0.87772584 0.65956086]
-// Position of vertex 16: [-0.23435153  1.1573098   2.2420747]
-
-//    (2.20295, 1.60472, 1.68436)
-//    (0.0468679, 0.0708462, 0.0480314)
-//    (0.0516027, 0.0534793, 0.0578414)
-//    (0.062336, 0.0456323, 0.00781638)
-//    (-0.000345991, 0.0367759, 0.0178164)
-//    (0.0103551, 0.014644, 0.0277609)
-//    (0.024907, 0.0401756, 0.0676378)
-//    (0.0726372, 0.0403042, 0.0436357)
-//    (0.0782928, 0.0253747, -0.019868)
-//    (0.0180557, 0.0233558, 0.0152131)
-//    (0.0250393, -0.0112344, 0.0226496)
-//    (0.0322682, 0.0525895, 0.0343003)
-//    (0.0483671, 0.0382582, 0.0437218)
-//    (0.0462263, 0.0305492, -0.0138234)
-//    (-0.00977228, 0.024071, 0.0118135)
-//    (-0.0111381, -0.0156093, 0.00291849)

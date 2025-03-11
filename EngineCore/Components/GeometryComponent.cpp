@@ -1159,6 +1159,12 @@ namespace vz
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferOdd, "GGeometryComponent::bufferHandle_::sortVBufferOdd");
 
+				// tile boundary buffer
+				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale;
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer, "GGeometryComponent::bufferHandle_::tileBoundaryBuffer");
+
 				// sort hist buffer test
 				//UINT numWorkgroups = ((num_gaussian_kernels * 8 + 32 - 1) / 32 + 256 - 1) / 256;
 				uint32_t numWorkgroups = (num_gaussian_kernels * 8 + 31) / (32 * 256);
@@ -1168,18 +1174,21 @@ namespace vz
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.sortHistBuffer, "GGeometryComponent::bufferHandle_::sortHistBuffer");
 
-				//bd.usage = Usage::READBACK;
 				bd.size = sizeof(UINT);
 				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.totalSumBufferHost);
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.totalSumBufferHost, "GGeometryComponent::bufferHandle_::totalSumBufferHost");
 
+				// readback buffer
+				bd.usage = Usage::READBACK;
+				bd.bind_flags = BindFlag::NONE;
+				bd.misc_flags = ResourceMiscFlag::NONE;
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.readBackBufferTest);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.readBackBufferTest, "GGeometryComponent::bufferHandle_::readBackBufferTest");
+				part_buffers.gaussianSplattingBuffers.readBackBufferTestMapped = (const uint32_t *) &part_buffers.gaussianSplattingBuffers.readBackBufferTest.mapped_data;
 
-				// tile boundary buffer
-				//bd.size = sizeof(tileX);// ??
-				//success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer);
-				//assert(success);
-				//device->SetName(&part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer, "GGeometryComponent::bufferHandle_::tileBoundaryBuffer");
 			}
 			
 			hasRenderData_ = true;

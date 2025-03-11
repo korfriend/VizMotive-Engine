@@ -90,6 +90,9 @@ namespace vz
 			graphics::GPUBuffer totalSumBufferHost; // test
 			graphics::GPUBuffer tileBoundaryBuffer; // test
 
+			// readback buffer
+			graphics::GPUBuffer readBackBufferTest;
+			const uint32_t* readBackBufferTestMapped = nullptr;
 
 			bool IsValid() const { return gaussianScale_Opacities.IsValid(); }
 		};
