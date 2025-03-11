@@ -96,7 +96,13 @@ namespace vz::renderer
 			GaussianSortConstants gaussian_sort; // timestamp and gaussian_Vertex_Attributes_index; test210
 			GaussianRadixConstants gaussian_radix;
 
-			gaussian_sort.tileX = rtMain.desc.width;
+			UINT width = rtMain.desc.width;
+			UINT height = rtMain.desc.height;
+
+			UINT tileX = (width + 16 - 1) / 16;
+			UINT tileY = (height + 16 - 1) / 16;
+
+			gaussian_sort.tileX = tileX;
 			gaussian_sort.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 			gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 
@@ -133,34 +139,32 @@ namespace vz::renderer
 				gaussian_sort.sortVBufferOdd_index = device->GetDescriptorIndex(&gs_buffers.sortVBufferOdd, SubresourceType::UAV);
 
 				gaussian_sort.sortHistBuffer_index = device->GetDescriptorIndex(&gs_buffers.sortHistBuffer, SubresourceType::UAV);
-				//gaussian_sort.tileBoundaryBuffer_index = device->GetDescriptorIndex(&gs_buffers.tileBoundaryBuffer, SubresourceType::UAV); // uav
+				gaussian_sort.tileBoundaryBuffer_index = device->GetDescriptorIndex(&gs_buffers.tileBoundaryBuffer, SubresourceType::UAV);
 
+				// readback Buffer
+				gaussian_push.readBackBufferTest_index = device->GetDescriptorIndex(&gs_buffers.readBackBufferTest, SubresourceType::UAV);
 			}
-			// staging buffer - test 212
 
+			// preprocess
 			if (rtMain.IsValid())
 			{
-				//device->BindUAV(&rtMain, 0, cmd);
-				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd); // touched tiles count 
-				device->BindUAV(&gs_buffers.offsetTiles_0, 2, cmd); // prefix sum of touched tiles count
-				device->BindUAV(&gs_buffers.gaussianVertexAttributes, 3, cmd); // vertex attributes
+				device->BindUAV(&rtMain, 0, cmd);
+				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd);			// touched tiles count 
+				device->BindUAV(&gs_buffers.gaussianVertexAttributes, 2, cmd);  // vertex attributes
 			}
 			else
 			{
-				//device->BindUAV(&unbind, 0, cmd);
+				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
 				device->BindUAV(&unbind, 2, cmd);
-				device->BindUAV(&unbind, 3, cmd);
 			}
 
 			// SRV to UAV
-			//barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianVertexAttributes, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 			BarrierStackFlush(cmd);
-
 
 			uint numGaussians = gaussian_push.num_gaussians;
 
@@ -177,6 +181,11 @@ namespace vz::renderer
 				cmd
 			);
 
+			device->BindUAV(&unbind, 0, cmd);
+			device->BindUAV(&unbind, 1, cmd);
+			device->BindUAV(&unbind, 2, cmd);
+			// end preprocess here
+		
 			// copy touched tiles count to offset tiles
 			{
 				GPUBarrier barriers[] =
@@ -204,15 +213,10 @@ namespace vz::renderer
 				};
 				device->Barrier(barriers2, _countof(barriers2), cmd);
 			}
-			//device->BindUAV(&unbind, 0, cmd);
-			device->BindUAV(&unbind, 1, cmd);
-			device->BindUAV(&unbind, 2, cmd);
-			device->BindUAV(&unbind, 3, cmd);
 
 			// UAV to SRV
-			//barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
+			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianVertexAttributes, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 
 			// prefix sum (offset)
@@ -266,7 +270,7 @@ namespace vz::renderer
 			device->BindUAV(&unbind, 3, cmd);       // u3
 			device->BindUAV(&unbind, 4, cmd);       // u4
 
-			if((iters % 2) == 0)
+			if ((iters % 2) == 0)
 				barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPong, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			else
 				barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
@@ -305,7 +309,7 @@ namespace vz::renderer
 			}
 
 			// duplicate with keys
-				// check readback buffer and numInstance(push constant)
+			// check readback buffer and numInstance(push constant)
 			device->BindUAV(&gs_buffers.sortKBufferEven, 0, cmd);
 			device->BindUAV(&gs_buffers.sortVBufferEven, 1, cmd);
 			device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd);
@@ -317,7 +321,7 @@ namespace vz::renderer
 			BarrierStackFlush(cmd);
 
 			device->BindComputeShader(&shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], cmd);
-			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
+			device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
 			device->Dispatch(
 				numGroups,
 				1,
@@ -330,7 +334,6 @@ namespace vz::renderer
 			device->BindResource(&unbind, 0, cmd);
 			device->BindResource(&unbind, 1, cmd);
 
-			// SRV 로 바꿀필요없음
 			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortKBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 			//barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortVBufferEven, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 
@@ -401,31 +404,28 @@ namespace vz::renderer
 				BarrierStackFlush(cmd);
 			}
 
+			device->BindUAV(&unbind, 0, cmd);
+			device->BindUAV(&unbind, 1, cmd);
+			device->BindUAV(&unbind, 2, cmd);
+			device->BindUAV(&unbind, 3, cmd);
+
 			// tile boundary test
-
-			UINT width = rtMain.desc.width;
-			UINT height = rtMain.desc.height;
-
-			UINT tileX = (width + 16 - 1) / 16;
-			UINT tileY = (height + 16 - 1) / 16;
-
-			graphics::GPUBuffer tileBoundaryBuffer;
-
-			GPUBufferDesc bd;
-			bd.size = tileX * tileY * sizeof(uint) * 2;
-			bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
-
-			bool success = device->CreateBuffer(&bd, nullptr, &tileBoundaryBuffer);
-			assert(success);
-			device->SetName(&tileBoundaryBuffer, "tileBoundaryBuffer");
+			// 
+			//graphics::GPUBuffer tileBoundaryBuffer;
+			//GPUBufferDesc bd;
+			//bd.size = tileX * tileY * sizeof(uint) * 2;
+			//bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			//bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+			//bool success = device->CreateBuffer(&bd, nullptr, &tileBoundaryBuffer);
+			//assert(success);
+			//device->SetName(&tileBoundaryBuffer, "tileBoundaryBuffer");
 
 			device->BindResource(&gs_buffers.sortKBufferEven, 0, cmd);	// t0
 			device->BindUAV(&gs_buffers.tileBoundaryBuffer, 0, cmd);	// u0
 
-			gaussian_push.num_gaussians = numInstances;					// numInstance test
+			gaussian_push.num_gaussians = numInstances;
 
-			barrierStack.push_back(GPUBarrier::Buffer(&tileBoundaryBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.tileBoundaryBuffer, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 			BarrierStackFlush(cmd);
 
 			device->BindComputeShader(&shaders[CSTYPE_GS_IDENTIFY_TILE_RANGES], cmd);
@@ -440,24 +440,27 @@ namespace vz::renderer
 				cmd
 			);
 
-			// ========================================================
-			// test213 - render
-			gaussian_sort.tileX = width;
-			gaussian_sort.tileY = height;
-
+			//=========================================================
+			//test210 - render 
 			if (rtMain.IsValid())
 			{
 				device->BindUAV(&rtMain, 0, cmd); // u0 
+				device->BindUAV(&gs_buffers.totalSumBufferHost, 1, cmd); // u1
+
 				device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd); // t0
-				device->BindResource(&gs_buffers.tileBoundaryBuffer, 1, cmd);		// t1
-				device->BindResource(&gs_buffers.sortVBufferEven, 2, cmd);			// t2
+				device->BindResource(srcBuffer, 1, cmd);
+				device->BindResource(&gs_buffers.sortVBufferEven, 2, cmd); // t2
+				device->BindResource(&gs_buffers.touchedTiles_0, 3, cmd); // t3
 			}
 			else
 			{
 				device->BindUAV(&unbind, 0, cmd);
+				device->BindUAV(&unbind, 1, cmd);
+
 				device->BindResource(&unbind, 0, cmd);
 				device->BindResource(&unbind, 1, cmd);
 				device->BindResource(&unbind, 2, cmd);
+				device->BindResource(&unbind, 3, cmd);
 			}
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
@@ -465,89 +468,76 @@ namespace vz::renderer
 
 			device->BindComputeShader(&shaders[CSTYPE_GS_RENDER_GAUSSIAN], cmd);
 			device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
+
 			device->Dispatch(
-				(width + 15) / 16,
-				(height + 15) / 16,
-				1, 
+				numGroups,
+				1,
+				1,
 				cmd
 			);
 
 			device->BindUAV(&unbind, 0, cmd);
+			device->BindUAV(&unbind, 1, cmd);
+
 			device->BindResource(&unbind, 0, cmd);
 			device->BindResource(&unbind, 1, cmd);
 			device->BindResource(&unbind, 2, cmd);
+			device->BindResource(&unbind, 3, cmd);
+
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 
 			BarrierStackFlush(cmd);
-			// ========================================================
+			//=========================================================
 
 
+			////=========================================================
+			//// render CS 
+			//gaussian_sort.tileX = rtMain.desc.width;
+			//gaussian_sort.tileY = rtMain.desc.height;
 
 
-
-
-			// //=========================================================
-			// //test210 - render 
 			//if (rtMain.IsValid())
 			//{
 			//	device->BindUAV(&rtMain, 0, cmd); // u0 
-
-			//	// test prefix sum
-			//	device->BindUAV(&gs_buffers.totalSumBufferHost, 1, cmd); // u1
-
 			//	device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd); // t0
-
-			//	if ((iters % 2) == 0)
-			//		device->BindResource(&gs_buffers.offsetTilesPong, 1, cmd); // t1
-			//	else
-			//		device->BindResource(&gs_buffers.offsetTilesPing, 1, cmd); // t1
-
-			//	device->BindResource(&gs_buffers.touchedTiles_0, 2, cmd); // t2
+			//	device->BindResource(&tileBoundaryBuffer, 1, cmd);		// t1
+			//	device->BindResource(&gs_buffers.sortVBufferEven, 2, cmd);			// t2
 			//}
 			//else
 			//{
 			//	device->BindUAV(&unbind, 0, cmd);
-			//	device->BindUAV(&unbind, 1, cmd);
-
 			//	device->BindResource(&unbind, 0, cmd);
 			//	device->BindResource(&unbind, 1, cmd);
 			//	device->BindResource(&unbind, 2, cmd);
 			//}
 
 			//barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			//barrierStackFlush(cmd);
+			//BarrierStackFlush(cmd);
 
 			//device->BindComputeShader(&shaders[CSTYPE_GS_RENDER_GAUSSIAN], cmd);
-			//// device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
 			//device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
-
 			//device->Dispatch(
-			//	numGroups,
-			//	1,
-			//	1,
+			//	(width + 15) / 16,
+			//	(height + 15) / 16,
+			//	1, 
 			//	cmd
 			//);
 
 			//device->BindUAV(&unbind, 0, cmd);
-			//device->BindUAV(&unbind, 1, cmd);
-
 			//device->BindResource(&unbind, 0, cmd);
 			//device->BindResource(&unbind, 1, cmd);
 			//device->BindResource(&unbind, 2, cmd);
 
 			//barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 
-			//barrierStackFlush(cmd);
-			// //=========================================================
-
-
-
-
+			//BarrierStackFlush(cmd);
+			//// ========================================================
 
 			break; // TODO: at this moment, just a single gs is supported!
 		}
 
+		device->EventEnd(cmd);
 		profiler::EndRange(range);
 		device->EventEnd(cmd);
 	}
