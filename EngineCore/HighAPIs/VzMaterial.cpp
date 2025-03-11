@@ -73,38 +73,11 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
-	void VzMaterial::SetMeshLookup(const LookupTableSlot slot)
+	void VzMaterial::SetPhongFactors(const vfloat4 phongFactors)
 	{
 		GET_MATERIAL_COMP(material, );
-		material->SetMeshLookup((MaterialComponent::LookupTableSlot)slot);
+		material->SetPhongFactors(*(XMFLOAT4*)&phongFactors);
 		UpdateTimeStamp();
-	}
-	void VzMaterial::SetSlicerLookup(const LookupTableSlot slot)
-	{
-		GET_MATERIAL_COMP(material, );
-		material->SetSlicerLookup((MaterialComponent::LookupTableSlot)slot);
-		UpdateTimeStamp();
-	}
-	void VzMaterial::Set3DLookup(const LookupTableSlot slot)
-	{
-		GET_MATERIAL_COMP(material, );
-		material->Set3DLookup((MaterialComponent::LookupTableSlot)slot);
-		UpdateTimeStamp();
-	}
-	LookupTableSlot VzMaterial::GetMeshLookup() const
-	{
-		GET_MATERIAL_COMP(material, {});
-		return (LookupTableSlot)material->GetMeshLookup();
-	}
-	LookupTableSlot VzMaterial::GetSlicerLookup() const
-	{
-		GET_MATERIAL_COMP(material, {});
-		return (LookupTableSlot)material->GetSlicerLookup();
-	}
-	LookupTableSlot VzMaterial::Get3DLookup() const
-	{
-		GET_MATERIAL_COMP(material, {});
-		return (LookupTableSlot)material->Get3DLookup();
 	}
 
 	vfloat4 VzMaterial::GetBaseColor() const

@@ -59,19 +59,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	uint count = c_m_d & 0xFF;
 	uint mask = (c_m_d >> 8) & 0xFF;
 
-	if (mask & WILDCARD_DEPTH_OUTLINE)
+	if (mask & SLICER_DEPTH_OUTLINE)
 	{
 		return;
 	}
 
-	if (mask & WILDCARD_DEPTH_OUTLINE_DIRTY)
+	if (mask & SLICER_DEPTH_OUTLINE_DIRTY)
 	{
-		counter_mask_distmap[pixel] = WILDCARD_DEPTH_OUTLINE << 8 | count;
+		counter_mask_distmap[pixel] = SLICER_DEPTH_OUTLINE << 8 | count;
 		return;
 	}
 
 	// preserves only counter
-	counter_mask_distmap[pixel] = OUTSIDE_PLANE << 8 | count;
+	if (mask == 0)
+	{
+		mask = SLICER_OUTSIDE_PLANE;
+	}
+	counter_mask_distmap[pixel] = mask << 8 | count;
 
 	bool disabled_filling = push.sliceFlags & SLICER_FLAG_ONLY_OUTLINE;
 
@@ -89,6 +93,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		return;
 	}
 #endif
+
+	mask = SLICER_DIRTY;
 
 	ShaderClipper clipper; // TODO
 	clipper.Init();
@@ -149,7 +155,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	isInsideOnPlane = isInsideOnPlaneUp0 && isInsideOnPlaneUp1 && isInsideOnPlaneRight0 && isInsideOnPlaneRight1;
 	if (sliceThickness == 0)
 	{
-		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | count;
+		counter_mask_distmap[pixel] = (f32tof16(minDistOnPlane) << 16) | (mask << 8) | count;
 		// DO NOT finish here (for solid filling)
 	}
 
@@ -171,12 +177,16 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		hit_on_forward_ray = hitTriIdx >= 0;
 	}
 	if (!hit_on_forward_ray) {
+		//counter_mask_distmap[pixel] = (SLICER_DEBUG << 8) | count;
+		//inout_color[pixel] = float4(1, 0, 0, 1);
 		// note ... when ray passes through a triangle edge or vertex, hit may not be detected
 		return;
 	}
 
 	if (!isInsideOnPlane && forward_hit_depth > sliceThickness_os)
 	{
+		//counter_mask_distmap[pixel] = (SLICER_DEBUG << 8) | count;
+		//inout_color[pixel] = float4(1, 1, 0, 1);
 		return;
 	}
 
@@ -202,7 +212,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		hit_on_backward_ray = hitTriIdx >= 0;
 		if (hit_on_backward_ray) last_layer_depth = sliceThickness_os - backward_hit_depth;
 	}
-
+	////////////////////////////////////////
 	float thickness_through_os = 0.f;
 	[branch]
 	if (sliceThickness > 0)
@@ -229,27 +239,23 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			float ray_march_dist = forward_hit_depth;
 
 			[loop]
+			[allow_uav_condition]
 			for (uint i = 0; i < HITBUFFERSIZE; i++)
 			{
 				RayHit hit = TraceRay_Closest(ray);
 				int hitTriIdx = hit.distance >= FLT_MAX - 1 ? -1 : hit.primitiveID.primitiveIndex;
-				float hitDistance = hit.distance;
-
-				ray.Origin += ray.Direction * hit.distance;
-				ray.TMin = ray_tmin; // small offset!
-				ray.TMax = ray_tmax;
-
 				if (hitTriIdx < 0)
 				{
 					break;
 				}
-				ray_march_dist += hitDistance;
 
-#ifdef BVH_LEGACY
-				bool localInside = dot(trinormal, test_raydir.xyz) > 0;
-#else
+				float hitDistance = hit.distance;
+				ray.Origin += ray.Direction * (hitDistance + ray_tmin);
+				ray.TMin = 0;// ray_tmin; // small offset!
+				ray.TMax = ray_tmax;
+
+				ray_march_dist += hitDistance;
 				bool localInside = hit.is_backface;
-#endif
 				if (localInside)
 				{
 					if (ray_march_dist < sliceThickness_os)
@@ -395,7 +401,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		if (camera.sliceThickness == 0)
 			inout_color[pixel] = (float4)frag.color;
 
-		counter_mask_distmap[pixel] = f32tof16(minDistOnPlane) << 16 | 1;
+		counter_mask_distmap[pixel] = (f32tof16(minDistOnPlane) << 16) | (SLICER_SOLID_FILL_PLANE << 8) | 1;
 	}
 	else
 	{
@@ -421,8 +427,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 		Fragment frag;
 		frag.color = color_cur; // current
-		frag.z = zdepth1;
-		frag.zthick = (half)vz_thickness;
+		frag.z = zdepth0;
+		frag.zthick = (half)(vz_thickness + 2.f);
 		frag.opacity_sum = color_cur.a;
 
 		///Fill_kBuffer(pixel, 2, color_cur, zdepth1, vz_thickness);
@@ -435,7 +441,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			else
 			{
 				uint4 v_layer_packed0_RGBA = layer_packed0_RGBA[pixel];
-				uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
 
 				Fragment f_0;
 				f_0.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.r);
@@ -443,9 +448,17 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 				f_0.Unpack_Zthick_AlphaSum(v_layer_packed0_RGBA.b);
 
 				Fragment f_1;
-				f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
-				f_1.z = asfloat(v_layer_packed1_RG.r);
-				f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
+				if (count >= 2)
+				{
+					uint2 v_layer_packed1_RG = layer_packed1_RG[pixel];
+					f_1.Unpack_8bitUIntRGBA(v_layer_packed0_RGBA.a);
+					f_1.z = asfloat(v_layer_packed1_RG.r);
+					f_1.Unpack_Zthick_AlphaSum(v_layer_packed1_RG.g);
+				}
+				else
+				{
+					f_1.Init();
+				}
 				Fragment fs[2] = { f_0, f_1 };
 
 				count = Fill_kBuffer(frag, count, fs);

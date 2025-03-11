@@ -71,6 +71,12 @@ namespace vz
 			//TransformComponent* transform = transforms[args.jobIndex];
 			TransformComponent* transform = compfactory::GetTransformComponent(renderables_[args.jobIndex]);
 			transform->UpdateMatrix();
+
+			if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
+			{
+				isContentChanged_ = true;
+			}
+
 			});
 	}
 	void SceneDetails::RunRenderableUpdateSystem(jobsystem::context& ctx)
@@ -92,6 +98,10 @@ namespace vz
 			if (transform == nullptr)
 				return;
 			transform->UpdateWorldMatrix();
+			if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
+			{
+				isContentChanged_ = true;
+			}
 
 			RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
 			if (renderable)
@@ -103,8 +113,15 @@ namespace vz
 				matrixRenderablesPrev_[args.jobIndex] = matrixRenderables_[args.jobIndex];
 				matrixRenderables_[args.jobIndex] = transform->GetWorldMatrix();
 
+				MaterialComponent* material = nullptr;
 				if (renderable->IsMeshRenderable() || renderable->IsVolumeRenderable())
 				{
+					material = compfactory::GetMaterialComponent(renderable->GetMaterial(0));
+					assert(material);
+					if (TimeDurationCount(material->GetTimeStamp(), recentUpdateTime_) > 0)
+					{
+						isContentChanged_ = true;
+					}
 
 					AABB* shared_bounds = (AABB*)args.sharedmemory;
 					if (args.isFirstJobInGroup)
@@ -124,30 +141,53 @@ namespace vz
 				if (renderable->IsVolumeRenderable())
 				{
 					MaterialComponent* material = compfactory::GetMaterialComponent(renderable->GetMaterial(0));
-					assert(material);
 
 					GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
 						material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
 					assert(volume);
 					assert(volume->IsValidVolume());
 
-					TextureComponent* otf = compfactory::GetTextureComponentByVUID(
-						material->GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
-					assert(otf);
-					Entity entity_otf = otf->GetEntity();
-
 					if (!volume->GetBlockTexture().IsValid())
 					{
 						volume->UpdateVolumeMinMaxBlocks({ 8, 8, 8 });
 					}
-					XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
-					if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
-						|| volume->GetTimeStamp() < otf->GetTimeStamp())
+
+					TimeStamp volume_timeStamp = volume->GetTimeStamp();
+					for (size_t i = 0, n = SCU32(MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT); i < n; ++i)
 					{
-						volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
+						VUID vuid = material->GetLookupTableVUID(static_cast<MaterialComponent::LookupTableSlot>(i));
+						if (vuid == INVALID_VUID)
+							continue;
+						TextureComponent* otf = compfactory::GetTextureComponentByVUID(vuid);
+						if (otf == nullptr)
+						{
+							continue;
+						}
+						Entity entity_otf = otf->GetEntity();
+						XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
+						if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
+							|| volume_timeStamp < otf->GetTimeStamp())
+						{
+							volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
+						}
+						if (TimeDurationCount(otf->GetTimeStamp(), recentUpdateTime_) > 0)
+						{
+							isContentChanged_ = true;
+						}
+					}
+
+					if (TimeDurationCount(volume->GetTimeStamp(), recentUpdateTime_) > 0)
+					{
+						isContentChanged_ = true;
 					}
 				}
+
+				if (TimeDurationCount(renderable->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
+				}
 			}
+
 		}, sizeof(geometrics::AABB));
 	}
 
@@ -166,7 +206,13 @@ namespace vz
 			if (light)
 			{
 				light->Update();	// AABB
+
+				if (TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
+				}
 			}
+
 			});
 	}
 
@@ -181,16 +227,21 @@ namespace vz
 
 			bool is_dirty_bvh = geometry->IsDirtyBVH();
 
-			if (!geometry->HasBVH() || is_dirty_bvh)
+			if ((!geometry->HasBVH() || is_dirty_bvh) && !geometry->IsBusyForBVH())
 			{
 				geometry->UpdateBVH(true);
 			}
 
+			if (TimeDurationCount(geometry->GetTimeStamp(), recentUpdateTime_) > 0)
+			{
+				isContentChanged_ = true;
+			}
 			});
 	}
 
 	void Scene::Update(const float dt)
 	{
+		isContentChanged_ = false;
 		dt_ = dt;
 		deltaTimeAccumulator_ += dt;
 
@@ -199,7 +250,7 @@ namespace vz
 		scanGeometryEntities();
 		scanMaterialEntities();
 
-		static jobsystem::context ctx_bvh;
+		static jobsystem::context ctx_bvh; // Must be declared static to prevent context overflow, which could lead to thread access violations
 		// note this update needs to be thread-safe
 		
 		if (!jobsystem::IsBusy(ctx_bvh))
@@ -243,14 +294,21 @@ namespace vz
 		}
 		/**/
 		// TODO: animation updates
-
+			
 		// GPU updates
 		// note: since tasks in ctx has been completed
 		//		there is no need to pass ctx as an argument.
 		handlerScene_->Update(dt);
 
-		isDirty_ = false;
 		recentUpdateTime_ = TimerNow;
+		if (!isContentChanged_)
+		{
+			stableCount++;
+		}
+		else
+		{
+			stableCount = 0;
+		}
 	}
 
 	void Scene::Clear()
@@ -267,8 +325,6 @@ namespace vz
 		//
 		//scene_details->matrixRenderables.clear();
 		//scene_details->matrixRenderablesPrev.clear();
-
-		isDirty_ = true;
 	}
 
 	void Scene::AddEntity(const Entity entity)
@@ -280,7 +336,6 @@ namespace vz
 			{
 				lookupRenderables_[entity] = renderables_.size();
 				renderables_.push_back(entity);
-				isDirty_ = true;
 				timeStampSetter_ = TimerNow;
 			}
 		}
@@ -291,7 +346,6 @@ namespace vz
 			{
 				lookupLights_[entity] = renderables_.size();
 				lights_.push_back(entity);
-				isDirty_ = true;
 				timeStampSetter_ = TimerNow;
 			}
 		}
@@ -327,7 +381,6 @@ namespace vz
 
 		remove_entity(lookupRenderables_, renderables_, entity);
 		remove_entity(lookupLights_, lights_, entity);
-		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 
@@ -685,7 +738,7 @@ namespace vz
 		auto it = scenes.find(entity);
 		if (it == scenes.end())
 		{
-			backlog::post("Scene::DestroyScene >> Invalid Entity! " + stringEntity(entity), backlog::LogLevel::Error);
+			vzlog_error("Scene::DestroyScene >> Invalid Entity! (%d)", entity);
 			return false;
 		}
 		it->second.reset();

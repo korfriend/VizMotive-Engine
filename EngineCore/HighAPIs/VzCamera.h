@@ -45,7 +45,9 @@ namespace vzm
 		bool IsClipperEnabled(bool* clipBoxEnabled = nullptr, bool* clipPlaneEnabled = nullptr) const;
 
 		void SetDVRType(const DVR_TYPE type);
+		void SetDVRLookupSlot(const LookupTableSlot slot);
 		DVR_TYPE GetDVRType() const;
+		LookupTableSlot GetDVRLookupSlot() const;
 
 		OrbitalControl* GetOrbitControl() const { return orbitControl_.get(); }
 	};
@@ -88,4 +90,5 @@ namespace vzm
 	};
 
 	using SlicerControl = VzSlicer::SliceControl;
+	using DVR_TYPE = VzCamera::DVR_TYPE;
 }

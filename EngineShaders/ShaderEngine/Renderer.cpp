@@ -25,12 +25,12 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::UpdateProcess(const float dt)
 	{
-		// Frustum culling for main camera:
+		// Frustum culling for main camera:l,k
 		viewMain.layerMask = ~0;
 		viewMain.scene = scene;
 		viewMain.camera = camera;
 		viewMain.flags = renderer::View::ALLOW_EVERYTHING;
-		if (!renderer::isOcclusionCullingEnabled)
+		if (!renderer::isOcclusionCullingEnabled || camera->IsSlicer())
 		{
 			viewMain.flags &= ~renderer::View::ALLOW_OCCLUSION_CULLING;
 		}
@@ -64,7 +64,7 @@ namespace vz::renderer
 		);
 
 
-		if (renderer::isTemporalAAEnabled)
+		if (renderer::isTemporalAAEnabled && !camera->IsSlicer())
 		{
 			const XMFLOAT4& halton = math::GetHaltonSequence(graphics::GetDevice()->GetFrameCount() % 256);
 			camera->jitter.x = (halton.x * 2 - 1) / (float)internalResolution.x;
@@ -247,6 +247,9 @@ namespace vz::renderer
 			viewResources.primitiveID_1_resolved = nullptr;
 			viewResources.primitiveID_2_resolved = nullptr;
 		}
+
+		cameraReflectionPrevious = cameraReflection;
+		cameraPrevious = *camera;
 	}
 
 	// based on graphics pipeline
@@ -670,7 +673,6 @@ namespace vz::renderer
 
 	bool GRenderPath3DDetails::ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight)
 	{
-		vzlog_assert(IsInitialized(), "ShaderEngine must be Initialized!");
 		if (!camera || (canvasWidth_ == canvasWidth && canvasHeight_ == canvasHeight))
 		{
 			return true;
@@ -1073,7 +1075,7 @@ namespace vz::renderer
 		graphics::Viewport viewport_composite; // full buffer
 		viewport_composite.width = (float)canvasWidth_;
 		viewport_composite.height = (float)canvasHeight_;
-		device->BindViewports(1, &viewport, cmd);
+		device->BindViewports(1, &viewport_composite, cmd);
 
 		if (rtRenderFinal_.IsValid())
 		{
@@ -1844,7 +1846,8 @@ namespace vz::renderer
 
 		// Preparing the frame:
 		CommandList cmd = device->BeginCommandList();
-		device->WaitQueue(cmd, QUEUE_COMPUTE); // sync to prev frame compute (disallow prev frame overlapping a compute task into updating global scene resources for this frame)
+		// DO NOT 'device->WaitQueue(cmd, QUEUE_COMPUTE)' when there is NO QUEUE_COMPUTE commmand list!
+		//device->WaitQueue(cmd, QUEUE_COMPUTE);
 		ProcessDeferredResourceRequests(cmd); // Execute it first thing in the frame here, on main thread, to not allow other thread steal it and execute on different command list!
 
 		CommandList cmd_prepareframe = cmd;
@@ -1855,12 +1858,19 @@ namespace vz::renderer
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderData(viewMain, frameCB, cmd);
 
-			GPUBarrier barrier = GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1);
-			device->Barrier(&barrier, 1, cmd);
+			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_1, rtPrimitiveID_1.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1));
+			BarrierStackFlush(cmd);
+
+			// These Clear'UAV' must be after the barrier transition to ResourceState::UNORDERED_ACCESS
+			device->ClearUAV(&rtMain, 0, cmd);
+			device->ClearUAV(&rtPrimitiveID_1, 0, cmd);
 
 			});
 
 		cmd = device->BeginCommandList();
+		device->WaitCommandList(cmd, cmd_prepareframe);
 		CommandList cmd_slicer = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
@@ -1871,29 +1881,13 @@ namespace vz::renderer
 				cmd
 			);
 
-			graphics::Texture slicer_textures[] = {
-				rtMain,				// inout_color, desc.layout
-				rtPrimitiveID_1,	// counter (can be used for clear mask) (8bit) / intermediate distance map, desc.layout
-				rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, desc.layout
-				rtLinearDepth,		// R32G32_UINT - Layer_Packed1, desc.layout
-			};
-			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-			{
-				graphics::Texture& texture = slicer_textures[i];
-				barrierStack.push_back(GPUBarrier::Image(&texture, texture.desc.layout, ResourceState::UNORDERED_ACCESS));
-			}
-			BarrierStackFlush(cmd);
-
-			// These Clear'UAV' must be after the barrier transition to ResourceState::UNORDERED_ACCESS
-			device->ClearUAV(&rtMain, 0, cmd);
-			device->ClearUAV(&rtPrimitiveID_1, 0, cmd);
-
 			RenderSlicerMeshes(cmd);
 
 			});
 
 		cmd = device->BeginCommandList();
-		//device->WaitCommandList(cmd, cmd_slicer);
+		device->WaitCommandList(cmd, cmd_slicer);
+		CommandList cmd_dvr = cmd;
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(
@@ -1903,24 +1897,14 @@ namespace vz::renderer
 				cmd
 			);
 
+			// camera->IsSlicer()
 			RenderDirectVolumes(cmd);
-
-			graphics::Texture slicer_textures[] = {
-				rtMain,				// inout_color, desc.layout
-				rtPrimitiveID_1,	// counter (can be used for clear mask) (8bit) / intermediate distance map, desc.layout
-				rtPrimitiveID_2,	// R32G32B32A32_UINT - Layer_Packed0, desc.layout
-				rtLinearDepth,		// R32G32_UINT - Layer_Packed1, desc.layout
-			};
-			for (size_t i = 0, n = sizeof(slicer_textures) / sizeof(graphics::Texture); i < n; ++i)
-			{
-				graphics::Texture& texture = slicer_textures[i];
-				barrierStack.push_back(GPUBarrier::Image(&texture, ResourceState::UNORDERED_ACCESS, texture.desc.layout));
-			}
-			BarrierStackFlush(cmd);
 
 			});
 
 		cmd = device->BeginCommandList();
+		//device->WaitCommandList(cmd, cmd_dvr);
+
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 			RenderPostprocessChain(cmd);
 			});
@@ -1973,10 +1957,11 @@ namespace vz::renderer
 
 namespace vz
 {
-	GRenderPath3D* NewGRenderPath(graphics::Viewport& vp, graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
+	GRenderPath3D* NewGRenderPath(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
 	{
-		return new renderer::GRenderPath3DDetails(vp, swapChain, rtRenderFinal);
+		return new renderer::GRenderPath3DDetails(swapChain, rtRenderFinal);
 	}
+
 	void AddDeferredMIPGen(const Texture& texture, bool preserve_coverage)
 	{
 		std::lock_guard<std::mutex> lock(renderer::deferredResourceMutex);

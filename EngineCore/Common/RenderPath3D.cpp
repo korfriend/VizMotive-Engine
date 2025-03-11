@@ -51,11 +51,34 @@ namespace vz
 		XMStoreFloat4x4(&matScreenInv_, CreateScreenToProjectionMatrix(viewport_));
 	}
 
+	void RenderPath3D::stableCountTest()
+	{
+		if (frameCount == 0)
+		{
+			return;
+		}
+
+		if (TimeDurationCount(camera->GetTimeStamp(), cameraPrevious.GetTimeStamp()) == 0)
+		{
+			stableCount_++;
+		}
+		else
+		{
+			//if (stableCount > 0)
+			//{
+			//	vzlog("Camera has been changed (%d)", (uint32_t)stableCount);
+			//}
+			stableCount_ = 0;
+		}
+	}
+
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
 		: RenderPath2D(entity, graphicsDevice) 
 	{
-		handlerRenderPath3D_ = shaderEngine.pluginNewGRenderPath3D(viewport_, swapChain_, rtRenderFinal_);
+		handlerRenderPath3D_ = shaderEngine.pluginNewGRenderPath3D(swapChain_, rtRenderFinal_);
 		assert(handlerRenderPath3D_->version == GRenderPath3D::GRenderPath3D_INTERFACE_VERSION);
+
+		handlerRenderPath2D_ = handlerRenderPath3D_;
 
 		type_ = "RenderPath3D";
 	}
@@ -84,12 +107,6 @@ namespace vz
 
 	void RenderPath3D::ResizeResources()
 	{
-		if (!initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
-		{
-			vzlog("waiting for ShaderEngine Initialization...");
-			return;
-		}
-
 		RenderPath3D::DeleteGPUResources(true);
 		RenderPath2D::ResizeResources();
 		handlerRenderPath3D_->ResizeCanvas(width_, height_);
@@ -119,42 +136,61 @@ namespace vz
 
 		if (camera == nullptr || scene == nullptr) return;
 
+		stableCountTest();
+
 		// this must be called after scene's update
 		HierarchyComponent* hier = compfactory::GetHierarchyComponent(camera->GetEntity());
 		if (hier->GetParentEntity() != INVALID_ENTITY)
 		{
 			camera->SetWorldLookAtFromHierarchyTransforms();
 		}
+
+		if (camera->IsCurvedSlicer())
+		{
+			((SlicerComponent*)camera)->UpdateCurve(); // include dirty check!
+		}
+		else
+		{
+			if (camera->IsDirty())
+			{
+				camera->UpdateMatrix();
+			}
+		}
 	}
 	
 	void RenderPath3D::Render(const float dt)
 	{
-		if (!initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
-		{
-			vzlog("waiting for ShaderEngine Initialization...");
-			return;
-		}
-
 		if (camera == nullptr || scene == nullptr)
 		{
 			vzlog_warning("RenderPath3D::Render >> No Scene or No Camera/Slicer in RenderPath!");
 			return;
 		}
 
+		if (skipStableCount > 0)
+		{
+			if (scene->stableCount > skipStableCount && stableCount_ > skipStableCount)
+			{
+				return;
+			}
+		}
+
 		// This involves the following process
 		//	1. update view (for each rendering pipeline)
 		//	2. update render data
 		//	3. execute rendering pipelines
+
+		// ----- RenderPath3D Attributes -----
 		handlerRenderPath3D_->scene = scene;
 		handlerRenderPath3D_->camera = camera;
 		handlerRenderPath3D_->viewport = viewport_;
 
 		handlerRenderPath3D_->matToScreen = matScreen_;
 		handlerRenderPath3D_->matToScreenInv = matScreenInv_;
+		handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
 
+		// ----- RenderPath2D Attributes -----
 		handlerRenderPath3D_->scissor = scissor_;
 		handlerRenderPath3D_->colorspace = colorSpace_;
-		handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);
 		handlerRenderPath3D_->msaaSampleCount = GetMSAASampleCount();
 
 		bool is_resized = UpdateResizedCanvas();
@@ -177,13 +213,15 @@ namespace vz
 			memcpy(rtRenderFinal_.desc.clear.color, clearColor, sizeof(float) * 4);
 		}
 
+
+		if (initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
+		{
+			handlerRenderPath3D_->Render(dt);
+		}
+
 		RenderPath2D::Render(dt);
-		handlerRenderPath3D_->Render(dt);
-	}
 
-	void RenderPath3D::Compose()
-	{
-
+		cameraPrevious = *camera;
 	}
 
 	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {

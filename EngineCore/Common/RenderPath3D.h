@@ -21,18 +21,23 @@ namespace vz
 		GRenderPath3D* handlerRenderPath3D_ = nullptr;
 
 		graphics::Viewport viewport_;
-		graphics::Rect scissor_;
 
 		XMFLOAT4X4 matScreen_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 matScreenInv_ = math::IDENTITY_MATRIX;
 
+		size_t stableCount_ = 0;
+
 		void updateViewportTransforms();
+		void stableCountTest();
 
 	public:
+		inline static int skipStableCount = -1; // -1 refers to ignore the skip
+
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
 		~RenderPath3D();
 
 		CameraComponent* camera = nullptr; // can be used for SlicerComponent
+		CameraComponent cameraPrevious = CameraComponent(0);
 		Scene* scene = nullptr;
 
 		bool useManualSetViewport = false;
@@ -48,7 +53,6 @@ namespace vz
 		// cpu side... in scene
 		void Update(const float dt) override;
 		void Render(const float dt) override;
-		void Compose() override;
 		
 		void GetViewportTransforms(XMFLOAT4X4* matScreen, XMFLOAT4X4* matScreenInv) const {
 			if (matScreen) *matScreen = matScreen_;

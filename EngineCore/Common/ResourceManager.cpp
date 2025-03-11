@@ -1340,8 +1340,8 @@ namespace vz
 				//	flags &= ~Flags::STREAMING;
 				//}
 
-				desc.type = desc.depth > 1 ? TextureDesc::Type::TEXTURE_3D : 
-					(desc.height > 1 ? TextureDesc::Type::TEXTURE_2D : TextureDesc::Type::TEXTURE_1D);
+				// here, we assume TextureComponent is set to TEXTURE_2D or TEXTURE_3D, not TEXTURE_1D
+				desc.type = desc.depth > 1 ? TextureDesc::Type::TEXTURE_3D : TextureDesc::Type::TEXTURE_2D;
 
 				SubresourceData initdata;
 

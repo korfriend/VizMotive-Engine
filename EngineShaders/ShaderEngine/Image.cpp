@@ -500,6 +500,12 @@ namespace vz::image
 		device->CreatePipelineState(&desc, &debugPSO);
 	}
 
+	bool isInitialized = false;
+	bool IsInitialized()
+	{
+		return isInitialized;
+	}
+	
 	void Initialize()
 	{
 		Timer timer;
@@ -711,6 +717,7 @@ namespace vz::image
 		LoadShaders();
 
 		backlog::post("image Initialized (" + std::to_string((int)std::round(timer.elapsed())) + " ms)");
+		isInitialized = true;
 	}
 
 	void Deinitialize()
@@ -743,5 +750,7 @@ namespace vz::image
 		vertexShader = {};
 		pixelShader = {};
 		debugShader = {};
+
+		isInitialized = false;
 	}
 }

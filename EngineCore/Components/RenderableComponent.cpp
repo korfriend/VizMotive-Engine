@@ -155,6 +155,7 @@ namespace vz
 		Entity geometry_entity = compfactory::GetEntityByVUID(vuidGeometry_);
 		GeometryComponent* geometry = compfactory::GetGeometryComponent(geometry_entity);
 		TransformComponent* transform = compfactory::GetTransformComponent(entity_);
+		geometrics::AABB aabb;
 		if (IsVolumeRenderable())
 		{
 			MaterialComponent* volume_material = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuidMaterials_[0]));
@@ -164,7 +165,7 @@ namespace vz
 
 			XMFLOAT4X4 world = transform->GetWorldMatrix();
 			XMMATRIX W = XMLoadFloat4x4(&world);
-			aabb_ = volume->ComputeAABB().transform(W);
+			aabb = volume->ComputeAABB().transform(W);
 		}
 		else
 		{
@@ -179,10 +180,15 @@ namespace vz
 
 			XMFLOAT4X4 world = transform->GetWorldMatrix();
 			XMMATRIX W = XMLoadFloat4x4(&world);
-			aabb_ = geometry->GetAABB().transform(W);
+			aabb = geometry->GetAABB().transform(W);
 		}
 
-		timeStampSetter_ = TimerNow;
+		if (math::DistanceSquared(aabb_._min, aabb._min) > FLT_EPSILON
+			|| math::DistanceSquared(aabb_._max, aabb._max) > FLT_EPSILON)
+		{
+			timeStampSetter_ = TimerNow;
+		}
+		aabb_ = aabb;
 		isDirty_ = false;
 	}
 }

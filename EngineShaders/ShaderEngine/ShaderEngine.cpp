@@ -12,7 +12,8 @@
 #include "Utils/Backlog.h"
 #include "Utils/JobSystem.h"
 #include "Utils/EventHandler.h"
-#include "Utils/Spinlock.h"
+#include "Utils/Config.h"
+#include "Utils/Helpers.h"
 
 #include <memory>
 
@@ -27,7 +28,8 @@ namespace vz::renderer
 	bool isFreezeCullingCameraEnabled = false;
 	bool isWetmapRefreshEnabled = false;
 	bool isSceneUpdateEnabled = true;
-	bool isTemporalAAEnabled = false;
+	bool isTemporalAAEnabled = true;
+	bool isTemporalAADebugEnabled = false;
 	bool isTessellationEnabled = false;
 	bool isFSREnabled = false;
 	bool isWireRender = false;
@@ -472,8 +474,8 @@ namespace vz::renderer
 		static eventhandler::Handle handle2 = eventhandler::Subscribe(eventhandler::EVENT_RELOAD_SHADERS, [](uint64_t userdata) { LoadShaders(); });
 
 		jobsystem::context ctx;
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { image::Initialize(); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpubvh::Initialize(); });
 
@@ -528,6 +530,13 @@ namespace vz
 	bool LoadRenderer()
 	{
 		return renderer::Initialize();
+	}
+
+	bool ApplyConfiguration()
+	{
+		renderer::isTemporalAAEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
+		renderer::isGaussianSplattingEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
+		return true;
 	}
 
 	void Deinitialize()

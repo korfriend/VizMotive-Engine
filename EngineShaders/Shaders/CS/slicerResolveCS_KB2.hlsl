@@ -29,7 +29,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		return;
 	}
 
-	if (mask & (WILDCARD_DEPTH_OUTLINE_DIRTY | WILDCARD_DEPTH_OUTLINE))
+	if (mask & (SLICER_DEPTH_OUTLINE_DIRTY | SLICER_DEPTH_OUTLINE))
 	{
 		return;
 	}

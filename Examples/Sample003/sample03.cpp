@@ -135,7 +135,7 @@ DXGI_SWAP_CHAIN_DESC1 sd;
 int main(int, char**)
 {
 	// DPI 인식을 활성화
-	EnableDpiAwareness();
+	//EnableDpiAwareness();
 
 	// Create application window
 	//ImGui_ImplWin32_EnableDpiAwareness();
@@ -144,10 +144,6 @@ int main(int, char**)
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::ParamMap<std::string> arguments;
-	//arguments.SetString("API", "DX11");
-	//arguments.SetString("GPU_VALIDATION", "VERBOSE");
-	//arguments.SetParam("MAX_THREADS", 1u); // ~0u
-	arguments.SetParam("MAX_THREADS", ~0u); // ~0u
 	if (!vzm::InitEngineLib(arguments)) {
 		std::cerr << "Failed to initialize engine library." << std::endl;
 		return -1;
@@ -330,10 +326,11 @@ int main(int, char**)
 
 		using namespace vzm;
 		{
+			ImVec2 canvas_size;
 			ImGui::Begin("3D Viewer");
 			{
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);
-				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+				canvas_size = ImGui::GetContentRegionAvail();
 
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
 				{
@@ -456,7 +453,7 @@ int main(int, char**)
 						for (size_t i = 0; i < otf_w; i++)
 						{
 							uint8_t a = i < cur_otf_value ? 0 :
-								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / 30.f * 255.f) : 255;
+								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / cur_otf_band_width * 255.f) : 255;
 							otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
 							otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
 							otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
@@ -481,7 +478,6 @@ int main(int, char**)
 				static bool orthographics = false;
 				if (ImGui::Checkbox("ORTHOGONAL", &orthographics))
 				{
-					ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 					if (orthographics) {
 						camera->SetOrthogonalProjection(canvas_size.x, canvas_size.y, camera->GetNear(), camera->GetCullingFar(), -1);
 					}

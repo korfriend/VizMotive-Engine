@@ -132,10 +132,6 @@ namespace vz
 
 			archive >> texMulAdd_;
 
-			archive >> u32_data; meshLookup_ = static_cast<LookupTableSlot>(u32_data);
-			archive >> u32_data; volumeSlicerLookup_ = static_cast<LookupTableSlot>(u32_data);
-			archive >> u32_data; volume3DLookup_ = static_cast<LookupTableSlot>(u32_data);
-
 			isDirty_ = true;
 		}
 		else
@@ -177,10 +173,6 @@ namespace vz
 			}
 
 			archive << texMulAdd_;
-
-			archive << static_cast<uint32_t>(meshLookup_);
-			archive << static_cast<uint32_t>(volumeSlicerLookup_);
-			archive << static_cast<uint32_t>(volume3DLookup_);
 		}
 	}
 
@@ -328,6 +320,32 @@ namespace vz
 		}
 	}
 
+	void ColliderComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		if (archive.IsReadMode())
+		{
+			uint8_t u8_data;
+			archive >> u8_data;
+			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
+
+			archive >> flags_;
+			archive >> u8_data; shape_ = (Shape)u8_data;
+			archive >> radius_;
+			archive >> offset_;
+			archive >> tail_;
+		}
+		else
+		{
+			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
+
+			archive << flags_;
+			archive << (uint8_t)shape_;
+			archive << radius_;
+			archive << offset_;
+			archive << tail_;
+		}
+	}
+
 	void RenderableComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
 		if (archive.IsReadMode())
@@ -459,7 +477,7 @@ namespace vz
 			archive >> bloomEnabled_;
 			archive >> hdrCalibration_;
 			uint32_t u32_data;
-			archive >> u32_data; forceToLookup_ = static_cast<MaterialComponent::LookupTableSlot>(u32_data);
+			archive >> u32_data; dvrLookup_ = static_cast<MaterialComponent::LookupTableSlot>(u32_data);
 
 			isDirty_ = true;
 			SetWorldLookAtFromHierarchyTransforms();
@@ -490,7 +508,7 @@ namespace vz
 			archive << eyeAdaptionEnabled_;
 			archive << bloomEnabled_;
 			archive << hdrCalibration_;
-			archive << static_cast<uint32_t>(forceToLookup_);
+			archive << static_cast<uint32_t>(dvrLookup_);
 		}
 	}
 

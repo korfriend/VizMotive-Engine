@@ -307,7 +307,7 @@ namespace vz::gpubvh
 				device->Barrier(barriers, arraysize(barriers), cmd);
 
 				NameComponent* name = compfactory::GetNameComponent(geometryEntity);
-				vzlog("GPUBVH generation completed! --> (%s)'s Max TreeDepth: % d", name->GetName().c_str(), treeDepth);
+				vzlog("GPUBVH Command for (%s) is submitted. (Max TreeDepth: % d)", name->GetName().c_str(), treeDepth);
 			}
 			device->EventEnd(cmd);
 

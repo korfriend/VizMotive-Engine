@@ -85,7 +85,7 @@ namespace vzm
 			__params.clear();
 		}
 		std::unordered_map<ID, std::any>& GetMap() { return __params; }
-        bool FindParam(const ID& param_name) {
+        bool FindParam(const ID& param_name) const {
             auto it = __params.find(param_name);
             return !(it == __params.end());
         }
@@ -320,6 +320,18 @@ namespace vzm
 		ChainUnitSCam(const VzBaseComp* scene, const VzBaseComp* camera) : ChainUnitSCam(scene->GetVID(), camera->GetVID()) {}
 
 		bool IsValid() const { return isValid_; }
+	};
+}
+
+namespace vzm
+{
+	enum class LookupTableSlot : uint32_t
+	{
+		LOOKUP_COLOR,
+		LOOKUP_OTF,
+		LOOKUP_WINDOWING,
+
+		LOOKUPTABLE_COUNT
 	};
 }
 

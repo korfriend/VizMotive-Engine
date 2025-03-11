@@ -1,4 +1,5 @@
 #include "RenderPath2D.h"
+#include "GBackend/GModuleLoader.h"
 #include "Common/Initializer.h"
 
 namespace vz
@@ -41,12 +42,6 @@ namespace vz
 
 	void RenderPath2D::ResizeResources()
 	{
-		if (!initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
-		{
-			vzlog("waiting for ShaderEngine Initialization...");
-			return;
-		}
-
 		RenderPath2D::DeleteGPUResources(true);
 
 		SwapChainDesc desc;
@@ -95,20 +90,6 @@ namespace vz
 				graphicsDevice_->SetName(&rtRenderFinal_, ("RenderPath::rtRenderFinal_" + std::to_string(entity_)).c_str());
 			}
 		}
-
-		//if (slicer != nullptr)
-		{
-			//if (!rtRender2D_.IsValid())
-			//{
-			//	graphics::TextureDesc desc;
-			//	desc.width = width_;
-			//	desc.height = height_;
-			//	desc.bind_flags = graphics::BindFlag::RENDER_TARGET | graphics::BindFlag::SHADER_RESOURCE;
-			//	desc.format = graphics::Format::R8G8B8A8_UNORM;
-			//	assert(graphicsDevice_->CreateTexture(&desc, nullptr, &rtRender2D_));
-			//	graphicsDevice_->SetName(&rtRender2D_, std::string("rtRender2D_" + std::to_string(entity_)).c_str());
-			//}
-		}
 	}
 
 	void RenderPath2D::Update(const float dt)
@@ -117,11 +98,9 @@ namespace vz
 	}
 	void RenderPath2D::Render(const float dt)
 	{
-		if (!initializer::IsInitializeFinished(initializer::INITIALIZED_SYSTEM_RENDERER))
-		{
-			vzlog("waiting for ShaderEngine Initialization...");
-			return;
-		}
-		// to do
+		// Renders 2D elements over the 3D rendering result (targeting rtRenderFinal or swapChain)
+		//   1. Primarily used to display loading screens when the shaderEngine is not initialized
+		//   2. Provides simple 2D drawing capabilities on top of 3D rendered content
+		handlerRenderPath2D_->Render2D(dt);
 	}
 }

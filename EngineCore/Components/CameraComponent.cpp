@@ -57,12 +57,24 @@ namespace vz
 		XMStoreFloat4x4(&mat_world, local * parent2ws);
 		tr_comp->SetWorldMatrix(mat_world);
 
+		XMFLOAT3 eye_prev = eye_;
+		XMFLOAT3 up_prev = up_;
+		XMFLOAT3 forward_prev = forward_;
+
 		eye_ = *((XMFLOAT3*)&mat_world._41);
 		up_ = vz::math::GetUp(mat_world);
 		XMFLOAT3 z_axis = vz::math::GetForward(mat_world);
 		XMVECTOR _At = XMLoadFloat3(&eye_) - XMLoadFloat3(&z_axis);
 		XMStoreFloat3(&at_, _At);
 		XMStoreFloat3(&forward_, XMVector3Normalize(-XMLoadFloat3(&z_axis)));
+
+		const float epsilon = 1e-06f;
+		if (math::DistanceSquared(eye_, eye_prev) < epsilon &&
+			math::DistanceSquared(up_, up_prev) < epsilon &&
+			math::DistanceSquared(forward_, forward_prev) < epsilon)
+		{
+			return false;
+		}
 
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;

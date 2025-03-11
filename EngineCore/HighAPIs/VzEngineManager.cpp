@@ -2,11 +2,13 @@
 #include "Common/Engine_Internal.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
+#include "Utils/Config.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
 #include "Utils/EventHandler.h"
 #include "Utils/ECS.h"
-#include "Utils/PrivateInterface.h"
+#include "Utils/Helpers.h"
+#include "Utils/Utils_Internal.h"
 #include "GBackend/GBackendDevice.h"
 #include "GBackend/GModuleLoader.h"
 
@@ -133,8 +135,34 @@ namespace vzm
 	bool initialized = false;
 	std::recursive_mutex& GetEngineMutex()
 	{
-		static std::recursive_mutex  engineMutex;
+		static std::recursive_mutex engineMutex;
 		return engineMutex;
+	}
+
+	std::atomic_bool isPandingSubmitCommand{ false };
+	bool IsPendingSubmitCommand()
+	{
+		return isPandingSubmitCommand.load();
+	}
+
+	std::atomic<uint32_t> countPendingSubmitCommand{ 0u };
+	void ResetPendingSubmitCommand()
+	{
+		isPandingSubmitCommand.store(false);
+		countPendingSubmitCommand.store(0u);
+	}
+	void CountPendingSubmitCommand()
+	{
+		countPendingSubmitCommand.fetch_add(1);
+
+		if (uint32_t n = countPendingSubmitCommand.load() > 10)
+		{
+			vzlog_warning("# of PendingSubmitCommand (%d) is over 10!\n\t\tPlease Check unintended pending...\n\t\tRecommend to Use the RenderChain!", n);
+		}
+	}
+	size_t GetCountPendingSubmitCommand()
+	{
+		return countPendingSubmitCommand.load();
 	}
 
 	std::thread::id engineThreadId;
@@ -279,6 +307,67 @@ namespace vzm
 		vzcompmanager::lookup[vid] = hlcomp;
 		return hlcomp;
 	}
+
+	std::string configFilename;
+	vz::config::File configFile;
+	void setDefaultConfig()
+	{
+		if (!helper::FileExists(configFilename))
+		{
+			std::ofstream file(configFilename);
+			file.close();
+			vzlog_error("Invald Configue File!! %s", configFilename.c_str());
+		}
+		assert(configFile.Open(configFilename.c_str()));
+
+		// COMMON OPTIONS //
+		// RENDERING OPTIONS //
+		std::string ems_string = "ENGINE_MANAGER_SETTINGS";
+		const char* ems_string_c = ems_string.c_str();
+		{
+			config::Section& section = configFile.GetSection(ems_string_c);
+			if (!section.Has("API"))
+			{
+				section.Set("API", "DX12");
+			}
+			if (!section.Has("GPU_VALIDATION"))
+			{
+				section.Set("GPU_VALIDATION", "DISABLED");
+			}
+			if (!section.Has("GPU_PREFERENCE"))
+			{
+				section.Set("GPU_PREFERENCE", "DISCRETE");
+			}
+			if (!section.Has("MAX_THREADS"))
+			{
+				section.Set("MAX_THREADS", "MAXIMUM");
+			}
+			if (!section.Has("TARGET_FPS"))
+			{
+				section.Set("TARGET_FPS", -1);
+			}
+			if (!section.Has("RENDERING_SKIP_STABLES"))
+			{
+				section.Set("RENDERING_SKIP_STABLES", 30);
+			}
+			configFile.Commit();
+		}
+
+		std::string ses_string = "SHADER_ENGINE_SETTINGS";
+		const char* ses_string_c = ses_string.c_str();
+		config::Section& ses_section = configFile.GetSection(ses_string_c);
+		{
+			if (!ses_section.Has("TEMPORAL_AA"))
+			{
+				ses_section.Set("TEMPORAL_AA", true);
+			}
+			if (!ses_section.Has("GAUSSIAN_SPLATTING"))
+			{
+				ses_section.Set("GAUSSIAN_SPLATTING", false);
+			}
+			configFile.Commit();
+		}
+	}
 }
 
 namespace vzm
@@ -287,7 +376,7 @@ namespace vzm
 	{
 		std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
 		engineThreadId = std::this_thread::get_id();
-		vzlog("Engine API's thread is assigned to %lld", threadToInteger(engineThreadId));
+		vzlog("Engine API's thread is assigned to thread ID (%lld)", threadToInteger(engineThreadId));
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
 #if defined(_DEBUG) && defined(_MT_LEAK_CHECK)
@@ -300,8 +389,25 @@ namespace vzm
 			return false;
 		}
 
+		configFilename = arguments.GetString("CONFIG", std::string(backlog::GetLogPath()) + "vzConfig.ini");
+		setDefaultConfig();
+
+		std::string ems_string = "ENGINE_MANAGER_SETTINGS";
+		const char* ems_string_c = ems_string.c_str();
+		config::Section& section = configFile.GetSection(ems_string_c);
+		std::string api = "DX12";
 		// assume DX12 rendering engine
-		std::string api = arguments.GetString("API", "DX12");
+		if (arguments.FindParam("API"))
+		{
+			api = arguments.GetString("API", "DX12");
+		}
+		else
+		{
+			if (section.Has("API"))
+			{
+				api = section.GetText("API");
+			}
+		}
 		if (!graphicsBackend.Init(api))
 		{
 			vzlog_error("Invalid Graphics API : %s", api.c_str());
@@ -313,9 +419,33 @@ namespace vzm
 			return false;
 		}
 
+		if (int targetFPS = section.GetInt("TARGET_FPS") > 0)
+		{
+			RenderPath::framerateLock = true;
+			RenderPath::targetFrameRate = (float)targetFPS;
+		}
+		else
+		{
+			RenderPath::framerateLock = false;
+		}
+
+		RenderPath3D::skipStableCount = section.GetInt("RENDERING_SKIP_STABLES");
+
 		// initialize the graphics backend
 		graphics::ValidationMode validationMode = graphics::ValidationMode::Disabled;
-		std::string validation = arguments.GetString("GPU_VALIDATION", "DISABLED");
+		std::string validation = "DISABLED";
+		if (arguments.FindParam("DISABLED"))
+		{
+			validation = arguments.GetString("GPU_VALIDATION", "DISABLED");
+		}
+		else
+		{
+			config::Section& section = configFile.GetSection(ems_string_c);
+			if (section.Has("GPU_VALIDATION"))
+			{
+				validation = section.GetText("GPU_VALIDATION");
+			}
+		}
 		if (validation == "VERBOSE")
 		{
 			validationMode = graphics::ValidationMode::Verbose;
@@ -329,7 +459,19 @@ namespace vzm
 		}
 
 		graphics::GPUPreference preferenceMode = graphics::GPUPreference::Discrete;
-		std::string preference = arguments.GetString("GPU_PREFERENCE", "DISCRETE");
+		std::string preference = "DISCRETE";
+		if (arguments.FindParam("GPU_PREFERENCE"))
+		{
+			preference = arguments.GetString("GPU_PREFERENCE", "DISCRETE");
+		}
+		else
+		{
+			config::Section& section = configFile.GetSection(ems_string_c);
+			if (section.Has("GPU_PREFERENCE"))
+			{
+				preference = section.GetText("GPU_PREFERENCE");
+			}
+		}
 		if (preference == "INTEGRATED")
 		{
 			preferenceMode = graphics::GPUPreference::Integrated;
@@ -342,12 +484,39 @@ namespace vzm
 		shaderEngine.pluginInitializer(graphicsDevice);
 
 		// engine core initializer
-		uint32_t num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
+
+		uint32_t num_max_threads = ~0u;
+		if (arguments.FindParam("MAX_THREADS"))
+		{
+			num_max_threads = arguments.GetParam("MAX_THREADS", ~0u);
+		}
+		else
+		{
+			config::Section& section = configFile.GetSection(ems_string_c);
+			if (section.Has("MAX_THREADS"))
+			{
+				std::string max_thread_str = section.GetText("MAX_THREADS");
+				if (max_thread_str != "MAXIMUM")
+				{
+					try {
+						num_max_threads = std::stoi(max_thread_str);
+					}
+					catch (const std::invalid_argument& e) {
+						vzlog_warning(e.what());
+					}
+					catch (const std::out_of_range& e) {
+						vzlog_warning(e.what());
+					}
+				}
+			}
+		}
+
 		initializer::SetMaxThreadCount(num_max_threads);
 		initializer::InitializeComponentsAsync();	// involving jobsystem initializer
-		//initializer::InitializeComponentsImmediate();	// involving jobsystem initializer
-		
+
 		initialized = true;
+		SetConfigure(arguments);
+
 		return true;
 	}
 
@@ -736,11 +905,34 @@ namespace vzm
 		return lpdll_function(io_map);
 	}
 
+	void PendingSubmitCommand(const bool pending)
+	{
+		CHECK_API_LOCKGUARD_VALIDITY(;);
+		isPandingSubmitCommand.store(pending);
+	}
+
 	void ReloadShader()
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(;);
 		eventhandler::FireEvent(eventhandler::EVENT_RELOAD_SHADERS, 0);
 		graphicsDevice->ClearPipelineStateCache();
+	}
+
+	void SetConfigure(const vzm::ParamMap<std::string>& configure)
+	{
+		CHECK_API_LOCKGUARD_VALIDITY(;);
+
+		std::string ses_string = "SHADER_ENGINE_SETTINGS";
+		const char* ses_string_c = ses_string.c_str();
+		config::Section& ses_section = configFile.GetSection(ses_string_c);
+
+#define CONFIG_SET(STR, FUNC) ses_section.Set(STR, configure.GetParam(STR, ses_section.FUNC(STR)));
+
+		CONFIG_SET("TEMPORAL_AA", GetBool);
+		CONFIG_SET("GAUSSIAN_SPLATTING", GetBool);
+		configFile.Commit();
+
+		shaderEngine.pluginApplyConfiguration();
 	}
 
 	bool DeinitEngineLib()

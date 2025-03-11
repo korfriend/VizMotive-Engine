@@ -47,6 +47,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_DDGI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_DVR.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_FSR2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GPUSortLib.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GS.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Image.h" />
@@ -79,11 +80,12 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_2KB.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_xray_2KB.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_nothickness.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_2KB.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_xray_2KB.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_woKB.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_woKB_xray.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_zerothick.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_xray_woKB.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_slicer_nothickness.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain2DCS_float4.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain2DCS_unorm4.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\generateMIPChain3DCS_float4.hlsl" />
@@ -112,6 +114,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshlet_prepareCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerOutlineCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\temporalaaCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\tonemapCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl" />

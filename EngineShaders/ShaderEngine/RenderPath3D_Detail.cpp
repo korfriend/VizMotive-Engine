@@ -1,6 +1,78 @@
 #include "RenderPath3D_Detail.h"
 #include "TextureHelper.h"
 
+namespace fsr2
+{
+#include "../Shaders/ffx-fsr2/ffx_core.h"
+#include "../shaders/ffx-fsr2/ffx_fsr1.h"
+#include "../shaders/ffx-fsr2/ffx_spd.h"
+#include "../shaders/ffx-fsr2/ffx_fsr2_callbacks_hlsl.h"
+#include "../shaders/ffx-fsr2/ffx_fsr2_common.h"
+	int32_t ffxFsr2GetJitterPhaseCount(int32_t renderWidth, int32_t displayWidth)
+	{
+		const float basePhaseCount = 8.0f;
+		const int32_t jitterPhaseCount = int32_t(basePhaseCount * pow((float(displayWidth) / renderWidth), 2.0f));
+		return jitterPhaseCount;
+	}
+	static const int FFX_FSR2_MAXIMUM_BIAS_TEXTURE_WIDTH = 16;
+	static const int FFX_FSR2_MAXIMUM_BIAS_TEXTURE_HEIGHT = 16;
+	static const float ffxFsr2MaximumBias[] = {
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.876f,	1.809f,	1.772f,	1.753f,	1.748f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.869f,	1.801f,	1.764f,	1.745f,	1.739f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.976f,	1.841f,	1.774f,	1.737f,	1.716f,	1.71f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.914f,	1.784f,	1.716f,	1.673f,	1.649f,	1.641f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.793f,	1.676f,	1.604f,	1.562f,	1.54f,	1.533f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.802f,	1.619f,	1.536f,	1.492f,	1.467f,	1.454f,	1.449f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.812f,	1.575f,	1.496f,	1.456f,	1.432f,	1.416f,	1.408f,	1.405f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.555f,	1.479f,	1.438f,	1.413f,	1.398f,	1.387f,	1.381f,	1.379f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.812f,	1.555f,	1.474f,	1.43f,	1.404f,	1.387f,	1.376f,	1.368f,	1.363f,	1.362f,
+		2.0f,	2.0f,	2.0f,	2.0f,	2.0f,	1.802f,	1.575f,	1.479f,	1.43f,	1.401f,	1.382f,	1.369f,	1.36f,	1.354f,	1.351f,	1.35f,
+		2.0f,	2.0f,	1.976f,	1.914f,	1.793f,	1.619f,	1.496f,	1.438f,	1.404f,	1.382f,	1.367f,	1.357f,	1.349f,	1.344f,	1.341f,	1.34f,
+		1.876f,	1.869f,	1.841f,	1.784f,	1.676f,	1.536f,	1.456f,	1.413f,	1.387f,	1.369f,	1.357f,	1.347f,	1.341f,	1.336f,	1.333f,	1.332f,
+		1.809f,	1.801f,	1.774f,	1.716f,	1.604f,	1.492f,	1.432f,	1.398f,	1.376f,	1.36f,	1.349f,	1.341f,	1.335f,	1.33f,	1.328f,	1.327f,
+		1.772f,	1.764f,	1.737f,	1.673f,	1.562f,	1.467f,	1.416f,	1.387f,	1.368f,	1.354f,	1.344f,	1.336f,	1.33f,	1.326f,	1.323f,	1.323f,
+		1.753f,	1.745f,	1.716f,	1.649f,	1.54f,	1.454f,	1.408f,	1.381f,	1.363f,	1.351f,	1.341f,	1.333f,	1.328f,	1.323f,	1.321f,	1.32f,
+		1.748f,	1.739f,	1.71f,	1.641f,	1.533f,	1.449f,	1.405f,	1.379f,	1.362f,	1.35f,	1.34f,	1.332f,	1.327f,	1.323f,	1.32f,	1.319f,
+
+	};
+	/// The value of Pi.
+	const float FFX_PI = 3.141592653589793f;
+	/// An epsilon value for floating point numbers.
+	const float FFX_EPSILON = 1e-06f;
+	// Lanczos
+	static float lanczos2(float value)
+	{
+		return abs(value) < FFX_EPSILON ? 1.f : (sinf(FFX_PI * value) / (FFX_PI * value)) * (sinf(0.5f * FFX_PI * value) / (0.5f * FFX_PI * value));
+	}
+	// Calculate halton number for index and base.
+	static float halton(int32_t index, int32_t base)
+	{
+		float f = 1.0f, result = 0.0f;
+
+		for (int32_t currentIndex = index; currentIndex > 0;) {
+
+			f /= (float)base;
+			result = result + f * (float)(currentIndex % base);
+			currentIndex = (uint32_t)(floorf((float)(currentIndex) / (float)(base)));
+		}
+
+		return result;
+	}
+}
+
+namespace vz::renderer
+{
+	XMFLOAT2 FSR2Resources::GetJitter() const
+	{
+		int32_t phaseCount = fsr2::ffxFsr2GetJitterPhaseCount(fsr2_constants.renderSize[0], fsr2_constants.displaySize[0]);
+		float x = fsr2::halton((fsr2_constants.frameIndex % phaseCount) + 1, 2) - 0.5f;
+		float y = fsr2::halton((fsr2_constants.frameIndex % phaseCount) + 1, 3) - 0.5f;
+		x = 2 * x / (float)fsr2_constants.renderSize[0];
+		y = -2 * y / (float)fsr2_constants.renderSize[1];
+		return XMFLOAT2(x, y);
+	}
+}
+
 namespace vz::renderer
 {
 	// camera-level GPU renderer updates
@@ -185,7 +257,7 @@ namespace vz::renderer
 		frameCB.blue_noise_phase = (frameCB.frame_count & 0xFF) * 1.6180339887f;
 
 		frameCB.temporalaa_samplerotation = 0;
-		if (isTemporalAAEnabled)
+		if (isTemporalAAEnabled && !camera->IsSlicer())
 		{
 			uint x = frameCB.frame_count % 4;
 			uint y = frameCB.frame_count / 4;
@@ -195,7 +267,7 @@ namespace vz::renderer
 		frameCB.gi_boost = giBoost;
 
 		frameCB.options = 0;
-		if (isTemporalAAEnabled)
+		if (isTemporalAAEnabled && !camera->IsSlicer())
 		{
 			frameCB.options |= OPTION_BIT_TEMPORALAA_ENABLED;
 		}
@@ -1073,7 +1145,8 @@ namespace vz::renderer
 			float cplane_height_half = (cplane_height * 0.5f);
 
 			XMMATRIX S = XMMatrixScaling(pitch, pitch, pitch);
-			XMMATRIX T = XMMatrixTranslation(-cplane_width_half, -cplane_height_half, -pitch * 0.5f);
+			//XMMATRIX T = XMMatrixTranslation(-cplane_width_half, -cplane_height_half, -pitch * 0.5f);
+			XMMATRIX T = XMMatrixTranslation(-cplane_width_half, -cplane_height_half, 0.f);
 
 			XMMATRIX mat_COS2CWS = S * T;
 			XMMATRIX mat_CWS2COS = XMMatrixInverse(nullptr, mat_COS2CWS);

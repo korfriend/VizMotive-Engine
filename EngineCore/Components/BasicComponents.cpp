@@ -158,6 +158,19 @@ namespace vz
 
 namespace vz
 {
+	inline float differenceMatrices(const XMFLOAT4X4& m0, const XMFLOAT4X4& m1)
+	{
+		const float* m0_ptr = (float*)&m0;
+		const float* m1_ptr = (float*)&m1;
+		float diff_sq = 0;
+		for (size_t i = 0; i < 16; i++)
+		{
+			float f = m0_ptr[i] - m1_ptr[i];
+			diff_sq += f * f;
+		}
+		return diff_sq;
+	}
+
 	const XMFLOAT3 TransformComponent::GetWorldPosition() const
 	{
 		return *((XMFLOAT3*)&world_._41);
@@ -253,12 +266,23 @@ namespace vz
 		timeStampSetter_ = TimerNow;
 	}
 
+	void TransformComponent::SetWorldMatrix(const XMFLOAT4X4& world)
+	{
+		float diff_sq = differenceMatrices(world_, world);
+		world_ = world;
+		if (diff_sq > FLT_EPSILON)
+		{
+			timeStampWorldUpdate_ = TimerNow;
+		}
+	}
+
 	void TransformComponent::UpdateMatrix()
 	{
 		isDirty_ = false;
 
 		if (!isMatrixAutoUpdate_)
 		{
+			// no update of local_ 
 			XMMATRIX xL = XMLoadFloat4x4(&local_);
 			XMVECTOR S, R, T;
 			XMMatrixDecompose(&S, &R, &T, xL);
@@ -267,20 +291,23 @@ namespace vz
 			XMStoreFloat3(&scale_, S);
 			return;
 		}
-		else
+
+		XMVECTOR S_local = XMLoadFloat3(&scale_);
+		XMVECTOR R_local = XMLoadFloat4(&rotation_);
+		XMVECTOR T_local = XMLoadFloat3(&position_);
+
+		XMFLOAT4X4 local;
+		XMStoreFloat4x4(&local,
+			XMMatrixScalingFromVector(S_local) *
+			XMMatrixRotationQuaternion(R_local) *
+			XMMatrixTranslationFromVector(T_local));
+		float diff_sq = differenceMatrices(local_, local);
+		local_ = local;
+		if (diff_sq > FLT_EPSILON)
 		{
-			XMVECTOR S_local = XMLoadFloat3(&scale_);
-			XMVECTOR R_local = XMLoadFloat4(&rotation_);
-			XMVECTOR T_local = XMLoadFloat3(&position_);
-			XMStoreFloat4x4(&local_,
-				XMMatrixScalingFromVector(S_local) *
-				XMMatrixRotationQuaternion(R_local) *
-				XMMatrixTranslationFromVector(T_local));
+			timeStampWorldUpdate_ = TimerNow;
+			compfactory::SetSceneComponentsDirty(entity_);
 		}
-
-		timeStampSetter_ = TimerNow;
-
-		compfactory::SetSceneComponentsDirty(entity_);
 	}
 	void TransformComponent::UpdateWorldMatrix()
 	{
@@ -339,6 +366,12 @@ namespace vz
 			// note the transform must be updated!!
 			XMFLOAT4X4 mat44 = transform->GetWorldMatrix();
 			W = XMLoadFloat4x4(&mat44);
+
+			TimeStamp transform_timeStamp = transform->GetTimeStamp();
+			if (TimeDurationCount(transform_timeStamp, timeStampSetter_) > 0)
+			{
+				timeStampSetter_ = transform_timeStamp;
+			}
 		}
 		else
 		{
@@ -368,6 +401,5 @@ namespace vz
 		}
 
 		isDirty_ = false;
-		timeStampSetter_ = TimerNow;
 	}
 }

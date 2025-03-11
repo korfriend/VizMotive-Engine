@@ -38,7 +38,7 @@ namespace vzm
 		return texture->IsValid();
 	}
 
-	bool VzTexture::UpdateLookup(const std::vector<uint8_t>& data, const uint32_t tableValidBeginX, const uint32_t tableValidEndX)
+	bool VzTexture::UpdateLookup(const std::vector<uint8_t>& data, const float tableValidBeginX, const float tableValidEndX)
 	{
 		GET_TEXTURE_COMP(texture, false);
 		UpdateTimeStamp();

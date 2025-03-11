@@ -33,11 +33,13 @@ namespace vz::backlog
 
 	extern "C" UTIL_EXPORT void post(const std::string& input, LogLevel level = LogLevel::Info);
 
+	extern "C" UTIL_EXPORT void postThreadSafe(const std::string& input, LogLevel level = LogLevel::Info);
+
 	extern "C" UTIL_EXPORT void setLogLevel(LogLevel newLevel);
 
 	extern "C" UTIL_EXPORT LogLevel getLogLevel();
 
-	void Destroy();
+	extern "C" UTIL_EXPORT const char* GetLogPath();
 };
 
 namespace vz

@@ -1,4 +1,5 @@
 #include "GComponents.h"
+#include "Common/Engine_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/Timer.h"
 
@@ -12,6 +13,8 @@ namespace vz
 #define MAX_GEOMETRY_PARTS 32 // ShaderInterop.h's `#define MAXPARTS 32`
 	void GeometryComponent::MovePrimitivesFrom(std::vector<Primitive>&& primitives)
 	{
+		waiter_->waitForFree();
+
 		parts_ = std::move(primitives);
 		//parts_.assign(primitives.size(), Primitive());
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
@@ -25,6 +28,8 @@ namespace vz
 	}
 	void GeometryComponent::CopyPrimitivesFrom(const std::vector<Primitive>& primitives)
 	{
+		waiter_->waitForFree();
+
 		parts_ = primitives;
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
@@ -54,6 +59,8 @@ namespace vz
 	}
 	void GeometryComponent::MovePrimitiveFrom(Primitive&& primitive, const size_t slot)
 	{
+		waiter_->waitForFree();
+
 		tryAssignParts(slot, parts_);
 		Primitive& prim = parts_[slot];
 		prim.MoveFrom(std::move(primitive));
@@ -63,6 +70,8 @@ namespace vz
 	}
 	void GeometryComponent::CopyPrimitiveFrom(const Primitive& primitive, const size_t slot)
 	{
+		waiter_->waitForFree();
+
 		tryAssignParts(slot, parts_);
 		parts_[slot] = primitive;
 		Primitive& prim = parts_[slot];
@@ -72,6 +81,8 @@ namespace vz
 	}
 	void GeometryComponent::AddMovePrimitiveFrom(Primitive&& primitive)
 	{
+		waiter_->waitForFree();
+
 		parts_.push_back(std::move(primitive));
 		parts_.back().recentBelongingGeometry_ = entity_;
 		isDirty_ = true;
@@ -83,6 +94,18 @@ namespace vz
 		parts_.back().recentBelongingGeometry_ = entity_;
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
+	}
+
+	void GeometryComponent::ClearGeometry()
+	{
+		waiter_->waitForFree();
+
+		parts_.clear();
+		DeleteRenderData();
+
+		isDirty_ = true;
+		hasBVH_ = false;
+		aabb_ = geometrics::AABB();
 	}
 	const Primitive* GeometryComponent::GetPrimitive(const size_t slot) const
 	{
@@ -99,6 +122,7 @@ namespace vz
 			backlog::post("slot is over # of parts!", backlog::LogLevel::Error);
 			return nullptr;
 		}
+		waiter_->waitForFree();
 		return &parts_[slot];
 	}
 
@@ -325,22 +349,44 @@ namespace vz
 					bvhLeafAabbs_.push_back(aabb);
 				}
 				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
-
-				backlog::post("BVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
+				
+				backlog::postThreadSafe("CPUBVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
 			}
 			else
 			{
-				backlog::post("Current BVH is only supported for triangle meshes!", backlog::LogLevel::Warn);
+				backlog::postThreadSafe("Current CPUBVH is only supported for triangle meshes!", backlog::LogLevel::Warn);
 			}
 		}
 		else
 		{
-			backlog::post("BVH is already updated. so ignore the update request!", backlog::LogLevel::Warn);
+			backlog::postThreadSafe("CPUBVH is already updated. so ignore the update request!", backlog::LogLevel::Warn);
 		}
 	}
 
 #define AUTO_RENDER_DATA GeometryComponent* geometry = compfactory::GetGeometryComponent(recentBelongingGeometry_);\
 	if (geometry && autoUpdateRenderData) geometry->UpdateRenderData();
+
+	void Primitive::FillIndicesFromTriVertices()
+	{
+		if (ptype_ != PrimitiveType::TRIANGLES)
+		{
+			vzlog_error("FillIndicesFromTriVertices is allowed for Triangular mesh");
+			return;
+		}
+
+		size_t n = vertexPositions_.size();
+		if (n < 3 || n % 3 != 0)
+		{
+			vzlog_error("Invalid triangles");
+			return;
+		}
+
+		indexPrimitives_.resize(n);
+		for (size_t i = 0; i < n; ++i)
+		{
+			indexPrimitives_[i] = i;
+		}
+	}
 
 	void Primitive::ComputeNormals(NormalComputeMethod computeMode)
 	{
@@ -372,8 +418,8 @@ namespace vz
 				XMFLOAT3& p1 = vertexPositions_[i1];
 				XMFLOAT3& p2 = vertexPositions_[i2];
 
-				XMVECTOR U = XMLoadFloat3(&p2) - XMLoadFloat3(&p0);
-				XMVECTOR V = XMLoadFloat3(&p1) - XMLoadFloat3(&p0);
+				XMVECTOR U = XMLoadFloat3(&p1) - XMLoadFloat3(&p0);
+				XMVECTOR V = XMLoadFloat3(&p2) - XMLoadFloat3(&p0);
 
 				XMVECTOR N = XMVector3Cross(U, V);
 				N = XMVector3Normalize(N);
@@ -473,8 +519,8 @@ namespace vz
 
 					if (match_pos0 || match_pos1 || match_pos2)
 					{
-						XMVECTOR U = XMLoadFloat3(&v2) - XMLoadFloat3(&v0);
-						XMVECTOR V = XMLoadFloat3(&v1) - XMLoadFloat3(&v0);
+						XMVECTOR U = XMLoadFloat3(&v1) - XMLoadFloat3(&v0);
+						XMVECTOR V = XMLoadFloat3(&v2) - XMLoadFloat3(&v0);
 
 						XMVECTOR N = XMVector3Cross(U, V);
 						N = XMVector3Normalize(N);
@@ -599,8 +645,8 @@ namespace vz
 				uint32_t index2 = indexPrimitives_[i * 3 + 1];
 				uint32_t index3 = indexPrimitives_[i * 3 + 2];
 
-				XMVECTOR side1 = XMLoadFloat3(&vertexPositions_[index1]) - XMLoadFloat3(&vertexPositions_[index3]);
-				XMVECTOR side2 = XMLoadFloat3(&vertexPositions_[index1]) - XMLoadFloat3(&vertexPositions_[index2]);
+				XMVECTOR side1 = XMLoadFloat3(&vertexPositions_[index2]) - XMLoadFloat3(&vertexPositions_[index1]);
+				XMVECTOR side2 = XMLoadFloat3(&vertexPositions_[index3]) - XMLoadFloat3(&vertexPositions_[index1]);
 				XMVECTOR N = XMVector3Normalize(XMVector3Cross(side1, side2));
 				XMFLOAT3 normal;
 				XMStoreFloat3(&normal, N);
@@ -639,6 +685,17 @@ namespace vz
 		vertexTangents_.clear(); // <- will be recomputed
 
 		AUTO_RENDER_DATA;
+	}
+	void Primitive::ComputeAABB()
+	{
+		geometrics::AABB aabb;
+		for (size_t i = 0, n = vertexPositions_.size(); i < n; ++i)
+		{
+			XMFLOAT3& p = vertexPositions_[i];
+			aabb._min = math::Min(aabb._min, p);
+			aabb._max = math::Max(aabb._max, p);
+		}
+		aabb_ = aabb;
 	}
 	void Primitive::FlipCulling()
 	{
@@ -729,10 +786,18 @@ namespace vz
 {
 	void GeometryComponent::UpdateBVH(const bool enabled)
 	{
-		if (busyUpdateBVH_->load())
+		std::lock_guard<std::mutex> lock(*mutex_);
+		bool expected = true;
+		if (!waiter_->freeTestAndSetWait())
+		{
 			return;
-		busyUpdateBVH_->store(true);
-		timeStampBVHUpdate_ = TimerNow;
+		}
+		//if (!waiter_->isFree())
+		//{
+		//	return;
+		//}
+		//waiter_->setWait();
+		
 		for (Primitive& prim : parts_)
 		{
 			if (prim.GetPrimitiveType() == PrimitiveType::TRIANGLES)
@@ -741,7 +806,8 @@ namespace vz
 			}
 		}
 		hasBVH_ = enabled;
-		busyUpdateBVH_->store(false);
+		timeStampBVHUpdate_ = TimerNow;
+		waiter_->setFree();
 	}
 }
 
@@ -797,6 +863,8 @@ namespace vz
 
 	void GGeometryComponent::DeleteRenderData()
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
 			Primitive& primitive = parts_[i];
@@ -807,6 +875,8 @@ namespace vz
 	}
 	void GGeometryComponent::UpdateRenderData()
 	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+
 		DeleteRenderData();
 
 		if (isDirty_)
@@ -1480,26 +1550,4 @@ namespace vz
 	//	}
 	//	bvh.Build(bvh_leaf_aabbs.data(), (uint32_t)bvh_leaf_aabbs.size());
 	//}
-}
-
-// geometry helper generation
-namespace vz
-{
-	// refer to three.js
-	bool GeometryComponent::MakeSphere(const XMFLOAT3 center, float radius)
-	{
-		vzlog_assert(0, "TODO");
-		return true;
-	}
-	bool GeometryComponent::MakeCube(const XMFLOAT3 center, XMFLOAT3 whd)
-	{
-		vzlog_assert(0, "TODO");
-		return true;
-	}
-	bool GeometryComponent::MakeCylinder(const XMFLOAT3 p0, const float r0, const XMFLOAT3 p1, const float r1)
-	{
-		vzlog_assert(0, "TODO");
-		return true;
-	}
-
 }

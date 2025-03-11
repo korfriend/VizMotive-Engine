@@ -422,6 +422,7 @@ namespace vz
 		{
 			graphics::GPUBuffer bitmaskBuffer;
 			std::vector<uint32_t> bitmask;
+			TimeStamp updateTime = {};
 		};
 		std::unordered_map<Entity, GPUBlockBitmask> visibleBlockBitmasks_; // for blocks
 	public:
@@ -539,7 +540,7 @@ namespace vz
 	{
 		GSlicerComponent(const Entity entity, const VUID vuid = 0) : SlicerComponent(entity, vuid), GCameraInterface(entity) {}
 
-		void updateCurve() override;
+		void UpdateCurve() override;
 
 		graphics::GPUBuffer curveInterpPointsBuffer;
 	};
