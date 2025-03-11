@@ -48,7 +48,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	uint count = c_m_d & 0xFF;
 	uint mask = (c_m_d >> 8) & 0xFF;
 
-	if (mask & (WILDCARD_DEPTH_OUTLINE | OUTSIDE_PLANE))
+	if (mask & (SLICER_DEPTH_OUTLINE | SLICER_OUTSIDE_PLANE | SLICER_DEBUG))
 		return;
 
 #define MIN_OUTLINE_PIXEL 1.3f
@@ -74,5 +74,5 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 	inout_color[pixel] = (float4)outline_color;
 
-	counter_mask_distmap[pixel] = WILDCARD_DEPTH_OUTLINE_DIRTY << 8 | 1;
+	counter_mask_distmap[pixel] = SLICER_DEPTH_OUTLINE_DIRTY << 8 | 1;
 }

@@ -6,10 +6,14 @@
 
 namespace vz
 {
+	struct GRenderPath2D;
 	class RenderPath2D :
 		public RenderPath
 	{
 	protected:
+		GRenderPath2D* handlerRenderPath2D_ = nullptr;
+
+		graphics::Rect scissor_;
 		uint32_t msaaSampleCount_ = 1;
 
 	public:

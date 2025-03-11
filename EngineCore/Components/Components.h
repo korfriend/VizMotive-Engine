@@ -32,13 +32,74 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250227_0";
-	inline static std::string stringEntity(Entity entity) { return "(" + std::to_string(entity) + ")"; }
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250311_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
 	struct GScene;
 	struct Resource;
+
+	class WaitForBool {
+	private:
+		std::atomic<bool> flag; // if false, then wait!
+		std::mutex mtx;
+		std::condition_variable cv;
+
+	public:
+		WaitForBool() : flag(true) {}
+
+		// Called from another thread to set the flag to true
+		inline void setFree() {
+			flag.store(true, std::memory_order_release);
+			// Notify all waiting threads
+			cv.notify_all();
+		}
+
+		// Wait until flag becomes true
+		inline void waitForFree() {
+			// Quick check before locking (optimization)
+			if (flag.load(std::memory_order_acquire)) {
+				return;
+			}
+
+			std::unique_lock<std::mutex> lock(mtx);
+			// Wait until flag becomes true
+			cv.wait(lock, [this]() {
+				return flag.load(std::memory_order_acquire);
+				});
+			// At this point, flag is true
+		}
+
+		// Alternative wait method with timeout
+		template<typename Rep, typename Period>
+		inline bool waitForFree(const std::chrono::duration<Rep, Period>& timeout) {
+			// Quick check before locking
+			if (flag.load(std::memory_order_acquire)) {
+				return true;
+			}
+
+			std::unique_lock<std::mutex> lock(mtx);
+			// Wait until flag becomes true or timeout
+			return cv.wait_for(lock, timeout, [this]() {
+				return flag.load(std::memory_order_acquire);
+				});
+		}
+
+		// Check current flag value without waiting
+		inline bool isFree() const {
+			return flag.load(std::memory_order_acquire);
+		}
+
+		// Reset flag to false
+		inline void setWait() {
+			flag.store(false, std::memory_order_release);
+		}
+
+		inline bool freeTestAndSetWait() {
+			bool expected = true;
+			return flag.compare_exchange_strong(expected, false);
+		}
+	};
 
 	enum class RenderableFilterFlags
 	{
@@ -115,14 +176,14 @@ namespace vz
 		geometrics::AABB aabb_;
 
 		Entity entity_ = INVALID_ENTITY;
-		TimeStamp recentUpdateTime_ = TimerMin;	// world update time
-		TimeStamp timeStampSetter_ = TimerMin;
-		
-		bool isDirty_ = true;
 
+		// Non-serialized attributes:
 		// instant parameters during render-process
 		float dt_ = 0.f;
 		float deltaTimeAccumulator_ = 0.f;
+		bool isContentChanged_ = true;	// since last recentUpdateTime_
+		TimeStamp recentUpdateTime_ = TimerMin;	// world update time
+		TimeStamp timeStampSetter_ = TimerMin;	// add or remove scene components
 
 		GScene* handlerScene_ = nullptr;
 
@@ -133,6 +194,7 @@ namespace vz
 		Scene(const Entity entity, const std::string& name);
 		~Scene();
 
+		size_t stableCount = 0;
 		float targetFrameRate = 60;
 		bool frameskip = true; // just for fixed update (later for physics-based simulations)
 		bool framerateLock = true;
@@ -148,8 +210,7 @@ namespace vz
 		const void* GetTextureSkyMap() const;			// return the pointer of graphics::Texture
 		const void* GetTextureGradientMap() const;	// return the pointer of graphics::Texture
 
-		void SetDirty() { isDirty_ = true; }
-		bool IsDirty() const { return isDirty_; }
+		bool IsContentChanged() const { return isContentChanged_; }
 
 		inline const std::string GetSceneName() const { return name_; }
 		inline const Entity GetSceneEntity() const { return entity_; }
@@ -287,6 +348,7 @@ namespace vz
 		MATERIAL,
 		GEOMETRY,
 		RENDERABLE,
+		COLLIDER,
 		TEXTURE,
 		VOLUMETEXTURE,
 		LIGHT,
@@ -301,10 +363,10 @@ namespace vz
 		ComponentType cType_ = ComponentType::UNDEFINED;
 		VUID vuid_ = INVALID_VUID;
 
-		// non-serialized attributes
+		// Non-serialized attributes:
 		TimeStamp timeStampSetter_ = TimerMin;
 		Entity entity_ = INVALID_ENTITY;
-		//std::atomic_bool isLocked_ = {};
+		std::shared_ptr<std::mutex> mutex_ = std::make_shared<std::mutex>();
 
 	public:
 		ComponentBase() = default;
@@ -383,8 +445,7 @@ namespace vz
 		inline void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; timeStampSetter_ = TimerNow; }
 		inline void SetRotateAxis(const XMFLOAT3& axis, const float rotAngle);
 		inline void SetMatrix(const XMFLOAT4X4& local);
-			
-		inline void SetWorldMatrix(const XMFLOAT4X4& world) { world_ = world; timeStampWorldUpdate_ = TimerNow; };
+		inline void SetWorldMatrix(const XMFLOAT4X4& world);
 
 		inline void UpdateMatrix();	// local matrix
 		inline void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
@@ -549,10 +610,6 @@ namespace vz
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 
-		LookupTableSlot meshLookup_ = LookupTableSlot::LOOKUP_COLOR;
-		LookupTableSlot volumeSlicerLookup_ = LookupTableSlot::LOOKUP_WINDOWING;
-		LookupTableSlot volume3DLookup_ = LookupTableSlot::LOOKUP_OTF;
-
 		// Non-serialized Attributes:
 		bool isDirty_ = true;
 	public:
@@ -577,6 +634,7 @@ namespace vz
 		inline void SetDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetPhongFactors(const XMFLOAT4 phongFactors) { phongFactors_ = phongFactors; timeStampSetter_ = TimerNow; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
@@ -607,15 +665,9 @@ namespace vz
 		inline VUID GetTextureVUID(const TextureSlot slot) const { return textureComponents_[SCU32(slot)]; }
 		inline VUID GetVolumeTextureVUID(const VolumeTextureSlot slot) const { return volumeComponents_[SCU32(slot)]; }
 		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return lookupComponents_[SCU32(slot)]; }
-		inline const XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
+		inline XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
-
-		void SetMeshLookup(const LookupTableSlot slot) { meshLookup_ = slot; timeStampSetter_ = TimerNow; }
-		void SetSlicerLookup(const LookupTableSlot slot) { volumeSlicerLookup_ = slot; timeStampSetter_ = TimerNow; }
-		void Set3DLookup(const LookupTableSlot slot) { volume3DLookup_ = slot; timeStampSetter_ = TimerNow; }
-		LookupTableSlot GetMeshLookup() const { return meshLookup_; }
-		LookupTableSlot GetSlicerLookup() const { return volumeSlicerLookup_; }
-		LookupTableSlot Get3DLookup() const { return volume3DLookup_; }
+		inline XMFLOAT4 GetPhongFactors() const { return phongFactors_; }
 
 		virtual void UpdateAssociatedTextures() = 0;
 
@@ -704,6 +756,7 @@ namespace vz
 			void updateGpuEssentials(); // supposed to be called in GeometryComponent
 
 			// CPU-side BVH acceleration structure
+			//  this is supposed to be called by GeometryComponent!
 			//	true: BVH will be built immediately if it doesn't exist yet
 			//	false: BVH will be deleted immediately if it exists
 			void updateBVH(const bool enabled);
@@ -773,7 +826,9 @@ namespace vz
 			void SetIdxPrimives(std::vector<uint32_t>& indexPrimitives, const bool onlyMoveOwnership = false) { PRIM_SETTER(indexPrimitives, SCU32(BufferDefinition::INDICES)) }
 
 			// Helpers for adding useful attributes to Primitive
+			void FillIndicesFromTriVertices();
 			void ComputeNormals(NormalComputeMethod computeMode);
+			void ComputeAABB();
 			void FlipCulling();
 			void FlipNormals();
 			// These are to replace memory-stored positions
@@ -796,7 +851,7 @@ namespace vz
 		bool hasRenderData_ = false;
 		bool hasBVH_ = false;
 		geometrics::AABB aabb_; // not serialized (automatically updated)
-		std::shared_ptr<std::atomic<bool>> busyUpdateBVH_ = std::make_shared<std::atomic<bool>>(false);
+		std::shared_ptr<WaitForBool> waiter_ = std::make_shared<WaitForBool>();
 
 		TimeStamp timeStampPrimitiveUpdate_ = TimerMin;
 		TimeStamp timeStampBVHUpdate_ = TimerMin;
@@ -809,20 +864,26 @@ namespace vz
 		bool HasBVH() const { return hasBVH_; }
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
+
+		// ----- WaitForBool -----
 		void MovePrimitivesFrom(std::vector<Primitive>&& primitives);
 		void CopyPrimitivesFrom(const std::vector<Primitive>& primitives);
 		void MovePrimitiveFrom(Primitive&& primitive, const size_t slot);
 		void CopyPrimitiveFrom(const Primitive& primitive, const size_t slot);
 		void AddMovePrimitiveFrom(Primitive&& primitive);
 		void AddCopyPrimitiveFrom(const Primitive& primitive);
-		const Primitive* GetPrimitive(const size_t slot) const;
+		void ClearGeometry();
 		Primitive* GetMutablePrimitive(const size_t slot);
+		// ----- ----------- -----
+		
+		const Primitive* GetPrimitive(const size_t slot) const;
 		const std::vector<Primitive>& GetPrimitives() const { return parts_; }
 		size_t GetNumParts() const { return parts_.size(); }
 		void SetTessellationFactor(const float tessllationFactor) { tessellationFactor_ = tessllationFactor; }
 		float GetTessellationFactor() const { return tessellationFactor_; }
 
 		void UpdateBVH(const bool enabled);
+		bool IsBusyForBVH() { return !waiter_->isFree(); }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -835,11 +896,6 @@ namespace vz
 		virtual void UpdateRenderData() = 0;
 		virtual size_t GetMemoryUsageCPU() const = 0;
 		virtual size_t GetMemoryUsageGPU() const = 0;
-
-		// Basic Geometry Helpers //
-		bool MakeSphere(const XMFLOAT3 center, float radius);
-		bool MakeCube(const XMFLOAT3 center, XMFLOAT3 whd);
-		bool MakeCylinder(const XMFLOAT3 p0, const float r0, const XMFLOAT3 p1, const float r1);
 
 		inline static const ComponentType IntrinsicType = ComponentType::GEOMETRY;
 	};
@@ -1090,6 +1146,55 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::VOLUMETEXTURE;
 	};
 
+	// physics
+	struct CORE_EXPORT ColliderComponent : ComponentBase
+	{
+		enum FLAGS : uint32_t
+		{
+			EMPTY = 0,
+			CPU = 1 << 0,
+			GPU = 1 << 1,
+			CAPSULE_SHADOW = 1 << 2,
+		};
+
+		enum class Shape : uint8_t
+		{
+			Sphere,
+			Capsule,
+			Plane,
+		};
+
+	protected:
+		uint32_t flags_ = CPU;
+		Shape shape_ = Shape::Sphere;
+
+		float radius_ = 0;
+		XMFLOAT3 offset_ = {};
+		XMFLOAT3 tail_ = {};
+
+		// Non-serialized attributes:
+		geometrics::Sphere sphere_;
+		geometrics::Capsule capsule_;
+		geometrics::Plane plane_;
+		uint32_t layerMask_ = ~0u;
+		float dist_ = 0;
+
+	public:
+		ColliderComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::COLLIDER, entity, vuid) {}
+
+		constexpr void SetCPUEnabled(bool value = true) { if (value) { flags_ |= CPU; } else { flags_ &= ~CPU; } }
+		constexpr void SetGPUEnabled(bool value = true) { if (value) { flags_ |= GPU; } else { flags_ &= ~GPU; } }
+		constexpr void SetCapsuleShadowEnabled(bool value = true) { if (value) { flags_ |= CAPSULE_SHADOW; } else { flags_ &= ~CAPSULE_SHADOW; } }
+
+		constexpr bool IsCPUEnabled() const { return flags_ & CPU; }
+		constexpr bool IsGPUEnabled() const { return flags_ & GPU; }
+		constexpr bool IsCapsuleShadowEnabled() const { return flags_ & CAPSULE_SHADOW; }
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		inline static const ComponentType IntrinsicType = ComponentType::COLLIDER;
+	};
+
 	// scene 
 	struct CORE_EXPORT RenderableComponent : ComponentBase
 	{
@@ -1106,6 +1211,8 @@ namespace vz
 			CLIP_PLANE = 1 << 10,
 			JITTER_SAMPLE = 1 << 11,
 			SLICER_NO_SOLID_FILL = 1 << 12, // in the case that the geometry is NOT water-tight
+			OUTLINE = 1 << 13,
+			UNDERCUT = 1 << 14
 		};
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
@@ -1174,6 +1281,8 @@ namespace vz
 		inline void SetOutineThreshold(const float v) { outlineThreshold_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutDirection(const XMFLOAT3& v) { undercutDirection_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutColor(const XMFLOAT3& v) { undercutColor_ = v; timeStampSetter_ = TimerNow; }
+		inline void EnableOutline(const bool enabled) { enabled ? flags_ |= RenderableFlags::OUTLINE : flags_ &= ~RenderableFlags::OUTLINE; timeStampSetter_ = TimerNow; }
+		inline void EnableUndercut(const bool enabled) { enabled ? flags_ |= RenderableFlags::UNDERCUT : flags_ &= ~RenderableFlags::UNDERCUT; timeStampSetter_ = TimerNow; }
 
 		inline void EnableSlicerSolidFill(const bool enabled) { 
 			enabled? flags_ &= ~RenderableFlags::SLICER_NO_SOLID_FILL : flags_ |= RenderableFlags::SLICER_NO_SOLID_FILL; 
@@ -1354,10 +1463,9 @@ namespace vz
 
 		uint8_t visibleLayerMask_ = ~0;
 		uint32_t flags_ = CamFlags::EMPTY;
-		DVR_TYPE dvrType_ = DVR_TYPE::DEFAULT;
 
-		// LOOKUPTABLE_COUNT refers to UNDEFINED
-		MaterialComponent::LookupTableSlot forceToLookup_ = MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT;
+		DVR_TYPE dvrType_ = DVR_TYPE::DEFAULT;
+		MaterialComponent::LookupTableSlot dvrLookup_ = MaterialComponent::LookupTableSlot::LOOKUP_OTF;
 
 		// clipper
 		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube
@@ -1461,8 +1569,8 @@ namespace vz
 		inline bool IsSensorBloomEnabled() const { return bloomEnabled_; }
 		inline float GetSensorHdrCalibration() const { return hdrCalibration_; }
 
-		inline void SetForceToUseLookupTable(const MaterialComponent::LookupTableSlot slot) { forceToLookup_ = slot; timeStampSetter_ = TimerNow; }
-		inline MaterialComponent::LookupTableSlot GetForceToUseLookupTable() const { return forceToLookup_; }
+		inline void SetDVRLookupSlot(const MaterialComponent::LookupTableSlot slot) { dvrLookup_ = slot; timeStampSetter_ = TimerNow; }
+		inline MaterialComponent::LookupTableSlot GetDVRLookupSlot() const { return dvrLookup_; }
 
 		inline void SetDVRType(const DVR_TYPE type) { dvrType_ = type; timeStampSetter_ = TimerNow; }
 		inline DVR_TYPE GetDVRType() const { return dvrType_; }
@@ -1489,7 +1597,6 @@ namespace vz
 		float curvedPlaneWidth_ = 1.f;
 		bool isDirtyCurve_ = true;
 		std::vector<XMFLOAT3> horizontalCurveInterpPoints_;
-		virtual void updateCurve() = 0;
 	public:
 		SlicerComponent(const Entity entity, const bool curvedSlicer, const VUID vuid = 0) : CameraComponent(ComponentType::SLICER, entity, vuid) {
 			flags_ = CamFlags::ORTHOGONAL | CamFlags::SLICER | (curvedSlicer? CamFlags::CURVED : 0);
@@ -1520,6 +1627,8 @@ namespace vz
 		inline bool IsValidCurvedPlane() const { return horizontalCurveControls_.size() > 2 && curvedPlaneHeight_ > 0; }
 		inline bool MakeCurvedSlicerHelperGeometry(const Entity geometryEntity);
 
+		virtual void UpdateCurve() = 0;
+
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::SLICER;
@@ -1547,6 +1656,7 @@ namespace vz::compfactory
 	CORE_EXPORT NameComponent* GetNameComponent(const Entity entity);
 	CORE_EXPORT TransformComponent* GetTransformComponent(const Entity entity);
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponent(const Entity entity);
+	CORE_EXPORT ColliderComponent* GetColliderComponent(const Entity entity);
 	CORE_EXPORT MaterialComponent* GetMaterialComponent(const Entity entity);
 	CORE_EXPORT GeometryComponent* GetGeometryComponent(const Entity entity);
 	CORE_EXPORT TextureComponent* GetTextureComponent(const Entity entity);
@@ -1559,6 +1669,7 @@ namespace vz::compfactory
 	CORE_EXPORT NameComponent* GetNameComponentByVUID(const VUID vuid);
 	CORE_EXPORT TransformComponent* GetTransformComponentByVUID(const VUID vuid);
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponentByVUID(const VUID vuid);
+	CORE_EXPORT ColliderComponent* GetColliderComponentByVUID(const VUID vuid);
 	CORE_EXPORT MaterialComponent* GetMaterialComponentByVUID(const VUID vuid);
 	CORE_EXPORT GeometryComponent* GetGeometryComponentByVUID(const VUID vuid);
 	CORE_EXPORT TextureComponent* GetTextureComponentByVUID(const VUID vuid);
@@ -1568,14 +1679,10 @@ namespace vz::compfactory
 	CORE_EXPORT CameraComponent* GetCameraComponentByVUID(const VUID vuid);
 	CORE_EXPORT SlicerComponent* GetSlicerComponentByVUID(const VUID vuid);
 
-	CORE_EXPORT size_t GetTransformComponents(const std::vector<Entity>& entities, std::vector<TransformComponent*>& comps);
-	CORE_EXPORT size_t GetHierarchyComponents(const std::vector<Entity>& entities, std::vector<HierarchyComponent*>& comps);
-	CORE_EXPORT size_t GetMaterialComponents(const std::vector<Entity>& entities, std::vector<MaterialComponent*>& comps);
-	CORE_EXPORT size_t GetLightComponents(const std::vector<Entity>& entities, std::vector<LightComponent*>& comps);
-
 	CORE_EXPORT bool ContainNameComponent(const Entity entity);
 	CORE_EXPORT bool ContainTransformComponent(const Entity entity);
 	CORE_EXPORT bool ContainHierarchyComponent(const Entity entity);
+	CORE_EXPORT bool ContainColliderComponent(const Entity entity);
 	CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
 	CORE_EXPORT bool ContainGeometryComponent(const Entity entity);
 	CORE_EXPORT bool ContainRenderableComponent(const Entity entity);

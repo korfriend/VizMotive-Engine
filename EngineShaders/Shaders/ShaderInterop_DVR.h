@@ -7,10 +7,14 @@ static const float FLT_OPACITY_MIN = 1.f / 255.f;		// trival storage problem
 
 #define SLICER_FLAG_ONLY_OUTLINE (1u << 0)
 
-#define WILDCARD_DEPTH_OUTLINE 1 << 1
-#define WILDCARD_DEPTH_OUTLINE_DIRTY 1 << 2
-#define OUTSIDE_PLANE 1 << 0
+#define SLICER_OUTSIDE_PLANE 1 << 0
+#define SLICER_DEPTH_OUTLINE 1 << 1
+#define SLICER_DEPTH_OUTLINE_DIRTY 1 << 2
+#define SLICER_SOLID_FILL_PLANE 1 << 3
+#define SLICER_DIRTY 1 << 4
+#define SLICER_DEBUG 1 << 5
 
+// depending on rendering options
 struct VolumePushConstants
 {
 	uint instanceIndex; // to get ShaderMeshInstance
@@ -22,8 +26,8 @@ struct VolumePushConstants
 	uint inout_color_Index;
 	uint inout_linear_depth_Index;
 
-	float mask_value_range; // TODO: will be packed
-	float mask_unormid_otf_map;
+	uint target_otf_slot; 
+	int bitmaskbuffer;
 };
 
 struct SlicerMeshPushConstants

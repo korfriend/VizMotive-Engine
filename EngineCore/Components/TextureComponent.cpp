@@ -662,10 +662,10 @@ namespace vz
 				assert(success);
 				device->SetName(&blobkBitmask.bitmaskBuffer, "GVolumeComponent::visible_block_buffer");
 			}
-			else
-			{
-				resourcemanager::AddBufferUpdate(blobkBitmask.bitmaskBuffer, bitmask_data);
-			}
+
+			resourcemanager::AddBufferUpdate(blobkBitmask.bitmaskBuffer, bitmask_data);
+			blobkBitmask.updateTime = TimerNow;
+			timeStampSetter_ = TimerNow;
 		});
 
 		// garbage collection

@@ -85,6 +85,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Install", "BUILD\InstallPac
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample05", "Examples\Sample005\Sample05.vcxproj", "{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample06", "Examples\Sample006\Sample06.vcxproj", "{E4434610-A9FA-4C06-B5F1-089F13624ABE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_MT|x64 = Debug_MT|x64
@@ -305,6 +307,22 @@ Global
 		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release|x64.Build.0 = Release|x64
 		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release|x86.ActiveCfg = Release|Win32
 		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF}.Release|x86.Build.0 = Release|Win32
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Debug_MT|x64.ActiveCfg = Debug_MT|x64
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Debug_MT|x64.Build.0 = Debug_MT|x64
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Debug_MT|x86.ActiveCfg = Debug_MT|Win32
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Debug_MT|x86.Build.0 = Debug_MT|Win32
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Debug|x64.ActiveCfg = Debug|x64
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Debug|x64.Build.0 = Debug|x64
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Debug|x86.ActiveCfg = Debug|Win32
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Debug|x86.Build.0 = Debug|Win32
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Release_MT|x64.ActiveCfg = Release|x64
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Release_MT|x64.Build.0 = Release|x64
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Release_MT|x86.ActiveCfg = Release|Win32
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Release_MT|x86.Build.0 = Release|Win32
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Release|x64.ActiveCfg = Release|x64
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Release|x64.Build.0 = Release|x64
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Release|x86.ActiveCfg = Release|Win32
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -331,6 +349,7 @@ Global
 		{B5405B8A-91B9-4ADD-8301-9E68D539AE60} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
 		{441820A9-D7E4-48C0-BF2D-E246966C2C9C} = {72F7CF71-5EAA-4BC7-B937-6270571D9EDA}
 		{1F9DB875-B2AA-4B56-8BEC-0075885B42DF} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
+		{E4434610-A9FA-4C06-B5F1-089F13624ABE} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}
@@ -343,6 +362,7 @@ Global
 		Examples\imgui\imgui.vcxitems*{b5405b8a-91b9-4add-8301-9e68d539ae60}*SharedItemsImports = 4
 		EngineCore\Engine_SOURCE.vcxitems*{d86799c4-9d93-4981-93b7-48c219d40915}*SharedItemsImports = 4
 		EngineCore\Engine_SOURCE.vcxitems*{d8d9bfe0-037d-43c2-a0e4-c5e88b21bfea}*SharedItemsImports = 9
+		Examples\imgui\imgui.vcxitems*{e4434610-a9fa-4c06-b5f1-089f13624abe}*SharedItemsImports = 4
 		EngineShaders\Shaders\ModernShaders.vcxitems*{fd7a4774-0a05-4e2b-bf88-b8a8e688e116}*SharedItemsImports = 9
 	EndGlobalSection
 EndGlobal

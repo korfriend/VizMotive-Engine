@@ -29,6 +29,8 @@ namespace vzm
 		void EnableReceiveShadows(const bool enabled);
 		void EnableSlicerSolidFill(const bool enabled);
 		void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled);
+		void EnableOutline(const bool enabled);
+		void EnableUndercut(const bool enabled);
 
 		void SetClipPlane(const vfloat4& clipPlane);
 		void SetClipBox(const vfloat4x4& clipBox);
@@ -40,8 +42,17 @@ namespace vzm
 		void SetUndercutDirection(const vfloat3 v);
 		void SetUndercutColor(const vfloat3 v);
 
+		bool CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc = nullptr, int* partIndexTarget = nullptr, int* triIndexSrc = nullptr, int* triIndexTarget = nullptr) const;
+
+		void DebugRender(const std::string& debugScript);
+
 		std::vector<MaterialVID> GetMaterials() const;
 		MaterialVID GetMaterial(const int slot = 0) const;
 		GeometryVID GetGeometry() const;
+
+		// ----- collider setting ----
+		void AssignCollider();
+		bool HasCollider() const;
+		bool ColliderCollisionCheck(const ActorVID targetActorVID) const;
 	};
 }

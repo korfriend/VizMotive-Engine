@@ -215,6 +215,7 @@
     <ClCompile Include="PostProcessingChain_Detail.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="RenderableShapes_Detail.cpp" />
+    <ClCompile Include="RenderPath2D_Detail.cpp" />
     <ClCompile Include="RenderPath3D_Detail.cpp" />
     <ClCompile Include="samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
     <ClCompile Include="SceneUpdate_Detail.cpp" />

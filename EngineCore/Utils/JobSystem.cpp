@@ -39,7 +39,7 @@ namespace vz::jobsystem
 				std::scoped_lock lock(locker);
 				if (ctx->counter > max_ctx_counter.load())
 				{
-					backlog::post("Max Job-Queue Count: " + std::to_string(ctx->counter), LogLevel::Info);
+					backlog::post("Increases the capacity of job queues to " + std::to_string(ctx->counter), LogLevel::Info);
 					max_ctx_counter = ctx->counter;
 				}
 			}
@@ -142,7 +142,7 @@ namespace vz::jobsystem
 			if (max_concurrent_queue_count.load() < queue.size())
 			{
 				max_concurrent_queue_count++;
-				backlog::post("max_concurrent_queue_count: " + std::to_string(max_concurrent_queue_count));
+				backlog::post("Increases the capacity of concurrent job queues to " + std::to_string(max_concurrent_queue_count));
 			}
 			if (queue.size() > MAX_QUEUE)
 			{
