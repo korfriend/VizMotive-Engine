@@ -51,6 +51,33 @@ namespace vz::backlog
 			std::wstring path_w = std::wstring(path);
 			helper::StringConvert(path_w, logPath);
 #ifdef PLATFORM_WINDOWS_DESKTOP
+			// accessible folder test
+			std::string initialize_log = "";
+			{
+				std::string test_file = logPath + "\\vzm_access_test";
+				DWORD bytesWritten;
+				HANDLE hFile;
+				BOOL writeResult = WriteFile(
+					hFile,
+					test_file.c_str(),
+					strlen(test_file.c_str()),
+					&bytesWritten,
+					NULL
+				);
+				CloseHandle(hFile);
+				DeleteFileA(test_file.c_str());
+
+				DWORD attributes = GetFileAttributesA(logPath.c_str());
+				if (!writeResult || attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					initialize_log = "Invalid CSIDL_PERSONAL: " + logPath + ", switching to CSIDL_LOCAL_APPDATA instead";
+
+					result = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, path);
+					path_w = std::wstring(path);
+					helper::StringConvert(path_w, logPath);
+				}
+			}
+
 			logPath += "\\";
 #else
 			logPath += "/";
