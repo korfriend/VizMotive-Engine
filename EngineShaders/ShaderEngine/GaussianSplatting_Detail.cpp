@@ -2,7 +2,7 @@
 
 namespace vz::renderer
 {
-	void GRenderPath3DDetails::CreateTiledGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution)
+	void GRenderPath3DDetails::CreateGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution)
 	{
 		res.tileCount = GetGaussianSplattingTileCount(resolution);
 
@@ -18,6 +18,7 @@ namespace vz::renderer
 
 		device->CreateBuffer(&bd, nullptr, &res.offsetTiles);
 		device->SetName(&res.offsetTiles, "offsetTiles");
+
 	}
 
 	void GRenderPath3DDetails::RenderGaussianSplatting(CommandList cmd)
@@ -110,7 +111,7 @@ namespace vz::renderer
 
 			// test vertex attrs
 			{
-				gaussian_sort.gaussian_vertex_attributes_index = device->GetDescriptorIndex(&gs_buffers.gaussianVertexAttributes, SubresourceType::UAV);
+				gaussian_sort.gaussian_vertex_attributes_index = device->GetDescriptorIndex(&gs_buffers.gaussianKernelAttributes, SubresourceType::UAV);
 			}
 
 			{
@@ -150,7 +151,7 @@ namespace vz::renderer
 			{
 				device->BindUAV(&rtMain, 0, cmd);
 				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd);			// touched tiles count 
-				device->BindUAV(&gs_buffers.gaussianVertexAttributes, 2, cmd);  // vertex attributes
+				device->BindUAV(&gs_buffers.gaussianKernelAttributes, 2, cmd);  // vertex attributes
 			}
 			else
 			{
@@ -162,7 +163,7 @@ namespace vz::renderer
 			// SRV to UAV
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianVertexAttributes, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianKernelAttributes, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 
 			BarrierStackFlush(cmd);
 
@@ -217,7 +218,7 @@ namespace vz::renderer
 			// UAV to SRV
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianVertexAttributes, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
+			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianKernelAttributes, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE));
 
 			// prefix sum (offset)
 			UINT iters = (uint)std::ceil(std::log2((float)numGaussians));
@@ -312,7 +313,7 @@ namespace vz::renderer
 			// check readback buffer and numInstance(push constant)
 			device->BindUAV(&gs_buffers.sortKBufferEven, 0, cmd);
 			device->BindUAV(&gs_buffers.sortVBufferEven, 1, cmd);
-			device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd);
+			device->BindResource(&gs_buffers.gaussianKernelAttributes, 0, cmd);
 			device->BindResource(srcBuffer, 1, cmd);
 
 			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.sortKBufferEven, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
@@ -447,7 +448,7 @@ namespace vz::renderer
 				device->BindUAV(&rtMain, 0, cmd); // u0 
 				device->BindUAV(&gs_buffers.totalSumBufferHost, 1, cmd); // u1
 
-				device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd); // t0
+				device->BindResource(&gs_buffers.gaussianKernelAttributes, 0, cmd); // t0
 				device->BindResource(srcBuffer, 1, cmd);
 				device->BindResource(&gs_buffers.sortVBufferEven, 2, cmd); // t2
 				device->BindResource(&gs_buffers.touchedTiles_0, 3, cmd); // t3
@@ -500,7 +501,7 @@ namespace vz::renderer
 			//if (rtMain.IsValid())
 			//{
 			//	device->BindUAV(&rtMain, 0, cmd); // u0 
-			//	device->BindResource(&gs_buffers.gaussianVertexAttributes, 0, cmd); // t0
+			//	device->BindResource(&gs_buffers.gaussianKernelAttributes, 0, cmd); // t0
 			//	device->BindResource(&tileBoundaryBuffer, 1, cmd);		// t1
 			//	device->BindResource(&gs_buffers.sortVBufferEven, 2, cmd);			// t2
 			//}

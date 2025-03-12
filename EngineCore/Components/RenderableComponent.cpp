@@ -5,6 +5,8 @@ namespace vz
 {
 #define MAX_MATERIAL_SLOT 10000
 
+	using PrimitiveType = GeometryComponent::PrimitiveType;
+
 	// return 0 : NOT renderable
 	// return 1 : Mesh renderable
 	// return 2 : Volume renderable
@@ -32,7 +34,7 @@ namespace vz
 		else
 		{
 			size_t num_parts = geo_comp->GetNumParts();
-			size_t num_mats = geo_comp->GetNumParts();
+			size_t num_mats = vuidMaterials.size();
 			ret = (num_parts == num_mats && num_parts > 0) ? 1 : 0;
 			if (!ret && num_parts * num_mats > 0)
 			{
@@ -67,7 +69,8 @@ namespace vz
 
 		vuidGeometry_ = geo_comp->GetVUID();
 
-		Update();
+		isDirty_ = true;
+		//Update();
 
 		timeStampSetter_ = TimerNow;
 	}
@@ -92,7 +95,8 @@ namespace vz
 
 		vuidMaterials_[slot] = mat_comp->GetVUID();
 
-		Update();
+		isDirty_ = true;
+		//Update();
 
 		timeStampSetter_ = TimerNow;
 	}
