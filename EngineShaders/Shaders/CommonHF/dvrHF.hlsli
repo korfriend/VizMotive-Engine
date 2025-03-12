@@ -52,7 +52,6 @@ struct VolumeInstance
 	uint2 rimHighlight;
 	int baseGeometryCount;
 
-#ifndef __cplusplus
     void Init()
     {
         materialIndex = ~0u;
@@ -88,7 +87,6 @@ struct VolumeInstance
 		rimHighlight = meshInst.rimHighlight;
 		//baseGeometryCount = meshInst.baseGeometryCount;
 	}
-#endif
 
 	float3 ComputeSingleBlockTS() {
 		return float3((float)block_pitches.x / vol_size.x,

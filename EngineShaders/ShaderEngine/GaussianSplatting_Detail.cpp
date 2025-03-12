@@ -81,8 +81,10 @@ namespace vz::renderer
 		BindCommonResources(cmd);
 
 		uint32_t instanceCount = 0;
-		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
+		// JUST SINGLE DRAWING for MULTIPLE VOLUMES
+		const RenderBatch& batch = renderQueue.batches[0];
 		{
+			/*
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
@@ -197,6 +199,7 @@ namespace vz::renderer
 				device->Barrier(barriers, _countof(barriers), cmd);
 			}
 
+			/*
 			device->CopyBuffer(
 				&gs_buffers.offsetTilesPing,  // dst buffer
 				0,
@@ -535,7 +538,7 @@ namespace vz::renderer
 			//BarrierStackFlush(cmd);
 			//// ========================================================
 
-			break; // TODO: at this moment, just a single gs is supported!
+			/**/
 		}
 
 		device->EventEnd(cmd);
