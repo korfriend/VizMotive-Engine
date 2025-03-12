@@ -5,9 +5,6 @@
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
 
-#define BLOCK_X 16
-#define BLOCK_Y 16
-
 static const float SH_C0 = 0.28209479177387814f;
 static const float SH_C1 = 0.4886025119029199f;
 static const float SH_C2[5] = {
@@ -27,7 +24,7 @@ static const float SH_C3[7] = {
 	-0.5900435899266435f
 };
 
-struct VertexAttribute {
+struct GaussianKernelAttribute {
 	float4 conic_opacity;
 	float4 color_radii;
 	uint4 aabb; // bounding box 
@@ -39,47 +36,15 @@ struct VertexAttribute {
 struct GaussianPushConstants
 {
 	uint instanceIndex; // to get ShaderMeshInstance
-	int gaussian_SHs_index;
-	int gaussian_scale_opacities_index;
-	int gaussian_quaternions_index;
-
-	int touchedTiles_0_index;
-	int offsetTiles_0_index;
-	int offsetTiles_Ping_index;
-	int offsetTiles_Pong_index;
-
-	int duplicatedDepthGaussians_index; // new version
-	int readBackBufferTest_index;		// readback buffer
-	uint num_gaussians;
-	uint geometryIndex;
-	//uint materialIndex;
-};
-
-struct GaussianSortConstants
-{
-	int sortKBufferEven_index;
-	int sortKBufferOdd_index;
-	int sortVBufferEven_index;
-	int sortVBufferOdd_index;
-
-	int sortHistBuffer_index;
-	int gaussian_vertex_attributes_index; // test210
-	int totalSumBufferHost_index;
-	int tileBoundaryBuffer_index;
-
 	uint tileX;
 	uint tileY;
 	uint timestamp;
-	uint num_gaussians;
-};
 
-struct GaussianRadixConstants
-{
+	// for radix sort updates
 	uint g_num_elements;
 	uint g_shift;
 	uint g_num_workgroups;
 	uint g_num_blocks_per_workgroup;
 };
-
 
 #endif // SHADERINTEROP_GS_H

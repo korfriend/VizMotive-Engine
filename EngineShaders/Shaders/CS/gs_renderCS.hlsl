@@ -1,5 +1,5 @@
 #include "../Globals.hlsli"
-#include "../ShaderInterop_GS.h"
+#include "../ShaderInterop_GaussianSplatting.h"
 #include "../CommonHF/surfaceHF.hlsli"
 #include "../CommonHF/raytracingHF.hlsli"   
 // test210
@@ -9,7 +9,7 @@ PUSHCONSTANT(totalSum, GaussianSortConstants);
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWTexture2D<unorm float4> prefixSum : register(u1);
 
-StructuredBuffer<VertexAttribute> Vertices : register(t0);
+StructuredBuffer<GaussianKernelAttribute> Vertices : register(t0);
 StructuredBuffer<uint> offsetTiles : register(t1);
 StructuredBuffer<uint> sortVBufferEven : register(t2);
 StructuredBuffer<uint> touchedTiles_0 : register(t3);
@@ -28,7 +28,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     Buffer<uint> totalPrefixSum = bindless_buffers_uint[totalSum.totalSumBufferHost_index];
     uint totalSum = totalPrefixSum[0];
     
-    VertexAttribute v = Vertices[idx];
+    GaussianKernelAttribute v = Vertices[idx];
     
     inout_color[v.uv] = float4(0.0f, 1.0f, 0.0f, 1.0f); // green
 //    uint prefixValue = offsetTiles[idx]; // prefix sum °ª

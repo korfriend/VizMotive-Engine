@@ -1,5 +1,5 @@
 ﻿#include "../Globals.hlsli"
-#include "../ShaderInterop_GS.h"
+#include "../ShaderInterop_GaussianSplatting.h"
 #include "../CommonHF/surfaceHF.hlsli"
 #include "../CommonHF/raytracingHF.hlsli"
 

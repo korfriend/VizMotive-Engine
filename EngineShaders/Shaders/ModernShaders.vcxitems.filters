@@ -126,9 +126,12 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\curvedSlicerHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\gaussianSplattingHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GS.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GaussianSplatting.h">
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Image.h">

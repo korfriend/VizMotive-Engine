@@ -2,7 +2,8 @@
 // Includes: Covariance Matrix Inversion (EWA Algorithm), Eigenvalues, and Bounding Rectangle Calculation
 
 #include "../Globals.hlsli"
-#include "../ShaderInterop_GS.h"
+#include "../ShaderInterop_GaussianSplatting.h"
+#include "../CommonHF/gaussianSplattingHF.hlsli"
 #include "../CommonHF/surfaceHF.hlsli"
 #include "../CommonHF/raytracingHF.hlsli"   
 
@@ -10,7 +11,7 @@ PUSHCONSTANT(gaussians, GaussianPushConstants);
 
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWStructuredBuffer<uint> touchedTiles : register(u1);
-RWStructuredBuffer<VertexAttribute> vertexAttributes : register(u2);
+RWStructuredBuffer<GaussianKernelAttribute> vertexAttributes : register(u2);
 
 float3 get_sh_float3(Buffer<float> gs_shs, int index) {
     int start = index * 3;
@@ -66,12 +67,12 @@ float3 compute_sh(Buffer<float> gs_shs, float3 pos, int idx, float3 camPos)
 void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2 rect_max)
 {
     // Calculate rect_min
-    rect_min.x = min(grid.x, max(0, (int) ((p.x - max_radius) / BLOCK_X)));
-    rect_min.y = min(grid.y, max(0, (int) ((p.y - max_radius) / BLOCK_Y)));
+    rect_min.x = min(grid.x, max(0, (int) ((p.x - max_radius) / TILE_WIDTH)));
+    rect_min.y = min(grid.y, max(0, (int) ((p.y - max_radius) / TILE_HEIGHT)));
 
     // Calculate rect_max
-    rect_max.x = min(grid.x, max(0, (int) ((p.x + max_radius + BLOCK_X - 1) / BLOCK_X)));
-    rect_max.y = min(grid.y, max(0, (int) ((p.y + max_radius + BLOCK_Y - 1) / BLOCK_Y)));
+    rect_max.x = min(grid.x, max(0, (int) ((p.x + max_radius + TILE_WIDTH - 1) / TILE_WIDTH)));
+    rect_max.y = min(grid.y, max(0, (int) ((p.y + max_radius + TILE_HEIGHT - 1) / TILE_HEIGHT)));
 }
 // Function: Convert world position to pixel coordinates
 float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
@@ -184,9 +185,14 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float3 camPos = camera.position;
 
     // Load instance and geometry
-    ShaderMeshInstance gs_instance = load_instance(gaussians.instanceIndex);
+    //ShaderMeshInstance gs_instance = load_instance(gaussians.instanceIndex);
+
+    GaussianSplattingInstance gs_instance;
+    gs_inst.Load(load_instance(gaussians.instanceIndex));
+
+
     uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
-    ShaderGeometry geometry = load_geometry(subsetIndex);
+    ShaderGeometry geometry = load_geometry(gs_instance.geometry_index);
 
     // Load Position, Scale/Opacity, Quaternion, SH coefficients
     // bindless graphics, load buffer with index
@@ -242,7 +248,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float4 p_view = mul(float4(pos, 1.0f), camera.view);
     touchedTiles[idx] = total_tiles;
 
-    VertexAttribute at;
+    GaussianKernelAttribute at;
 
     at.conic_opacity = float4(conic.x, conic.y, conic.z, opacity);
     at.color_radii = float4(rgb_sh, radius);

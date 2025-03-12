@@ -23,6 +23,7 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\curvedSlicerHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\dvrHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\fogHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\gaussianSplattingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\imageHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\kbufferHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\lightingHF.hlsli" />
@@ -49,7 +50,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_DVR.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_FSR2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GPUSortLib.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GS.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GaussianSplatting.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Postprocess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Raytracing.h" />
