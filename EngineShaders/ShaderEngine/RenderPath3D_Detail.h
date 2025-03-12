@@ -190,12 +190,12 @@ namespace vz::renderer
 
 	struct GaussianSplattingResources
 	{
+
 		XMUINT2 tileCount = {};
+
 		// --- new version ---
 		graphics::GPUBuffer touchedTiles_tiledCounts;
 		graphics::GPUBuffer offsetTiles;
-
-
 		// next step		
 	};
 
@@ -491,6 +491,10 @@ namespace vz::renderer
 
 		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
 
+
+
+
+
 		ViewResources viewResources;	// dynamic allocation
 
 		RenderableShapeCollection renderableShapes; // dynamic allocation
@@ -532,9 +536,9 @@ namespace vz::renderer
 
 		void CreateTiledLightResources(TiledLightResources& res, XMUINT2 resolution);
 		void ComputeTiledLightCulling(const TiledLightResources& res, const View& vis, const Texture& debugUAV, CommandList cmd);
-		void CreateTiledGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution);
-
+		void CreateGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution);
 		void CreateViewResources(ViewResources& res, XMUINT2 resolution);
+
 		void View_Prepare(const ViewResources& res, const Texture& input_primitiveID_1, const Texture& input_primitiveID_2, CommandList cmd); // input_primitiveID can be MSAA
 		// SURFACE need to be checked whether it requires FORWARD or DEFERRED
 		void View_Surface(const ViewResources& res, const Texture& output, CommandList cmd);

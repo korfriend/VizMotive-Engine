@@ -106,7 +106,10 @@ namespace vz
 			RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
 			if (renderable)
 			{
-				renderable->Update();	// AABB
+				if (renderable->IsDirty())
+				{
+					renderable->Update();	// AABB
+				}
 
 				AABB aabb = renderable->GetAABB();
 				aabbRenderables_[args.jobIndex] = aabb;

@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250311_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250311_2";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -710,16 +710,6 @@ namespace vz
 			XMFLOAT3 dcSHs[16];
 		};
 
-		// test210
-		struct VertexAttribute {
-			XMFLOAT4 conic_opacity;
-			XMFLOAT4 color_radii;
-			XMUINT4 aabb; // bounding box 
-			XMFLOAT2 uv; // pixel coords that is output of ndx2pix() func;
-			float depth;
-			uint32_t padding0;
-		};
-
 		struct Primitive {
 		private:
 			std::vector<XMFLOAT3> vertexPositions_;
@@ -1212,7 +1202,7 @@ namespace vz
 			JITTER_SAMPLE = 1 << 11,
 			SLICER_NO_SOLID_FILL = 1 << 12, // in the case that the geometry is NOT water-tight
 			OUTLINE = 1 << 13,
-			UNDERCUT = 1 << 14
+			UNDERCUT = 1 << 14,
 		};
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
@@ -1253,6 +1243,7 @@ namespace vz
 		inline bool IsDirty() const { return isDirty_; }
 		inline bool IsMeshRenderable() const { return flags_ & RenderableFlags::MESH_RENDERABLE; }
 		inline bool IsVolumeRenderable() const { return flags_ & RenderableFlags::VOLUME_RENDERABLE; }
+		inline bool isGaussianSplattingEnabled() const { return flags_ & RenderableFlags::VOLUME_RENDERABLE; }
 
 		inline void EnableForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }

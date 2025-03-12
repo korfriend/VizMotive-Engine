@@ -241,12 +241,17 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     
     float4 p_view = mul(float4(pos, 1.0f), camera.view);
     touchedTiles[idx] = total_tiles;
-    vertexAttributes[idx].conic_opacity = float4(conic.x, conic.y, conic.z, opacity);
-    vertexAttributes[idx].color_radii = float4(rgb_sh, radius);
-    vertexAttributes[idx].aabb = uint4(rect_min.x, rect_min.y, rect_max.x, rect_max.y);
-    vertexAttributes[idx].uv = point_image;
-    vertexAttributes[idx].depth = p_view.z;
-    vertexAttributes[idx].magic = 0x12345678;
+
+    VertexAttribute at;
+
+    at.conic_opacity = float4(conic.x, conic.y, conic.z, opacity);
+    at.color_radii = float4(rgb_sh, radius);
+    at.aabb = uint4(rect_min.x, rect_min.y, rect_max.x, rect_max.y);
+    at.uv = point_image;
+    at.depth = p_view.z;
+    at.magic = 0x12345678;
+
+    vertexAttributes[idx] = at;
 
     //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
     //{

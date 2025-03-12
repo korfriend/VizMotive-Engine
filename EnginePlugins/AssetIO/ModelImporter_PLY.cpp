@@ -56,6 +56,7 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
     geometry->CopyPrimitivesFrom(parts);
 
     Primitive* mutable_primitive = geometry->GetMutablePrimitive(0);
+    mutable_primitive->SetPrimitiveType(GeometryComponent::PrimitiveType::POINTS);
 
     std::vector<XMFLOAT3>* vertex_positions = &mutable_primitive->GetMutableVtxPositions();
     std::vector<XMFLOAT3>* vertex_normals = &mutable_primitive->GetMutableVtxNormals();
@@ -113,10 +114,13 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
         vertex_Qts->emplace_back(rot[0], rot[1], rot[2], rot[3]);
     }
 
-    geometry->UpdateRenderData();
+	file.close();
 
-    file.close();
+	geometry->UpdateRenderData();
+	//((GGeometryComponent*)geometry)->UpdateRenderDataGaussianSplatting();
 
+
+    /*
     const auto& positions = mutable_primitive->GetVtxPositions();
     const auto& vertex_SOs_ref = mutable_primitive->GetMutableVtxScaleOpacities();
     const auto& vertex_Qts_ref = mutable_primitive->GetMutableVtxQuaternions();
@@ -148,6 +152,9 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
         }
         std::cerr << std::endl;
     }
+
+
+    /**/
 
     return true;
 }

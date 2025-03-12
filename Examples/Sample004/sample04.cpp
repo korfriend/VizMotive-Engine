@@ -3,6 +3,7 @@
 #include "vzm2/utils/Backlog.h"
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/JobSystem.h"
+#include "vzm2/utils/Profiler.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -140,7 +141,7 @@ DXGI_SWAP_CHAIN_DESC1 sd;
 int main(int, char **)
 {
 	// DPI 인식을 활성화
-	EnableDpiAwareness();
+	//EnableDpiAwareness();
 
 	// Create application window
 	// ImGui_ImplWin32_EnableDpiAwareness();
@@ -229,8 +230,8 @@ int main(int, char **)
 
 		// === Add PLY loading code here ===
 		// Load PLY geometry
-		if (1)
-		{
+		vz::jobsystem::context ctx;
+		vz::jobsystem::Execute(ctx, [scene](vz::jobsystem::JobArgs args){
 			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
 			//if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
 			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud.ply"))
@@ -251,7 +252,7 @@ int main(int, char **)
 
 				vzm::AppendSceneCompTo(ply_actor, scene);
 			}
-		}
+			});
 
 		// === end of PLY loading code ===
 
@@ -381,6 +382,22 @@ int main(int, char **)
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+				static bool profile_enabled = false;
+				if (ImGui::Checkbox("Profile Enabled", &profile_enabled))
+				{
+					vz::profiler::SetEnabled(profile_enabled);
+				}
+				if (profile_enabled)
+				{
+					std::string performance_info, memory_info;
+					vz::profiler::GetProfileInfo(performance_info, memory_info);
+					ImGui::Text(scene->GetName().c_str());
+					ImGui::Separator();
+					ImGui::Text(performance_info.c_str());
+					ImGui::Separator();
+					ImGui::Text(memory_info.c_str());
+				}
 			}
 			ImGui::End();
 		}

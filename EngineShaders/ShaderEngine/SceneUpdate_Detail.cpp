@@ -474,7 +474,6 @@ namespace vz
 								renderableShapes.AddDrawLine(line, true);
 							}
 						} break;
-							break;
 						case GeometryComponent::PrimitiveType::POINTS:
 						default:
 							break;
