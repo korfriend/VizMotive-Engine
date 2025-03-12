@@ -862,7 +862,7 @@ namespace vz::renderer
 
 		if (renderer::isGaussianSplattingEnabled)
 		{
-			CreateTiledGaussianResources(gaussianSplattingResources, internalResolution);
+			CreateGaussianResources(gaussianSplattingResources, internalResolution);
 		}
 		//CreateScreenSpaceShadowResources(screenspaceshadowResources, internalResolution);
 

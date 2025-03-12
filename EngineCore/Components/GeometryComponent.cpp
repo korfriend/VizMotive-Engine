@@ -873,6 +873,8 @@ namespace vz
 
 		hasRenderData_ = false;
 	}
+
+	// general buffer
 	void GGeometryComponent::UpdateRenderData()
 	{
 		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
@@ -1142,124 +1144,6 @@ namespace vz
 				vb_col.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_col.offset, vb_col.size, &Vertex_COL::FORMAT);
 				vb_col.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_col.subresource_srv);
 			}
-
-			const std::vector<SH>& vertex_SHs = primitive.vertexSHs_;
-			const std::vector<XMFLOAT4>& vertex_quaterions = primitive.vertexQuaterions_;
-			const std::vector<XMFLOAT4>& vertex_scale_opacities = primitive.vertexScale_Opacities_;
-			if (!vertex_SHs.empty())
-			{
-				allowGaussianSplatting = true;
-				size_t num_gaussian_kernels = vertex_SHs.size();
-				assert(num_gaussian_kernels == vertex_scale_opacities.size() && num_gaussian_kernels == vertex_quaterions.size());
-
-				// vertex_SHs, vertex_scale_opacities, vertex_quaterions
-				bd.bind_flags = BindFlag::SHADER_RESOURCE;
-				bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
-				if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
-				{
-					bd.misc_flags |= ResourceMiscFlag::RAY_TRACING;
-				}
-				bd.size = num_gaussian_kernels * sizeof(SH);
-				bool success = device->CreateBuffer(&bd, vertex_SHs.data(), &part_buffers.gaussianSplattingBuffers.gaussianSHs);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianSHs, "GGeometryComponent::bufferHandle_::gaussianSHs");
-
-				bd.size = num_gaussian_kernels * sizeof(XMFLOAT4);
-				success = device->CreateBuffer(&bd, vertex_scale_opacities.data(), &part_buffers.gaussianSplattingBuffers.gaussianScale_Opacities);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianScale_Opacities, "GGeometryComponent::bufferHandle_::gaussianScale_Opacities");
-
-				bd.size = num_gaussian_kernels * sizeof(XMFLOAT4);
-				success = device->CreateBuffer(&bd, vertex_quaterions.data(), &part_buffers.gaussianSplattingBuffers.gaussianQuaterinions);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianQuaterinions, "GGeometryComponent::bufferHandle_::gaussianQuaterinions");
-
-				// Inter-processing buffers (read/write)
-				bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-
-				// test210
-				bd.size = num_gaussian_kernels * sizeof(VertexAttribute);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.gaussianVertexAttributes);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianVertexAttributes, "GGeometryComponent::bufferHandle_::gaussianVertexAttributes");
-
-				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.touchedTiles_0);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.touchedTiles_0, "GGeometryComponent::bufferHandle_::touchedTiles_0");
-
-				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTiles_0);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTiles_0, "GGeometryComponent::bufferHandle_::offsetTiles_0");
-				// Ping and Pong buffer for prefix sum
-				// 
-				// Ping buffer
-				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPing);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPing, "GGeometryComponent::bufferHandle_::offsetTilesPing");
-
-				// Pong buffer
-				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPong);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPong, "GGeometryComponent::bufferHandle_::offsetTilesPong");
-
-				const size_t initial_capacity_scale = 4;
-
-				// Radix sort buffers
-				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale; // uint_64
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferEven);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferEven, "GGeometryComponent::bufferHandle_::sortKBufferEven");
-
-				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale; // uint_64
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferOdd);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferOdd, "GGeometryComponent::bufferHandle_::sortKBufferOdd");
-
-				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale; // uint_32
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferEven);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferEven, "GGeometryComponent::bufferHandle_::sortVBufferEven");
-
-				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale; // uint_32
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferOdd);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferOdd, "GGeometryComponent::bufferHandle_::sortVBufferOdd");
-
-				// tile boundary buffer
-				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale;
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer, "GGeometryComponent::bufferHandle_::tileBoundaryBuffer");
-
-				// sort hist buffer test
-				//UINT numWorkgroups = ((num_gaussian_kernels * 8 + 32 - 1) / 32 + 256 - 1) / 256;
-				uint32_t numWorkgroups = (num_gaussian_kernels * 8 + 31) / (32 * 256);
-
-				bd.size = numWorkgroups * 256 * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortHistBuffer);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortHistBuffer, "GGeometryComponent::bufferHandle_::sortHistBuffer");
-
-				bd.size = sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.totalSumBufferHost);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.totalSumBufferHost, "GGeometryComponent::bufferHandle_::totalSumBufferHost");
-
-				// readback buffer
-				bd.usage = Usage::READBACK;
-				bd.bind_flags = BindFlag::NONE;
-				bd.misc_flags = ResourceMiscFlag::NONE;
-				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.readBackBufferTest);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.readBackBufferTest, "GGeometryComponent::bufferHandle_::readBackBufferTest");
-				part_buffers.gaussianSplattingBuffers.readBackBufferTestMapped = (const uint32_t *) &part_buffers.gaussianSplattingBuffers.readBackBufferTest.mapped_data;
-
-			}
 			
 			hasRenderData_ = true;
 		}
@@ -1375,6 +1259,241 @@ namespace vz
 			bd.size = AlignTo(bd.size + cluster_bounds.size() * sizeof(ShaderClusterBounds), alignment);
 			/**/
 		}
+
+		if (!hasRenderData_ && parts_.size() == 1)
+		{
+			// Gaussian Splatting Check (use only 1 part)
+			Primitive& primitive = parts_[0];
+
+			const std::vector<SH>& vertex_SHs = primitive.vertexSHs_;
+			const std::vector<XMFLOAT4>& vertex_quaterions = primitive.vertexQuaterions_;
+			const std::vector<XMFLOAT4>& vertex_scale_opacities = primitive.vertexScale_Opacities_;
+
+			if (!vertex_SHs.empty() && !vertex_quaterions.empty() && !vertex_scale_opacities.empty())
+			{
+				UpdateRenderDataGaussianSplatting();
+			}
+		}
+	}
+
+	void GGeometryComponent::UpdateRenderDataGaussianSplatting()
+	{
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+
+		DeleteRenderData();
+
+		if (isDirty_)
+		{
+			update();
+		}
+
+		GraphicsDevice* device = graphics::GetDevice();
+
+		const size_t position_stride = GetFormatStride(positionFormat);
+
+		hasRenderData_ = false;
+		if (parts_.size() == 0)
+		{
+			return;
+		}
+
+		// general buffer creation
+		for (size_t part_index = 0, n = parts_.size(); part_index < n; ++part_index)
+		{
+			Primitive& primitive = parts_[part_index];
+			switch (primitive.GetPrimitiveType())
+			{
+			case PrimitiveType::POINTS: break;
+			default: continue;
+			}
+			if (!parts_[part_index].IsValid())
+			{
+				continue;
+			}
+
+			primitive.bufferHandle_ = std::make_shared<GPrimBuffers>();
+			GPrimBuffers& part_buffers = *(GPrimBuffers*)primitive.bufferHandle_.get();
+			part_buffers.slot = part_index;
+
+			GPUBufferDesc bd;
+			if (device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
+			{
+				// In UMA mode, it is better to create UPLOAD buffer, this avoids one copy from UPLOAD to DEFAULT
+				bd.usage = Usage::UPLOAD;
+			}
+			else
+			{
+				bd.usage = Usage::DEFAULT;
+			}
+			bd.bind_flags = BindFlag::VERTEX_BUFFER | BindFlag::SHADER_RESOURCE;
+			bd.misc_flags = ResourceMiscFlag::BUFFER_RAW | ResourceMiscFlag::TYPED_FORMAT_CASTING | ResourceMiscFlag::NO_DEFAULT_DESCRIPTORS;
+			if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+			{
+				bd.misc_flags |= ResourceMiscFlag::RAY_TRACING;
+			}
+			const uint64_t alignment = device->GetMinOffsetAlignment(&bd);
+
+			const std::vector<XMFLOAT3>& vertex_positions = primitive.vertexPositions_;
+
+			bd.size = AlignTo(vertex_positions.size() * position_stride, alignment);
+
+			GPUBuffer& generalBuffer = part_buffers.generalBuffer;
+			BufferView& vb_pos = part_buffers.vbPosW;
+
+			auto init_callback = [&](void* dest) {
+
+				uint8_t* buffer_data = (uint8_t*)dest;
+				uint64_t buffer_offset = 0ull;
+
+				// vertexBuffer - POSITION: Vertex_POS32W::FORMAT
+				{
+					vb_pos.offset = buffer_offset;
+					vb_pos.size = vertex_positions.size() * sizeof(Vertex_POS32W);
+					Vertex_POS32W* vertices = (Vertex_POS32W*)(buffer_data + buffer_offset);
+					buffer_offset += AlignTo(vb_pos.size, alignment);
+					for (size_t i = 0; i < vertex_positions.size(); ++i)
+					{
+						const XMFLOAT3& pos = vertex_positions[i];
+						// something special?? e.g., density or probability for volume-geometric processing
+						const uint8_t weight = 0; // vertex_weights.empty() ? 0xFF : vertex_weights[i];
+						Vertex_POS32W vert;
+						vert.FromFULL(pos, weight);
+						std::memcpy(vertices + i, &vert, sizeof(vert));
+					}
+
+					std::memcpy(buffer_data, vertex_positions.data(), sizeof(XMFLOAT3) * vertex_positions.size());
+				}
+				};
+
+			bool success = device->CreateBuffer2(&bd, init_callback, &part_buffers.generalBuffer);
+			assert(success);
+			device->SetName(&part_buffers.generalBuffer, "GGeometryComponent::bufferHandle_::generalBuffer (Gaussian Splatting)");
+
+			assert(vb_pos.IsValid());
+			vb_pos.subresource_srv = device->CreateSubresource(&generalBuffer, SubresourceType::SRV, vb_pos.offset, vb_pos.size, &positionFormat);
+			vb_pos.descriptor_srv = device->GetDescriptorIndex(&generalBuffer, SubresourceType::SRV, vb_pos.subresource_srv);
+
+			const std::vector<SH>& vertex_SHs = primitive.vertexSHs_;
+			const std::vector<XMFLOAT4>& vertex_quaterions = primitive.vertexQuaterions_;
+			const std::vector<XMFLOAT4>& vertex_scale_opacities = primitive.vertexScale_Opacities_;
+
+			vzlog_assert(!vertex_SHs.empty(), "SHs must not be empty!");
+			vzlog_assert(!vertex_quaterions.empty(), "Quaternions must not be empty!");
+			vzlog_assert(!vertex_scale_opacities.empty(), "Scales and Opacities must not be empty!");
+
+			size_t num_gaussian_kernels = vertex_SHs.size(); 
+			assert(num_gaussian_kernels == vertex_scale_opacities.size() && num_gaussian_kernels == vertex_quaterions.size());
+
+			allowGaussianSplatting = true;
+			{
+				// vertex_SHs, vertex_scale_opacities, vertex_quaterions
+				bd.bind_flags = BindFlag::SHADER_RESOURCE;
+				bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+				bd.size = num_gaussian_kernels * sizeof(SH);
+				bool success = device->CreateBuffer(&bd, vertex_SHs.data(), &part_buffers.gaussianSplattingBuffers.gaussianSHs);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianSHs, "GGeometryComponent::bufferHandle_::gaussianSHs");
+
+				bd.size = num_gaussian_kernels * sizeof(XMFLOAT4);
+				success = device->CreateBuffer(&bd, vertex_scale_opacities.data(), &part_buffers.gaussianSplattingBuffers.gaussianScale_Opacities);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianScale_Opacities, "GGeometryComponent::bufferHandle_::gaussianScale_Opacities");
+
+				bd.size = num_gaussian_kernels * sizeof(XMFLOAT4);
+				success = device->CreateBuffer(&bd, vertex_quaterions.data(), &part_buffers.gaussianSplattingBuffers.gaussianQuaterinions);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianQuaterinions, "GGeometryComponent::bufferHandle_::gaussianQuaterinions");
+			}
+
+			{
+				// Inter-processing buffers (read/write)
+				bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+
+				bd.size = num_gaussian_kernels * sizeof(GaussianKernelAttribute);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.gaussianKernelAttributes);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianKernelAttributes, "GGeometryComponent::bufferHandle_::gaussianKernelAttributes");
+
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.touchedTiles_0);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.touchedTiles_0, "GGeometryComponent::bufferHandle_::touchedTiles_0");
+
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTiles_0);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTiles_0, "GGeometryComponent::bufferHandle_::offsetTiles_0");
+				// Ping and Pong buffer for prefix sum
+				// 
+				// Ping buffer
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPing);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPing, "GGeometryComponent::bufferHandle_::offsetTilesPing");
+
+				// Pong buffer
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPong);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPong, "GGeometryComponent::bufferHandle_::offsetTilesPong");
+
+				const size_t initial_capacity_scale = 4;
+
+				// Radix sort buffers
+				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale; // uint_64
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferEven);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferEven, "GGeometryComponent::bufferHandle_::sortKBufferEven");
+
+				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale; // uint_64
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferOdd);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferOdd, "GGeometryComponent::bufferHandle_::sortKBufferOdd");
+
+				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale; // uint_32
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferEven);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferEven, "GGeometryComponent::bufferHandle_::sortVBufferEven");
+
+				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale; // uint_32
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferOdd);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferOdd, "GGeometryComponent::bufferHandle_::sortVBufferOdd");
+
+				// tile boundary buffer
+				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale;
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer, "GGeometryComponent::bufferHandle_::tileBoundaryBuffer");
+
+				// sort hist buffer test
+				//UINT numWorkgroups = ((num_gaussian_kernels * 8 + 32 - 1) / 32 + 256 - 1) / 256;
+				uint32_t numWorkgroups = (num_gaussian_kernels * 8 + 31) / (32 * 256);
+
+				bd.size = numWorkgroups * 256 * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortHistBuffer);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.sortHistBuffer, "GGeometryComponent::bufferHandle_::sortHistBuffer");
+
+				bd.size = sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.totalSumBufferHost);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.totalSumBufferHost, "GGeometryComponent::bufferHandle_::totalSumBufferHost");
+
+				// readback buffer
+				bd.usage = Usage::READBACK;
+				bd.bind_flags = BindFlag::NONE;
+				bd.misc_flags = ResourceMiscFlag::NONE;
+				bd.size = num_gaussian_kernels * sizeof(UINT);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.readBackBufferTest);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.readBackBufferTest, "GGeometryComponent::bufferHandle_::readBackBufferTest");
+				part_buffers.gaussianSplattingBuffers.readBackBufferTestMapped = (const uint32_t*)&part_buffers.gaussianSplattingBuffers.readBackBufferTest.mapped_data;
+			}
+
+			hasRenderData_ = true;
+		}
+
 	}
 
 	void GGeometryComponent::UpdateStreamoutRenderData()

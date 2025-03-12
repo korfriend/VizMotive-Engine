@@ -65,6 +65,17 @@ namespace vz
 	{
 		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
 
+
+		struct GaussianKernelAttribute 
+		{
+			XMFLOAT4 conic_opacity;
+			XMFLOAT4 color_radii;
+			XMUINT4 aabb; // bounding box 
+
+			XMFLOAT2 uv; // pixel coords that is output of ndx2pix() func;
+			float depth;
+			uint32_t padding0;
+		};
 		struct GaussianSplattingBuffers
 		{
 			// gaussian kernels
@@ -72,11 +83,16 @@ namespace vz
 			graphics::GPUBuffer gaussianScale_Opacities;
 			graphics::GPUBuffer gaussianQuaterinions;
 
-			// inter-processing buffers
-			graphics::GPUBuffer touchedTiles_0;
-			graphics::GPUBuffer offsetTiles_0;
-			graphics::GPUBuffer offsetTilesPing; // Ping buffer
-			graphics::GPUBuffer offsetTilesPong; // Pong buffer
+			bool IsValid() const { return gaussianSHs.IsValid() && gaussianScale_Opacities.IsValid() && gaussianQuaterinions.IsValid(); }
+
+			// ----- inter-processing buffers -----
+			// NOTE:
+			//	These buffers will be used for storing intermediate results during renderer's GaussianSplattting
+			//	Different canvas (renderers) can access these buffers, assuming thread-safe process
+			graphics::GPUBuffer touchedTiles_0;	// # of gaussian points
+			graphics::GPUBuffer offsetTiles_0;	// # of gaussian points
+			graphics::GPUBuffer offsetTilesPing; // # of gaussian points, Ping buffer
+			graphics::GPUBuffer offsetTilesPong; // # of gaussian points, Pong buffer
 
 			graphics::GPUBuffer sortKBufferEven; // duplicated key buffer
 			graphics::GPUBuffer sortKBufferOdd;
@@ -86,16 +102,15 @@ namespace vz
 			graphics::GPUBuffer sortHistBuffer;
 
 			// test210 - vertexAttributes
-			graphics::GPUBuffer gaussianVertexAttributes; // test
-			graphics::GPUBuffer totalSumBufferHost; // test
-			graphics::GPUBuffer tileBoundaryBuffer; // test
+			graphics::GPUBuffer gaussianKernelAttributes; // # of gaussian points
+			graphics::GPUBuffer totalSumBufferHost; // # of gaussian points
+			graphics::GPUBuffer tileBoundaryBuffer; // # of gaussian points
 
 			// readback buffer
 			graphics::GPUBuffer readBackBufferTest;
 			const uint32_t* readBackBufferTestMapped = nullptr;
-
-			bool IsValid() const { return gaussianScale_Opacities.IsValid(); }
 		};
+
 		struct BVHBuffers
 		{
 			// https://github.com/ToruNiina/lbvh
@@ -182,6 +197,7 @@ namespace vz
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
 		GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
 		void UpdateRenderData() override;
+		void UpdateRenderDataGaussianSplatting();
 		void DeleteRenderData() override;
 		void UpdateStreamoutRenderData();
 		size_t GetMemoryUsageCPU() const override;
