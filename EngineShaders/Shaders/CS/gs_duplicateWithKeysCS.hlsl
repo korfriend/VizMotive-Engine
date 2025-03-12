@@ -1,5 +1,5 @@
 #include "../Globals.hlsli"
-#include "../ShaderInterop_GS.h"
+#include "../ShaderInterop_GaussianSplatting.h"
 #include "../CommonHF/surfaceHF.hlsli"
 #include "../CommonHF/raytracingHF.hlsli"   
 
@@ -8,7 +8,7 @@ PUSHCONSTANT(tiles, GaussianSortConstants);
 RWStructuredBuffer<uint64_t> OutKeys : register(u0); // sortKBufferEven
 RWStructuredBuffer<uint> OutPayloads : register(u1); // sortVBufferEven
 
-StructuredBuffer<VertexAttribute> Vertices : register(t0);
+StructuredBuffer<GaussianKernelAttribute> Vertices : register(t0);
 StructuredBuffer<uint> prefixSum : register(t1);
 
 [numthreads(256, 1, 1)]
@@ -26,7 +26,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     if (index >= tiles.num_gaussians)
         return;
     
-    VertexAttribute v = Vertices[index];
+    GaussianKernelAttribute v = Vertices[index];
 
     //if (index >= prefixSum.Length())
     //    return;

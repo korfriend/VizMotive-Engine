@@ -11,7 +11,7 @@
 #include "../Shaders/ShaderInterop.h"
 #include "../Shaders/ShaderInterop_Postprocess.h"
 #include "../Shaders/ShaderInterop_DVR.h"
-#include "../Shaders/ShaderInterop_GS.h"
+#include "../Shaders/ShaderInterop_GaussianSplatting.h"
 #include "../Shaders/ShaderInterop_BVH.h"
 #include "../Shaders/ShaderInterop_FSR2.h"
 
