@@ -603,6 +603,8 @@ namespace vz::renderer
 		bool ResizeCanvasSlicer(uint32_t canvasWidth, uint32_t canvasHeight); // must delete all canvas-related resources and re-create
 		bool Render(const float dt) override;
 		bool Destroy() override;
+
+		const Texture& GetLastProcessRT() const override { return *lastPostprocessRT; }
 	};
 
 	struct GSceneDetails : GScene

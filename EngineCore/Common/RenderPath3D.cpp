@@ -223,6 +223,15 @@ namespace vz
 		RenderPath2D::Render(dt);
 	}
 
+	const graphics::Texture* RenderPath3D::GetLastProcessRT() const 
+	{ 
+		if (handlerRenderPath3D_ == nullptr)
+		{
+			return nullptr;
+		}
+		return &handlerRenderPath3D_->GetLastProcessRT(); 
+	}
+
 	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {
 		for (char c : str) {
 			hash ^= static_cast<size_t>(c);
