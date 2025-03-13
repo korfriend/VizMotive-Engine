@@ -84,7 +84,7 @@ namespace vz::renderer
 		// JUST SINGLE DRAWING for MULTIPLE VOLUMES
 		const RenderBatch& batch = renderQueue.batches[0];
 		{
-			/*
+			
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
@@ -96,8 +96,8 @@ namespace vz::renderer
 			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[geometry_index];
 
 			GaussianPushConstants gaussian_push;
-			GaussianSortConstants gaussian_sort; // timestamp and gaussian_Vertex_Attributes_index; test210
-			GaussianRadixConstants gaussian_radix;
+			//GaussianSortConstants gaussian_sort; // timestamp and gaussian_Vertex_Attributes_index; test210
+			//GaussianRadixConstants gaussian_radix;
 
 			UINT width = rtMain.desc.width;
 			UINT height = rtMain.desc.height;
@@ -105,48 +105,49 @@ namespace vz::renderer
 			UINT tileX = (width + 16 - 1) / 16;
 			UINT tileY = (height + 16 - 1) / 16;
 
-			gaussian_sort.tileX = tileX;
-			gaussian_sort.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
-			gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
+			//GaussianSplattingInstance
+			//gaussian_sort.tileX = tileX;
+			//gaussian_sort.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
+			//gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 
 			GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
 
 			// test vertex attrs
-			{
-				gaussian_sort.gaussian_vertex_attributes_index = device->GetDescriptorIndex(&gs_buffers.gaussianKernelAttributes, SubresourceType::UAV);
-			}
+			//{
+			//	gaussian_sort.gaussian_vertex_attributes_index = device->GetDescriptorIndex(&gs_buffers.gaussianKernelAttributes, SubresourceType::UAV);
+			//}
 
-			{
-				//GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
-				gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
+			//{
+			//	//GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
+			//	gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 
-				gaussian_push.instanceIndex = batch.instanceIndex;
-				gaussian_push.geometryIndex = batch.geometryIndex;
-				gaussian_push.gaussian_SHs_index = device->GetDescriptorIndex(&gs_buffers.gaussianSHs, SubresourceType::SRV);
-				gaussian_push.gaussian_scale_opacities_index = device->GetDescriptorIndex(&gs_buffers.gaussianScale_Opacities, SubresourceType::SRV);
-				gaussian_push.gaussian_quaternions_index = device->GetDescriptorIndex(&gs_buffers.gaussianQuaterinions, SubresourceType::SRV);
-				gaussian_push.touchedTiles_0_index = device->GetDescriptorIndex(&gs_buffers.touchedTiles_0, SubresourceType::UAV);
-				gaussian_push.offsetTiles_0_index = device->GetDescriptorIndex(&gs_buffers.offsetTiles_0, SubresourceType::UAV);
+			//	gaussian_push.instanceIndex = batch.instanceIndex;
+			//	gaussian_push.geometryIndex = batch.geometryIndex;
+			//	gaussian_push.gaussian_SHs_index = device->GetDescriptorIndex(&gs_buffers.gaussianSHs, SubresourceType::SRV);
+			//	gaussian_push.gaussian_scale_opacities_index = device->GetDescriptorIndex(&gs_buffers.gaussianScale_Opacities, SubresourceType::SRV);
+			//	gaussian_push.gaussian_quaternions_index = device->GetDescriptorIndex(&gs_buffers.gaussianQuaterinions, SubresourceType::SRV);
+			//	gaussian_push.touchedTiles_0_index = device->GetDescriptorIndex(&gs_buffers.touchedTiles_0, SubresourceType::UAV);
+			//	gaussian_push.offsetTiles_0_index = device->GetDescriptorIndex(&gs_buffers.offsetTiles_0, SubresourceType::UAV);
 
-				// Ping and Pong Buffer for prefix sum
-				gaussian_push.offsetTiles_Ping_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPing, SubresourceType::UAV);
-				gaussian_push.offsetTiles_Pong_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPong, SubresourceType::UAV);
+			//	// Ping and Pong Buffer for prefix sum
+			//	gaussian_push.offsetTiles_Ping_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPing, SubresourceType::UAV);
+			//	gaussian_push.offsetTiles_Pong_index = device->GetDescriptorIndex(&gs_buffers.offsetTilesPong, SubresourceType::UAV);
 
-				// total sum buffer = prefixsum[P - 1]
-				gaussian_sort.totalSumBufferHost_index = device->GetDescriptorIndex(&gs_buffers.totalSumBufferHost, SubresourceType::UAV);
+			//	// total sum buffer = prefixsum[P - 1]
+			//	gaussian_sort.totalSumBufferHost_index = device->GetDescriptorIndex(&gs_buffers.totalSumBufferHost, SubresourceType::UAV);
 
-				// duplicated with keys buffer
-				gaussian_sort.sortKBufferEven_index = device->GetDescriptorIndex(&gs_buffers.sortKBufferEven, SubresourceType::UAV);
-				gaussian_sort.sortKBufferOdd_index = device->GetDescriptorIndex(&gs_buffers.sortKBufferOdd, SubresourceType::UAV);
-				gaussian_sort.sortVBufferEven_index = device->GetDescriptorIndex(&gs_buffers.sortVBufferEven, SubresourceType::UAV);
-				gaussian_sort.sortVBufferOdd_index = device->GetDescriptorIndex(&gs_buffers.sortVBufferOdd, SubresourceType::UAV);
+			//	// duplicated with keys buffer
+			//	gaussian_sort.sortKBufferEven_index = device->GetDescriptorIndex(&gs_buffers.sortKBufferEven, SubresourceType::UAV);
+			//	gaussian_sort.sortKBufferOdd_index = device->GetDescriptorIndex(&gs_buffers.sortKBufferOdd, SubresourceType::UAV);
+			//	gaussian_sort.sortVBufferEven_index = device->GetDescriptorIndex(&gs_buffers.sortVBufferEven, SubresourceType::UAV);
+			//	gaussian_sort.sortVBufferOdd_index = device->GetDescriptorIndex(&gs_buffers.sortVBufferOdd, SubresourceType::UAV);
 
-				gaussian_sort.sortHistBuffer_index = device->GetDescriptorIndex(&gs_buffers.sortHistBuffer, SubresourceType::UAV);
-				gaussian_sort.tileBoundaryBuffer_index = device->GetDescriptorIndex(&gs_buffers.tileBoundaryBuffer, SubresourceType::UAV);
+			//	gaussian_sort.sortHistBuffer_index = device->GetDescriptorIndex(&gs_buffers.sortHistBuffer, SubresourceType::UAV);
+			//	gaussian_sort.tileBoundaryBuffer_index = device->GetDescriptorIndex(&gs_buffers.tileBoundaryBuffer, SubresourceType::UAV);
 
-				// readback Buffer
-				gaussian_push.readBackBufferTest_index = device->GetDescriptorIndex(&gs_buffers.readBackBufferTest, SubresourceType::UAV);
-			}
+			//	// readback Buffer
+			//	gaussian_push.readBackBufferTest_index = device->GetDescriptorIndex(&gs_buffers.readBackBufferTest, SubresourceType::UAV);
+			//}
 
 			// preprocess
 			if (rtMain.IsValid())
@@ -169,7 +170,7 @@ namespace vz::renderer
 
 			BarrierStackFlush(cmd);
 
-			uint numGaussians = gaussian_push.num_gaussians;
+			uint numGaussians = geometry.GetPrimitive(0)->GetNumVertices();
 
 			int threads_per_group = 256;
 			int numGroups = (numGaussians + threads_per_group - 1) / threads_per_group; // num_groups
