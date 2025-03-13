@@ -170,11 +170,11 @@ float3 computeCov2D(float3 mean, float focal_length, uint2 resolution, float3x3 
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
     float radius = 0.0f;
-    // Global thread index along X-axis
     uint idx = DTid.x;
 
-    // Exit if out of range
-    if (idx >= gaussians.num_gaussians)
+    GaussianSplattingInstance gs_instance;
+    
+    if (idx >= gs_instance.num_gaussians)
         return;
 
     // Load camera data
@@ -187,20 +187,18 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     // Load instance and geometry
     //ShaderMeshInstance gs_instance = load_instance(gaussians.instanceIndex);
 
-    GaussianSplattingInstance gs_instance;
-    gs_inst.Load(load_instance(gaussians.instanceIndex));
-
-
-    uint subsetIndex = gaussians.geometryIndex - gs_instance.geometryOffset;
+    //uint subsetIndex = gs_instance.geometryIndex - gs_instance.geometryOffset;
     ShaderGeometry geometry = load_geometry(gs_instance.geometry_index);
-
+    
+    gs_instance.Load(load_instance(gaussians.instanceIndex));
+    
     // Load Position, Scale/Opacity, Quaternion, SH coefficients
     // bindless graphics, load buffer with index
     Buffer<float4> gs_position = bindless_buffers_float4[geometry.vb_pos_w];
-    Buffer<float4> gs_scale_opacity = bindless_buffers_float4[gaussians.gaussian_scale_opacities_index];
-    Buffer<float4> gs_quaternion = bindless_buffers_float4[gaussians.gaussian_quaternions_index];
+    Buffer<float4> gs_scale_opacity = bindless_buffers_float4[gs_instance.gaussian_scale_opacities_index];
+    Buffer<float4> gs_quaternion = bindless_buffers_float4[gs_instance.gaussian_quaternions_index];
     //Buffer<float3> gs_shs = bindless_buffers_float3[gaussians.gaussian_SHs_index]; 
-    Buffer<float> gs_shs = bindless_buffers_float[gaussians.gaussian_SHs_index]; // struct SH {XMFLOAT3 dcSHs[16];};
+    Buffer<float> gs_shs = bindless_buffers_float[gs_instance.gaussian_SHs_index]; // struct SH {XMFLOAT3 dcSHs[16];};
 
     float3 pos = gs_position[idx].xyz;
     float3 scale = gs_scale_opacity[idx].xyz;
