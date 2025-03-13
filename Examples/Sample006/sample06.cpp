@@ -486,6 +486,10 @@ int main(int, char **)
 				{
 					vzm::ReloadShader();
 				}
+				if (ImGui::Button("Export File"))
+				{
+					renderer->StoreRenderTargetInfoFile("d:\\test.jpg");
+				}
 				if (ImGui::Button(play ? "Stop" : "Play"))
 				{
 					play = !play;
