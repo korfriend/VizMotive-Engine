@@ -73,6 +73,9 @@ namespace vzm
 		};
 		bool GetSharedRenderTarget(const void* graphicsDev2, const void* srvDescHeap2, const int descriptorIndex, SharedResourceTarget& resTarget, uint32_t* w, uint32_t* h);
 
+		bool StoreRenderTarget(std::vector<uint8_t>& rawBuffer, uint32_t* w = nullptr, uint32_t* h = nullptr);
+		bool StoreRenderTargetInfoFile(const std::string& fileName);
+
 		// just for dev. mode
 		// "NONE" : original
 		// "PRIMITIVE_ID"

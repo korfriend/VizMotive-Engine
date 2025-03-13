@@ -6,6 +6,7 @@
 #include "Utils/Utils_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/Helpers.h"
+#include "Utils/Helpers2.h"
 #include "Utils/Profiler.h"
 
 using namespace vz;
@@ -366,6 +367,30 @@ namespace vzm
 		bool ret = renderer->GetSharedRendertargetView(graphicsDev2, srvDescHeap2, descriptorIndex, resTarget.descriptorHandle, &resTarget.resourcePtr);
 
 		return ret;
+	}
+
+	bool VzRenderer::StoreRenderTarget(std::vector<uint8_t>& rawBuffer, uint32_t* w, uint32_t* h)
+	{
+		GET_RENDERPATH(renderer, false);
+
+		const graphics::Texture* rt = renderer->GetLastProcessRT();
+		if (rt == nullptr || !rt->IsValid())
+		{
+			return false;
+		}
+		return helper2::saveTextureToMemory(*rt, rawBuffer);
+	}
+
+	bool VzRenderer::StoreRenderTargetInfoFile(const std::string& fileName)
+	{
+		GET_RENDERPATH(renderer, false);
+
+		const graphics::Texture* rt = renderer->GetLastProcessRT();
+		if (rt == nullptr || !rt->IsValid())
+		{
+			return false;
+		}
+		return helper2::saveTextureToFile(*rt, fileName);
 	}
 
 	void VzRenderer::ShowDebugBuffer(const std::string& debugMode)

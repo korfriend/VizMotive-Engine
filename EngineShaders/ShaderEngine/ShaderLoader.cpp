@@ -592,13 +592,13 @@ namespace vz::shader
 		
 			});
 
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_PREPROCESS], "gs_preprocessCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_GAUSSIAN_OFFSET], "gs_offsetCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], "gs_duplicateWithKeysCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_RADIX_HIST_GAUSSIANS], "gs_histCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_RADIX_SORT_GAUSSIANS], "gs_sortCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_IDENTIFY_TILE_RANGES], "gs_identifyTileRangesCS.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_RENDER_GAUSSIAN], "gs_renderCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_PREPROCESS], "gs_preprocessCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_GAUSSIAN_OFFSET], "gs_offsetCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_DUPLICATED_GAUSSIANS], "gs_duplicateWithKeysCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_RADIX_HIST_GAUSSIANS], "gs_histCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_RADIX_SORT_GAUSSIANS], "gs_sortCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_IDENTIFY_TILE_RANGES], "gs_identifyTileRangesCS.cso"); });
+		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GS_RENDER_GAUSSIAN], "gs_renderCS.cso"); });
 
 		// DVR
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_DVR_WoKB], "dvrCS_woKB.cso"); });
