@@ -103,7 +103,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	float ray_tmax = 1e20;
 
 	ShaderMeshInstance inst = load_instance(push.instanceIndex);
-	float4x4 ws2os = inst.transformRaw_inv.GetMatrix();
+	float4x4 ws2os = inst.transformRawInv.GetMatrix();
 	float4x4 os2ws = inst.transformRaw.GetMatrix();
 
 	float sliceThickness = camera.sliceThickness;
@@ -135,8 +135,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		sliceThickness_os = length(end_os.xyz - origin_os.xyz);
 	}
 
-	const float3x3 ws2os_adj = inst.transformRaw_inv.GetMatrixAdjoint();
-	//const float3x3 ws2os_adj = (float3x3)inst.transformRaw_inv.GetMatrix();
+	const float3x3 ws2os_adj = inst.transformRawInv.GetMatrixAdjoint();
+	//const float3x3 ws2os_adj = (float3x3)inst.transformRawInv.GetMatrix();
 	float3 ray_dir_os = normalize(mul(ws2os_adj, ray_ws.Direction));
 	float3 up_os = normalize(mul(ws2os_adj, camera.up));
 	float3 right_os = normalize(cross(ray_dir_os, up_os));

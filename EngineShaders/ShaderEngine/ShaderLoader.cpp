@@ -272,7 +272,11 @@ namespace vz::shader
 
 		return SHADERTYPE_COUNT;
 	}
-	SHADERTYPE GetPSTYPE(RENDERPASS renderPass, bool deferred, bool alphatest, bool transparent, MaterialComponent::ShaderType shaderType)
+	SHADERTYPE GetPSTYPE(RENDERPASS renderPass,
+		bool deferred,	// TODO
+		bool alphatest,
+		bool transparent, 
+		MaterialComponent::ShaderType shaderType)
 	{
 		SHADERTYPE realPS = SHADERTYPE_COUNT;
 
@@ -280,13 +284,13 @@ namespace vz::shader
 		switch (renderPass)
 		{
 		case RENDERPASS_MAIN:
-			if (deferred)
+			if (transparent)
 			{
-				realPS = SHADERTYPE((transparent ? PSTYPE_RENDERABLE_TRANSPARENT_PERMUTATION__BEGIN : PSTYPE_RENDERABLE_PERMUTATION__BEGIN) + index_material_shadertype);
+				realPS = SHADERTYPE(PSTYPE_RENDERABLE_TRANSPARENT_PERMUTATION__BEGIN + index_material_shadertype);
 			}
 			else
 			{
-				realPS = SHADERTYPE((transparent ? PSTYPE_RENDERABLE_TRANSPARENT_PERMUTATION__BEGIN : PSTYPE_RENDERABLE_PERMUTATION__BEGIN) + index_material_shadertype);
+				realPS = SHADERTYPE(PSTYPE_RENDERABLE_PERMUTATION__BEGIN + index_material_shadertype);
 			}
 			break;
 		case RENDERPASS_PREPASS:
@@ -550,6 +554,7 @@ namespace vz::shader
 			{"PHONG"}, // ShaderType::PHONG,
 			{"PBR"}, // ShaderType::PBR,
 			{"UNLIT"}, // ShaderType::UNLIT,
+			{"VOLUMEMAP"}, // ShaderType::VOLUMEMAP,
 		};
 		//inline static const std::vector<std::string> shaderTypeDefines[] = {
 		//	{}, // SHADERTYPE_PBR,

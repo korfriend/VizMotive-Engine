@@ -206,7 +206,25 @@ namespace vz
 					//}
 					shader_material.aniso_anisosin_anisocos_terrainblend = pack_half4(_anisotropy_strength, _anisotropy_rotation_sin, _anisotropy_rotation_cos, _blend_with_terrain_height_rcp);
 					shader_material.shaderType = (uint)material.GetShaderType();
-					shader_material.userdata = uint4(0, 0, 0, 0);
+
+					GRenderableComponent* vol_renderable = (GRenderableComponent*)compfactory::GetComponentByVUID(material.GetVolumeMapperTargetRenderableVUID());
+					shader_material.volumemapperTargetInstIndex = -1;
+					if (vol_renderable)
+					{
+						shader_material.volumemapperTargetInstIndex = (int)vol_renderable->renderableIndex;
+						MaterialComponent::VolumeTextureSlot vol_slot = material.GetVolumeMapperVolumeSlot();
+						MaterialComponent::LookupTableSlot lookup_slot = material.GetVolumeMapperLookupSlot();
+						shader_material.volumemapperVolumeSlot = SCU32(vol_slot);
+						shader_material.volumemapperLookupSlot = SCU32(lookup_slot);
+
+						if (material.GetVolumeTextureVUID(vol_slot) == INVALID_VUID
+							|| material.GetLookupTableVUID(lookup_slot) == INVALID_VUID)
+						{
+							shader_material.volumemapperTargetInstIndex = -1;
+						}
+					}
+					
+					shader_material.userdata = 0u;
 
 					shader_material.options_stencilref = 0;
 
@@ -525,7 +543,7 @@ namespace vz
 				XMMATRIX W_inv = XMMatrixInverse(nullptr, XMLoadFloat4x4(&world_matrix));
 				XMFLOAT4X4 world_matrix_inv;
 				XMStoreFloat4x4(&world_matrix_inv, W_inv);
-				inst.transformRaw_inv.Create(world_matrix_inv);
+				inst.transformRawInv.Create(world_matrix_inv);
 
 				if (IsFormatUnorm(geometry.positionFormat) && !geometry.GetGPrimBuffer(0)->soPosW.IsValid())
 				{

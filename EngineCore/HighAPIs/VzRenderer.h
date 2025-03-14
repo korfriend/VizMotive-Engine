@@ -5,6 +5,18 @@ namespace vzm
 {
 	struct API_EXPORT VzRenderer : VzBaseComp
 	{
+		enum ActorFilter
+		{
+			MESH_OPAQUE = 1 << 0,
+			MESH_TRANSPARENT = 1 << 1,
+			MESH_NAVIGATION = 1 << 3,
+			COLLIDER = 1 << 4,
+			VOLUME = 1 << 5,
+
+			// Include everything:
+			RENDERABLE_ALL = ~0,
+		};
+
 		// Tone mapping HDR -> LDR
 		enum class Tonemap
 		{
@@ -41,26 +53,12 @@ namespace vzm
 
 		void RenderChain(const std::vector<ChainUnitSCam>& scChain);
 
-		bool PickingList(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, 
-			std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids, std::vector<int>& pritmitiveIDs, std::vector<int>& maskValues);
-		bool PickingList(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, 
-			std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids, std::vector<int>& pritmitiveIDs, std::vector<int>& maskValues) {
-			return PickingList(scene->GetVID(), camera->GetVID(), pos, worldPositions, vids, pritmitiveIDs, maskValues);
-		}
-		bool Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos,
-			vfloat3& worldPosition, ActorVID& vid,
-			int* primitiveID = nullptr, int* maskValue = nullptr) {
-			std::vector<vfloat3> worldPositions; std::vector<ActorVID> vids; std::vector<int> primtiveIDs; std::vector<int> maskValues;
-			if (!PickingList(vidScene, vidCam, pos, worldPositions, vids, primtiveIDs, maskValues)) return false;
-			worldPosition = worldPositions[0]; vid = vids[0];
-			if (primitiveID) *primitiveID = primtiveIDs[0];
-			if (maskValue) *maskValue = maskValues[0];
-			return true;
-		}
-		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, 
+		bool Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const ActorFilter filterFlags,
+			vfloat3& worldPosition, ActorVID& vid, int* primitiveID = nullptr, int* maskValue = nullptr) const;
+		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, const ActorFilter filterFlags,
 			vfloat3& worldPosition, ActorVID& vid, 
-			int* primitiveID = nullptr, int* maskValue = nullptr) {
-			return Picking(scene->GetVID(), camera->GetVID(), pos, worldPosition, vid, primitiveID, maskValue);
+			int* primitiveID = nullptr, int* maskValue = nullptr) const {
+			return Picking(scene->GetVID(), camera->GetVID(), pos, filterFlags, worldPosition, vid, primitiveID, maskValue);
 		}
 
 		vfloat3 UnprojToWorld(const vfloat2& posOnScreen, const VzCamera* camera = nullptr);

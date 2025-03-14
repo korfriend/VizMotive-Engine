@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250313_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250314_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -515,6 +515,7 @@ namespace vz
 			PHONG = 0,
 			PBR,
 			UNLIT,
+			VOLUMEMAP,
 
 			//WATER,
 
@@ -610,10 +611,17 @@ namespace vz
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 
+		VUID vuidVolumeMapperRenderable_ = INVALID_VUID;
+		VolumeTextureSlot volumemapperVolumeSlot_ = VolumeTextureSlot::VOLUME_MAIN_MAP;
+		LookupTableSlot volumemapperLookupSlot_ = LookupTableSlot::LOOKUP_COLOR;
+
 		// Non-serialized Attributes:
 		bool isDirty_ = true;
 	public:
 		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
+		
+		inline void SetShaderType(const ShaderType shaderType) { shaderType_ = shaderType; timeStampSetter_ = TimerNow; }
+		inline ShaderType GetShaderType() const { return shaderType_; }
 
 		inline const float GetOpacity() const { return baseColor_.w; }
 		inline const XMFLOAT4& GetBaseColor() const { return baseColor_; }	// w is opacity
@@ -627,18 +635,22 @@ namespace vz
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; timeStampSetter_ = TimerNow;}
 		inline void SetMatalness(const float metalness) { metalness_ = metalness; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetRoughness(const float roughness) { roughness_ = roughness; isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetCastShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetReceiveShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetShaderType(const ShaderType shaderType) { shaderType_ = shaderType; timeStampSetter_ = TimerNow; }
-		inline void SetDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void EnableWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void EnableCastShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void EnableReceiveShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void EnableDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void EnableGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void EnableWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetPhongFactors(const XMFLOAT4 phongFactors) { phongFactors_ = phongFactors; timeStampSetter_ = TimerNow; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
 		inline void SetLookupTable(const Entity lookuptextureEntity, const LookupTableSlot lookuptextureSlot);
+
+		inline void SetVolumeMapper(const Entity targetRenderableEntity, const VolumeTextureSlot volumetextureSlot = VolumeTextureSlot::VOLUME_MAIN_MAP, const LookupTableSlot lookupSlot = LookupTableSlot::LOOKUP_COLOR);
+		inline VUID GetVolumeMapperTargetRenderableVUID() const { return vuidVolumeMapperRenderable_; }
+		inline VolumeTextureSlot GetVolumeMapperVolumeSlot() const { return volumemapperVolumeSlot_; }
+		inline LookupTableSlot GetVolumeMapperLookupSlot() const { return volumemapperLookupSlot_; }
 
 		inline bool IsDirty() const { return isDirty_; }
 		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
@@ -666,7 +678,6 @@ namespace vz
 		inline VUID GetVolumeTextureVUID(const VolumeTextureSlot slot) const { return volumeComponents_[SCU32(slot)]; }
 		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return lookupComponents_[SCU32(slot)]; }
 		inline XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
-		inline ShaderType GetShaderType() const { return shaderType_; }
 		inline XMFLOAT4 GetPhongFactors() const { return phongFactors_; }
 
 		virtual void UpdateAssociatedTextures() = 0;
@@ -1203,6 +1214,7 @@ namespace vz
 			SLICER_NO_SOLID_FILL = 1 << 12, // in the case that the geometry is NOT water-tight
 			OUTLINE = 1 << 13,
 			UNDERCUT = 1 << 14,
+			PICKABLE = 1 << 15,
 		};
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
@@ -1247,6 +1259,8 @@ namespace vz
 
 		inline void EnableForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
+		inline void EnablePickable(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::PICKABLE) timeStampSetter_ = TimerNow; }
+		inline bool IsPickable() const { return flags_ & RenderableFlags::PICKABLE; }
 
 		inline uint32_t GetFlags() const { return flags_; }
 

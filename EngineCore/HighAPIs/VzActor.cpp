@@ -46,6 +46,17 @@ namespace vzm
 		renderable->SetMaterials(vids);
 		UpdateTimeStamp();
 	}
+	void VzActor::EnablePickable(const bool enabled)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->EnablePickable(enabled);
+		UpdateTimeStamp();
+	}
+	bool VzActor::IsPickable() const
+	{
+		GET_RENDERABLE_COMP(renderable, false);
+		return renderable->IsPickable();
+	}
 	void VzActor::EnableCastShadows(const bool enabled)
 	{
 		assert(0 && "TODO");
@@ -56,7 +67,6 @@ namespace vzm
 		assert(0 && "TODO");
 		UpdateTimeStamp();
 	}
-
 
 	void VzActor::EnableSlicerSolidFill(const bool enabled)
 	{
