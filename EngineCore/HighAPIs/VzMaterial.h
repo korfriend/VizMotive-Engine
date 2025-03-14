@@ -39,6 +39,7 @@ namespace vzm
 			PHONG = 0,
 			PBR,
 			UNLIT,
+			VOLUMEMAP,
 
 			COUNT
 		};
@@ -59,6 +60,8 @@ namespace vzm
 		void SetGaussianSplattingEnabled(const bool enabled);
 		void SetWireframe(const bool enabled);
 		void SetPhongFactors(const vfloat4 phongFactors);
+
+		void SetVolumeMapper(const ActorVID targetVolumeActorVID, const VolumeTextureSlot volumetextureSlot, const LookupTableSlot lookuptextureSlot);
 
 		ShaderType GetShaderType() const;
 		vfloat4 GetBaseColor() const;

@@ -38,6 +38,24 @@ namespace vz
 		lookupComponents_[SCU32(lookuptextureSlot)] = texture->GetVUID();
 		timeStampSetter_ = TimerNow;
 	}
+
+	void MaterialComponent::SetVolumeMapper(const Entity targetRenderableEntity, const VolumeTextureSlot volumetextureSlot, const LookupTableSlot lookupSlot)
+	{
+		RenderableComponent* renderable = compfactory::GetRenderableComponent(targetRenderableEntity);
+		isDirty_ = true; 
+		timeStampSetter_ = TimerNow;
+		volumemapperVolumeSlot_ = volumetextureSlot;
+		volumemapperLookupSlot_ = lookupSlot;
+		if (renderable)
+		{
+			vuidVolumeMapperRenderable_ = renderable->GetVUID();
+		}
+		else
+		{
+			vuidVolumeMapperRenderable_ = INVALID_VUID;
+		}
+	}
+
 }
 
 namespace vz
