@@ -239,9 +239,9 @@ namespace vzm
 
 	}
 
-	bool VzRenderer::PickingList(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, 
-		std::vector<vfloat3>& worldPositions, std::vector<ActorVID>& vids,
-		std::vector<int>& pritmitiveIDs, std::vector<int>& maskValues)
+
+	bool VzRenderer::Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const ActorFilter filterFlags,
+		vfloat3& worldPosition, ActorVID& vid, int* primitiveID, int* maskValue) const
 	{
 		GET_RENDERPATH(renderer, false);
 
@@ -276,14 +276,10 @@ namespace vzm
 			// output setting
 			if (ret)
 			{
-				vids.resize(num_picked_positions);
-				worldPositions.resize(num_picked_positions);
-				pritmitiveIDs.resize(num_picked_positions);
-				maskValues.resize(num_picked_positions);
-				memcpy(vids.data(), camera->pickingIO.DataEntities(), sizeof(Entity) * num_picked_positions);
-				memcpy(worldPositions.data(), camera->pickingIO.DataPositions(), sizeof(XMFLOAT3) * num_picked_positions);
-				memcpy(pritmitiveIDs.data(), camera->pickingIO.DataPrimitiveIDs(), sizeof(int) * num_picked_positions);
-				memcpy(maskValues.data(), camera->pickingIO.DataMaskValues(), sizeof(int) * num_picked_positions);
+				vid = camera->pickingIO.DataEntities()[0];
+				worldPosition = *(vfloat3*)&camera->pickingIO.DataPositions()[0];
+				if (primitiveID) *primitiveID = camera->pickingIO.DataPrimitiveIDs()[0];
+				if (maskValue) *maskValue = camera->pickingIO.DataMaskValues()[0];
 			}
 
 			camera->isPickingMode = false;
@@ -291,27 +287,17 @@ namespace vzm
 		}
 		else
 		{
+			// TODO volume!
 			geometrics::Ray ray = renderer->GetPickRay(pos.x, pos.y, *camera);
-			Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray,
-				SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE) | SCU32(RenderableFilterFlags::RENDERABLE_VOLUME_DVR));
+			Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray, filterFlags);
 			if (intersect_result.entity != INVALID_ENTITY)
 			{
-				//vzlog("P(%f, %f, %f), Dist: %f", intersect_result.position.x, intersect_result.position.y, intersect_result.position.z, intersect_result.distance);
-				//vzlog("Primitive Index: %d", intersect_result.triIndex);
-
-				size_t num_picked_positions = 1;
-				vids.resize(num_picked_positions);
-				worldPositions.resize(num_picked_positions);
-				pritmitiveIDs.resize(num_picked_positions);
-				maskValues.resize(num_picked_positions);
-
-				vids[0] = intersect_result.entity;
-				worldPositions[0] = *(vfloat3*)&intersect_result.position;
-				pritmitiveIDs[0] = intersect_result.triIndex;
-				maskValues[0] = -1;
+				vid = intersect_result.entity;
+				worldPosition = *(vfloat3*)&intersect_result.position;
+				if (primitiveID) *primitiveID = intersect_result.triIndex;
+				if (maskValue) *maskValue = -1;
 			}
 		}
-
 
 		return ret;
 	}

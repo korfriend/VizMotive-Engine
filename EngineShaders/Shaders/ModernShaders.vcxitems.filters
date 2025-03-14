@@ -316,12 +316,6 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_debug.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_PBR.hlsl">
-      <Filter>Raster-Pipeline Shaders\PS</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_PHONG.hlsl">
-      <Filter>Raster-Pipeline Shaders\PS</Filter>
-    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
@@ -335,9 +329,6 @@
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_simple.hlsl">
-      <Filter>Raster-Pipeline Shaders\PS</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_UNLIT.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\vertexcolorPS.hlsl">

@@ -25,6 +25,9 @@ namespace vzm
 
 		void SetMaterials(const std::vector<MaterialVID> vids);
 
+		void EnablePickable(const bool enabled);
+		bool IsPickable() const;
+
 		void EnableCastShadows(const bool enabled);
 		void EnableReceiveShadows(const bool enabled);
 		void EnableSlicerSolidFill(const bool enabled);

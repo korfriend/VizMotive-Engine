@@ -171,6 +171,7 @@ namespace vz::shader
 
 		SHADERTYPE_COUNT,
 	};
+	static_assert(SHADERTYPE_BIN_COUNT == SCU32(MaterialComponent::ShaderType::COUNT));
 
 	enum SHAPE_RENDERING
 	{

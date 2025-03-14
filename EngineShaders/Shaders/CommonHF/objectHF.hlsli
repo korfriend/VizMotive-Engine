@@ -622,6 +622,33 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	}
 #endif // OBJECTSHADER_USE_UVSETS
 
+#ifdef VOLUMEMAP
+	[branch]
+	if (material.volumemapperTargetInstIndex >= 0)
+	{
+		[branch]
+		if (material.volume_textures[material.volumemapperVolumeSlot].IsValid() && material.lookup_textures[material.volumemapperLookupSlot].IsValid())
+		{
+			ShaderMeshInstance mesh_instance = load_instance(material.volumemapperTargetInstIndex);
+			float4x4 mat_ws2ts = mesh_instance.transform.GetMatrix();
+
+			int texture_index_volume = material.volume_textures[material.volumemapperVolumeSlot].texture_descriptor;
+			int texture_index_otf = material.lookup_textures[material.volumemapperLookupSlot].texture_descriptor;
+
+			Texture3D volume = bindless_textures3D[descriptor_index(texture_index_volume)];
+			Texture2D otf = bindless_textures[descriptor_index(texture_index_otf)];
+
+			float4 pos_sample_ts = mul(mat_ws2ts, float4(surface.P, 1.f));
+			pos_sample_ts.xyz /= pos_sample_ts.w;
+
+			float sample_v = volume.SampleLevel(sampler_linear_wrap, pos_sample_ts.xyz, 0).r;
+			half4 volume_color = (half4)otf.SampleLevel(sampler_point_clamp, float2(sample_v, 0), 0);
+			volume_color.rgb *= volume_color.a; // associated color
+			volume_color.a = 1.f;
+			surface.baseColor *= volume_color;
+		}
+	}
+#endif // VOLUMEMAP
 
 #ifdef OBJECTSHADER_USE_COLOR
 	surface.baseColor *= input.color;

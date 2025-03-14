@@ -125,14 +125,11 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_debug.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_PBR.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_PHONG.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass_alphatest.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass_depthonly.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass_depthonly_alphatest.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_simple.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_UNLIT.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\vertexcolorPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\imageVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_common.hlsl" />

@@ -38,6 +38,11 @@ namespace vz
 				is_modified = true;
 			}
 		}
+		if (vuidVolumeMapperRenderable_ == vuidRef)
+		{
+			vuidVolumeMapperRenderable_ = INVALID_VUID;
+			is_modified = true;
+		}
 		if (is_modified)
 		{
 			UpdateAssociatedTextures();

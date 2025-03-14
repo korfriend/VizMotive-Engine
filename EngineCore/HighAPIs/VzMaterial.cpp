@@ -48,7 +48,7 @@ namespace vzm
 	void VzMaterial::SetDoubleSided(const bool enabled)
 	{
 		GET_MATERIAL_COMP(material, );
-		material->SetDoubleSided(enabled);
+		material->EnableDoubleSided(enabled);
 		UpdateTimeStamp();
 	}
 
@@ -62,14 +62,14 @@ namespace vzm
 	void VzMaterial::SetGaussianSplattingEnabled(const bool enabled)
 	{
 		GET_MATERIAL_COMP(material, );
-		material->SetGaussianSplatting(enabled);
+		material->EnableGaussianSplatting(enabled);
 		UpdateTimeStamp();
 	}
 
 	void VzMaterial::SetWireframe(const bool enabled)
 	{
 		GET_MATERIAL_COMP(material, );
-		material->SetWireframe(enabled);
+		material->EnableWireframe(enabled);
 		UpdateTimeStamp();
 	}
 
@@ -77,6 +77,17 @@ namespace vzm
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetPhongFactors(*(XMFLOAT4*)&phongFactors);
+		UpdateTimeStamp();
+	}
+
+	void VzMaterial::SetVolumeMapper(const ActorVID targetVolumeActorVID, const VolumeTextureSlot volumetextureSlot, const LookupTableSlot lookuptextureSlot)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetVolumeMapper(
+			targetVolumeActorVID, 
+			static_cast<MaterialComponent::VolumeTextureSlot>(volumetextureSlot), 
+			static_cast<MaterialComponent::LookupTableSlot>(lookuptextureSlot)
+		);
 		UpdateTimeStamp();
 	}
 

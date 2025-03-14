@@ -82,7 +82,7 @@ struct IndirectDispatchArgs
 static const uint IndirectDrawArgsAlignment = 4u;
 static const uint IndirectDispatchArgsAlignment = 4u; 
 
-static const uint32_t SHADERTYPE_BIN_COUNT = 3;
+static const uint32_t SHADERTYPE_BIN_COUNT = 4;
 
 // Common buffers:
 // These are usable by all shaders
@@ -294,7 +294,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 	ShaderTransform transform; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
 	ShaderTransform transformPrev; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
 	ShaderTransform transformRaw; // Note: this is the world matrix without any quantization remapping
-	ShaderTransform transformRaw_inv; // this is for object-space-oriented ray-processing for Slicer
+	ShaderTransform transformRawInv; // this is for object-space-oriented ray-processing for Slicer
 
 	uint clipIndex;
 	int lightmap;
@@ -329,7 +329,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 		transform.Init();
 		transformPrev.Init();
 		transformRaw.Init();
-		transformRaw_inv.Init();
+		transformRawInv.Init();
 	}
 
 	inline void SetUserStencilRef(uint stencilRef)
@@ -592,7 +592,10 @@ struct alignas(16) ShaderMaterial
 	uint layerMask;
 	uint shaderType;
 
-	uint4 userdata;
+	int volumemapperTargetInstIndex;	// only for volume instance
+	uint volumemapperVolumeSlot;
+	uint volumemapperLookupSlot;
+	uint userdata;
 
 	ShaderTextureSlot textures[TEXTURESLOT_COUNT];
 	ShaderTextureSlot lookup_textures[LOOKUPTABLE_COUNT];
@@ -622,7 +625,10 @@ struct alignas(16) ShaderMaterial
 		layerMask = ~0u;
 		shaderType = 0;
 
-		userdata = uint4(0, 0, 0, 0);
+		volumemapperTargetInstIndex = -1;
+		volumemapperVolumeSlot = 0;
+		volumemapperLookupSlot = 0;
+		userdata = 0;
 
 		for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
 		{

@@ -291,7 +291,6 @@ int main(int, char**)
 			vzm::VzGeometry* geometry_cslicer_helper = vzm::NewGeometry("geometry helper for curved slicer");
 			slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
 			vzm::VzMaterial* material_curvedslicer0 = vzm::NewMaterial("curved slicer helper material: Plane");
-			material_curvedslicer0->SetShaderType(vzm::ShaderType::PBR);
 			material_curvedslicer0->SetDoubleSided(true);
 			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Lines");
 			material_curvedslicer1->SetBaseColor({ 1, 1, 1, 1 });
@@ -398,6 +397,12 @@ int main(int, char**)
 			vzm::VzActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
 			volume_actor->SetScale({ 3, 3, 3 });
 			scene->AppendChild(volume_actor);
+
+			vzm::VzMaterial* material_curvedslicer0 = (vzm::VzMaterial*)vzm::GetFirstComponentByName("curved slicer helper material: Plane");
+			material_curvedslicer0->SetShaderType(vzm::ShaderType::VOLUMEMAP);
+			material_curvedslicer0->SetVolumeMapper(volume_actor->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP, LookupTableSlot::LOOKUP_WINDOWING);
+			material_curvedslicer0->SetVolumeTexture(volume->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP);
+			material_curvedslicer0->SetLookupTable(windowing_volume->GetVID(), LookupTableSlot::LOOKUP_WINDOWING);
 
 			});
 
