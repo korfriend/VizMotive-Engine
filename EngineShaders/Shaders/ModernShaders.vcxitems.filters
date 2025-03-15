@@ -34,9 +34,6 @@
     <Filter Include="Compute Shaders\BVH">
       <UniqueIdentifier>{5ff7c468-3d5d-438d-b157-ac26eb2c27ff}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Compute Shaders\GS Test">
-      <UniqueIdentifier>{2bf53637-c604-4224-a0ae-0db64ec8abc9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Compute Shaders\Image Processing">
       <UniqueIdentifier>{7d9b7f4b-184e-46b9-8d47-735b89a929e0}</UniqueIdentifier>
     </Filter>
@@ -54,6 +51,9 @@
     </Filter>
     <Filter Include="Raster-Pipeline Shaders\GS">
       <UniqueIdentifier>{37a809a9-c201-4850-b1b6-6a94c0608a54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compute Shaders\GaussianSplatting">
+      <UniqueIdentifier>{2bf53637-c604-4224-a0ae-0db64ec8abc9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -368,25 +368,25 @@
       <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl">
-      <Filter>Compute Shaders\GS Test</Filter>
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_duplicateWithKeysCS.hlsl">
-      <Filter>Compute Shaders\GS Test</Filter>
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl">
-      <Filter>Compute Shaders\GS Test</Filter>
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_identifyTileRangesCS.hlsl">
-      <Filter>Compute Shaders\GS Test</Filter>
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_offsetCS.hlsl">
-      <Filter>Compute Shaders\GS Test</Filter>
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_preprocessCS.hlsl">
-      <Filter>Compute Shaders\GS Test</Filter>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_preprocessCS.hlsl">
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_renderCS.hlsl">
-      <Filter>Compute Shaders\GS Test</Filter>
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS.hlsl">
       <Filter>Compute Shaders\Direct Volumes</Filter>

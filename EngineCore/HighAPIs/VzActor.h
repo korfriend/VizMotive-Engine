@@ -8,7 +8,10 @@ namespace vzm
 		VzBaseActor(const VID vid, const std::string& originFrom, const COMPONENT_TYPE scenecompType)
 			: VzSceneComp(vid, originFrom, scenecompType) {}
 
-		void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits);
+		void SetVisibleLayerMask(const uint32_t visibleLayerMask);
+		void SetVisibleLayer(const bool visible, const uint32_t layerBits);
+		uint32_t GetVisibleLayerMask() const;
+		bool IsVisibleWith(const uint32_t layerBits) const;
 	};
 
 	struct API_EXPORT VzActor : VzBaseActor

@@ -801,6 +801,23 @@ int main(int, char**)
 					vzm::ReloadShader();
 				}
 
+				static bool visible_implant1 = true, visible_panohalper = true, visible_volume = true;
+				if (ImGui::Checkbox("Green Implant Visible", &visible_implant1))
+				{
+					vzm::VzActor* actor_test5 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor5");
+					actor_test5->SetVisibleLayer(visible_implant1, 0x1);
+
+				}
+				if (ImGui::Checkbox("Pano Halper Visible", &visible_panohalper))
+				{
+					vzm::VzActor* actor_cslicer_helper = (vzm::VzActor*)vzm::GetFirstComponentByName("actor: geometry helper for curved slicer");
+					actor_cslicer_helper->SetVisibleLayer(visible_panohalper, 0x1);
+				}
+				if (ImGui::Checkbox("Volue Visible", &visible_volume))
+				{
+					vzm::VzActor* volume_actor = (vzm::VzActor*)vzm::GetFirstComponentByName("my volume actor");
+					volume_actor->SetVisibleLayer(visible_volume, 0x1);
+				}
 				ImGui::Checkbox("Use Render Chain", &use_renderchain);
 
 				ImGui::SliderFloat("OTF Slider", &curOtfValue, 0.f, 250.f);

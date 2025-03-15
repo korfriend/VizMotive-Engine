@@ -13,6 +13,24 @@ using namespace backlog;
 
 namespace vzm
 {
+	void VzScene::SetVisibleLayerMask(const uint32_t visibleLayerMask)
+	{
+		Scene* scene = Scene::GetScene(this->componentVID_);
+		scene->SetVisibleLayerMask(visibleLayerMask);
+		UpdateTimeStamp();
+	}
+	void VzScene::SetVisibleLayer(const bool visible, const uint32_t layerBits)
+	{
+		Scene* scene = Scene::GetScene(this->componentVID_);
+		scene->SetVisibleLayer(visible, layerBits);
+		UpdateTimeStamp();
+	}
+	uint32_t VzScene::GetVisibleLayerMask() const
+	{
+		Scene* scene = Scene::GetScene(this->componentVID_);
+		return scene->GetVisibleLayerMask();
+	}
+
 	void VzScene::AppendChild(const VzBaseComp* child)
 	{
 		vzm::AppendSceneCompTo(child, this);
