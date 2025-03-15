@@ -296,7 +296,7 @@ namespace vz::renderer
 					continue;
 				if (foreground != renderable.IsForeground())
 					continue;
-				if (!(view.camera->GetVisibleLayerMask() & renderable.GetVisibleMask()))
+				if (!renderable.IsVisibleWith(view.camera->GetVisibleLayerMask()))
 					continue;
 				if ((renderable.materialFilterFlags & filterMask) == 0)
 					continue;

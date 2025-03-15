@@ -28,11 +28,10 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimeDurationCount(A, B) std::chrono::duration_cast<std::chrono::duration<double>>(A - B).count()
 #define TimerNow std::chrono::high_resolution_clock::now()
 #define TimerMin {} // indicating 1970/1/1 (00:00:00 UTC), DO NOT USE 'std::chrono::high_resolution_clock::time_point::min()'
-#define SETVISIBLEMASK(MASK, LAYERBITS, MASKBITS) MASK = (MASK & ~LAYERBITS) | (MASKBITS & LAYERBITS);
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250314_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250315_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -149,6 +148,8 @@ namespace vz
 		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
 
+		uint32_t visibleLayerMask_ = ~0u;
+
 		// TODO
 		// camera for reflection 
 
@@ -204,6 +205,12 @@ namespace vz
 			double duration = TimeDurationCount(timestamp2, timerStamp);
 			timerStamp = timestamp2;
 			return duration;
+		}
+
+		inline uint32_t GetVisibleLayerMask() const { return visibleLayerMask_; }
+		inline void SetVisibleLayerMask(const uint32_t visibleLayerMask) { visibleLayerMask_ = visibleLayerMask; timeStampSetter_ = TimerNow; }
+		inline void SetVisibleLayer(const bool visible, const uint32_t layerBits) {
+			visible ? visibleLayerMask_ |= layerBits : visibleLayerMask_ &= ~layerBits; timeStampSetter_ = TimerNow;
 		}
 
 		uint32_t mostImportantLightIndex = ~0u;
@@ -1219,7 +1226,9 @@ namespace vz
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
 
-		uint32_t visibleLayerMask_ = 0x7;
+		// Renderable's layer mask; 
+		// final visibility determined by bitwise AND with Scene's visibleLayerMask_ and CameraComponent's visibleLayerMask_
+		uint32_t visibleLayerMask_ = 0x1;	// will be checked against each CameraComponent's layer using bitwise AND
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
 
@@ -1270,7 +1279,10 @@ namespace vz
 		inline void SetGeometry(const Entity geometryEntity);
 		inline void SetMaterial(const Entity materialEntity, const size_t slot);
 		inline void SetMaterials(const std::vector<Entity>& materials);
-		inline void SetVisibleMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); timeStampSetter_ = TimerNow; }
+		inline void SetVisibleLayerMask(const uint32_t visibleLayerMask) { visibleLayerMask_ = visibleLayerMask; timeStampSetter_ = TimerNow; }
+		inline void SetVisibleLayer(const bool visible, const uint32_t layerBits) {
+			visible ? visibleLayerMask_ |= layerBits : visibleLayerMask_ &= ~layerBits; timeStampSetter_ = TimerNow;
+		}
 
 		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= RenderableFlags::CLIP_BOX : flags_ &= ~RenderableFlags::CLIP_BOX;
@@ -1295,8 +1307,8 @@ namespace vz
 		}
 		inline bool IsSlicerSolidFill() const { return !(flags_ & RenderableFlags::SLICER_NO_SOLID_FILL); };
 
-		inline bool IsVisibleWith(uint32_t visibleLayerMask) const { return visibleLayerMask & visibleLayerMask_; }
-		inline uint32_t GetVisibleMask() const { return visibleLayerMask_; }
+		inline bool IsVisibleWith(uint32_t layerBits) const { return layerBits & visibleLayerMask_; }
+		inline uint32_t GetVisibleLayerMask() const { return visibleLayerMask_; }
 		inline float GetFadeDistance() const { return fadeDistance_; }
 		inline float GetVisibleRadius() const { return visibleRadius_; }
 		inline XMFLOAT3 GetVisibleCenter() const { return visibleCenter_; }
@@ -1466,7 +1478,7 @@ namespace vz
 		float width_ = 0.0f;
 		float height_ = 0.0f;
 
-		uint8_t visibleLayerMask_ = ~0;
+		uint32_t visibleLayerMask_ = ~0u;
 		uint32_t flags_ = CamFlags::EMPTY;
 
 		DVR_TYPE dvrType_ = DVR_TYPE::DEFAULT;
@@ -1502,9 +1514,11 @@ namespace vz
 
 		inline void SetDirty() { isDirty_ = true; }
 		inline bool IsDirty() const { return isDirty_; }
-		inline uint8_t GetVisibleLayerMask() const { return visibleLayerMask_; }
-		inline void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits) { SETVISIBLEMASK(visibleLayerMask_, layerBits, maskBits); }
-
+		inline uint32_t GetVisibleLayerMask() const { return visibleLayerMask_; }
+		inline void SetVisibleLayerMask(const uint32_t visibleLayerMask) { visibleLayerMask_ = visibleLayerMask; timeStampSetter_ = TimerNow; }
+		inline void SetVisibleLayer(const bool visible, const uint32_t layerBits) {
+			visible ? visibleLayerMask_ |= layerBits : visibleLayerMask_ &= ~layerBits; timeStampSetter_ = TimerNow;
+		}
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
 		inline bool SetWorldLookAtFromHierarchyTransforms();
 		inline void SetWorldLookTo(const XMFLOAT3& eye, const XMFLOAT3& view, const XMFLOAT3& up) {

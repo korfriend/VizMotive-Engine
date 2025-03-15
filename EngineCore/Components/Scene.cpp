@@ -610,6 +610,7 @@ namespace vz
 			archive >> ambient_;
 			archive >> skyMapName_;
 			archive >> colorGradingMapName_;
+			archive >> visibleLayerMask_;
 
 			size_t num_renderables;
 			archive >> num_renderables;
@@ -641,6 +642,7 @@ namespace vz
 			archive << ambient_;
 			archive << skyMapName_;
 			archive << colorGradingMapName_;
+			archive << visibleLayerMask_;
 
 			archive << renderables_.size();
 			for (Entity entity : renderables_)

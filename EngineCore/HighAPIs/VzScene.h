@@ -11,6 +11,10 @@ namespace vzm
 		VzScene(const VID vid, const std::string& originFrom)
 			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::SCENE) {}
 
+		void SetVisibleLayerMask(const uint32_t visibleLayerMask);
+		void SetVisibleLayer(const bool visible, const uint32_t layerBits);
+		uint32_t GetVisibleLayerMask() const;
+
 		//std::vector<VID> GetSceneCompChildren();
 		//bool LoadIBL(const std::string& iblPath);
 		//float GetIBLIntensity();

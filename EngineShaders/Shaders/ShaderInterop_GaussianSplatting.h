@@ -41,10 +41,10 @@ struct GaussianPushConstants
 	uint timestamp;
 
 	// for radix sort updates
-	uint g_num_elements;
-	uint g_shift;
-	uint g_num_workgroups;
-	uint g_num_blocks_per_workgroup;
+	uint num_elements;
+	uint shift;
+	uint num_workgroups;
+	uint num_blocks_per_workgroup;
 };
 
 #endif // SHADERINTEROP_GS_H

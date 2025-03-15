@@ -13,11 +13,27 @@ namespace vzm
 #define GET_RENDERABLE_COMP(COMP, RET) RenderableComponent* COMP = compfactory::GetRenderableComponent(componentVID_); \
 	if (!COMP) {post("RenderableComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
-	void VzBaseActor::SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits)
+	void VzBaseActor::SetVisibleLayerMask(const uint32_t visibleLayerMask)
 	{
 		GET_RENDERABLE_COMP(renderable, );
-		renderable->SetVisibleMask(layerBits, maskBits);
+		renderable->SetVisibleLayerMask(visibleLayerMask);
 		UpdateTimeStamp();
+	}
+	void VzBaseActor::SetVisibleLayer(const bool visible, const uint32_t layerBits)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetVisibleLayer(visible, layerBits);
+		UpdateTimeStamp();
+	}
+	uint32_t VzBaseActor::GetVisibleLayerMask() const
+	{
+		GET_RENDERABLE_COMP(renderable, 0u);
+		return renderable->GetVisibleLayerMask();
+	}
+	bool VzBaseActor::IsVisibleWith(const uint32_t layerBits) const
+	{
+		GET_RENDERABLE_COMP(renderable, false);
+		return renderable->IsVisibleWith(layerBits);
 	}
 }
 
