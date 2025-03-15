@@ -49,7 +49,7 @@ namespace vz::renderer
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 			if (!renderable.IsMeshRenderable())
 				continue;
-			if (!(viewMain.camera->GetVisibleLayerMask() & renderable.GetVisibleMask()))
+			if (!renderable.IsVisibleWith(viewMain.camera->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
@@ -84,7 +84,6 @@ namespace vz::renderer
 		// JUST SINGLE DRAWING for MULTIPLE VOLUMES
 		const RenderBatch& batch = renderQueue.batches[0];
 		{
-			
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
@@ -94,10 +93,8 @@ namespace vz::renderer
 			assert(material);
 
 			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[geometry_index];
-
-			GaussianPushConstants gaussian_push;
-			//GaussianSortConstants gaussian_sort; // timestamp and gaussian_Vertex_Attributes_index; test210
-			//GaussianRadixConstants gaussian_radix;
+			GPrimBuffers* gprim_buffer = geometry.GetGPrimBuffer(0);
+			const Primitive* primitive = geometry.GetPrimitive(0);
 
 			UINT width = rtMain.desc.width;
 			UINT height = rtMain.desc.height;
@@ -105,13 +102,70 @@ namespace vz::renderer
 			UINT tileX = (width + 16 - 1) / 16;
 			UINT tileY = (height + 16 - 1) / 16;
 
+
+			GGeometryComponent::GaussianSplattingBuffers& gsplat_buffers = gprim_buffer->gaussianSplattingBuffers;
+			GaussianPushConstants gsplat_push;
+			// ------ preprocess -----
+
+			device->BindUAV(&rtMain, 0, cmd);
+			device->BindUAV(&gsplat_buffers.touchedTiles_0, 1, cmd);			// touched tiles count 
+			device->BindUAV(&gsplat_buffers.gaussianKernelAttributes, 2, cmd);  // vertex attributes
+
+			// Initial to UAV
+			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.touchedTiles_0, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
+			barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianKernelAttributes, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
+
+			BarrierStackFlush(cmd);
+
+			uint num_gaussians = primitive->GetNumVertices();
+			gsplat_push.instanceIndex = batch.instanceIndex;
+
+			int threads_per_group = 256;
+			int num_groups = (num_gaussians + threads_per_group - 1) / threads_per_group; // num_groups
+
+			// preprocess and calculate touched tiles count
+			device->BindComputeShader(&shaders[CSTYPE_GAUSSIANSPLATTING_PREPROCESS], cmd);
+			device->PushConstants(&gsplat_push, sizeof(GaussianPushConstants), cmd);
+			device->Dispatch(
+				num_groups,
+				1,
+				1,
+				cmd
+			);
+
+			device->BindUAV(&unbind, 0, cmd);
+			device->BindUAV(&unbind, 1, cmd);
+			device->BindUAV(&unbind, 2, cmd);
+
+			{
+				barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
+				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::UNDEFINED));
+				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianKernelAttributes, ResourceState::UNORDERED_ACCESS, ResourceState::UNDEFINED));
+				BarrierStackFlush(cmd);
+			}
+
+
+
+
+			// end preprocess here
+
+			// copy touched tiles count to offset tiles
+			//{
+			//	GPUBarrier barriers[] =
+			//	{
+			//		GPUBarrier::Buffer(&gsplat_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
+			//		GPUBarrier::Buffer(&gsplat_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)
+			//	};
+			//	device->Barrier(barriers, _countof(barriers), cmd);
+			//}
+
+
 			//GaussianSplattingInstance
 			//gaussian_sort.tileX = tileX;
 			//gaussian_sort.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
 			//gaussian_push.num_gaussians = geometry.GetPrimitive(0)->GetNumVertices();
-
-			GGeometryComponent::GaussianSplattingBuffers& gs_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
-
+			// 
 			// test vertex attrs
 			//{
 			//	gaussian_sort.gaussian_vertex_attributes_index = device->GetDescriptorIndex(&gs_buffers.gaussianKernelAttributes, SubresourceType::UAV);
@@ -149,56 +203,7 @@ namespace vz::renderer
 			//	gaussian_push.readBackBufferTest_index = device->GetDescriptorIndex(&gs_buffers.readBackBufferTest, SubresourceType::UAV);
 			//}
 
-			// preprocess
-			if (rtMain.IsValid())
-			{
-				device->BindUAV(&rtMain, 0, cmd);
-				device->BindUAV(&gs_buffers.touchedTiles_0, 1, cmd);			// touched tiles count 
-				device->BindUAV(&gs_buffers.gaussianKernelAttributes, 2, cmd);  // vertex attributes
-			}
-			else
-			{
-				device->BindUAV(&unbind, 0, cmd);
-				device->BindUAV(&unbind, 1, cmd);
-				device->BindUAV(&unbind, 2, cmd);
-			}
-
-			// SRV to UAV
-			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-			barrierStack.push_back(GPUBarrier::Buffer(&gs_buffers.gaussianKernelAttributes, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
-
-			BarrierStackFlush(cmd);
-
-			uint numGaussians = geometry.GetPrimitive(0)->GetNumVertices();
-
-			int threads_per_group = 256;
-			int numGroups = (numGaussians + threads_per_group - 1) / threads_per_group; // num_groups
-
-			// preprocess and calculate touched tiles count
-			device->BindComputeShader(&shaders[CSTYPE_GS_PREPROCESS], cmd);
-			device->PushConstants(&gaussian_push, sizeof(GaussianPushConstants), cmd);
-			device->Dispatch(
-				numGroups,
-				1,
-				1,
-				cmd
-			);
-
-			device->BindUAV(&unbind, 0, cmd);
-			device->BindUAV(&unbind, 1, cmd);
-			device->BindUAV(&unbind, 2, cmd);
-			// end preprocess here
-		
-			// copy touched tiles count to offset tiles
-			{
-				GPUBarrier barriers[] =
-				{
-					GPUBarrier::Buffer(&gs_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
-					GPUBarrier::Buffer(&gs_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)
-				};
-				device->Barrier(barriers, _countof(barriers), cmd);
-			}
+			
 
 			/*
 			device->CopyBuffer(
