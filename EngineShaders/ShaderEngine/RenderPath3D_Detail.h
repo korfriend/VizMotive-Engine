@@ -410,6 +410,8 @@ namespace vz::renderer
 		}
 		void DrawLines(const CameraComponent& camera, CommandList cmd, bool clearEnabled = true);
 
+		void AddPrimitivePart(const GeometryComponent::Primitive& part, const XMFLOAT4& baseColor, const XMFLOAT4X4& world);
+
 		void Clear()
 		{
 			// *this = RenderableShapeCollection(); // not recommend this due to inefficient memory footprint

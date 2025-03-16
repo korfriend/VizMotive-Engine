@@ -1633,81 +1633,81 @@ namespace vz::geogen
 
 		// New method to generate hemispherical caps for the tube ends
 		void generateHemisphereCaps() {
-			// 메쉬 버퍼 참조
+			// Reference to mesh buffers
 			std::vector<XMFLOAT3>& positions = primitive.GetMutableVtxPositions();
 			std::vector<XMFLOAT3>& vertexNormals = primitive.GetMutableVtxNormals();
 			std::vector<XMFLOAT2>& uvs = primitive.GetMutableVtxUVSet0();
 			std::vector<uint32_t>& indices = primitive.GetMutableIdxPrimives();
 
-			// 시작 캡과 끝 캡에 대해 반복
+			// Iterate for start cap and end cap
 			for (uint32_t capIndex = 0; capIndex < 2; capIndex++) {
-				// 캡 위치 및 접선 계산
+				// Calculate cap position and tangent
 				XMFLOAT3 centerPoint;
 				XMFLOAT3 tangent;
 				if (capIndex == 0) {
-					// 시작 캡 (u = 0)
+					// Start cap (u = 0)
 					path->GetPointAt(0.0f, centerPoint);
 					path->GetTangentAt(0.0f, tangent);
 				}
 				else {
-					// 끝 캡 (u = 1): 외향을 위해 접선 반전
+					// End cap (u = 1): Invert tangent for outward orientation
 					path->GetPointAt(1.0f, centerPoint);
 					path->GetTangentAt(1.0f, tangent);
 					tangent.x = -tangent.x;
 					tangent.y = -tangent.y;
 					tangent.z = -tangent.z;
 				}
-				// 접선을 정규화
+				// Normalize tangent
 				XMVECTOR vTangent = XMLoadFloat3(&tangent);
 				vTangent = XMVector3Normalize(vTangent);
 				XMStoreFloat3(&tangent, vTangent);
 
-				// 튜브 프레임: N(노말), B(바이노말)
+				// Tube frame: N(normal), B(binormal)
 				const XMFLOAT3& N = normals[capIndex == 0 ? 0 : tubularSegments];
 				const XMFLOAT3& B = binormals[capIndex == 0 ? 0 : tubularSegments];
 
-				// hemisphere 세분화 파라미터 (수직: stacks, 수평: slices)
-				uint32_t stacks = radialSegments;  // 0: apex, stacks: 리ム
-				uint32_t slices = radialSegments;  // 0 ~ slices: 360도 분할
+				// Hemisphere subdivision parameters (vertical: stacks, horizontal: slices)
+				uint32_t stacks = radialSegments;  // 0: apex, stacks: rim
+				uint32_t slices = radialSegments;  // 0 ~ slices: 360 degree division
 
-				// 현재 캡 정점 시작 인덱스
+				// Current cap vertex start index
 				uint32_t startVertexIndex = static_cast<uint32_t>(positions.size());
 
-				// === 정점 생성 ===
-				// r == 0: apex – 기존 tangent 방향 대신 반대로 설정
-				// r == 1 ~ stacks: 각 링 정점 (구의 좌표 계산 시 tangent 항의 부호를 반전)
+				// === Vertex Generation ===
+				// r == 0: apex - set in opposite direction to existing tangent
+				// r == 1 ~ stacks: vertices for each ring (invert the sign of tangent term when calculating sphere coordinates)
 				for (uint32_t r = 0; r <= stacks; r++) {
-					// theta: 0 (apex) ~ π/2 (리ム)
+					// theta: 0 (apex) ~ π/2 (rim)
 					float theta = (float)r / (float)stacks * XM_PIDIV2;
 					float sinTheta = sin(theta);
 					float cosTheta = cos(theta);
 
 					if (r == 0) {
-						// apex: 구의 방향을 반대로 -> centerPoint - radius * tangent
+						// apex: reverse sphere direction -> centerPoint - radius * tangent
 						XMFLOAT3 offset = { -tangent.x * radius, -tangent.y * radius, -tangent.z * radius };
 						XMFLOAT3 pos = { centerPoint.x + offset.x, centerPoint.y + offset.y, centerPoint.z + offset.z };
 						positions.push_back(pos);
 
-						// 법선: offset을 정규화
+						// Normal: normalize offset
 						XMVECTOR vOff = XMLoadFloat3(&offset);
 						vOff = XMVector3Normalize(vOff);
 						XMFLOAT3 norm;
 						XMStoreFloat3(&norm, vOff);
 						vertexNormals.push_back(norm);
 
-						// UV: apex의 UV (필요에 따라 수정)
+						// UV: UV for apex (modify as needed)
 						uvs.push_back(XMFLOAT2(0.5f, 0.0f));
 					}
 					else {
-						// r > 0: 각 링의 정점 생성 (phi: 0~2π)
+						// r > 0: Generate vertices for each ring (phi: 0~2π)
 						for (uint32_t slice = 0; slice <= slices; slice++) {
 							float phi = (float)slice / (float)slices * 2.0f * math::PI;
 							float cosPhi = cos(phi);
 							float sinPhi = sin(phi);
 
-							// 원래 공식: 
+							// Original formula: 
 							// offset = radius * ( sinTheta*cosPhi * N + sinTheta*sinPhi * B + cosTheta * tangent )
-							// 여기서는 구의 방향 반전을 위해 tangent 항의 부호를 뒤집음
+							// Here, we flip the sign of the tangent term to invert the sphere direction
 							XMFLOAT3 offset;
 							offset.x = radius * (sinTheta * cosPhi * N.x + sinTheta * sinPhi * B.x - cosTheta * tangent.x);
 							offset.y = radius * (sinTheta * cosPhi * N.y + sinTheta * sinPhi * B.y - cosTheta * tangent.y);
@@ -1716,14 +1716,14 @@ namespace vz::geogen
 							XMFLOAT3 pos = { centerPoint.x + offset.x, centerPoint.y + offset.y, centerPoint.z + offset.z };
 							positions.push_back(pos);
 
-							// 법선 계산: offset을 정규화
+							// Calculate normal: normalize offset
 							XMVECTOR vOff = XMLoadFloat3(&offset);
 							vOff = XMVector3Normalize(vOff);
 							XMFLOAT3 norm;
 							XMStoreFloat3(&norm, vOff);
 							vertexNormals.push_back(norm);
 
-							// 간단한 구면 UV 매핑
+							// Simple spherical UV mapping
 							float u = phi / (2.0f * math::PI);
 							float v = theta / XM_PIDIV2;
 							uvs.push_back(XMFLOAT2(u, v));
@@ -1731,34 +1731,34 @@ namespace vz::geogen
 					}
 				}
 
-				// === 인덱스 생성 ===
-				// 첫번째: apex와 첫 링 사이의 삼각팬 생성
+				// === Index Generation ===
+				// First: Create triangle fan between apex and first ring
 				uint32_t apexIndex = startVertexIndex;       // r = 0
-				uint32_t firstRingStart = startVertexIndex + 1;  // r = 1 시작 인덱스
+				uint32_t firstRingStart = startVertexIndex + 1;  // r = 1 start index
 
-				// RHS에 맞게 winding order 조정
+				// Adjust winding order to match RHS
 				for (uint32_t slice = 0; slice < slices; slice++) {
 					if (capIndex == 0) {
-						// 시작 캡: 원래 winding order를 반전시킴
+						// Start cap: reverse original winding order
 						indices.push_back(apexIndex);
 						indices.push_back(firstRingStart + slice + 1);
 						indices.push_back(firstRingStart + slice);
 					}
 					else {
-						// 끝 캡: 반대 winding order
+						// End cap: opposite winding order
 						indices.push_back(apexIndex);
 						indices.push_back(firstRingStart + slice);
 						indices.push_back(firstRingStart + slice + 1);
 					}
 				}
 
-				// 두번째: 인접 링들을 쿼드(두 삼각형)로 연결
+				// Second: Connect adjacent rings with quads (two triangles)
 				for (uint32_t r = 1; r < stacks; r++) {
 					uint32_t ringStart = startVertexIndex + 1 + (r - 1) * (slices + 1);
 					uint32_t nextRingStart = ringStart + (slices + 1);
 					for (uint32_t slice = 0; slice < slices; slice++) {
 						if (capIndex == 0) {
-							// 시작 캡: winding order 반전
+							// Start cap: reverse winding order
 							indices.push_back(ringStart + slice);
 							indices.push_back(ringStart + slice + 1);
 							indices.push_back(nextRingStart + slice);
@@ -1768,7 +1768,7 @@ namespace vz::geogen
 							indices.push_back(nextRingStart + slice);
 						}
 						else {
-							// 끝 캡: 반대 winding order
+							// End cap: opposite winding order
 							indices.push_back(ringStart + slice);
 							indices.push_back(nextRingStart + slice);
 							indices.push_back(ringStart + slice + 1);
@@ -1781,8 +1781,6 @@ namespace vz::geogen
 				}
 			}
 		}
-
-
 
 		// Compute the Frenet frames for the tube
 		FrenetFrames computeFrenetFrames(uint32_t segments, bool closed) {

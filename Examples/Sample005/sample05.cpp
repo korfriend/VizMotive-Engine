@@ -102,6 +102,8 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 void treeNode(const VID vid, const VID vidSelected) {
 	vzm::VzSceneComp* component = (vzm::VzSceneComp*)vzm::GetComponent(vid);
+	if (component == nullptr)
+		return;
 	std::string comp_name = component->GetName();
 	if (comp_name.empty())
 	{
@@ -145,7 +147,7 @@ void treeNode(const VID vid, const VID vidSelected) {
 			ImGui::SameLine();
 			vzm::VzActor* actor = (vzm::VzActor*)component;
 			bool visible = actor->IsVisibleWith(0x1);
-			if (ImGui::Checkbox("", &visible))
+			if (ImGui::Checkbox(" ", &visible))
 			{
 				actor->SetVisibleLayer(visible, 0x1);
 			}
@@ -866,7 +868,7 @@ int main(int, char**)
 				}
 
 				ImGui::Separator();
-				const std::vector<VID>& root_children = scene->GetChildrenVIDs();
+				const std::vector<VID> root_children = scene->GetChildrenVIDs();
 				static VID selected_vid = 0u;
 				for (auto vid_root : root_children)
 				{
