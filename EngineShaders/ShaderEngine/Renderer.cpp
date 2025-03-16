@@ -25,6 +25,8 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::UpdateProcess(const float dt)
 	{
+		renderableShapes.Clear();
+
 		// Frustum culling for main camera:l,k
 		viewMain.layerMask = ~0;
 		viewMain.scene = scene;
@@ -416,8 +418,10 @@ namespace vz::renderer
 					return;
 				GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[instancedBatch.geometryIndex];
 
-				if (!geometry.HasRenderData())
-					return;
+				//if (!geometry.HasRenderData())
+				//{
+				//	return;
+				//}
 
 				GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instancedBatch.renderableIndex];
 
@@ -442,15 +446,20 @@ namespace vz::renderer
 				for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 				{
 					const Primitive& part = parts[part_index];
-					if (!part.HasRenderData())
-					{
-						continue;
-					}
-					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGPrimBuffer(part_index);
-
 					uint32_t material_index = instancedBatch.materialIndices[part_index];
 					const GMaterialComponent& material = *scene_Gdetails->materialComponents[material_index];
 
+					if (!part.HasRenderData())
+					{
+						if (renderPass == RENDERPASS_MAIN)
+						{
+							XMFLOAT4X4 world_matrix = scene->GetRenderableWorldMatrices()[instancedBatch.renderableIndex];
+							renderableShapes.AddPrimitivePart(part, material.GetBaseColor(), world_matrix);
+						}
+						continue;
+					}
+
+					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGPrimBuffer(part_index);
 					
 					if (material.GetAlphaRef() < 1)
 					{
@@ -1753,8 +1762,9 @@ namespace vz::renderer
 			}
 
 			//RenderOutline(cmd);
-			GSceneDetails* scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
-			scene_Gdetails->renderableShapes.DrawLines(*camera, cmd, false);
+			//GSceneDetails* scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
+			//scene_Gdetails->renderableShapes.DrawLines(*camera, cmd, false);
+			renderableShapes.DrawLines(*camera, cmd, false);
 
 			device->RenderPassEnd(cmd);
 

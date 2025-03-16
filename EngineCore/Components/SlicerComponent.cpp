@@ -1,4 +1,4 @@
-#include "GComponents.h"
+﻿#include "GComponents.h"
 #include "GBackend/GModuleLoader.h" // deferred task for streaming
 #include "Utils/Backlog.h"
 #include "Utils/Color.h"
@@ -338,6 +338,19 @@ namespace vz
 
 		// Panorama Plane
 		{
+			vector<XMFLOAT3> pos_lines = primitive_lines.GetMutableVtxPositions();
+			pos_lines.resize(num_pts * 2);
+			// outline
+			{
+				for (size_t i = 0, n = num_pts; i < n; ++i)
+				{
+					XMStoreFloat3(&pos_lines[i], XMLoadFloat3(&pos_curve_pts[i]) + vec_up * curve_plane_height * 0.5f);
+					XMStoreFloat3(&pos_lines[i + num_pts], XMLoadFloat3(&pos_curve_pts[i]) - vec_up * curve_plane_height * 0.5f);
+				}
+			}
+
+
+
 			primitive_panoplane.SetPrimitiveType(PrimitiveType::TRIANGLES);
 			vector<XMFLOAT3>& pos_panoplane = primitive_panoplane.GetMutableVtxPositions();
 			vector<XMFLOAT3>& nrl_panoplane = primitive_panoplane.GetMutableVtxNormals();
@@ -347,7 +360,8 @@ namespace vz
 			idx_panoplane.resize(((num_pts - 1) * 2) * 3);
 			primitive_panoplane.SetAABB(primitive_lines.GetAABB());
 
-			memcpy(pos_panoplane.data(), primitive_lines.GetVtxPositions().data(), sizeof(XMFLOAT3)* pos_panoplane.size());
+			//memcpy(pos_panoplane.data(), primitive_lines.GetVtxPositions().data(), sizeof(XMFLOAT3)* pos_panoplane.size());
+			memcpy(pos_panoplane.data(), pos_lines.data(), sizeof(XMFLOAT3)* pos_panoplane.size());
 
 			for (size_t i = 0, n = num_pts; i < n - 1; ++i)
 			{
