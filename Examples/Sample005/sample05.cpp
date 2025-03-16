@@ -100,6 +100,70 @@ void WaitForLastSubmittedFrame();
 FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+void treeNode(const VID vid, const VID vidSelected) {
+	vzm::VzSceneComp* component = (vzm::VzSceneComp*)vzm::GetComponent(vid);
+	std::string comp_name = component->GetName();
+	if (comp_name.empty())
+	{
+		comp_name = "-";
+	}
+	else
+	{
+		switch (component->GetType())
+		{
+		case vzm::COMPONENT_TYPE::ACTOR: comp_name = "[A] " + comp_name; break;
+		case vzm::COMPONENT_TYPE::CAMERA: comp_name = "[C] " + comp_name; break;
+		case vzm::COMPONENT_TYPE::SLICER: comp_name = "[S] " + comp_name; break;
+		case vzm::COMPONENT_TYPE::LIGHT: comp_name = "[L] " + comp_name; break;
+		default: assert(0);
+		}
+	}
+
+	static std::set<VID> pickedParents;
+
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
+	if (vidSelected == vid) 
+	{
+		flags |= ImGuiTreeNodeFlags_Selected;
+	}
+	if (component->GetChildren().size() == 0) 
+	{
+		flags |= ImGuiTreeNodeFlags_Leaf;
+	}
+	if (pickedParents.find(vid) != pickedParents.end()) 
+	{
+		ImGui::SetNextItemOpen(true);
+	}
+
+	if (ImGui::TreeNodeEx((const void*)vid, flags, "%s", comp_name.c_str())) {
+		if (ImGui::IsItemClicked()) 
+		{
+			//setCurrentVID(id);
+		}
+		if (component->GetType() == vzm::COMPONENT_TYPE::ACTOR)
+		{
+			ImGui::SameLine();
+			vzm::VzActor* actor = (vzm::VzActor*)component;
+			bool visible = actor->IsVisibleWith(0x1);
+			if (ImGui::Checkbox("", &visible))
+			{
+				actor->SetVisibleLayer(visible, 0x1);
+			}
+		}
+		std::vector<VID> children = component->GetChildren();
+		for (auto child_vid : children) {
+			treeNode(child_vid, vidSelected);
+		}
+		ImGui::TreePop();
+	}
+	else {
+		if (ImGui::IsItemClicked()) 
+		{
+			//setCurrentVID(id);
+		}
+	}
+};
+
 // Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
 void EnableDpiAwareness()
 {
@@ -801,23 +865,32 @@ int main(int, char**)
 					vzm::ReloadShader();
 				}
 
-				static bool visible_implant1 = true, visible_panohalper = true, visible_volume = true;
-				if (ImGui::Checkbox("Green Implant Visible", &visible_implant1))
+				ImGui::Separator();
+				const std::vector<VID>& root_children = scene->GetChildrenVIDs();
+				static VID selected_vid = 0u;
+				for (auto vid_root : root_children)
 				{
-					vzm::VzActor* actor_test5 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor5");
-					actor_test5->SetVisibleLayer(visible_implant1, 0x1);
+					treeNode(vid_root, selected_vid);
+				}
+				ImGui::Separator();
 
-				}
-				if (ImGui::Checkbox("Pano Halper Visible", &visible_panohalper))
-				{
-					vzm::VzActor* actor_cslicer_helper = (vzm::VzActor*)vzm::GetFirstComponentByName("actor: geometry helper for curved slicer");
-					actor_cslicer_helper->SetVisibleLayer(visible_panohalper, 0x1);
-				}
-				if (ImGui::Checkbox("Volue Visible", &visible_volume))
-				{
-					vzm::VzActor* volume_actor = (vzm::VzActor*)vzm::GetFirstComponentByName("my volume actor");
-					volume_actor->SetVisibleLayer(visible_volume, 0x1);
-				}
+				//static bool visible_implant1 = true, visible_panohalper = true, visible_volume = true;
+				//if (ImGui::Checkbox("Green Implant Visible", &visible_implant1))
+				//{
+				//	vzm::VzActor* actor_test5 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor5");
+				//	actor_test5->SetVisibleLayer(visible_implant1, 0x1);
+				//
+				//}
+				//if (ImGui::Checkbox("Pano Halper Visible", &visible_panohalper))
+				//{
+				//	vzm::VzActor* actor_cslicer_helper = (vzm::VzActor*)vzm::GetFirstComponentByName("actor: geometry helper for curved slicer");
+				//	actor_cslicer_helper->SetVisibleLayer(visible_panohalper, 0x1);
+				//}
+				//if (ImGui::Checkbox("Volue Visible", &visible_volume))
+				//{
+				//	vzm::VzActor* volume_actor = (vzm::VzActor*)vzm::GetFirstComponentByName("my volume actor");
+				//	volume_actor->SetVisibleLayer(visible_volume, 0x1);
+				//}
 				ImGui::Checkbox("Use Render Chain", &use_renderchain);
 
 				ImGui::SliderFloat("OTF Slider", &curOtfValue, 0.f, 250.f);

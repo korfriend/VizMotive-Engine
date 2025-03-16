@@ -70,6 +70,8 @@ namespace vz
 			//}
 			stableCount_ = 0;
 		}
+
+		handlerRenderPath3D_->stableCount = stableCount_;
 	}
 
 	RenderPath3D::RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
