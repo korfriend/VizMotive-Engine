@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250315_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250317_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -147,17 +147,24 @@ namespace vz
 		//	the index is same to the streaming index
 		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
-
-		uint32_t visibleLayerMask_ = ~0u;
+		std::vector<Entity> cameras_;
 
 		// TODO
 		// camera for reflection 
 
 		// -----------------------------------------
 		// Non-serialized attributes:
-		//	Note: transform states are based on those streams
-		std::unordered_map<Entity, size_t> lookupRenderables_; // each entity has also TransformComponent and HierarchyComponent
+		//	Note: 
+		//		* transform states are based on those streams
+		//		* each entity has also TransformComponent and HierarchyComponent
+		//	index-map
+		std::unordered_map<Entity, size_t> lookupRenderables_;
 		std::unordered_map<Entity, size_t> lookupLights_;
+		std::unordered_map<Entity, size_t> lookupCameras_;
+
+		std::vector<Entity> children_;
+		std::unordered_map<Entity, size_t> lookupChildren_;
+
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
 
@@ -178,7 +185,6 @@ namespace vz
 
 		Entity entity_ = INVALID_ENTITY;
 
-		// Non-serialized attributes:
 		// instant parameters during render-process
 		float dt_ = 0.f;
 		float deltaTimeAccumulator_ = 0.f;
@@ -187,6 +193,8 @@ namespace vz
 		TimeStamp timeStampSetter_ = TimerMin;	// add or remove scene components
 
 		GScene* handlerScene_ = nullptr;
+
+		inline void updateChildren() noexcept;
 
 		inline size_t scanGeometryEntities() noexcept;
 		inline size_t scanMaterialEntities() noexcept;
@@ -205,12 +213,6 @@ namespace vz
 			double duration = TimeDurationCount(timestamp2, timerStamp);
 			timerStamp = timestamp2;
 			return duration;
-		}
-
-		inline uint32_t GetVisibleLayerMask() const { return visibleLayerMask_; }
-		inline void SetVisibleLayerMask(const uint32_t visibleLayerMask) { visibleLayerMask_ = visibleLayerMask; timeStampSetter_ = TimerNow; }
-		inline void SetVisibleLayer(const bool visible, const uint32_t layerBits) {
-			visible ? visibleLayerMask_ |= layerBits : visibleLayerMask_ &= ~layerBits; timeStampSetter_ = TimerNow;
 		}
 
 		uint32_t mostImportantLightIndex = ~0u;
@@ -283,6 +285,9 @@ namespace vz
 
 		inline const std::vector<Entity>& GetRenderableEntities() const noexcept { return renderables_; }
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
+		inline const std::vector<Entity>& GetCameraEntities() const noexcept { return cameras_; }
+
+		inline const std::vector<Entity>& GetChildrenEntities() const noexcept { return children_; }
 
 		// requires scanning process
 		inline std::vector<Entity> GetGeometryEntities() const noexcept { return geometries_; }
@@ -341,7 +346,7 @@ namespace vz
 
 
 		/**
-		 * Read/write scene components (renderables and lights), make sure their VUID-based components are serialized first
+		 * Read/write scene components (renderables, lights and Scene-attached cameras), make sure their VUID-based components are serialized first
 		 */
 		inline void Serialize(vz::Archive& archive);
 	};
@@ -1227,7 +1232,7 @@ namespace vz
 		uint32_t flags_ = RenderableFlags::EMPTY;
 
 		// Renderable's layer mask; 
-		// final visibility determined by bitwise AND with Scene's visibleLayerMask_ and CameraComponent's visibleLayerMask_
+		// final visibility determined by bitwise AND with target visibleLayerMask_ (e.g., CameraComponent::visibleLayerMask_)
 		uint32_t visibleLayerMask_ = 0x1;	// will be checked against each CameraComponent's layer using bitwise AND
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
