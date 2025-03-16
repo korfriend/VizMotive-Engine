@@ -543,6 +543,7 @@ namespace vz
 		GCameraInterface(Entity cameraEntity) : cameraEntity_(cameraEntity) {}
 
 		// temporal attributes for picking process 
+		// WILL BE DEPRECATED!!
 		bool isPickingMode = false;
 		PickingIO pickingIO;
 	};

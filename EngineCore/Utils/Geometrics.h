@@ -193,13 +193,13 @@ namespace vz::geometrics
 		inline bool intersects(const AABB& b) const;
 		inline bool intersects(const Sphere& b) const;
 		inline bool intersects(const Sphere& b, float& dist) const;
-		inline bool intersects(const Sphere& b, float& dist, XMFLOAT3& direction) const;
+		inline bool intersects(const Sphere& b, float& dist, XMFLOAT3& direction2Intersect) const;
 		inline bool intersects(const Capsule& b) const;
 		inline bool intersects(const Capsule& b, float& dist) const;
-		inline bool intersects(const Capsule& b, float& dist, XMFLOAT3& direction) const;
+		inline bool intersects(const Capsule& b, float& dist, XMFLOAT3& direction2Intersect) const;
 		inline bool intersects(const Plane& b) const;
 		inline bool intersects(const Plane& b, float& dist) const;
-		inline bool intersects(const Plane& b, float& dist, XMFLOAT3& direction) const;
+		inline bool intersects(const Plane& b, float& dist, XMFLOAT3& direction2Intersect) const;
 
 		inline void CreateFromPoints(const XMFLOAT3& a, const XMFLOAT3& b);
 
@@ -936,9 +936,9 @@ namespace vz::geometrics
 		bool intersects = b.intersects(*this, dist);
 		return intersects;
 	}
-	bool Ray::intersects(const Sphere& b, float& dist, XMFLOAT3& direction) const
+	bool Ray::intersects(const Sphere& b, float& dist, XMFLOAT3& direction2Intersect) const
 	{
-		bool intersects = b.intersects(*this, dist, direction);
+		bool intersects = b.intersects(*this, dist, direction2Intersect);
 		return intersects;
 	}
 	bool Ray::intersects(const Capsule& b) const
@@ -950,9 +950,9 @@ namespace vz::geometrics
 		bool intersects = b.intersects(*this, dist);
 		return intersects;
 	}
-	bool Ray::intersects(const Capsule& b, float& dist, XMFLOAT3& direction) const
+	bool Ray::intersects(const Capsule& b, float& dist, XMFLOAT3& direction2Intersect) const
 	{
-		bool intersects = b.intersects(*this, dist, direction);
+		bool intersects = b.intersects(*this, dist, direction2Intersect);
 		return intersects;
 	}
 	bool Ray::intersects(const Plane& b) const
@@ -963,9 +963,9 @@ namespace vz::geometrics
 	{
 		return b.intersects(*this, dist);
 	}
-	bool Ray::intersects(const Plane& b, float& dist, XMFLOAT3& direction) const
+	bool Ray::intersects(const Plane& b, float& dist, XMFLOAT3& direction2Intersect) const
 	{
-		return b.intersects(*this, dist, direction);
+		return b.intersects(*this, dist, direction2Intersect);
 	}
 	void Ray::CreateFromPoints(const XMFLOAT3& a, const XMFLOAT3& b)
 	{
@@ -1375,7 +1375,7 @@ namespace vz::geometrics
 
 			// abort split if one of the sides is empty
 			int leftCount = i - node.offset;
-			if (leftCount == 0 || leftCount == node.count)
+			if (leftCount == 0 || leftCount == (int)node.count)
 				return;
 
 			// create child nodes

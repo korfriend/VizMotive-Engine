@@ -41,7 +41,7 @@ namespace vz
 
 	struct GRenderPath3D : GRenderPath2D
 	{
-		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250313";
+		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250317";
 		// this will be a component of vz::RenderPath3D
 
 		enum class Tonemap
@@ -74,6 +74,7 @@ namespace vz
 		XMFLOAT4X4 matToScreenInv = math::IDENTITY_MATRIX;
 		Tonemap tonemap = Tonemap::ACES;
 		graphics::Viewport viewport;
+		size_t stableCount = 0;
 
 		virtual bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) override = 0; // must delete all canvas-related resources and re-create
 		virtual bool Render(const float dt) = 0; 

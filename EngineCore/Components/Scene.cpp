@@ -332,25 +332,45 @@ namespace vz
 
 	void Scene::AddEntity(const Entity entity)
 	{
+		bool is_attached = false;
 		if (compfactory::ContainRenderableComponent(entity))
 		{
 			if (lookupRenderables_.count(entity) == 0)
-			//if (!lookupRenderables_.contains(entity))
 			{
 				lookupRenderables_[entity] = renderables_.size();
 				renderables_.push_back(entity);
-				timeStampSetter_ = TimerNow;
+				is_attached = true;
 			}
 		}
-		if (compfactory::ContainLightComponent(entity))
+		else if (compfactory::ContainLightComponent(entity))
 		{
 			if (lookupLights_.count(entity) == 0)
-			//if (!lookupLights_.contains(entity))
 			{
 				lookupLights_[entity] = renderables_.size();
 				lights_.push_back(entity);
-				timeStampSetter_ = TimerNow;
+				is_attached = true;
 			}
+		}
+		else if (compfactory::ContainCameraComponent(entity))
+		{
+			if (lookupCameras_.count(entity) == 0)
+			{
+				lookupCameras_[entity] = cameras_.size();
+				cameras_.push_back(entity);
+				is_attached = true;
+			}
+		}
+
+		if (is_attached)
+		{
+			HierarchyComponent* hierarchy = compfactory::GetHierarchyComponent(entity);
+			assert(hierarchy);
+			if (hierarchy->GetParent() == INVALID_VUID)
+			{
+				lookupChildren_[entity] = children_.size();
+				children_.push_back(entity);
+			}
+			timeStampSetter_ = TimerNow;
 		}
 	}
 	
@@ -384,6 +404,10 @@ namespace vz
 
 		remove_entity(lookupRenderables_, renderables_, entity);
 		remove_entity(lookupLights_, lights_, entity);
+		remove_entity(lookupCameras_, cameras_, entity);
+
+		remove_entity(lookupChildren_, children_, entity);
+
 		timeStampSetter_ = TimerNow;
 	}
 
@@ -429,9 +453,14 @@ namespace vz
 		return materials_.size();
 	}
 
+	void Scene::updateChildren() noexcept
+	{
+
+	}
+
 	bool Scene::HasEntity(const Entity entity) const noexcept
 	{
-		return lookupLights_.count(entity) > 0 || lookupRenderables_.count(entity) > 0;
+		return lookupLights_.count(entity) > 0 || lookupRenderables_.count(entity) > 0 || lookupCameras_.count(entity) > 0;
 		//return lookupLights_.contains(entity) || lookupRenderables_.contains(entity);
 	}
 
@@ -610,7 +639,6 @@ namespace vz
 			archive >> ambient_;
 			archive >> skyMapName_;
 			archive >> colorGradingMapName_;
-			archive >> visibleLayerMask_;
 
 			size_t num_renderables;
 			archive >> num_renderables;
@@ -633,6 +661,17 @@ namespace vz
 				assert(compfactory::ContainLightComponent(entity));
 				AddEntity(entity);
 			}
+
+			size_t num_cameras;
+			archive >> num_cameras;
+			for (size_t i = 0; i < num_cameras; ++i)
+			{
+				VUID vuid;
+				archive >> vuid;
+				Entity entity = compfactory::GetEntityByVUID(vuid);
+				assert(compfactory::ContainCameraComponent(entity));
+				AddEntity(entity);
+			}
 		}
 		else
 		{
@@ -642,7 +681,6 @@ namespace vz
 			archive << ambient_;
 			archive << skyMapName_;
 			archive << colorGradingMapName_;
-			archive << visibleLayerMask_;
 
 			archive << renderables_.size();
 			for (Entity entity : renderables_)
@@ -655,6 +693,13 @@ namespace vz
 			for (Entity entity : lights_)
 			{
 				LightComponent* comp = compfactory::GetLightComponent(entity);
+				assert(comp);
+				archive << comp->GetVUID();
+			}
+			archive << cameras_.size();
+			for (Entity entity : cameras_)
+			{
+				CameraComponent* comp = compfactory::GetCameraComponent(entity);
 				assert(comp);
 				archive << comp->GetVUID();
 			}

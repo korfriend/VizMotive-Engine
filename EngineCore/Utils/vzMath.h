@@ -980,8 +980,8 @@ namespace vz::math
 			float TMax = std::numeric_limits<float>::max()
 		)
 	{
-		const XMVECTOR g_RayEpsilon = XMVectorSet(1e-20f, 1e-20f, 1e-20f, 1e-20f);
-		const XMVECTOR g_RayNegEpsilon = XMVectorSet(-1e-20f, -1e-20f, -1e-20f, -1e-20f);
+		const XMVECTOR rayEpsilon = XMVectorSet(1e-20f, 1e-20f, 1e-20f, 1e-20f);
+		const XMVECTOR rayNegEpsilon = XMVectorSet(-1e-20f, -1e-20f, -1e-20f, -1e-20f);
 
 		XMVECTOR Zero = XMVectorZero();
 
@@ -996,7 +996,7 @@ namespace vz::math
 
 		XMVECTOR u, v, t;
 
-		if (XMVector3GreaterOrEqual(det, g_RayEpsilon))
+		if (XMVector3GreaterOrEqual(det, rayEpsilon))
 		{
 			// Determinate is positive (front side of the triangle).
 			XMVECTOR s = XMVectorSubtract(Origin, V0);
@@ -1027,7 +1027,7 @@ namespace vz::math
 				return false;
 			}
 		}
-		else if (XMVector3LessOrEqual(det, g_RayNegEpsilon))
+		else if (XMVector3LessOrEqual(det, rayNegEpsilon))
 		{
 			// Determinate is negative (back side of the triangle).
 			XMVECTOR s = XMVectorSubtract(Origin, V0);
