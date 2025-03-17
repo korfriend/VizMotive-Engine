@@ -97,6 +97,22 @@ namespace vz::renderer
 			temporalAAResources = {};
 		}
 
+		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
+		if (scene_Gdetails->isOutlineEnabled)
+		{
+			TextureDesc desc;
+			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
+			desc.format = Format::R32_FLOAT;
+			desc.width = internalResolution.x;
+			desc.height = internalResolution.y;
+			device->CreateTexture(&desc, nullptr, &rtOutlineSource);
+			device->SetName(&rtOutlineSource, "rtOutlineSource");
+		}
+		else
+		{
+			rtOutlineSource = {};
+		}
+
 		//TODO 
 		if (false && !rtParticleDistortion.IsValid()) // rtAO or scene has waterRipples
 		{
@@ -1958,6 +1974,8 @@ namespace vz::renderer
 
 		rtParticleDistortion_render = {};
 		rtParticleDistortion = {};
+		
+		rtOutlineSource = {};
 
 		distortion_overlay = {};
 
