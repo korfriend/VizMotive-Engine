@@ -346,8 +346,8 @@ namespace vz::renderer
 	inline constexpr XMUINT2 GetGaussianSplattingTileCount(XMUINT2 internalResolution)
 	{
 		return XMUINT2(
-			(internalResolution.x + GS_TILESIZE - 1) / GS_TILESIZE,
-			(internalResolution.y + GS_TILESIZE - 1) / GS_TILESIZE
+			(internalResolution.x + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE,
+			(internalResolution.y + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE
 		);
 	}
 }

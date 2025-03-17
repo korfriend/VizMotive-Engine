@@ -454,6 +454,13 @@ namespace vz
 			archive >> zNearP_;
 			archive >> zFarP_;
 			archive >> fovY_;
+
+			archive >> fx_;
+			archive >> fy_;
+			archive >> sc_;
+			archive >> cx_;
+			archive >> cy_;
+
 			archive >> focalLength_;
 			archive >> apertureSize_;
 			archive >> apertureShape_;
@@ -497,6 +504,13 @@ namespace vz
 			archive << zNearP_;
 			archive << zFarP_;
 			archive << fovY_;
+
+			archive << fx_;
+			archive << fy_;
+			archive << sc_;
+			archive << cx_;
+			archive << cy_;
+
 			archive << focalLength_;
 			archive << apertureSize_;
 			archive << apertureShape_;
