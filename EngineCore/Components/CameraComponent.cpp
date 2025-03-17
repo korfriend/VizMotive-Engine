@@ -130,6 +130,7 @@ namespace vz
 		width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY;
 		flags_ &= ~ORTHOGONAL;
 		flags_ &= ~INTRINSICS_PROJECTION;
+		flags_ &= ~CUSTOM_PROJECTION;
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
@@ -149,6 +150,7 @@ namespace vz
 
 		flags_ |= ORTHOGONAL;
 		flags_ &= ~INTRINSICS_PROJECTION;
+		flags_ &= ~CUSTOM_PROJECTION;
 
 		{
 			if (orthoVerticalSize > 0)
@@ -200,6 +202,7 @@ namespace vz
 		}
 
 		flags_ &= ~ORTHOGONAL;
+		flags_ &= ~CUSTOM_PROJECTION;
 		flags_ |= INTRINSICS_PROJECTION;
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
@@ -244,7 +247,7 @@ namespace vz
 
 	void CameraComponent::UpdateMatrix()
 	{
-		if (flags_ != INTRINSICS_PROJECTION)
+		if (flags_ != CUSTOM_PROJECTION)
 		{
 			XMMATRIX P;
 
