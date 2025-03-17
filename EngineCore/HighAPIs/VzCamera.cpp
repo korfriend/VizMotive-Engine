@@ -127,7 +127,7 @@ namespace vzm
 	void VzCamera::GetPerspectiveProjection(float* zNearP, float* zFarP, float* fovInDegree, float* aspectRatio, bool isVertical) const
 	{
 		GET_CAM_COMP(camera, );
-		if (camera->IsOrtho())
+		if (camera->IsOrtho() || camera->IsIntrinsicsProjection())
 		{
 			return;
 		}
@@ -154,7 +154,27 @@ namespace vzm
 			*zFarP = far_p;
 		}
 	}
+	void VzCamera::GetIntrinsicsProjection(float* zNearP, float* zFarP, float* farP, float* fx, float* fy, float* cx, float* cy, float* sc) const
+	{
+		GET_CAM_COMP(camera, );
+		if (!camera->IsIntrinsicsProjection())
+		{
+			return;
+		}
+		float fx0, fy0, cx0, cy0, sc0;
+		float w, h, near_p, far_p;
+		camera->GetWidthHeight(&w, &h);
+		camera->GetNearFar(&near_p, &far_p);
+		camera->GetIntrinsics(&fx0, &fy0, &cx0, &cy0, &sc0);
 
+		if (zNearP) *zNearP = near_p;
+		if (zFarP) *zFarP = far_p;
+		if (fx) *fx = fx0;
+		if (fy) *fy = fy0;
+		if (cx) *cx = cx0;
+		if (cy) *cy = cy0;
+		if (sc) *sc = sc0;
+	}
 	void VzCamera::GetOrthogonalProjection(float* zNearP, float* zFarP, float* width, float* height, float* orthoVerticalSize) const
 	{
 		GET_CAM_COMP(camera, );
@@ -207,6 +227,12 @@ namespace vzm
 	{
 		GET_CAM_COMP(camera, false);
 		return camera->IsOrtho();
+	}
+
+	bool VzCamera::IsSetByInstrinsics() const 
+	{
+		GET_CAM_COMP(camera, false);
+		return camera->IsIntrinsicsProjection();
 	}
 	
 	void VzCamera::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
@@ -579,8 +605,6 @@ namespace vzm
 		}
 
 		// Orbital Camera
-		// we assume the transform->world is not dirty state
-		XMMATRIX matWorld = XMLoadFloat4x4(&transform->GetWorldMatrix());
 
 		arcball::CameraState cam_pose;
 		cam_pose.isPerspective = true;
@@ -728,23 +752,34 @@ namespace vzm
 		}
 		else
 		{
-			float z_near, z_far;
-			float aspect_ratio, vertical_fov;
-			vzCamera->GetPerspectiveProjection(&z_near, &z_far, &vertical_fov, &aspect_ratio, true);
-			if (zoomDelta > 0) {
-				vertical_fov *= 0.9f * sensitivity;
-			}
-			else {
-				vertical_fov *= 1.1f * sensitivity;
-			}
-
-			if (vertical_fov < 0.1 || vertical_fov > 179.9)
+			if (vzCamera->IsSetByInstrinsics())
 			{
-				backlog::post("invalid FOV: " + std::to_string(vertical_fov) + "(Deg)", backlog::LogLevel::Warn);
-				return false;
+				// forward / backward
+				XMFLOAT3 eye, view, up;
+				vzCamera->GetWorldPose(*(vfloat3*)&eye, *(vfloat3*)&view, *(vfloat3*)&up);
+				XMStoreFloat3(&eye, (XMLoadFloat3(&eye) + (zoomDelta > 0 ? sensitivity : -sensitivity) * XMLoadFloat3(&view)));
+				vzCamera->SetWorldPose(__FC3 eye, __FC3 view, __FC3 up);
 			}
+			else
+			{
+				float z_near, z_far;
+				float aspect_ratio, vertical_fov;
+				vzCamera->GetPerspectiveProjection(&z_near, &z_far, &vertical_fov, &aspect_ratio, true);
+				if (zoomDelta > 0) {
+					vertical_fov *= 0.9f * sensitivity;
+				}
+				else {
+					vertical_fov *= 1.1f * sensitivity;
+				}
 
-			vzCamera->SetPerspectiveProjection(z_near, z_far, vertical_fov, aspect_ratio, true);
+				if (vertical_fov < 0.1 || vertical_fov > 179.9)
+				{
+					backlog::post("invalid FOV: " + std::to_string(vertical_fov) + "(Deg)", backlog::LogLevel::Warn);
+					return false;
+				}
+
+				vzCamera->SetPerspectiveProjection(z_near, z_far, vertical_fov, aspect_ratio, true);
+			}
 		}
 		return true;
 	}

@@ -102,7 +102,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_duplicateWithKeysCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_identifyTileRangesCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_offsetCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_offsetCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_preprocessCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_renderCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl" />

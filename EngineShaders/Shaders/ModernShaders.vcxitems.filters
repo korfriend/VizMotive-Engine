@@ -379,7 +379,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_identifyTileRangesCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_offsetCS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_offsetCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_preprocessCS.hlsl">
