@@ -487,6 +487,8 @@ namespace vz::renderer
 		graphics::Texture rtParticleDistortion_render = {};
 		graphics::Texture rtParticleDistortion = {};
 
+		graphics::Texture rtOutlineSource; // linear depth but only the regions which have outline stencil
+
 		graphics::Texture distortion_overlay; // optional full screen distortion from an asset
 
 		mutable const graphics::Texture* lastPostprocessRT = &rtPostprocess;
@@ -638,6 +640,7 @@ namespace vz::renderer
 		//const bool occlusionQueryEnabled = false;
 		//const bool cameraFreezeCullingEnabled = false;
 		bool isWetmapProcessingRequired = false;
+		bool isOutlineEnabled = false;
 
 		ShaderScene shaderscene = {};
 
