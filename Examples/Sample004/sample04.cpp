@@ -226,11 +226,12 @@ int main(int, char **)
 		glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
 		glm::fvec3 view = at - pos;
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
-		//camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1652.0253638136887f, 1647.2743286575937f, 1060.f * 0.5f, 1887.f * 0.5f);
+		//camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+		camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1652.0253638136887f, 1647.2743286575937f, 1060.f * 0.5f, 1887.f * 0.5f);
 
 		// === Add PLY loading code here ===
 		// Load PLY geometry
+		/*
 		vz::jobsystem::context ctx;
 		vz::jobsystem::Execute(ctx, [scene](vz::jobsystem::JobArgs args){
 			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
@@ -254,6 +255,7 @@ int main(int, char **)
 				vzm::AppendSceneCompTo(ply_actor, scene);
 			}
 			});
+		/**/
 
 		// === end of PLY loading code ===
 
@@ -380,6 +382,22 @@ int main(int, char **)
 				if (ImGui::Button("Shader Reload"))
 				{
 					vzm::ReloadShader();
+				}
+
+				static bool is_intrinsic = false;
+				if (ImGui::Checkbox("Intrinsics", &is_intrinsic))
+				{
+					uint32_t w, h;
+					renderer->GetCanvas(&w, &h, nullptr, nullptr);
+					if (is_intrinsic)
+					{
+						camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1652.0253638136887f, 1647.2743286575937f, 1060.f * 0.5f, 1887.f * 0.5f, 0);
+					}
+					else
+					{
+						camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+					}
+					renderer->ResizeCanvas(w, h, camera->GetVID());
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);

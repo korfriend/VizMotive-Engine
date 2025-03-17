@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250317_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250318_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1450,11 +1450,12 @@ namespace vz
 		{
 			EMPTY = 0,
 			ORTHOGONAL = 1 << 0,    // if not, PERSPECTIVE
-			CUSTOM_PROJECTION = 1 << 2,
-			CLIP_PLANE = 1 << 3,
-			CLIP_BOX = 1 << 4,
-			SLICER = 1 << 5, // must be ORTHOGONAL
-			CURVED = 1 << 6, // must be SLICER
+			INTRINSICS_PROJECTION = 1 << 2,
+			CUSTOM_PROJECTION = 1 << 3,
+			CLIP_PLANE = 1 << 4,
+			CLIP_BOX = 1 << 5,
+			SLICER = 1 << 6, // must be ORTHOGONAL
+			CURVED = 1 << 7, // must be SLICER
 		};
 
 		float zNearP_ = 0.1f;
@@ -1564,6 +1565,7 @@ namespace vz
 		inline const geometrics::Frustum& GetFrustum() const { return frustum_; }
 
 		inline bool IsOrtho() const { return flags_ & ORTHOGONAL; } // if not perspective
+		inline bool IsIntrinsicsProjection() const { return flags_ & INTRINSICS_PROJECTION; }
 		inline bool IsCustomProjection() const { return flags_ & CUSTOM_PROJECTION; }
 		inline bool IsSlicer() const { return flags_ & SLICER; }	// implying OTRHOGONAL
 		inline bool IsCurvedSlicer() const { return flags_ & CURVED; }	// implying SLICER
@@ -1642,6 +1644,7 @@ namespace vz
 		void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up) override;
 		void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f) override;
 		void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize) override;
+		void SetIntrinsicsProjection(const float width, const float height, const float nearP, const float farP, const float fx, const float fy, const float cx, const float cy, const float s = 0.f) override;
 
 		// Interfaces for Curved Slicer
 		inline void SetHorizontalCurveControls(const std::vector<XMFLOAT3>& controlPts, const float interval) { horizontalCurveControls_ = controlPts; curveInterpolationInterval_ = interval; isDirtyCurve_ = true; timeStampSetter_ = TimerNow; };

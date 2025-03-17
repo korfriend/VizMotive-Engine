@@ -49,16 +49,14 @@ namespace vzm
 				}
 				else
 				{
-					if (camera->IsCustomProjection())
+					if (camera->IsIntrinsicsProjection())
 					{
-						float w0, h0, fx0, fy0, cx0, cy0, sc0, zn, zf;
-						camera->GetWidthHeight(&w0, &h0);
+						//float w0, h0,
+						//camera->GetWidthHeight(&w0, &h0);
+						float fx0, fy0, cx0, cy0, sc0, zn, zf;
 						camera->GetNearFar(&zn, &zf);
 						camera->GetIntrinsics(&fx0, &fy0, &cx0, &cy0, &sc0);
-						float scale_w = w1 / w0;
-						float scale_h = h1 / h0;
-						camera->SetIntrinsicsProjection((float)w1, (float)h1, zn, zf, fx0 * scale_w, fy0 * scale_h,
-							cx0 * scale_w, cy0 * scale_h, sc0 * scale_w);
+						camera->SetIntrinsicsProjection((float)w1, (float)h1, zn, zf, fx0, fy0, cx0, cy0, sc0);
 					}
 					else
 					{

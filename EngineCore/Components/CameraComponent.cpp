@@ -129,7 +129,7 @@ namespace vz
 	{
 		width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY;
 		flags_ &= ~ORTHOGONAL;
-		flags_ &= ~CUSTOM_PROJECTION;
+		flags_ &= ~INTRINSICS_PROJECTION;
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
@@ -148,7 +148,7 @@ namespace vz
 		}
 
 		flags_ |= ORTHOGONAL;
-		flags_ &= ~CUSTOM_PROJECTION;
+		flags_ &= ~INTRINSICS_PROJECTION;
 
 		{
 			if (orthoVerticalSize > 0)
@@ -166,37 +166,41 @@ namespace vz
 		width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP;
 		fx_ = fx; fy_ = fy; cx_ = cx; cy_ = cy; sc_ = s;
 
-		// Calculate left/right/top/bottom boundaries at near plane (pixel coordinate origin is top-left)
-		float l = -nearP * cx / fx;
-		float r = nearP * (width - cx) / fx;
-		float t = nearP * cy / fy;
-		float b = -nearP * (height - cy) / fy;
-
 		// Construct off-center projection matrix (DirectX right-handed coordinate system)
-		{
-			projection_._11 = 2.0f * nearP / (r - l);                  // 2*fx/w
-			projection_._12 = -2.0f * nearP * s / (fx * (r - l));      // -2*s/w
-			projection_._13 = (r + l) / (r - l);                       // (w - 2*cx)/w
+		{   
+			float w = width, h = height;
+
+			float FarZ = nearP;
+			float NearZ = farP;
+
+			float Height = 2.0f * fy / h;
+			float Width = 2.0f * fx / w;
+			float fRange = FarZ / (NearZ - FarZ);
+
+			projection_._11 = Width;
+			projection_._12 = 0.0f;
+			projection_._13 = 0.0f;
 			projection_._14 = 0.0f;
-
-			projection_._21 = 0.0f;
-			projection_._22 = 2.0f * nearP / (t - b);                  // 2*fy/h
-			projection_._23 = (t + b) / (t - b);                       // (2*cy - h)/h
+				
+			projection_._21 = -2.0f * s / w;  // skew Ç×
+			projection_._22 = Height;
+			projection_._23 = 0.0f; 
 			projection_._24 = 0.0f;
-
-			projection_._31 = 0.0f;
-			projection_._32 = 0.0f;
-			projection_._33 = farP / (nearP - farP);                   // zf/(zn-zf)
-			projection_._34 = nearP * farP / (nearP - farP);           // zn*zf/(zn-zf)
-
+				
+			projection_._31 = (w - 2.0f * cx) / w;  // cx Ç×
+			projection_._32 = (2.0f * cy - h) / h;  // cy Ç×
+			projection_._33 = fRange;
+			projection_._34 = -1.0f;
+				
 			projection_._41 = 0.0f;
 			projection_._42 = 0.0f;
-			projection_._43 = -1.0f;
+			projection_._43 = fRange * NearZ;
 			projection_._44 = 0.0f;
+
 		}
 
 		flags_ &= ~ORTHOGONAL;
-		flags_ |= CUSTOM_PROJECTION;
+		flags_ |= INTRINSICS_PROJECTION;
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
@@ -224,6 +228,11 @@ namespace vz
 	{
 		vzlog_assert(0, "SLICER does NOT support PERSPECTIE PROJECTION!");
 	}
+	void SlicerComponent::SetIntrinsicsProjection(const float width, const float height, 
+		const float nearP, const float farP, const float fx, const float fy, const float cx, const float cy, const float s)
+	{
+		vzlog_assert(0, "SLICER does NOT support INTRINSICS PROJECTION!");
+	}
 	void SlicerComponent::SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize)
 	{
 		if (nearP != 0 || farP != 10000.f)
@@ -235,7 +244,7 @@ namespace vz
 
 	void CameraComponent::UpdateMatrix()
 	{
-		if (flags_ != CUSTOM_PROJECTION)
+		if (flags_ != INTRINSICS_PROJECTION)
 		{
 			XMMATRIX P;
 
@@ -248,7 +257,14 @@ namespace vz
 			}
 			else
 			{
-				P = VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_); // reverse zbuffer!
+				if (IsIntrinsicsProjection())
+				{
+					P = XMLoadFloat4x4(&projection_);
+				}
+				else
+				{
+					P = VZMatrixPerspectiveFov(fovY_, width_ / height_, zFarP_, zNearP_); // reverse zbuffer!
+				}
 			}
 
 			P = P * XMMatrixTranslation(jitter.x, jitter.y, 0);
