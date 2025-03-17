@@ -233,13 +233,13 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     if (total_tiles == 0)
         return;
 
-    for (uint y = rect_min.y * GSPLAT_TILESIZE + 100; y < rect_max.y * GSPLAT_TILESIZE/2; y++)
-    {
-        for (uint x = rect_min.x * GSPLAT_TILESIZE; x < rect_max.x * GSPLAT_TILESIZE/2; x++)
-        {
-            inout_color[uint2(x, y)] = float4(1, 0, 0, 1);
-        }
-    }
+    //for (uint y = rect_min.y * GSPLAT_TILESIZE; y < rect_max.y * GSPLAT_TILESIZE; y++)
+    //{
+    //    for (uint x = rect_min.x * GSPLAT_TILESIZE; x < rect_max.x * GSPLAT_TILESIZE; x++)
+    //    {
+    //        inout_color[uint2(x, y)] = float4(1, 0, 0, 1);
+    //    }
+    //}
     //int2 pixel_coord = int2(point_image + 0.5f);
     //inout_color[pixel_coord] = float4(1, 1, 0, 1);
 

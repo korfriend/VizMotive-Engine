@@ -138,6 +138,17 @@ namespace vz::renderer
 			device->BindUAV(&unbind, 1, cmd);
 			device->BindUAV(&unbind, 2, cmd);
 
+
+			// copy touched tiles count to offset tiles
+			{
+				GPUBarrier barriers[] =
+				{
+					GPUBarrier::Buffer(&gsplat_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
+					GPUBarrier::Buffer(&gsplat_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)
+				};
+				device->Barrier(barriers, _countof(barriers), cmd);
+			}
+
 			{
 				barrierStack.push_back(GPUBarrier::Image(&rtMain, ResourceState::UNORDERED_ACCESS, rtMain.desc.layout));
 				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::UNDEFINED));
@@ -145,20 +156,6 @@ namespace vz::renderer
 				BarrierStackFlush(cmd);
 			}
 
-
-
-
-			// end preprocess here
-
-			// copy touched tiles count to offset tiles
-			//{
-			//	GPUBarrier barriers[] =
-			//	{
-			//		GPUBarrier::Buffer(&gsplat_buffers.touchedTiles_0, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC),
-			//		GPUBarrier::Buffer(&gsplat_buffers.offsetTilesPing, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_DST)
-			//	};
-			//	device->Barrier(barriers, _countof(barriers), cmd);
-			//}
 
 
 			//GaussianSplattingInstance
