@@ -35,9 +35,9 @@ namespace vz::renderer
 		uint32_t filterMask = GMaterialComponent::FILTER_GAUSSIAN_SPLATTING;
 
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
-		XMUINT2 gs_tile_count = XMUINT2(
-			(rtMain.desc.width + GS_TILESIZE - 1) / GS_TILESIZE,
-			(rtMain.desc.height + GS_TILESIZE - 1) / GS_TILESIZE
+		XMUINT2 gsplat_tile_count = XMUINT2(
+			(rtMain.desc.width + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE,
+			(rtMain.desc.height + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE
 		);
 
 		GPUResource unbind;
@@ -99,8 +99,8 @@ namespace vz::renderer
 			UINT width = rtMain.desc.width;
 			UINT height = rtMain.desc.height;
 
-			UINT tileX = (width + 16 - 1) / 16;
-			UINT tileY = (height + 16 - 1) / 16;
+			UINT tileX = (width + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE;
+			UINT tileY = (height + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE;
 
 
 			GGeometryComponent::GaussianSplattingBuffers& gsplat_buffers = gprim_buffer->gaussianSplattingBuffers;
@@ -528,8 +528,8 @@ namespace vz::renderer
 			//device->BindComputeShader(&shaders[CSTYPE_GS_RENDER_GAUSSIAN], cmd);
 			//device->PushConstants(&gaussian_sort, sizeof(GaussianSortConstants), cmd);
 			//device->Dispatch(
-			//	(width + 15) / 16,
-			//	(height + 15) / 16,
+			//	(width + 15) / GSPLAT_TILESIZE,
+			//	(height + 15) / GSPLAT_TILESIZE,
 			//	1, 
 			//	cmd
 			//);

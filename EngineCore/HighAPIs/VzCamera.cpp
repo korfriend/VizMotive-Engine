@@ -80,18 +80,34 @@ namespace vzm
 		}
 
 
-		if (camera->IsSlicer())
-		{
-			((SlicerComponent*)camera)->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
-		}
-		else
-		{
-			camera->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
-		}
+		//if (camera->IsSlicer())
+		//{
+		//	((SlicerComponent*)camera)->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
+		//}
+		//else
+		//{
+		//	camera->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
+		//}
+		camera->SetPerspective(aspectRatio, 1.f, zNearP, zFarP, XMConvertToRadians(isVertical ? fovInDegree : fovInDegree / aspectRatio));
 
 		camera->UpdateMatrix();
 		UpdateTimeStamp();
 	}
+	void VzCamera::SetIntrinsicsProjection(const float width, const float height, const float nearP, const float farP, const float fx, const float fy, const float cx, const float cy, const float s)
+	{
+		GET_CAM_COMP(camera, );
+
+		if (camera->GetComponentType() == ComponentType::SLICER)
+		{
+			vzlog_assert(0, "Slicer does NOT allow intrinsics setting");
+			return;
+		}
+		camera->SetIntrinsicsProjection(width, height, nearP, farP, fx, fy, cx, cy, s);
+
+		camera->UpdateMatrix();
+		UpdateTimeStamp();
+	}
+
 	void VzCamera::GetWorldPose(vfloat3& pos, vfloat3& view, vfloat3& up) const
 	{
 		GET_CAM_COMP(camera, );

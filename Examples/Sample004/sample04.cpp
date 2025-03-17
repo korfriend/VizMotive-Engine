@@ -227,6 +227,7 @@ int main(int, char **)
 		glm::fvec3 view = at - pos;
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+		//camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1652.0253638136887f, 1647.2743286575937f, 1060.f * 0.5f, 1887.f * 0.5f);
 
 		// === Add PLY loading code here ===
 		// Load PLY geometry
@@ -235,7 +236,7 @@ int main(int, char **)
 			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
 			//if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
 			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud.ply"))
-
+		
 			{
 				std::cerr << "Failed to load point_cloud.ply" << std::endl;
 			}
@@ -245,11 +246,11 @@ int main(int, char **)
 				ply_material->SetShaderType(vzm::ShaderType::PBR);
 				ply_material->SetDoubleSided(true);
 				ply_material->SetGaussianSplattingEnabled(true);
-
+		
 				vzm::VzActor* ply_actor = vzm::NewActor("my ply actor", geometry_ply, ply_material);
 				ply_actor->SetScale({ 1.f, 1.f, 1.f });
 				ply_actor->SetPosition({ 0.f, 0.f, -2.f });
-
+		
 				vzm::AppendSceneCompTo(ply_actor, scene);
 			}
 			});

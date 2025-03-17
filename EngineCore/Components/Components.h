@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250317_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250317_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1463,6 +1463,7 @@ namespace vz
 		float focalLength_ = 1;
 		float apertureSize_ = 0;
 		float orthoVerticalSize_ = 1.f;
+		float fx_ = 1.f, fy_ = 1.f, sc_ = 1.f, cx_ = 0.f, cy_ = 0.f;
 		XMFLOAT2 apertureShape_ = XMFLOAT2(1, 1);
 
 		// camera lens/sensor settings: used for the postprocess chain
@@ -1533,6 +1534,7 @@ namespace vz
 		virtual void SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up);
 		virtual void SetPerspective(const float width, const float height, const float nearP, const float farP, const float fovY = XM_PI / 3.0f);
 		virtual void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize);
+		virtual void SetIntrinsicsProjection(const float width, const float height, const float nearP, const float farP, const float fx, const float fy, const float cx, const float cy, const float s = 1.f);
 
 		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= CamFlags::CLIP_BOX : flags_ &= ~CamFlags::CLIP_BOX;
@@ -1562,6 +1564,7 @@ namespace vz
 		inline const geometrics::Frustum& GetFrustum() const { return frustum_; }
 
 		inline bool IsOrtho() const { return flags_ & ORTHOGONAL; } // if not perspective
+		inline bool IsCustomProjection() const { return flags_ & CUSTOM_PROJECTION; }
 		inline bool IsSlicer() const { return flags_ & SLICER; }	// implying OTRHOGONAL
 		inline bool IsCurvedSlicer() const { return flags_ & CURVED; }	// implying SLICER
 		inline float GetFovVertical() const { return fovY_; }
@@ -1572,6 +1575,9 @@ namespace vz
 		inline void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
 		inline void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }
 		inline float GetOrthoVerticalSize() const { return orthoVerticalSize_; }
+		inline void GetIntrinsics(float* fx, float* fy, float* cx, float* cy, float* sc) {
+			if (fx) *fx = fx_; if (fy) *fy = fy_; if (cx) *cx = cx_; if (cy) *cy = cy_; if (sc) *sc = sc_;
+		};
 
 		inline XMFLOAT4 GetClipPlane() const { return clipPlane_; }
 		inline XMFLOAT4X4 GetClipBox() const { return clipBox_; }

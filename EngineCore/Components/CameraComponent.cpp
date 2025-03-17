@@ -129,6 +129,7 @@ namespace vz
 	{
 		width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP; fovY_ = fovY;
 		flags_ &= ~ORTHOGONAL;
+		flags_ &= ~CUSTOM_PROJECTION;
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
@@ -147,6 +148,7 @@ namespace vz
 		}
 
 		flags_ |= ORTHOGONAL;
+		flags_ &= ~CUSTOM_PROJECTION;
 
 		{
 			if (orthoVerticalSize > 0)
@@ -157,6 +159,46 @@ namespace vz
 			height_ = orthoVerticalSize_;
 		}
 		isDirty_ = true; timeStampSetter_ = TimerNow;
+	}
+
+	void CameraComponent::SetIntrinsicsProjection(const float width, const float height, const float nearP, const float farP, const float fx, const float fy, const float cx, const float cy, const float s)
+	{
+		width_ = width; height_ = height; zNearP_ = nearP; zFarP_ = farP;
+		fx_ = fx; fy_ = fy; cx_ = cx; cy_ = cy; sc_ = s;
+
+		// Calculate left/right/top/bottom boundaries at near plane (pixel coordinate origin is top-left)
+		float l = -nearP * cx / fx;
+		float r = nearP * (width - cx) / fx;
+		float t = nearP * cy / fy;
+		float b = -nearP * (height - cy) / fy;
+
+		// Construct off-center projection matrix (DirectX right-handed coordinate system)
+		{
+			projection_._11 = 2.0f * nearP / (r - l);                  // 2*fx/w
+			projection_._12 = -2.0f * nearP * s / (fx * (r - l));      // -2*s/w
+			projection_._13 = (r + l) / (r - l);                       // (w - 2*cx)/w
+			projection_._14 = 0.0f;
+
+			projection_._21 = 0.0f;
+			projection_._22 = 2.0f * nearP / (t - b);                  // 2*fy/h
+			projection_._23 = (t + b) / (t - b);                       // (2*cy - h)/h
+			projection_._24 = 0.0f;
+
+			projection_._31 = 0.0f;
+			projection_._32 = 0.0f;
+			projection_._33 = farP / (nearP - farP);                   // zf/(zn-zf)
+			projection_._34 = nearP * farP / (nearP - farP);           // zn*zf/(zn-zf)
+
+			projection_._41 = 0.0f;
+			projection_._42 = 0.0f;
+			projection_._43 = -1.0f;
+			projection_._44 = 0.0f;
+		}
+
+		flags_ &= ~ORTHOGONAL;
+		flags_ |= CUSTOM_PROJECTION;
+		isDirty_ = true;
+		timeStampSetter_ = TimerNow;
 	}
 
 	void SlicerComponent::SetWorldLookAt(const XMFLOAT3& eye, const XMFLOAT3& at, const XMFLOAT3& up)
