@@ -5,7 +5,7 @@ namespace vzm
 {
 	struct API_EXPORT VzRenderer : VzBaseComp
 	{
-		enum ActorFilter
+		enum ActorFilter: uint32_t
 		{
 			MESH_OPAQUE = 1 << 0,
 			MESH_TRANSPARENT = 1 << 1,
@@ -14,7 +14,7 @@ namespace vzm
 			VOLUME = 1 << 5,
 
 			// Include everything:
-			RENDERABLE_ALL = ~0,
+			RENDERABLE_ALL = ~0u,
 		};
 
 		// Tone mapping HDR -> LDR
@@ -53,9 +53,9 @@ namespace vzm
 
 		void RenderChain(const std::vector<ChainUnitSCam>& scChain);
 
-		bool Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const ActorFilter filterFlags,
+		bool Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const uint32_t filterFlags,
 			vfloat3& worldPosition, ActorVID& vid, int* primitiveID = nullptr, int* maskValue = nullptr) const;
-		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, const ActorFilter filterFlags,
+		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, const uint32_t filterFlags,
 			vfloat3& worldPosition, ActorVID& vid, 
 			int* primitiveID = nullptr, int* maskValue = nullptr) const {
 			return Picking(scene->GetVID(), camera->GetVID(), pos, filterFlags, worldPosition, vid, primitiveID, maskValue);

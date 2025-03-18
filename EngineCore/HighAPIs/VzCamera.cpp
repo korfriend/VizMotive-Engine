@@ -208,6 +208,37 @@ namespace vzm
 		}
 	}
 
+	void VzCamera::GetViewMatrix(vfloat4x4& view, const bool rowMajor) const
+	{
+		GET_CAM_COMP(camera, );
+		const XMFLOAT4X4& V = camera->GetView();
+		if (rowMajor)
+		{
+			*(XMFLOAT4X4*)&view = V;
+		}
+		else
+		{
+			XMFLOAT4X4 V_T;
+			XMStoreFloat4x4(&V_T, XMMatrixTranspose(XMLoadFloat4x4(&V)));
+			*(XMFLOAT4X4*)&view = V_T;
+		}
+	}
+	void VzCamera::GetProjectionMatrix(vfloat4x4& proj, const bool rowMajor) const
+	{
+		GET_CAM_COMP(camera, );
+		const XMFLOAT4X4& P = camera->GetProjection();
+		if (rowMajor)
+		{
+			*(XMFLOAT4X4*)&proj = P;
+		}
+		else
+		{
+			XMFLOAT4X4 P_T;
+			XMStoreFloat4x4(&P_T, XMMatrixTranspose(XMLoadFloat4x4(&P)));
+			*(XMFLOAT4X4*)&proj = P_T;
+		}
+	}
+
 	float VzCamera::GetNear() const
 	{
 		GET_CAM_COMP(camera, -1.f);
