@@ -226,7 +226,7 @@ namespace vzm
 	void VzCamera::GetProjectionMatrix(vfloat4x4& proj, const bool rowMajor) const
 	{
 		GET_CAM_COMP(camera, );
-		const XMFLOAT4X4& P = camera->GetProjection();
+		const XMFLOAT4X4& P = camera->GetProjectionJitterFree();
 		if (rowMajor)
 		{
 			*(XMFLOAT4X4*)&proj = P;

@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250318_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250319_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1504,6 +1504,7 @@ namespace vz
 		XMFLOAT3X3 rotationMatrix_ = math::IDENTITY_MATRIX33;
 		XMFLOAT4X4 view_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 projection_ = math::IDENTITY_MATRIX;
+		XMFLOAT4X4 projectionJitterFree_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 viewProjection_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 invView_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 invProjection_ = math::IDENTITY_MATRIX;
@@ -1558,6 +1559,7 @@ namespace vz
 		inline const XMFLOAT3X3& GetWorldRotation() const { return rotationMatrix_; }
 		inline const XMFLOAT4X4& GetView() const { return view_; }
 		inline const XMFLOAT4X4& GetProjection() const { return projection_; }
+		inline const XMFLOAT4X4& GetProjectionJitterFree() const { return projectionJitterFree_; }
 		inline const XMFLOAT4X4& GetViewProjection() const { return viewProjection_; }
 		inline const XMFLOAT4X4& GetInvView() const { return invView_; }
 		inline const XMFLOAT4X4& GetInvProjection() const { return invProjection_; }

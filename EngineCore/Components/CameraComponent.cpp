@@ -260,7 +260,7 @@ namespace vz
 			}
 			else
 			{
-				if (IsIntrinsicsProjection())
+				if (IsIntrinsicsProjection())  // reverse zbuffer!
 				{
 					P = XMLoadFloat4x4(&projection_);
 				}
@@ -270,8 +270,10 @@ namespace vz
 				}
 			}
 
+			XMStoreFloat4x4(&projectionJitterFree_, P); 
+
 			P = P * XMMatrixTranslation(jitter.x, jitter.y, 0);
-			XMStoreFloat4x4(&projection_, P); // reverse zbuffer!
+			XMStoreFloat4x4(&projection_, P);
 		}
 
 		XMVECTOR _Eye = XMLoadFloat3(&eye_);
