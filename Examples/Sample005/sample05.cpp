@@ -499,7 +499,7 @@ int main(int, char**)
 				}
 			}
 			ImGui::End();
-			/*
+			
 			ImGui::Begin("3D Viewer Multi-Test");
 			{
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);

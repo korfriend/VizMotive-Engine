@@ -401,6 +401,14 @@ namespace vz::renderer
 	public:
 		float depthLineThicknessPixel = 1.3f;
 
+		static constexpr size_t RENDERABLE_SHAPE_RESERVE = 2048; // for fast growing
+		RenderableShapeCollection() {
+			renderableLines_.reserve(RENDERABLE_SHAPE_RESERVE);
+			renderableLines_depth_.reserve(RENDERABLE_SHAPE_RESERVE);
+			renderablePoints_.reserve(RENDERABLE_SHAPE_RESERVE);
+			renderablePoints_depth_.reserve(RENDERABLE_SHAPE_RESERVE);
+		}
+
 		void AddDrawLine(const RenderableLine& line, bool depth)
 		{
 			if (depth)
