@@ -139,6 +139,8 @@ namespace vzm
 		return engineMutex;
 	}
 
+	std::mutex mutexSafeSceneItem;
+
 	std::atomic_bool isPandingSubmitCommand{ false };
 	bool IsPendingSubmitCommand()
 	{
@@ -155,9 +157,19 @@ namespace vzm
 	{
 		countPendingSubmitCommand.fetch_add(1);
 
-		if (uint32_t n = countPendingSubmitCommand.load() > 10)
+		uint32_t n = countPendingSubmitCommand.load();
+		if (n > 10)
 		{
 			vzlog_warning("# of PendingSubmitCommand (%d) is over 10!\n\t\tPlease Check unintended pending...\n\t\tRecommend to Use the RenderChain!", n);
+		}
+		if (n > 100)
+		{
+			vzlog_warning("# of PendingSubmitCommand (%d) is over 100!\n\t\tForce to Submit Commandlist!!!\n\t\tReport your scenario to korfriend@gmail.com", n);
+			graphics::GraphicsDevice* device = graphics::GetDevice();
+			graphics::CommandList cmd = device->BeginCommandList();
+			profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
+			device->SubmitCommandLists();
+			vzm::ResetPendingSubmitCommand();
 		}
 	}
 	size_t GetCountPendingSubmitCommand()
@@ -769,6 +781,7 @@ namespace vzm
 
 	SceneVID AppendSceneCompVidTo(const VID vid, const VID parentVid)
 	{
+		std::lock_guard<std::mutex> lockSceneitem(mutexSafeSceneItem);
 		CHECK_API_LOCKGUARD_VALIDITY(INVALID_VID);
 
 		if (!appendSceneEntityToParent(vid, parentVid))
@@ -809,11 +822,13 @@ namespace vzm
 
 	VID GetFirstVidByName(const std::string& name)
 	{
+		std::lock_guard<std::mutex> lock(mutexSafeSceneItem);
 		CHECK_API_INIT_VALIDITY(INVALID_VID);
 		return compfactory::GetFirstEntityByName(name);
 	}
 	VzBaseComp* GetFirstComponentByName(const std::string& name)
 	{
+		std::lock_guard<std::mutex> lock(mutexSafeSceneItem);
 		CHECK_API_INIT_VALIDITY(nullptr);
 		VID vid = compfactory::GetFirstEntityByName(name);
 		if (vid == INVALID_VID)
@@ -827,12 +842,14 @@ namespace vzm
 
 	size_t GetVidsByName(const std::string& name, std::vector<VID>& vids)
 	{
+		std::lock_guard<std::mutex> lock(mutexSafeSceneItem);
 		CHECK_API_INIT_VALIDITY(0);
 		return compfactory::GetEntitiesByName(name, vids);
 	}
 
 	size_t GetComponentsByName(const std::string& name, std::vector<VzBaseComp*>& components)
 	{
+		std::lock_guard<std::mutex> lock(mutexSafeSceneItem);
 		CHECK_API_INIT_VALIDITY(0);
 		components.clear();
 		std::vector<VID> vids;
@@ -854,6 +871,7 @@ namespace vzm
 
 	std::string GetNameByVid(const VID vid)
 	{
+		std::lock_guard<std::mutex> lock(mutexSafeSceneItem);
 		CHECK_API_INIT_VALIDITY("");
 		NameComponent* name_comp = compfactory::GetNameComponent(vid);
 		return name_comp ? name_comp->GetName() : "";
@@ -861,6 +879,7 @@ namespace vzm
 
 	VzBaseComp* GetComponent(const VID vid)
 	{
+		std::lock_guard<std::mutex> lock(mutexSafeSceneItem);
 		CHECK_API_INIT_VALIDITY(nullptr);
 		auto it = vzcompmanager::lookup.find(vid);
 		return it == vzcompmanager::lookup.end() ? nullptr : it->second;

@@ -252,7 +252,7 @@ namespace vzm
 	}
 
 
-	bool VzRenderer::Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const ActorFilter filterFlags,
+	bool VzRenderer::Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const uint32_t filterFlags,
 		vfloat3& worldPosition, ActorVID& vid, int* primitiveID, int* maskValue) const
 	{
 		GET_RENDERPATH(renderer, false);
@@ -304,6 +304,7 @@ namespace vzm
 			Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray, filterFlags);
 			if (intersect_result.entity != INVALID_ENTITY)
 			{
+				ret = true;
 				vid = intersect_result.entity;
 				worldPosition = *(vfloat3*)&intersect_result.position;
 				if (primitiveID) *primitiveID = intersect_result.triIndex;

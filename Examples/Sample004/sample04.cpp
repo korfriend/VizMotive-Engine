@@ -34,37 +34,6 @@
 #pragma comment(lib, "dxguid.lib")
 #endif
 
-/*
-// Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
-void EnableDpiAwareness() {
-	// Windows 10에서 사용할 수 있는 DPI 인식 설정
-	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
-	if (hUser32) {
-		typedef BOOL(WINAPI* SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
-		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
-			(SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
-
-		if (SetProcessDpiAwarenessContextFunc) {
-			SetProcessDpiAwarenessContextFunc(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-		}
-		else {
-			// Windows 8.1에서 사용할 수 있는 DPI 인식 설정
-			HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
-			if (hShcore) {
-				typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
-				SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
-					(SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
-
-				if (SetProcessDpiAwarenessFunc) {
-					SetProcessDpiAwarenessFunc(PROCESS_PER_MONITOR_DPI_AWARE);
-				}
-				FreeLibrary(hShcore);
-			}
-		}
-		FreeLibrary(hUser32);
-	}
-}
-/**/
 struct FrameContext
 {
 	ID3D12CommandAllocator *CommandAllocator;
@@ -99,50 +68,11 @@ void WaitForLastSubmittedFrame();
 FrameContext *WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-// Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
-void EnableDpiAwareness()
-{
-	// Windows 10에서 사용할 수 있는 DPI 인식 설정
-	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
-	if (hUser32)
-	{
-		typedef BOOL(WINAPI * SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
-		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
-			(SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
-
-		if (SetProcessDpiAwarenessContextFunc)
-		{
-			SetProcessDpiAwarenessContextFunc(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-		}
-		else
-		{
-			// Windows 8.1에서 사용할 수 있는 DPI 인식 설정
-			HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
-			if (hShcore)
-			{
-				typedef HRESULT(WINAPI * SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
-				SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
-					(SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
-
-				if (SetProcessDpiAwarenessFunc)
-				{
-					SetProcessDpiAwarenessFunc(PROCESS_PER_MONITOR_DPI_AWARE);
-				}
-				FreeLibrary(hShcore);
-			}
-		}
-		FreeLibrary(hUser32);
-	}
-}
-
 // Main code
 DXGI_SWAP_CHAIN_DESC1 sd;
 
 int main(int, char **)
 {
-	// DPI 인식을 활성화
-	//EnableDpiAwareness();
-
 	// Create application window
 	// ImGui_ImplWin32_EnableDpiAwareness();
 	WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
