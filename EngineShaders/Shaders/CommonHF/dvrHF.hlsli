@@ -115,7 +115,7 @@ inline bool IsInsideClipBox(const float3 pos_target, const float4x4 mat_2_bs)
 inline float2 ComputeAaBbHits(const float3 pos_start, float3 pos_min, const float3 pos_max, const float3 vec_dir_rcp)
 {
 	// intersect ray with a box
-	float3 invR = vec_dir_rcp;// float3(1.0f, 1.0f, 1.0f) / vec_dir;
+	float3 invR = vec_dir_rcp;	// float3(1.0f, 1.0f, 1.0f) / vec_dir;
 	float3 tbot = invR * (pos_min - pos_start);
 	float3 ttop = invR * (pos_max - pos_start);
 
@@ -124,8 +124,8 @@ inline float2 ComputeAaBbHits(const float3 pos_start, float3 pos_min, const floa
 	float3 tmax = max(ttop, tbot);
 
 	// find the largest tmin and the smallest tmax
-	float largest_tmin = max(max(tmin.x, tmin.y), max(tmin.x, tmin.z));
-	float smallest_tmax = min(min(tmax.x, tmax.y), min(tmax.x, tmax.z));
+	float largest_tmin = max(max(tmin.x, tmin.y), tmin.z);
+	float smallest_tmax = min(min(tmax.x, tmax.y), tmax.z);
 
 	float tnear = max(largest_tmin, 0.f);
 	float tfar = smallest_tmax;
@@ -256,9 +256,17 @@ BlockSkip ComputeBlockSkip(const float3 pos_start_ts, const float3 vec_sample_ts
 	float3 pos_max_ts = pos_min_ts + singleblock_size_ts;
 	float2 hits_t = ComputeAaBbHits(pos_start_ts, pos_min_ts, pos_max_ts, vec_sample_ts_rcp);
 	float dist_skip_ts = hits_t.y - hits_t.x;
+	if (dist_skip_ts < 0)
+	{
+		blk_v.visible = false;
+		blk_v.num_skip_steps = 1000000;
+	}
+	else
+	{
+		// here, max is for avoiding machine computation error
+		blk_v.num_skip_steps = max(int(dist_skip_ts), 1);	// sample step
+	}
 	
-	// here, max is for avoiding machine computation error
-	blk_v.num_skip_steps = max(int(dist_skip_ts), 0);
 	return blk_v;
 };
 
