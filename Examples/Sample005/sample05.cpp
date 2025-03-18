@@ -5,14 +5,20 @@
 #include "vzm2/utils/Profiler.h"
 #include "vzm2/utils/JobSystem.h"
 #include "vzm2/utils/Config.h"
+#include "vzm2/utils/vzMath.h"
+
+#include "imgui/vzImGuiHelpers.h"
+#include "imgui/IconsMaterialDesign.h"
 
 #include <iostream>
 #include <windowsx.h>
 
 // imgui
 #include "imgui/imgui.h"
+#include "ImGui/imgui_internal.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx12.h"
+#include "imgui/ImGuizmo.h"
 #include <d3d12.h>
 #include <dxgi1_4.h>
 
@@ -35,37 +41,6 @@
 #pragma comment(lib, "dxguid.lib")
 #endif
 
-/*
-// Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
-void EnableDpiAwareness() {
-	// Windows 10에서 사용할 수 있는 DPI 인식 설정
-	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
-	if (hUser32) {
-		typedef BOOL(WINAPI* SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
-		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
-			(SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
-
-		if (SetProcessDpiAwarenessContextFunc) {
-			SetProcessDpiAwarenessContextFunc(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-		}
-		else {
-			// Windows 8.1에서 사용할 수 있는 DPI 인식 설정
-			HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
-			if (hShcore) {
-				typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
-				SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
-					(SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
-
-				if (SetProcessDpiAwarenessFunc) {
-					SetProcessDpiAwarenessFunc(PROCESS_PER_MONITOR_DPI_AWARE);
-				}
-				FreeLibrary(hShcore);
-			}
-		}
-		FreeLibrary(hUser32);
-	}
-}
-/**/
 struct FrameContext
 {
 	ID3D12CommandAllocator* CommandAllocator;
@@ -100,108 +75,6 @@ void WaitForLastSubmittedFrame();
 FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-void treeNode(const VID vid, const VID vidSelected) {
-	vzm::VzSceneComp* component = (vzm::VzSceneComp*)vzm::GetComponent(vid);
-	if (component == nullptr)
-		return;
-	std::string comp_name = component->GetName();
-	if (comp_name.empty())
-	{
-		comp_name = "-";
-	}
-	else
-	{
-		switch (component->GetType())
-		{
-		case vzm::COMPONENT_TYPE::ACTOR: comp_name = "[A] " + comp_name; break;
-		case vzm::COMPONENT_TYPE::CAMERA: comp_name = "[C] " + comp_name; break;
-		case vzm::COMPONENT_TYPE::SLICER: comp_name = "[S] " + comp_name; break;
-		case vzm::COMPONENT_TYPE::LIGHT: comp_name = "[L] " + comp_name; break;
-		default: assert(0);
-		}
-	}
-
-	static std::set<VID> pickedParents;
-
-	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
-	if (vidSelected == vid) 
-	{
-		flags |= ImGuiTreeNodeFlags_Selected;
-	}
-	if (component->GetChildren().size() == 0) 
-	{
-		flags |= ImGuiTreeNodeFlags_Leaf;
-	}
-	if (pickedParents.find(vid) != pickedParents.end()) 
-	{
-		ImGui::SetNextItemOpen(true);
-	}
-
-	if (ImGui::TreeNodeEx((const void*)vid, flags, "%s", comp_name.c_str())) {
-		if (ImGui::IsItemClicked()) 
-		{
-			//setCurrentVID(id);
-		}
-		if (component->GetType() == vzm::COMPONENT_TYPE::ACTOR)
-		{
-			ImGui::SameLine();
-			vzm::VzActor* actor = (vzm::VzActor*)component;
-			bool visible = actor->IsVisibleWith(0x1);
-			if (ImGui::Checkbox(" ", &visible))
-			{
-				actor->SetVisibleLayer(visible, 0x1);
-			}
-		}
-		std::vector<VID> children = component->GetChildren();
-		for (auto child_vid : children) {
-			treeNode(child_vid, vidSelected);
-		}
-		ImGui::TreePop();
-	}
-	else {
-		if (ImGui::IsItemClicked()) 
-		{
-			//setCurrentVID(id);
-		}
-	}
-};
-
-// Windows 8.1 및 Windows 10에서 DPI 인식을 설정하는 코드
-void EnableDpiAwareness()
-{
-	// Windows 10에서 사용할 수 있는 DPI 인식 설정
-	HMODULE hUser32 = LoadLibrary(TEXT("user32.dll"));
-	if (hUser32)
-	{
-		typedef BOOL(WINAPI* SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
-		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContextFunc =
-			(SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
-
-		if (SetProcessDpiAwarenessContextFunc)
-		{
-			SetProcessDpiAwarenessContextFunc(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-		}
-		else
-		{
-			// Windows 8.1에서 사용할 수 있는 DPI 인식 설정
-			HMODULE hShcore = LoadLibrary(TEXT("shcore.dll"));
-			if (hShcore)
-			{
-				typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS);
-				SetProcessDpiAwarenessProc SetProcessDpiAwarenessFunc =
-					(SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
-
-				if (SetProcessDpiAwarenessFunc)
-				{
-					SetProcessDpiAwarenessFunc(PROCESS_PER_MONITOR_DPI_AWARE);
-				}
-				FreeLibrary(hShcore);
-			}
-		}
-		FreeLibrary(hUser32);
-	}
-}
-
 // Main code
 DXGI_SWAP_CHAIN_DESC1 sd;
 
@@ -232,11 +105,8 @@ inline float linearWindowing(float value, float windowCenter, float windowWidth)
 
 int main(int, char**)
 {
-	// DPI 인식을 활성화
-	EnableDpiAwareness();
-
 	// Create application window
-	// ImGui_ImplWin32_EnableDpiAwareness();
+	ImGui_ImplWin32_EnableDpiAwareness();
 	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
 	::RegisterClassExW(&wc);
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
@@ -264,7 +134,7 @@ int main(int, char**)
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
-	(void)io;
+
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
@@ -476,6 +346,10 @@ int main(int, char**)
 
 	// Our state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+	ImGuizmo::Enable(true);
+	
+	vzimgui::VzImGuiFontManager font_manager;
+	font_manager.AddFont("../imgui/Roboto-Medium.ttf");
 
 	// Main loop
 	bool done = false;
@@ -499,17 +373,20 @@ int main(int, char**)
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
+		ImGuizmo::SetGizmoSizeClipSpace(0.12f);
+		ImGui::PushFont(font_manager.GetCustomLargeFont());
+
 		using namespace vzm;
 		{
 			static bool use_renderchain = true;
-			if (!use_renderchain)
-			{
-				vzm::PendingSubmitCommand(true);
-			}
+			vzm::PendingSubmitCommand(!use_renderchain);
 			std::vector<ChainUnitRCam> render_chain;
 
 			ImGui::Begin("3D Viewer");
 			{
+				static vzimgui::VzImGuizmo view3D_gizmo;
+				static VID highlighed_vid = INVALID_VID;
+
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);
 				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 
@@ -527,6 +404,7 @@ int main(int, char**)
 				{
 					renderer3D->ResizeCanvas((uint)canvas_size.x, (uint)canvas_size.y, camera->GetVID());
 				}
+
 				ImVec2 win_pos = ImGui::GetWindowPos();
 				ImVec2 cur_item_pos = ImGui::GetCursorPos();
 				ImGui::InvisibleButton("render window", canvas_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
@@ -534,7 +412,8 @@ int main(int, char**)
 
 				bool is_hovered = ImGui::IsItemHovered(); // Hovered
 
-				if (is_hovered && !resized)
+				static bool mouse_control_flag = false;
+				if (is_hovered && !resized && (!ImGuizmo::IsOver() || mouse_control_flag))
 				{
 					static glm::fvec2 prevMousePos(0);
 					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
@@ -548,14 +427,33 @@ int main(int, char**)
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
-						orbit_control->Start(__FC2 pos_ss);
+						if (ImGui::IsKeyPressed(ImGuiKey_LeftCtrl))
+						{
+							vfloat3 pos_picked;
+							ActorVID actor_vid;
+							if (renderer3D->Picking(scene, camera, *(vfloat2*)&pos_ss,
+								vzm::VzRenderer::ActorFilter::MESH_OPAQUE | vzm::VzRenderer::ActorFilter::VOLUME, pos_picked, actor_vid))
+							{
+								view3D_gizmo.SetHighlighedVID(actor_vid);
+							}
+						}
+						else
+						{
+							mouse_control_flag = true;
+							orbit_control->Start(__FC2 pos_ss);
+						}
 					}
-					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f)) && glm::length2(prevMousePos - m_pos) > 0)
+					else if (mouse_control_flag &&
+						((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f)) && glm::length2(prevMousePos - m_pos) > 0))
 					{
 						if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
 							orbit_control->PanMove(__FC2 pos_ss);
 						else
 							orbit_control->Move(__FC2 pos_ss);
+					}
+					else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) || ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+					{
+						mouse_control_flag = false;
 					}
 					else if (io.MouseWheel != 0)
 					{
@@ -590,10 +488,16 @@ int main(int, char**)
 					ImVec2 size = canvas_size;
 					ImVec2 pos_end = ImVec2(pos.x + size.x, pos.y + size.y);
 					ImGui::GetWindowDrawList()->AddImage(texId, pos, pos_end);
+
+					{
+						//ImVec2 pos = ImGui::GetItemRectMin();
+						//ImVec2 size = canvas_size;
+						view3D_gizmo.ApplyGizmo(camera->GetVID(), pos, size, ImGui::GetWindowDrawList());
+					}
 				}
 			}
 			ImGui::End();
-
+			/*
 			ImGui::Begin("3D Viewer Multi-Test");
 			{
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);
@@ -854,7 +758,7 @@ int main(int, char**)
 				}
 			}
 			ImGui::End();
-
+			/**/
 			if (use_renderchain)
 			{
 				scene->RenderChain(render_chain);
@@ -872,7 +776,7 @@ int main(int, char**)
 				static VID selected_vid = 0u;
 				for (auto vid_root : root_children)
 				{
-					treeNode(vid_root, selected_vid);
+					vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid){});
 				}
 				ImGui::Separator();
 
@@ -996,6 +900,7 @@ int main(int, char**)
 		}
 
 		// Rendering
+		ImGui::PopFont();
 		ImGui::Render();
 
 		FrameContext* frameCtx = WaitForNextFrameResources();

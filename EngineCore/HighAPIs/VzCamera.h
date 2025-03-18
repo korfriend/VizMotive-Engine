@@ -42,6 +42,9 @@ namespace vzm
 		void GetPerspectiveProjection(float* zNearP, float* zFarP, float* fovInDegree, float* aspectRatio, bool isVertical = true) const;
 		void GetIntrinsicsProjection(float* zNearP, float* zFarP, float* farP, float* fx, float* fy, float* cx, float* cy, float* sc) const;
 
+		void GetViewMatrix(vfloat4x4& view, const bool rowMajor = false) const;
+		void GetProjectionMatrix(vfloat4x4& proj, const bool rowMajor = false) const;
+
 		float GetNear() const;
 		float GetCullingFar() const;
 		bool IsOrtho() const;
