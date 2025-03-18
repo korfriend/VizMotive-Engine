@@ -427,7 +427,7 @@ int main(int, char**)
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
-						if (ImGui::IsKeyPressed(ImGuiKey_LeftCtrl))
+						if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
 						{
 							vfloat3 pos_picked;
 							ActorVID actor_vid;
@@ -435,6 +435,8 @@ int main(int, char**)
 								vzm::VzRenderer::ActorFilter::MESH_OPAQUE | vzm::VzRenderer::ActorFilter::VOLUME, pos_picked, actor_vid))
 							{
 								view3D_gizmo.SetHighlighedVID(actor_vid);
+								
+								vzlog("PICKING %s", vzm::GetNameByVid(actor_vid).c_str());
 							}
 						}
 						else
