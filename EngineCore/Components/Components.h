@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250319_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250320_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -194,8 +194,6 @@ namespace vz
 
 		GScene* handlerScene_ = nullptr;
 
-		inline void updateChildren() noexcept;
-
 		inline size_t scanGeometryEntities() noexcept;
 		inline size_t scanMaterialEntities() noexcept;
 
@@ -340,7 +338,7 @@ namespace vz
 		//	filterMask		:	filter based on type
 		//	layerMask		:	filter based on layer
 		//	lod				:	specify min level of detail for meshes
-		RayIntersectionResult Intersects(const geometrics::Ray& ray, 
+		RayIntersectionResult Intersects(const geometrics::Ray& ray, const Entity entityCamera,
 			uint32_t filterMask = SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE), 
 			uint32_t layerMask = ~0, uint32_t lod = 0) const;
 
@@ -500,6 +498,7 @@ namespace vz
 	};
 
 #define FLAG_SETTER(FLAG, FLAG_ENUM) enabled ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
+#define UNFLAG_SETTER(FLAG, FLAG_ENUM) !enabled ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
 
 	// resources
 	struct CORE_EXPORT MaterialComponent : ComponentBase
@@ -1226,7 +1225,7 @@ namespace vz
 			SLICER_NO_SOLID_FILL = 1 << 12, // in the case that the geometry is NOT water-tight
 			OUTLINE = 1 << 13,
 			UNDERCUT = 1 << 14,
-			PICKABLE = 1 << 15,
+			UNPICKABLE = 1 << 15,
 		};
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
@@ -1273,8 +1272,8 @@ namespace vz
 
 		inline void EnableForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
-		inline void EnablePickable(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::PICKABLE) timeStampSetter_ = TimerNow; }
-		inline bool IsPickable() const { return flags_ & RenderableFlags::PICKABLE; }
+		inline void EnablePickable(const bool enabled) { UNFLAG_SETTER(flags_, RenderableFlags::UNPICKABLE) timeStampSetter_ = TimerNow; }
+		inline bool IsPickable() const { return !(flags_ & RenderableFlags::UNPICKABLE); }
 
 		inline uint32_t GetFlags() const { return flags_; }
 
