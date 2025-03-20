@@ -56,7 +56,7 @@ namespace vzimgui
 				bool visible = actor->IsVisibleWith(0x1);
 				if (ImGui::Checkbox(" ", &visible))
 				{
-					actor->SetVisibleLayer(visible, 0x1);
+					actor->SetVisibleLayer(visible, 0x1, true);
 				}
 			}
 			std::vector<VID> children = component->GetChildren();
