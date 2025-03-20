@@ -158,57 +158,33 @@ int main(int, char**)
 	using namespace vzm;
 	VzScene* scene = nullptr;
 	VzCamera* camera = nullptr;
-	VzCamera* camera1 = nullptr;
-	VzSlicer* slicer = nullptr;
 	VzSlicer* slicer_curved = nullptr;
 	VzRenderer* renderer3D = nullptr;
-	VzRenderer* renderer3D1 = nullptr;
-	VzRenderer* renderer_slicer = nullptr;
 	VzRenderer* renderer_curvedslicer = nullptr;
 
 	{
-		ImVec2 wh(512, 512);
+		renderer3D = NewRenderer("my renderer");
+		renderer3D->SetCanvas(1, 1, 96.f, nullptr);
+
+		renderer_curvedslicer = NewRenderer("my curved slicer");
+		renderer_curvedslicer->SetCanvas(1, 1, 96.f, nullptr);
+
 		scene = NewScene("my scene");
 
 		VzLight* light = NewLight("my light");
 		light->SetIntensity(5.f);
 		light->SetPosition({ 0.f, 0.f, 100.f });
 		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
-
-		renderer3D = NewRenderer("my renderer");
-		renderer3D->SetCanvas(1, 1, 96.f, nullptr);
-
-		renderer3D1 = NewRenderer("my renderer1");
-		renderer3D1->SetCanvas(1, 1, 96.f, nullptr);
-
-		renderer_slicer = NewRenderer("my slicer");
-		renderer_slicer->SetCanvas(1, 1, 96.f, nullptr);
-
-		renderer_curvedslicer = NewRenderer("my curved slicer");
-		renderer_curvedslicer->SetCanvas(1, 1, 96.f, nullptr);
+		scene->AppendChild(light);
 
 		// === camera ===
 		camera = NewCamera("my camera");
-		glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
+		glm::fvec3 pos(0, 0, 25), up(0, 1, 0), at(0, 0, -4);
 		glm::fvec3 view = at - pos;
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
 
-		camera1 = NewCamera("my camera1");
-		camera1->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		//camera1->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
-		camera1->SetOrthogonalProjection(1, 1, 0.1f, 5000.f, 5.f);
-
-		slicer = NewSlicer("my slicer", false);
-		pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
-		view = at - pos;
-		slicer->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		slicer->SetOrthogonalProjection(1, 1, 10);
-
 		slicer_curved = NewSlicer("my curved slicer", true);
-		//pos = glm::fvec3(0, 0, 0), up = glm::fvec3(0, 0, 1), at = glm::fvec3(0, 1, 0);
-		//view = at - pos;
-		//slicer_curved->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		slicer_curved->SetCurvedPlaneUp({ 0, 0, 1 });
 		slicer_curved->SetOrthogonalProjection(1, 1, 10);
 		slicer_curved->SetHorizontalCurveControls({ {-5, -3, 0}, {0, 2, 0}, {3, -3, 0} }, 0.01);
@@ -227,9 +203,10 @@ int main(int, char**)
 		}
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		axis_helper->SetScale({ 3.f, 3.f, 3.f });
+		axis_helper->EnablePickable(false, true);
 		scene->AppendChild(axis_helper);
-		vzm::AppendSceneCompTo(light, scene);
-
+		
 		VzArchive* archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 
@@ -245,13 +222,14 @@ int main(int, char**)
 			material_stl->SetBaseColor({ 1, 0, 0, 1 });
 			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry, material_stl);
 			actor_test3->SetScale({ 0.5f, 0.5f, 0.5f });
-			//actor_test3->SetPosition({ 0, 0, 2 });
+			actor_test3->SetPosition({ 0, 0, 10 });
 			scene->AppendChild(actor_test3);
 
 			vzm::VzMaterial* material_stl_A = vzm::NewMaterial("my stl's material_A");
 			material_stl_A->SetBaseColor({ 1, 1, 0, 1 });
 			vzm::VzActor* actor_test5 = vzm::NewActor("my actor5", geometry, material_stl_A);
 			actor_test5->SetScale({ 0.5f, 0.5f, 0.5f });
+			actor_test5->SetPosition({ 0, 0, -10 });
 			actor_test5->SetRotateAxis({ 0, 1, 0 }, 90.f);
 			scene->AppendChild(actor_test5);
 			});
@@ -275,7 +253,7 @@ int main(int, char**)
 			});
 
 		vz::jobsystem::context ctx_vol_loader;
-		vz::jobsystem::Execute(ctx_vol_loader, [scene, slicer, slicer_curved](vz::jobsystem::JobArgs args) {
+		vz::jobsystem::Execute(ctx_vol_loader, [scene, slicer_curved](vz::jobsystem::JobArgs args) {
 
 			vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
 			{
@@ -315,8 +293,6 @@ int main(int, char**)
 			material_volume->SetLookupTable(otf_volume, vzm::LookupTableSlot::LOOKUP_OTF);
 			material_volume->SetLookupTable(windowing_volume, vzm::LookupTableSlot::LOOKUP_WINDOWING);
 
-			slicer->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
-			slicer->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
 			slicer_curved->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
 			slicer_curved->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
 
@@ -846,7 +822,6 @@ int main(int, char**)
 				if (dvr_mode != dvr_mode_prev)
 				{
 					dvr_mode_prev = dvr_mode;
-					slicer->SetDVRType((DVR_TYPE)dvr_mode);
 					slicer_curved->SetDVRType((DVR_TYPE)dvr_mode);
 				}
 
@@ -855,7 +830,6 @@ int main(int, char**)
 				if (cur_slicer_thickess != cur_slicer_thickess_prev)
 				{
 					cur_slicer_thickess_prev = cur_slicer_thickess;
-					slicer->SetSlicerThickness(cur_slicer_thickess);
 					slicer_curved->SetSlicerThickness(cur_slicer_thickess);
 
 					vzm::VzGeometry* geometry_cslicer_helper = (vzm::VzGeometry*)vzm::GetFirstComponentByName("geometry helper for curved slicer");

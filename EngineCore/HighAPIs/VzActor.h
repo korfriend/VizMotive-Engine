@@ -8,10 +8,15 @@ namespace vzm
 		VzBaseActor(const VID vid, const std::string& originFrom, const COMPONENT_TYPE scenecompType)
 			: VzSceneComp(vid, originFrom, scenecompType) {}
 
-		void SetVisibleLayerMask(const uint32_t visibleLayerMask);
-		void SetVisibleLayer(const bool visible, const uint32_t layerBits);
+		void SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants = false);
+		void SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants = false);
 		uint32_t GetVisibleLayerMask() const;
 		bool IsVisibleWith(const uint32_t layerBits) const;
+
+		bool IsRenderable() const;
+
+		void EnablePickable(const bool enabled, const bool includeDescendants = false);
+		bool IsPickable() const;
 	};
 
 	struct API_EXPORT VzActor : VzBaseActor
@@ -19,17 +24,12 @@ namespace vzm
 		VzActor(const VID vid, const std::string& originFrom)
 			: VzBaseActor(vid, originFrom, COMPONENT_TYPE::ACTOR) {}
 
-		bool IsRenderable() const;
-
 		void SetGeometry(const GeometryVID vid);
 		void SetGeometry(const VzBaseComp* geometry) { SetGeometry(geometry->GetVID()); }
 		void SetMaterial(const MaterialVID vid, const int slot = 0);
 		void SetMaterial(const VzBaseComp* material, const int slot = 0) { SetMaterial(material->GetVID(), slot); }
 
 		void SetMaterials(const std::vector<MaterialVID> vids);
-
-		void EnablePickable(const bool enabled);
-		bool IsPickable() const;
 
 		void EnableCastShadows(const bool enabled);
 		void EnableReceiveShadows(const bool enabled);

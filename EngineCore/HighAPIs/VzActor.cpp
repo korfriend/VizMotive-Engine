@@ -13,16 +13,38 @@ namespace vzm
 #define GET_RENDERABLE_COMP(COMP, RET) RenderableComponent* COMP = compfactory::GetRenderableComponent(componentVID_); \
 	if (!COMP) {post("RenderableComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
-	void VzBaseActor::SetVisibleLayerMask(const uint32_t visibleLayerMask)
+	void VzBaseActor::SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetVisibleLayerMask(visibleLayerMask);
+
+		if (includeDescendants)
+		{
+			std::vector<ActorVID> children = GetChildren();
+			for (size_t i = 0, n = children.size(); i < n; ++i)
+			{
+				VzBaseActor* base_actor = (VzBaseActor*)vzm::GetComponent(children[i]);
+				assert(base_actor);
+				base_actor->SetVisibleLayerMask(visibleLayerMask, true);
+			}
+		}
 		UpdateTimeStamp();
 	}
-	void VzBaseActor::SetVisibleLayer(const bool visible, const uint32_t layerBits)
+	void VzBaseActor::SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetVisibleLayer(visible, layerBits);
+
+		if (includeDescendants)
+		{
+			std::vector<ActorVID> children = GetChildren();
+			for (size_t i = 0, n = children.size(); i < n; ++i)
+			{
+				VzBaseActor* base_actor = (VzBaseActor*)vzm::GetComponent(children[i]);
+				assert(base_actor);
+				base_actor->SetVisibleLayer(visible, layerBits, true);
+			}
+		}
 		UpdateTimeStamp();
 	}
 	uint32_t VzBaseActor::GetVisibleLayerMask() const
@@ -35,15 +57,38 @@ namespace vzm
 		GET_RENDERABLE_COMP(renderable, false);
 		return renderable->IsVisibleWith(layerBits);
 	}
-}
 
-namespace vzm
-{
-	bool VzActor::IsRenderable() const
+	bool VzBaseActor::IsRenderable() const
 	{
 		GET_RENDERABLE_COMP(renderable, false);
 		return renderable->IsMeshRenderable() || renderable->IsVolumeRenderable();
 	}
+	void VzBaseActor::EnablePickable(const bool enabled, const bool includeDescendants)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->EnablePickable(enabled);
+		
+		if (includeDescendants)
+		{
+			std::vector<ActorVID> children = GetChildren();
+			for (size_t i = 0, n = children.size(); i < n; ++i)
+			{
+				VzBaseActor* base_actor = (VzBaseActor*)vzm::GetComponent(children[i]);
+				assert(base_actor);
+				base_actor->EnablePickable(enabled, true);
+			}
+		}
+		UpdateTimeStamp();
+	}
+	bool VzBaseActor::IsPickable() const
+	{
+		GET_RENDERABLE_COMP(renderable, false);
+		return renderable->IsPickable();
+	}
+}
+
+namespace vzm
+{
 	void VzActor::SetGeometry(const GeometryVID vid)
 	{
 		GET_RENDERABLE_COMP(renderable, );
@@ -61,17 +106,6 @@ namespace vzm
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetMaterials(vids);
 		UpdateTimeStamp();
-	}
-	void VzActor::EnablePickable(const bool enabled)
-	{
-		GET_RENDERABLE_COMP(renderable, );
-		renderable->EnablePickable(enabled);
-		UpdateTimeStamp();
-	}
-	bool VzActor::IsPickable() const
-	{
-		GET_RENDERABLE_COMP(renderable, false);
-		return renderable->IsPickable();
 	}
 	void VzActor::EnableCastShadows(const bool enabled)
 	{
