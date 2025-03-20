@@ -301,7 +301,7 @@ namespace vzm
 		{
 			// TODO volume!
 			geometrics::Ray ray = renderer->GetPickRay(pos.x, pos.y, *camera);
-			Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray, filterFlags);
+			Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray, camera->GetEntity(), filterFlags);
 			if (intersect_result.entity != INVALID_ENTITY)
 			{
 				ret = true;

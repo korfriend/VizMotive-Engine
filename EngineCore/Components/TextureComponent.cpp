@@ -694,6 +694,16 @@ namespace vz
 		}
 		return it->second.bitmaskBuffer;
 	}
+
+	const uint32_t* GVolumeComponent::GetVisibleBitmaskData(const Entity entityVisibleMap) const
+	{
+		auto it = visibleBlockBitmasks_.find(entityVisibleMap);
+		if (it == visibleBlockBitmasks_.end())
+		{
+			return nullptr;
+		}
+		return it->second.bitmask.data();
+	}
 }
 
 namespace vz
