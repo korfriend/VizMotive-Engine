@@ -4,10 +4,6 @@
 #include <windowsx.h>
 #include <shellscalingapi.h>
 
-#define DPIAWARE
-#define INCLUDEICONFONT
-#define USEBOUNDSIZING
-
 namespace vzimgui
 {
 	void UpdateTreeNode(const VID vid, const VID vidSelected, const std::function<void(const VID)>& callback)
@@ -77,6 +73,22 @@ namespace vzimgui
 		}
 	}
 
+	ImFont* customfont;
+	ImFont* customfontlarge;
+	ImFont* defaultfont;
+	ImFont* iconfont;
+
+	void IGTextTitle(const char* text)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindowRead();
+		float w = ImGui::GetContentRegionAvail().x;
+		if (customfontlarge) ImGui::PushFont(customfontlarge);
+		float textwidth = ImGui::CalcTextSize(text).x;
+		ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((w * 0.5f) - (textwidth * 0.5f) - (window->DC.Indent.x * 0.5f), 0.0f));
+		ImGui::Text("%s", text);
+		if (customfontlarge) ImGui::PopFont();
+	}
+
 	void VzImGuiFontManager::AddFont(const char* fontpath)
 	{
 		//PE: Add all lang.
@@ -132,6 +144,13 @@ namespace vzimgui
 		}
 
 		defaultfont = io.Fonts->AddFontDefault();
+
+		{
+			vzimgui::customfont = this->customfont;;
+			vzimgui::customfontlarge = this->customfontlarge;;
+			vzimgui::defaultfont = this->defaultfont;
+			vzimgui::iconfont = this->iconfont;
+		}
 	}
 
 	void VzImGuizmo::ApplyGizmo(const VID camVID, const ImVec2 pos, const ImVec2 size, ImDrawList* drawList)
@@ -147,7 +166,6 @@ namespace vzimgui
 			// physics::SetSimulationEnabled(false);
 
 			XMFLOAT4X4 world;
-			float matrixTranslation[3], matrixRotation[3], matrixScale[3];
 			highlighted_actor->GetLocalMatrix(__FC44 world, true);
 
 			float fCamView[16];
@@ -161,7 +179,7 @@ namespace vzimgui
 
 			//PE: TODO - if mesh has pivot at center, use object aabb.getCenter(); as start matrix obj_world._41,obj_world._42,obj_world._43.
 
-			ImGuizmo::Manipulate(fCamView, fCamProj, mCurrentGizmoOperation, mCurrentGizmoMode, &world._11, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
+			ImGuizmo::Manipulate(fCamView, fCamProj, currentGizmoOperation, currentGizmoMode, &world._11, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
 			if (ImGuizmo::IsUsing())
 			{
 				//PE: Use matrix directly. (rotation_local is using quaternion from XMQuaternionRotationMatrix)

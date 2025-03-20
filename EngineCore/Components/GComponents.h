@@ -452,6 +452,8 @@ namespace vz
 		void UpdateVolumeVisibleBlocksBuffer(const Entity entityVisibleMap);
 		// a buffer that contains a bitmask array representing visible blocks
 		const graphics::GPUBuffer& GetVisibleBitmaskBuffer(const Entity entityVisibleMap) const;
+		const uint32_t* GetVisibleBitmaskData(const Entity entityVisibleMap) const;
+		const uint8_t* GetMinMaxBlocksData() const { return volumeMinMaxBlocksData_.data(); }
 	};
 
 	// scene 
