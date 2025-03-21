@@ -120,6 +120,7 @@ namespace vz
 			viewport_.top_left_y = 0;
 			viewport_.width = (float)width_;
 			viewport_.height = (float)height_;
+			updateViewportTransforms();
 		}
 		//scissor
 		if (!useManualSetScissor)
