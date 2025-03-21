@@ -129,6 +129,8 @@ namespace vz
 			scissor_.top = 0;
 			scissor_.bottom = height_;
 		}
+
+		updateViewportTransforms();
 	}
 
 	// scene and camera updates
