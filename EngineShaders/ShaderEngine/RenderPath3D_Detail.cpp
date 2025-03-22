@@ -1397,7 +1397,7 @@ namespace vz::renderer
 					GGeometryComponent::GPrimBuffers* prim_buffers = geomety.GetGPrimBuffer(part_index);
 					if (prim_buffers)
 					{
-						device->ClearUAV(&prim_buffers->gaussianSplattingBuffers.touchedTiles_0, 0, cmd);
+						device->ClearUAV(&prim_buffers->gaussianSplattingBuffers.touchedTiles, 0, cmd);
 					}
 				}
 

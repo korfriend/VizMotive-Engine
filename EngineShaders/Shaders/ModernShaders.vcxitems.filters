@@ -427,5 +427,8 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\temporalaaCS.hlsl">
       <Filter>Compute Shaders\Post Processing Chains</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_kickoffCS.hlsl">
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
