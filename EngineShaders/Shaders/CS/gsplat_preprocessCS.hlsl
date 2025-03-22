@@ -11,16 +11,22 @@ PUSHCONSTANT(push, GaussianPushConstants);
 
 #define SH_COEFF_STRIDE 16
 
+RWByteAddressBuffer counterBuffer : register(u10); // fixed
+
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWStructuredBuffer<uint> touchedTiles : register(u1);
-RWStructuredBuffer<GaussianKernelAttribute> vertexAttributes : register(u2);
+RWStructuredBuffer<GaussianKernelAttribute> gaussianKernelAttributes : register(u2);
 
-float3 get_sh_float3(Buffer<float> gsplat_shs, int index) {
+Buffer<float4> gaussianScale_Opacities : register(t0);
+Buffer<float4> gaussianQuaterinions : register(t1);
+Buffer<float> gaussianSHs : register(t2);
+
+float3 get_sh_float3(Buffer<float> gaussianSHs, int index) {
     int start = index * 3;
-    return float3(gsplat_shs[start + 0], gsplat_shs[start + 1], gsplat_shs[start + 2]);
+    return float3(gaussianSHs[start + 0], gaussianSHs[start + 1], gaussianSHs[start + 2]);
 }
 
-float3 compute_sh(Buffer<float> gsplat_shs, float3 pos, int idx, float3 camPos)
+float3 compute_sh(Buffer<float> gaussianSHs, float3 pos, int idx, float3 camPos)
 {
     float3 dir = pos - camPos;
     float len = length(dir);
@@ -28,15 +34,15 @@ float3 compute_sh(Buffer<float> gsplat_shs, float3 pos, int idx, float3 camPos)
 
     int baseIndex = idx * SH_COEFF_STRIDE;
 
-    float3 result = SH_C0 * get_sh_float3(gsplat_shs, baseIndex + 0);
+    float3 result = SH_C0 * get_sh_float3(gaussianSHs, baseIndex + 0);
 
     float x = dir.x;
     float y = dir.y;
     float z = dir.z;
     result = result
-        - SH_C1 * y * get_sh_float3(gsplat_shs, baseIndex + 1)
-        + SH_C1 * z * get_sh_float3(gsplat_shs, baseIndex + 2)
-        - SH_C1 * x * get_sh_float3(gsplat_shs, baseIndex + 3);
+        - SH_C1 * y * get_sh_float3(gaussianSHs, baseIndex + 1)
+        + SH_C1 * z * get_sh_float3(gaussianSHs, baseIndex + 2)
+        - SH_C1 * x * get_sh_float3(gaussianSHs, baseIndex + 3);
 
     float xx = x * x;
     float yy = y * y;
@@ -46,20 +52,20 @@ float3 compute_sh(Buffer<float> gsplat_shs, float3 pos, int idx, float3 camPos)
     float xz = x * z;
 
     result +=
-        SH_C2[0] * xy * get_sh_float3(gsplat_shs, baseIndex + 4) +
-        SH_C2[1] * yz * get_sh_float3(gsplat_shs, baseIndex + 5) +
-        SH_C2[2] * (2.0f * zz - xx - yy) * get_sh_float3(gsplat_shs, baseIndex + 6) +
-        SH_C2[3] * xz * get_sh_float3(gsplat_shs, baseIndex + 7) +
-        SH_C2[4] * (xx - yy) * get_sh_float3(gsplat_shs, baseIndex + 8);
+        SH_C2[0] * xy * get_sh_float3(gaussianSHs, baseIndex + 4) +
+        SH_C2[1] * yz * get_sh_float3(gaussianSHs, baseIndex + 5) +
+        SH_C2[2] * (2.0f * zz - xx - yy) * get_sh_float3(gaussianSHs, baseIndex + 6) +
+        SH_C2[3] * xz * get_sh_float3(gaussianSHs, baseIndex + 7) +
+        SH_C2[4] * (xx - yy) * get_sh_float3(gaussianSHs, baseIndex + 8);
 
     result +=
-        SH_C3[0] * y * (3.0f * xx - yy) * get_sh_float3(gsplat_shs, baseIndex + 9) +
-        SH_C3[1] * xy * z * get_sh_float3(gsplat_shs, baseIndex + 10) +
-        SH_C3[2] * y * (4.0f * zz - xx - yy) * get_sh_float3(gsplat_shs, baseIndex + 11) +
-        SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * get_sh_float3(gsplat_shs, baseIndex + 12) +
-        SH_C3[4] * x * (4.0f * zz - xx - yy) * get_sh_float3(gsplat_shs, baseIndex + 13) +
-        SH_C3[5] * z * (xx - yy) * get_sh_float3(gsplat_shs, baseIndex + 14) +
-        SH_C3[6] * x * (xx - 3.0f * yy) * get_sh_float3(gsplat_shs, baseIndex + 15);
+        SH_C3[0] * y * (3.0f * xx - yy) * get_sh_float3(gaussianSHs, baseIndex + 9) +
+        SH_C3[1] * xy * z * get_sh_float3(gaussianSHs, baseIndex + 10) +
+        SH_C3[2] * y * (4.0f * zz - xx - yy) * get_sh_float3(gaussianSHs, baseIndex + 11) +
+        SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * get_sh_float3(gaussianSHs, baseIndex + 12) +
+        SH_C3[4] * x * (4.0f * zz - xx - yy) * get_sh_float3(gaussianSHs, baseIndex + 13) +
+        SH_C3[5] * z * (xx - yy) * get_sh_float3(gaussianSHs, baseIndex + 14) +
+        SH_C3[6] * x * (xx - 3.0f * yy) * get_sh_float3(gaussianSHs, baseIndex + 15);
 
     result += 0.5f;
 
@@ -173,11 +179,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 {
     float radius = 0.0f;
     uint idx = DTid.x;
-
-    GaussianSplattingInstance gsplat_instance;
-    gsplat_instance.Load(load_instance(push.instanceIndex));
     
-    if (idx >= gsplat_instance.num_gaussians)
+    if (idx >= push.num_elements)
         return;
 
     // Load camera data
@@ -187,21 +190,15 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float focalLength = camera.focal_length;
     float3 camPos = camera.position;
 
-    ShaderGeometry geometry = load_geometry(gsplat_instance.geometry_index);
-
     // Load Position, Scale/Opacity, Quaternion, SH coefficients
     // bindless graphics, load buffer with index
-    Buffer<float4> gsplat_position = bindless_buffers_float4[geometry.vb_pos_w];
-    Buffer<float4> gsplat_scale_opacity = bindless_buffers_float4[gsplat_instance.gaussian_scale_opacities_index];
-    Buffer<float4> gsplat_quaternion = bindless_buffers_float4[gsplat_instance.gaussian_quaternions_index];
-    //Buffer<float3> gsplat_shs = bindless_buffers_float3[push.gaussian_SHs_index]; 
-    Buffer<float> gsplat_shs = bindless_buffers_float[gsplat_instance.gaussian_SHs_index]; 
 
-    float3 pos = gsplat_position[idx].xyz;
-    float4 scale_opacity = gsplat_scale_opacity[idx];
+    Buffer<float4> gsplatPosition = bindless_buffers_float4[push.vb_pos_w];
+    float3 pos = gsplatPosition[idx].xyz;
+    float4 scale_opacity = gaussianScale_Opacities[idx];
     float3 scale = scale_opacity.xyz;
     float opacity = scale_opacity.w;
-    float4 rotation = gsplat_quaternion[idx];
+    float4 rotation = gaussianQuaterinions[idx];
 
     // computeCov3D
     float3x3 cov3D = computeCov3D(scale, rotation);
@@ -243,11 +240,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     //int2 pixel_coord = int2(point_image + 0.5f);
     //inout_color[pixel_coord] = float4(1, 1, 0, 1);
 
-    //InterlockedAdd(touchedTiles[idx], total_tiles);
-
+    counterBuffer.InterlockedAdd(GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT, total_tiles);
 
     // compute RGB from SH coefficients
-    float3 rgb_sh = compute_sh(gsplat_shs, pos, idx, camPos);
+    float3 rgb_sh = compute_sh(gaussianSHs, pos, idx, camPos);
     float4 final_RGB = float4(rgb_sh, 1.0f);
     
     float4 p_view = mul(float4(pos, 1.0f), camera.view);
@@ -262,7 +258,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     at.depth = p_view.z;
     at.magic = 0x12345678;
 
-    vertexAttributes[idx] = at;
+    gaussianKernelAttributes[idx] = at;
 
     //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
     //{

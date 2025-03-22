@@ -76,6 +76,11 @@ namespace vz
 			float depth;
 			uint32_t padding0;
 		};
+		struct GaussianCounters
+		{
+			uint32_t touchCount;
+			uint32_t offsetCount;
+		};
 		struct GaussianSplattingBuffers
 		{
 			// gaussian kernels
@@ -89,10 +94,12 @@ namespace vz
 			// NOTE:
 			//	These buffers will be used for storing intermediate results during renderer's GaussianSplattting
 			//	Different canvas (renderers) can access these buffers, assuming thread-safe process
-			graphics::GPUBuffer touchedTiles_0;	// # of gaussian points
-			graphics::GPUBuffer offsetTiles_0;	// # of gaussian points
-			graphics::GPUBuffer offsetTilesPing; // # of gaussian points, Ping buffer
-			graphics::GPUBuffer offsetTilesPong; // # of gaussian points, Pong buffer
+			graphics::GPUBuffer gaussianCounterBuffer;
+			graphics::GPUBuffer gaussianCounterBuffer_readback[graphics::GraphicsDevice::GetBufferCount()];
+			graphics::GPUBuffer touchedTiles;	// # of gaussian points
+			graphics::GPUBuffer offsetTiles;	// # of gaussian points
+
+			uint32_t capacityGaussians;
 
 			graphics::GPUBuffer sortKBufferEven; // duplicated key buffer
 			graphics::GPUBuffer sortKBufferOdd;
@@ -101,14 +108,9 @@ namespace vz
 
 			graphics::GPUBuffer sortHistBuffer;
 
-			// test210 - vertexAttributes
 			graphics::GPUBuffer gaussianKernelAttributes; // # of gaussian points
 			graphics::GPUBuffer totalSumBufferHost; // # of gaussian points
 			graphics::GPUBuffer tileBoundaryBuffer; // # of gaussian points
-
-			// readback buffer
-			graphics::GPUBuffer readBackBufferTest;
-			const uint32_t* readBackBufferTestMapped = nullptr;
 		};
 
 		struct BVHBuffers

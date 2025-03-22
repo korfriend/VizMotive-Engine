@@ -532,6 +532,7 @@ namespace vz
 				float rimHighlightFalloff = renderable.GetRimHighLightFalloff();
 				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
 
+				// WE WILL NOT USE BINDLESS FOR GSPLAT
 				// Gaussian Splatting Check
 				if (geometry.allowGaussianSplatting)
 				{
@@ -539,32 +540,32 @@ namespace vz
 					const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
 					if (material.IsGaussianSplattingEnabled())
 					{
-						using GaussianSplattingBuffers = GGeometryComponent::GaussianSplattingBuffers;
-						GaussianSplattingBuffers& gsplat_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
-
-						inst.alphaTest_size = geometry.geometryOffset; //geometry_index;
-
-#define AS_TYPE(TYPE, DST, SRC) { int t = SRC; DST = *(TYPE*)&t; }
-
-						AS_TYPE(uint, inst.geometryOffset, device->GetDescriptorIndex(&gsplat_buffers.gaussianSHs, SubresourceType::SRV));
-						AS_TYPE(uint, inst.geometryCount, device->GetDescriptorIndex(&gsplat_buffers.gaussianScale_Opacities, SubresourceType::SRV)); // gaussian_scale_opacities_index;
-						AS_TYPE(uint, inst.baseGeometryOffset, device->GetDescriptorIndex(&gsplat_buffers.gaussianQuaterinions, SubresourceType::SRV)); // gaussian_quaternions_index;
-						AS_TYPE(uint, inst.baseGeometryCount, device->GetDescriptorIndex(&gsplat_buffers.touchedTiles_0, SubresourceType::UAV));   // touchedTiles_0_index;
-						AS_TYPE(uint, inst.meshletOffset, device->GetDescriptorIndex(&gsplat_buffers.offsetTiles_0, SubresourceType::UAV));   // offsetTiles_0_index;
-						AS_TYPE(uint, inst.resLookupIndex, device->GetDescriptorIndex(&gsplat_buffers.offsetTilesPing, SubresourceType::UAV));   // offsetTiles_Ping_index;
-						AS_TYPE(uint, inst.emissive.x, device->GetDescriptorIndex(&gsplat_buffers.offsetTilesPong, SubresourceType::UAV)); // offsetTiles_Pong_index;
-						AS_TYPE(uint, inst.emissive.y, device->GetDescriptorIndex(&gsplat_buffers.sortKBufferEven, SubresourceType::UAV)); // sortKBufferEven_index;
-						AS_TYPE(float, inst.transformPrev.mat0.x, device->GetDescriptorIndex(&gsplat_buffers.sortKBufferOdd, SubresourceType::UAV)); // sortKBufferOdd_index;
-						AS_TYPE(float, inst.transformPrev.mat0.y, device->GetDescriptorIndex(&gsplat_buffers.sortVBufferEven, SubresourceType::UAV)); // sortVBufferEven_index;
-						AS_TYPE(float, inst.transformPrev.mat0.z, device->GetDescriptorIndex(&gsplat_buffers.sortVBufferOdd, SubresourceType::UAV)); // sortVBufferOdd_index;
-						AS_TYPE(float, inst.transformPrev.mat0.w, device->GetDescriptorIndex(&gsplat_buffers.sortHistBuffer, SubresourceType::UAV)); // sortHistBuffer_index;
-						AS_TYPE(float, inst.transformPrev.mat1.x, device->GetDescriptorIndex(&gsplat_buffers.gaussianKernelAttributes, SubresourceType::UAV)); // gaussian_vertex_attributes_index;
-						AS_TYPE(float, inst.transformPrev.mat1.y, device->GetDescriptorIndex(&gsplat_buffers.totalSumBufferHost, SubresourceType::UAV)); // totalSumBufferHost_index;
-						AS_TYPE(float, inst.transformPrev.mat1.z, device->GetDescriptorIndex(&gsplat_buffers.tileBoundaryBuffer, SubresourceType::UAV)); // tileBoundaryBuffer_index;
-						inst.transformPrev.mat1.w = -1; // device->GetDescriptorIndex(&gsplat_buffers.duplicatedDepthGaussians, SubresourceType::UAV); // duplicatedDepthGaussians_index;
-						AS_TYPE(float, inst.transformPrev.mat2.x, device->GetDescriptorIndex(&gsplat_buffers.readBackBufferTest, SubresourceType::UAV)); // readBackBufferTest_index;
-						uint num_gaussian = (uint)primitives[0].GetNumVertices();
-						inst.transformPrev.mat2.y = *(float*)&num_gaussian;
+//						using GaussianSplattingBuffers = GGeometryComponent::GaussianSplattingBuffers;
+//						GaussianSplattingBuffers& gsplat_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
+//
+//						inst.alphaTest_size = geometry.geometryOffset; //geometry_index;
+//
+//#define AS_TYPE(TYPE, DST, SRC) { int t = SRC; DST = *(TYPE*)&t; }
+//
+//						AS_TYPE(uint, inst.geometryOffset, device->GetDescriptorIndex(&gsplat_buffers.gaussianSHs, SubresourceType::SRV));
+//						AS_TYPE(uint, inst.geometryCount, device->GetDescriptorIndex(&gsplat_buffers.gaussianScale_Opacities, SubresourceType::SRV)); // gaussian_scale_opacities_index;
+//						AS_TYPE(uint, inst.baseGeometryOffset, device->GetDescriptorIndex(&gsplat_buffers.gaussianQuaterinions, SubresourceType::SRV)); // gaussian_quaternions_index;
+//						AS_TYPE(uint, inst.baseGeometryCount, device->GetDescriptorIndex(&gsplat_buffers.touchedTiles, SubresourceType::UAV));   // touchedTiles_0_index;
+//						AS_TYPE(uint, inst.meshletOffset, device->GetDescriptorIndex(&gsplat_buffers.offsetTiles, SubresourceType::UAV));   // offsetTiles_0_index;
+//						AS_TYPE(uint, inst.resLookupIndex, device->GetDescriptorIndex(&gsplat_buffers.offsetTilesPing, SubresourceType::UAV));   // offsetTiles_Ping_index;
+//						AS_TYPE(uint, inst.emissive.x, device->GetDescriptorIndex(&gsplat_buffers.offsetTilesPong, SubresourceType::UAV)); // offsetTiles_Pong_index;
+//						AS_TYPE(uint, inst.emissive.y, device->GetDescriptorIndex(&gsplat_buffers.sortKBufferEven, SubresourceType::UAV)); // sortKBufferEven_index;
+//						AS_TYPE(float, inst.transformPrev.mat0.x, device->GetDescriptorIndex(&gsplat_buffers.sortKBufferOdd, SubresourceType::UAV)); // sortKBufferOdd_index;
+//						AS_TYPE(float, inst.transformPrev.mat0.y, device->GetDescriptorIndex(&gsplat_buffers.sortVBufferEven, SubresourceType::UAV)); // sortVBufferEven_index;
+//						AS_TYPE(float, inst.transformPrev.mat0.z, device->GetDescriptorIndex(&gsplat_buffers.sortVBufferOdd, SubresourceType::UAV)); // sortVBufferOdd_index;
+//						AS_TYPE(float, inst.transformPrev.mat0.w, device->GetDescriptorIndex(&gsplat_buffers.sortHistBuffer, SubresourceType::UAV)); // sortHistBuffer_index;
+//						AS_TYPE(float, inst.transformPrev.mat1.x, device->GetDescriptorIndex(&gsplat_buffers.gaussianKernelAttributes, SubresourceType::UAV)); // gaussian_vertex_attributes_index;
+//						AS_TYPE(float, inst.transformPrev.mat1.y, device->GetDescriptorIndex(&gsplat_buffers.totalSumBufferHost, SubresourceType::UAV)); // totalSumBufferHost_index;
+//						AS_TYPE(float, inst.transformPrev.mat1.z, device->GetDescriptorIndex(&gsplat_buffers.tileBoundaryBuffer, SubresourceType::UAV)); // tileBoundaryBuffer_index;
+//						inst.transformPrev.mat1.w = -1; // device->GetDescriptorIndex(&gsplat_buffers.duplicatedDepthGaussians, SubresourceType::UAV); // duplicatedDepthGaussians_index;
+//						AS_TYPE(float, inst.transformPrev.mat2.x, device->GetDescriptorIndex(&gsplat_buffers.readBackBufferTest, SubresourceType::UAV)); // readBackBufferTest_index;
+//						uint num_gaussian = (uint)primitives[0].GetNumVertices();
+//						inst.transformPrev.mat2.y = *(float*)&num_gaussian;
 					}
 				}
 

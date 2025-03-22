@@ -44,6 +44,14 @@ struct GaussianPushConstants
 	uint shift;
 	uint num_workgroups;
 	uint num_blocks_per_workgroup;
+
+	int geometryIndex;
+	uint padding0;
+	uint padding1;
+	uint padding2;
 };
+
+static const uint GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT = 0;
+static const uint GAUSSIANCOUNTER_OFFSET_OFFSETCOUNT = GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT + 4;
 
 #endif // SHADERINTEROP_GS_H
