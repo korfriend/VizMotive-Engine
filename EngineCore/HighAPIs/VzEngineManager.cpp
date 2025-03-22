@@ -869,6 +869,42 @@ namespace vzm
 		return n;
 	}
 
+	size_t GetVidsByType(const COMPONENT_TYPE type, std::vector<VID>& vids)
+	{
+		std::vector<VzBaseComp*> components;
+		vids.clear();
+		GetComponentsByType(type, components);
+		for (auto it : components) vids.push_back(it->GetVID());
+		return vids.size();
+	}
+
+	size_t GetComponentsByType(const COMPONENT_TYPE type, std::vector<VzBaseComp*>& components)
+	{
+		std::lock_guard<std::mutex> lock(mutexSafeSceneItem);
+		CHECK_API_INIT_VALIDITY(0u);
+
+		components.clear();
+
+#define GETTER_VZCOMP(COMPMAP) for (auto& it : vzcompmanager::##COMPMAP) { if (it.second.get()->GetType() == type) components.push_back(it.second.get()); }
+
+		switch (type)
+		{
+		case COMPONENT_TYPE::ACTOR: GETTER_VZCOMP(actors); break;
+		case COMPONENT_TYPE::LIGHT: GETTER_VZCOMP(lights); break;
+		case COMPONENT_TYPE::CAMERA: 
+		case COMPONENT_TYPE::SLICER: GETTER_VZCOMP(cameras); break;
+		case COMPONENT_TYPE::GEOMETRY: GETTER_VZCOMP(geometries); break;
+		case COMPONENT_TYPE::MATERIAL: GETTER_VZCOMP(materials); break;
+		case COMPONENT_TYPE::TEXTURE: GETTER_VZCOMP(textures); break;
+		case COMPONENT_TYPE::VOLUME: GETTER_VZCOMP(volumes); break;
+		case COMPONENT_TYPE::ARCHIVE: GETTER_VZCOMP(archives); break;
+		case COMPONENT_TYPE::RENDERER: GETTER_VZCOMP(renderers); break;
+		case COMPONENT_TYPE::SCENE: GETTER_VZCOMP(scenes); break;
+		}
+
+		return components.size();
+	}
+
 	std::string GetNameByVid(const VID vid)
 	{
 		std::lock_guard<std::mutex> lock(mutexSafeSceneItem);
@@ -884,11 +920,23 @@ namespace vzm
 		auto it = vzcompmanager::lookup.find(vid);
 		return it == vzcompmanager::lookup.end() ? nullptr : it->second;
 	}
-	
+
 	bool RemoveComponent(const VID vid, const bool includeDescendants)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(false);
 		return vzcompmanager::Destroy(vid, includeDescendants);	// jobsystem
+	}
+
+	size_t GetResourceManagerUsageCPU(std::unordered_map<std::string, size_t>& usageMap)
+	{
+		assert(0 && "TODO");
+		return 0u;
+	}
+
+	size_t GetResourceManagerUsageGPU(std::unordered_map<std::string, size_t>& usageMap)
+	{
+		assert(0 && "TODO");
+		return 0u;
 	}
 
 	VzActor* LoadModelFile(const std::string& filename)
