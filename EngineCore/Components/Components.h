@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250320_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250322_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -400,7 +400,7 @@ namespace vz
 		NameComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::NAME, entity, vuid) {}
 
 		inline void SetName(const std::string& name);
-		inline std::string GetName() const { return name_; }
+		inline const std::string& GetName() const { return name_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -797,6 +797,7 @@ namespace vz
 			inline bool IsValidBVH() const { return bvh_.IsValid(); };
 			inline const geometrics::BVH& GetBVH() const { return bvh_; };
 			inline const std::vector<geometrics::AABB>& GetBVHLeafAABBs() const { return bvhLeafAabbs_; };
+			inline size_t GetMemoryUsageCPU() const;
 
 			// ----- Getters -----
 			inline const std::vector<XMFLOAT3>& GetVtxPositions() const { return vertexPositions_; }
@@ -817,7 +818,6 @@ namespace vz
 			inline std::vector<SH>& GetMutableVtxSHs() { return vertexSHs_; }	// vertex spherical harmonics
 			inline std::vector<XMFLOAT4>& GetMutableVtxScaleOpacities() { return vertexScale_Opacities_; }	// vertex spherical harmonics
 			inline std::vector<XMFLOAT4>& GetMutableVtxQuaternions() { return vertexQuaterions_; }	// vertex spherical harmonics
-
 
 			inline size_t GetNumVertices() const { return vertexPositions_.size(); }
 			inline size_t GetNumIndices() const { return indexPrimitives_.size(); }
@@ -1076,6 +1076,7 @@ namespace vz
 		inline uint32_t GetDepth() const { return depth_; }
 		inline uint32_t GetArraySize() const { return arraySize_; }
 		inline uint32_t GetStride() const { return stride_; }
+		inline TextureFormat GetFormat() const { return textureFormat_; }
 
 		void CopyFromData(const std::vector<uint8_t>& data);
 		void MoveFromData(std::vector<uint8_t>&& data);

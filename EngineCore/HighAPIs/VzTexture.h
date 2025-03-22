@@ -116,6 +116,9 @@ namespace vzm
 
 		bool UpdateLookup(const std::vector<uint8_t>& data, const float tableValidBeginX, const float tableValidEndX);
 
+		void GetTextureSize(uint32_t* w, uint32_t* h, uint32_t* d) const;
+		TextureFormat GetTextureFormat() const;
+
 		std::string GetResourceName() const;
 		void SetSamplerFilter(const SamplerType filter);
 	};

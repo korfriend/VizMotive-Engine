@@ -18,5 +18,7 @@ namespace vzm
 
 		bool IsGPUBVHEnabled() const;
 		void EnableGPUBVH(const bool enabled);
+		
+		size_t GetMemoryUsageCPU() const;
 	};
 }

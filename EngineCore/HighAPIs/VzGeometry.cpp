@@ -160,4 +160,10 @@ namespace vzm
 		GET_GEO_COMP(geometry, );
 		geometry->EnableGPUBVH(enabled);
 	}
+
+	size_t VzGeometry::GetMemoryUsageCPU() const
+	{
+		GET_GEO_COMP(geometry, 0);
+		return geometry->GetMemoryUsageCPU();
+	}
 }

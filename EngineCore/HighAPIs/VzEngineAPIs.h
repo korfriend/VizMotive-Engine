@@ -62,6 +62,9 @@ namespace vzm
 	//  - return nullptr in case of failure
 	API_EXPORT VzBaseComp* GetComponent(const VID vid);
 
+	API_EXPORT size_t GetVidsByType(const COMPONENT_TYPE type, std::vector<VID>& vids);
+	API_EXPORT size_t GetComponentsByType(const COMPONENT_TYPE type, std::vector<VzBaseComp*>& components);
+
 	// Get Entity's name if possible
 	//  - return name string if entity's name exists, if not, return "" 
 	API_EXPORT std::string GetNameByVid(const VID vid);
@@ -69,7 +72,10 @@ namespace vzm
 	API_EXPORT bool RemoveComponent(const VID vid, const bool includeDescendants = false);
 	inline bool RemoveComponent(const VzBaseComp* comp, const bool includeDescendants = false) { return RemoveComponent(comp->GetVID(), includeDescendants); }
 
-	// Load a mesh file (obj and stl) into actors and return the first actor
+	size_t GetResourceManagerUsageCPU(std::unordered_map<std::string, size_t>& usageMap);
+	size_t GetResourceManagerUsageGPU(std::unordered_map<std::string, size_t>& usageMap);
+
+	// Load a mesh file (obj) into actors and return the first actor
 	//  - return root-node actor (empty)
 	API_EXPORT VzActor* LoadModelFile(const std::string& filename);
 
