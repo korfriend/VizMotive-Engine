@@ -99,6 +99,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortInnerCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortStepCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_kickoffCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_duplicateWithKeysCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_identifyTileRangesCS.hlsl" />

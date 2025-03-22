@@ -61,6 +61,7 @@ dxc -T cs_6_0 ./CS/wetmap_updateCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/meshlet_prepareCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv
 
+dxc -T cs_6_0 ./CS/gsplat_kickoffCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gsplat_preprocessCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gsplat_offsetCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gsplat_duplicateWithKeysCS.hlsl -spirv

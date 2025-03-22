@@ -1432,56 +1432,44 @@ namespace vz
 				device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianKernelAttributes, "GGeometryComponent::bufferHandle_::gaussianKernelAttributes");
 
 				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.touchedTiles_0);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.touchedTiles);
 				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.touchedTiles_0, "GGeometryComponent::bufferHandle_::touchedTiles_0");
+				device->SetName(&part_buffers.gaussianSplattingBuffers.touchedTiles, "GGeometryComponent::bufferHandle_::touchedTiles");
 
 				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTiles_0);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTiles);
 				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTiles_0, "GGeometryComponent::bufferHandle_::offsetTiles_0");
-				// Ping and Pong buffer for prefix sum
-				// 
-				// Ping buffer
-				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPing);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPing, "GGeometryComponent::bufferHandle_::offsetTilesPing");
+				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTiles, "GGeometryComponent::bufferHandle_::offsetTiles");
+			
+				part_buffers.gaussianSplattingBuffers.capacityGaussians = num_gaussian_kernels * 4;
+				{
+					// Radix sort buffers
+					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT) * 2; // uint_64
+					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferEven);
+					assert(success);
+					device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferEven, "GGeometryComponent::bufferHandle_::sortKBufferEven");
 
-				// Pong buffer
-				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.offsetTilesPong);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTilesPong, "GGeometryComponent::bufferHandle_::offsetTilesPong");
+					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT) * 2; // uint_64
+					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferOdd);
+					assert(success);
+					device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferOdd, "GGeometryComponent::bufferHandle_::sortKBufferOdd");
 
-				const size_t initial_capacity_scale = 4;
+					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT); // uint_32
+					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferEven);
+					assert(success);
+					device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferEven, "GGeometryComponent::bufferHandle_::sortVBufferEven");
 
-				// Radix sort buffers
-				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale; // uint_64
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferEven);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferEven, "GGeometryComponent::bufferHandle_::sortKBufferEven");
+					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT); // uint_32
+					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferOdd);
+					assert(success);
+					device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferOdd, "GGeometryComponent::bufferHandle_::sortVBufferOdd");
 
-				bd.size = num_gaussian_kernels * sizeof(UINT) * 2 * initial_capacity_scale; // uint_64
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferOdd);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferOdd, "GGeometryComponent::bufferHandle_::sortKBufferOdd");
-
-				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale; // uint_32
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferEven);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferEven, "GGeometryComponent::bufferHandle_::sortVBufferEven");
-
-				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale; // uint_32
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferOdd);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferOdd, "GGeometryComponent::bufferHandle_::sortVBufferOdd");
-
-				// tile boundary buffer
-				bd.size = num_gaussian_kernels * sizeof(UINT) * initial_capacity_scale;
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer, "GGeometryComponent::bufferHandle_::tileBoundaryBuffer");
+					// tile boundary buffer
+					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT);
+					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer);
+					assert(success);
+					device->SetName(&part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer, "GGeometryComponent::bufferHandle_::tileBoundaryBuffer");
+				}
 
 				// sort hist buffer test
 				//UINT numWorkgroups = ((num_gaussian_kernels * 8 + 32 - 1) / 32 + 256 - 1) / 256;
@@ -1497,15 +1485,19 @@ namespace vz
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.totalSumBufferHost, "GGeometryComponent::bufferHandle_::totalSumBufferHost");
 
-				// readback buffer
+				bd.size = sizeof(GaussianCounters);
+				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.gaussianCounterBuffer);
+				assert(success);
+				device->SetName(&part_buffers.gaussianSplattingBuffers.touchedTiles, "GGeometryComponent::bufferHandle_::gaussianCounterBuffer");
+
 				bd.usage = Usage::READBACK;
 				bd.bind_flags = BindFlag::NONE;
 				bd.misc_flags = ResourceMiscFlag::NONE;
-				bd.size = num_gaussian_kernels * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.readBackBufferTest);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.readBackBufferTest, "GGeometryComponent::bufferHandle_::readBackBufferTest");
-				part_buffers.gaussianSplattingBuffers.readBackBufferTestMapped = (const uint32_t*)&part_buffers.gaussianSplattingBuffers.readBackBufferTest.mapped_data;
+				for (int i = 0; i < arraysize(part_buffers.gaussianSplattingBuffers.gaussianCounterBuffer_readback); ++i)
+				{
+					device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.gaussianCounterBuffer_readback[i]);
+					device->SetName(&part_buffers.gaussianSplattingBuffers.gaussianCounterBuffer_readback[i], "GGeometryComponent::bufferHandle_::gaussianCounterBuffer_readback");
+				}
 			}
 
 			hasRenderData_ = true;
