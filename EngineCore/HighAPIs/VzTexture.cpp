@@ -1,5 +1,5 @@
 #include "VzEngineAPIs.h"
-#include "Components/Components.h"
+#include "Components/GComponents.h"
 #include "Utils/Backlog.h"
 
 using namespace vz;
@@ -46,6 +46,21 @@ namespace vzm
 		texture->UpdateMemory(data);
 		return true;
 	}
+
+	void VzTexture::GetTextureSize(uint32_t* w, uint32_t* h, uint32_t* d) const
+	{
+		GET_TEXTURE_COMP(texture, );
+		if (w) *w = texture->GetWidth();
+		if (h) *h = texture->GetHeight();
+		if (d) *d = texture->GetDepth();
+	}
+	
+	TextureFormat VzTexture::GetTextureFormat() const
+	{
+		GET_TEXTURE_COMP(texture, TextureFormat::UNKNOWN);
+		return static_cast<TextureFormat>(texture->GetFormat());
+	}
+
 	std::string VzTexture::GetResourceName() const
 	{
 		GET_TEXTURE_COMP(texture, "");

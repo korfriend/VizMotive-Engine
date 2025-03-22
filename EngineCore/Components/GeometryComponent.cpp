@@ -363,6 +363,23 @@ namespace vz
 		}
 	}
 
+	size_t Primitive::GetMemoryUsageCPU() const
+	{
+		size_t footage_bytes = 0;
+		footage_bytes += vertexPositions_.size() * sizeof(XMFLOAT3);
+		footage_bytes += vertexNormals_.size() * sizeof(XMFLOAT3);
+		footage_bytes += vertexTangents_.size() * sizeof(XMFLOAT4);
+		footage_bytes += vertexUVset0_.size() * sizeof(XMFLOAT2);
+		footage_bytes += vertexUVset1_.size() * sizeof(XMFLOAT2);
+		footage_bytes += vertexColors_.size() * sizeof(uint32_t);
+		footage_bytes += indexPrimitives_.size() * sizeof(uint32_t);
+
+		// TODO 
+		// BVH, SH, ...
+
+		return footage_bytes;
+	}
+
 #define AUTO_RENDER_DATA GeometryComponent* geometry = compfactory::GetGeometryComponent(recentBelongingGeometry_);\
 	if (geometry && autoUpdateRenderData) geometry->UpdateRenderData();
 
@@ -1606,14 +1623,7 @@ namespace vz
 		{
 			const Primitive& primitive = parts_[i];
 
-			size +=
-				primitive.vertexPositions_.size() * sizeof(XMFLOAT3) +
-				primitive.vertexNormals_.size() * sizeof(XMFLOAT3) +
-				primitive.vertexTangents_.size() * sizeof(XMFLOAT4) +
-				primitive.vertexUVset0_.size() * sizeof(XMFLOAT2) +
-				primitive.vertexUVset1_.size() * sizeof(XMFLOAT2) +
-				primitive.vertexColors_.size() * sizeof(uint32_t) +
-				primitive.indexPrimitives_.size() * sizeof(uint32_t);
+			size += primitive.GetMemoryUsageCPU();
 
 			//size += GetMemoryUsageBVH();
 		}

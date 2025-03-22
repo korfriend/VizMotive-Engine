@@ -88,6 +88,220 @@ namespace vzimgui
 		ImGui::Text("%s", text);
 		if (customfontlarge) ImGui::PopFont();
 	}
+	
+	std::unordered_map<VzTexture::TextureFormat, std::string> TextureFormatToString = {
+	{ VzTexture::TextureFormat::UNKNOWN, "UNKNOWN" },
+	{ VzTexture::TextureFormat::R32G32B32A32_FLOAT, "R32G32B32A32_FLOAT" },
+	{ VzTexture::TextureFormat::R32G32B32A32_UINT, "R32G32B32A32_UINT" },
+	{ VzTexture::TextureFormat::R32G32B32A32_SINT, "R32G32B32A32_SINT" },
+	{ VzTexture::TextureFormat::R32G32B32_FLOAT, "R32G32B32_FLOAT" },
+	{ VzTexture::TextureFormat::R32G32B32_UINT, "R32G32B32_UINT" },
+	{ VzTexture::TextureFormat::R32G32B32_SINT, "R32G32B32_SINT" },
+	{ VzTexture::TextureFormat::R16G16B16A16_FLOAT, "R16G16B16A16_FLOAT" },
+	{ VzTexture::TextureFormat::R16G16B16A16_UNORM, "R16G16B16A16_UNORM" },
+	{ VzTexture::TextureFormat::R16G16B16A16_UINT, "R16G16B16A16_UINT" },
+	{ VzTexture::TextureFormat::R16G16B16A16_SNORM, "R16G16B16A16_SNORM" },
+	{ VzTexture::TextureFormat::R16G16B16A16_SINT, "R16G16B16A16_SINT" },
+	{ VzTexture::TextureFormat::R32G32_FLOAT, "R32G32_FLOAT" },
+	{ VzTexture::TextureFormat::R32G32_UINT, "R32G32_UINT" },
+	{ VzTexture::TextureFormat::R32G32_SINT, "R32G32_SINT" },
+	{ VzTexture::TextureFormat::D32_FLOAT_S8X24_UINT, "D32_FLOAT_S8X24_UINT" },
+	{ VzTexture::TextureFormat::R10G10B10A2_UNORM, "R10G10B10A2_UNORM" },
+	{ VzTexture::TextureFormat::R10G10B10A2_UINT, "R10G10B10A2_UINT" },
+	{ VzTexture::TextureFormat::R11G11B10_FLOAT, "R11G11B10_FLOAT" },
+	{ VzTexture::TextureFormat::R8G8B8A8_UNORM, "R8G8B8A8_UNORM" },
+	{ VzTexture::TextureFormat::R8G8B8A8_UNORM_SRGB, "R8G8B8A8_UNORM_SRGB" },
+	{ VzTexture::TextureFormat::R8G8B8A8_UINT, "R8G8B8A8_UINT" },
+	{ VzTexture::TextureFormat::R8G8B8A8_SNORM, "R8G8B8A8_SNORM" },
+	{ VzTexture::TextureFormat::R8G8B8A8_SINT, "R8G8B8A8_SINT" },
+	{ VzTexture::TextureFormat::B8G8R8A8_UNORM, "B8G8R8A8_UNORM" },
+	{ VzTexture::TextureFormat::B8G8R8A8_UNORM_SRGB, "B8G8R8A8_UNORM_SRGB" },
+	{ VzTexture::TextureFormat::R16G16_FLOAT, "R16G16_FLOAT" },
+	{ VzTexture::TextureFormat::R16G16_UNORM, "R16G16_UNORM" },
+	{ VzTexture::TextureFormat::R16G16_UINT, "R16G16_UINT" },
+	{ VzTexture::TextureFormat::R16G16_SNORM, "R16G16_SNORM" },
+	{ VzTexture::TextureFormat::R16G16_SINT, "R16G16_SINT" },
+	{ VzTexture::TextureFormat::D32_FLOAT, "D32_FLOAT" },
+	{ VzTexture::TextureFormat::R32_FLOAT, "R32_FLOAT" },
+	{ VzTexture::TextureFormat::R32_UINT, "R32_UINT" },
+	{ VzTexture::TextureFormat::R32_SINT, "R32_SINT" },
+	{ VzTexture::TextureFormat::D24_UNORM_S8_UINT, "D24_UNORM_S8_UINT" },
+	{ VzTexture::TextureFormat::R9G9B9E5_SHAREDEXP, "R9G9B9E5_SHAREDEXP" },
+	{ VzTexture::TextureFormat::R8G8_UNORM, "R8G8_UNORM" },
+	{ VzTexture::TextureFormat::R8G8_UINT, "R8G8_UINT" },
+	{ VzTexture::TextureFormat::R8G8_SNORM, "R8G8_SNORM" },
+	{ VzTexture::TextureFormat::R8G8_SINT, "R8G8_SINT" },
+	{ VzTexture::TextureFormat::R16_FLOAT, "R16_FLOAT" },
+	{ VzTexture::TextureFormat::D16_UNORM, "D16_UNORM" },
+	{ VzTexture::TextureFormat::R16_UNORM, "R16_UNORM" },
+	{ VzTexture::TextureFormat::R16_UINT, "R16_UINT" },
+	{ VzTexture::TextureFormat::R16_SNORM, "R16_SNORM" },
+	{ VzTexture::TextureFormat::R16_SINT, "R16_SINT" },
+	{ VzTexture::TextureFormat::R8_UNORM, "R8_UNORM" },
+	{ VzTexture::TextureFormat::R8_UINT, "R8_UINT" },
+	{ VzTexture::TextureFormat::R8_SNORM, "R8_SNORM" },
+	{ VzTexture::TextureFormat::R8_SINT, "R8_SINT" },
+	{ VzTexture::TextureFormat::BC1_UNORM, "BC1_UNORM" },
+	{ VzTexture::TextureFormat::BC1_UNORM_SRGB, "BC1_UNORM_SRGB" },
+	{ VzTexture::TextureFormat::BC2_UNORM, "BC2_UNORM" },
+	{ VzTexture::TextureFormat::BC2_UNORM_SRGB, "BC2_UNORM_SRGB" },
+	{ VzTexture::TextureFormat::BC3_UNORM, "BC3_UNORM" },
+	{ VzTexture::TextureFormat::BC3_UNORM_SRGB, "BC3_UNORM_SRGB" },
+	{ VzTexture::TextureFormat::BC4_UNORM, "BC4_UNORM" },
+	{ VzTexture::TextureFormat::BC4_SNORM, "BC4_SNORM" },
+	{ VzTexture::TextureFormat::BC5_UNORM, "BC5_UNORM" },
+	{ VzTexture::TextureFormat::BC5_SNORM, "BC5_SNORM" },
+	{ VzTexture::TextureFormat::BC6H_UF16, "BC6H_UF16" },
+	{ VzTexture::TextureFormat::BC6H_SF16, "BC6H_SF16" },
+	{ VzTexture::TextureFormat::BC7_UNORM, "BC7_UNORM" },
+	{ VzTexture::TextureFormat::BC7_UNORM_SRGB, "BC7_UNORM_SRGB" },
+	{ VzTexture::TextureFormat::NV12, "NV12" },
+	};
+
+	std::unordered_map<ShaderType, std::string> ShaderTypeToString = {
+	{ ShaderType::PHONG, "PHONG" },
+	{ ShaderType::PBR, "PBR" },
+	{ ShaderType::UNLIT, "UNLIT" },
+	{ ShaderType::VOLUMEMAP, "VOLUMEMAP" },
+	};
+
+	void UpdateResourceMonitor(const std::function<void(const VID)>& callback)
+	{
+		std::vector<VzBaseComp*> actors;
+		std::vector<VzBaseComp*> geometries;
+		std::vector<VzBaseComp*> materials;
+		std::vector<VzBaseComp*> textures;
+		std::vector<VzBaseComp*> volumes;
+		std::vector<VzBaseComp*> cameras;
+		std::vector<VzBaseComp*> slicers;
+		std::vector<VzBaseComp*> renderers;
+		std::vector<VzBaseComp*> scenes;
+		std::vector<VzBaseComp*> archives;
+
+		size_t total_user_components = 0;
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ACTOR, actors);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::GEOMETRY, geometries);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::MATERIAL, materials);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::TEXTURE, textures);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::VOLUME, volumes);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::CAMERA, cameras);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::SLICER, slicers);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::RENDERER, renderers);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::SCENE, scenes);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ARCHIVE, archives);
+		
+		IGTextTitle("Resource Monitor");
+
+		//ImGuiWindow* window = ImGui::GetCurrentWindowRead();
+		if (customfontlarge) ImGui::PushFont(customfontlarge); 
+		
+		ImGui::Text("** Total User Components: %d", (uint32_t)total_user_components);
+
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Bullet;
+		if (ImGui::TreeNodeEx("GEOMETRY", flags, "COMPONENT_TYPE::GEOMETRY")) {
+			for (auto it : geometries)
+			{
+				// TODO: GET_RESOURCE_SIZE
+				VID vid = it->GetVID();
+				std::string name = it->GetName();
+				const char* label = name.c_str();
+				if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Leaf,
+					"%s(%d): %d Parts, %f MB", label, vid, (uint32_t)((VzGeometry*)it)->GetNumParts(), (float)((VzGeometry*)it)->GetMemoryUsageCPU() / 1024.f / 1024.f)) {
+					if (ImGui::IsItemClicked())
+					{
+						vzlog("Clicked! %s", label);
+						callback(vid);
+					}
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("TEXTURE", flags, "COMPONENT_TYPE::TEXTURE")) {
+			for (auto it : textures)
+			{
+				VID vid = it->GetVID();
+				std::string name = it->GetName();
+				const char* label = name.c_str();
+				uint32_t w, h, d;
+				((VzTexture*)it)->GetTextureSize(&w, &h, &d);
+				std::string format_str = TextureFormatToString[((VzTexture*)it)->GetTextureFormat()];
+				if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Leaf,
+					"%s(%d): %dx%dx%d (%s)", label, vid, w, h, d, format_str.c_str())) {
+					if (ImGui::IsItemClicked())
+					{
+						vzlog("Clicked! %s", label);
+					}
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("VOLUME", flags, "COMPONENT_TYPE::VOLUME"))
+		{
+			for (auto it : volumes)
+			{
+				VID vid = it->GetVID();
+				std::string name = it->GetName();
+				const char* label = name.c_str();
+				uint32_t w, h, d;
+				((VzTexture*)it)->GetTextureSize(&w, &h, &d);
+				std::string format_str = TextureFormatToString[((VzTexture*)it)->GetTextureFormat()];
+				if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Leaf,
+					"%s(%d): %d x %d x %d (%s)", label, vid, w, h, d, format_str.c_str())) {
+					if (ImGui::IsItemClicked())
+					{
+						vzlog("Clicked! %s", label);
+					}
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("RENDERER", flags, "COMPONENT_TYPE::RENDERER")) {
+			for (auto it : renderers)
+			{
+				VID vid = it->GetVID();
+				std::string name = it->GetName();
+				const char* label = name.c_str();
+				uint32_t w, h;
+				((VzRenderer*)it)->GetCanvas(&w, &h, nullptr, nullptr);
+				if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Leaf,
+					"%s(%d): %d x %d", label, vid, w, h)) {
+					if (ImGui::IsItemClicked())
+					{
+						vzlog("Clicked! %s", label);
+					}
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("MATERIAL", flags, "COMPONENT_TYPE::MATERIAL")) {
+			for (auto it : materials)
+			{
+				VID vid = it->GetVID();
+				std::string name = it->GetName();
+				const char* label = name.c_str();
+				std::string shader_type_str =  ShaderTypeToString[((VzMaterial*)it)->GetShaderType()];
+				if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Leaf,
+					"%s(%d): %s", label, vid, shader_type_str.c_str())) {
+					if (ImGui::IsItemClicked())
+					{
+						vzlog("Clicked! %s", label);
+					}
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+
+		if (customfontlarge) ImGui::PopFont();
+	}
 
 	void VzImGuiFontManager::AddFont(const char* fontpath)
 	{

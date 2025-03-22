@@ -222,14 +222,14 @@ int main(int, char**)
 			material_stl->SetBaseColor({ 1, 0, 0, 1 });
 			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry, material_stl);
 			actor_test3->SetScale({ 0.5f, 0.5f, 0.5f });
-			actor_test3->SetPosition({ 0, 0, 10 });
+			actor_test3->SetPosition({ 5, 0, 0 });
 			scene->AppendChild(actor_test3);
 
 			vzm::VzMaterial* material_stl_A = vzm::NewMaterial("my stl's material_A");
 			material_stl_A->SetBaseColor({ 1, 1, 0, 1 });
 			vzm::VzActor* actor_test5 = vzm::NewActor("my actor5", geometry, material_stl_A);
 			actor_test5->SetScale({ 0.5f, 0.5f, 0.5f });
-			actor_test5->SetPosition({ 0, 0, -10 });
+			actor_test5->SetPosition({ -5, 0, 0 });
 			actor_test5->SetRotateAxis({ 0, 1, 0 }, 90.f);
 			scene->AppendChild(actor_test5);
 			});
@@ -756,7 +756,6 @@ int main(int, char**)
 				//{
 				//	vzm::VzActor* actor_test5 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor5");
 				//	actor_test5->SetVisibleLayer(visible_implant1, 0x1);
-				//
 				//}
 				//if (ImGui::Checkbox("Pano Halper Visible", &visible_panohalper))
 				//{
@@ -864,6 +863,12 @@ int main(int, char**)
 					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
 				}
+			}
+			ImGui::End();
+
+			ImGui::Begin("System Monitor");
+			{
+				vzimgui::UpdateResourceMonitor([](const VID vid) {});
 			}
 			ImGui::End();
 		}

@@ -26,6 +26,7 @@ namespace vzimgui
 	using namespace vzm;
 
 	void UpdateTreeNode(const VID vid, const VID vidSelected, const std::function<void(const VID)>& callback);
+	void UpdateResourceMonitor(const std::function<void(const VID)>& callback);
 	
 	void IGTextTitle(const char* text);
 
