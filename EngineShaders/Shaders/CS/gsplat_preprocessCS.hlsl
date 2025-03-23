@@ -3,9 +3,6 @@
 
 #include "../Globals.hlsli"
 #include "../ShaderInterop_GaussianSplatting.h"
-#include "../CommonHF/gaussianSplattingHF.hlsli"
-#include "../CommonHF/surfaceHF.hlsli"
-#include "../CommonHF/raytracingHF.hlsli"   
 
 PUSHCONSTANT(push, GaussianPushConstants);
 
@@ -16,6 +13,7 @@ RWByteAddressBuffer counterBuffer : register(u10); // fixed
 RWTexture2D<unorm float4> inout_color : register(u0);
 RWStructuredBuffer<uint> touchedTiles : register(u1);
 RWStructuredBuffer<GaussianKernelAttribute> gaussianKernelAttributes : register(u2);
+RWStructuredBuffer<uint> offsetTiles : register(u3);
 
 Buffer<float4> gaussianScale_Opacities : register(t0);
 Buffer<float4> gaussianQuaterinions : register(t1);
@@ -193,7 +191,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     // Load Position, Scale/Opacity, Quaternion, SH coefficients
     // bindless graphics, load buffer with index
 
-    Buffer<float4> gsplatPosition = bindless_buffers_float4[push.vb_pos_w];
+    Buffer<float4> gsplatPosition = bindless_buffers_float4[push.geometryIndex];
     float3 pos = gsplatPosition[idx].xyz;
     float4 scale_opacity = gaussianScale_Opacities[idx];
     float3 scale = scale_opacity.xyz;
@@ -240,7 +238,9 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     //int2 pixel_coord = int2(point_image + 0.5f);
     //inout_color[pixel_coord] = float4(1, 1, 0, 1);
 
-    counterBuffer.InterlockedAdd(GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT, total_tiles);
+    uint offset;
+    counterBuffer.InterlockedAdd(GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT, total_tiles, offset);
+    offsetTiles[index] = offset;
 
     // compute RGB from SH coefficients
     float3 rgb_sh = compute_sh(gaussianSHs, pos, idx, camPos);

@@ -1293,6 +1293,43 @@ namespace vz
 		}
 	}
 
+	void GGeometryComponent::GaussianSplattingBuffers::UpdateCapacityGaussians(uint32_t capacityGaussians)
+	{
+		if (capacityGaussians > this->capacityGaussians)
+		{
+			GraphicsDevice* device = graphics::GetDevice();
+
+			this->capacityGaussians = capacityGaussians * 2;
+
+			vzlog("GaussianSplattingBuffers's capacity update: request (%d) and allocate (%d)", capacityGaussians, this->capacityGaussians);
+
+			GPUBufferDesc bd;
+			if (device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
+			{
+				// In UMA mode, it is better to create UPLOAD buffer, this avoids one copy from UPLOAD to DEFAULT
+				bd.usage = Usage::UPLOAD;
+			}
+			else
+			{
+				bd.usage = Usage::DEFAULT;
+			}
+			bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+
+			bd.size = this->capacityGaussians * sizeof(UINT) * 2; // uint_64
+			assert(device->CreateBuffer(&bd, nullptr, &duplicatedGaussianKey));
+			device->SetName(&duplicatedGaussianKey, "GaussianSplattingBuffers::duplicatedGaussianKey");
+
+			bd.size = this->capacityGaussians * sizeof(UINT); 
+			assert(device->CreateBuffer(&bd, nullptr, &duplicatedGaussianValue));
+			device->SetName(&duplicatedGaussianValue, "GaussianSplattingBuffers::duplicatedGaussianValue");
+
+			bd.size = this->capacityGaussians * sizeof(UINT);
+			assert(device->CreateBuffer(&bd, nullptr, &sortedIndices));
+			device->SetName(&sortedIndices, "GaussianSplattingBuffers::sortedIndices");
+		}
+	}
+
 	void GGeometryComponent::UpdateRenderDataGaussianSplatting()
 	{
 		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
@@ -1441,50 +1478,8 @@ namespace vz
 				assert(success);
 				device->SetName(&part_buffers.gaussianSplattingBuffers.offsetTiles, "GGeometryComponent::bufferHandle_::offsetTiles");
 			
-				part_buffers.gaussianSplattingBuffers.capacityGaussians = num_gaussian_kernels * 4;
-				{
-					// Radix sort buffers
-					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT) * 2; // uint_64
-					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferEven);
-					assert(success);
-					device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferEven, "GGeometryComponent::bufferHandle_::sortKBufferEven");
-
-					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT) * 2; // uint_64
-					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortKBufferOdd);
-					assert(success);
-					device->SetName(&part_buffers.gaussianSplattingBuffers.sortKBufferOdd, "GGeometryComponent::bufferHandle_::sortKBufferOdd");
-
-					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT); // uint_32
-					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferEven);
-					assert(success);
-					device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferEven, "GGeometryComponent::bufferHandle_::sortVBufferEven");
-
-					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT); // uint_32
-					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortVBufferOdd);
-					assert(success);
-					device->SetName(&part_buffers.gaussianSplattingBuffers.sortVBufferOdd, "GGeometryComponent::bufferHandle_::sortVBufferOdd");
-
-					// tile boundary buffer
-					bd.size = part_buffers.gaussianSplattingBuffers.capacityGaussians * sizeof(UINT);
-					success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer);
-					assert(success);
-					device->SetName(&part_buffers.gaussianSplattingBuffers.tileBoundaryBuffer, "GGeometryComponent::bufferHandle_::tileBoundaryBuffer");
-				}
-
-				// sort hist buffer test
-				//UINT numWorkgroups = ((num_gaussian_kernels * 8 + 32 - 1) / 32 + 256 - 1) / 256;
-				uint32_t numWorkgroups = (num_gaussian_kernels * 8 + 31) / (32 * 256);
-
-				bd.size = numWorkgroups * 256 * sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.sortHistBuffer);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.sortHistBuffer, "GGeometryComponent::bufferHandle_::sortHistBuffer");
-
-				bd.size = sizeof(UINT);
-				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.totalSumBufferHost);
-				assert(success);
-				device->SetName(&part_buffers.gaussianSplattingBuffers.totalSumBufferHost, "GGeometryComponent::bufferHandle_::totalSumBufferHost");
-
+				part_buffers.gaussianSplattingBuffers.UpdateCapacityGaussians(num_gaussian_kernels * 2);
+				
 				bd.size = sizeof(GaussianCounters);
 				success = device->CreateBuffer(&bd, nullptr, &part_buffers.gaussianSplattingBuffers.gaussianCounterBuffer);
 				assert(success);

@@ -1,17 +1,16 @@
 #include "../Globals.hlsli"
 #include "../ShaderInterop_GaussianSplatting.h"
 #include "../CommonHF/surfaceHF.hlsli"
-#include "../CommonHF/raytracingHF.hlsli"   
 
-PUSHCONSTANT(tiles, GaussianSortConstants);
+PUSHCONSTANT(push, GaussianPushConstants);
 
-RWStructuredBuffer<uint64_t> OutKeys : register(u0); // sortKBufferEven
-RWStructuredBuffer<uint> OutPayloads : register(u1); // sortVBufferEven
+RWStructuredBuffer<uint64_t> duplicatedGaussianKey : register(u1); // OutKeys
+RWStructuredBuffer<uint> duplicatedGaussianValue : register(u2); // OutPayloads
 
-StructuredBuffer<GaussianKernelAttribute> Vertices : register(t0);
-StructuredBuffer<uint> prefixSum : register(t1);
+StructuredBuffer<GaussianKernelAttribute> gaussianKernelAttributes : register(t0);
+StructuredBuffer<uint> offsetTiles : register(t1);
 
-[numthreads(256, 1, 1)]
+[numthreads(256, 1, 1)] // indirect? 256,1,1 is optimal?
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
     ShaderCamera camera = GetCamera();
@@ -20,20 +19,20 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     uint index = DTid.x;
     
-    if (Vertices[index].color_radii.w == 0)
+    if (gaussianKernelAttributes[index].color_radii.w == 0)
         return;
     
-    if (index >= tiles.num_gaussians)
+    if (index >= push.num_elements)
         return;
     
-    GaussianKernelAttribute v = Vertices[index];
+    GaussianKernelAttribute v = gaussianKernelAttributes[index];
 
     //if (index >= prefixSum.Length())
     //    return;
     
-    uint tileX = tiles.tileX;
+    uint tileX = push.tileX;
     
-    uint ind = (index == 0) ? 0 : prefixSum[index - 1];
+    uint ind = offsetTiles[index]; // (index == 0) ? 0 : prefixSum[index - 1];
 
     for (uint i = (uint) v.aabb.x; i < (uint) v.aabb.z; i++)
     {
@@ -42,8 +41,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
             uint64_t tileIndex = ((uint64_t) i) + ((uint64_t) j * tileX);
             uint depthBits = asuint(v.depth);
             uint64_t k = (tileIndex << 32) | ((uint64_t) depthBits);
-            OutKeys[ind] = k;
-            OutPayloads[ind] = index;
+            duplicatedGaussianKey[ind] = k;
+            duplicatedGaussianValue[ind] = index;
             ind++;
         }
     }
