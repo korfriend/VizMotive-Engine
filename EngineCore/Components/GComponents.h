@@ -98,19 +98,15 @@ namespace vz
 			graphics::GPUBuffer gaussianCounterBuffer_readback[graphics::GraphicsDevice::GetBufferCount()];
 			graphics::GPUBuffer touchedTiles;	// # of gaussian points
 			graphics::GPUBuffer offsetTiles;	// # of gaussian points
-
-			uint32_t capacityGaussians;
-
-			graphics::GPUBuffer sortKBufferEven; // duplicated key buffer
-			graphics::GPUBuffer sortKBufferOdd;
-			graphics::GPUBuffer sortVBufferEven; // duplicated value buffer
-			graphics::GPUBuffer sortVBufferOdd;
-
-			graphics::GPUBuffer sortHistBuffer;
-
 			graphics::GPUBuffer gaussianKernelAttributes; // # of gaussian points
-			graphics::GPUBuffer totalSumBufferHost; // # of gaussian points
 			graphics::GPUBuffer tileBoundaryBuffer; // # of gaussian points
+
+			uint32_t capacityGaussians = 0u;
+			graphics::GPUBuffer duplicatedGaussianKey;
+			graphics::GPUBuffer duplicatedGaussianValue;
+			graphics::GPUBuffer sortedIndices;
+
+			void UpdateCapacityGaussians(uint32_t capacityGaussians);
 		};
 
 		struct BVHBuffers

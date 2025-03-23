@@ -193,10 +193,12 @@ namespace vz::renderer
 
 		XMUINT2 tileCount = {};
 
+		graphics::GPUBuffer tileGaussianRange;
+
 		// --- new version ---
 		graphics::GPUBuffer touchedTiles_tiledCounts;
 		graphics::GPUBuffer offsetTiles;
-		// next step		
+		// next step					// tile boundary buffer
 	};
 
 	struct LuminanceResources
