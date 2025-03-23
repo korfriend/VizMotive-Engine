@@ -125,6 +125,7 @@ namespace vz::renderer
 
 				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.touchedTiles, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
 				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianKernelAttributes, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
+				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.offsetTiles, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
 
 				//barrierStack.push_back(GPUBarrier::Buffer(&gprim_buffer->generalBuffer, ResourceState::UNDEFINED, ResourceState::SHADER_RESOURCE_COMPUTE));
 				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianScale_Opacities, ResourceState::UNDEFINED, ResourceState::SHADER_RESOURCE_COMPUTE));
@@ -134,8 +135,10 @@ namespace vz::renderer
 			}
 
 			device->BindUAV(&rtMain, 0, cmd); // just for debug
-			device->BindUAV(&gsplat_buffers.touchedTiles, 1, cmd);			
-			device->BindUAV(&gsplat_buffers.gaussianKernelAttributes, 2, cmd); 
+
+			device->BindUAV(&gsplat_buffers.touchedTiles, 1, cmd);
+			device->BindUAV(&gsplat_buffers.gaussianKernelAttributes, 2, cmd);
+			device->BindUAV(&gsplat_buffers.offsetTiles, 3, cmd);
 
 			device->BindResource(&gsplat_buffers.gaussianScale_Opacities, 0, cmd);
 			device->BindResource(&gsplat_buffers.gaussianQuaterinions, 1, cmd);
@@ -163,31 +166,31 @@ namespace vz::renderer
 			//device->BindUAV(&unbind, 0, cmd);
 			device->BindUAV(&unbind, 1, cmd);
 			device->BindUAV(&unbind, 2, cmd);
+			device->BindUAV(&unbind, 3, cmd);
 			device->BindResource(&unbind, 0, cmd);
 			device->BindResource(&unbind, 1, cmd);
 			device->BindResource(&unbind, 2, cmd);
 
-			{
-				barrierStack.push_back(GPUBarrier::Memory(&gsplat_buffers.gaussianCounterBuffer));
-				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.touchedTiles, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
-				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.offsetTiles, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
-				BarrierStackFlush(cmd);
-			}
-
-			device->BindUAV(&gsplat_buffers.offsetTiles, 1, cmd);
-			device->BindResource(&gsplat_buffers.touchedTiles, 0, cmd);
-			device->BindComputeShader(&shaders[CSTYPE_GAUSSIANSPLATTING_GAUSSIAN_OFFSET], cmd);
-
+			//{
+			//	barrierStack.push_back(GPUBarrier::Memory(&gsplat_buffers.gaussianCounterBuffer));
+			//	barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.touchedTiles, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
+			//	BarrierStackFlush(cmd);
+			//}
+			//
+			//device->BindUAV(&gsplat_buffers.offsetTiles, 1, cmd);
+			//device->BindResource(&gsplat_buffers.touchedTiles, 0, cmd);
+			//device->BindComputeShader(&shaders[CSTYPE_GAUSSIANSPLATTING_GAUSSIAN_OFFSET], cmd);
+			//
+			////device->BindResource(&unbind, 0, cmd);
 			//device->BindResource(&unbind, 0, cmd);
-			device->BindResource(&unbind, 0, cmd);
-			device->BindUAV(&unbind, 1, cmd);
-			device->BindUAV(&unbind, 10, cmd);
-
-			{
-				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianCounterBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::UNDEFINED));
-				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.offsetTiles, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
-				BarrierStackFlush(cmd);
-			}
+			//device->BindUAV(&unbind, 1, cmd);
+			//device->BindUAV(&unbind, 10, cmd);
+			//
+			//{
+			//	barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianCounterBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::UNDEFINED));
+			//	barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.offsetTiles, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
+			//	BarrierStackFlush(cmd);
+			//}
 			/*
 			// even -> srcBuffer is offsetTilesPong
 			GPUBuffer* srcBuffer = ((iters % 2) == 0) ? &gs_buffers.offsetTilesPong : &gs_buffers.offsetTilesPing;
