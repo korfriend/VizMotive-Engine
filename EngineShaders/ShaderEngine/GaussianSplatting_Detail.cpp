@@ -190,7 +190,7 @@ namespace vz::renderer
 			);
 
 			const uint32_t* counter_gsplat = (const uint32_t*)gsplat_buffers.gaussianCounterBuffer_readback[(pingplong_readback_index + 1) % 2].mapped_data;
-			gsplat_buffers.UpdateCapacityGaussians(counter_gsplat[0]);
+			//gsplat_buffers.UpdateCapacityGaussians(counter_gsplat[0]);
 
 			//
 			//device->BindUAV(&gsplat_buffers.offsetTiles, 1, cmd);
