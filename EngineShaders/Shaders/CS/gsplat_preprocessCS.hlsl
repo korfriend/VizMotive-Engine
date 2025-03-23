@@ -240,7 +240,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     uint offset;
     counterBuffer.InterlockedAdd(GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT, total_tiles, offset);
-    offsetTiles[index] = offset;
+    offsetTiles[idx] = offset;
 
     // compute RGB from SH coefficients
     float3 rgb_sh = compute_sh(gaussianSHs, pos, idx, camPos);
