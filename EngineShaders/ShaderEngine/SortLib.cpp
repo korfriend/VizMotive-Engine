@@ -51,7 +51,7 @@ namespace vz::gpusortlib
 	}
 
 	void Sort(
-		uint32_t maxCount,
+		uint32_t maxCount, const COMPARISON_TYPE comparisonType,
 		const GPUBuffer& comparisonBuffer_read,
 		const GPUBuffer& counterBuffer_read,
 		uint32_t counterReadOffset,

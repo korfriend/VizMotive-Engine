@@ -9,8 +9,16 @@ namespace vz::gpusortlib
 	//	counterBuffer_read		-	Buffer containing count of values to sort (Read Only)
 	//	counterReadOffset		-	Byte offset into the counter buffer to read the count value (Read Only)
 	//	indexBuffer_write		-	The index list which to sort. Contains index values which can index the sortBase_read buffer. This will be modified (Read + Write)
+
+	enum COMPARISON_TYPE
+	{
+		COMPARISON_FLOAT,
+		COMPARISON_UINT64,
+	};
+
 	void Sort(
 		uint32_t maxCount,
+		const COMPARISON_TYPE comparisonType,
 		const graphics::GPUBuffer& comparisonBuffer_read,
 		const graphics::GPUBuffer& counterBuffer_read,
 		uint32_t counterReadOffset,

@@ -102,11 +102,9 @@ namespace vz
 			graphics::GPUBuffer tileBoundaryBuffer; // # of gaussian points
 
 			uint32_t capacityGaussians = 0u;
-			graphics::GPUBuffer duplicatedGaussianKey;
-			graphics::GPUBuffer duplicatedGaussianValue;
+			graphics::GPUBuffer replicatedGaussianKey;
+			graphics::GPUBuffer replicatedGaussianValue;
 			graphics::GPUBuffer sortedIndices;
-
-			void UpdateCapacityGaussians(uint32_t capacityGaussians);
 		};
 
 		struct BVHBuffers
@@ -123,6 +121,7 @@ namespace vz
 			uint32_t primitiveCapacity = 0;
 			bool IsValid() const { return primitiveCounterBuffer.IsValid(); }
 		};
+
 		struct GPrimBuffers
 		{
 			uint32_t slot = 0;
@@ -195,7 +194,10 @@ namespace vz
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
 		GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
 		void UpdateRenderData() override;
+
 		void UpdateRenderDataGaussianSplatting();
+		void UpdateCapacityGaussians(uint32_t capacityGaussians);
+
 		void DeleteRenderData() override;
 		void UpdateStreamoutRenderData();
 		size_t GetMemoryUsageCPU() const override;

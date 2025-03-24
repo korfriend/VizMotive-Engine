@@ -370,7 +370,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_duplicateCS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_replicateCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl">

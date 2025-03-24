@@ -218,7 +218,7 @@ namespace vz::gpubvh
 			device->EventEnd(cmd);
 
 			device->EventBegin("BVH - Sort Primitive Mortons", cmd);
-			gpusortlib::Sort(primitiveCount, bvhBuffers.primitiveMortonBuffer, bvhBuffers.primitiveCounterBuffer, 0, bvhBuffers.primitiveIDBuffer, cmd);
+			gpusortlib::Sort(primitiveCount, gpusortlib::COMPARISON_FLOAT, bvhBuffers.primitiveMortonBuffer, bvhBuffers.primitiveCounterBuffer, 0, bvhBuffers.primitiveIDBuffer, cmd);
 			device->EventEnd(cmd);
 
 			device->EventBegin("BVH - Build Hierarchy", cmd);

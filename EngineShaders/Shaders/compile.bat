@@ -62,7 +62,7 @@ dxc -T cs_6_0 ./CS/meshlet_prepareCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/gsplat_preprocessCS.hlsl -spirv
-dxc -T cs_6_0 ./CS/gsplat_duplicateCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/gsplat_replicateCS.hlsl -spirv
 
 //dxc -T cs_6_0 ./CS/gsplat_kickoffCS.hlsl -spirv
 //dxc -T cs_6_0 ./CS/gsplat_offsetCS.hlsl -spirv
