@@ -600,7 +600,7 @@ namespace vz::shader
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_KICKOFF], "gsplat_kickoffCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_PREPROCESS], "gsplat_preprocessCS.cso"); });
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_GAUSSIAN_OFFSET], "gsplat_offsetCS.cso"); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_DUPLICATED_GAUSSIANS], "gsplat_duplicateWithKeysCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_REPLICATE_GAUSSIANS], "gsplat_replicateCS.cso"); });
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_RADIX_HIST_GAUSSIANS], "gsplat_histCS.cso"); });
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_RADIX_SORT_GAUSSIANS], "gsplat_sortCS.cso"); });
 		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_IDENTIFY_TILE_RANGES], "gsplat_identifyTileRangesCS.cso"); });

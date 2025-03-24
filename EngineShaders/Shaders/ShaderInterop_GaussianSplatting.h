@@ -26,11 +26,16 @@ static const float SH_C3[7] = {
 struct GaussianKernelAttribute {
 	float4 conic_opacity;
 	float4 color_radii;
+
 	uint4 aabb; // bounding box 
+
 	float2 uv; // pixel coords that is output of ndx2pix() func;
 	float depth;
 	uint magic;
 };
+static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_RADIUS = (7) * 4;
+static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_AABB = (8) * 4;
+static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_DEPTH = (12 + 2) * 4;
 
 struct GaussianPushConstants
 {
@@ -40,7 +45,7 @@ struct GaussianPushConstants
 	uint timestamp;
 
 	// for radix sort updates
-	uint num_elements;
+	uint numGaussians;
 	uint shift;
 	uint num_workgroups;
 	uint num_blocks_per_workgroup;

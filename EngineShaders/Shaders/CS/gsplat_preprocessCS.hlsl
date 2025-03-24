@@ -178,7 +178,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float radius = 0.0f;
     uint idx = DTid.x;
     
-    if (idx >= push.num_elements)
+    if (idx >= push.numGaussians)
         return;
 
     // Load camera data
@@ -249,31 +249,28 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float4 p_view = mul(float4(pos, 1.0f), camera.view);
     touchedTiles[idx] = total_tiles;
 
-    GaussianKernelAttribute at;
+    GaussianKernelAttribute gussial_attribute;
 
-    at.conic_opacity = float4(conic.x, conic.y, conic.z, opacity);
-    at.color_radii = float4(rgb_sh, radius);
-    at.aabb = uint4(rect_min.x, rect_min.y, rect_max.x, rect_max.y);
-    at.uv = point_image;
-    at.depth = p_view.z;
-    at.magic = 0x12345678;
+    gussial_attribute.conic_opacity = float4(conic.x, conic.y, conic.z, opacity);
+    gussial_attribute.color_radii = float4(rgb_sh, radius);
+    gussial_attribute.aabb = uint4(rect_min.x, rect_min.y, rect_max.x, rect_max.y);
+    gussial_attribute.uv = point_image;
+    gussial_attribute.depth = p_view.z;
+    gussial_attribute.magic = 0x12345678;
 
-    gaussianKernelAttributes[idx] = at;
+    gaussianKernelAttributes[idx] = gussial_attribute;
 
     //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
     //{
     //    inout_color[pixel_coord] = float4(final_RGB);
     //}
-    
-    // for debugging bounding box
+    //// for debugging bounding box
     //uint2 pixel_rect_min = rect_min * GSPLAT_TILESIZE;
     //uint2 pixel_rect_max = rect_max * GSPLAT_TILESIZE;
-    
     //pixel_rect_min.x = min(pixel_rect_min.x, W);
     //pixel_rect_min.y = min(pixel_rect_min.y, H);
     //pixel_rect_max.x = min(pixel_rect_max.x, W);
     //pixel_rect_max.y = min(pixel_rect_max.y, H);
-    
     //for (uint py = pixel_rect_min.y; py < pixel_rect_max.y; py++)
     //{
     //    for (uint px = pixel_rect_min.x; px < pixel_rect_max.x; px++)
