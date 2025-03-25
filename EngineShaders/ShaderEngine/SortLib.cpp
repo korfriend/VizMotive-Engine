@@ -11,17 +11,27 @@ namespace vz::gpusortlib
 
 	static GPUBuffer indirectBuffer;
 	static Shader kickoffSortCS;
+
 	static Shader sortCS;
 	static Shader sortInnerCS;
 	static Shader sortStepCS;
+
+	static Shader sortCS_uint64;
+	static Shader sortInnerCS_uint64;
+	static Shader sortStepCS_uint64;
 
 
 	void LoadShaders()
 	{
 		shader::LoadShader(ShaderStage::CS, kickoffSortCS, "gpusortlib_kickoffSortCS.cso");
+		
 		shader::LoadShader(ShaderStage::CS, sortCS, "gpusortlib_sortCS.cso");
 		shader::LoadShader(ShaderStage::CS, sortInnerCS, "gpusortlib_sortInnerCS.cso");
 		shader::LoadShader(ShaderStage::CS, sortStepCS, "gpusortlib_sortStepCS.cso");
+
+		shader::LoadShader(ShaderStage::CS, sortCS_uint64, "gpusortlib_sortCS_uint64.cso");
+		shader::LoadShader(ShaderStage::CS, sortInnerCS_uint64, "gpusortlib_sortInnerCS_uint64.cso");
+		shader::LoadShader(ShaderStage::CS, sortStepCS_uint64, "gpusortlib_sortStepCS_uint64.cso");
 	}
 
 	void Initialize()
@@ -45,9 +55,14 @@ namespace vz::gpusortlib
 	{
 		indirectBuffer = {};
 		kickoffSortCS = {};
+
 		sortCS = {};
 		sortInnerCS = {};
 		sortStepCS = {};
+
+		sortCS_uint64 = {};
+		sortInnerCS_uint64 = {};
+		sortStepCS_uint64 = {};
 	}
 
 	void Sort(
@@ -130,7 +145,12 @@ namespace vz::gpusortlib
 			}
 
 			// sort all buffers of size 512 (and presort bigger ones)
-			device->BindComputeShader(&sortCS, cmd);
+
+			switch (comparisonType)
+			{
+			case COMPARISON_FLOAT: device->BindComputeShader(&sortCS, cmd); break;
+			case COMPARISON_UINT64: device->BindComputeShader(&sortCS_uint64, cmd); break;
+			}
 			device->PushConstants(&sort, sizeof(sort), cmd);
 			device->DispatchIndirect(&indirectBuffer, 0, cmd);
 
@@ -146,7 +166,11 @@ namespace vz::gpusortlib
 			// Incremental sorting:
 
 			bDone = true;
-			device->BindComputeShader(&sortStepCS, cmd);
+			switch (comparisonType)
+			{
+			case COMPARISON_FLOAT: device->BindComputeShader(&sortStepCS, cmd); break;
+			case COMPARISON_UINT64: device->BindComputeShader(&sortStepCS_uint64, cmd); break;
+			}
 
 			// prepare thread group description data
 			uint32_t numThreadGroups = 0;
@@ -188,7 +212,11 @@ namespace vz::gpusortlib
 				device->Barrier(barriers, arraysize(barriers), cmd);
 			}
 
-			device->BindComputeShader(&sortInnerCS, cmd);
+			switch (comparisonType)
+			{
+			case COMPARISON_FLOAT: device->BindComputeShader(&sortInnerCS, cmd); break;
+			case COMPARISON_UINT64: device->BindComputeShader(&sortInnerCS_uint64, cmd); break;
+			}
 			device->PushConstants(&sort, sizeof(sort), cmd);
 			device->Dispatch(numThreadGroups, 1, 1, cmd);
 

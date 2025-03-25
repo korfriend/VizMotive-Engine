@@ -89,3 +89,7 @@ dxc -T cs_6_0 ./CS/dvrCS_curved_slicer_xray_2KB.hlsl -spirv
 dxc -T cs_6_0 ./CS/dvrCS_slicer_xray_2KB.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/temporalaaCS.hlsl -spirv
+
+dxc -T cs_6_0 ./CS/gpusortlib_sortCS_uint64.hlsl -spirv
+dxc -T cs_6_0 ./CS/gpusortlib_sortInnerCS_uint64.hlsl -spirv
+dxc -T cs_6_0 ./CS/gpusortlib_sortStepCS_uint64.hlsl -spirv

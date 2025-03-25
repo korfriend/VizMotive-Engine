@@ -430,5 +430,14 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_kickoffCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortCS_uint64.hlsl">
+      <Filter>Compute Shaders\Sort</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortInnerCS_uint64.hlsl">
+      <Filter>Compute Shaders\Sort</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortStepCS_uint64.hlsl">
+      <Filter>Compute Shaders\Sort</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

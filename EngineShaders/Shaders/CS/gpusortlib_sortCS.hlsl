@@ -41,7 +41,24 @@
 // Structured Buffers
 //--------------------------------------------------------------------------------------
 ByteAddressBuffer counterBuffer : register(t0);
+#ifdef UINT64_HIGHLOW
+ByteAddressBuffer comparisonBuffer : register(t1);
+groupshared uint3	g_LDS[SORT_SIZE];
+bool Less(uint2 a, uint2 b)
+{
+	// high bits comparison
+	if (a.x < b.x)
+		return true;
+	if (a.x > b.x)
+		return false;
+
+	// when high bits are same, low bits comparison
+	return a.y < b.y;
+}
+#else
 StructuredBuffer<float> comparisonBuffer : register(t1);
+groupshared float2	g_LDS[SORT_SIZE];
+#endif
 
 RWStructuredBuffer<uint> indexBuffer : register(u0);
 
@@ -49,7 +66,6 @@ RWStructuredBuffer<uint> indexBuffer : register(u0);
 //--------------------------------------------------------------------------------------
 // Bitonic Sort Compute Shader
 //--------------------------------------------------------------------------------------
-groupshared float2	g_LDS[SORT_SIZE];
 
 
 [numthreads(NUM_THREADS, 1, 1)]
@@ -72,8 +88,13 @@ void main(uint3 Gid	: SV_GroupID,
 		if (GI + i * NUM_THREADS < numElementsInThreadGroup)
 		{
 			uint particleIndex = indexBuffer[GlobalBaseIndex + i * NUM_THREADS];
+#ifdef UINT64_HIGHLOW
+			uint2 dist_HL = comparisonBuffer.Load2(particleIndex * 2);
+			g_LDS[LocalBaseIndex + i * NUM_THREADS] = uint3(dist_HL, particleIndex);
+#else
 			float dist = comparisonBuffer[particleIndex];
 			g_LDS[LocalBaseIndex + i * NUM_THREADS] = float2(dist, (float)particleIndex);
+#endif
 		}
 	}
 	GroupMemoryBarrierWithGroupSync();
@@ -93,6 +114,16 @@ void main(uint3 Gid	: SV_GroupID,
 				uint nSwapElem = nMergeSubSize == nMergeSize >> 1 ? index_high + (2 * nMergeSubSize - 1) - index_low : index_high + nMergeSubSize + index_low;
 				if (nSwapElem < numElementsInThreadGroup)
 				{
+#ifdef UINT64_HIGHLOW
+					uint3 a = g_LDS[index];
+					uint3 b = g_LDS[nSwapElem];
+
+					if (!Less(a.xy, b.xy))
+					{
+						g_LDS[index] = b;
+						g_LDS[nSwapElem] = a;
+					}
+#else
 					float2 a = g_LDS[index];
 					float2 b = g_LDS[nSwapElem];
 
@@ -101,6 +132,7 @@ void main(uint3 Gid	: SV_GroupID,
 						g_LDS[index] = b;
 						g_LDS[nSwapElem] = a;
 					}
+#endif
 				}
 				GroupMemoryBarrierWithGroupSync();
 			}

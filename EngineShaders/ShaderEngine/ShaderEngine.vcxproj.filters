@@ -53,6 +53,9 @@
     <ClCompile Include="RenderPath2D_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
+    <ClCompile Include="GaussianSplatting.cpp">
+      <Filter>Processing</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\dxcapi.h">
@@ -94,6 +97,9 @@
     </ClInclude>
     <ClInclude Include="RenderPath3D_Detail.h">
       <Filter>Renderer\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="GaussianSplatting.h">
+      <Filter>Processing</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

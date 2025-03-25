@@ -42,13 +42,7 @@ struct GaussianPushConstants
 	uint instanceIndex; // to get ShaderMeshInstance
 	uint tileX;
 	uint tileY;
-	uint timestamp;
-
-	// for radix sort updates
 	uint numGaussians;
-	uint shift;
-	uint num_workgroups;
-	uint num_blocks_per_workgroup;
 
 	int geometryIndex;
 	uint padding0;
