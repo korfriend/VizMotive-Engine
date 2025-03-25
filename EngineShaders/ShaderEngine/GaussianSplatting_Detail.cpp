@@ -105,8 +105,8 @@ namespace vz::renderer
 			UINT width = rtMain.desc.width;
 			UINT height = rtMain.desc.height;
 
-			UINT tileX = (width + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE;
-			UINT tileY = (height + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE;
+			UINT tileWidth = (width + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE;
+			UINT tileHeight = (height + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE;
 
 
 			GGeometryComponent::GaussianSplattingBuffers& gsplat_buffers = gprim_buffer->gaussianSplattingBuffers;
@@ -117,7 +117,6 @@ namespace vz::renderer
 				barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianCounterBuffer, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
 				BarrierStackFlush(cmd);
 			}
-			device->BindUAV(&gsplat_buffers.gaussianCounterBuffer, 10, cmd);
 			device->ClearUAV(&gsplat_buffers.gaussianCounterBuffer, 0u , cmd);
 			// kick off indirect updating
 			//device->EventBegin("GaussianSplatting KickOff Update", cmd);
@@ -126,11 +125,11 @@ namespace vz::renderer
 			//device->EventEnd(cmd);
 
 			uint num_gaussians = primitive->GetNumVertices();
-			int threads_per_group = 256;
+			int threads_per_group = GSPLAT_GROUP_SIZE;
 			int num_groups = (num_gaussians + threads_per_group - 1) / threads_per_group; // num_groups
 
 			// ------ preprocess -----
-			device->EventBegin("GaussianSplatting Preprocess", cmd);
+			device->EventBegin("GaussianSplatting - Preprocess", cmd);
 			{
 				{
 					barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
@@ -139,24 +138,25 @@ namespace vz::renderer
 					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianKernelAttributes, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
 					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.offsetTiles, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
 
-					//barrierStack.push_back(GPUBarrier::Buffer(&gprim_buffer->generalBuffer, ResourceState::UNDEFINED, ResourceState::SHADER_RESOURCE_COMPUTE));
 					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianScale_Opacities, ResourceState::UNDEFINED, ResourceState::SHADER_RESOURCE_COMPUTE));
 					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianQuaterinions, ResourceState::UNDEFINED, ResourceState::SHADER_RESOURCE_COMPUTE));
 					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianSHs, ResourceState::UNDEFINED, ResourceState::SHADER_RESOURCE_COMPUTE));
 					BarrierStackFlush(cmd);
 				}
-				device->BindUAV(&rtMain, 0, cmd); // just for debug
+				//device->BindUAV(&rtMain, 10, cmd); // just for debug
 
-				device->BindUAV(&gsplat_buffers.touchedTiles, 1, cmd);
-				device->BindUAV(&gsplat_buffers.gaussianKernelAttributes, 2, cmd);
-				device->BindUAV(&gsplat_buffers.offsetTiles, 3, cmd);
+				device->BindUAV(&gsplat_buffers.touchedTiles, 0, cmd);
+				device->BindUAV(&gsplat_buffers.gaussianKernelAttributes, 1, cmd);
+				device->BindUAV(&gsplat_buffers.offsetTiles, 2, cmd);
+				device->BindUAV(&gsplat_buffers.gaussianCounterBuffer, 3, cmd);
 
 				device->BindResource(&gsplat_buffers.gaussianScale_Opacities, 0, cmd);
 				device->BindResource(&gsplat_buffers.gaussianQuaterinions, 1, cmd);
 				device->BindResource(&gsplat_buffers.gaussianSHs, 2, cmd);
 
 				gsplat_push.instanceIndex = batch.instanceIndex;
-				gsplat_push.tileX = tileX;
+				gsplat_push.tileWidth = tileWidth;
+				gsplat_push.tileHeight = tileHeight;
 				gsplat_push.numGaussians = num_gaussians;
 				gsplat_push.geometryIndex = gprim_buffer->vbPosW.descriptor_srv;
 
@@ -170,7 +170,8 @@ namespace vz::renderer
 					cmd
 				);
 
-				//device->BindUAV(&unbind, 0, cmd);
+				//device->BindUAV(&unbind, 10, cmd);
+				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
 				device->BindUAV(&unbind, 2, cmd);
 				device->BindUAV(&unbind, 3, cmd);
@@ -182,7 +183,7 @@ namespace vz::renderer
 
 			uint32_t num_gaussian_replications = gsplat_buffers.capacityGaussians;
 			// ------ replication -----
-			device->EventBegin("GaussianSplatting Replication", cmd);
+			device->EventBegin("GaussianSplatting - Replication", cmd);
 			{
 				{
 					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.gaussianCounterBuffer, ResourceState::UNORDERED_ACCESS, ResourceState::COPY_SRC));
@@ -234,15 +235,79 @@ namespace vz::renderer
 			
 
 			// ------ Sort of Gaussian Replications -----
-			device->EventBegin("BVH - Sort Gaussian Replications", cmd);
+			device->EventBegin("GaussianSplatting - Sort Gaussian Replications", cmd);
 			{
 				{
 					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.replicatedGaussianKey, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
+					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.sortedIndices, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
 					BarrierStackFlush(cmd);
 				}
 				gpusortlib::Sort(num_gaussian_replications, gpusortlib::COMPARISON_UINT64, gsplat_buffers.replicatedGaussianKey, gsplat_buffers.gaussianCounterBuffer, 0,
 					gsplat_buffers.sortedIndices, cmd);
 			}
+			device->EventEnd(cmd);
+
+			// ------ Update Tile Range -----
+			device->EventBegin("GaussianSplatting - Update Tile Range", cmd);
+			{
+				{
+					barrierStack.push_back(GPUBarrier::Buffer(&gaussianSplattingResources.tileGaussianRange, ResourceState::UNDEFINED, ResourceState::UNORDERED_ACCESS));
+					BarrierStackFlush(cmd);
+				}
+
+				device->BindUAV(&gaussianSplattingResources.tileGaussianRange, 0, cmd);
+
+				device->BindResource(&gsplat_buffers.replicatedGaussianKey, 0, cmd);
+				device->BindResource(&gsplat_buffers.gaussianCounterBuffer, 1, cmd);
+
+				// preprocess and calculate touched tiles count
+				device->BindComputeShader(&shaders[CSTYPE_GAUSSIANSPLATTING_IDENTIFY_TILE_RANGES], cmd);
+				device->Dispatch(
+					num_gaussian_replications / GSPLAT_GROUP_SIZE,
+					1,
+					1,
+					cmd
+				);
+
+				device->BindUAV(&unbind, 0, cmd);
+				device->BindResource(&unbind, 0, cmd);
+				device->BindResource(&unbind, 1, cmd);
+			}
+
+			device->EventEnd(cmd);
+
+			// ------ Blending Gaussians: Final Renderout -----
+			device->EventBegin("GaussianSplatting - Blending Replicated Gaussian", cmd);
+			{
+				{
+					barrierStack.push_back(GPUBarrier::Buffer(&gaussianSplattingResources.tileGaussianRange, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
+					barrierStack.push_back(GPUBarrier::Buffer(&gsplat_buffers.sortedIndices, ResourceState::UNORDERED_ACCESS, ResourceState::SHADER_RESOURCE_COMPUTE));
+					BarrierStackFlush(cmd);
+				}
+
+				device->BindUAV(&rtMain, 0, cmd);
+
+				device->BindResource(&gsplat_buffers.gaussianKernelAttributes, 0, cmd);
+				device->BindResource(&gaussianSplattingResources.tileGaussianRange, 1, cmd);
+				device->BindResource(&gsplat_buffers.replicatedGaussianValue, 2, cmd);
+				device->BindResource(&gsplat_buffers.sortedIndices, 3, cmd);
+
+				// preprocess and calculate touched tiles count
+				device->BindComputeShader(&shaders[CSTYPE_GAUSSIANSPLATTING_BLEND_GAUSSIAN], cmd);
+				device->Dispatch(
+					tileWidth,
+					tileHeight,
+					1,
+					cmd
+				);
+
+				device->BindUAV(&unbind, 0, cmd);
+				device->BindResource(&unbind, 0, cmd);
+				device->BindResource(&unbind, 1, cmd);
+				device->BindResource(&unbind, 2, cmd);
+				device->BindResource(&unbind, 3, cmd);
+			}
+
 			device->EventEnd(cmd);
 
 			/*

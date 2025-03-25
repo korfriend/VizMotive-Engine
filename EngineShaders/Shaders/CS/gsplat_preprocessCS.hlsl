@@ -8,12 +8,12 @@ PUSHCONSTANT(push, GaussianPushConstants);
 
 #define SH_COEFF_STRIDE 16
 
-RWByteAddressBuffer counterBuffer : register(u10); // fixed
+RWStructuredBuffer<uint> touchedTiles : register(u0);
+RWStructuredBuffer<GaussianKernelAttribute> gaussianKernelAttributes : register(u1);
+RWStructuredBuffer<uint> offsetTiles : register(u2);
+RWByteAddressBuffer counterBuffer : register(u3);
 
-RWTexture2D<unorm float4> inout_color : register(u0);
-RWStructuredBuffer<uint> touchedTiles : register(u1);
-RWStructuredBuffer<GaussianKernelAttribute> gaussianKernelAttributes : register(u2);
-RWStructuredBuffer<uint> offsetTiles : register(u3);
+RWTexture2D<unorm float4> inout_color : register(u10);
 
 Buffer<float4> gaussianScale_Opacities : register(t0);
 Buffer<float4> gaussianQuaterinions : register(t1);
@@ -172,7 +172,7 @@ float3 computeCov2D(float3 mean, float focal_length, uint2 resolution, float3x3 
     return float3(cov[0][0], cov[0][1], cov[1][1]);
 }
 
-[numthreads(256, 1, 1)]
+[numthreads(GSPLAT_GROUP_SIZE, 1, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
     float radius = 0.0f;

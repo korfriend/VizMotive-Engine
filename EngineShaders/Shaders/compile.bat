@@ -63,13 +63,13 @@ dxc -T cs_6_0 ./CS/tonemapCS.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/gsplat_preprocessCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gsplat_replicateCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/gsplat_identifyTileRangeCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/gsplat_blendCS.hlsl -spirv
 
 //dxc -T cs_6_0 ./CS/gsplat_kickoffCS.hlsl -spirv
 //dxc -T cs_6_0 ./CS/gsplat_offsetCS.hlsl -spirv
-//dxc -T cs_6_0 ./CS/gsplat_identifyTileRangesCS.hlsl -spirv
 //dxc -T cs_6_6 ./CS/gsplat_histCS.hlsl -spirv
 //dxc -T cs_6_6 ./CS/gsplat_sortCS.hlsl -spirv
-//dxc -T cs_6_0 ./CS/gsplat_renderCS.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/meshSlicerCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/meshSlicerCS_curvedplane.hlsl -spirv

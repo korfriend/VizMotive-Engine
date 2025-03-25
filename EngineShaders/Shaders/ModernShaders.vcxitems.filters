@@ -55,6 +55,9 @@
     <Filter Include="Compute Shaders\GaussianSplatting">
       <UniqueIdentifier>{2bf53637-c604-4224-a0ae-0db64ec8abc9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compute Shaders\GaussianSplatting\unused">
+      <UniqueIdentifier>{4e3a4ae9-1f1f-44cf-8ea8-7a71cb1fe5c6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)compile.bat">
@@ -367,25 +370,13 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\vertexcolorVS.hlsl">
       <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl">
-      <Filter>Compute Shaders\GaussianSplatting</Filter>
-    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_replicateCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl">
-      <Filter>Compute Shaders\GaussianSplatting</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_identifyTileRangesCS.hlsl">
-      <Filter>Compute Shaders\GaussianSplatting</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_offsetCS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_identifyTileRangeCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_preprocessCS.hlsl">
-      <Filter>Compute Shaders\GaussianSplatting</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_renderCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS.hlsl">
@@ -427,9 +418,6 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\temporalaaCS.hlsl">
       <Filter>Compute Shaders\Post Processing Chains</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_kickoffCS.hlsl">
-      <Filter>Compute Shaders\GaussianSplatting</Filter>
-    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortCS_uint64.hlsl">
       <Filter>Compute Shaders\Sort</Filter>
     </FxCompile>
@@ -438,6 +426,21 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortStepCS_uint64.hlsl">
       <Filter>Compute Shaders\Sort</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl">
+      <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl">
+      <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_kickoffCS.hlsl">
+      <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_offsetCS.hlsl">
+      <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_blendCS.hlsl">
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
