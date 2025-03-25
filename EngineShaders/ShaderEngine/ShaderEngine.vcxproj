@@ -211,6 +211,7 @@
     <ClCompile Include="DirectVolumes_Detail.cpp" />
     <ClCompile Include="GaussianSplatting_Detail.cpp" />
     <ClCompile Include="GPUBVH.cpp" />
+    <ClCompile Include="GaussianSplatting.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="PostProcessingChain_Detail.cpp" />
     <ClCompile Include="Random.cpp" />
@@ -228,6 +229,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPUBVH.h" />
+    <ClInclude Include="GaussianSplatting.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="Noise.h" />
     <ClInclude Include="RenderPath3D_Detail.h" />

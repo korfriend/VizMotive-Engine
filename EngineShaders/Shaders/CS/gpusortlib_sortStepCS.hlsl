@@ -27,7 +27,22 @@
 // Structured Buffers
 //--------------------------------------------------------------------------------------
 ByteAddressBuffer counterBuffer : register(t0);
+#ifdef UINT64_HIGHLOW
+ByteAddressBuffer comparisonBuffer : register(t1);
+bool Less(uint2 a, uint2 b)
+{
+	// high bits comparison
+	if (a.x < b.x)
+		return true;
+	if (a.x > b.x)
+		return false;
+
+	// when high bits are same, low bits comparison
+	return a.y < b.y;
+}
+#else
 StructuredBuffer<float> comparisonBuffer : register(t1);
+#endif
 
 RWStructuredBuffer<uint> indexBuffer : register(u0);
 
@@ -56,6 +71,16 @@ void main(uint3 Gid	: SV_GroupID,
 	{
 		uint index_a = indexBuffer[index];
 		uint index_b = indexBuffer[nSwapElem];
+#ifdef UINT64_HIGHLOW
+		uint2 a = comparisonBuffer.Load2(index_a);
+		uint2 b = comparisonBuffer.Load2(index_b);
+
+		if (!Less(a, b))
+		{
+			indexBuffer[index] = index_b;
+			indexBuffer[nSwapElem] = index_a;
+		}
+#else
 		float a = comparisonBuffer[index_a];
 		float b = comparisonBuffer[index_b];
 
@@ -64,5 +89,6 @@ void main(uint3 Gid	: SV_GroupID,
 			indexBuffer[index] = index_b;
 			indexBuffer[nSwapElem] = index_a;
 		}
+#endif
 	}
 }
