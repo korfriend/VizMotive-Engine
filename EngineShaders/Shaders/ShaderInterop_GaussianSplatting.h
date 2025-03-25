@@ -49,9 +49,9 @@ struct GaussianPushConstants
 	uint tileWidth;
 
 	uint tileHeight;
+	float focalX;
+	float focalY;
 	uint padding0;
-	uint padding1;
-	uint padding2;
 };
 
 static const uint GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT = 0;
