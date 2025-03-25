@@ -105,10 +105,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_kickoffCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_replicateCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_identifyTileRangesCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_identifyTileRangeCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_offsetCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_preprocessCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_renderCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_blendCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS_curvedplane.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerResolveCS_KB2.hlsl" />

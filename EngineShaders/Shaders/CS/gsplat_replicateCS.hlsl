@@ -1,17 +1,16 @@
 #include "../Globals.hlsli"
 #include "../ShaderInterop_GaussianSplatting.h"
-#include "../CommonHF/surfaceHF.hlsli"
 
 PUSHCONSTANT(push, GaussianPushConstants);
 
-RWStructuredBuffer<uint64_t> duplicatedGaussianKey : register(u1); // OutKeys
-RWStructuredBuffer<uint> duplicatedGaussianValue : register(u2); // OutPayloads
+RWStructuredBuffer<uint2> replicatedGaussianKey : register(u1); // OutKeys
+RWStructuredBuffer<uint> replicatedGaussianValue : register(u2); // OutPayloads
 
 ByteAddressBuffer rawGaussianKernelAttributes : register(t0);
 //StructuredBuffer<GaussianKernelAttribute> gaussianKernelAttributes : register(t0);
 StructuredBuffer<uint> offsetTiles : register(t1);
 
-[numthreads(256, 1, 1)] // indirect? 256,1,1 is optimal?
+[numthreads(GSPLAT_GROUP_SIZE, 1, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
     uint index = DTid.x;
@@ -31,7 +30,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     ShaderCamera camera = GetCamera();
     uint W = camera.internal_resolution.x;
     uint H = camera.internal_resolution.y;
-    uint tileX = push.tileX;
+    uint tileWidth = push.tileWidth;
     
     uint offset_index = offsetTiles[index]; // (index == 0) ? 0 : prefixSum[index - 1];
 
@@ -39,11 +38,9 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     {
         for (uint j = (uint) aabb.y; j < (uint)aabb.w; j++)
         {
-            uint64_t tileIndex = ((uint64_t) i) + ((uint64_t) j * tileX);
-            //uint depthBits = asuint(depth);
-            uint64_t k = (tileIndex << 32) | ((uint64_t) depthBits);
-            duplicatedGaussianKey[offset_index] = k;
-            duplicatedGaussianValue[offset_index] = index;
+            uint tileIndex = i + j * tileWidth;
+            replicatedGaussianKey[offset_index] = uint2(tileIndex, depthBits);
+            replicatedGaussianValue[offset_index] = index;
             offset_index++;
         }
     }

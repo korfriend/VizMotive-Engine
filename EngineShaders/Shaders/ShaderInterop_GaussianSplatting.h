@@ -3,6 +3,7 @@
 #include "ShaderInterop.h"
 
 static const uint GSPLAT_TILESIZE = 16;
+static const uint GSPLAT_GROUP_SIZE = GSPLAT_TILESIZE * GSPLAT_TILESIZE;
 
 static const float SH_C0 = 0.28209479177387814f;
 static const float SH_C1 = 0.4886025119029199f;
@@ -33,18 +34,21 @@ struct GaussianKernelAttribute {
 	float depth;
 	uint magic;
 };
+static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_CONIC_OPACITY = 0;
+static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_RGB_R = (4) * 4;
 static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_RADIUS = (7) * 4;
 static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_AABB = (8) * 4;
 static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_DEPTH = (12 + 2) * 4;
+static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_UV = (12) * 4;
 
 struct GaussianPushConstants
 {
 	uint instanceIndex; // to get ShaderMeshInstance
-	uint tileX;
-	uint tileY;
 	uint numGaussians;
-
 	int geometryIndex;
+	uint tileWidth;
+
+	uint tileHeight;
 	uint padding0;
 	uint padding1;
 	uint padding2;
