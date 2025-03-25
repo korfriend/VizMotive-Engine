@@ -157,13 +157,13 @@ int main(int, char **)
 		glm::fvec3 view = at - pos;
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		//camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
-		camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1652.0253638136887f, 1647.2743286575937f, 1060.f * 0.5f, 1887.f * 0.5f);
+		camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1647.2743286575937f, 1652.0253638136887f, 1060.f * 0.5f, 1887.f * 0.5f);
 
 		// === Add PLY loading code here ===
 		// Load PLY geometry
-		/*
+		
 		vz::jobsystem::context ctx;
-		vz::jobsystem::Execute(ctx, [scene](vz::jobsystem::JobArgs args){
+		//vz::jobsystem::Execute(ctx, [scene](vz::jobsystem::JobArgs args) {
 			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
 			//if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
 			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud.ply"))
@@ -184,7 +184,7 @@ int main(int, char **)
 		
 				vzm::AppendSceneCompTo(ply_actor, scene);
 			}
-			});
+		//	});
 		/**/
 
 		// === end of PLY loading code ===

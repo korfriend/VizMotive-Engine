@@ -83,8 +83,8 @@ void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2
 // Function: Convert world position to pixel coordinates
 float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
 {
-    float4 p_view = mul(float4(pos, 1.0f), camera.view);
-    float4 p_hom = mul(p_view, camera.projection);
+    float4 p_view = mul(camera.view, float4(pos, 1.0f));
+    float4 p_hom = mul(camera.projection, p_view);
     float p_w = 1.0f / max(p_hom.w, 1e-7f);
     float3 p_proj = float3(p_hom.x * p_w, p_hom.y * p_w, p_hom.z * p_w);
 
@@ -94,8 +94,58 @@ float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
         (p_proj.y * 0.5f + 0.5f) * (float) H
     );
 }
+
+// Forward method for converting scale and rotation properties of each
+// Gaussian to a 3D covariance matrix in world space. Also takes care
+// of quaternion normalization.
+// Computes the 3D covariance matrix (symmetric) from scale, modulation, and rotation.
+// The resulting symmetric matrix is stored as 6 floats in the 'cov3D' array:
+// [ cov3D[0]=Sigma(0,0), cov3D[1]=Sigma(0,1), cov3D[2]=Sigma(0,2),
+//   cov3D[3]=Sigma(1,1), cov3D[4]=Sigma(1,2), cov3D[5]=Sigma(2,2) ]
+void computeCov3D(float3 scale, float mod, float4 rot, out float cov3D[6])
+{
+    // Step 1: Create the scaling matrix S.
+    // S is a diagonal matrix with modulated scale values.
+    float3x3 S = float3x3(
+        mod * scale.x, 0.0f, 0.0f,
+        0.0f, mod * scale.y, 0.0f,
+        0.0f, 0.0f, mod * scale.z
+    );
+
+    // Step 2: Normalize quaternion if necessary.
+    // The original code commented out the normalization, assuming the quaternion is already normalized.
+    // For now, we assume 'rot' is normalized.
+    float r = rot.x;  // Scalar part
+    float x = rot.y;
+    float y = rot.z;
+    float z = rot.w;
+
+    // Step 3: Compute the rotation matrix R from the quaternion.
+    // The rotation matrix is constructed using standard quaternion-to-matrix formulas.
+    float3x3 R = float3x3(
+        1.0f - 2.0f * (y * y + z * z), 2.0f * (x * y - r * z), 2.0f * (x * z + r * y),
+        2.0f * (x * y + r * z), 1.0f - 2.0f * (x * x + z * z), 2.0f * (y * z - r * x),
+        2.0f * (x * z - r * y), 2.0f * (y * z + r * x), 1.0f - 2.0f * (x * x + y * y)
+    );
+
+    // Step 4: Multiply the scaling and rotation matrices: M = S * R.
+    // Note: In HLSL, the mul() function is used for matrix multiplication.
+    float3x3 M = mul(S, R);
+
+    // Step 5: Compute the 3D covariance matrix (Sigma) as Sigma = transpose(M) * M.
+    float3x3 Sigma = mul(transpose(M), M);
+
+    // Step 6: Store only the upper-triangle elements (due to symmetry) in the cov3D array.
+    cov3D[0] = Sigma[0][0];
+    cov3D[1] = Sigma[0][1];
+    cov3D[2] = Sigma[0][2];
+    cov3D[3] = Sigma[1][1];
+    cov3D[4] = Sigma[1][2];
+    cov3D[5] = Sigma[2][2];
+}
+
 // Function: Compute the 3D covariance matrix for a Gaussian
-float3x3 computeCov3D(float3 scale, float4 rotation)
+float3x3 computeCov3D_OLD(float3 scale, float4 rotation)
 {
     // Create scaling matrix
     float3x3 S = float3x3(
@@ -130,8 +180,93 @@ float3x3 computeCov3D(float3 scale, float4 rotation)
         0.0f, 0.0f, Sigma[2][2]
     );
 }
+
+// Transform a 3D point using a 4x4 matrix (applies homogeneous division)
+float3 transformPoint4x3(float3 p, float4x4 mat)
+{
+    float4 temp = mul(mat, float4(p, 1.0f));
+    return temp.xyz / temp.w;
+}
+
+// Function: Compute the 2D covariance matrix for a Gaussian:
+//      The following models the steps outlined by equations 29
+//      and 31 in "EWA Splatting" (Zwicker et al., 2002). 
+//      Additionally considers aspect / scaling of viewport.
+//      Transposes used to account for row-/column-major conventions.
+float3 computeCov2D(
+    float3 mean,         // Mean point in 3D space
+    float focal_x,       // Focal length in x (in pixel units)
+    float focal_y,       // Focal length in y (in pixel units)
+    float tan_fovx,      // Tangent of half the horizontal field of view
+    float tan_fovy,      // Tangent of half the vertical field of view
+    float cov3D[6],      // 3D covariance matrix (provided as a float3x3)
+    float4x4 viewmatrix  // View transformation matrix (4x4)
+)
+{
+    // Step 1: Transform the mean point using the view matrix.
+    float3 t = transformPoint4x3(mean, viewmatrix);
+
+    // Step 2: Clamp the x and y components based on FOV limits (EWA Splatting, eq.29 & eq.31)
+    float limx = 1.3f * tan_fovx;
+    float limy = 1.3f * tan_fovy;
+    float txtz = t.x / t.z;
+    float tytz = t.y / t.z;
+    t.x = min(limx, max(-limx, txtz)) * t.z;
+    t.y = min(limy, max(-limy, tytz)) * t.z;
+
+    // Step 3: Construct the Jacobian matrix J.
+    // J is defined as:
+    // [ focal_x/t.z,              0,  -focal_x*t.x/(t.z*t.z) ]
+    // [           0,       focal_y/t.z, -focal_y*t.y/(t.z*t.z) ]
+    // [           0,              0,                    0   ]
+    float3x3 J = float3x3(
+        float3(focal_x / t.z, 0.0f, 0.0f),
+        float3(0.0f, focal_y / t.z, 0.0f),
+        float3(-(focal_x * t.x) / (t.z * t.z), -(focal_y * t.y) / (t.z * t.z), 0.0f)
+    );
+
+    // Step 4: Extract the upper-left 3x3 part of the view matrix.
+    // HLSL matrices are column-major by default, so each element (viewmatrix[i].xyz) is a column.
+    float3x3 W = float3x3(
+        viewmatrix[0].xyz, // first column: (m00, m10, m20)
+        viewmatrix[1].xyz, // second column: (m01, m11, m21)
+        viewmatrix[2].xyz  // third column: (m02, m12, m22)
+    );
+
+    // Step 5: Compute the composite matrix T = W * J.
+    float3x3 T = mul(W, J);
+
+    // Step 6: Use the provided 3D covariance matrix.
+    // In the GLM version, cov3D is built from an array, but here we assume it's already a float3x3.
+    //float3x3 Vrk = cov3D;
+    float3x3 Vrk = float3x3(
+        float3(cov3D[0], cov3D[1], cov3D[2]),
+        float3(cov3D[1], cov3D[3], cov3D[4]),
+        float3(cov3D[2], cov3D[4], cov3D[5])
+    );
+
+    // Step 7: Compute the 2D covariance matrix:
+    // cov = transpose(T) * transpose(Vrk) * T.
+    // Since Vrk is symmetric, transpose(Vrk) equals Vrk, but we follow the original formulation.
+    float3x3 cov = mul(mul(transpose(T), transpose(Vrk)), T);
+
+    // Step 8: Return the 2D covariance elements as a float3:
+    // [ cov(0,0), cov(0,1), cov(1,1) ]
+    return float3(cov[0][0], cov[0][1], cov[1][1]);
+}
+
+float fov2focal(const float fov, const float pixels)
+{
+    return pixels / (2 * tan(fov / 2));
+}
+
+float focal2fov(const float focal, const float pixels)
+{
+    return 2.f * atan(pixels / (2 * focal));
+}
+
 // Function: Compute the 2D covariance matrix for a Gaussian
-float3 computeCov2D(float3 mean, float focal_length, uint2 resolution, float3x3 cov3D, float4x4 viewmatrix)
+float3 computeCov2D_OLD(float3 mean, float focal_length, uint2 resolution, float3x3 cov3D, float4x4 viewmatrix)
 {
     // Calculate aspect ratio
     float aspect_ratio = (float) resolution.x / (float) resolution.y;
@@ -185,7 +320,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     ShaderCamera camera = GetCamera();
     uint W = camera.internal_resolution.x;
     uint H = camera.internal_resolution.y;
-    float focalLength = camera.focal_length;
     float3 camPos = camera.position;
 
     // Load Position, Scale/Opacity, Quaternion, SH coefficients
@@ -198,11 +332,15 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float opacity = scale_opacity.w;
     float4 rotation = gaussianQuaterinions[idx];
 
-    // computeCov3D
-    float3x3 cov3D = computeCov3D(scale, rotation);
+    float cov3D[6];
+    computeCov3D(scale, 1.f, rotation, cov3D);
 
-    // computeCov2D
-    float3 cov2D = computeCov2D(pos, focalLength, uint2(W, H), cov3D, camera.view);
+    float fovX = focal2fov(push.focalX, W);
+    float fovY = focal2fov(push.focalY, H);
+    float tanfovX = tan(fovX * 0.5);
+    float tanfovY = tan(fovY * 0.5);
+
+    float3 cov2D = computeCov2D(pos, push.focalX, push.focalY, tanfovX, tanfovY, cov3D, camera.view);
 
     // Invert 2D covariance matrix (EWA algorithm)
     float det = (cov2D.x * cov2D.z - cov2D.y * cov2D.y);
@@ -220,23 +358,12 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float2 point_image = worldToPixel(pos, camera, W, H);
 
     // bounding box
-    uint2 rect_min, rect_max;   //uint2 grid = (78, 44);
+    uint2 rect_min, rect_max;
     getRect(point_image, int(radius), uint2(W / GSPLAT_TILESIZE, H / GSPLAT_TILESIZE), rect_min, rect_max);
 
     uint total_tiles = (rect_max.x - rect_min.x) * (rect_max.y - rect_min.y);
-
     if (total_tiles == 0)
         return;
-
-    //for (uint y = rect_min.y * GSPLAT_TILESIZE; y < rect_max.y * GSPLAT_TILESIZE; y++)
-    //{
-    //    for (uint x = rect_min.x * GSPLAT_TILESIZE; x < rect_max.x * GSPLAT_TILESIZE; x++)
-    //    {
-    //        inout_color[uint2(x, y)] = float4(1, 0, 0, 1);
-    //    }
-    //}
-    //int2 pixel_coord = int2(point_image + 0.5f);
-    //inout_color[pixel_coord] = float4(1, 1, 0, 1);
 
     uint offset;
     counterBuffer.InterlockedAdd(GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT, total_tiles, offset);
@@ -246,7 +373,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float3 rgb_sh = compute_sh(gaussianSHs, pos, idx, camPos);
     float4 final_RGB = float4(rgb_sh, 1.0f);
     
-    float4 p_view = mul(float4(pos, 1.0f), camera.view);
+    float4 p_view = mul(camera.view, float4(pos, 1.0f));
+    p_view.xyz /= p_view.w;
     touchedTiles[idx] = total_tiles;
 
     GaussianKernelAttribute gussial_attribute;
@@ -260,26 +388,15 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     gaussianKernelAttributes[idx] = gussial_attribute;
 
-    //if (pixel_coord.x >= 0 && pixel_coord.x < int(W) && pixel_coord.y >= 0 && pixel_coord.y < int(H))
+
+    // TEST
+    //for (uint y = rect_min.y * GSPLAT_TILESIZE; y < rect_max.y * GSPLAT_TILESIZE; y++)
     //{
-    //    inout_color[pixel_coord] = float4(final_RGB);
-    //}
-    //// for debugging bounding box
-    //uint2 pixel_rect_min = rect_min * GSPLAT_TILESIZE;
-    //uint2 pixel_rect_max = rect_max * GSPLAT_TILESIZE;
-    //pixel_rect_min.x = min(pixel_rect_min.x, W);
-    //pixel_rect_min.y = min(pixel_rect_min.y, H);
-    //pixel_rect_max.x = min(pixel_rect_max.x, W);
-    //pixel_rect_max.y = min(pixel_rect_max.y, H);
-    //for (uint py = pixel_rect_min.y; py < pixel_rect_max.y; py++)
-    //{
-    //    for (uint px = pixel_rect_min.x; px < pixel_rect_max.x; px++)
+    //    for (uint x = rect_min.x * GSPLAT_TILESIZE; x < rect_max.x * GSPLAT_TILESIZE; x++)
     //    {
-    //        if (px == pixel_rect_min.x || px == pixel_rect_max.x - 1 ||
-    //            py == pixel_rect_min.y || py == pixel_rect_max.y - 1)
-    //        {
-    //            inout_color[uint2(px, py)] = float4(1.0f, 1.0f, 0.0f, 1.0f);
-    //        }
+    //        inout_color[uint2(x, y)] = float4(rgb_sh, 1);
     //    }
     //}
+    int2 pixel_coord = int2(point_image + 0.5f);
+    inout_color[pixel_coord] = float4(rgb_sh, 1);
 }
