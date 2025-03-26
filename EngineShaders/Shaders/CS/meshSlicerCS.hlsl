@@ -135,10 +135,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		sliceThickness_os = length(end_os.xyz - origin_os.xyz);
 	}
 
-	const float3x3 ws2os_adj = inst.transformRawInv.GetMatrixAdjoint();
-	//const float3x3 ws2os_adj = (float3x3)inst.transformRawInv.GetMatrix();
-	float3 ray_dir_os = normalize(mul(ws2os_adj, ray_ws.Direction));
-	float3 up_os = normalize(mul(ws2os_adj, camera.up));
+	//const float3x3 ws2os_adj = inst.transformRawInv.GetMatrixAdjoint();
+	const float3x3 ws2os_33 = (float3x3)inst.transformRawInv.GetMatrix();
+	float3 ray_dir_os = normalize(mul(ws2os_33, ray_ws.Direction));
+	float3 up_os = normalize(mul(ws2os_33, camera.up));
 	float3 right_os = normalize(cross(ray_dir_os, up_os));
 
 	bool isInsideOnPlane = false;
@@ -178,7 +178,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 	}
 	if (!hit_on_forward_ray) {
 		//counter_mask_distmap[pixel] = (SLICER_DEBUG << 8) | count;
-		//inout_color[pixel] = float4(1, 0, 0, 1);
+		//inout_color[pixel] = float4(1, 1, 0, 1);
 		// note ... when ray passes through a triangle edge or vertex, hit may not be detected
 		return;
 	}

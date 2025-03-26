@@ -335,6 +335,14 @@ int main(int, char**)
 
 	}
 
+	//vzm::VzActor* cube_actor = vzm::LoadModelFile("../Assets/models/cube/cube.obj");
+	//cube_actor->SetScale({ 75, 75,75 });
+	//cube_actor->SetRotateAxis({ 0, 1, 0 }, 45.f);
+	//auto cube_child_actor = (vzm::VzActor*)vzm::GetComponent(cube_actor->GetChildren()[0]);
+	//vzm::VzGeometry* geometry_cube = (vzm::VzGeometry*)vzm::GetComponent(cube_child_actor->GetGeometry());
+	//geometry_cube->EnableGPUBVH(true);
+	//cube_actor->AttachToParent(scene);
+
 	// Our state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	ImGuizmo::Enable(true);
