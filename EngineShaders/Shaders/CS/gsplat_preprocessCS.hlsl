@@ -69,30 +69,64 @@ float3 compute_sh(Buffer<float> gaussianSHs, float3 pos, int idx, float3 camPos)
 
     return max(result, 0.0f);
 }
-// Function: getrect, inline function in cuda(auxiliary)
-void getRect(float2 p, int max_radius, uint2 grid, out uint2 rect_min, out uint2 rect_max)
+
+void getRect(float2 p, float max_radius, uint2 grid, out uint2 rect_min, out uint2 rect_max)
 {
     // Calculate rect_min
-    rect_min.x = min(grid.x, max(0, (int) ((p.x - max_radius) / SH_COEFF_STRIDE)));
-    rect_min.y = min(grid.y, max(0, (int) ((p.y - max_radius) / SH_COEFF_STRIDE)));
+    rect_min.x = min(grid.x, max(0, (int)((p.x - max_radius) / GSPLAT_TILESIZE)));
+    rect_min.y = min(grid.y, max(0, (int)((p.y - max_radius) / GSPLAT_TILESIZE)));
 
     // Calculate rect_max
-    rect_max.x = min(grid.x, max(0, (int) ((p.x + max_radius + SH_COEFF_STRIDE - 1) / SH_COEFF_STRIDE)));
-    rect_max.y = min(grid.y, max(0, (int) ((p.y + max_radius + SH_COEFF_STRIDE - 1) / SH_COEFF_STRIDE)));
+    rect_max.x = min(grid.x, max(0, (int)((p.x + max_radius + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE)));
+    rect_max.y = min(grid.y, max(0, (int)((p.y + max_radius + GSPLAT_TILESIZE - 1) / GSPLAT_TILESIZE)));
 }
 // Function: Convert world position to pixel coordinates
-float2 worldToPixel(float3 pos, ShaderCamera camera, uint W, uint H)
+float2 projToPixel(float3 p_proj, uint W, uint H)
 {
-    float4 p_view = mul(camera.view, float4(pos, 1.0f));
-    float4 p_hom = mul(camera.projection, p_view);
-    float p_w = 1.0f / max(p_hom.w, 1e-7f);
-    float3 p_proj = float3(p_hom.x * p_w, p_hom.y * p_w, p_hom.z * p_w);
-
     // Convert NDC (-1~1) to screen coordinates (0~W, 0~H)
     return float2(
-        (p_proj.x * 0.5f + 0.5f) * (float) W,
-        (p_proj.y * 0.5f + 0.5f) * (float) H
+        (p_proj.x + 1.0f) * 0.5f * (float)W,
+        (1.0f - p_proj.y) * 0.5f * (float)H
     );
+}
+
+// Determines if a point (given by index) is inside the view frustum.
+// Parameters:
+//   idx         - Index of the point in the orig_points array (assumes 3 floats per point)
+//   orig_points - Array of floats containing the original points (x,y,z sequentially)
+//   viewmatrix  - The view transformation matrix (float4x4)
+//   projmatrix  - The projection matrix (float4x4)
+//   p_view      - Output: point transformed into view space
+bool in_frustum(
+    in float3 p_ws, // Assumes orig_points is bound as a constant buffer or StructuredBuffer
+    float4x4 viewmatrix,
+    float4x4 projmatrix,
+    out float3 p_view,
+    out float3 p_proj)
+{
+    // Transform the original point into view space using the view matrix.
+    float4 p_view_h = mul(viewmatrix, float4(p_ws, 1));
+    p_view = p_view_h.xyz / p_view_h.w;
+
+    // If the point is too close (or behind) the near plane (here, z <= 0.2), it's considered outside the frustum.
+    if (p_view.z >= -0.2f) // note: viewing direction
+    {
+        // In HLSL we cannot print or trap execution, so we simply return false.
+        // In a debugging scenario you might set a flag or output to a debug buffer.
+        return false;
+    }
+
+    // Bring the point into clip space using the projection matrix.
+    float4 p_proj_h = mul(projmatrix, float4(p_view, 1));
+    p_proj = p_proj_h.xyz / p_proj_h.w;
+
+    if (p_proj.x < -1.3 || p_proj.x > 1.3 || p_proj.y < -1.3 || p_proj.y > 1.3)
+    {
+        return false;
+    }
+
+    // Otherwise, the point is inside the frustum.
+    return true;
 }
 
 // Forward method for converting scale and rotation properties of each
@@ -181,13 +215,6 @@ float3x3 computeCov3D_OLD(float3 scale, float4 rotation)
     );
 }
 
-// Transform a 3D point using a 4x4 matrix (applies homogeneous division)
-float3 transformPoint4x3(float3 p, float4x4 mat)
-{
-    float4 temp = mul(mat, float4(p, 1.0f));
-    return temp.xyz / temp.w;
-}
-
 // Function: Compute the 2D covariance matrix for a Gaussian:
 //      The following models the steps outlined by equations 29
 //      and 31 in "EWA Splatting" (Zwicker et al., 2002). 
@@ -204,7 +231,8 @@ float3 computeCov2D(
 )
 {
     // Step 1: Transform the mean point using the view matrix.
-    float3 t = transformPoint4x3(mean, viewmatrix);
+    float4 t_h = mul(viewmatrix, float4(mean, 1));
+    float3 t = t_h.xyz / t_h.w;
 
     // Step 2: Clamp the x and y components based on FOV limits (EWA Splatting, eq.29 & eq.31)
     float limx = 1.3f * tan_fovx;
@@ -310,7 +338,6 @@ float3 computeCov2D_OLD(float3 mean, float focal_length, uint2 resolution, float
 [numthreads(GSPLAT_GROUP_SIZE, 1, 1)]
 void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
-    float radius = 0.0f;
     uint idx = DTid.x;
     
     if (idx >= push.numGaussians)
@@ -327,11 +354,24 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     Buffer<float4> gsplatPosition = bindless_buffers_float4[push.geometryIndex];
     float3 pos = gsplatPosition[idx].xyz;
+
+    ShaderMeshInstance inst = load_instance(push.instanceIndex);
+    float4 pos_ws_h = mul(inst.transform.GetMatrix(), float4(pos, 1));
+    float3 pos_ws = pos_ws_h.xyz / pos_ws_h.w;
+    pos_ws = pos;   // TEST //
+
+    float3 p_view, p_proj;
+    if (!in_frustum(pos_ws, camera.view, camera.projection, p_view, p_proj))
+        return;
+
     float4 scale_opacity = gaussianScale_Opacities[idx];
     float3 scale = scale_opacity.xyz;
     float opacity = scale_opacity.w;
     float4 rotation = gaussianQuaterinions[idx];
 
+    // TODO: 
+    // once Gaussian Splatting computation is completed, no need to compute cov3D
+    // , which mean cov3D can be stored as a fixed parameter
     float cov3D[6];
     computeCov3D(scale, 1.f, rotation, cov3D);
 
@@ -340,26 +380,41 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     float tanfovX = tan(fovX * 0.5);
     float tanfovY = tan(fovY * 0.5);
 
-    float3 cov2D = computeCov2D(pos, push.focalX, push.focalY, tanfovX, tanfovY, cov3D, camera.view);
+    // Compute 2D screen-space covariance matrix
+    float3 cov2D = computeCov2D(pos_ws, push.focalX, push.focalY, tanfovX, tanfovY, cov3D, camera.view);
 
-    // Invert 2D covariance matrix (EWA algorithm)
-    float det = (cov2D.x * cov2D.z - cov2D.y * cov2D.y);
-    if (det == 0.0f)
+    const float det_cov = cov2D.x * cov2D.z - cov2D.y * cov2D.y;
+    const float h_var = 0.3f;
+    cov2D.x += h_var;
+    cov2D.z += h_var;
+    const float det_cov_plus_h_cov = cov2D.x * cov2D.z - cov2D.y * cov2D.y;
+    float h_convolution_scaling = 1.0f;
+
+    if (push.flags & GSPLAT_FLAG_ANTIALIASING)
+        h_convolution_scaling = sqrt(max(0.000025f, det_cov / det_cov_plus_h_cov)); // max for numerical stability
+
+    // Invert covariance (EWA algorithm)
+    const float det = det_cov_plus_h_cov;
+
+    if (det == 0.0f) // apply eps
         return;
 
     float det_inv = 1.0f / det;
     float3 conic = float3(cov2D.z * det_inv, -cov2D.y * det_inv, cov2D.x * det_inv);
 
-    // compute eigenvalue l1, l2 and radius
+    // Compute extent in screen space (by finding eigenvalues of
+    // 2D covariance matrix). Use extent to compute a bounding rectangle
+    // of screen-space tiles that this Gaussian overlaps with. Quit if
+    // rectangle covers 0 tiles. 
     float mid = 0.5f * (cov2D.x + cov2D.z);
     float lambda1 = mid + sqrt(max(0.1f, mid * mid - det));
     float lambda2 = mid - sqrt(max(0.1f, mid * mid - det));
-    radius = ceil(3.0f * sqrt(max(lambda1, lambda2)));
-    float2 point_image = worldToPixel(pos, camera, W, H);
+    float radius = ceil(3.0f * sqrt(max(lambda1, lambda2)));
+    float2 point_image = projToPixel(p_proj, W, H);
 
     // bounding box
     uint2 rect_min, rect_max;
-    getRect(point_image, int(radius), uint2(W / GSPLAT_TILESIZE, H / GSPLAT_TILESIZE), rect_min, rect_max);
+    getRect(point_image, radius, uint2(push.tileWidth, push.tileHeight), rect_min, rect_max);
 
     uint total_tiles = (rect_max.x - rect_min.x) * (rect_max.y - rect_min.y);
     if (total_tiles == 0)
@@ -370,11 +425,10 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     offsetTiles[idx] = offset;
 
     // compute RGB from SH coefficients
+    // note: here, use original pos
     float3 rgb_sh = compute_sh(gaussianSHs, pos, idx, camPos);
     float4 final_RGB = float4(rgb_sh, 1.0f);
     
-    float4 p_view = mul(camera.view, float4(pos, 1.0f));
-    p_view.xyz /= p_view.w;
     touchedTiles[idx] = total_tiles;
 
     GaussianKernelAttribute gussial_attribute;
@@ -383,7 +437,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     gussial_attribute.color_radii = float4(rgb_sh, radius);
     gussial_attribute.aabb = uint4(rect_min.x, rect_min.y, rect_max.x, rect_max.y);
     gussial_attribute.uv = point_image;
-    gussial_attribute.depth = p_view.z;
+    gussial_attribute.depth = -p_view.z;
     gussial_attribute.magic = 0x12345678;
 
     gaussianKernelAttributes[idx] = gussial_attribute;

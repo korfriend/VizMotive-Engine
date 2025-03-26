@@ -51,8 +51,10 @@ struct GaussianPushConstants
 	uint tileHeight;
 	float focalX;
 	float focalY;
-	uint padding0;
+	uint flags;
 };
+
+static const uint GSPLAT_FLAG_ANTIALIASING = 1u;
 
 static const uint GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT = 0;
 static const uint GAUSSIANCOUNTER_OFFSET_OFFSETCOUNT = GAUSSIANCOUNTER_OFFSET_TOUCHCOUNT + 4;
