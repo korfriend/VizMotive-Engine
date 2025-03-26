@@ -160,6 +160,7 @@ namespace vz::renderer
 				gsplat_push.tileHeight = tileHeight;
 				gsplat_push.numGaussians = num_gaussians;
 				gsplat_push.geometryIndex = gprim_buffer->vbPosW.descriptor_srv;
+				gsplat_push.flags |= GSPLAT_FLAG_ANTIALIASING;
 				camera->GetIntrinsics(&gsplat_push.focalX, &gsplat_push.focalY, nullptr, nullptr, nullptr);
 
 				// preprocess and calculate touched tiles count
