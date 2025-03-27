@@ -142,6 +142,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_prepass_alphatest.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_prepass_alphatest_tessellation.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_prepass_tessellation.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_primitive.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_simple.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\occludeeVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\vertexcolorVS.hlsl" />
