@@ -531,6 +531,7 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_DEBUG], "meshVS_debug.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_COMMON], "meshVS_common.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_SIMPLE], "meshVS_simple.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_PRIMITIVE], "meshVS_primitive.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_PREPASS], "meshVS_prepass.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_MESH_PREPASS_ALPHATEST], "meshVS_prepass_alphatest.cso"); });
 
@@ -700,27 +701,37 @@ namespace vz::shader
 		//	});
 
 		jobsystem::Dispatch(ctx, SHAPE_RENDERING_COUNT, 1, [](jobsystem::JobArgs args) {
-			PipelineStateDesc desc;
+			PipelineStateDesc desc = {};
 
 			switch (args.jobIndex)
 			{
-			case SHAPE_RENDERING_LINES:
+			case DEBUG_RENDERING_LINES:
 				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
 				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
 				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
 				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
 				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
-			case SHAPE_RENDERING_LINES_DEPTH:
+			case DEBUG_RENDERING_LINES_DEPTH:
 				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
 				desc.gs = &shaders[GSTYPE_LINE_ASSIGNTHICKNESS];
 				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
 				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
 				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
 				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
-				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
+				desc.pt = PrimitiveTopology::LINELIST;
+				break;
+			case MESH_RENDERING_LINES_DEPTH:
+				desc.vs = &shaders[VSTYPE_MESH_PRIMITIVE];
+				desc.gs = &shaders[GSTYPE_LINE_ASSIGNTHICKNESS];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			}

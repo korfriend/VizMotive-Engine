@@ -120,7 +120,7 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
 	//((GGeometryComponent*)geometry)->UpdateRenderDataGaussianSplatting();
 
 
-    /*
+    
     const auto& positions = mutable_primitive->GetVtxPositions();
     const auto& vertex_SOs_ref = mutable_primitive->GetMutableVtxScaleOpacities();
     const auto& vertex_Qts_ref = mutable_primitive->GetMutableVtxQuaternions();

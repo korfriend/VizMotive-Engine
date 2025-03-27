@@ -58,11 +58,11 @@ namespace vz::renderer
 	{
 		GraphicsDevice* device = GetDevice();
 
-		device->EventBegin("Draw Lines - 3D", cmd);
-		device->BindPipelineState(&PSO_RenderableShapes[SHAPE_RENDERING_LINES], cmd);
+		device->EventBegin("DEBUG DRAW: Lines - 3D", cmd);
+		device->BindPipelineState(&PSO_RenderableShapes[DEBUG_RENDERING_LINES], cmd);
 		drawAndClearLines(camera, renderableLines_, cmd, clearEnabled);
 
-		device->BindPipelineState(&PSO_RenderableShapes[SHAPE_RENDERING_LINES_DEPTH], cmd);
+		device->BindPipelineState(&PSO_RenderableShapes[DEBUG_RENDERING_LINES_DEPTH], cmd);
 		drawAndClearLines(camera, renderableLines_depth_, cmd, clearEnabled);
 		device->EventEnd(cmd);
 	}

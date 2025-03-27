@@ -247,18 +247,33 @@ float3 computeCov2D(
     // [ focal_x/t.z,              0,  -focal_x*t.x/(t.z*t.z) ]
     // [           0,       focal_y/t.z, -focal_y*t.y/(t.z*t.z) ]
     // [           0,              0,                    0   ]
+    //float3x3 J = float3x3(
+    //    float3(focal_x / t.z, 0.0f, 0.0f),
+    //    float3(0.0f, focal_y / t.z, 0.0f),
+    //    float3(-(focal_x * t.x) / (t.z * t.z), -(focal_y * t.y) / (t.z * t.z), 0.0f)
+    //);
+    //float3x3 J = float3x3(
+    //    float3(focal_x / t.z, 0.0f, -(focal_x * t.x) / (t.z * t.z)),
+    //    float3(0.0f, focal_y / t.z, -(focal_y * t.y) / (t.z * t.z)),
+    //    float3(0.0f, 0.0f, 0.0f)
+    //);
     float3x3 J = float3x3(
-        float3(focal_x / t.z, 0.0f, 0.0f),
-        float3(0.0f, focal_y / t.z, 0.0f),
-        float3(-(focal_x * t.x) / (t.z * t.z), -(focal_y * t.y) / (t.z * t.z), 0.0f)
+        focal_x / t.z, 0.0f, -(focal_x * t.x) / (t.z * t.z),
+        0.0f, focal_y / t.z, -(focal_y * t.y) / (t.z * t.z),
+        0.0f, 0.0f, 0.0f
     );
 
     // Step 4: Extract the upper-left 3x3 part of the view matrix.
     // HLSL matrices are column-major by default, so each element (viewmatrix[i].xyz) is a column.
+    //float3x3 W = float3x3(
+    //    viewmatrix[0].xyz, // first column: (m00, m10, m20)
+    //    viewmatrix[1].xyz, // second column: (m01, m11, m21)
+    //    viewmatrix[2].xyz  // third column: (m02, m12, m22)
+    //);
     float3x3 W = float3x3(
-        viewmatrix[0].xyz, // first column: (m00, m10, m20)
-        viewmatrix[1].xyz, // second column: (m01, m11, m21)
-        viewmatrix[2].xyz  // third column: (m02, m12, m22)
+        viewmatrix[0].x, viewmatrix[0].y, viewmatrix[0].z,
+        viewmatrix[1].x, viewmatrix[1].y, viewmatrix[1].z,
+        viewmatrix[2].x, viewmatrix[2].y, viewmatrix[2].z
     );
 
     // Step 5: Compute the composite matrix T = W * J.
@@ -385,8 +400,8 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     const float det_cov = cov2D.x * cov2D.z - cov2D.y * cov2D.y;
     const float h_var = 0.3f;
-    cov2D.x += h_var;
-    cov2D.z += h_var;
+    //cov2D.x += h_var;
+    //cov2D.z += h_var;
     const float det_cov_plus_h_cov = cov2D.x * cov2D.z - cov2D.y * cov2D.y;
     float h_convolution_scaling = 1.0f;
 
@@ -433,7 +448,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
     GaussianKernelAttribute gussial_attribute;
 
-    gussial_attribute.conic_opacity = float4(conic.x, conic.y, conic.z, opacity);
+    gussial_attribute.conic_opacity = float4(conic.x, conic.y, conic.z, opacity * h_convolution_scaling);
     gussial_attribute.color_radii = float4(rgb_sh, radius);
     gussial_attribute.aabb = uint4(rect_min.x, rect_min.y, rect_max.x, rect_max.y);
     gussial_attribute.uv = point_image;

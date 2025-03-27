@@ -921,10 +921,13 @@ namespace vz
 			{
 			case PrimitiveType::POINTS:
 			case PrimitiveType::LINE_STRIP:
-			case PrimitiveType::LINES:
-				continue;
 			default:
 				break;
+			case PrimitiveType::LINES: 
+			{
+				int gg = 0;
+				break;
+			}
 			}
 			if (!parts_[part_index].IsValid())
 			{
