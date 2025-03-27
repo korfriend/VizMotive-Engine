@@ -476,6 +476,33 @@ namespace vz::renderer
 					}
 
 					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGPrimBuffer(part_index);
+
+					if (part.GetPrimitiveType() == GeometryComponent::PrimitiveType::LINES
+						&& renderPass == RENDERPASS_MAIN)
+					{
+						MiscCB sb;
+
+						XMMATRIX W = XMLoadFloat4x4(&scene->GetRenderableWorldMatrices()[instancedBatch.renderableIndex]);
+						XMMATRIX VP = XMLoadFloat4x4(&camera->GetViewProjection());
+						XMMATRIX WVP = W * VP;
+						XMStoreFloat4x4(&sb.g_xTransform, WVP);
+						sb.g_xColor = XMFLOAT4(1, 1, 1, 1);
+						sb.g_xThickness = 1.3f;// depthLineThicknessPixel;
+						device->BindDynamicConstantBuffer(sb, CB_GETBINDSLOT(MiscCB), cmd);
+
+						MeshPushConstants push;
+						push.geometryIndex = geometry.geometryOffset + part_index;
+						push.materialIndex = material_index;
+						push.instBufferResIndex = renderable.resLookupIndex + part_index;
+						push.instances = instanceBufferDescriptorIndex;
+						push.instance_offset = (uint)instancedBatch.dataOffset;
+						device->PushConstants(&push, sizeof(push), cmd);
+
+						device->BindPipelineState(&PSO_RenderableShapes[MESH_RENDERING_LINES_DEPTH], cmd);
+						device->BindIndexBuffer(&part_buffer.generalBuffer, geometry.GetIndexFormat(part_index), part_buffer.ib.offset, cmd);
+						device->DrawIndexed(part.GetNumIndices(), 0, 0, cmd);
+						continue;
+					}
 					
 					if (material.GetAlphaRef() < 1)
 					{

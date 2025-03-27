@@ -153,7 +153,7 @@ int main(int, char **)
 
 		// === camera ===
 		camera = NewCamera("my camera");
-		glm::fvec3 pos(0, 0, 10), up(0, 1, 0), at(0, 0, -4);
+		glm::fvec3 pos(0, 0, 50), up(0, 1, 0), at(0, 0, -4);
 		glm::fvec3 view = at - pos;
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		//camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
@@ -314,14 +314,14 @@ int main(int, char **)
 					vzm::ReloadShader();
 				}
 
-				static bool is_intrinsic = false;
+				static bool is_intrinsic = true;
 				if (ImGui::Checkbox("Intrinsics", &is_intrinsic))
 				{
 					uint32_t w, h;
 					renderer->GetCanvas(&w, &h, nullptr, nullptr);
 					if (is_intrinsic)
 					{
-						camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1652.0253638136887f, 1647.2743286575937f, 1060.f * 0.5f, 1887.f * 0.5f, 0);
+						camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1647.2743286575937f, 1652.0253638136887f, 1060.f * 0.5f, 1887.f * 0.5f, 0);
 					}
 					else
 					{

@@ -8,6 +8,7 @@ dxc -T vs_6_0 ./VS/meshVS_prepass.hlsl -spirv
 dxc -T vs_6_0 ./VS/meshVS_prepass_alphatest.hlsl -spirv
 dxc -T vs_6_0 ./VS/meshVS_prepass_alphatest_tessellation.hlsl -spirv
 dxc -T vs_6_0 ./VS/meshVS_prepass_tessellation.hlsl -spirv
+dxc -T vs_6_0 ./VS/meshVS_primitive.hlsl -spirv
 
 dxc -T ps_6_0 ./PS/meshPS_debug.hlsl -spirv
 dxc -T ps_6_0 ./PS/meshPS_simple.hlsl -spirv

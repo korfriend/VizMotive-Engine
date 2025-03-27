@@ -442,5 +442,8 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_blendCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_primitive.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
