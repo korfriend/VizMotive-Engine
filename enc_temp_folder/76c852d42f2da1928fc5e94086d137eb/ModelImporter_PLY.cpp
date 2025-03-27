@@ -102,20 +102,10 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
         file.read(reinterpret_cast<char*>(scale), sizeof(float) * 3);
         file.read(reinterpret_cast<char*>(rot), sizeof(float) * 4);
 
-        // scale exponential
         scale[0] = std::expf(scale[0]);
         scale[1] = std::expf(scale[1]);
         scale[2] = std::expf(scale[2]);
-
-        // opacity sigmoid
         opacity = 1.0f / (1.0f + std::expf(-opacity));
-
-        // Quaternion Normalize
-        float rot_length = std::sqrt(rot[0] * rot[0] + rot[1] * rot[1] + rot[2] * rot[2] + rot[3] * rot[3]);
-        rot[0] /= rot_length;
-        rot[1] /= rot_length;
-        rot[2] /= rot_length;
-        rot[3] /= rot_length;
 
         // 4. Store data
         vertex_positions->emplace_back(x, y, z);
