@@ -583,7 +583,7 @@ inline void IntermixSample(inout half4 colorIntegrated, inout Fragment f_next_la
         f_cur.z = rayDist;
         f_cur.zthick = sampleThick;
 		f_cur.opacity_sum = color.a;
-      
+
 		[loop]
         while (indexFrag < numFrags && f_cur.color.a >= SAFE_MIN_HALF)
         {

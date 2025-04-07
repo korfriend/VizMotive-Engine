@@ -108,7 +108,7 @@ namespace vzm
 	bool VzGeometry::LoadGeometryFile(const std::string& filename)
 	{
 		std::string ext = helper::toUpper(helper::GetExtensionFromFileName(filename));
-		if (ext != "STL" && ext != "PLY")
+		if (ext != "STL" && ext != "PLY" && ext != "SPLAT" && ext != "KSPLAT")
 		{
 			backlog::post("LoadGeometryFile dose not support " + ext + " file!", backlog::LogLevel::Error);
 			return false;
@@ -125,6 +125,10 @@ namespace vzm
 		{
 			lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_PLY", importedModules);
 		}
+		else if (ext == "SPLAT" || ext == "KSPLAT")
+		{
+			lpdll_function = platform::LoadModule<PI_Function>("AssetIO", "ImportModel_SPLAT", importedModules);
+		}
 		else
 		{
 			assert(0);
@@ -138,7 +142,6 @@ namespace vzm
 		GET_GEO_COMP(geometry, false);
 		if (lpdll_function(filename, componentVID_))
 		{
-			geometry->UpdateRenderData();
 			return true;
 		}
 		return false;
@@ -165,5 +168,13 @@ namespace vzm
 	{
 		GET_GEO_COMP(geometry, 0);
 		return geometry->GetMemoryUsageCPU();
+	}
+
+	void VzGeometry::GetAABB(vfloat3& posMin, vfloat3& posMax) const
+	{
+		GET_GEO_COMP(geometry, );
+		geometrics::AABB aabb = geometry->GetAABB();
+		posMin = *(vfloat3*)&aabb._min;
+		posMax = *(vfloat3*)&aabb._max;
 	}
 }

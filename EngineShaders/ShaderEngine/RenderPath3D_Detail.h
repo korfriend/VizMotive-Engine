@@ -198,7 +198,10 @@ namespace vz::renderer
 		// --- new version ---
 		graphics::GPUBuffer touchedTiles_tiledCounts;
 		graphics::GPUBuffer offsetTiles;
+		graphics::GPUBuffer indirectBuffer;
 		// next step					// tile boundary buffer
+
+		graphics::GPUBuffer debugBuffer_readback[graphics::GraphicsDevice::GetBufferCount()];
 	};
 
 	struct LuminanceResources

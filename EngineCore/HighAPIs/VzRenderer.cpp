@@ -51,12 +51,22 @@ namespace vzm
 				{
 					if (camera->IsIntrinsicsProjection())
 					{
+						float w0, h0;
+						camera->GetWidthHeight(&w0, &h0);
+						const float intrinsicRatioX = w0 / (float)w1;
+						const float intrinsicRatioY = h0 / (float)h1;
+
 						//float w0, h0,
 						//camera->GetWidthHeight(&w0, &h0);
 						float fx0, fy0, cx0, cy0, sc0, zn, zf;
 						camera->GetNearFar(&zn, &zf);
 						camera->GetIntrinsics(&fx0, &fy0, &cx0, &cy0, &sc0);
-						camera->SetIntrinsicsProjection((float)w1, (float)h1, zn, zf, fx0, fy0, cx0, cy0, sc0);
+						camera->SetIntrinsicsProjection((float)w1, (float)h1, zn, zf, 
+							fx0 / intrinsicRatioX, 
+							fy0 / intrinsicRatioY, 
+							cx0 / intrinsicRatioX, 
+							cy0 / intrinsicRatioY, 
+							sc0);
 					}
 					else
 					{

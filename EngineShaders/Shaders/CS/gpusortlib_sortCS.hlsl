@@ -43,7 +43,7 @@
 ByteAddressBuffer counterBuffer : register(t0);
 #ifdef UINT64_HIGHLOW
 ByteAddressBuffer comparisonBuffer : register(t1);
-groupshared uint3	g_LDS[SORT_SIZE];
+groupshared uint4	g_LDS[SORT_SIZE];
 bool Less(uint2 a, uint2 b)
 {
 	// high bits comparison
@@ -89,8 +89,8 @@ void main(uint3 Gid	: SV_GroupID,
 		{
 			uint particleIndex = indexBuffer[GlobalBaseIndex + i * NUM_THREADS];
 #ifdef UINT64_HIGHLOW
-			uint2 dist_HL = comparisonBuffer.Load2(particleIndex * 2);
-			g_LDS[LocalBaseIndex + i * NUM_THREADS] = uint3(dist_HL, particleIndex);
+			uint2 dist_HL = comparisonBuffer.Load2(particleIndex * 2 * 4);
+			g_LDS[LocalBaseIndex + i * NUM_THREADS] = uint4(dist_HL, particleIndex, 0);
 #else
 			float dist = comparisonBuffer[particleIndex];
 			g_LDS[LocalBaseIndex + i * NUM_THREADS] = float2(dist, (float)particleIndex);
@@ -115,8 +115,8 @@ void main(uint3 Gid	: SV_GroupID,
 				if (nSwapElem < numElementsInThreadGroup)
 				{
 #ifdef UINT64_HIGHLOW
-					uint3 a = g_LDS[index];
-					uint3 b = g_LDS[nSwapElem];
+					uint4 a = g_LDS[index];
+					uint4 b = g_LDS[nSwapElem];
 
 					if (!Less(a.xy, b.xy))
 					{
@@ -144,7 +144,11 @@ void main(uint3 Gid	: SV_GroupID,
 	{
 		if (GI + i * NUM_THREADS < numElementsInThreadGroup)
 		{
+#ifdef UINT64_HIGHLOW
+			indexBuffer[GlobalBaseIndex + i * NUM_THREADS] = g_LDS[LocalBaseIndex + i * NUM_THREADS].z;
+#else
 			indexBuffer[GlobalBaseIndex + i * NUM_THREADS] = (uint)g_LDS[LocalBaseIndex + i * NUM_THREADS].y;
+#endif
 		}
 	}
 }

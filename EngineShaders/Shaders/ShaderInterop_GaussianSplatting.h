@@ -24,7 +24,7 @@ static const float SH_C3[7] = {
 	-0.5900435899266435f
 };
 
-struct GaussianKernelAttribute {
+struct alignas(16) GaussianKernelAttribute {
 	float4 conic_opacity;
 	float4 color_radii;
 

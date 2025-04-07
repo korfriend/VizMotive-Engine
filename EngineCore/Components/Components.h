@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250322_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250407_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -728,10 +728,6 @@ namespace vz
 			COUNT
 		};
 
-		struct SH {
-			XMFLOAT3 dcSHs[16];
-		};
-
 		struct Primitive {
 		private:
 			std::vector<XMFLOAT3> vertexPositions_;
@@ -741,10 +737,9 @@ namespace vz
 			std::vector<XMFLOAT2> vertexUVset1_;
 			std::vector<uint32_t> vertexColors_;
 			std::vector<uint32_t> indexPrimitives_;
-			// --- Gaussian Splatting ---
-			std::vector<SH> vertexSHs_;	// vertex spherical harmonics
-			std::vector<XMFLOAT4> vertexScale_Opacities_;	// vertex spherical harmonics
-			std::vector<XMFLOAT4> vertexQuaterions_;	// vertex spherical harmonics
+
+			// --- User Custom Buffers ---
+			std::vector<std::vector<uint8_t>> customBuffers_;
 
 			PrimitiveType ptype_ = PrimitiveType::TRIANGLES;
 
@@ -775,6 +770,7 @@ namespace vz
 
 		public:
 			mutable bool autoUpdateRenderData = true;
+			uint32_t shLevel = 0;
 
 			inline void MoveFrom(Primitive&& primitive) { 
 				*this = std::move(primitive); }
@@ -807,6 +803,7 @@ namespace vz
 			inline const std::vector<XMFLOAT2>& GetVtxUVSet0() const { return vertexUVset0_; }
 			inline const std::vector<XMFLOAT2>& GetVtxUVSet1() const { return vertexUVset1_; }
 			inline const std::vector<uint32_t>& GetVtxColors() const { return vertexColors_; }
+			inline const std::vector<std::vector<uint8_t>>& GetCustomBuffers() const { return customBuffers_; }
 			inline std::vector<XMFLOAT3>& GetMutableVtxPositions() { return vertexPositions_; }
 			inline std::vector<uint32_t>& GetMutableIdxPrimives() { return indexPrimitives_; }
 			inline std::vector<XMFLOAT3>& GetMutableVtxNormals() { return vertexNormals_; }
@@ -814,10 +811,7 @@ namespace vz
 			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet0() { return vertexUVset0_; }
 			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet1() { return vertexUVset1_; }
 			inline std::vector<uint32_t>& GetMutableVtxColors() { return vertexColors_; }
-
-			inline std::vector<SH>& GetMutableVtxSHs() { return vertexSHs_; }	// vertex spherical harmonics
-			inline std::vector<XMFLOAT4>& GetMutableVtxScaleOpacities() { return vertexScale_Opacities_; }	// vertex spherical harmonics
-			inline std::vector<XMFLOAT4>& GetMutableVtxQuaternions() { return vertexQuaterions_; }	// vertex spherical harmonics
+			inline std::vector<std::vector<uint8_t>>& GetMutableCustomBuffers() { return customBuffers_; }	
 
 			inline size_t GetNumVertices() const { return vertexPositions_.size(); }
 			inline size_t GetNumIndices() const { return indexPrimitives_.size(); }

@@ -239,7 +239,6 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 			float ray_march_dist = forward_hit_depth;
 
 			[loop]
-			[allow_uav_condition]
 			for (uint i = 0; i < HITBUFFERSIZE; i++)
 			{
 				RayHit hit = TraceRay_Closest(ray);

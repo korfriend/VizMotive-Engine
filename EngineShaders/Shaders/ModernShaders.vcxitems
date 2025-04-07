@@ -102,7 +102,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortInnerCS_uint64.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortStepCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortStepCS_uint64.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_kickoffCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_indirectCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_replicateCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_identifyTileRangeCS.hlsl" />
