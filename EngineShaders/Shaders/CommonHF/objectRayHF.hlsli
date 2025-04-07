@@ -155,6 +155,7 @@ inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 
 	uint count = 0;
 
+	[allow_uav_condition]
 	[loop]
 	while (stackpos > 0 && count < 5000u) {
 		// pop untraversed node

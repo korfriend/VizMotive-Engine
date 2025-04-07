@@ -1392,15 +1392,6 @@ namespace vz::renderer
 			bool has_buffer_effect = num_parts == renderable.bufferEffects.size();
 			for (size_t part_index = 0; part_index < num_parts; ++part_index)
 			{
-				if (geomety.allowGaussianSplatting && renderer::isGaussianSplattingEnabled)
-				{
-					GGeometryComponent::GPrimBuffers* prim_buffers = geomety.GetGPrimBuffer(part_index);
-					if (prim_buffers)
-					{
-						device->ClearUAV(&prim_buffers->gaussianSplattingBuffers.touchedTiles, 0, cmd);
-					}
-				}
-
 				if (!has_buffer_effect)
 				{
 					continue;

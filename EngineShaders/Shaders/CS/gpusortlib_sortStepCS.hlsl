@@ -72,8 +72,8 @@ void main(uint3 Gid	: SV_GroupID,
 		uint index_a = indexBuffer[index];
 		uint index_b = indexBuffer[nSwapElem];
 #ifdef UINT64_HIGHLOW
-		uint2 a = comparisonBuffer.Load2(index_a);
-		uint2 b = comparisonBuffer.Load2(index_b);
+		uint2 a = comparisonBuffer.Load2(index_a * 2 * 4);
+		uint2 b = comparisonBuffer.Load2(index_b * 2 * 4);
 
 		if (!Less(a, b))
 		{

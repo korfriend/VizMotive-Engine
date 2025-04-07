@@ -4,6 +4,7 @@
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/JobSystem.h"
 #include "vzm2/utils/Profiler.h"
+#include "vzm2/utils/Geometrics.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -138,7 +139,8 @@ int main(int, char **)
 	VzCamera *camera = nullptr;
 	VzRenderer *renderer = nullptr;
 
-	// add .ply load
+	glm::fvec3 rotate_center = glm::fvec3(0, 0, 0);
+	// add .splat load
 	{
 		scene = NewScene("my scene");
 
@@ -153,37 +155,40 @@ int main(int, char **)
 
 		// === camera ===
 		camera = NewCamera("my camera");
-		glm::fvec3 pos(0, 0, 50), up(0, 1, 0), at(0, 0, -4);
+		glm::fvec3 pos(0, 0, 5), up(0, 1, 0), at(0, 0, -4);
 		glm::fvec3 view = at - pos;
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		//camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
-		camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1647.2743286575937f, 1652.0253638136887f, 1060.f * 0.5f, 1887.f * 0.5f);
+		camera->SetPerspectiveProjection(0.1f, 5000.f, 45.f, 1.f);
+		//camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1647.2743286575937f, 1652.0253638136887f, 1060.f * 0.5f, 1887.f * 0.5f);
+		//camera->SetIntrinsicsProjection(1959.f, 1090.f, 0.01f, 1000.f, 1159.5880733038064, 1164.6601287484507f, 1959.f * 0.5f, 1090.f * 0.5f);
 
 		// === Add PLY loading code here ===
 		// Load PLY geometry
 		
 		vz::jobsystem::context ctx;
 		//vz::jobsystem::Execute(ctx, [scene](vz::jobsystem::JobArgs args) {
-			vzm::VzGeometry *geometry_ply = vzm::NewGeometry("my ply geometry");
-			//if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud_sampled_1000.ply"))
-			if (!geometry_ply->LoadGeometryFile("../Assets/ply_files/point_cloud.ply"))
+			vzm::VzGeometry* geometry_splat = vzm::NewGeometry("my splat geometry");
+			assert(geometry_splat->LoadGeometryFile("D:\\web_gs\\plush.splat"));
+			vzm::VzMaterial* splat_material = vzm::NewMaterial("my splat material");
+			splat_material->SetShaderType(vzm::ShaderType::PBR);
+			splat_material->SetDoubleSided(true);
+			splat_material->SetGaussianSplattingEnabled(true);
 		
-			{
-				std::cerr << "Failed to load point_cloud.ply" << std::endl;
-			}
-			else
-			{
-				vzm::VzMaterial* ply_material = vzm::NewMaterial("my ply material");
-				ply_material->SetShaderType(vzm::ShaderType::PBR);
-				ply_material->SetDoubleSided(true);
-				ply_material->SetGaussianSplattingEnabled(true);
-		
-				vzm::VzActor* ply_actor = vzm::NewActor("my ply actor", geometry_ply, ply_material);
-				ply_actor->SetScale({ 1.f, 1.f, 1.f });
-				ply_actor->SetPosition({ 0.f, 0.f, -2.f });
-		
-				vzm::AppendSceneCompTo(ply_actor, scene);
-			}
+			vzm::VzActor* splat_actor = vzm::NewActor("my splat actor", geometry_splat, splat_material);
+			splat_actor->SetScale({ 1.f, 1.f, 1.f });
+			scene->AppendChild(splat_actor);
+
+			vfloat3 pos_min, pos_max;
+			geometry_splat->GetAABB(pos_min, pos_max);
+			vz::geometrics::AABB aabb(*(XMFLOAT3*)&pos_min, *(XMFLOAT3*)&pos_max);
+			splat_actor->UpdateWorldMatrix();
+			vfloat4x4 W;
+			splat_actor->GetWorldMatrix(W, true);
+			aabb.transform(*(XMFLOAT4X4*)&W);
+			at = *(glm::fvec3*)&aabb.getCenter();
+			view = at - pos;
+			rotate_center = at;
+			camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		//	});
 		/**/
 
@@ -260,7 +265,7 @@ int main(int, char **)
 					glm::fvec2 pos_ss = m_pos;
 
 					OrbitalControl *orbit_control = camera->GetOrbitControl();
-					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 2.f);
+					orbit_control->Initialize(renderer->GetVID(), *(vfloat3*)&rotate_center, 1.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
@@ -314,14 +319,15 @@ int main(int, char **)
 					vzm::ReloadShader();
 				}
 
-				static bool is_intrinsic = true;
+				static bool is_intrinsic = false;
 				if (ImGui::Checkbox("Intrinsics", &is_intrinsic))
 				{
 					uint32_t w, h;
 					renderer->GetCanvas(&w, &h, nullptr, nullptr);
 					if (is_intrinsic)
 					{
-						camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1647.2743286575937f, 1652.0253638136887f, 1060.f * 0.5f, 1887.f * 0.5f, 0);
+						//camera->SetIntrinsicsProjection(1060.f, 1887.f, 0.01f, 1000.f, 1647.2743286575937f, 1652.0253638136887f, 1060.f * 0.5f, 1887.f * 0.5f, 0);
+						camera->SetIntrinsicsProjection(1959.f, 1090.f, 0.01f, 1000.f, 1159.5880733038064, 1164.6601287484507f, 1959.f * 0.5f, 1090.f * 0.5f);
 					}
 					else
 					{

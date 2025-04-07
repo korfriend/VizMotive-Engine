@@ -332,7 +332,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 
 			LOAD_BLOCK_INFO(blkSkip, pos_sample_ts, dir_sample_ts_rcp, num_ray_samples, step, buffer_bitmask)
 
-				[branch]
+			[branch]
 			if (blkSkip.visible)
 			{
 				[loop]

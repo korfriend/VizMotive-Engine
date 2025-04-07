@@ -4,7 +4,8 @@
 RWStructuredBuffer<uint> tileRange : register(u0);
 
 StructuredBuffer<uint2> replicatedGaussianKey : register(t0);
-ByteAddressBuffer counterBuffer : register(t1);
+StructuredBuffer<uint> sortedIndices : register(t1);    // sorted replicated buffer
+ByteAddressBuffer counterBuffer : register(t2);
 
 [numthreads(GSPLAT_GROUP_SIZE, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
@@ -14,15 +15,17 @@ void main(uint3 DTid : SV_DispatchThreadID)
     if (index >= countReplcateGaussians)
         return;
 
-    uint2 replicateKey = replicatedGaussianKey[index];
-    uint key = replicateKey.x;
+    uint unsorted_index = sortedIndices[index];
+    uint2 replicateKey = replicatedGaussianKey[unsorted_index];
+    uint key = replicateKey.x; // tile_id
     if (index == 0)
     {
         tileRange[key * 2] = index;
     }
     else
     {
-        uint2 replicateKey_prev = replicatedGaussianKey[index - 1];
+        uint unsorted_index_prev = sortedIndices[index - 1];
+        uint2 replicateKey_prev = replicatedGaussianKey[unsorted_index_prev];
         uint key_prev = replicateKey_prev.x;
         if (key != key_prev)
         {
