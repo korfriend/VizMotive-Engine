@@ -50,17 +50,17 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
 
     // 2. Prepare GeometryComponent
     using Primitive = GeometryComponent::Primitive;
-    using SH = GeometryComponent::SH;
+    //using SH = GeometryComponent::SH;
 
     std::vector<Primitive> parts(1);
     geometry->CopyPrimitivesFrom(parts);
 
     Primitive* mutable_primitive = geometry->GetMutablePrimitive(0);
     mutable_primitive->SetPrimitiveType(GeometryComponent::PrimitiveType::POINTS);
-
+    /*
     std::vector<XMFLOAT3>* vertex_positions = &mutable_primitive->GetMutableVtxPositions();
     std::vector<XMFLOAT3>* vertex_normals = &mutable_primitive->GetMutableVtxNormals();
-    std::vector<SH>* vertex_SHs = &mutable_primitive->GetMutableVtxSHs();
+    std::vector<float>* vertex_SHs = &mutable_primitive->GetMutableVtxSHs();
     std::vector<XMFLOAT4>* vertex_SOs = &mutable_primitive->GetMutableVtxScaleOpacities();
     std::vector<XMFLOAT4>* vertex_Qts = &mutable_primitive->GetMutableVtxQuaternions();
 
@@ -68,10 +68,11 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
 
     vertex_positions->reserve(vertexCount);
     vertex_normals->reserve(vertexCount);
-    vertex_SHs->reserve(vertexCount);
     vertex_SOs->reserve(vertexCount);
     vertex_Qts->reserve(vertexCount);
     indices->reserve(vertexCount);
+
+	vertex_SHs->resize(vertexCount * mutable_primitive->shLevel * 3);
 
     // 3. Read binary data
     for (int i = 0; i < vertexCount; i++)
@@ -121,9 +122,9 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
         vertex_positions->emplace_back(x, y, z);
         vertex_normals->emplace_back(nx, ny, nz);
 
-        SH sh;
-        std::memcpy(sh.dcSHs, sh_coeffs, sizeof(float) * 48);
-        vertex_SHs->emplace_back(sh);
+        //SH sh;
+        std::memcpy(&vertex_SHs->at(i * 16 * 3), sh_coeffs, sizeof(float) * 16 * 3);
+        //vertex_SHs->emplace_back(sh);
 
         vertex_SOs->emplace_back(scale[0], scale[1], scale[2], opacity);
         vertex_Qts->emplace_back(rot[0], rot[1], rot[2], rot[3]);
@@ -151,7 +152,7 @@ bool ImportModel_PLY(const std::string& fileName, const Entity geometryEntity)
         const auto& rotation = vertex_Qts_ref[i];
         const auto& shs = vertex_SHs_ref[i];
 
-        std::cerr << "Vertex : " << i << " Scale(" << scale.x << ", " << scale.y << ", " << scale.z << "), " << std::endl;
+        std::cerr << "Vertex : " << i << " Scale(" << scale.x << ", " << scale.y << ", " << scale.z << "), alpha : " << scale.w << std::endl;
 
         //std::cerr << "Vertex " << i << ": Pos("
         //    << p.x << ", " << p.y << ", " << p.z << "), "

@@ -20,5 +20,7 @@ namespace vzm
 		void EnableGPUBVH(const bool enabled);
 		
 		size_t GetMemoryUsageCPU() const;
+
+		void GetAABB(vfloat3& posMin, vfloat3& posMax) const;
 	};
 }

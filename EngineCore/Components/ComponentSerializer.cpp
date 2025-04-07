@@ -198,6 +198,14 @@ namespace vz
 			uint32_t data32t;
 			archive >> data32t;
 			ptype_ = static_cast<PrimitiveType>(data32t);
+
+			archive >> data32t;
+			customBuffers_.resize(data32t);
+			for (uint32_t i = 0; i < data32t; ++i)
+			{
+				std::vector<uint8_t>& custom_buffer = customBuffers_[i];
+				archive >> custom_buffer;
+			}			
 		}
 		else
 		{
@@ -209,6 +217,12 @@ namespace vz
 			archive << vertexColors_;
 			archive << indexPrimitives_;
 			archive << SCU32(ptype_);
+
+			archive << (uint32_t)customBuffers_.size();
+			for (auto& it : customBuffers_)
+			{
+				archive << it;
+			}
 		}
 	}
 

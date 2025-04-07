@@ -65,48 +65,6 @@ namespace vz
 	{
 		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
 
-
-		struct GaussianKernelAttribute 
-		{
-			XMFLOAT4 conic_opacity;
-			XMFLOAT4 color_radii;
-			XMUINT4 aabb; // bounding box 
-
-			XMFLOAT2 uv; // pixel coords that is output of ndx2pix() func;
-			float depth;
-			uint32_t padding0;
-		};
-		struct GaussianCounters
-		{
-			uint32_t touchCount;
-			uint32_t offsetCount;
-		};
-		struct GaussianSplattingBuffers
-		{
-			// gaussian kernels
-			graphics::GPUBuffer gaussianSHs;
-			graphics::GPUBuffer gaussianScale_Opacities;
-			graphics::GPUBuffer gaussianQuaterinions;
-
-			bool IsValid() const { return gaussianSHs.IsValid() && gaussianScale_Opacities.IsValid() && gaussianQuaterinions.IsValid(); }
-
-			// ----- inter-processing buffers -----
-			// NOTE:
-			//	These buffers will be used for storing intermediate results during renderer's GaussianSplattting
-			//	Different canvas (renderers) can access these buffers, assuming thread-safe process
-			graphics::GPUBuffer gaussianCounterBuffer;
-			graphics::GPUBuffer gaussianCounterBuffer_readback[graphics::GraphicsDevice::GetBufferCount()];
-			graphics::GPUBuffer touchedTiles;	// # of gaussian points
-			graphics::GPUBuffer offsetTiles;	// # of gaussian points
-			graphics::GPUBuffer gaussianKernelAttributes; // # of gaussian points
-			graphics::GPUBuffer tileBoundaryBuffer; // # of gaussian points
-
-			uint32_t capacityGaussians = 0u;
-			graphics::GPUBuffer replicatedGaussianKey;
-			graphics::GPUBuffer replicatedGaussianValue;
-			graphics::GPUBuffer sortedIndices;
-		};
-
 		struct BVHBuffers
 		{
 			// https://github.com/ToruNiina/lbvh
@@ -124,6 +82,8 @@ namespace vz
 
 		struct GPrimBuffers
 		{
+			//std::atomic<bool> busyUpdate = { false };
+			bool busyUpdate = false;
 			uint32_t slot = 0;
 
 			graphics::GPUBuffer generalBuffer; // index buffer + all static vertex buffers
@@ -146,7 +106,9 @@ namespace vz
 			BufferView soPre;
 
 			BVHBuffers bvhBuffers;
-			GaussianSplattingBuffers gaussianSplattingBuffers;
+
+			std::vector<graphics::GPUBuffer> customBuffers;
+			std::unordered_map<std::string, uint32_t> customBufferMap;
 
 			void Destroy()
 			{
@@ -154,7 +116,9 @@ namespace vz
 				streamoutBuffer = {};
 
 				bvhBuffers = {};
-				gaussianSplattingBuffers = {};
+
+				customBuffers.clear();
+				customBufferMap.clear();
 
 				// buffer views
 				ib = {};
@@ -193,12 +157,10 @@ namespace vz
 		}
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
 		GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
-		void UpdateRenderData() override;
-
-		void UpdateRenderDataGaussianSplatting();
-		void UpdateCapacityGaussians(uint32_t capacityGaussians);
-
+		
 		void DeleteRenderData() override;
+		void UpdateRenderData() override;
+		void UpdateCustomRenderData(const std::function<void(graphics::GraphicsDevice* device)>& task);
 		void UpdateStreamoutRenderData();
 		size_t GetMemoryUsageCPU() const override;
 		size_t GetMemoryUsageGPU() const override;

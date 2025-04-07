@@ -599,6 +599,7 @@ namespace vz::shader
 			});
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_PREPROCESS], "gsplat_preprocessCS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_INDIRECT_SETTING], "gsplat_indirectCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_REPLICATE_GAUSSIANS], "gsplat_replicateCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_IDENTIFY_TILE_RANGES], "gsplat_identifyTileRangeCS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::CS, shaders[CSTYPE_GAUSSIANSPLATTING_BLEND_GAUSSIAN], "gsplat_blendCS.cso"); });

@@ -325,9 +325,9 @@ namespace vz::geometrics
 	}
 	float AABB::getArea() const
 	{
-		XMFLOAT3 _min = getMin();
-		XMFLOAT3 _max = getMax();
-		return (_max.x - _min.x) * (_max.y - _min.y) * (_max.z - _min.z);
+		XMFLOAT3 min_ = getMin();
+		XMFLOAT3 max_ = getMax();
+		return (max_.x - min_.x) * (max_.y - min_.y) * (max_.z - min_.z);
 	}
 	float AABB::getRadius() const
 	{

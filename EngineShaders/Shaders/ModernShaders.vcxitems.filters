@@ -433,9 +433,6 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_kickoffCS.hlsl">
-      <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
-    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_offsetCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
     </FxCompile>
@@ -444,6 +441,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_primitive.hlsl">
       <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_indirectCS.hlsl">
+      <Filter>Compute Shaders\GaussianSplatting</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
