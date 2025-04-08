@@ -182,6 +182,7 @@ namespace vz
 			SaveFile(fileName);
 		}
 		DATA.clear();
+		data_ptr = nullptr;
 	}
 
 	bool Archive::SaveFile(const std::string& fileName)

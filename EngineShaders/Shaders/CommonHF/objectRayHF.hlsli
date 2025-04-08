@@ -43,7 +43,7 @@ inline RayHit CreateRayHit()
 	hit.bary = 0;
 	hit.distance = FLT_MAX;
 	hit.is_backface = false;
-	//hit.primitiveID.init();
+	hit.primitiveID.init();
 	return hit;
 }
 

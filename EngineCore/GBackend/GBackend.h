@@ -1278,6 +1278,28 @@ namespace vz::graphics
 		constexpr const RaytracingPipelineStateDesc& GetDesc() const { return desc; }
 	};
 
+	struct PipelineHash
+	{
+		const PipelineState* pso = nullptr;
+		uint64_t renderpass_hash = 0;
+
+		constexpr bool operator==(const PipelineHash& other) const
+		{
+			return (pso == other.pso) && (renderpass_hash == other.renderpass_hash);
+		}
+		constexpr uint64_t get_hash() const
+		{
+			union
+			{
+				const PipelineState* ptr;
+				uint64_t value;
+			} pso_hasher = {};
+			static_assert(sizeof(pso_hasher) == sizeof(uint64_t));
+			pso_hasher.ptr = pso; // reinterpret_cast in constexpr workaround
+			return (pso_hasher.value ^ (renderpass_hash << 1)) >> 1;
+		}
+	};
+
 	struct ShaderTable
 	{
 		const GPUBuffer* buffer = nullptr;
@@ -2110,3 +2132,15 @@ template<>
 struct enable_bitmask_operators<vz::graphics::RenderPassFlags> {
 	static const bool enable = true;
 };
+
+namespace std
+{
+	template <>
+	struct hash<vz::graphics::PipelineHash>
+	{
+		inline uint64_t operator()(const vz::graphics::PipelineHash& hash) const
+		{
+			return hash.get_hash();
+		}
+	};
+}

@@ -947,7 +947,7 @@ namespace vz
 			return true;
 		}
 	}
-	
+
 	Scene::RayIntersectionResult Scene::Intersects(const Ray& ray, const Entity entityCamera, uint32_t filterMask, uint32_t layerMask, uint32_t lod) const
 	{
 		using Primitive = GeometryComponent::Primitive;

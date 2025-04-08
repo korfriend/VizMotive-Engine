@@ -377,6 +377,10 @@ namespace vzm
 			{
 				ses_section.Set("GAUSSIAN_SPLATTING", false);
 			}
+			if (!ses_section.Has("TONEMAPPING"))
+			{
+				ses_section.Set("TONEMAPPING", true);
+			}
 			configFile.Commit();
 		}
 	}
@@ -996,6 +1000,7 @@ namespace vzm
 #define CONFIG_SET(STR, FUNC) ses_section.Set(STR, configure.GetParam(STR, ses_section.FUNC(STR)));
 
 		CONFIG_SET("TEMPORAL_AA", GetBool);
+		CONFIG_SET("TONEMAPPING", GetBool);
 		CONFIG_SET("GAUSSIAN_SPLATTING", GetBool);
 		configFile.Commit();
 

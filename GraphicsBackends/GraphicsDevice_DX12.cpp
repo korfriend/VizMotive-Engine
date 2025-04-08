@@ -1355,12 +1355,11 @@ namespace dx12_internal
 
 		virtual ~Resource_DX12()
 		{
-			allocationhandler->destroylocker.lock();
+			std::scoped_lock lck(allocationhandler->destroylocker);
 			uint64_t framecount = allocationhandler->framecount;
 			if (allocation) allocationhandler->destroyer_allocations.push_back(std::make_pair(allocation, framecount));
 			if (resource) allocationhandler->destroyer_resources.push_back(std::make_pair(resource, framecount));
 			destroy_subresources();
-			allocationhandler->destroylocker.unlock();
 		}
 	};
 	struct Texture_DX12 : public Resource_DX12
@@ -1374,9 +1373,8 @@ namespace dx12_internal
 
 		~Texture_DX12() override
 		{
-			allocationhandler->destroylocker.lock();
+			std::scoped_lock lck(allocationhandler->destroylocker);
 			uint64_t framecount = allocationhandler->framecount;
-			allocationhandler->destroylocker.unlock();
 
 			rtv.destroy();
 			dsv.destroy();
@@ -1397,9 +1395,8 @@ namespace dx12_internal
 
 		~Sampler_DX12()
 		{
-			allocationhandler->destroylocker.lock();
+			std::scoped_lock lck(allocationhandler->destroylocker);
 			uint64_t framecount = allocationhandler->framecount;
-			allocationhandler->destroylocker.unlock();
 
 			descriptor.destroy();
 		}
@@ -1411,10 +1408,9 @@ namespace dx12_internal
 
 		~QueryHeap_DX12()
 		{
-			allocationhandler->destroylocker.lock();
+			std::scoped_lock lck(allocationhandler->destroylocker);
 			uint64_t framecount = allocationhandler->framecount;
 			if (heap) allocationhandler->destroyer_queryheaps.push_back(std::make_pair(heap, framecount));
-			allocationhandler->destroylocker.unlock();
 		}
 	};
 	struct PipelineState_DX12
@@ -1422,7 +1418,6 @@ namespace dx12_internal
 		std::shared_ptr<GraphicsDevice_DX12::AllocationHandler> allocationhandler;
 		ComPtr<ID3D12PipelineState> resource;
 		ComPtr<ID3D12RootSignature> rootSignature;
-		size_t hash = 0;
 
 		std::vector<uint8_t> shadercode;
 		std::vector<D3D12_INPUT_ELEMENT_DESC> input_elements;
@@ -1463,11 +1458,10 @@ namespace dx12_internal
 
 		~PipelineState_DX12()
 		{
-			allocationhandler->destroylocker.lock();
+			std::scoped_lock lck(allocationhandler->destroylocker);
 			uint64_t framecount = allocationhandler->framecount;
 			if (resource) allocationhandler->destroyer_pipelines.push_back(std::make_pair(resource, framecount));
 			if (rootSignature) allocationhandler->destroyer_rootSignatures.push_back(std::make_pair(rootSignature, framecount));
-			allocationhandler->destroylocker.unlock();
 		}
 	};
 	struct BVH_DX12 : public Resource_DX12
@@ -1492,10 +1486,9 @@ namespace dx12_internal
 
 		~RTPipelineState_DX12()
 		{
-			allocationhandler->destroylocker.lock();
+			std::scoped_lock lck(allocationhandler->destroylocker);
 			uint64_t framecount = allocationhandler->framecount;
 			if (resource) allocationhandler->destroyer_stateobjects.push_back(std::make_pair(resource, framecount));
-			allocationhandler->destroylocker.unlock();
 		}
 	};
 	struct SwapChain_DX12
@@ -1514,13 +1507,12 @@ namespace dx12_internal
 
 		~SwapChain_DX12()
 		{
-			allocationhandler->destroylocker.lock();
+			std::scoped_lock lck(allocationhandler->destroylocker);
 			uint64_t framecount = allocationhandler->framecount;
 			for (auto& x : backBuffers)
 			{
 				allocationhandler->destroyer_resources.push_back(std::make_pair(x, framecount));
 			}
-			allocationhandler->destroylocker.unlock();
 			for (auto& x : backbufferRTV)
 			{
 				allocationhandler->descriptors_rtv.free(x);
@@ -1544,11 +1536,10 @@ namespace dx12_internal
 
 		~VideoDecoder_DX12()
 		{
-			allocationhandler->destroylocker.lock();
+			std::scoped_lock lck(allocationhandler->destroylocker);
 			uint64_t framecount = allocationhandler->framecount;
 			allocationhandler->destroyer_video_decoder_heaps.push_back(std::make_pair(decoder_heap, framecount));
 			allocationhandler->destroyer_video_decoders.push_back(std::make_pair(decoder, framecount));
-			allocationhandler->destroylocker.unlock();
 		}
 	};
 
@@ -2141,7 +2132,7 @@ std::mutex queue_locker;
 			return;
 
 		const PipelineState* pso = commandlist.active_pso;
-		size_t pipeline_hash = commandlist.prev_pipeline_hash;
+		PipelineHash pipeline_hash = commandlist.prev_pipeline_hash;
 
 		auto internal_state = to_internal(pso);
 
@@ -3150,18 +3141,16 @@ std::mutex queue_locker;
 		internal_state->backbufferRTV.resize(swapchain->desc.buffer_count);
 		for (uint32_t i = 0; i < swapchain->desc.buffer_count; ++i)
 		{
-			hr = device->CreateCommittedResource(
+			dx12_check(device->CreateCommittedResource(
 				&heap_properties,
 				D3D12_HEAP_FLAG_ALLOW_DISPLAY,
 				&resource_desc,
 				D3D12_RESOURCE_STATE_PRESENT,
 				&clear_value,
 				PPV_ARGS(internal_state->backBuffers[i])
-			);
-			assert(SUCCEEDED(hr));
+			));
 
-			hr = internal_state->backBuffers[i]->SetName(L"BackBufferXBOX");
-			assert(SUCCEEDED(hr));
+			dx12_check(internal_state->backBuffers[i]->SetName(L"BackBufferXBOX"));
 
 			internal_state->backbufferRTV[i] = allocationhandler->descriptors_rtv.allocate();
 			device->CreateRenderTargetView(internal_state->backBuffers[i].Get(), &rtv_desc, internal_state->backbufferRTV[i]);
@@ -3385,6 +3374,10 @@ std::mutex queue_locker;
 			//	thus it cannot be offsetted. This is why we create custom allocation here which will never be committed resource
 			//	(since it has no resource)
 			D3D12_RESOURCE_ALLOCATION_INFO allocationInfo = device->GetResourceAllocationInfo(0, 1, &resourceDesc);
+
+			// D3D12MA ValidateAllocateMemoryParameters requires this, wasn't always true on Xbox:
+			allocationInfo.SizeInBytes = AlignTo(allocationInfo.SizeInBytes, (UINT64)D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+			allocationInfo.Alignment = std::max(allocationInfo.Alignment, (UINT64)D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
 
 			if (resource_heap_tier >= D3D12_RESOURCE_HEAP_TIER_2)
 			{
@@ -3715,6 +3708,7 @@ std::mutex queue_locker;
 
 			// D3D12MA ValidateAllocateMemoryParameters requires this, wasn't always true on Xbox:
 			allocationInfo.SizeInBytes = AlignTo(allocationInfo.SizeInBytes, (UINT64)D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+			allocationInfo.Alignment = std::max(allocationInfo.Alignment, (UINT64)D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
 
 			if (resource_heap_tier >= D3D12_RESOURCE_HEAP_TIER_2)
 			{
@@ -3953,7 +3947,6 @@ std::mutex queue_locker;
 		shader->internal_state = internal_state;
 
 		internal_state->shadercode.resize(shadercode_size);
-		internal_state->hash = 0;
 		std::memcpy(internal_state->shadercode.data(), shadercode, shadercode_size);
 		shader->stage = stage;
 
@@ -4088,21 +4081,6 @@ std::mutex queue_locker;
 		pso->internal_state = internal_state;
 
 		pso->desc = *desc;
-
-		internal_state->hash = 0;
-		vz::helper::hash_combine(internal_state->hash, desc->ms);
-		vz::helper::hash_combine(internal_state->hash, desc->as);
-		vz::helper::hash_combine(internal_state->hash, desc->vs);
-		vz::helper::hash_combine(internal_state->hash, desc->ps);
-		vz::helper::hash_combine(internal_state->hash, desc->hs);
-		vz::helper::hash_combine(internal_state->hash, desc->ds);
-		vz::helper::hash_combine(internal_state->hash, desc->gs);
-		vz::helper::hash_combine(internal_state->hash, desc->il);
-		vz::helper::hash_combine(internal_state->hash, desc->rs);
-		vz::helper::hash_combine(internal_state->hash, desc->bs);
-		vz::helper::hash_combine(internal_state->hash, desc->dss);
-		vz::helper::hash_combine(internal_state->hash, desc->pt);
-		vz::helper::hash_combine(internal_state->hash, desc->sample_mask);
 
 		auto& stream = internal_state->stream;
 		if (pso->desc.vs != nullptr)
@@ -4300,7 +4278,6 @@ std::mutex queue_locker;
 
 		if (renderpass_info != nullptr)
 		{
-			vz::helper::hash_combine(internal_state->hash, renderpass_info->get_hash());
 			DXGI_FORMAT DSFormat = _ConvertFormat(renderpass_info->ds_format);
 			D3D12_RT_FORMAT_ARRAY formats = {};
 			formats.NumRenderTargets = renderpass_info->rt_count;
@@ -6819,14 +6796,14 @@ std::mutex queue_locker;
 				}
 			}
 
-			commandlist.prev_pipeline_hash = 0;
+			commandlist.prev_pipeline_hash = {};
 			commandlist.dirty_pso = false;
 		}
 		else
 		{
-			size_t pipeline_hash = 0;
-			vz::helper::hash_combine(pipeline_hash, internal_state->hash);
-			vz::helper::hash_combine(pipeline_hash, commandlist.renderpass_info.get_hash());
+			PipelineHash pipeline_hash;
+			pipeline_hash.pso = pso;
+			pipeline_hash.renderpass_hash = commandlist.renderpass_info.get_hash();
 			if (commandlist.prev_pipeline_hash == pipeline_hash)
 			{
 				return;
@@ -6859,7 +6836,7 @@ std::mutex queue_locker;
 
 		assert(cs->stage == ShaderStage::CS || cs->stage == ShaderStage::LIB);
 
-		commandlist.prev_pipeline_hash = 0;
+		commandlist.prev_pipeline_hash = {};
 
 		commandlist.active_cs = cs;
 
@@ -7395,7 +7372,7 @@ std::mutex queue_locker;
 		CommandList_DX12& commandlist = GetCommandList(cmd);
 		commandlist.active_cs = nullptr;
 		commandlist.active_pso = nullptr;
-		commandlist.prev_pipeline_hash = 0;
+		commandlist.prev_pipeline_hash = {};
 		commandlist.active_rt = rtpso;
 
 		BindComputeShader(rtpso->desc.shader_libraries.front().shader, cmd);

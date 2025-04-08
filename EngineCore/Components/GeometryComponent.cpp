@@ -921,13 +921,14 @@ namespace vz
 			{
 			case PrimitiveType::POINTS:
 			case PrimitiveType::LINE_STRIP:
-			default:
 				continue;
+			default:
 			case PrimitiveType::LINES: 
 			{
 				break;
 			}
 			}
+
 			if (!parts_[part_index].IsValid())
 			{
 				continue;
@@ -1287,7 +1288,6 @@ namespace vz
 			for (size_t part_index = 0, n = parts_.size(); part_index < n; ++part_index)
 			{
 				Primitive& primitive = parts_[part_index];
-				primitive.bufferHandle_ = std::make_shared<GPrimBuffers>();
 				GPrimBuffers& part_buffers = *(GPrimBuffers*)primitive.bufferHandle_.get();
 				vzlog_assert(!part_buffers.busyUpdate, "GPrimBuffers::busyUpdate must be FALSE! at the end of UpdateRenderData");
 			}

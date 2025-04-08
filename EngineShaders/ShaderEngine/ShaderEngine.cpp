@@ -32,6 +32,7 @@ namespace vz::renderer
 	bool isTemporalAADebugEnabled = false;
 	bool isTessellationEnabled = false;
 	bool isFSREnabled = false;
+	bool isTonemapping = true;
 	bool isWireRender = false;
 	bool isDebugLightCulling = false;
 	bool isAdvancedLightCulling = false;
@@ -536,6 +537,8 @@ namespace vz
 	{
 		renderer::isTemporalAAEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
 		renderer::isGaussianSplattingEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
+		renderer::isTonemapping = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
+
 		return true;
 	}
 

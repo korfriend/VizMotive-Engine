@@ -92,6 +92,7 @@ namespace vz::renderer
 		}
 
 		// 2.) Tone mapping HDR -> LDR
+		if (renderer::isTonemapping)
 		{
 			// Bloom and eye adaption is not part of post process "chain",
 			//	because they will be applied to the screen in tonemap
