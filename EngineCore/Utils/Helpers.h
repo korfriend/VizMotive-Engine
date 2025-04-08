@@ -14,6 +14,9 @@
 #include <Psapi.h> // GetProcessMemoryInfo
 #include <Commdlg.h> // openfile
 #include <comdef.h> // com_error
+#else
+#include <sys/sysinfo.h>
+#include "Utility/portable-file-dialogs.h"
 #endif
 
 namespace vz::helper 

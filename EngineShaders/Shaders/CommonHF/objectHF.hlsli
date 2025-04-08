@@ -7,9 +7,9 @@
 #define SHADOW_MASK_ENABLED
 #endif // TRANSPARENT
 
-#if !defined(TRANSPARENT) && !defined(PREPASS)
+#if !defined(TRANSPARENT) && !defined(PREPASS) && !defined(ENVMAPRENDERING)
 #define DISABLE_ALPHATEST
-#endif // !defined(TRANSPARENT) && !defined(PREPASS)
+#endif // !defined(TRANSPARENT) && !defined(PREPASS) && !defined(ENVMAPRENDERING)
 
 #ifdef PLANARREFLECTION
 #define DISABLE_ENVMAPS
@@ -489,10 +489,17 @@ PixelInput main(VertexInput input)
 #ifdef PREPASS
 struct PSOutput
 {
+	// dojo code: for primitive out
     uint out0 : SV_Target0;
     uint out1 : SV_Target1;
 };
 #endif // PREPASS
+
+#ifdef DISABLE_ALPHATEST
+#define APPEND_COVERAGE_OUTPUT
+#else
+#define APPEND_COVERAGE_OUTPUT , out uint coverage : SV_Coverage
+#endif // DISABLE_ALPHATEST
 
 #ifdef EARLY_DEPTH_STENCIL
 [earlydepthstencil]
@@ -501,12 +508,12 @@ struct PSOutput
 // entry point:
 #ifdef PREPASS
 #ifdef DEPTHONLY
-void main(PixelInput input, in uint primitiveID : SV_PrimitiveID, out uint coverage : SV_Coverage)
+void main(PixelInput input, in uint primitiveID : SV_PrimitiveID APPEND_COVERAGE_OUTPUT)
 #else
-PSOutput main(PixelInput input, in uint primitiveID : SV_PrimitiveID, out uint coverage : SV_Coverage)
+PSOutput main(PixelInput input, in uint primitiveID : SV_PrimitiveID APPEND_COVERAGE_OUTPUT)
 #endif // DEPTHONLY
 #else
-float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
+float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace APPEND_COVERAGE_OUTPUT) : SV_Target
 #endif // PREPASS
 
 
@@ -653,17 +660,6 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 #ifdef OBJECTSHADER_USE_COLOR
 	surface.baseColor *= input.color;
 #endif // OBJECTSHADER_USE_COLOR
-
-
-#ifndef DISABLE_ALPHATEST
-#ifdef TRANSPARENT
-	// Alpha test only for transparents
-	//	- Prepass will write alpha coverage mask
-	//	- Opaque will use [earlydepthstencil] and COMPARISON_EQUAL depth test on top of depth prepass
-	clip(surface.baseColor.a - material.GetAlphaTest() - meshinstance.GetAlphaTest());
-#endif // TRANSPARENT
-#endif // DISABLE_ALPHATEST
-
 
 #ifndef WATER
 #ifdef OBJECTSHADER_USE_TANGENT
@@ -1115,6 +1111,10 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 	color = surface.baseColor;
 #endif // UNLIT
 
+#ifdef INTERIORMAPPING
+	surface.baseColor.rgb += surface.emissiveColor;
+	color = surface.baseColor * InteriorMapping(surface.P, surface.N, surface.V, material, meshinstance);
+#endif // INTERIORMAPPING
 
 // Transparent objects has been rendered separately from opaque, so let's apply it now.
 // Must also be applied before fog since fog is layered over.
@@ -1129,14 +1129,15 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace) : SV_Target
 
 	color = saturateMediump(color);
 
-	// note: there are some dead code for computing color when PREPASS rendering mode runs
-	// 	these code will be removed when compiling the shader code as an optimizing process by shader compilers
+#ifndef DISABLE_ALPHATEST
+	coverage = AlphaToCoverage(color.a, material.GetAlphaTest() + meshinstance.GetAlphaTest(), input.pos); // opaque soft alpha test (MSAA, temporal AA support)
+#endif // DISABLE_ALPHATEST
 
 	// end point:
 #ifdef PREPASS
-	coverage = AlphaToCoverage(color.a, material.GetAlphaTest() + meshinstance.GetAlphaTest(), input.pos); // opaque soft alpha test (temporal AA, etc)
 #ifndef DEPTHONLY
 	PrimitiveID prim;
+	prim.init();
 	prim.primitiveIndex = primitiveID;
 	prim.instanceIndex = input.GetInstanceIndex();
 	prim.subsetIndex = push.geometryIndex - meshinstance.geometryOffset;
