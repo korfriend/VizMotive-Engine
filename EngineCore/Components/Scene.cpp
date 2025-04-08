@@ -228,13 +228,6 @@ namespace vz
 			GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(entity);
 			assert(geometry != nullptr);
 
-			bool is_dirty_bvh = geometry->IsDirtyBVH();
-
-			if ((!geometry->HasBVH() || is_dirty_bvh) && !geometry->IsBusyForBVH())
-			{
-				geometry->UpdateBVH(true);
-			}
-
 			if (TimeDurationCount(geometry->GetTimeStamp(), recentUpdateTime_) > 0)
 			{
 				isContentChanged_ = true;
@@ -253,12 +246,22 @@ namespace vz
 		scanGeometryEntities();
 		scanMaterialEntities();
 
-		static jobsystem::context ctx_bvh; // Must be declared static to prevent context overflow, which could lead to thread access violations
+		static jobsystem::context ctx_geometry_bvh; // Must be declared static to prevent context overflow, which could lead to thread access violations
 		// note this update needs to be thread-safe
 		
-		if (!jobsystem::IsBusy(ctx_bvh))
+		if (!jobsystem::IsBusy(ctx_geometry_bvh))
 		{
-			scene_details->RunGeometryUpdateSystem(ctx_bvh);
+			jobsystem::Dispatch(ctx_geometry_bvh, (uint32_t)geometries_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+				Entity entity = geometries_[args.jobIndex];
+				GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(entity);
+				assert(geometry != nullptr);
+				bool is_dirty_bvh = geometry->IsDirtyBVH();
+				if ((!geometry->HasBVH() || is_dirty_bvh) && !geometry->IsBusyForBVH())
+				{
+					geometry->UpdateBVH(true);
+				}
+				});
 		}
 
 		// 1. fully CPU-based operations
@@ -287,6 +290,7 @@ namespace vz
 		jobsystem::Wait(ctx); // dependencies
 		scene_details->RunRenderableUpdateSystem(ctx);
 		scene_details->RunLightUpdateSystem(ctx);
+		scene_details->RunGeometryUpdateSystem(ctx);
 		jobsystem::Wait(ctx); // dependencies
 
 		// Merge parallel bounds computation (depends on object update system):
