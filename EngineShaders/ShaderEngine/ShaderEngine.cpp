@@ -537,7 +537,7 @@ namespace vz
 	{
 		renderer::isTemporalAAEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
 		renderer::isGaussianSplattingEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
-		renderer::isTonemapping = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
+		renderer::isTonemapping = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TONEMAPPING");
 
 		return true;
 	}

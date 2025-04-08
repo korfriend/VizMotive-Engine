@@ -477,9 +477,13 @@ namespace vz::renderer
 
 					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGPrimBuffer(part_index);
 
-					if (part.GetPrimitiveType() == GeometryComponent::PrimitiveType::LINES
-						&& renderPass == RENDERPASS_MAIN)
+					if (part.GetPrimitiveType() == GeometryComponent::PrimitiveType::LINES)
 					{
+						if (renderPass != RENDERPASS_MAIN)
+						{
+							continue;
+						}
+
 						MiscCB sb;
 
 						XMMATRIX W = XMLoadFloat4x4(&scene->GetRenderableWorldMatrices()[instancedBatch.renderableIndex]);
@@ -496,12 +500,11 @@ namespace vz::renderer
 						push.instBufferResIndex = renderable.resLookupIndex + part_index;
 						push.instances = instanceBufferDescriptorIndex;
 						push.instance_offset = (uint)instancedBatch.dataOffset;
-						device->PushConstants(&push, sizeof(push), cmd);
 
 						device->BindPipelineState(&PSO_RenderableShapes[MESH_RENDERING_LINES_DEPTH], cmd);
+						device->PushConstants(&push, sizeof(push), cmd);
 						device->BindIndexBuffer(&part_buffer.generalBuffer, geometry.GetIndexFormat(part_index), part_buffer.ib.offset, cmd);
 						device->DrawIndexed(part.GetNumIndices(), 0, 0, cmd);
-						continue;
 					}
 					
 					if (material.GetAlphaRef() < 1)
