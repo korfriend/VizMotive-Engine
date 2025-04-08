@@ -30,7 +30,9 @@
 #include <Psapi.h> // GetProcessMemoryInfo
 #include <Commdlg.h> // openfile
 #include <WinBase.h>
-#else
+#include <comdef.h> // com_error
+#else	// LINUX
+#include <sys/sysinfo.h>
 #include "Utility/portable-file-dialogs.h"
 #endif // _WIN32
 

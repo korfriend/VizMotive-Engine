@@ -168,8 +168,8 @@ namespace vz::graphics
 			};
 			std::vector<Discard> discards;
 			D3D_PRIMITIVE_TOPOLOGY prev_pt = {};
-			std::vector<std::pair<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>>> pipelines_worker;
-			size_t prev_pipeline_hash = {};
+			std::vector<std::pair<PipelineHash, Microsoft::WRL::ComPtr<ID3D12PipelineState>>> pipelines_worker;
+			PipelineHash prev_pipeline_hash = {};
 			const PipelineState* active_pso = {};
 			const Shader* active_cs = {};
 			const RaytracingPipelineState* active_rt = {};
@@ -203,7 +203,7 @@ namespace vz::graphics
 				binder.reset();
 				frame_allocators[buffer_index].reset();
 				prev_pt = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-				prev_pipeline_hash = 0;
+				prev_pipeline_hash = {};
 				active_pso = nullptr;
 				active_cs = nullptr;
 				active_rt = nullptr;
@@ -262,7 +262,7 @@ namespace vz::graphics
 			return *(CommandList_DX12*)cmd.internal_state;
 		}
 
-		std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> pipelines_global;
+		std::unordered_map<PipelineHash, Microsoft::WRL::ComPtr<ID3D12PipelineState>> pipelines_global;
 
 		void pso_validate(CommandList cmd);
 
@@ -542,131 +542,60 @@ namespace vz::graphics
 			// Deferred destroy of resources that the GPU is already finished with:
 			void Update(uint64_t FRAMECOUNT, uint32_t BUFFERCOUNT)
 			{
-				destroylocker.lock();
+				std::scoped_lock lck(destroylocker);
 				framecount = FRAMECOUNT;
-				while (!destroyer_allocations.empty())
+				while (!destroyer_allocations.empty() && destroyer_allocations.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_allocations.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						destroyer_allocations.pop_front();
-						// comptr auto delete
-					}
-					else
-					{
-						break;
-					}
+					destroyer_allocations.pop_front();
+					// comptr auto delete
 				}
-				while (!destroyer_resources.empty())
+				while (!destroyer_resources.empty() && destroyer_resources.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_resources.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						destroyer_resources.pop_front();
-						// comptr auto delete
-					}
-					else
-					{
-						break;
-					}
+					destroyer_resources.pop_front();
+					// comptr auto delete
 				}
-				while (!destroyer_queryheaps.empty())
+				while (!destroyer_queryheaps.empty() && destroyer_queryheaps.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_queryheaps.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						destroyer_queryheaps.pop_front();
-						// comptr auto delete
-					}
-					else
-					{
-						break;
-					}
+					destroyer_queryheaps.pop_front();
+					// comptr auto delete
 				}
-				while (!destroyer_pipelines.empty())
+				while (!destroyer_pipelines.empty() && destroyer_pipelines.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_pipelines.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						destroyer_pipelines.pop_front();
-						// comptr auto delete
-					}
-					else
-					{
-						break;
-					}
+					destroyer_pipelines.pop_front();
+					// comptr auto delete
 				}
-				while (!destroyer_rootSignatures.empty())
+				while (!destroyer_rootSignatures.empty() && destroyer_rootSignatures.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_rootSignatures.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						destroyer_rootSignatures.pop_front();
-						// comptr auto delete
-					}
-					else
-					{
-						break;
-					}
+					destroyer_rootSignatures.pop_front();
+					// comptr auto delete
 				}
-				while (!destroyer_stateobjects.empty())
+				while (!destroyer_stateobjects.empty() && destroyer_stateobjects.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_stateobjects.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						destroyer_stateobjects.pop_front();
-						// comptr auto delete
-					}
-					else
-					{
-						break;
-					}
+					destroyer_stateobjects.pop_front();
+					// comptr auto delete
 				}
-				while (!destroyer_video_decoder_heaps.empty())
+				while (!destroyer_video_decoder_heaps.empty() && destroyer_video_decoder_heaps.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_video_decoder_heaps.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						destroyer_video_decoder_heaps.pop_front();
-						// comptr auto delete
-					}
-					else
-					{
-						break;
-					}
+					destroyer_video_decoder_heaps.pop_front();
+					// comptr auto delete
 				}
-				while (!destroyer_video_decoders.empty())
+				while (!destroyer_video_decoders.empty() && destroyer_video_decoders.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_video_decoders.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						destroyer_video_decoders.pop_front();
-						// comptr auto delete
-					}
-					else
-					{
-						break;
-					}
+					destroyer_video_decoders.pop_front();
+					// comptr auto delete
 				}
-				while (!destroyer_bindless_res.empty())
+				while (!destroyer_bindless_res.empty() && destroyer_bindless_res.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_bindless_res.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						int index = destroyer_bindless_res.front().first;
-						destroyer_bindless_res.pop_front();
-						free_bindless_res.push_back(index);
-					}
-					else
-					{
-						break;
-					}
+					int index = destroyer_bindless_res.front().first;
+					destroyer_bindless_res.pop_front();
+					free_bindless_res.push_back(index);
 				}
-				while (!destroyer_bindless_sam.empty())
+				while (!destroyer_bindless_sam.empty() && destroyer_bindless_sam.front().second + BUFFERCOUNT < FRAMECOUNT)
 				{
-					if (destroyer_bindless_sam.front().second + BUFFERCOUNT < FRAMECOUNT)
-					{
-						int index = destroyer_bindless_sam.front().first;
-						destroyer_bindless_sam.pop_front();
-						free_bindless_sam.push_back(index);
-					}
-					else
-					{
-						break;
-					}
+					int index = destroyer_bindless_sam.front().first;
+					destroyer_bindless_sam.pop_front();
+					free_bindless_sam.push_back(index);
 				}
-				destroylocker.unlock();
 			}
 		};
 		std::shared_ptr<AllocationHandler> allocationhandler;
