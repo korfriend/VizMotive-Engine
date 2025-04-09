@@ -408,6 +408,13 @@ namespace vz::renderer
 		samplerDesc.address_w = TextureAddressMode::WRAP;
 		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_LINEAR_WRAP]);
 
+		samplerDesc.filter = Filter::MIN_MAG_MIP_LINEAR;
+		samplerDesc.address_u = TextureAddressMode::BORDER;
+		samplerDesc.address_v = TextureAddressMode::BORDER;
+		samplerDesc.address_w = TextureAddressMode::BORDER;
+		samplerDesc.border_color = SamplerBorderColor::TRANSPARENT_BLACK;
+		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_LINEAR_BORDER]);
+
 		samplerDesc.filter = Filter::MIN_MAG_MIP_POINT;
 		samplerDesc.address_u = TextureAddressMode::MIRROR;
 		samplerDesc.address_v = TextureAddressMode::MIRROR;
@@ -426,6 +433,13 @@ namespace vz::renderer
 		samplerDesc.address_v = TextureAddressMode::CLAMP;
 		samplerDesc.address_w = TextureAddressMode::CLAMP;
 		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_POINT_CLAMP]);
+
+		samplerDesc.filter = Filter::MIN_MAG_MIP_POINT;
+		samplerDesc.address_u = TextureAddressMode::BORDER;
+		samplerDesc.address_v = TextureAddressMode::BORDER;
+		samplerDesc.address_w = TextureAddressMode::BORDER;
+		samplerDesc.border_color = SamplerBorderColor::TRANSPARENT_BLACK;
+		device->CreateSampler(&samplerDesc, &samplers[SAMPLER_POINT_BORDER]);
 
 		samplerDesc.filter = Filter::ANISOTROPIC;
 		samplerDesc.address_u = TextureAddressMode::CLAMP;

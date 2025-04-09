@@ -308,10 +308,6 @@ namespace vz::shader
 			{
 				realPS = PSTYPE_MESH_PREPASS_DEPTHONLY_ALPHATEST;
 			}
-			else
-			{
-				realPS = PSTYPE_MESH_PREPASS_DEPTHONLY;
-			}
 			break;
 		case RENDERPASS_ENVMAPCAPTURE:
 			realPS = PSTYPE_ENVMAP;
@@ -547,7 +543,6 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_VERTEXCOLOR], "vertexcolorPS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS], "meshPS_prepass.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS_ALPHATEST], "meshPS_prepass_alphatest.cso"); });
-		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS_DEPTHONLY], "meshPS_prepass_depthonly.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS_DEPTHONLY_ALPHATEST], "meshPS_prepass_depthonly_alphatest.cso"); });
 
 		//----- PS materials by permutation -----
