@@ -147,7 +147,7 @@ namespace vz
 
 		if (horizontalCurveInterpPoints_.size() == 0)
 		{
-			vzlog_error("Slicer (%d) has NO curve setting", entity_);
+			vzlog_error("Slicer (%llu) has NO curve setting", entity_);
 			return false;
 		}
 

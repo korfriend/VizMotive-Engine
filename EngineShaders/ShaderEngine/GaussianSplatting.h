@@ -4,7 +4,7 @@
 
 namespace vz::gsplat
 {
-	using Entity = uint32_t;
+	using Entity = uint64_t;
 
 	void UpdateGaussianSplatting(const Entity geometryEntity, graphics::CommandList cmd);
 	

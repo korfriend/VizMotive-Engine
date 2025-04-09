@@ -61,7 +61,7 @@ namespace vz
 		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(geometryEntity);
 		if (geo_comp == nullptr)
 		{
-			vzlog_error("Invalid geometry entity (%d)", geometryEntity);
+			vzlog_error("Invalid geometry entity (%llu)", geometryEntity);
 			return;
 		}
 
@@ -80,7 +80,7 @@ namespace vz
 		MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materialEntity);
 		if (mat_comp == nullptr)
 		{
-			vzlog_error("Invalid material entity (%d)", materialEntity);
+			vzlog_error("Invalid material entity (%llu)", materialEntity);
 			return;
 		}
 		if (slot >= vuidMaterials_.size())

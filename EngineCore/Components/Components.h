@@ -20,7 +20,7 @@
 #define PLUGIN_EXPORT CORE_EXPORT
 
 using GpuHandler = uint32_t;
-using Entity = uint32_t;
+using Entity = uint64_t;
 using VUID = uint64_t;
 inline constexpr Entity INVALID_ENTITY = 0;
 inline constexpr VUID INVALID_VUID = 0;
@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250407_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250409_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -482,7 +482,7 @@ namespace vz
 	public:
 		HierarchyComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::HIERARCHY, entity, vuid) {}
 
-		inline void SetParent(const VUID vuidParent);
+		inline void SetParentByVUID(const VUID vuidParent);
 		inline void SetParent(const Entity entityParent);
 		inline VUID GetParent() const;
 		inline Entity GetParentEntity() const;

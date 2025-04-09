@@ -679,7 +679,7 @@ namespace vzm
 			HierarchyComponent* hier_dst = compfactory::GetHierarchyComponent(ett_dst);
 			assert(hier_src != nullptr && hier_dst != nullptr);
 
-			hier_src->SetParent(hier_dst->GetVUID());
+			hier_src->SetParentByVUID(hier_dst->GetVUID());
 
 			entities_moving.push_back(ett_src);
 			getDescendants(ett_src, entities_moving);
@@ -701,7 +701,7 @@ namespace vzm
 				HierarchyComponent* hier = compfactory::GetHierarchyComponent(ett);
 				if (hier->GetParent() == 0u)
 				{
-					hier->SetParent(hier_dst->GetVUID());
+					hier->SetParentByVUID(hier_dst->GetVUID());
 				}
 			}
 			Scene::DestroyScene(vid_scene_src);
@@ -715,7 +715,7 @@ namespace vzm
 
 			HierarchyComponent* hier_src = compfactory::GetHierarchyComponent(ett_src);
 			assert(hier_src != nullptr && "vidSrc is invalid");
-			hier_src->SetParent(0u);
+			hier_src->SetParentByVUID(0ull);
 
 			entities_moving.push_back(ett_src);
 			getDescendants(ett_src, entities_moving);
@@ -1046,7 +1046,7 @@ namespace vz::compfactory
 
 	Entity NewNodeActor(const std::string& name, const Entity parentEntity)	
 	{
-		VzBaseComp* comp = NewActor(name, 0u, 0u, parentEntity);
+		VzBaseComp* comp = NewActor(name, 0ull, 0ull, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
 	Entity NewNodeCamera(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Camera) }

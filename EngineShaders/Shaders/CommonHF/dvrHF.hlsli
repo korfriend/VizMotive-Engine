@@ -38,7 +38,7 @@ struct VolumeInstance
 
 	uint3 vol_size;		// aliased from ShaderMeshInstance::emissive, packing
 	uint3 num_blocks;	// uint packing, aliased from ShaderMeshInstance::layerMask, packing
-	uint3 block_pitches;	// uint packing, aliased from ShaderMeshInstance::padding0, packing
+	uint3 block_pitches;	// uint packing, aliased from ShaderMeshInstance::baseGeometryCount, packing
 	
 	// the remaining stuffs can be used as the same purpose of ShaderMeshInstance's attributes
 	uint uid; 
@@ -50,7 +50,6 @@ struct VolumeInstance
 	uint2 color;
 	int lightmap;
 	uint2 rimHighlight;
-	int baseGeometryCount;
 
     void Init()
     {
@@ -73,7 +72,7 @@ struct VolumeInstance
 
 		vol_size = uint3(meshInst.emissive.x, meshInst.emissive.y & 0xFFFF, meshInst.emissive.y >> 16);
 		num_blocks = uint3((meshInst.layerMask >> 0) & 0x7FF, (meshInst.layerMask >> 11) & 0x7FF, (meshInst.layerMask >> 22) & 0x3FF);
-		block_pitches = uint3((meshInst.padding0 >> 0) & 0x7FF, (meshInst.padding0 >> 11) & 0x7FF, (meshInst.padding0 >> 22) & 0x3FF);
+		block_pitches = uint3((meshInst.baseGeometryCount >> 0) & 0x7FF, (meshInst.baseGeometryCount >> 11) & 0x7FF, (meshInst.baseGeometryCount >> 22) & 0x3FF);
 
 		// the same attrobutes to ShaderMeshInstance
 		uid = meshInst.uid;
@@ -85,7 +84,6 @@ struct VolumeInstance
 		color = meshInst.color;
 		lightmap = meshInst.lightmap;
 		rimHighlight = meshInst.rimHighlight;
-		//baseGeometryCount = meshInst.baseGeometryCount;
 	}
 
 	float3 ComputeSingleBlockTS() {

@@ -45,7 +45,7 @@
 #define VZ_NONNULL
 #define VZ_NULLABLE
 
-using VID = uint32_t;
+using VID = uint64_t;
 using ArchiveVID = VID;
 using SceneVID = VID;
 using RendererVID = VID;
@@ -57,7 +57,7 @@ using MaterialVID = VID;
 using TextureVID = VID;
 using VolumeVID = VID;
 
-inline constexpr VID INVALID_VID = 0;
+constexpr VID INVALID_VID = 0;
 using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 constexpr float VZ_PI = 3.141592654f;

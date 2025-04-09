@@ -617,7 +617,7 @@ namespace vz
 
 				const XMUINT3& block_pitch = volume->GetBlockPitch();
 				vzlog_assert(block_pitch.x <= 2048 && block_pitch.y <= 2048 && block_pitch.z <= 1024, "Volume Pitches must be packked into 32-bits!");
-				inst.padding0 = block_pitch.x & 0x7FF | ((block_pitch.x & 0x7FF) << 11) | ((block_pitch.z & 0x3FF) << 22);
+				inst.baseGeometryCount = block_pitch.x & 0x7FF | ((block_pitch.x & 0x7FF) << 11) | ((block_pitch.z & 0x3FF) << 22);
 				
 				inst.color = math::pack_half4(XMFLOAT4(1, 1, 1, 1));
 				//inst.lightmap
