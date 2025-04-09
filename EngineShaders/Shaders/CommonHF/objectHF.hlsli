@@ -399,12 +399,10 @@ PixelInput vertex_to_pixel_export(VertexInput input)
 	Out.pos = surface.position;
 
 #ifdef OBJECTSHADER_USE_CAMERAINDEX
-	const uint cameraIndex = input.GetInstancePointer().GetCameraIndex();
+	ShaderCamera camera = GetCamera(input.GetInstancePointer().GetCameraIndex());
 #else
-	const uint cameraIndex = 0;
+	ShaderCamera camera = GetCamera();
 #endif // OBJECTSHADER_USE_CAMERAINDEX
-
-	ShaderCamera camera = GetCamera(cameraIndex);
 
 #ifndef OBJECTSHADER_USE_NOCAMERA
 	Out.pos = mul(camera.view_projection, Out.pos);
@@ -507,7 +505,7 @@ struct PSOutput
 // entry point:
 #ifdef PREPASS
 #ifdef DEPTHONLY
-void main(PixelInput input, in uint primitiveID : SV_PrimitiveID APPEND_COVERAGE_OUTPUT)
+void main(PixelInput input APPEND_COVERAGE_OUTPUT)
 #else
 PSOutput main(PixelInput input, in uint primitiveID : SV_PrimitiveID APPEND_COVERAGE_OUTPUT)
 #endif // DEPTHONLY
@@ -620,12 +618,15 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace APPEND_COVER
 	{
 		surface.baseColor *= (half4)material.textures[BASECOLORMAP].Sample(sampler_objectshader, uvsets);
 	}
-	
+
+#if defined(PREPASS) || defined(TRANSPARENT)
 	[branch]
 	if (material.textures[TRANSPARENCYMAP].IsValid())
 	{
 		surface.baseColor.a *= (half)material.textures[TRANSPARENCYMAP].Sample(sampler_objectshader, uvsets).r;
 	}
+#endif // PREPASS || TRANSPARENT
+
 #endif // OBJECTSHADER_USE_UVSETS
 
 #ifdef VOLUMEMAP
@@ -647,7 +648,7 @@ float4 main(PixelInput input, in bool is_frontface : SV_IsFrontFace APPEND_COVER
 			float4 pos_sample_ts = mul(mat_ws2ts, float4(surface.P, 1.f));
 			pos_sample_ts.xyz /= pos_sample_ts.w;
 
-			float sample_v = volume.SampleLevel(sampler_linear_wrap, pos_sample_ts.xyz, 0).r;
+			float sample_v = volume.SampleLevel(sampler_linear_border, pos_sample_ts.xyz, 0).r;
 			half4 volume_color = (half4)otf.SampleLevel(sampler_point_clamp, float2(sample_v, 0), 0);
 			volume_color.rgb *= volume_color.a; // associated color
 			volume_color.a = 1.f;
