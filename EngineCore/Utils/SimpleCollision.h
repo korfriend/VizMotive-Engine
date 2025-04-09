@@ -1,7 +1,7 @@
 #pragma once
 #include "Utils/Geometrics.h"
 
-using Entity = uint32_t;
+using Entity = uint64_t;
 
 namespace vz::bvhcollision
 {

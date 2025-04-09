@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <inttypes.h>
 
 #ifndef UTIL_EXPORT
 #ifdef _WIN32

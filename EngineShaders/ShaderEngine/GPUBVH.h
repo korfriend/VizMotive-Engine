@@ -4,7 +4,7 @@
 
 namespace vz::gpubvh
 {
-	using Entity = uint32_t;
+	using Entity = uint64_t;
 
 	bool UpdateGeometryGPUBVH(const Entity geometryEntity, graphics::CommandList cmd);
 

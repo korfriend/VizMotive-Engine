@@ -32,7 +32,7 @@ namespace vzm
 		{
 			return;
 		}
-		hierarchy_child->SetParent(0u);
+		hierarchy_child->SetParentByVUID(0ull);
 	}
 	void VzScene::AttachToParent(const VzBaseComp* parent)
 	{

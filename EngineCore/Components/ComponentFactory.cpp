@@ -37,17 +37,17 @@ namespace vz::compfactory
 		switch (comp_type)
 		{
 		case ComponentType::UNDEFINED: return nullptr;
-		case ComponentType::NAME: return nameManager.GetComponent(vuid);
-		case ComponentType::TRANSFORM: return transformManager.GetComponent(vuid);
-		case ComponentType::HIERARCHY: return hierarchyManager.GetComponent(vuid);
-		case ComponentType::RENDERABLE: return renderableManager.GetComponent(vuid);
-		case ComponentType::MATERIAL: return materialManager.GetComponent(vuid);
-		case ComponentType::GEOMETRY: return geometryManager.GetComponent(vuid);
-		case ComponentType::TEXTURE: return textureManager.GetComponent(vuid);
-		case ComponentType::VOLUMETEXTURE: return volumeManager.GetComponent(vuid);
-		case ComponentType::LIGHT: return lightManager.GetComponent(vuid);
-		case ComponentType::CAMERA: return cameraManager.GetComponent(vuid);
-		case ComponentType::SLICER: return slicerManager.GetComponent(vuid);
+		case ComponentType::NAME: return nameManager.GetComponentByVUID(vuid);
+		case ComponentType::TRANSFORM: return transformManager.GetComponentByVUID(vuid);
+		case ComponentType::HIERARCHY: return hierarchyManager.GetComponentByVUID(vuid);
+		case ComponentType::RENDERABLE: return renderableManager.GetComponentByVUID(vuid);
+		case ComponentType::MATERIAL: return materialManager.GetComponentByVUID(vuid);
+		case ComponentType::GEOMETRY: return geometryManager.GetComponentByVUID(vuid);
+		case ComponentType::TEXTURE: return textureManager.GetComponentByVUID(vuid);
+		case ComponentType::VOLUMETEXTURE: return volumeManager.GetComponentByVUID(vuid);
+		case ComponentType::LIGHT: return lightManager.GetComponentByVUID(vuid);
+		case ComponentType::CAMERA: return cameraManager.GetComponentByVUID(vuid);
+		case ComponentType::SLICER: return slicerManager.GetComponentByVUID(vuid);
 		default: assert(0);
 		}
 		return nullptr;
@@ -103,7 +103,7 @@ namespace vz::compfactory
 		HierarchyComponent* comp_parent = hierarchyManager.GetComponent(parent);
 		if (comp_parent)
 		{
-			comp->SetParent(comp_parent->GetVUID());
+			comp->SetParentByVUID(comp_parent->GetVUID());
 		}
 		return comp;
 	}
