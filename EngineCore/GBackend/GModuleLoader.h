@@ -6,7 +6,7 @@
 
 namespace vz
 {
-	using Entity = uint32_t;
+	using Entity = uint64_t;
 
 	extern std::unordered_map<std::string, HMODULE> importedModules;
 

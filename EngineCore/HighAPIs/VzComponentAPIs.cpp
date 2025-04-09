@@ -231,7 +231,7 @@ namespace vzm
 		{
 			return;
 		}
-		hierarchy_child->SetParent(0u);
+		hierarchy_child->SetParent(INVALID_ENTITY);
 	}
 	void VzSceneComp::AttachToParent(const VzBaseComp* parent)
 	{

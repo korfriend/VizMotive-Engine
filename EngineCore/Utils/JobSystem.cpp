@@ -273,6 +273,8 @@ namespace vz::jobsystem
 
 	void Initialize(uint32_t maxThreadCount)
 	{
+		ShutDown();
+		internal_state.alive.store(true);
 		if (internal_state.numCores > 0)
 			return;
 		maxThreadCount = std::max(1u, maxThreadCount);

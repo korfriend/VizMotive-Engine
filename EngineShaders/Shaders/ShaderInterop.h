@@ -265,39 +265,38 @@ static const uint INST_CLIPBOX = 1 << 9;
 static const uint INST_CLIPPLANE = 1 << 10;
 static const uint INST_JITTERING = 1 << 11;
 
-struct alignas(16) ShaderMeshInstance	// mesh renderable
+struct alignas(16) ShaderMeshInstance	// mesh renderable // packed to VolumeInstance
 {
-	uint uid;	// using entity
+	uint64_t uid;
+	uint layerMask;
 	uint flags;	// high 8 bits: user stencilRef (same as visibility-layered mask)
-	uint alphaTest_size;
-	float fadeDistance;
 
-	uint geometryOffset; // offset of all geometries for currently active LOD (geomtryPartIndex applied by LODs)
-	uint geometryCount; // number of all geometries in currently active LOD
+	uint meshletOffset;			// offset in the global meshlet buffer for first subset (for LOD0)
+	uint geometryOffset;		// offset of all geometries for currently active LOD (geomtryPartIndex applied by LODs)
+	uint geometryCount;			// number of all geometries in currently active LOD
 	uint baseGeometryOffset;	// offset of all geometries of the instance (if no LODs, then it is equal to geometryOffset)
-	uint baseGeometryCount;		// number of all geometries of the instance (if no LODs, then it is equal to geometryCount)
 
-	uint meshletOffset; // offset in the global meshlet buffer for first subset (for LOD0)
 	uint2 rimHighlight;
-	uint resLookupIndex;
-
-	float3 aabbCenter;
-	float aabbRadius;
+	uint baseGeometryCount;
+	float fadeDistance;
 
 	// renderable-special per a renderable instance
 	//	determined by flags (use_renderable_attributes)
 	uint2 color; // packed half4
 	uint2 emissive; // packed half4
 
+	int lightmap;
+	uint alphaTest_size;
+	uint resLookupIndex;
+	uint clipIndex;
+
+	float3 aabbCenter;
+	float aabbRadius;
+
 	ShaderTransform transform; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
 	ShaderTransform transformPrev; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
 	ShaderTransform transformRaw; // Note: this is the world matrix without any quantization remapping
 	ShaderTransform transformRawInv; // this is for object-space-oriented ray-processing for Slicer
-
-	uint clipIndex;
-	int lightmap;
-	uint layerMask;
-	uint padding0;
 
 	void Init()
 	{
@@ -310,7 +309,7 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable
 		fadeDistance = 0;
 
 		geometryOffset = baseGeometryOffset = 0;
-		geometryCount = 0;
+		geometryCount = baseGeometryCount = 0;
 		resLookupIndex = ~0u;
 		meshletOffset = ~0u;
 		clipIndex = ~0u;

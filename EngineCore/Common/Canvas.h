@@ -7,7 +7,7 @@
 
 namespace vz
 {
-	using Entity = uint32_t;
+	using Entity = uint64_t;
 	struct Canvas;
 	class RenderPath3D;
 

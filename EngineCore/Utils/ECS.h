@@ -22,9 +22,10 @@ namespace vz::ecs
 	// The Entity is a global unique persistent identifier within the entity-component system
 	//	It can be stored and used for the duration of the application
 	//	The entity can be a different value on a different run of the application, if it was serialized
-	//	It must be only serialized with the SerializeEntity() function. It will ensure that entities still match with their components correctly after serialization
-	using Entity = uint32_t;
-	inline constexpr Entity INVALID_ENTITY = 0;
+	//	It must be only serialized with the SerializeEntity() function if persistence is needed across different program runs,
+	//		this will ensure that entities still match with their components correctly after serialization
+	using Entity = uint64_t;
+	constexpr Entity INVALID_ENTITY = 0;
 	// Runtime can create a new entity with this
 	inline Entity CreateEntity()
 	{
@@ -141,12 +142,17 @@ namespace vz::ecs
 		// reservedCount : how much components can be held initially before growing the container
 		ComponentManager(size_t reservedCount = 0)
 		{
+			Reserve(reservedCount);
+		}
+
+		inline void Reserve(size_t count)
+		{
 #ifndef THREAD_SAFE_ECS_COMPONENTS
-			components.reserve(reservedCount);
+			components.reserve(count);
 #endif
-			entities.reserve(reservedCount);
-			lookup.reserve(reservedCount);
-			lookupVUID.reserve(reservedCount);
+			entities.reserve(count);
+			lookup.reserve(count);
+			lookupVUID.reserve(count);
 		}
 
 		// Clear the whole container
@@ -500,7 +506,7 @@ namespace vz::ecs
 		}
 
 		// Retrieve a [read/write] component specified by a VUID (if it exists, otherwise nullptr)
-		inline Component* GetComponent(VUID vuid)
+		inline Component* GetComponentByVUID(VUID vuid)
 		{
 			if (lookupVUID.empty())
 				return nullptr;
@@ -513,7 +519,7 @@ namespace vz::ecs
 		}
 
 		// Retrieve a [read only] component specified by an entity (if it exists, otherwise nullptr)
-		inline const Component* GetComponent(VUID vuid) const
+		inline const Component* GetComponentByVUID(VUID vuid) const
 		{
 			if (lookupVUID.empty())
 				return nullptr;
@@ -539,7 +545,7 @@ namespace vz::ecs
 		}
 
 		// Retrieve component index by entity handle (if not exists, returns ~0ull value)
-		inline size_t GetIndex(VUID vuid) const
+		inline size_t GetIndexByVUID(VUID vuid) const
 		{
 			if (lookupVUID.empty())
 				return ~0ull;

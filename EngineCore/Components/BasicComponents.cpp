@@ -100,7 +100,7 @@ namespace vz
 		}
 	}
 
-	void HierarchyComponent::SetParent(const VUID vuidParent)
+	void HierarchyComponent::SetParentByVUID(const VUID vuidParent)
 	{
 		if (vuidParent == vuidParentHierarchy_)
 		{
@@ -129,7 +129,11 @@ namespace vz
 		HierarchyComponent* parent_hierarchy = compfactory::GetHierarchyComponent(entityParent);
 		if (parent_hierarchy)
 		{
-			SetParent(parent_hierarchy->GetVUID());
+			SetParentByVUID(parent_hierarchy->GetVUID());
+		}
+		else
+		{
+			SetParentByVUID(INVALID_VUID);
 		}
 	}
 	VUID HierarchyComponent::GetParent() const

@@ -1300,7 +1300,7 @@ namespace vz
 		auto it = scenes.find(entity);
 		if (it == scenes.end())
 		{
-			vzlog_error("Scene::DestroyScene >> Invalid Entity! (%d)", entity);
+			vzlog_error("Scene::DestroyScene >> Invalid Entity! (%llu)", entity);
 			return false;
 		}
 		it->second.reset();

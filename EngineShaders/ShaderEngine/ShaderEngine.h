@@ -14,7 +14,7 @@
 
 namespace vz
 {
-	using Entity = uint32_t;
+	using Entity = uint64_t;
 
 	// ShaderEngine.cpp
 	extern "C" DX12_EXPORT bool Initialize(graphics::GraphicsDevice* device);
