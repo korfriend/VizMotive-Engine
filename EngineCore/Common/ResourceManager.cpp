@@ -635,8 +635,14 @@ namespace vz
 							assert(0); // incoming format is not supported 
 							break;
 						}
-
-						if (desc.format == Format::BC5_UNORM)
+						if (desc.format == Format::BC4_UNORM || desc.format == Format::BC4_SNORM)
+						{
+							desc.swizzle.r = ComponentSwizzle::R;
+							desc.swizzle.g = ComponentSwizzle::R;
+							desc.swizzle.b = ComponentSwizzle::R;
+							desc.swizzle.a = ComponentSwizzle::ONE;
+						}
+						if (desc.format == Format::BC5_UNORM || desc.format == Format::BC5_SNORM)
 						{
 							desc.swizzle.r = ComponentSwizzle::R;
 							desc.swizzle.g = ComponentSwizzle::G;
