@@ -1243,10 +1243,10 @@ struct alignas(16) FrameCB
 	uint2		shadow_atlas_resolution;
 	float2		shadow_atlas_resolution_rcp;
 
-	float		gi_boost;
+	uint		giboost_packed;
 	uint		entity_culling_count;
+	int			indirect_debugbufferindex;
 	uint		padding0;
-	uint		padding1;
 
 	float		blue_noise_phase;
 	int			texture_random64x64_index;
@@ -1265,8 +1265,8 @@ struct alignas(16) FrameCB
 
 	uint lights;
 	uint decals; // NOTE YET SUPPORTED
-	uint padding2; // NOTE YET SUPPORTED
-	uint padding3; 
+	uint padding1; // NOTE YET SUPPORTED
+	uint padding2; 
 
 	// Note: 
 	//	A single renderable refers to a number of shader units such as light.

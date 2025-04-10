@@ -264,7 +264,7 @@ namespace vz::renderer
 			frameCB.temporalaa_samplerotation = (x & 0x000000FF) | ((y & 0x000000FF) << 8);
 		}
 
-		frameCB.gi_boost = giBoost;
+		frameCB.giboost_packed = math::pack_half2(giBoost, 0);
 
 		frameCB.options = 0;
 		if (isTemporalAAEnabled && !camera->IsSlicer())
@@ -279,6 +279,28 @@ namespace vz::renderer
 		frameCB.texture_random64x64_index = device->GetDescriptorIndex(texturehelper::getRandom64x64(), SubresourceType::SRV);
 		frameCB.texture_bluenoise_index = device->GetDescriptorIndex(texturehelper::getBlueNoise(), SubresourceType::SRV);
 		frameCB.texture_sheenlut_index = device->GetDescriptorIndex(&textures[TEXTYPE_2D_SHEENLUT], SubresourceType::SRV);
+
+		// See if indirect debug buffer needs to be resized:
+		if (indirectDebugStatsReadback_available[device->GetBufferIndex()] && indirectDebugStatsReadback[device->GetBufferIndex()].mapped_data != nullptr)
+		{
+			const IndirectDrawArgsInstanced* indirectDebugStats = (const IndirectDrawArgsInstanced*)indirectDebugStatsReadback[device->GetBufferIndex()].mapped_data;
+			const uint64_t required_debug_buffer_size = sizeof(IndirectDrawArgsInstanced) + (sizeof(XMFLOAT4) + sizeof(XMFLOAT4)) * clamp(indirectDebugStats->VertexCountPerInstance, 0u, 4000000u);
+			if (buffers[BUFFERTYPE_INDIRECT_DEBUG_0].desc.size < required_debug_buffer_size)
+			{
+				GPUBufferDesc bd;
+				bd.size = required_debug_buffer_size;
+				bd.bind_flags = BindFlag::VERTEX_BUFFER | BindFlag::UNORDERED_ACCESS;
+				bd.misc_flags = ResourceMiscFlag::BUFFER_RAW | ResourceMiscFlag::INDIRECT_ARGS;
+				device->CreateBuffer(&bd, nullptr, &buffers[BUFFERTYPE_INDIRECT_DEBUG_0]);
+				device->SetName(&buffers[BUFFERTYPE_INDIRECT_DEBUG_0], "buffers[BUFFERTYPE_INDIRECT_DEBUG_0]");
+				device->CreateBuffer(&bd, nullptr, &buffers[BUFFERTYPE_INDIRECT_DEBUG_1]);
+				device->SetName(&buffers[BUFFERTYPE_INDIRECT_DEBUG_1], "buffers[BUFFERTYPE_INDIRECT_DEBUG_1]");
+			}
+		}
+
+		// Indirect debug buffers: 0 is always WRITE, 1 is always READ
+		std::swap(buffers[BUFFERTYPE_INDIRECT_DEBUG_0], buffers[BUFFERTYPE_INDIRECT_DEBUG_1]);
+		frameCB.indirect_debugbufferindex = device->GetDescriptorIndex(&buffers[BUFFERTYPE_INDIRECT_DEBUG_0], SubresourceType::UAV);
 
 		// Fill Entity Array with decals + envprobes + lights in the frustum:
 		uint envprobearray_offset = 0;
@@ -1277,6 +1299,10 @@ namespace vz::renderer
 
 		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
 
+		device->CopyBuffer(&indirectDebugStatsReadback[device->GetBufferIndex()], 0, &buffers[BUFFERTYPE_INDIRECT_DEBUG_0], 0, sizeof(IndirectDrawArgsInstanced), cmd);
+		indirectDebugStatsReadback_available[device->GetBufferIndex()] = true;
+
+		barrierStack.push_back(GPUBarrier::Buffer(&buffers[BUFFERTYPE_INDIRECT_DEBUG_0], ResourceState::COPY_SRC, ResourceState::COPY_DST));
 		barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->meshletBuffer, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS));
 		barrierStack.push_back(GPUBarrier::Buffer(&buffers[BUFFERTYPE_FRAMECB], ResourceState::CONSTANT_BUFFER, ResourceState::COPY_DST));
 		if (scene_Gdetails->instanceBuffer.IsValid())
@@ -1291,6 +1317,17 @@ namespace vz::renderer
 		{
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->materialBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_DST));
 		}
+
+		// Indirect debug buffer - clear indirect args:
+		IndirectDrawArgsInstanced debug_indirect = {};
+		debug_indirect.VertexCountPerInstance = 0;
+		debug_indirect.InstanceCount = 1;
+		debug_indirect.StartVertexLocation = 0;
+		debug_indirect.StartInstanceLocation = 0;
+		device->UpdateBuffer(&buffers[BUFFERTYPE_INDIRECT_DEBUG_0], &debug_indirect, cmd, sizeof(debug_indirect));
+		barrierStack.push_back(GPUBarrier::Buffer(&buffers[BUFFERTYPE_INDIRECT_DEBUG_0], ResourceState::COPY_DST, ResourceState::UNORDERED_ACCESS));
+		barrierStack.push_back(GPUBarrier::Buffer(&buffers[BUFFERTYPE_INDIRECT_DEBUG_1], ResourceState::UNORDERED_ACCESS, ResourceState::VERTEX_BUFFER | ResourceState::INDIRECT_ARGUMENT | ResourceState::COPY_SRC));
+
 		BarrierStackFlush(cmd);
 
 		device->UpdateBuffer(&buffers[BUFFERTYPE_FRAMECB], &frameCB, cmd);

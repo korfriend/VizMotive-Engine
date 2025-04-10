@@ -1238,6 +1238,7 @@ namespace vz
 		XMFLOAT4 rimHighlightColor_ = XMFLOAT4(1, 1, 1, 0);
 		float rimHighlightFalloff_ = 8;
 		float lod_bias_ = 0;
+		float alphaRef_ = 1;
 
 		// clipper
 		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube
@@ -1292,6 +1293,9 @@ namespace vz
 		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; timeStampSetter_ = TimerNow; }
 		inline bool IsBoxClipperEnabled() const { return flags_ & RenderableFlags::CLIP_BOX; }
 		inline bool IsPlaneClipperEnabled() const { return flags_ & RenderableFlags::CLIP_PLANE; };
+
+		inline void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; timeStampSetter_ = TimerNow; }
+		inline float GetAlphaRef() const { return alphaRef_; }
 
 		inline void SetOutineThickness(const float v) { outlineThickness_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetOutineColor(const XMFLOAT3& v) { outlineColor_ = v; timeStampSetter_ = TimerNow; }

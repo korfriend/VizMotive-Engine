@@ -406,20 +406,7 @@ namespace vz::renderer
 		const GraphicsDevice::GPUAllocation instances = device->AllocateGPU(alloc_size, cmd);
 		const int instanceBufferDescriptorIndex = device->GetDescriptorIndex(&instances.buffer, SubresourceType::SRV);
 
-		// This will correspond to a single draw call
-		//	It's used to render multiple instances of a single mesh
-		//	Simply understand this as 'instances' originated from a renderable
-		struct InstancedBatch
-		{
-			uint32_t geometryIndex = ~0u;	// geometryIndex
-			uint32_t renderableIndex = ~0u;
-			std::vector<uint32_t> materialIndices;
-			uint32_t instanceCount = 0;	// 
-			uint32_t dataOffset = 0;
-			bool forceAlphatestForDithering = false;
-			AABB aabb;
-			uint32_t lod = 0;
-		} instancedBatch = {};
+		InstancedBatch instancedBatch = {};
 
 		uint32_t prev_stencilref = SCU32(MaterialComponent::StencilRef::STENCILREF_DEFAULT);
 		device->BindStencilRef(prev_stencilref, cmd);
@@ -664,10 +651,11 @@ namespace vz::renderer
 			//	here, apply instance meta information
 			//		e.g., AABB, transforms, colors, ...
 			const AABB& instanceAABB = renderable.GetAABB();
+			const uint8_t lod = batch.lod_override == 0xFF ? (uint8_t)renderable.lod : batch.lod_override;
 
 			// When we encounter a new mesh inside the global instance array, we begin a new RenderBatch:
 			if (geometry_index != instancedBatch.geometryIndex ||
-				renderable.lod != instancedBatch.lod
+				lod != instancedBatch.lod
 				)
 			{
 				BatchDrawingFlush();
@@ -675,11 +663,11 @@ namespace vz::renderer
 				instancedBatch = {};
 				instancedBatch.geometryIndex = geometry_index;
 				instancedBatch.renderableIndex = renderable_index;
-				instancedBatch.instanceCount = 0;	// rendering camera count..
+				instancedBatch.instanceCount = instanceCount;	// rendering camera count..
 				instancedBatch.dataOffset = (uint32_t)(instances.offset + instanceCount * sizeof(ShaderMeshInstancePointer));
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
-				instancedBatch.lod = renderable.lod;
+				instancedBatch.lod = lod;
 				std::vector<Entity> materials(renderable.GetNumParts());
 				size_t n = renderable.GetMaterials(materials.data());
 				instancedBatch.materialIndices.resize(materials.size());
@@ -695,6 +683,11 @@ namespace vz::renderer
 				continue;
 			}
 			else if (dither > 0)
+			{
+				instancedBatch.forceAlphatestForDithering = 1;
+			}
+
+			if (renderable.GetAlphaRef() < 1.f)
 			{
 				instancedBatch.forceAlphatestForDithering = 1;
 			}

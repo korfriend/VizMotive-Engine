@@ -54,6 +54,9 @@ namespace vz::renderer
 	GPUBuffer			buffers[BUFFERTYPE_COUNT];		// engine
 	Texture				textures[TEXTYPE_COUNT];		// engine
 
+	GPUBuffer			indirectDebugStatsReadback[GraphicsDevice::GetBufferCount()];
+	bool				indirectDebugStatsReadback_available[GraphicsDevice::GetBufferCount()] = {};
+
 	// progressive components
 	std::vector<Entity> deferredGeometryGPUBVHGens;								// engine
 	std::vector<std::pair<Texture, bool>> deferredMIPGens;						// engine
@@ -82,6 +85,24 @@ namespace vz::renderer
 		bd.bind_flags = BindFlag::CONSTANT_BUFFER;
 		device->CreateBuffer(&bd, nullptr, &buffers[BUFFERTYPE_FRAMECB]);
 		device->SetName(&buffers[BUFFERTYPE_FRAMECB], "buffers[BUFFERTYPE_FRAMECB]");
+
+		bd.size = sizeof(IndirectDrawArgsInstanced) + (sizeof(XMFLOAT4) + sizeof(XMFLOAT4)) * 1000;
+		bd.bind_flags = BindFlag::VERTEX_BUFFER | BindFlag::UNORDERED_ACCESS;
+		bd.misc_flags = ResourceMiscFlag::BUFFER_RAW | ResourceMiscFlag::INDIRECT_ARGS;
+		device->CreateBuffer(&bd, nullptr, &buffers[BUFFERTYPE_INDIRECT_DEBUG_0]);
+		device->SetName(&buffers[BUFFERTYPE_INDIRECT_DEBUG_0], "buffers[BUFFERTYPE_INDIRECT_DEBUG_0]");
+		device->CreateBuffer(&bd, nullptr, &buffers[BUFFERTYPE_INDIRECT_DEBUG_1]);
+		device->SetName(&buffers[BUFFERTYPE_INDIRECT_DEBUG_1], "buffers[BUFFERTYPE_INDIRECT_DEBUG_1]");
+
+		bd.size = sizeof(IndirectDrawArgsInstanced);
+		bd.usage = Usage::READBACK;
+		bd.bind_flags = {};
+		bd.misc_flags = {};
+		for (auto& buf : indirectDebugStatsReadback)
+		{
+			device->CreateBuffer(&bd, nullptr, &buf);
+			device->SetName(&buf, "indirectDebugStatsReadback");
+		}
 
 		// to do (future features)
 		{

@@ -215,24 +215,41 @@ namespace vz::renderer
 		graphics::Texture texture_temp;
 	};
 
+	// This will correspond to a single draw call
+	//	It's used to render multiple instances of a single mesh
+	//	Simply understand this as 'instances' originated from a renderable
+	struct InstancedBatch
+	{
+		uint32_t geometryIndex = ~0u;	// geometryIndex
+		uint32_t renderableIndex = ~0u;
+		uint32_t instanceCount = 0;
+		uint32_t dataOffset = 0;
+		uint8_t userStencilRefOverride = 0;
+		std::vector<uint32_t> materialIndices;
+		bool forceAlphatestForDithering = false;
+		uint8_t lod = 0;
+		AABB aabb;
+	};
+
 	// Direct reference to a renderable instance:
 	struct RenderBatch
 	{
 		uint32_t geometryIndex;
 		uint32_t instanceIndex;	// renderable index
 		uint16_t distance;
-		uint16_t camera_mask;
+		uint8_t camera_mask;
+		uint8_t lod_override; // if overriding the base object LOD is needed, specify less than 0xFF in this
 		uint32_t sort_bits; // an additional bitmask for sorting only, it should be used to reduce pipeline changes
 
-		inline void Create(uint32_t renderableIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint16_t camera_mask = 0xFFFF)
+		inline void Create(uint32_t geometryIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint8_t camera_mask = 0xFF, uint8_t lod_override = 0xFF)
 		{
-			this->geometryIndex = renderableIndex;
+			this->geometryIndex = geometryIndex;
 			this->instanceIndex = instanceIndex;
 			this->distance = XMConvertFloatToHalf(distance);
 			this->sort_bits = sort_bits;
 			this->camera_mask = camera_mask;
+			this->lod_override = lod_override;
 		}
-
 		inline float GetDistance() const
 		{
 			return XMConvertHalfToFloat(HALF(distance));
@@ -312,9 +329,9 @@ namespace vz::renderer
 		{
 			batches.clear();
 		}
-		inline void add(uint32_t meshIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint16_t camera_mask = 0xFFFF)
+		inline void add(uint32_t geometryIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint8_t camera_mask = 0xFF, uint8_t lod_override = 0xFF)
 		{
-			batches.emplace_back().Create(meshIndex, instanceIndex, distance, sort_bits, camera_mask);
+			batches.emplace_back().Create(geometryIndex, instanceIndex, distance, sort_bits, camera_mask, lod_override);
 		}
 		inline void sort_transparent()
 		{
@@ -507,11 +524,7 @@ namespace vz::renderer
 		mutable const graphics::Texture* lastPostprocessRT = &rtPostprocess;
 
 		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
-
-
-
-
-
+		
 		ViewResources viewResources;	// dynamic allocation
 
 		RenderableShapeCollection renderableShapes; // dynamic allocation

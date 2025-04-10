@@ -87,15 +87,7 @@ namespace vz::renderer
 
 		BindCommonResources(cmd);
 
-		struct InstancedBatch
-		{
-			uint32_t geometryIndex = ~0u;	// geometryIndex
-			uint32_t renderableIndex = ~0u;
-			std::vector<uint32_t> materialIndices;
-			bool forceAlphatestForDithering = false;
-			AABB aabb;
-			uint32_t lod = 0;
-		} instancedBatch = {};
+		InstancedBatch instancedBatch = {};
 
 		GSlicerComponent* slicer = (GSlicerComponent*)this->camera;
 		assert(slicer->GetComponentType() == ComponentType::SLICER);
@@ -199,7 +191,6 @@ namespace vz::renderer
 		//	Imagine a scenario:
 		//		* tens of sphere-shaped renderables (actors) that have the same sphere geoemtry
 		//		* multiple draw calls of the renderables vs. a single drawing of multiple instances (composed of spheres)
-
 		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
 		{
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
@@ -212,20 +203,22 @@ namespace vz::renderer
 			//	here, apply instance meta information
 			//		e.g., AABB, transforms, colors, ...
 			const AABB& instanceAABB = renderable.GetAABB();
+			const uint8_t lod = batch.lod_override == 0xFF ? (uint8_t)renderable.lod : batch.lod_override;
 
 			// When we encounter a new mesh inside the global instance array, we begin a new RenderBatch:
 			if (geometry_index != instancedBatch.geometryIndex ||
-				renderable.lod != instancedBatch.lod
+				lod != instancedBatch.lod
 				)
 			{
 				BatchDrawingFlush();
 
 				instancedBatch = {};
+				//instancedBatch.userStencilRefOverride = userStencilRefOverride;
 				instancedBatch.geometryIndex = geometry_index;
 				instancedBatch.renderableIndex = renderable_index;
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
-				instancedBatch.lod = renderable.lod;
+				instancedBatch.lod = lod;
 				std::vector<Entity> materials(renderable.GetNumParts());
 				size_t n = renderable.GetMaterials(materials.data());
 				instancedBatch.materialIndices.resize(materials.size());
