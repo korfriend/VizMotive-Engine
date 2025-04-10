@@ -37,7 +37,7 @@ namespace vzcompmanager
 	std::unordered_map<RendererVID, std::unique_ptr<VzRenderer>> renderers;
 
 	std::unordered_map<CamVID, std::unique_ptr<VzCamera>> cameras;
-	std::unordered_map<ActorVID, std::unique_ptr<VzActor>> actors;
+	std::unordered_map<ActorVID, std::unique_ptr<VzBaseActor>> actors;
 	std::unordered_map<LightVID, std::unique_ptr<VzLight>> lights;
 
 	std::unordered_map<GeometryVID, std::unique_ptr<VzGeometry>> geometries;
@@ -192,6 +192,8 @@ namespace vzm
 		switch (compType)
 		{
 		case COMPONENT_TYPE::ACTOR:
+		case COMPONENT_TYPE::ACTOR_SPRITE:
+		case COMPONENT_TYPE::ACTOR_SPRITEFONT:
 		case COMPONENT_TYPE::LIGHT:
 		case COMPONENT_TYPE::CAMERA:
 		case COMPONENT_TYPE::SLICER:
@@ -217,6 +219,20 @@ namespace vzm
 			compfactory::CreateRenderableComponent(entity);
 			{
 				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewActor"));
+				hlcomp = (VzSceneComp*)it.first->second.get();
+			}
+			break;
+		case COMPONENT_TYPE::ACTOR_SPRITE:
+			compfactory::CreateRenderableComponent(entity);
+			{
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzSpriteActor>(vid, "vzm::NewSpriteActor"));
+				hlcomp = (VzSceneComp*)it.first->second.get();
+			}
+			break;
+		case COMPONENT_TYPE::ACTOR_SPRITEFONT:
+			compfactory::CreateRenderableComponent(entity);
+			{
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzSpriteFontActor>(vid, "vzm::NewSpriteFontActor"));
 				hlcomp = (VzSceneComp*)it.first->second.get();
 			}
 			break;
@@ -592,6 +608,14 @@ namespace vzm
 	{
 		return NewActor(name, geometry? geometry->GetVID() : 0u, material? material->GetVID() : 0u, parentVid);
 	}
+	VzSpriteActor* NewSpriteActor(const std::string& name, const VID parentVid)
+	{
+		return (VzSpriteActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_SPRITE, name, parentVid);
+	}
+	VzSpriteFontActor* NewSpriteFontActor(const std::string& name, const VID parentVid)
+	{
+		return (VzSpriteFontActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_SPRITEFONT, name, parentVid);
+	}
 	VzLight* NewLight(const std::string& name, const VID parentVid)
 	{
 		return (VzLight*)newSceneComponent(COMPONENT_TYPE::LIGHT, name, parentVid);
@@ -943,7 +967,7 @@ namespace vzm
 		return 0u;
 	}
 
-	VzActor* LoadModelFile(const std::string& filename)
+	VzBaseActor* LoadModelFile(const std::string& filename)
 	{
 		CHECK_API_INIT_VALIDITY(nullptr);
 
@@ -1047,6 +1071,16 @@ namespace vz::compfactory
 	Entity NewNodeActor(const std::string& name, const Entity parentEntity)	
 	{
 		VzBaseComp* comp = NewActor(name, 0ull, 0ull, parentEntity);
+		return comp ? comp->GetVID() : INVALID_ENTITY;
+	}
+	Entity NewNodeSpriteActor(const std::string& name, const Entity parentEntity)
+	{
+		VzBaseComp* comp = NewSpriteActor(name, parentEntity);
+		return comp ? comp->GetVID() : INVALID_ENTITY;
+	}
+	Entity NewNodeSpriteFontActor(const std::string& name, const Entity parentEntity)
+	{
+		VzBaseComp* comp = NewSpriteFontActor(name, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
 	Entity NewNodeCamera(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Camera) }

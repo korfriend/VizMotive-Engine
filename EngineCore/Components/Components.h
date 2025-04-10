@@ -358,6 +358,8 @@ namespace vz
 		MATERIAL,
 		GEOMETRY,
 		RENDERABLE,
+		SPRITE,
+		SPRITEFONT,
 		COLLIDER,
 		TEXTURE,
 		VOLUMETEXTURE,
@@ -1342,6 +1344,27 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 	};
 
+	struct CORE_EXPORT SpriteComponent : ComponentBase
+	{
+	protected:
+	public:
+		SpriteComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::SPRITE, entity, vuid) {}
+		SpriteComponent(const ComponentType ctype, const Entity entity, const VUID vuid = 0) : ComponentBase(ctype, entity, vuid) {}
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+		inline static const ComponentType IntrinsicType = ComponentType::SPRITE;
+	};
+
+	struct CORE_EXPORT SpriteFontComponent : SpriteComponent
+	{
+	protected:
+	public:
+		SpriteFontComponent(const Entity entity, const VUID vuid = 0) : SpriteComponent(ComponentType::SPRITEFONT, entity, vuid) {}
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+		inline static const ComponentType IntrinsicType = ComponentType::SPRITEFONT;
+	};
+
 	struct CORE_EXPORT LightComponent : ComponentBase
 	{
 	public:
@@ -1737,10 +1760,12 @@ namespace vz::compfactory
 	//	engine developers are restricted to using node-based components 
 	//	(which are composed of groups of ECS-based components) defined in high-level APIs
 	// ** NOTE: Only Engine Framework owners are allowed to create specific ECS-based components
-	CORE_EXPORT Entity NewNodeActor(const std::string& name, const Entity parentEntity = 0u);
-	CORE_EXPORT Entity NewNodeCamera(const std::string& name, const Entity parentEntity = 0u);
-	CORE_EXPORT Entity NewNodeSlicer(const std::string& name, const bool curvedSlicer, const Entity parentEntity = 0u);
-	CORE_EXPORT Entity NewNodeLight(const std::string& name, const Entity parentEntity = 0u);
+	CORE_EXPORT Entity NewNodeActor(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity NewNodeSpriteActor(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity NewNodeSpriteFontActor(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity NewNodeCamera(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity NewNodeSlicer(const std::string& name, const bool curvedSlicer, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity NewNodeLight(const std::string& name, const Entity parentEntity = 0ull);
 	CORE_EXPORT Entity NewResGeometry(const std::string& name);
 	CORE_EXPORT Entity NewResMaterial(const std::string& name);
 	CORE_EXPORT Entity NewResTexture(const std::string& name);

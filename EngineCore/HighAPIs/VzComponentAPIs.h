@@ -169,6 +169,8 @@ namespace vzm
 		SLICER,
 		LIGHT,
 		ACTOR,
+		ACTOR_SPRITE,
+		ACTOR_SPRITEFONT,
 
 		// resources
 		GEOMETRY,

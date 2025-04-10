@@ -466,6 +466,20 @@ namespace vz
 		mutable uint32_t renderFlags = 0u; // OR-operated MaterialComponent::flags_
 	};
 
+	struct CORE_EXPORT GSpriteComponent : SpriteComponent
+	{
+	private:
+	public:
+		GSpriteComponent(const Entity entity, const VUID vuid = 0) : SpriteComponent(entity, vuid) {}
+	};
+
+	struct CORE_EXPORT GSpriteFontComponent : SpriteFontComponent
+	{
+	private:
+	public:
+		GSpriteFontComponent(const Entity entity, const VUID vuid = 0) : SpriteFontComponent(entity, vuid) {}
+	};
+
 	struct PickingIO
 	{
 	private:
