@@ -189,6 +189,16 @@ namespace vz::helper
 		return 0;
 	}
 
+	inline size_t HashByteData(const uint8_t* data, size_t size)
+	{
+		size_t hash = 0;
+		for (size_t i = 0; i < size; ++i)
+		{
+			hash_combine(hash, data[i]);
+		}
+		return hash;
+	}
+
 	template<template<typename T, typename A> typename vector_interface>
 	inline bool FileRead_Impl(const std::string& fileName, vector_interface<uint8_t, std::allocator<uint8_t>>& data, size_t max_read, size_t offset)
 	{
