@@ -98,9 +98,10 @@ namespace vz::renderer
 		bd.usage = Usage::READBACK;
 		bd.bind_flags = {};
 		bd.misc_flags = {};
+		IndirectDrawArgsInstanced initdata_readback = {};
 		for (auto& buf : indirectDebugStatsReadback)
 		{
-			device->CreateBuffer(&bd, nullptr, &buf);
+			device->CreateBuffer(&bd, &initdata_readback, &buf);
 			device->SetName(&buf, "indirectDebugStatsReadback");
 		}
 

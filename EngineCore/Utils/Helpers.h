@@ -490,6 +490,29 @@ namespace vz::helper
 		return FileWrite(dst_filename, (uint8_t*)ss.c_str(), ss.length());
 	}
 
+	inline bool Bin2CPP(const uint8_t* data, size_t size, const std::string& dst_filename, const char* dataName)
+	{
+		std::string ss;
+		ss += "extern const unsigned char ";
+		ss += dataName;
+		ss += "[] = {";
+		for (size_t i = 0; i < size; ++i)
+		{
+			if (i % 32 == 0)
+			{
+				ss += "\n";
+			}
+			ss += std::to_string((uint32_t)data[i]) + ",";
+		}
+		ss += "\n};\n";
+		ss += "extern const unsigned long long ";
+		ss += dataName;
+		ss += "_size = sizeof(";
+		ss += dataName;
+		ss += ");";
+		return FileWrite(dst_filename, (uint8_t*)ss.c_str(), ss.length());
+	}
+
 	enum class DebugLevel
 	{
 		Normal,
