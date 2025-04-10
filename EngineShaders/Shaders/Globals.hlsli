@@ -870,6 +870,37 @@ inline min16uint2 GetTemporalAASampleRotation()
 {
     return min16uint2(GetFrame().temporalaa_samplerotation & 0xFF, (GetFrame().temporalaa_samplerotation >> 8u) & 0xFF);
 }
+inline bool IsStaticSky() { return GetScene().globalenvmap >= 0; }
+inline half GetGIBoost() { return unpack_half2(GetFrame().giboost_packed).x; }
+
+// Indirect debug drawing functionality, useable from any shader:
+inline void draw_line(float3 a, float3 b, float4 color = 1)
+{
+    [branch]
+    if (GetFrame().indirect_debugbufferindex < 0)
+        return;
+    RWByteAddressBuffer indirect_debug_buffer = bindless_rwbuffers[descriptor_index(GetFrame().indirect_debugbufferindex)];
+    uint prevCount;
+    indirect_debug_buffer.InterlockedAdd(0, 2, prevCount); // VertexCountPerInstance += 2
+    struct DebugLine
+    {
+        float4 posA;
+        float4 colorA;
+        float4 posB;
+        float4 colorB;
+    } debugline;
+    debugline.posA = float4(a, 1);
+    debugline.posB = float4(b, 1);
+    debugline.colorA = color;
+    debugline.colorB = color;
+    indirect_debug_buffer.Store<DebugLine>(sizeof(IndirectDrawArgsInstanced) + sizeof(DebugLine) * prevCount / 2, debugline);
+}
+inline void draw_point(float3 pos, float size = 1, float4 color = 1)
+{
+    draw_line(pos - float3(size, 0, 0), pos + float3(size, 0, 0), color);
+    draw_line(pos - float3(0, size, 0), pos + float3(0, size, 0), color);
+    draw_line(pos - float3(0, 0, size), pos + float3(0, 0, size), color);
+}
 
 // Mie scaterring approximated with Henyey-Greenstein phase function.
 //	https://www.alexandre-pestana.com/volumetric-lights/
@@ -1379,6 +1410,43 @@ inline float3 cubemap_to_uv(in float3 r)
         faceIndex = 4.0 + negz;
     }
     return float3((uvw.xy / uvw.z + 1) * 0.5, faceIndex);
+}
+
+inline bool is_inside_uv(in float2 uv, in float4 uv_range)
+{
+    return all(uv.xy >= uv_range.xy) && all(uv.xy <= uv_range.zw);
+}
+
+static const float4 cubemap_cross_ranges[] = {
+    float4(0.5, 0.333, 0.75, 0.667), // positive_x
+    float4(0.0, 0.333, 0.25, 0.667), // negative_x
+    float4(0.25, 0.0, 0.5, 0.333),	 // positive_y
+    float4(0.25, 0.667, 0.5, 1.0),	 // negative_y
+    float4(0.25, 0.333, 0.5, 0.667), // positive_z
+    float4(0.75, 0.333, 1.0, 0.667), // negative_z
+};
+
+// From a 2D UV coordinate, returns 3D cubemap sampling UV to sample the cubemap as an unwrapped 2D cross image
+//	Returns 0 if the input UV doesn't correspond to any face, and a 3D direction vector that can be used to sample a TextureCube otherwise
+inline float3 uv_to_cubemap_cross(in float2 uv)
+{
+    float2 cross_uv = 0;
+    int result_face = -1;
+    for (int face = 0; face < arraysize(cubemap_cross_ranges); ++face)
+    {
+        float4 range = cubemap_cross_ranges[face];
+        if (is_inside_uv(uv.xy, range))
+        {
+            result_face = face;
+            cross_uv = inverse_lerp(range.xy, range.zw, uv.xy);
+            break;
+        }
+    }
+
+    if (result_face >= 0)
+        return uv_to_cubemap(cross_uv, result_face);
+
+    return 0;
 }
 
 // Samples a texture with Catmull-Rom filtering, using 9 texture fetches instead of 16. ( https://gist.github.com/TheRealMJP/c83b8c0f46b63f3a88a5986f4fa982b1#file-tex2dcatmullrom-hlsl )

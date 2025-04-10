@@ -144,6 +144,8 @@ namespace vz::renderer
 	enum BUFFERTYPES
 	{
 		BUFFERTYPE_FRAMECB,
+		BUFFERTYPE_INDIRECT_DEBUG_0,
+		BUFFERTYPE_INDIRECT_DEBUG_1,
 		BUFFERTYPE_COUNT
 	};
 
@@ -221,6 +223,10 @@ namespace vz::renderer
 	extern GPUBuffer			buffers[BUFFERTYPE_COUNT];
 	extern Sampler				samplers[SAMPLER_COUNT];
 	extern Texture				textures[TEXTYPE_COUNT];
+
+	extern GPUBuffer			indirectDebugStatsReadback[GraphicsDevice::GetBufferCount()];
+	extern bool					indirectDebugStatsReadback_available[GraphicsDevice::GetBufferCount()];
+
 	extern std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];
 
 	PipelineState* GetObjectPSO(MeshRenderingVariant variant);

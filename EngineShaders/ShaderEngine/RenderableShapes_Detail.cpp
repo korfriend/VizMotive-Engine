@@ -59,11 +59,36 @@ namespace vz::renderer
 		GraphicsDevice* device = GetDevice();
 
 		device->EventBegin("DEBUG DRAW: Lines - 3D", cmd);
+
 		device->BindPipelineState(&PSO_RenderableShapes[DEBUG_RENDERING_LINES], cmd);
 		drawAndClearLines(camera, renderableLines_, cmd, clearEnabled);
 
 		device->BindPipelineState(&PSO_RenderableShapes[DEBUG_RENDERING_LINES_DEPTH], cmd);
 		drawAndClearLines(camera, renderableLines_depth_, cmd, clearEnabled);
+
+		// GPU-generated indirect debug lines:
+		device->BindPipelineState(&PSO_RenderableShapes[DEBUG_RENDERING_LINES], cmd);
+		{
+			device->EventBegin("Indirect Debug Lines - 3D", cmd);
+
+			MiscCB sb;
+			sb.g_xTransform = camera.GetViewProjection();
+			sb.g_xColor = XMFLOAT4(1, 1, 1, 1);
+			device->BindDynamicConstantBuffer(sb, CB_GETBINDSLOT(MiscCB), cmd);
+
+			const GPUBuffer* vbs[] = {
+				&buffers[BUFFERTYPE_INDIRECT_DEBUG_1],
+			};
+			const uint32_t strides[] = {
+				sizeof(XMFLOAT4) + sizeof(XMFLOAT4),
+			};
+			const uint64_t offsets[] = {
+				sizeof(IndirectDrawArgsInstanced),
+			};
+			device->BindVertexBuffers(vbs, 0, arraysize(vbs), strides, offsets, cmd);
+
+			device->DrawInstancedIndirect(&buffers[BUFFERTYPE_INDIRECT_DEBUG_1], 0, cmd);
+		}
 		device->EventEnd(cmd);
 	}
 
