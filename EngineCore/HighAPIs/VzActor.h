@@ -61,4 +61,28 @@ namespace vzm
 		bool HasCollider() const;
 		bool ColliderCollisionCheck(const ActorVID targetActorVID) const;
 	};
+
+	struct API_EXPORT VzVolumeActor : VzBaseActor
+	{
+		// TODO
+		// No need for GeometryComponent
+		// 1. RenderableVolumeComponent 
+		// 2. Scene handles this renderable separately.. (see SpriteComponent)
+		// 3. Rename existing VzActor to VzStaticMeshActor : VzMeshActor (in the future,  VzSkeletalMeshActor : VzMeshActor)
+	};
+
+	struct API_EXPORT VzSpriteActor : VzBaseActor
+	{
+		VzSpriteActor(const VID vid, const std::string& originFrom)
+			: VzBaseActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITE) {
+		}
+	};
+
+	struct API_EXPORT VzSpriteFontActor : VzSpriteActor
+	{
+		VzSpriteFontActor(const VID vid, const std::string& originFrom)
+			: VzSpriteActor(vid, originFrom) {
+			type_ = COMPONENT_TYPE::ACTOR_SPRITEFONT;
+		}
+	};
 }

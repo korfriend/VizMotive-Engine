@@ -433,6 +433,26 @@ namespace vz
 		}
 	}
 
+	void SpriteComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		if (archive.IsReadMode())
+		{
+		}
+		else
+		{
+		}
+	}
+
+	void SpriteFontComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		if (archive.IsReadMode())
+		{
+		}
+		else
+		{
+		}
+	}
+
 	void LightComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
 		if (archive.IsReadMode())

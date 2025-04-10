@@ -22,6 +22,8 @@ namespace vz::compfactory
 
 	// ----- Graphics-related components -----
 	ComponentManager<GRenderableComponent>& renderableManager = componentLibrary.Register<GRenderableComponent>("RENDERABLE");
+	ComponentManager<GSpriteComponent>& spriteManager = componentLibrary.Register<GSpriteComponent>("SPRITE");
+	ComponentManager<GSpriteFontComponent>& spritefontManager = componentLibrary.Register<GSpriteFontComponent>("SPRITEFONT");
 	ComponentManager<GLightComponent>& lightManager = componentLibrary.Register<GLightComponent>("LIGHT");
 	ComponentManager<GCameraComponent>& cameraManager = componentLibrary.Register<GCameraComponent>("CAMERA");
 	ComponentManager<GSlicerComponent>& slicerManager = componentLibrary.Register<GSlicerComponent>("SLICER");
@@ -159,6 +161,18 @@ namespace vz::compfactory
 	{
 		ENTITY_UPDATE(entity_update);
 		RenderableComponent* comp = &renderableManager.Create(entity_update);
+		return comp;
+	}
+	SpriteComponent* CreateSpriteComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		SpriteComponent* comp = &spriteManager.Create(entity_update);
+		return comp;
+	}
+	SpriteFontComponent* CreateSpriteFontComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		SpriteFontComponent* comp = &spritefontManager.Create(entity_update);
 		return comp;
 	}
 
