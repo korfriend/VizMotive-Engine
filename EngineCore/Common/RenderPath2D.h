@@ -15,6 +15,7 @@ namespace vz
 
 		graphics::Rect scissor_;
 		uint32_t msaaSampleCount_ = 1;
+		uint32_t msaaSampleCount2DOnly_ = 1;
 
 	public:
 		RenderPath2D(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
@@ -23,6 +24,9 @@ namespace vz
 
 		void SetMSAASampleCount(uint32_t value) { msaaSampleCount_ = value; }
 		constexpr uint32_t GetMSAASampleCount() const { return msaaSampleCount_; }
+		
+		virtual void SetMSAASampleCount2D(uint32_t value) { msaaSampleCount2DOnly_ = value; }
+		constexpr uint32_t GetMSAASampleCount2D() const { return msaaSampleCount2DOnly_; }
 
 		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;
