@@ -118,7 +118,7 @@ namespace vz::renderer
 		rs.depth_bias = -1;
 		rs.depth_bias_clamp = 0;
 		rs.slope_scaled_depth_bias = -4.0f;
-		rs.depth_clip_enable = true;
+		rs.depth_clip_enable = false;
 		rs.multisample_enable = false;
 		rs.antialiased_line_enable = false;
 		rs.conservative_rasterization_enable = false;

@@ -392,6 +392,7 @@ namespace vz
 			archive >> outlineThreshold_;
 			archive >> undercutDirection_;
 			archive >> undercutColor_;
+			archive >> lod_bias_;
 
 			uint32_t u32_data;
 			archive >> u32_data;
@@ -420,6 +421,7 @@ namespace vz
 			archive << outlineThreshold_;
 			archive << undercutDirection_;
 			archive << undercutColor_;
+			archive << lod_bias_;
 
 			archive << vuidMaterials_.size();
 			for (size_t i = 0, n = vuidMaterials_.size(); i < n; ++i)

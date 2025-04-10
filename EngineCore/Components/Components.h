@@ -31,7 +31,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250409_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250410_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1237,6 +1237,7 @@ namespace vz
 		float fadeDistance_ = std::numeric_limits<float>::max();
 		XMFLOAT4 rimHighlightColor_ = XMFLOAT4(1, 1, 1, 0);
 		float rimHighlightFalloff_ = 8;
+		float lod_bias_ = 0;
 
 		// clipper
 		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube

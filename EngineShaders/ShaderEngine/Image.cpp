@@ -214,6 +214,14 @@ namespace vz::image
 			image.highlight_xy = math::pack_half2(params.highlight_pos.x * canvas_aspect, params.highlight_pos.y);
 			image.highlight_color_spread = math::pack_half4(params.highlight_color.x, params.highlight_color.y, params.highlight_color.z, params.highlight_spread);
 		}
+		if (texture != nullptr && has_flag(texture->GetDesc().misc_flags, ResourceMiscFlag::TEXTURECUBE))
+		{
+			image.flags |= IMAGE_FLAG_CUBEMAP_BASE;
+		}
+		if (texture != nullptr && texture->GetDesc().type == TextureDesc::Type::TEXTURE_1D)
+		{
+			image.flags |= IMAGE_FLAG_TEXTURE1D_BASE;
+		}
 
 		image.hdr_scaling_aspect = math::pack_half2(params.hdr_scaling, canvas_aspect);
 		image.bordersoften_saturation = math::pack_half2(params.border_soften, params.saturation);
