@@ -8,7 +8,7 @@ namespace vzimgui
 {
 	void UpdateTreeNode(const VID vid, const VID vidSelected, const std::function<void(const VID)>& callback)
 	{
-		vzm::VzSceneComp* component = (vzm::VzSceneComp*)vzm::GetComponent(vid);
+		vzm::VzSceneObject* component = (vzm::VzSceneObject*)vzm::GetComponent(vid);
 		if (component == nullptr)
 			return;
 		std::string comp_name = component->GetName();
@@ -20,7 +20,7 @@ namespace vzimgui
 		{
 			switch (component->GetType())
 			{
-			case vzm::COMPONENT_TYPE::ACTOR: comp_name = "[A] " + comp_name; break;
+			case vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH: comp_name = "[A] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::CAMERA: comp_name = "[C] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::SLICER: comp_name = "[S] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::LIGHT: comp_name = "[L] " + comp_name; break;
@@ -49,10 +49,10 @@ namespace vzimgui
 			{
 				vzlog("Clicked! %s", comp_name.c_str());
 			}
-			if (component->GetType() == vzm::COMPONENT_TYPE::ACTOR)
+			if (component->GetType() == vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH)
 			{
 				ImGui::SameLine();
-				vzm::VzActor* actor = (vzm::VzActor*)component;
+				vzm::VzStaticMeshActor* actor = (vzm::VzStaticMeshActor*)component;
 				bool visible = actor->IsVisibleWith(0x1);
 				if (ImGui::Checkbox(" ", &visible))
 				{
@@ -179,7 +179,7 @@ namespace vzimgui
 		std::vector<VzBaseComp*> archives;
 
 		size_t total_user_components = 0;
-		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ACTOR, actors);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ACTOR_STATIC_MESH, actors);
 		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::GEOMETRY, geometries);
 		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::MATERIAL, materials);
 		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::TEXTURE, textures);
@@ -373,7 +373,7 @@ namespace vzimgui
 
 		VzCamera* camera = (VzCamera*)GetComponent(camVID);
 		ImGuizmo::SetGizmoSizeClipSpace(0.5f);
-		VzBaseActor* highlighted_actor = (VzBaseActor*)GetComponent(highlightVID);
+		VzActor* highlighted_actor = (VzActor*)GetComponent(highlightVID);
 		if (highlighted_actor && camera)
 		{
 			//PE: Need to disable physics while editing.

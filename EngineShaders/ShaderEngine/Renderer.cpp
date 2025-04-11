@@ -663,7 +663,7 @@ namespace vz::renderer
 				instancedBatch = {};
 				instancedBatch.geometryIndex = geometry_index;
 				instancedBatch.renderableIndex = renderable_index;
-				instancedBatch.instanceCount = instanceCount;	// rendering camera count..
+				instancedBatch.instanceCount = 0;	
 				instancedBatch.dataOffset = (uint32_t)(instances.offset + instanceCount * sizeof(ShaderMeshInstancePointer));
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();

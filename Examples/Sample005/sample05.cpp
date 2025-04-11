@@ -220,7 +220,7 @@ int main(int, char**)
 			material_curvedslicer0->SetDoubleSided(true);
 			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Lines");
 			material_curvedslicer1->SetBaseColor({ 1, 1, 1, 1 });
-			vzm::VzActor* actor_cslicer_helper = vzm::NewActor("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer0);
+			vzm::VzStaticMeshActor* actor_cslicer_helper = vzm::NewActor("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer0);
 			actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
 			scene->AppendChild(actor_cslicer_helper);
 			vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
@@ -244,14 +244,14 @@ int main(int, char**)
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
 			material_stl->SetBaseColor({ 1, 0, 0, 1 });
-			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry, material_stl);
+			vzm::VzStaticMeshActor* actor_test3 = vzm::NewActor("my actor3", geometry, material_stl);
 			actor_test3->SetScale({ 0.5f, 0.5f, 0.5f });
 			//actor_test3->SetPosition({ 0, 0, 2 });
 			scene->AppendChild(actor_test3);
 
 			vzm::VzMaterial* material_stl_A = vzm::NewMaterial("my stl's material_A");
 			material_stl_A->SetBaseColor({ 1, 1, 0, 1 });
-			vzm::VzActor* actor_test5 = vzm::NewActor("my actor5", geometry, material_stl_A);
+			vzm::VzStaticMeshActor* actor_test5 = vzm::NewActor("my actor5", geometry, material_stl_A);
 			actor_test5->SetScale({ 0.5f, 0.5f, 0.5f });
 			actor_test5->SetRotateAxis({ 0, 1, 0 }, 90.f);
 			scene->AppendChild(actor_test5);
@@ -266,7 +266,7 @@ int main(int, char**)
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
 			material_stl->SetBaseColor({ 0, 1, 1, 1 });
-			vzm::VzActor* actor_test4 = vzm::NewActor("my actor4", geometry, material_stl);
+			vzm::VzStaticMeshActor* actor_test4 = vzm::NewActor("my actor4", geometry, material_stl);
 			actor_test4->SetScale({ 0.2f, 0.2f, 0.2f });
 			actor_test4->EnableSlicerSolidFill(false);
 			actor_test4->SetRotateAxis({ 0, 0, 1 }, 45.f);
@@ -321,7 +321,7 @@ int main(int, char**)
 			slicer_curved->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
 			slicer_curved->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
 
-			vzm::VzActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
+			vzm::VzStaticMeshActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
 			volume_actor->SetScale({ 3, 3, 3 });
 			scene->AppendChild(volume_actor);
 
@@ -334,14 +334,6 @@ int main(int, char**)
 			});
 
 	}
-
-	//vzm::VzActor* cube_actor = vzm::LoadModelFile("../Assets/models/cube/cube.obj");
-	//cube_actor->SetScale({ 75, 75,75 });
-	//cube_actor->SetRotateAxis({ 0, 1, 0 }, 45.f);
-	//auto cube_child_actor = (vzm::VzActor*)vzm::GetComponent(cube_actor->GetChildren()[0]);
-	//vzm::VzGeometry* geometry_cube = (vzm::VzGeometry*)vzm::GetComponent(cube_child_actor->GetGeometry());
-	//geometry_cube->EnableGPUBVH(true);
-	//cube_actor->AttachToParent(scene);
 
 	// Our state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -793,7 +785,7 @@ int main(int, char**)
 			{
 				if (ImGui::BeginTabBar("##gizmo_tabbar"))
 				{
-					VzBaseActor* highlighted_actor = (VzBaseActor*)GetComponent(view3D_gizmo.GetHighlighedVID());
+					VzActor* highlighted_actor = (VzActor*)GetComponent(view3D_gizmo.GetHighlighedVID());
 					float matrixTranslation[3], matrixRotation[3], matrixScale[3];
 					XMFLOAT4X4 obj_world;
 					if (highlighted_actor)
@@ -981,23 +973,6 @@ int main(int, char**)
 					vzm::ReloadShader();
 				}
 
-				//static bool visible_implant1 = true, visible_panohalper = true, visible_volume = true;
-				//if (ImGui::Checkbox("Green Implant Visible", &visible_implant1))
-				//{
-				//	vzm::VzActor* actor_test5 = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor5");
-				//	actor_test5->SetVisibleLayer(visible_implant1, 0x1);
-				//
-				//}
-				//if (ImGui::Checkbox("Pano Halper Visible", &visible_panohalper))
-				//{
-				//	vzm::VzActor* actor_cslicer_helper = (vzm::VzActor*)vzm::GetFirstComponentByName("actor: geometry helper for curved slicer");
-				//	actor_cslicer_helper->SetVisibleLayer(visible_panohalper, 0x1);
-				//}
-				//if (ImGui::Checkbox("Volue Visible", &visible_volume))
-				//{
-				//	vzm::VzActor* volume_actor = (vzm::VzActor*)vzm::GetFirstComponentByName("my volume actor");
-				//	volume_actor->SetVisibleLayer(visible_volume, 0x1);
-				//}
 				ImGui::Checkbox("Use Render Chain", &use_renderchain);
 
 				ImGui::SliderFloat("OTF Slider", &curOtfValue, 0.f, 250.f);

@@ -214,7 +214,6 @@
     <ClCompile Include="GaussianSplatting.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="PostProcessingChain_Detail.cpp" />
-    <ClCompile Include="Random.cpp" />
     <ClCompile Include="RenderableShapes_Detail.cpp" />
     <ClCompile Include="RenderPath2D_Detail.cpp" />
     <ClCompile Include="RenderPath3D_Detail.cpp" />
@@ -234,7 +233,6 @@
     <ClInclude Include="Noise.h" />
     <ClInclude Include="RenderPath3D_Detail.h" />
     <ClInclude Include="ShaderEngine.h" />
-    <ClInclude Include="Random.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderCompiler.h" />
     <ClInclude Include="ShaderLoader.h" />

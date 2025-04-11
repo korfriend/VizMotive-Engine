@@ -170,11 +170,11 @@ int main(int, char **)
 		texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
 		material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
-		vzm::VzActor *actor_test = vzm::NewActor("my actor", geometry_test, material_test);
+		vzm::VzStaticMeshActor *actor_test = vzm::NewActor("my actor", geometry_test, material_test);
 		actor_test->SetScale({2.f, 2.f, 2.f});
 		actor_test->SetPosition({0, 0, -1.f});
 
-		vzm::VzActor *actor_test2 = vzm::NewActor("my actor2");
+		vzm::VzStaticMeshActor *actor_test2 = vzm::NewActor("my actor2");
 		actor_test2->SetGeometry(geometry_test2);
 		actor_test2->SetPosition({0, -2, 0});
 		vfloat4 colors[3] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}};
@@ -195,7 +195,7 @@ int main(int, char **)
 			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
-			vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
+			vzm::VzStaticMeshActor* actor_test3 = vzm::NewActor("my actor3", geometry_stl, material_stl);
 			actor_test3->SetScale({ 0.1f, 0.1f, 0.1f });
 			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
 

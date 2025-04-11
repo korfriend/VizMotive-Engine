@@ -33,8 +33,8 @@ namespace vzm
 	//  - return the generated scene component or nullptr in case of failure (invalid sceneID or overflow VID)
 	API_EXPORT VzCamera* NewCamera(const std::string& name, const VID parentVid = 0u);
 	API_EXPORT VzSlicer* NewSlicer(const std::string& name, const bool curvedSlicer, const VID parentVid = 0u);
-	API_EXPORT VzActor* NewActor(const std::string& name, const GeometryVID vidGeo = 0u, const MaterialVID vidMat = 0u, const VID parentVid = 0u);
-	API_EXPORT VzActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid = 0u);
+	API_EXPORT VzStaticMeshActor* NewActor(const std::string& name, const GeometryVID vidGeo = 0u, const MaterialVID vidMat = 0u, const VID parentVid = 0u);
+	API_EXPORT VzStaticMeshActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid = 0u);
 	API_EXPORT VzSpriteActor* NewSpriteActor(const std::string& name, const VID parentVid = 0u);
 	API_EXPORT VzSpriteFontActor* NewSpriteFontActor(const std::string& name, const VID parentVid = 0u);
 	API_EXPORT VzLight* NewLight(const std::string& name, const VID parentVid = 0u);
@@ -79,7 +79,7 @@ namespace vzm
 
 	// Load a mesh file (obj) into actors and return the first actor
 	//  - return root-node actor (empty)
-	API_EXPORT VzBaseActor* LoadModelFile(const std::string& filename);
+	API_EXPORT VzActor* LoadModelFile(const std::string& filename);
 
 	API_EXPORT bool ExecutePluginFunction(const std::string& pluginFilename, const std::string& functionName, ParamMap<std::string>& io);
 

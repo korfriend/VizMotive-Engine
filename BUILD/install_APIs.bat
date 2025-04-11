@@ -20,7 +20,7 @@ robocopy "..\EngineCore\Utils\DirectXMath" "..\Install\vzm2\utils\DirectXMath" /
 REM ------------------------------------------
 REM Specified header files in Utils folder (outdated copy)
 REM Target: ..\Install\vzm2\utils\
-set "utils=vzMath.h Geometrics.h GeometryGenerator.h Backlog.h EventHandler.h Helpers.h JobSystem.h Profiler.h Timer.h Platform.h Config.h"
+set "utils=vzMath.h Geometrics.h GeometryGenerator.h Backlog.h EventHandler.h Helpers.h JobSystem.h Profiler.h Timer.h Platform.h Config.h Random.h"
 for %%F in (%utils%) do (
     xcopy "..\EngineCore\Utils\%%F" "..\Install\vzm2\utils\" /D /Y
 )

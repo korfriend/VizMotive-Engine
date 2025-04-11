@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250410_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250412_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1354,8 +1354,7 @@ namespace vz
 			HIDDEN = 1 << 0,
 			DISABLE_UPDATE = 1 << 1,
 			CAMERA_FACING = 1 << 2,
-			CAMERA_SCALING = 1 << 3,
-			FONT = 1 << 4,
+			CAMERA_SCALING = 1 << 3
 		};
 
 		struct Anim
@@ -1443,7 +1442,6 @@ namespace vz
 
 	public:
 		SpriteComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::SPRITE, entity, vuid) {}
-		SpriteComponent(const ComponentType ctype, const Entity entity, const VUID vuid = 0) : ComponentBase(ctype, entity, vuid) {}
 
 		inline void SetSpriteTexture(const Entity entity);
 		inline VUID GetSpriteTextureVUID() const { return vuidSpriteTexture_; }
@@ -1472,18 +1470,154 @@ namespace vz
 		inline float GetOpacity() const { return opacity_; }
 		inline float GetFade() const { return fade_; }
 
-		virtual void FixedUpdate();
-		virtual void Update(float dt);
+		void FixedUpdate();
+		void Update(float dt);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 		inline static const ComponentType IntrinsicType = ComponentType::SPRITE;
 	};
 
-	struct CORE_EXPORT SpriteFontComponent : SpriteComponent
+	struct CORE_EXPORT SpriteFontComponent : ComponentBase
 	{
-	protected:
 	public:
-		SpriteFontComponent(const Entity entity, const VUID vuid = 0) : SpriteComponent(ComponentType::SPRITEFONT, entity, vuid) {}
+		enum FLAGS : uint32_t
+		{
+			EMPTY = 0,
+			HIDDEN = 1 << 0,
+			DISABLE_UPDATE = 1 << 1,
+			CAMERA_FACING = 1 << 2,
+			CAMERA_SCALING = 1 << 3
+		};
+		enum Alignment : uint32_t
+		{
+			FONTALIGN_LEFT,		// left alignment (horizontal)
+			FONTALIGN_CENTER,	// center alignment (horizontal or vertical)
+			FONTALIGN_RIGHT,	// right alignment (horizontal)
+			FONTALIGN_TOP,		// top alignment (vertical)
+			FONTALIGN_BOTTOM	// bottom alignment (vertical)
+		};
+		struct Cursor
+		{
+			XMFLOAT2 position = {}; // the next character's position offset from the first character (logical canvas units)
+			XMFLOAT2 size = {}; // the written text's measurements from the first character (logical canvas units)
+		};
+		struct Animation
+		{
+			struct Typewriter
+			{
+				float time = 0; // time to fully type the text in seconds (0: disable)
+				bool looped = false; // if true, typing starts over when finished
+				size_t characterStart = 0; // starting character for the animation
+
+				float elapsed = 0; // internal use; you don't need to initialize
+
+				void reset()
+				{
+					elapsed = 0;
+				}
+				void Finish()
+				{
+					elapsed = time;
+				}
+				bool IsFinished() const
+				{
+					return time <= elapsed;
+				}
+			} typewriter;
+		};
+		inline static int FONTSIZE_DEFAULT = 16;
+
+	protected:
+
+		uint32_t flags_ = EMPTY;
+
+		std::wstring text_;
+		std::string fontStyle_;
+
+		XMFLOAT3 position_ = XMFLOAT3(0, 0, 0); //3D
+		int size_ = FONTSIZE_DEFAULT; // line height (logical canvas units)
+		float scale_ = 1; // this will apply upscaling to the text while keeping the same resolution (size) of the font
+		float rotation_ = 0; // rotation around alignment anchor (in radians)
+		XMFLOAT2 spacing_ = XMFLOAT2(0, 0); // minimum spacing between characters (logical canvas units)
+		Alignment horizonAlign_ = FONTALIGN_LEFT; // horizontal alignment
+		Alignment verticalAlign_ = FONTALIGN_TOP; // vertical alignment
+		XMFLOAT4 color_; // base color of the text characters
+		XMFLOAT4 shadowColor_; // transparent disables, any other color enables shadow under text
+		float wrap_ = -1; // wrap start width (-1 default for no wrap) (logical canvas units)
+		float softness_ = 0; // value in [0,1] range (requires SDF rendering to be enabled)
+		float bolden_ = 0; // value in [0,1] range (requires SDF rendering to be enabled)
+		float shadowSoftness_ = 0.5f; // value in [0,1] range (requires SDF rendering to be enabled)
+		float shadowBolden_ = 0.1f; // value in [0,1] range (requires SDF rendering to be enabled)
+		XMFLOAT2 shadowOffset_ = XMFLOAT2(0, 0); // offset for shadow under the text in logical canvas coordinates
+		float hdrScaling_ = 1.0f; // a scaling value for use by linear output mapping
+		float intensity_ = 1.0f; // color multiplier
+		float shadowIntensity_ = 1.0f; // shadow color multiplier
+		Cursor cursor_; // cursor can be used to continue text drawing by taking the Draw's return value (optional)
+
+		Animation anim_;
+
+	public:
+		SpriteFontComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::SPRITEFONT, entity, vuid) {}
+
+		inline void SetHidden(bool value = true) { if (value) { flags_ |= HIDDEN; } else { flags_ &= ~HIDDEN; } timeStampSetter_ = TimerNow; }
+		inline bool IsHidden() const { return flags_ & HIDDEN; }
+		inline void SetDisableUpdate(bool value = true) { if (value) { flags_ |= DISABLE_UPDATE; } else { flags_ &= ~DISABLE_UPDATE; } timeStampSetter_ = TimerNow; }
+		inline void SetCameraFacing(bool value = true) { if (value) { flags_ |= CAMERA_FACING; } else { flags_ &= ~CAMERA_FACING; } timeStampSetter_ = TimerNow; }
+		inline void SetCameraScaling(bool value = true) { if (value) { flags_ |= CAMERA_SCALING; } else { flags_ &= ~CAMERA_SCALING; } timeStampSetter_ = TimerNow; }
+
+		inline bool IsDisableUpdate() const { return flags_ & DISABLE_UPDATE; }
+		inline bool IsCameraFacing() const { return flags_ & CAMERA_FACING; }
+		inline bool IsCameraScaling() const { return flags_ & CAMERA_SCALING; }
+
+		void FixedUpdate();
+		void Update(float dt);
+
+		void SetText(const std::string& value);
+
+		inline void SetFontStyle(const std::string& fontStyle) { fontStyle_ = fontStyle; timeStampSetter_ = TimerNow; }
+		inline void SetPosition(const XMFLOAT3& p) { position_ = p; timeStampSetter_ = TimerNow; }
+		inline void SetSize(const int size) { size_ = size; timeStampSetter_ = TimerNow; }
+		inline void SetScale(const float scale) { scale_ = scale; timeStampSetter_ = TimerNow; }
+		inline void SetRotation(const float rotation) { rotation_ = rotation; timeStampSetter_ = TimerNow; }
+		inline void SetSpacing(const XMFLOAT2& spacing) { spacing_ = spacing; timeStampSetter_ = TimerNow; }
+		inline void SetHorizonAlign(const Alignment horizonAlign) { horizonAlign_ = horizonAlign; timeStampSetter_ = TimerNow; }
+		inline void SetVerticalAlign(const Alignment verticalAlign) { verticalAlign_ = verticalAlign; timeStampSetter_ = TimerNow; }
+		inline void SetColor(const XMFLOAT4& color) { color_ = color; timeStampSetter_ = TimerNow; }
+		inline void SetShadowColor(const XMFLOAT4& shadowColor) { shadowColor_ = shadowColor; timeStampSetter_ = TimerNow; }
+		inline void SetWrap(const float wrap) { wrap_ = wrap; timeStampSetter_ = TimerNow; }
+		inline void SetSoftness(const float softness) { softness_ = softness; timeStampSetter_ = TimerNow; }
+		inline void SetBolden(const float bolden) { bolden_ = bolden; timeStampSetter_ = TimerNow; }
+		inline void SetShadowSoftness(const float shadowSoftness) { shadowSoftness_ = shadowSoftness; timeStampSetter_ = TimerNow; }
+		inline void SetShadowBolden(const float shadowBolden) { shadowBolden_ = shadowBolden; timeStampSetter_ = TimerNow; }
+		inline void SetShadowOffset(const XMFLOAT2 shadowOffset) { shadowOffset_ = shadowOffset; timeStampSetter_ = TimerNow; }
+		inline void SetHdrScale(const float hdrScaling) { hdrScaling_ = hdrScaling; timeStampSetter_ = TimerNow; }
+		inline void SetIntensity(const float intensity) { intensity_ = intensity; timeStampSetter_ = TimerNow; }
+		inline void SetShadowIntensity(const float shadowIntensity) { shadowIntensity_ = shadowIntensity; timeStampSetter_ = TimerNow; }
+		inline void SetCursor(const Cursor& cursor) { cursor_ = cursor; timeStampSetter_ = TimerNow; }
+
+		std::string GetTextA() const;
+		std::wstring GetText() const { return text_; }
+
+		inline std::string GetFontStyle() const { return fontStyle_; }
+		inline XMFLOAT3 GetPosition() const { return position_; }
+		inline int GetSize() const { return size_; }
+		inline float GetScale() const { return scale_; }
+		inline float GetRotation() const { return rotation_; }
+		inline XMFLOAT2 GetSpacing() const { return spacing_; }
+		inline Alignment GetHorizonAlign() const { return horizonAlign_; }
+		inline Alignment GetVerticalAlign() const { return verticalAlign_; }
+		inline XMFLOAT4 GetColor() const { return color_; }
+		inline XMFLOAT4 GetShadowColor() const { return shadowColor_; }
+		inline float GetWrap() const { return wrap_; }
+		inline float GetSoftness() const { return softness_; }
+		inline float GetBolden() const { return bolden_; }
+		inline float GetShadowSoftness() const { return shadowSoftness_; }
+		inline float GetShadowBolden() const { return shadowBolden_; }
+		inline XMFLOAT2 GetShadowOffset() const { return shadowOffset_; }
+		inline float GetHdrScale() const { return hdrScaling_; }
+		inline float GetIntensity() const { return intensity_; }
+		inline float GetShadowIntensity() const { return shadowIntensity_; }
+		inline Cursor GetCursor() const { return cursor_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 		inline static const ComponentType IntrinsicType = ComponentType::SPRITEFONT;

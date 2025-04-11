@@ -1,8 +1,8 @@
 #pragma once
 #include "CommonInclude.h"
 #include "Utils/vzMath.h"
+#include "Utils/Random.h"
 #include "Common/Archive.h"
-#include "Random.h"
 
 namespace vz::noise
 {

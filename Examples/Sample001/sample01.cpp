@@ -144,7 +144,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         // just for GPUBVH generation test 
 		for (ActorVID vid : root_obj_actor->GetChildren())
 		{
-			vzm::VzActor* obj_actor_child = (vzm::VzActor*)vzm::GetComponent(vid);
+			vzm::VzStaticMeshActor* obj_actor_child = (vzm::VzStaticMeshActor*)vzm::GetComponent(vid);
 			vzm::VzGeometry* obj_geometry = (vzm::VzGeometry*)vzm::GetComponent(obj_actor_child->GetGeometry());
 			//if (obj_geometry)
 			//{
@@ -184,11 +184,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     material_test->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
     material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
-	vzm::VzActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
+	vzm::VzStaticMeshActor* actor_test = vzm::NewActor("my actor", geometry_test, material_test);
 	actor_test->SetScale({ 2.f, 2.f, 2.f });
 	actor_test->SetPosition({ 0, 0, -1.f });
 
-	vzm::VzActor* actor_test2 = vzm::NewActor("my actor2");
+	vzm::VzStaticMeshActor* actor_test2 = vzm::NewActor("my actor2");
 	actor_test2->SetGeometry(geometry_test2);
 	actor_test2->SetPosition({ 0, -2, 0 });
 	vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
@@ -229,7 +229,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	tex_otf_test3->CreateLookupTexture("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
     tex_otf_test3->UpdateLookup(otf_array, 180, 255);
 
-	vzm::VzActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
+	vzm::VzStaticMeshActor* actor_test3 = vzm::NewActor("my actor3", nullptr, material_test3);
 
 	material_test3->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
 	material_test3->SetLookupTable(tex_otf_test3, vzm::LookupTableSlot::LOOKUP_OTF);
@@ -348,7 +348,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             test_create__ = !test_create__;
 
 			
-            vzm::VzActor* actor = (vzm::VzActor*)vzm::GetFirstComponentByName("my actor3");
+            vzm::VzStaticMeshActor* actor = (vzm::VzStaticMeshActor*)vzm::GetFirstComponentByName("my actor3");
             vzm::AppendSceneCompVidTo(actor->GetVID(), 0);
 		}
         break;
