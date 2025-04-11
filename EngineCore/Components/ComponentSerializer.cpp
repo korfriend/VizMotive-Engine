@@ -437,9 +437,65 @@ namespace vz
 	{
 		if (archive.IsReadMode())
 		{
+			uint8_t u8_data;
+			archive >> u8_data;
+			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
+
+			archive >> flags_;
+			archive >> vuidSpriteTexture_;
+
+			archive >> position_;
+			archive >> rotation_;
+			archive >> scale_;
+			archive >> opacity_;
+			archive >> fade_;
+			archive >> uvOffset_;
+
+			archive >> anim_.repeatable;
+			archive >> anim_.vel;
+			archive >> anim_.rot;
+			archive >> anim_.scaleX;
+			archive >> anim_.scaleY;
+			archive >> anim_.opa;
+			archive >> anim_.fad;
+			archive >> anim_.movingTexAnim.speedX;
+			archive >> anim_.movingTexAnim.speedY;
+			archive >> anim_.drawRectAnim.frameRate;
+			archive >> anim_.drawRectAnim.frameCount;
+			archive >> anim_.drawRectAnim.horizontalFrameCount;
+			archive >> anim_.wobbleAnim.amount;
+			archive >> anim_.wobbleAnim.speed;
+			archive >> anim_.drawRectAnim._currentFrame;
 		}
 		else
 		{
+			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
+
+			archive << flags_;
+			archive << vuidSpriteTexture_;
+
+			archive << position_;
+			archive << rotation_;
+			archive << scale_;
+			archive << opacity_;
+			archive << fade_;
+			archive << uvOffset_;
+
+			archive << anim_.repeatable;
+			archive << anim_.vel;
+			archive << anim_.rot;
+			archive << anim_.scaleX;
+			archive << anim_.scaleY;
+			archive << anim_.opa;
+			archive << anim_.fad;
+			archive << anim_.movingTexAnim.speedX;
+			archive << anim_.movingTexAnim.speedY;
+			archive << anim_.drawRectAnim.frameRate;
+			archive << anim_.drawRectAnim.frameCount;
+			archive << anim_.drawRectAnim.horizontalFrameCount;
+			archive << anim_.wobbleAnim.amount;
+			archive << anim_.wobbleAnim.speed;
+			archive << anim_.drawRectAnim._currentFrame;
 		}
 	}
 
@@ -447,9 +503,13 @@ namespace vz
 	{
 		if (archive.IsReadMode())
 		{
+			uint8_t u8_data;
+			archive >> u8_data;
+			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 		}
 		else
 		{
+			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 		}
 	}
 
