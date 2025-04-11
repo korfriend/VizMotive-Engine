@@ -74,6 +74,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\JobSystem.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Platform.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Profiler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\SimpleCollision.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Spinlock.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Timer.h" />
@@ -97,6 +98,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\RenderableComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\SlicerComponent.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\SpriteComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\TextureComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\GeometryComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.cpp" />
