@@ -256,6 +256,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Config.h">
       <Filter>Utils %28UTIL_EXPORT%29\Public %28APIs managed by core%29</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Random.h">
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Archive.cpp">
@@ -425,6 +428,9 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Config.cpp">
       <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\SpriteComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Detail</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,6 @@
 #pragma once
 #include "Utils/vzMath.h"
+#include "Utils/Random.h"
 #include "Utils/Geometrics.h"
 
 #include <vector>
@@ -1346,10 +1347,133 @@ namespace vz
 
 	struct CORE_EXPORT SpriteComponent : ComponentBase
 	{
+	public:
+		enum FLAGS : uint32_t
+		{
+			EMPTY = 0,
+			HIDDEN = 1 << 0,
+			DISABLE_UPDATE = 1 << 1,
+			CAMERA_FACING = 1 << 2,
+			CAMERA_SCALING = 1 << 3,
+			FONT = 1 << 4,
+		};
+
+		struct Anim
+		{
+			struct MovingTexAnim
+			{
+				float speedX = 0; // the speed of texture scrolling animation in horizontal direction
+				float speedY = 0; // the speed of texture scrolling animation in vertical direction
+			};
+			struct DrawRectAnim
+			{
+				float frameRate = 30; // target frame rate of the spritesheet animation (eg. 30, 60, etc.)
+				int frameCount = 1; // how many frames are in the animation in total
+				int horizontalFrameCount = 0; // how many horizontal frames there are (optional, use if the spritesheet contains multiple rows)
+
+				float _elapsedTime = 0; // internal use; you don't need to initialize
+				int _currentFrame = 0; // internal use; you don't need to initialize
+
+				void restart()
+				{
+					_elapsedTime = 0;
+					_currentFrame = 0;
+				}
+			};
+			struct WobbleAnim
+			{
+				XMFLOAT2 amount = XMFLOAT2(0, 0);	// how much the sprite wobbles in X and Y direction
+				float speed = 1; // how fast the sprite wobbles
+
+				float corner_angles[4]; // internal use; you don't need to initialize
+				float corner_speeds[4]; // internal use; you don't need to initialize
+				float corner_angles2[4]; // internal use; you don't need to initialize
+				float corner_speeds2[4]; // internal use; you don't need to initialize
+				WobbleAnim()
+				{
+					for (int i = 0; i < 4; ++i)
+					{
+						corner_angles[i] = random::GetRandom(0, 1000) / 1000.0f * XM_2PI;
+						corner_speeds[i] = random::GetRandom(500, 1000) / 1000.0f;
+						if (random::GetRandom(0, 1) == 0)
+						{
+							corner_speeds[i] *= -1;
+						}
+						corner_angles2[i] = random::GetRandom(0, 1000) / 1000.0f * XM_2PI;
+						corner_speeds2[i] = random::GetRandom(500, 1000) / 1000.0f;
+						if (random::GetRandom(0, 1) == 0)
+						{
+							corner_speeds2[i] *= -1;
+						}
+					}
+				}
+			};
+
+			bool repeatable = false;
+			XMFLOAT3 vel = XMFLOAT3(0, 0, 0);
+			float rot = 0;
+			float scaleX = 0;
+			float scaleY = 0;
+			float opa = 0;
+			float fad = 0;
+			MovingTexAnim movingTexAnim;
+			DrawRectAnim drawRectAnim;
+			WobbleAnim wobbleAnim;
+		};
 	protected:
+		uint32_t flags_ = EMPTY;
+
+		VUID vuidSpriteTexture_ = INVALID_VUID;
+		Anim anim_;
+
+		// geometry attributes
+		XMFLOAT3 position_ = XMFLOAT3(0, 0, 0); //3D
+		float rotation_ = 0.f; // angle (rad)
+		XMFLOAT2 scale_ = XMFLOAT2(1, 1); // 2D
+		float opacity_ = 1.f;
+		float fade_ = 0.f;
+		XMFLOAT2 uvOffset_ = XMFLOAT2(0, 0);
+
+		// Non-serialized attributes:
+		XMFLOAT4 drawRect_ = XMFLOAT4(0, 0, 0, 0);
+		XMFLOAT2 corners_[4] = {
+			XMFLOAT2(0, 0), XMFLOAT2(1, 0),
+			XMFLOAT2(0, 1), XMFLOAT2(1, 1)
+			};
+
 	public:
 		SpriteComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::SPRITE, entity, vuid) {}
 		SpriteComponent(const ComponentType ctype, const Entity entity, const VUID vuid = 0) : ComponentBase(ctype, entity, vuid) {}
+
+		inline void SetSpriteTexture(const Entity entity);
+		inline VUID GetSpriteTextureVUID() const { return vuidSpriteTexture_; }
+
+		inline void SetHidden(bool value = true) { if (value) { flags_ |= HIDDEN; } else { flags_ &= ~HIDDEN; } timeStampSetter_ = TimerNow; }
+		inline bool IsHidden() const { return flags_ & HIDDEN; }
+		inline void SetDisableUpdate(bool value = true) { if (value) { flags_ |= DISABLE_UPDATE; } else { flags_ &= ~DISABLE_UPDATE; } timeStampSetter_ = TimerNow; }
+		inline void SetCameraFacing(bool value = true) { if (value) { flags_ |= CAMERA_FACING; } else { flags_ &= ~CAMERA_FACING; } timeStampSetter_ = TimerNow; }
+		inline void SetCameraScaling(bool value = true) { if (value) { flags_ |= CAMERA_SCALING; } else { flags_ &= ~CAMERA_SCALING; } timeStampSetter_ = TimerNow; }
+
+		inline bool IsDisableUpdate() const { return flags_ & DISABLE_UPDATE; }
+		inline bool IsCameraFacing() const { return flags_ & CAMERA_FACING; }
+		inline bool IsCameraScaling() const { return flags_ & CAMERA_SCALING; }
+
+		inline void SetPosition(const XMFLOAT3& p) { position_ = p; timeStampSetter_ = TimerNow; }
+		inline void SetScale(const XMFLOAT2& s) { scale_ = s; timeStampSetter_ = TimerNow; }
+		inline void SetUVOffset(const XMFLOAT2& uvOffset) { uvOffset_ = uvOffset; timeStampSetter_ = TimerNow; }
+		inline void SetRotation(const float v) { rotation_ = v; timeStampSetter_ = TimerNow; }
+		inline void SetOpacity(const float v) { opacity_ = v; timeStampSetter_ = TimerNow; }
+		inline void SetFade(const float v) { fade_ = v; timeStampSetter_ = TimerNow; }
+
+		inline XMFLOAT3 GetPosition() const { return position_; }
+		inline XMFLOAT2 GetScale() const { return scale_; }
+		inline XMFLOAT2 GetUVOffset() const { return uvOffset_; }
+		inline float GetRotation() const { return rotation_; }
+		inline float GetOpacity() const { return opacity_; }
+		inline float GetFade() const { return fade_; }
+
+		virtual void FixedUpdate();
+		virtual void Update(float dt);
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 		inline static const ComponentType IntrinsicType = ComponentType::SPRITE;
