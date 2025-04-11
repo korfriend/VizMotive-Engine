@@ -3,7 +3,7 @@
 
 namespace vzm
 {
-	struct API_EXPORT VzCamera : VzSceneComp
+	struct API_EXPORT VzCamera : VzSceneObject
 	{
 		enum class DVR_TYPE
 		{

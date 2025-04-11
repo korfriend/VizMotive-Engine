@@ -3,7 +3,7 @@
 
 namespace vzm
 {
-	struct API_EXPORT VzLight : VzSceneComp
+	struct API_EXPORT VzLight : VzSceneObject
 	{
 		enum class LightType : uint32_t {
 			DIRECTIONAL = 0,
@@ -14,7 +14,7 @@ namespace vzm
 		};
 
 		VzLight(const VID vid, const std::string& originFrom)
-			: VzSceneComp(vid, originFrom, COMPONENT_TYPE::LIGHT) {}
+			: VzSceneObject(vid, originFrom, COMPONENT_TYPE::LIGHT) {}
 
 		void SetLightType(const LightType type);
 

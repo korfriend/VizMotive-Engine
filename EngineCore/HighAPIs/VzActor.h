@@ -3,10 +3,10 @@
 
 namespace vzm
 {
-	struct API_EXPORT VzBaseActor : VzSceneComp
+	struct API_EXPORT VzActor : VzSceneObject
 	{
-		VzBaseActor(const VID vid, const std::string& originFrom, const COMPONENT_TYPE scenecompType)
-			: VzSceneComp(vid, originFrom, scenecompType) {}
+		VzActor(const VID vid, const std::string& originFrom, const COMPONENT_TYPE scenecompType)
+			: VzSceneObject(vid, originFrom, scenecompType) {}
 
 		void SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants = false);
 		void SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants = false);
@@ -19,10 +19,10 @@ namespace vzm
 		bool IsPickable() const;
 	};
 
-	struct API_EXPORT VzActor : VzBaseActor
+	struct API_EXPORT VzStaticMeshActor : VzActor
 	{
-		VzActor(const VID vid, const std::string& originFrom)
-			: VzBaseActor(vid, originFrom, COMPONENT_TYPE::ACTOR) {}
+		VzStaticMeshActor(const VID vid, const std::string& originFrom)
+			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_STATIC_MESH) {}
 
 		void SetGeometry(const GeometryVID vid);
 		void SetGeometry(const VzBaseComp* geometry) { SetGeometry(geometry->GetVID()); }
@@ -62,7 +62,7 @@ namespace vzm
 		bool ColliderCollisionCheck(const ActorVID targetActorVID) const;
 	};
 
-	struct API_EXPORT VzVolumeActor : VzBaseActor
+	struct API_EXPORT VzVolumeActor : VzActor
 	{
 		// TODO
 		// No need for GeometryComponent
@@ -71,10 +71,10 @@ namespace vzm
 		// 3. Rename existing VzActor to VzStaticMeshActor : VzMeshActor (in the future,  VzSkeletalMeshActor : VzMeshActor)
 	};
 
-	struct API_EXPORT VzSpriteActor : VzBaseActor
+	struct API_EXPORT VzSpriteActor : VzActor
 	{
 		VzSpriteActor(const VID vid, const std::string& originFrom)
-			: VzBaseActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITE) {
+			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITE) {
 		}
 	};
 
@@ -84,5 +84,13 @@ namespace vzm
 			: VzSpriteActor(vid, originFrom) {
 			type_ = COMPONENT_TYPE::ACTOR_SPRITEFONT;
 		}
+	};
+
+	struct API_EXPORT VzGSplatActor : VzActor
+	{
+	};
+
+	struct API_EXPORT VzParticleActor : VzActor
+	{
 	};
 }

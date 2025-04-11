@@ -595,7 +595,7 @@ namespace vzm
 	};
 
 	VzCamera::VzCamera(const VID vid, const std::string& originFrom)
-		: VzSceneComp(vid, originFrom, COMPONENT_TYPE::CAMERA)
+		: VzSceneObject(vid, originFrom, COMPONENT_TYPE::CAMERA)
 	{
 		orbitControl_ = make_unique<OrbitalControlDetail>();
 		OrbitalControlDetail* orbitControl_detail = (OrbitalControlDetail*)orbitControl_.get();

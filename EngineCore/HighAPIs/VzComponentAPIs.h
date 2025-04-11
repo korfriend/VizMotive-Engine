@@ -160,15 +160,17 @@ namespace vzm
 
 		ARCHIVE,
 
-		// render interface component
+		// systems for rendering
 		SCENE,
 		RENDERER,
 
-		// scene components
+		// scene objects
 		CAMERA,
 		SLICER,
 		LIGHT,
-		ACTOR,
+		ACTOR_STATIC_MESH,
+		ACTOR_VOLUME,
+		ACTOR_GSPLAT,
 		ACTOR_SPRITE,
 		ACTOR_SPRITEFONT,
 
@@ -204,9 +206,9 @@ namespace vzm
 		std::string GetName() const;
 		void SetName(const std::string& name);
 	};
-    struct API_EXPORT VzSceneComp : VzBaseComp
+    struct API_EXPORT VzSceneObject : VzBaseComp
     {
-		VzSceneComp(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
+		VzSceneObject(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
 			: VzBaseComp(vid, originFrom, type) {}
 
 		bool IsDirtyTransform() const;
