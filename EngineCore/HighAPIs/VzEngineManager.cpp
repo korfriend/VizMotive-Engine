@@ -37,7 +37,7 @@ namespace vzcompmanager
 	std::unordered_map<RendererVID, std::unique_ptr<VzRenderer>> renderers;
 
 	std::unordered_map<CamVID, std::unique_ptr<VzCamera>> cameras;
-	std::unordered_map<ActorVID, std::unique_ptr<VzBaseActor>> actors;
+	std::unordered_map<ActorVID, std::unique_ptr<VzActor>> actors;
 	std::unordered_map<LightVID, std::unique_ptr<VzLight>> lights;
 
 	std::unordered_map<GeometryVID, std::unique_ptr<VzGeometry>> geometries;
@@ -71,7 +71,7 @@ namespace vzcompmanager
 		case COMPONENT_TYPE::CAMERA:
 		case COMPONENT_TYPE::SLICER:
 			cameras.erase(vid); break;
-		case COMPONENT_TYPE::ACTOR: actors.erase(vid); break;
+		case COMPONENT_TYPE::ACTOR_STATIC_MESH: actors.erase(vid); break;
 		case COMPONENT_TYPE::LIGHT: lights.erase(vid); break;
 		case COMPONENT_TYPE::GEOMETRY: geometries.erase(vid); break;
 		case COMPONENT_TYPE::MATERIAL: materials.erase(vid); break;
@@ -186,12 +186,12 @@ namespace vzm
 		return result;
 	}
 
-	VzSceneComp* newSceneComponent(const COMPONENT_TYPE compType, const std::string& compName, const VID parentVid, const uint64_t userData = 0)
+	VzSceneObject* newSceneComponent(const COMPONENT_TYPE compType, const std::string& compName, const VID parentVid, const uint64_t userData = 0)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		switch (compType)
 		{
-		case COMPONENT_TYPE::ACTOR:
+		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
 		case COMPONENT_TYPE::ACTOR_SPRITE:
 		case COMPONENT_TYPE::ACTOR_SPRITEFONT:
 		case COMPONENT_TYPE::LIGHT:
@@ -210,51 +210,51 @@ namespace vzm
 		compfactory::CreateHierarchyComponent(entity);
 
 		VID vid = entity;
-		VzSceneComp* hlcomp = nullptr;
+		VzSceneObject* hlcomp = nullptr;
 		
 		VID parent_vid = parentVid;
 		switch (compType)
 		{
-		case COMPONENT_TYPE::ACTOR:
+		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
 			compfactory::CreateRenderableComponent(entity);
 			{
-				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewActor"));
-				hlcomp = (VzSceneComp*)it.first->second.get();
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzStaticMeshActor>(vid, "vzm::NewActor"));
+				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::ACTOR_SPRITE:
 			compfactory::CreateRenderableComponent(entity);
 			{
 				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzSpriteActor>(vid, "vzm::NewSpriteActor"));
-				hlcomp = (VzSceneComp*)it.first->second.get();
+				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::ACTOR_SPRITEFONT:
 			compfactory::CreateRenderableComponent(entity);
 			{
 				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzSpriteFontActor>(vid, "vzm::NewSpriteFontActor"));
-				hlcomp = (VzSceneComp*)it.first->second.get();
+				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::LIGHT:
 			compfactory::CreateLightComponent(entity);
 			{
 				auto it = vzcompmanager::lights.emplace(vid, std::make_unique<VzLight>(vid, "vzm::NewLight"));
-				hlcomp = (VzSceneComp*)it.first->second.get();
+				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::CAMERA:
 			compfactory::CreateCameraComponent(entity);
 			{
 				auto it = vzcompmanager::cameras.emplace(vid, std::make_unique<VzCamera>(vid, "vzm::NewCamera"));
-				hlcomp = (VzSceneComp*)it.first->second.get();
+				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::SLICER:
 			compfactory::CreateSlicerComponent(entity, userData != 0);
 			{
 				auto it = vzcompmanager::cameras.emplace(vid, std::make_unique<VzSlicer>(vid, "vzm::NewSlicer"));
-				hlcomp = (VzSceneComp*)it.first->second.get();
+				hlcomp = (VzSceneObject*)it.first->second.get();
 
 				if (userData != 0 && parent_vid != 0)
 				{
@@ -597,14 +597,14 @@ namespace vzm
 	{
 		return (VzSlicer*)newSceneComponent(COMPONENT_TYPE::SLICER, name, parentVid, curvedSlicer? 1 : 0);
 	}
-	VzActor* NewActor(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
+	VzStaticMeshActor* NewActor(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
 	{
-		VzActor* actor = (VzActor*)newSceneComponent(COMPONENT_TYPE::ACTOR, name, parentVid);
+		VzStaticMeshActor* actor = (VzStaticMeshActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_STATIC_MESH, name, parentVid);
 		if (vidGeo) actor->SetGeometry(vidGeo);
 		if (vidMat) actor->SetMaterial(vidMat);
 		return actor;
 	}
-	VzActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
+	VzStaticMeshActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
 	{
 		return NewActor(name, geometry? geometry->GetVID() : 0u, material? material->GetVID() : 0u, parentVid);
 	}
@@ -917,7 +917,7 @@ namespace vzm
 
 		switch (type)
 		{
-		case COMPONENT_TYPE::ACTOR: GETTER_VZCOMP(actors); break;
+		case COMPONENT_TYPE::ACTOR_STATIC_MESH: GETTER_VZCOMP(actors); break;
 		case COMPONENT_TYPE::LIGHT: GETTER_VZCOMP(lights); break;
 		case COMPONENT_TYPE::CAMERA: 
 		case COMPONENT_TYPE::SLICER: GETTER_VZCOMP(cameras); break;
@@ -967,7 +967,7 @@ namespace vzm
 		return 0u;
 	}
 
-	VzBaseActor* LoadModelFile(const std::string& filename)
+	VzActor* LoadModelFile(const std::string& filename)
 	{
 		CHECK_API_INIT_VALIDITY(nullptr);
 

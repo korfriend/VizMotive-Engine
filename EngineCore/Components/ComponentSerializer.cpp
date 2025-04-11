@@ -506,10 +506,74 @@ namespace vz
 			uint8_t u8_data;
 			archive >> u8_data;
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
+			
+			uint32_t u32_data;
+
+			archive >> flags_;
+			archive >> position_;
+			archive >> fontStyle_; 
+			std::string textA;
+			archive >> textA; SetText(textA);
+			archive >> size_;
+			archive >> scale_;
+			archive >> rotation_;
+			archive >> spacing_;
+			archive >> u32_data; horizonAlign_ = static_cast<Alignment>(u32_data);
+			archive >> u32_data; verticalAlign_ = static_cast<Alignment>(u32_data); ;
+			archive >> color_;
+			archive >> shadowColor_;
+			archive >> wrap_;
+			archive >> softness_;
+			archive >> bolden_;
+			archive >> shadowSoftness_;
+			archive >> shadowBolden_;
+			archive >> shadowOffset_;
+			archive >> hdrScaling_;
+			archive >> intensity_;
+			archive >> shadowIntensity_;
+
+			archive >> cursor_.position;
+			archive >> cursor_.size;
+
+			archive >> anim_.typewriter.characterStart;
+			archive >> anim_.typewriter.elapsed;
+			archive >> anim_.typewriter.time;
+			archive >> anim_.typewriter.looped;
 		}
 		else
 		{
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
+
+			archive << flags_;
+			archive << position_;
+			archive << fontStyle_;
+			std::string textA = GetTextA();
+			archive << textA;
+			archive << size_;
+			archive << scale_;
+			archive << rotation_;
+			archive << spacing_;
+			archive << (uint32_t)horizonAlign_;
+			archive << (uint32_t)verticalAlign_;
+			archive << color_;
+			archive << shadowColor_;
+			archive << wrap_;
+			archive << softness_;
+			archive << bolden_;
+			archive << shadowSoftness_;
+			archive << shadowBolden_;
+			archive << shadowOffset_;
+			archive << hdrScaling_;
+			archive << intensity_;
+			archive << shadowIntensity_;
+
+			archive << cursor_.position;
+			archive << cursor_.size;
+
+			archive << anim_.typewriter.characterStart;
+			archive << anim_.typewriter.elapsed;
+			archive << anim_.typewriter.time;
+			archive << anim_.typewriter.looped;
 		}
 	}
 

@@ -9,6 +9,7 @@ namespace vz
 	{
 		if (IsDisableUpdate())
 			return;
+		timeStampSetter_ = TimerNow;
 	}
 
 	void SpriteComponent::Update(float dt)
@@ -104,5 +105,48 @@ namespace vz
 			}
 		}
 
+		timeStampSetter_ = TimerNow;
+	}
+}
+
+namespace vz
+{
+	void SpriteFontComponent::FixedUpdate()
+	{
+		if (IsDisableUpdate())
+			return;
+		timeStampSetter_ = TimerNow;
+	}
+	void SpriteFontComponent::Update(float dt)
+	{
+		if (IsDisableUpdate())
+			return;
+
+		if (anim_.typewriter.time > 0)
+		{
+			size_t text_length = text_.length();
+			size_t text_length_prev = std::min(text_length, size_t(math::Lerp(float(std::min(text_length, anim_.typewriter.characterStart)), float(text_length + 1), anim_.typewriter.elapsed / anim_.typewriter.time)));
+			anim_.typewriter.elapsed += dt;
+			size_t text_length_next = std::min(text_length, size_t(math::Lerp(float(std::min(text_length, anim_.typewriter.characterStart)), float(text_length + 1), anim_.typewriter.elapsed / anim_.typewriter.time)));
+
+			if (anim_.typewriter.looped && anim_.typewriter.elapsed > anim_.typewriter.time)
+			{
+				anim_.typewriter.reset();
+			}
+		}
+		timeStampSetter_ = TimerNow;
+	}
+
+	void SpriteFontComponent::SetText(const std::string& value)
+	{
+		helper::StringConvert(value, text_);
+		timeStampSetter_ = TimerNow;
+	}
+
+	std::string SpriteFontComponent::GetTextA() const
+	{
+		std::string retVal;
+		helper::StringConvert(text_, retVal);
+		return retVal;
 	}
 }

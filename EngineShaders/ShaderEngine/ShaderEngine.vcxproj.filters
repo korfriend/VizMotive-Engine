@@ -13,9 +13,6 @@
     <ClCompile Include="TextureHelper.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
-    <ClCompile Include="Random.cpp">
-      <Filter>Utility</Filter>
-    </ClCompile>
     <ClCompile Include="Image.cpp">
       <Filter>Processing</Filter>
     </ClCompile>
@@ -74,9 +71,6 @@
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Noise.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="Random.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="ShaderLoader.h">
