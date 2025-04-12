@@ -13,7 +13,7 @@ bool ImportModel_STL(const std::string& fileName, const Entity geometryEntity)
 {
 	if (!compfactory::ContainGeometryComponent(geometryEntity))
 	{
-		vzlog_error("Invalid Entity(%d)!", geometryEntity);
+		vzlog_error("Invalid Entity(%llu)!", geometryEntity);
 		return false;
 	}
 	Assimp::Importer importer;

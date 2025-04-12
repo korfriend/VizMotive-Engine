@@ -377,6 +377,7 @@ namespace vz
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 
 			archive >> flags_;
+			archive >> u8_data; renderableType_ = static_cast<RenderableType>(u8_data);
 			archive >> visibleLayerMask_;
 			archive >> vuidGeometry_;
 			archive >> fadeDistance_;
@@ -407,6 +408,7 @@ namespace vz
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
 			archive << flags_;
+			archive << static_cast<uint8_t>(renderableType_);
 			archive << visibleLayerMask_;
 			archive << vuidGeometry_;
 			archive << fadeDistance_;

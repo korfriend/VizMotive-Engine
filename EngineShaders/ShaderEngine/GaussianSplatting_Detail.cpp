@@ -35,13 +35,12 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::RenderGaussianSplatting(CommandList cmd)
 	{
-		if (viewMain.visibleRenderables.empty() || camera->IsOrtho())
+		if (camera->IsOrtho())
 		{
 			return;
 		}
 
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)viewMain.scene->GetGSceneHandle();
-		if (scene_Gdetails->renderableComponents_mesh.empty())
+		if (viewMain.visibleRenderables_GSplat.empty())
 		{
 			return;
 		}
@@ -58,11 +57,10 @@ namespace vz::renderer
 
 		static thread_local RenderQueue renderQueue;
 		renderQueue.init();
-		for (uint32_t instanceIndex : viewMain.visibleRenderables)
+		for (uint32_t instanceIndex : viewMain.visibleRenderables_GSplat)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
-			if (!renderable.IsMeshRenderable())
-				continue;
+			assert(renderable.GetRenderableType() == RenderableType::GSPLAT_RENDERABLE);
 			if (!renderable.IsVisibleWith(viewMain.camera->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
@@ -102,9 +100,9 @@ namespace vz::renderer
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
-			assert(renderable.IsMeshRenderable());
+			assert(renderable.GetRenderableType() == RenderableType::GSPLAT_RENDERABLE);
 
-			GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
+			GMaterialComponent* material = scene_Gdetails->materialComponents[renderable.materialIndices[0]];
 			assert(material);
 
 			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[geometry_index];

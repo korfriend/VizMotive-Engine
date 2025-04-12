@@ -51,6 +51,8 @@ namespace vz
 
 		GMaterialComponent(const Entity entity, const VUID vuid = 0) : MaterialComponent(entity, vuid) {}
 
+		uint32_t materialIndex = ~0u; // scene's geometries_ (GeometryComponent)
+		
 		// Non-serialized attributes:
 		int samplerDescriptor = -1; // optional
 		uint8_t userStencilRef = 0;
@@ -137,7 +139,8 @@ namespace vz
 
 		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
 
-		uint32_t geometryOffset = 0; // (including # of parts)
+		uint32_t geometryIndex = ~0u; // scene's geometries_ (GeometryComponent)
+		uint32_t geometryOffset = 0u; // (including # of parts)
 
 		// ----- BVH -----
 		TimeStamp timeStampGPUBVHUpdate = TimerMin;
@@ -451,8 +454,8 @@ namespace vz
 		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
 
 		// these are for linear array of scene component's array
-		uint32_t geometryIndex = ~0u; // current linear array of current rendering scene (used as an offset)
 		uint32_t renderableIndex = ~0u;	// current linear array of current rendering scene
+		uint32_t geometryIndex = ~0u; // same as GGeometry's geometryIndex
 		std::vector<uint32_t> materialIndices; // current linear array of current rendering scene
 
 		uint32_t sortBits = 0;
@@ -471,6 +474,7 @@ namespace vz
 	private:
 	public:
 		GSpriteComponent(const Entity entity, const VUID vuid = 0) : SpriteComponent(entity, vuid) {}
+		uint32_t spriteIndex = ~0u;	// current linear array of current rendering scene
 	};
 
 	struct CORE_EXPORT GSpriteFontComponent : SpriteFontComponent
@@ -478,6 +482,7 @@ namespace vz
 	private:
 	public:
 		GSpriteFontComponent(const Entity entity, const VUID vuid = 0) : SpriteFontComponent(entity, vuid) {}
+		uint32_t spritefontIndex = ~0u;	// current linear array of current rendering scene
 	};
 
 	struct PickingIO
@@ -529,6 +534,7 @@ namespace vz
 	struct CORE_EXPORT GCameraComponent : CameraComponent, GCameraInterface
 	{
 		GCameraComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(entity, vuid), GCameraInterface(entity) {}
+		uint32_t cameraIndex = ~0u;	// current linear array of current rendering scene
 	};
 
 	struct CORE_EXPORT GSlicerComponent : SlicerComponent, GCameraInterface
@@ -544,24 +550,7 @@ namespace vz
 	{
 		GLightComponent(const Entity entity, const VUID vuid = 0) : LightComponent(entity, vuid) {}
 
+		uint32_t lightIndex = ~0u;	// current linear array of current rendering scene
 		std::vector<float> cascadeDistances = { 8, 80, 800 };
 	};
-}
-
-namespace vz::compfactory
-{
-	inline GMaterialComponent* GetGMaterialComponent(const Entity entity) { return (GMaterialComponent*)GetMaterialComponent(entity); }
-	inline GGeometryComponent* GetGGeometryComponent(const Entity entity) { return (GGeometryComponent*)GetGeometryComponent(entity); }
-	inline GTextureComponent* GetGTextureComponent(const Entity entity) { return (GTextureComponent*)GetTextureComponent(entity); }
-	inline GVolumeComponent* GetGVolumeComponent(const Entity entity) { return (GVolumeComponent*)GetVolumeComponent(entity); }
-	inline GRenderableComponent* GetGRenderableComponent(const Entity entity) { return (GRenderableComponent*)GetRenderableComponent(entity); }
-	inline GLightComponent* GetGLightComponent(const Entity entity) { return (GLightComponent*)GetLightComponent(entity); }
-	inline GCameraComponent* GetGCameraComponent(const Entity entity) { return (GCameraComponent*)GetCameraComponent(entity); }
-	inline GMaterialComponent* GetGMaterialComponentByVUID(const VUID vuid) { return (GMaterialComponent*)GetMaterialComponentByVUID(vuid); }
-	inline GGeometryComponent* GetGGeometryComponentByVUID(const VUID vuid) { return (GGeometryComponent*)GetGeometryComponentByVUID(vuid); }
-	inline GTextureComponent* GetGTextureComponentByVUID(const VUID vuid) { return (GTextureComponent*)GetTextureComponentByVUID(vuid); }
-	inline GVolumeComponent* GetGVolumeComponentByVUID(const VUID vuid) { return (GVolumeComponent*)GetVolumeComponentByVUID(vuid); }
-	inline GRenderableComponent* GetGRenderableComponentByVUID(const VUID vuid) { return (GRenderableComponent*)GetRenderableComponentByVUID(vuid); }
-	inline GLightComponent* GetGLightComponentByVUID(const VUID vuid) { return (GLightComponent*)GetLightComponentByVUID(vuid); }
-	inline GCameraComponent* GetGCameraComponentByVUID(const VUID vuid) { return (GCameraComponent*)GetCameraComponentByVUID(vuid); }
 }

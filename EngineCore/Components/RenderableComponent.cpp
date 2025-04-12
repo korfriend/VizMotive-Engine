@@ -6,15 +6,16 @@ namespace vz
 #define MAX_MATERIAL_SLOT 10000
 
 	using PrimitiveType = GeometryComponent::PrimitiveType;
-
+	using RenderableType = RenderableComponent::RenderableType;
 	// return 0 : NOT renderable
 	// return 1 : Mesh renderable
 	// return 2 : Volume renderable
-	inline int checkIsRenderable(const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
+	
+	inline RenderableType checkIsRenderable(const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
 	{
-		int ret = 0;
-		GeometryComponent* geo_comp = compfactory::GetGeometryComponent(compfactory::GetEntityByVUID(vuidGeo));
-		if (geo_comp == nullptr)
+		RenderableType ret = RenderableType::UNDEFINED;
+		GGeometryComponent* geomertry = (GGeometryComponent*)compfactory::GetGeometryComponent(compfactory::GetEntityByVUID(vuidGeo));
+		if (geomertry == nullptr)
 		{
 			if (vuidMaterials.size() == 1)
 			{
@@ -27,16 +28,29 @@ namespace vz
 					bool hasRenderableVolume = compfactory::ContainVolumeComponent(compfactory::GetEntityByVUID(vuid0));
 					bool hasLookupTable1 = compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid1));
 					bool hasLookupTable2 = compfactory::ContainTextureComponent(compfactory::GetEntityByVUID(vuid2));
-					ret = (hasRenderableVolume && (hasLookupTable1 || hasLookupTable2)) ? 2 : 0;
+					if (hasRenderableVolume && (hasLookupTable1 || hasLookupTable2))
+					{
+						ret = RenderableType::VOLUME_RENDERABLE;
+					}
 				}
 			}
 		}
 		else
 		{
-			size_t num_parts = geo_comp->GetNumParts();
+			size_t num_parts = geomertry->GetNumParts();
 			size_t num_mats = vuidMaterials.size();
-			ret = (num_parts == num_mats && num_parts > 0) ? 1 : 0;
-			if (!ret && num_parts * num_mats > 0)
+			if (num_parts == num_mats && num_parts > 0)
+			{
+				if (geomertry->allowGaussianSplatting)
+				{
+					ret = RenderableType::GSPLAT_RENDERABLE;
+				}
+				else
+				{
+					ret = RenderableType::MESH_RENDERABLE;
+				}
+			}
+			else
 			{
 				vzlog_warning("Not Renderable--> # of Parts: %d != # of Materials: %d", (int)num_parts, (int)num_mats);
 			}
@@ -46,14 +60,7 @@ namespace vz
 
 	void RenderableComponent::updateRenderableFlags()
 	{
-		switch (checkIsRenderable(vuidGeometry_, vuidMaterials_))
-		{
-		case 0: flags_ &= ~RenderableFlags::MESH_RENDERABLE; flags_ &= ~RenderableFlags::VOLUME_RENDERABLE; break;
-		case 1: flags_ |= RenderableFlags::MESH_RENDERABLE; flags_ &= ~RenderableFlags::VOLUME_RENDERABLE; break;
-		case 2: flags_ &= ~RenderableFlags::MESH_RENDERABLE; flags_ |= RenderableFlags::VOLUME_RENDERABLE; break;
-		default:
-			break;
-		}
+		renderableType_ = checkIsRenderable(vuidGeometry_, vuidMaterials_);
 	}
 
 	void RenderableComponent::SetGeometry(const Entity geometryEntity)
@@ -154,13 +161,17 @@ namespace vz
 	void RenderableComponent::Update()
 	{
 		updateRenderableFlags();
+		if (!IsRenderable())
+		{
+			return;
+		}
 
 		// compute AABB
 		Entity geometry_entity = compfactory::GetEntityByVUID(vuidGeometry_);
 		GeometryComponent* geometry = compfactory::GetGeometryComponent(geometry_entity);
 		TransformComponent* transform = compfactory::GetTransformComponent(entity_);
 		geometrics::AABB aabb;
-		if (IsVolumeRenderable())
+		if (GetRenderableType() == RenderableType::VOLUME_RENDERABLE)
 		{
 			MaterialComponent* volume_material = compfactory::GetMaterialComponent(compfactory::GetEntityByVUID(vuidMaterials_[0]));
 			assert(volume_material);

@@ -27,6 +27,8 @@ namespace vz::renderer
 		DRAWSCENE_TESSELLATION = 1 << 3, // enable tessellation
 		DRAWSCENE_FOREGROUND_ONLY = 1 << 4, // only include objects that are tagged as foreground
 	};
+
+	using RenderableType = RenderableComponent::RenderableType;
 }
 
 namespace vz::renderer
@@ -35,7 +37,6 @@ namespace vz::renderer
 	{
 		// User fills these:
 		uint8_t layerMask = ~0;
-		Scene* scene = nullptr;
 		CameraComponent* camera = nullptr;
 		enum FLAGS
 		{
@@ -53,12 +54,13 @@ namespace vz::renderer
 		uint32_t flags = EMPTY;
 
 		Frustum frustum; // camera's frustum or special purposed frustum
-		std::vector<uint32_t> visibleRenderables; // index refers to the linear array of Scnee::renderables
 
 		// TODO: visibleRenderables into visibleMeshRenderables and visibleVolumeRenderables
 		//	and use them instead of visibleRenderables
-		std::vector<uint32_t> visibleMeshRenderables;
-		std::vector<uint32_t> visibleVolumeRenderables;
+		std::vector<uint32_t> visibleRenderables_All;
+		std::vector<uint32_t> visibleRenderables_Mesh;
+		std::vector<uint32_t> visibleRenderables_Volume;
+		std::vector<uint32_t> visibleRenderables_GSplat;
 
 		//std::vector<uint32_t> visibleDecals;
 		//std::vector<uint32_t> visibleEnvProbes;
@@ -68,7 +70,9 @@ namespace vz::renderer
 		//rectpacker::State shadowPacker;
 		//std::vector<rectpacker::Rect> visibleLightShadowRects;
 
-		std::atomic<uint32_t> renderableCounter;
+		std::atomic<uint32_t> renderableCounterMesh;
+		std::atomic<uint32_t> renderableCounterVolume;
+		std::atomic<uint32_t> renderableCounterGSplat;
 		std::atomic<uint32_t> lightCounter;
 
 		vz::SpinLock locker;
@@ -78,13 +82,18 @@ namespace vz::renderer
 
 		void Clear()
 		{
-			visibleRenderables.clear();
+			visibleRenderables_All.clear();
+			visibleRenderables_Mesh.clear();
+			visibleRenderables_Volume.clear();
+			visibleRenderables_GSplat.clear();
 			visibleLights.clear();
 			//visibleDecals.clear();
 			//visibleEnvProbes.clear();
 			//visibleEmitters.clear();
 
-			renderableCounter.store(0);
+			renderableCounterMesh.store(0);
+			renderableCounterVolume.store(0);
+			renderableCounterGSplat.store(0);
 			lightCounter.store(0);
 
 			closestReflectionPlane = std::numeric_limits<float>::max();
@@ -458,6 +467,7 @@ namespace vz::renderer
 		}
 	};
 
+	struct GSceneDetails;
 	struct GRenderPath3DDetails : GRenderPath3D
 	{
 		GRenderPath3DDetails(graphics::SwapChain& swapChain, graphics::Texture& rtRenderFinal)
@@ -468,6 +478,8 @@ namespace vz::renderer
 
 		bool viewShadingInCS = false;
 		mutable bool firstFrame = true;
+		
+		GSceneDetails* scene_Gdetails = nullptr;
 
 		FrameCB frameCB = {};
 		// separate graphics pipelines for the combination of special rendering effects
@@ -648,20 +660,28 @@ namespace vz::renderer
 		// * This renderer plugin is based on Bindless Graphics 
 		//	(https://developer.download.nvidia.com/opengl/tutorials/bindless_graphics.pdf)
 
-		// cached attributes and components, which are safe in a single frame
+		// cached attributes of Scene Components
+		//	supposed to be safe in a single frame
 		float deltaTime = 0.f;
-		std::vector<GRenderableComponent*> renderableComponents; // cached (non enclosing for jobsystem)
+		const Scene* GetScene() const { return scene_; }
 		std::vector<GLightComponent*> lightComponents; // cached (non enclosing for jobsystem)
 		std::vector<GGeometryComponent*> geometryComponents; // cached (non enclosing for jobsystem)
 		std::vector<GMaterialComponent*> materialComponents; // cached (non enclosing for jobsystem)
 
-		std::vector<GRenderableComponent*> renderableComponents_mesh; // cached (non enclosing for jobsystem)
-		std::vector<GRenderableComponent*> renderableComponents_volume; // cached (non enclosing for jobsystem)
+		// each type of renderblaecomponents use different rendering system
+		std::vector<GRenderableComponent*> renderableComponents; // cached (non enclosing for jobsystem)
+		std::vector<GSpriteComponent*> spriteComponents; // cached (non enclosing for jobsystem)
+		std::vector<GSpriteFontComponent*> spriteFontComponents; // cached (non enclosing for jobsystem)
 
 		std::vector<Entity> renderableEntities; // cached (non enclosing for jobsystem)
+		std::vector<Entity> spriteEntities; // cached (non enclosing for jobsystem)
+		std::vector<Entity> spriteFontEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> lightEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> geometryEntities; // cached (non enclosing for jobsystem)
 		std::vector<Entity> materialEntities; // cached (non enclosing for jobsystem)
+
+		std::vector<XMFLOAT4X4> matrixRenderables;
+		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
 
 		//const bool occlusionQueryEnabled = false;
 		//const bool cameraFreezeCullingEnabled = false;

@@ -261,9 +261,9 @@ struct alignas(16) ShaderTransform
 };
 
 //RenderableComponent::RenderableFlags
-static const uint INST_CLIPBOX = 1 << 9;
-static const uint INST_CLIPPLANE = 1 << 10;
-static const uint INST_JITTERING = 1 << 11;
+static const uint INST_CLIPBOX = 1 << 5;
+static const uint INST_CLIPPLANE = 1 << 6;
+static const uint INST_JITTERING = 1 << 7;
 
 struct alignas(16) ShaderMeshInstance	// mesh renderable // packed to VolumeInstance
 {

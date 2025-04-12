@@ -409,7 +409,7 @@ bool ImportModel_SPLAT(const std::string& fileName, const Entity geometryEntity)
 	GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
 	if (geometry == nullptr)
 	{
-		vzlog_error("Invalid Entity(%d)!", geometryEntity);
+		vzlog_error("Invalid Entity(%llu)!", geometryEntity);
 		return false;
 	}
 

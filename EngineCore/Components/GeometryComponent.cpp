@@ -823,6 +823,7 @@ namespace vz
 			}
 		}
 		hasBVH_ = enabled;
+		timeStampSetter_ = TimerNow;
 		timeStampBVHUpdate_ = TimerNow;
 		waiter_->setFree();
 	}
@@ -1291,7 +1292,9 @@ namespace vz
 				GPrimBuffers& part_buffers = *(GPrimBuffers*)primitive.bufferHandle_.get();
 				vzlog_assert(!part_buffers.busyUpdate, "GPrimBuffers::busyUpdate must be FALSE! at the end of UpdateRenderData");
 			}
-		}	
+		}
+
+		timeStampSetter_ = TimerNow;
 	}
 	
 	void GGeometryComponent::UpdateCustomRenderData(const std::function<void(graphics::GraphicsDevice* device)>& task)
@@ -1327,6 +1330,8 @@ namespace vz
 		task(graphics::GetDevice());
 
 		hasRenderData_ = true;
+
+		timeStampSetter_ = TimerNow;
 	}
 
 	void GGeometryComponent::UpdateStreamoutRenderData()

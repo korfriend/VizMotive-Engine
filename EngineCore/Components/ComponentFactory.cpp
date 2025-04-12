@@ -42,7 +42,10 @@ namespace vz::compfactory
 		case ComponentType::NAME: return nameManager.GetComponentByVUID(vuid);
 		case ComponentType::TRANSFORM: return transformManager.GetComponentByVUID(vuid);
 		case ComponentType::HIERARCHY: return hierarchyManager.GetComponentByVUID(vuid);
+		case ComponentType::COLLIDER: return colliderManager.GetComponentByVUID(vuid);
 		case ComponentType::RENDERABLE: return renderableManager.GetComponentByVUID(vuid);
+		case ComponentType::SPRITE: return spriteManager.GetComponentByVUID(vuid);
+		case ComponentType::SPRITEFONT: return spritefontManager.GetComponentByVUID(vuid);
 		case ComponentType::MATERIAL: return materialManager.GetComponentByVUID(vuid);
 		case ComponentType::GEOMETRY: return geometryManager.GetComponentByVUID(vuid);
 		case ComponentType::TEXTURE: return textureManager.GetComponentByVUID(vuid);
@@ -109,12 +112,6 @@ namespace vz::compfactory
 		}
 		return comp;
 	}
-	ColliderComponent* CreateColliderComponent(const Entity entity)
-	{
-		ENTITY_UPDATE(entity_update);
-		ColliderComponent* comp = &colliderManager.Create(entity_update);
-		return comp;
-	}
 	MaterialComponent* CreateMaterialComponent(const Entity entity)
 	{
 		ENTITY_UPDATE(entity_update);
@@ -137,6 +134,12 @@ namespace vz::compfactory
 	{
 		ENTITY_UPDATE(entity_update);
 		VolumeComponent* comp = &volumeManager.Create(entity_update);
+		return comp;
+	}
+	ColliderComponent* CreateColliderComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		ColliderComponent* comp = &colliderManager.Create(entity_update);
 		return comp;
 	}
 	LightComponent* CreateLightComponent(const Entity entity)
@@ -218,6 +221,14 @@ namespace vz::compfactory
 	RenderableComponent* GetRenderableComponent(const Entity entity)
 	{
 		RETURN_GET_COMP(RenderableComponent, renderableManager, entity);
+	}
+	SpriteComponent* GetSpriteComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(SpriteComponent, spriteManager, entity);
+	}
+	SpriteFontComponent* GetSpriteFontComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(SpriteFontComponent, spritefontManager, entity);
 	}
 	LightComponent* GetLightComponent(const Entity entity)
 	{
@@ -314,6 +325,14 @@ namespace vz::compfactory
 	{
 		return renderableManager.Contains(entity);
 	}
+	bool ContainSpriteComponent(const Entity entity)
+	{
+		return spriteManager.Contains(entity);
+	}
+	bool ContainSpriteFontComponent(const Entity entity)
+	{	
+		return spritefontManager.Contains(entity);
+	}
 	bool ContainLightComponent(const Entity entity)
 	{
 		return lightManager.Contains(entity);
@@ -343,12 +362,16 @@ namespace vz::compfactory
 		GET_COMP_BY_ENTITY(nameManager);
 		GET_COMP_BY_ENTITY(transformManager);
 		GET_COMP_BY_ENTITY(hierarchyManager);
+		GET_COMP_BY_ENTITY(colliderManager);
 		GET_COMP_BY_ENTITY(renderableManager);
+		GET_COMP_BY_ENTITY(spriteManager);
+		GET_COMP_BY_ENTITY(spritefontManager);
 		GET_COMP_BY_ENTITY(lightManager);
 		GET_COMP_BY_ENTITY(cameraManager);
 		GET_COMP_BY_ENTITY(materialManager);
 		GET_COMP_BY_ENTITY(geometryManager);
 		GET_COMP_BY_ENTITY(textureManager);
+		GET_COMP_BY_ENTITY(volumeManager);
 
 		return components.size();
 	}
