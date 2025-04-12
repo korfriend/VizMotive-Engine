@@ -349,8 +349,6 @@ namespace vz
 	{
 		size_t num_renderables = renderableComponents.size();
 		occlusionResultsObjects.resize(num_renderables);
-		renderableComponents_mesh.clear();
-		renderableComponents_volume.clear();
 
 		// GPUs
 		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
@@ -379,14 +377,18 @@ namespace vz
 			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
 
 			// Note : SceneDetails::RunRenderableUpdateSystem computes raw world matrix and its prev.
-			XMFLOAT4X4 world_matrix_prev = scene_->GetRenderableWorldMatricesPrev()[args.jobIndex];
-			XMFLOAT4X4 world_matrix = scene_->GetRenderableWorldMatrices()[args.jobIndex];
+			XMFLOAT4X4 world_matrix_prev = matrixRenderables[args.jobIndex];
+			XMFLOAT4X4 world_matrix = matrixRenderablesPrev[args.jobIndex];
 			XMMATRIX W = XMLoadFloat4x4(&world_matrix);
 
 			renderable.renderFlags = 0u;
 			renderable.renderableIndex = ~0u;
+			renderable.materialIndices.clear();
 
-			if (renderable.IsMeshRenderable())
+			switch (renderable.GetRenderableType())
+			{
+			case RenderableType::GSPLAT_RENDERABLE:
+			case RenderableType::MESH_RENDERABLE:
 			{
 				// These will only be valid for a single frame:
 				Entity geo_entity = renderable.GetGeometry();
@@ -415,9 +417,8 @@ namespace vz
 
 				size_t num_parts = primitives.size();
 
-				renderable.renderableIndex = Scene::GetIndex(renderableEntities, renderable.GetEntity());
-				renderable.geometryIndex = Scene::GetIndex(geometryEntities, geo_entity);
-
+				renderable.renderableIndex = args.jobIndex;
+				renderable.geometryIndex = geometry.geometryIndex;
 				renderable.materialIndices.assign(num_parts, ~0u);
 				renderable.materialFilterFlags = 0;
 
@@ -440,7 +441,7 @@ namespace vz
 
 					ShaderInstanceResLookup inst_res_lookup;
 					inst_res_lookup.Init();
-					inst_res_lookup.materialIndex = Scene::GetIndex(materialEntities, material.GetEntity());
+					inst_res_lookup.materialIndex = material.materialIndex;
 					if (hasBufferEffect)
 					{
 						GPrimEffectBuffers& effect_buffers = renderable.bufferEffects[part_index];
@@ -466,7 +467,7 @@ namespace vz
 					sort_bits.bits.blendmode |= 1 << SCU32(material.GetBlendMode());
 					sort_bits.bits.alphatest |= material.IsAlphaTestEnabled();
 
-					std::memcpy(instanceResLookupMapped + renderable.resLookupIndex + part_index, 
+					std::memcpy(instanceResLookupMapped + renderable.resLookupIndex + part_index,
 						&inst_res_lookup, sizeof(ShaderInstanceResLookup));
 				}
 
@@ -503,7 +504,7 @@ namespace vz
 				inst.uid = renderable.GetEntity();
 				inst.fadeDistance = renderable.GetFadeDistance();
 				inst.flags = renderable.GetFlags();
-				
+
 				//inst.emissive
 				inst.color = math::pack_half4(XMFLOAT4(1, 1, 1, 1));
 				//inst.lightmap
@@ -515,13 +516,13 @@ namespace vz
 				inst.geometryOffset = inst.baseGeometryOffset;// inst.baseGeometryOffset + first_part;
 				inst.geometryCount = (uint)num_parts;;//last_part - first_part;
 				inst.meshletOffset = geometry.meshletOffset;
-				
+
 				// TODO: clipper setting
 				inst.clipIndex = -1;
 
 				inst.layerMask = 0u;
 
-				inst.aabbCenter = aabb.getCenter();	
+				inst.aabbCenter = aabb.getCenter();
 				inst.aabbRadius = aabb.getRadius();
 				//inst.vb_ao = renderable.vb_ao_srv;
 				//inst.vb_wetmap = device->GetDescriptorIndex(&renderable.wetmap, SubresourceType::SRV);
@@ -532,46 +533,9 @@ namespace vz
 				float rimHighlightFalloff = renderable.GetRimHighLightFalloff();
 				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
 
-				// WE WILL NOT USE BINDLESS FOR GSPLAT
-				// Gaussian Splatting Check
-				if (geometry.allowGaussianSplatting)
-				{
-					Entity material_entity = renderable.GetMaterial(0);
-					const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
-					if (material.IsGaussianSplattingEnabled())
-					{
-//						using GaussianSplattingBuffers = GGeometryComponent::GaussianSplattingBuffers;
-//						GaussianSplattingBuffers& gsplat_buffers = geometry.GetGPrimBuffer(0)->gaussianSplattingBuffers;
-//
-//						inst.alphaTest_size = geometry.geometryOffset; //geometry_index;
-//
-//#define AS_TYPE(TYPE, DST, SRC) { int t = SRC; DST = *(TYPE*)&t; }
-//
-//						AS_TYPE(uint, inst.geometryOffset, device->GetDescriptorIndex(&gsplat_buffers.gaussianSHs, SubresourceType::SRV));
-//						AS_TYPE(uint, inst.geometryCount, device->GetDescriptorIndex(&gsplat_buffers.gaussianScale_Opacities, SubresourceType::SRV)); // gaussian_scale_opacities_index;
-//						AS_TYPE(uint, inst.baseGeometryOffset, device->GetDescriptorIndex(&gsplat_buffers.gaussianQuaterinions, SubresourceType::SRV)); // gaussian_quaternions_index;
-//						AS_TYPE(uint, inst.baseGeometryCount, device->GetDescriptorIndex(&gsplat_buffers.touchedTiles, SubresourceType::UAV));   // touchedTiles_0_index;
-//						AS_TYPE(uint, inst.meshletOffset, device->GetDescriptorIndex(&gsplat_buffers.offsetTiles, SubresourceType::UAV));   // offsetTiles_0_index;
-//						AS_TYPE(uint, inst.resLookupIndex, device->GetDescriptorIndex(&gsplat_buffers.offsetTilesPing, SubresourceType::UAV));   // offsetTiles_Ping_index;
-//						AS_TYPE(uint, inst.emissive.x, device->GetDescriptorIndex(&gsplat_buffers.offsetTilesPong, SubresourceType::UAV)); // offsetTiles_Pong_index;
-//						AS_TYPE(uint, inst.emissive.y, device->GetDescriptorIndex(&gsplat_buffers.sortKBufferEven, SubresourceType::UAV)); // sortKBufferEven_index;
-//						AS_TYPE(float, inst.transformPrev.mat0.x, device->GetDescriptorIndex(&gsplat_buffers.sortKBufferOdd, SubresourceType::UAV)); // sortKBufferOdd_index;
-//						AS_TYPE(float, inst.transformPrev.mat0.y, device->GetDescriptorIndex(&gsplat_buffers.sortVBufferEven, SubresourceType::UAV)); // sortVBufferEven_index;
-//						AS_TYPE(float, inst.transformPrev.mat0.z, device->GetDescriptorIndex(&gsplat_buffers.sortVBufferOdd, SubresourceType::UAV)); // sortVBufferOdd_index;
-//						AS_TYPE(float, inst.transformPrev.mat0.w, device->GetDescriptorIndex(&gsplat_buffers.sortHistBuffer, SubresourceType::UAV)); // sortHistBuffer_index;
-//						AS_TYPE(float, inst.transformPrev.mat1.x, device->GetDescriptorIndex(&gsplat_buffers.gaussianKernelAttributes, SubresourceType::UAV)); // gaussian_vertex_attributes_index;
-//						AS_TYPE(float, inst.transformPrev.mat1.y, device->GetDescriptorIndex(&gsplat_buffers.totalSumBufferHost, SubresourceType::UAV)); // totalSumBufferHost_index;
-//						AS_TYPE(float, inst.transformPrev.mat1.z, device->GetDescriptorIndex(&gsplat_buffers.tileBoundaryBuffer, SubresourceType::UAV)); // tileBoundaryBuffer_index;
-//						inst.transformPrev.mat1.w = -1; // device->GetDescriptorIndex(&gsplat_buffers.duplicatedDepthGaussians, SubresourceType::UAV); // duplicatedDepthGaussians_index;
-//						AS_TYPE(float, inst.transformPrev.mat2.x, device->GetDescriptorIndex(&gsplat_buffers.readBackBufferTest, SubresourceType::UAV)); // readBackBufferTest_index;
-//						uint num_gaussian = (uint)primitives[0].GetNumVertices();
-//						inst.transformPrev.mat2.y = *(float*)&num_gaussian;
-					}
-				}
-
 				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
-			}
-			else if (renderable.IsVolumeRenderable())
+			} break;
+			case RenderableType::VOLUME_RENDERABLE:
 			{
 				const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
 				GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
@@ -599,11 +563,9 @@ namespace vz
 				SortBits sort_bits;
 				sort_bits.bits.sort_priority = renderable.sortPriority;
 
-				renderable.renderableIndex = Scene::GetIndex(renderableEntities, renderable.GetEntity());
-				renderable.geometryIndex = ~0u;
+				renderable.renderableIndex = renderable.renderableIndex;
+				renderable.materialIndices.assign(1, material.materialIndex); // volume renderable has a single material that has volume texture
 
-				renderable.materialIndices.assign(1, ~0u); // volume renderable has a single material that has volume texture
-				
 				ShaderMeshInstance inst; // this will be loaded as VolumeInstance
 				inst.Init();
 
@@ -618,7 +580,7 @@ namespace vz
 				const XMUINT3& block_pitch = volume->GetBlockPitch();
 				vzlog_assert(block_pitch.x <= 2048 && block_pitch.y <= 2048 && block_pitch.z <= 1024, "Volume Pitches must be packked into 32-bits!");
 				inst.baseGeometryCount = block_pitch.x & 0x7FF | ((block_pitch.x & 0x7FF) << 11) | ((block_pitch.z & 0x3FF) << 22);
-				
+
 				inst.color = math::pack_half4(XMFLOAT4(1, 1, 1, 1));
 				//inst.lightmap
 				// 
@@ -629,7 +591,7 @@ namespace vz
 
 				const geometrics::AABB& aabb = renderable.GetAABB();
 				inst.aabbCenter = aabb.getCenter();
-				inst.aabbRadius = aabb.getRadius();				
+				inst.aabbRadius = aabb.getRadius();
 				XMFLOAT4 rimHighlightColor = renderable.GetRimHighLightColor();
 				float rimHighlightFalloff = renderable.GetRimHighLightFalloff();
 				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
@@ -649,7 +611,7 @@ namespace vz
 				XMFLOAT4X4 mat_ws2ts;
 				XMStoreFloat4x4(&mat_ws2ts, xmat_ws2ts);
 
-				inst.transform.Create(mat_ws2ts);	
+				inst.transform.Create(mat_ws2ts);
 				inst.transformPrev.Create(world_matrix_prev);
 
 				const geometrics::AABB& aabb_vol = volume->ComputeAABB();
@@ -660,7 +622,7 @@ namespace vz
 				XMStoreFloat4x4(&mat_alignedvbox_ws2bs, xmat_alignedvbox_ws2bs);
 				inst.transformRaw.Create(mat_alignedvbox_ws2bs); // TODO... this is supposed to be world_matrix
 
-				inst.resLookupIndex = Scene::GetIndex(materialEntities, material.GetEntity());
+				inst.resLookupIndex = material.materialIndex;
 				const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
 				float value_range = min_max_stored_v.y - min_max_stored_v.x;
 				inst.geometryOffset = *(uint*)&value_range;
@@ -677,23 +639,14 @@ namespace vz
 				inst.alphaTest_size = *(uint*)&sample_dist;
 
 				renderable.sortBits = sort_bits.value;
-				
+
 				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
+			} break;
+			default:
+				vzlog_assert(false, "this update must be called for mesh or volume renderablecomponents");
+				break;
 			}
-
 			});
-
-		for (GRenderableComponent* renderable : renderableComponents)
-		{
-			if (renderable->IsMeshRenderable())
-			{
-				renderableComponents_mesh.push_back(renderable);
-			}
-			else if (renderable->IsVolumeRenderable())
-			{
-				renderableComponents_volume.push_back(renderable);
-			}
-		}
 	}
 
 	bool GSceneDetails::Update(const float dt)
@@ -703,11 +656,47 @@ namespace vz
 		deltaTime = dt;
 		jobsystem::context ctx;
 
-		renderableEntities = scene_->GetRenderableEntities();
-		renderableComponents.resize(renderableEntities.size());
-		size_t num_renderables = renderableComponents.size();
-		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-			renderableComponents[args.jobIndex] = (GRenderableComponent*)compfactory::GetRenderableComponent(renderableEntities[args.jobIndex]);
+		const std::vector<Entity>& renderableEntityCandidates = scene_->GetRenderableEntities();
+		const std::vector<XMFLOAT4X4>& matrixRenderableCandidates = scene_->GetRenderableWorldMatrices();
+		const std::vector<XMFLOAT4X4>& matrixRenderableCandidatesPrev = scene_->GetRenderableWorldMatricesPrev();
+		// renderableEntities, matrixRenderables, matrixRenderablesPrev
+		// HERE, renderableComponents stores scene_->renderables_ whose IsRenderable() is TURE
+		uint32_t num_renderables = scene_->GetRenderableMeshCount() + scene_->GetRenderableVolumeCount() + scene_->GetRenderableGSplatCount();
+		renderableComponents.resize(num_renderables);
+		renderableEntities.resize(num_renderables);
+		matrixRenderables.resize(num_renderables);
+		matrixRenderablesPrev.resize(num_renderables);
+		std::atomic<uint32_t> renderable_count = { 0 };
+		jobsystem::Dispatch(ctx, (uint32_t)renderableEntityCandidates.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			Entity entity = renderableEntityCandidates[args.jobIndex];
+			GRenderableComponent* renderable = (GRenderableComponent*)compfactory::GetRenderableComponent(entity);
+			assert(renderable);
+			if (renderable->IsRenderable())
+			{
+				uint32_t index = renderable_count.load();
+				renderableComponents[index] = renderable;
+				renderableEntities[index] = entity;
+				matrixRenderables[index] = matrixRenderableCandidates[args.jobIndex];
+				matrixRenderablesPrev[index] = matrixRenderableCandidatesPrev[args.jobIndex];
+				renderable->renderableIndex = index;
+				renderable_count.fetch_add(1, std::memory_order_relaxed);
+			}
+			});
+
+		spriteEntities = scene_->GetSpriteEntities();
+		spriteComponents.resize(spriteEntities.size());
+		size_t num_sprites = spriteEntities.size();
+		jobsystem::Dispatch(ctx, (uint32_t)num_sprites, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			spriteComponents[args.jobIndex] = (GSpriteComponent*)compfactory::GetSpriteComponent(spriteEntities[args.jobIndex]);
+			spriteComponents[args.jobIndex]->spriteIndex = args.jobIndex;
+			});
+
+		spriteFontEntities = scene_->GetSpriteEntities();
+		spriteFontComponents.resize(spriteFontEntities.size());
+		size_t num_spritefonts = spriteFontEntities.size();
+		jobsystem::Dispatch(ctx, (uint32_t)num_spritefonts, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			spriteFontComponents[args.jobIndex] = (GSpriteFontComponent*)compfactory::GetSpriteFontComponent(spriteFontEntities[args.jobIndex]);
+			spriteFontComponents[args.jobIndex]->spritefontIndex = args.jobIndex;
 			});
 
 		lightEntities = scene_->GetLightEntities();
@@ -715,6 +704,7 @@ namespace vz
 		size_t num_lights = lightComponents.size();
 		jobsystem::Dispatch(ctx, (uint32_t)num_lights, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 			lightComponents[args.jobIndex] = (GLightComponent*)compfactory::GetLightComponent(lightEntities[args.jobIndex]);
+			lightComponents[args.jobIndex]->lightIndex = args.jobIndex;
 			});
 
 		materialEntities = scene_->GetMaterialEntities();
@@ -722,6 +712,7 @@ namespace vz
 		size_t num_materials = materialComponents.size();
 		jobsystem::Dispatch(ctx, (uint32_t)num_materials, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 			materialComponents[args.jobIndex] = (GMaterialComponent*)compfactory::GetMaterialComponent(materialEntities[args.jobIndex]);
+			materialComponents[args.jobIndex]->materialIndex = args.jobIndex;
 			});
 
 		geometryEntities = scene_->GetGeometryEntities();
@@ -729,6 +720,7 @@ namespace vz
 		size_t num_geometries = geometryComponents.size();
 		jobsystem::Dispatch(ctx, (uint32_t)num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 			geometryComponents[args.jobIndex] = (GGeometryComponent*)compfactory::GetGeometryComponent(geometryEntities[args.jobIndex]);
+			geometryComponents[args.jobIndex]->geometryIndex = args.jobIndex;
 			});
 
 
@@ -877,12 +869,16 @@ namespace vz
 			instanceResLookupAllocator.store(0u);
 			jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 				GRenderableComponent* renderable = renderableComponents[args.jobIndex];
-				if (!renderable->IsMeshRenderable())
+				assert(renderable->IsRenderable());
+				if (renderable->GetRenderableType() == RenderableComponent::VOLUME_RENDERABLE)
 				{
-					return;
+					renderable->resLookupIndex = instanceResLookupAllocator.fetch_add(1);
 				}
-				size_t num_parts = compfactory::GetGeometryComponent(renderable->GetGeometry())->GetNumParts();
-				renderable->resLookupIndex = instanceResLookupAllocator.fetch_add((uint32_t)num_parts);
+				else
+				{
+					size_t num_parts = compfactory::GetGeometryComponent(renderable->GetGeometry())->GetNumParts();
+					renderable->resLookupIndex = instanceResLookupAllocator.fetch_add((uint32_t)num_parts);
+				}
 				});
 
 			// initialize ShaderRenderable 

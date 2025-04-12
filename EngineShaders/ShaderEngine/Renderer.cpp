@@ -27,9 +27,10 @@ namespace vz::renderer
 	{
 		renderableShapes.Clear();
 
+		scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
+
 		// Frustum culling for main camera:l,k
 		viewMain.layerMask = ~0;
-		viewMain.scene = scene;
 		viewMain.camera = camera;
 		viewMain.flags = renderer::View::ALLOW_EVERYTHING;
 		if (!renderer::isOcclusionCullingEnabled || camera->IsSlicer())
@@ -46,7 +47,6 @@ namespace vz::renderer
 			cameraReflection.jitter = XMFLOAT2(0, 0);
 			//cameraReflection.Reflect(viewMain.reflectionPlane);
 			//viewReflection.layerMask = getLayerMask();
-			viewReflection.scene = scene;
 			viewReflection.camera = &cameraReflection;
 			viewReflection.flags =
 				//renderer::View::ALLOW_OBJECTS |
@@ -97,7 +97,6 @@ namespace vz::renderer
 			temporalAAResources = {};
 		}
 
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
 		if (scene_Gdetails->isOutlineEnabled)
 		{
 			TextureDesc desc;
@@ -273,8 +272,6 @@ namespace vz::renderer
 	// based on graphics pipeline
 	void GRenderPath3DDetails::DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags)
 	{
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
-
 		const bool opaque = flags & DRAWSCENE_OPAQUE;
 		const bool transparent = flags & DRAWSCENE_TRANSPARENT;
 		const bool occlusion = (flags & DRAWSCENE_OCCLUSIONCULLING) && (view.flags & View::ALLOW_OCCLUSION_CULLING) && isOcclusionCullingEnabled;
@@ -304,14 +301,14 @@ namespace vz::renderer
 		{
 			static thread_local RenderQueue renderQueue;
 			renderQueue.init();
-			for (uint32_t instanceIndex : view.visibleRenderables)
+			for (uint32_t instanceIndex : view.visibleRenderables_Mesh)
 			{
 				if (occlusion && scene_Gdetails->occlusionResultsObjects[instanceIndex].IsOccluded())
 					continue;
 				
 				const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
-				if (!renderable.IsMeshRenderable())
-					continue;
+				assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
+				
 				if (foreground != renderable.IsForeground())
 					continue;
 				if (!renderable.IsVisibleWith(view.camera->GetVisibleLayerMask()))
@@ -349,7 +346,6 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::TextureStreamingReadbackCopy(const Scene& scene, graphics::CommandList cmd)
 	{
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();
 		if (scene_Gdetails->textureStreamingFeedbackBuffer.IsValid())
 		{
 			//device->WaitQueue(cmd, QUEUE_TYPE::QUEUE_COPY);
@@ -368,8 +364,6 @@ namespace vz::renderer
 	{
 		if (renderQueue.empty())
 			return;
-
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
 
 		device->EventBegin("RenderMeshes", cmd);
 
@@ -644,7 +638,7 @@ namespace vz::renderer
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
-			assert(renderable.IsMeshRenderable());
+			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
 
 			// TODO.. 
 			//	to implement multi-instancing
@@ -668,13 +662,7 @@ namespace vz::renderer
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
 				instancedBatch.lod = lod;
-				std::vector<Entity> materials(renderable.GetNumParts());
-				size_t n = renderable.GetMaterials(materials.data());
-				instancedBatch.materialIndices.resize(materials.size());
-				for (size_t i = 0; i < n; ++i)
-				{
-					instancedBatch.materialIndices[i] = Scene::GetIndex(scene_Gdetails->materialEntities, materials[i]);
-				}
+				instancedBatch.materialIndices = renderable.materialIndices;
 			}
 
 			const float dither = std::max(0.0f, batch.GetDistance() - renderable.GetFadeDistance()) / renderable.GetVisibleRadius();
@@ -1801,8 +1789,6 @@ namespace vz::renderer
 			}
 
 			//RenderOutline(cmd);
-			//GSceneDetails* scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
-			//scene_Gdetails->renderableShapes.DrawLines(*camera, cmd, false);
 			renderableShapes.DrawLines(*camera, cmd, false);
 
 			device->RenderPassEnd(cmd);
