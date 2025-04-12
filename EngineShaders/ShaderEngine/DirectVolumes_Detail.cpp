@@ -4,14 +4,8 @@ namespace vz::renderer
 {
 	void GRenderPath3DDetails::RenderSlicerMeshes(CommandList cmd)
 	{
-		if (viewMain.visibleRenderables.empty())
+		if (viewMain.visibleRenderables_Mesh.empty())
 			return;
-
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)viewMain.scene->GetGSceneHandle();
-		if (scene_Gdetails->renderableComponents_mesh.empty())
-		{
-			return;
-		}
 
 		uint32_t filterMask = GMaterialComponent::FILTER_OPAQUE | GMaterialComponent::FILTER_TRANSPARENT;
 
@@ -25,11 +19,10 @@ namespace vz::renderer
 		//	
 		static thread_local RenderQueue renderQueue;
 		renderQueue.init();
-		for (uint32_t instanceIndex : viewMain.visibleRenderables)
+		for (uint32_t instanceIndex : viewMain.visibleRenderables_Mesh)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
-			if (!renderable.IsMeshRenderable())
-				continue;
+
 			if (!renderable.IsVisibleWith(viewMain.camera->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
@@ -196,7 +189,7 @@ namespace vz::renderer
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
-			assert(renderable.IsMeshRenderable());
+			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
 
 			// TODO.. 
 			//	to implement multi-instancing
@@ -219,13 +212,7 @@ namespace vz::renderer
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
 				instancedBatch.lod = lod;
-				std::vector<Entity> materials(renderable.GetNumParts());
-				size_t n = renderable.GetMaterials(materials.data());
-				instancedBatch.materialIndices.resize(materials.size());
-				for (size_t i = 0; i < n; ++i)
-				{
-					instancedBatch.materialIndices[i] = Scene::GetIndex(scene_Gdetails->materialEntities, materials[i]);
-				}
+				instancedBatch.materialIndices = renderable.materialIndices;
 			}
 
 			const float dither = std::max(0.0f, batch.GetDistance() - renderable.GetFadeDistance()) / renderable.GetVisibleRadius();
@@ -305,14 +292,8 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::RenderDirectVolumes(CommandList cmd)
 	{
-		if (viewMain.visibleRenderables.empty())
+		if (viewMain.visibleRenderables_Volume.empty())
 			return;
-
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)viewMain.scene->GetGSceneHandle();
-		if (scene_Gdetails->renderableComponents_volume.empty())
-		{
-			return;
-		}
 
 		uint32_t filterMask = GMaterialComponent::FILTER_VOLUME;
 
@@ -326,10 +307,10 @@ namespace vz::renderer
 		//	
 		static thread_local RenderQueue renderQueue;
 		renderQueue.init();
-		for (uint32_t instanceIndex : viewMain.visibleRenderables)
+		for (uint32_t instanceIndex : viewMain.visibleRenderables_Volume)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
-			if (!renderable.IsVolumeRenderable())
+			if (renderable.GetRenderableType() != RenderableType::VOLUME_RENDERABLE)
 				continue;
 			if (!renderable.IsVisibleWith(viewMain.camera->GetVisibleLayerMask()))
 				continue;
@@ -364,9 +345,9 @@ namespace vz::renderer
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
-			assert(renderable.IsVolumeRenderable());
+			assert(renderable.GetRenderableType() == RenderableType::VOLUME_RENDERABLE);
 
-			GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
+			GMaterialComponent* material = scene_Gdetails->materialComponents[renderable.materialIndices[0]];
 			assert(material);
 
 			GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(

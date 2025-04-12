@@ -85,9 +85,6 @@ namespace vz::renderer
 		jobsystem::context ctx;
 		auto range = profiler::BeginRangeCPU("Frustum Culling");
 
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
-
-		assert(view.scene != nullptr); // User must provide a scene!
 		assert(view.camera != nullptr); // User must provide a camera!
 
 		// The parallel frustum culling is first performed in shared memory, 
@@ -113,15 +110,13 @@ namespace vz::renderer
 		if (view.flags & View::ALLOW_LIGHTS)
 		{
 			// Cull lights:
-			const uint32_t light_loop = (uint32_t)view.scene->GetLightCount();
+			const uint32_t light_loop = (uint32_t)scene_Gdetails->lightComponents.size();
 			view.visibleLights.resize(light_loop);
 			//vis.visibleLightShadowRects.clear();
 			//vis.visibleLightShadowRects.resize(light_loop);
 			jobsystem::Dispatch(ctx, light_loop, groupSize, [&](jobsystem::JobArgs args) {
 
-				const std::vector<Entity>& light_entities = view.scene->GetLightEntities();
-				Entity entity = light_entities[args.jobIndex];
-				const LightComponent& light = *compfactory::GetLightComponent(entity);
+				const LightComponent& light = *scene_Gdetails->lightComponents[args.jobIndex];
 				assert(!light.IsDirty());
 
 				// Setup stream compaction:
@@ -176,27 +171,40 @@ namespace vz::renderer
 		if (view.flags & View::ALLOW_RENDERABLES)
 		{
 			// Cull objects:
-			const uint32_t renderable_loop = (uint32_t)view.scene->GetRenderableCount();
-			view.visibleRenderables.resize(renderable_loop);
+			const uint32_t renderable_loop = (uint32_t)scene_Gdetails->renderableComponents.size();
+
+			const Scene* scene = scene_Gdetails->GetScene();
+			view.visibleRenderables_Mesh.resize(scene->GetRenderableMeshCount());
+			view.visibleRenderables_Volume.resize(scene->GetRenderableVolumeCount());
+			view.visibleRenderables_GSplat.resize(scene->GetRenderableGSplatCount());
+
 			jobsystem::Dispatch(ctx, renderable_loop, groupSize, [&](jobsystem::JobArgs args) {
 
 				const RenderableComponent& renderable = *scene_Gdetails->renderableComponents[args.jobIndex];
 				//assert(!renderable.IsDirty());
 
-				// Setup stream compaction:
-				uint32_t& group_count = *(uint32_t*)args.sharedmemory;
-				uint32_t* group_list = (uint32_t*)args.sharedmemory + 1;
-				if (args.isFirstJobInGroup)
-				{
-					group_count = 0; // first thread initializes local counter
-				}
-
 				const AABB& aabb = renderable.GetAABB();
 
 				if ((aabb.layerMask & view.layerMask) && view.frustum.CheckBoxFast(aabb))
 				{
-					// Local stream compaction:
-					group_list[group_count++] = args.jobIndex;
+					switch (renderable.GetRenderableType())
+					{
+					case RenderableType::MESH_RENDERABLE:
+						view.visibleRenderables_Mesh[view.renderableCounterMesh.load()] = args.jobIndex;
+						view.renderableCounterMesh.fetch_add(1, std::memory_order_relaxed);
+						break;
+					case RenderableType::VOLUME_RENDERABLE:
+						view.visibleRenderables_Volume[view.renderableCounterVolume.load()] = args.jobIndex;
+						view.renderableCounterVolume.fetch_add(1, std::memory_order_relaxed);
+						break;
+					case RenderableType::GSPLAT_RENDERABLE:
+						view.visibleRenderables_GSplat[view.renderableCounterGSplat.load()] = args.jobIndex;
+						view.renderableCounterGSplat.fetch_add(1, std::memory_order_relaxed);
+						break;
+					default:
+						vzlog_assert(0, "MUST BE RENDERABLE!");
+						return;
+					}
 
 					GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[args.jobIndex];
 					bool occluded = false;
@@ -207,7 +215,8 @@ namespace vz::renderer
 
 					if (view.flags & View::ALLOW_OCCLUSION_CULLING)
 					{
-						if (renderable.IsMeshRenderable() && occlusion_result.occlusionQueries[scene_Gdetails->queryheapIdx] < 0)
+						assert(renderable.IsRenderable());
+						if (occlusion_result.occlusionQueries[scene_Gdetails->queryheapIdx] < 0)
 						{
 							if (aabb.intersects(view.camera->GetWorldEye()))
 							{
@@ -222,31 +231,34 @@ namespace vz::renderer
 					}
 				}
 
-				// Global stream compaction:
-				if (args.isLastJobInGroup && group_count > 0)
-				{
-					uint32_t prev_count = view.renderableCounter.fetch_add(group_count);
-					for (uint32_t i = 0; i < group_count; ++i)
-					{
-						view.visibleRenderables[prev_count + i] = group_list[i];
-					}
-				}
-
-				}, sharedmemory_size);
+				});
 		}
 
 		jobsystem::Wait(ctx);
 
 		// finalize stream compaction: (memory safe)
-		view.visibleRenderables.resize((size_t)view.renderableCounter.load());
+		size_t num_Meshes = (size_t)view.renderableCounterMesh.load();
+		size_t num_Volumes = (size_t)view.renderableCounterVolume.load();
+		size_t num_GSplats = (size_t)view.renderableCounterGSplat.load();
+		view.visibleRenderables_Mesh.resize(num_Meshes);
+		view.visibleRenderables_Volume.resize(num_Volumes);
+		view.visibleRenderables_GSplat.resize(num_GSplats);
 		view.visibleLights.resize((size_t)view.lightCounter.load());
+
+		view.visibleRenderables_All.resize(num_Meshes + num_Volumes + num_GSplats);
+
+		if (num_Meshes > 0)
+			memcpy(&view.visibleRenderables_All[0], &view.visibleRenderables_Mesh[0], sizeof(uint32_t)* num_Meshes);
+		if (num_Volumes > 0)
+			memcpy(&view.visibleRenderables_All[num_Meshes], &view.visibleRenderables_Volume[0], sizeof(uint32_t)* num_Volumes);
+		if (num_GSplats > 0)
+			memcpy(&view.visibleRenderables_All[num_Meshes + num_Volumes], &view.visibleRenderables_GSplat[0], sizeof(uint32_t)* num_GSplats);
 
 		profiler::EndRange(range); // Frustum Culling
 	}
 	void GRenderPath3DDetails::UpdatePerFrameData(Scene& scene, const View& vis, FrameCB& frameCB, float dt)
 	{
 		GraphicsDevice* device = graphics::GetDevice();
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();
 
 		// Update CPU-side frame constant buffer:
 		frameCB.Init();
@@ -469,7 +481,6 @@ namespace vz::renderer
 
 			//const XMFLOAT2 atlas_dim_rcp = XMFLOAT2(1.0f / float(shadowMapAtlas.desc.width), 1.0f / float(shadowMapAtlas.desc.height));
 
-			const std::vector<Entity>& light_entities = vis.scene->GetLightEntities();
 			// Write directional lights into entity array:
 			lightarray_offset = entity_counter;
 			lightarray_offset_directional = entity_counter;
@@ -482,7 +493,7 @@ namespace vz::renderer
 					break;
 				}
 
-				const GLightComponent& light = *(GLightComponent*)compfactory::GetLightComponent(light_entities[lightIndex]);
+				const GLightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
 				if (light.GetLightType() != LightComponent::LightType::DIRECTIONAL || light.IsInactive())
 					continue;
 
@@ -1298,8 +1309,6 @@ namespace vz::renderer
 		auto prof_updatebuffer_cpu = profiler::BeginRangeCPU("Update Buffers (CPU)");
 		auto prof_updatebuffer_gpu = profiler::BeginRangeGPU("Update Buffers (GPU)", &cmd);
 
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
-
 		device->CopyBuffer(&indirectDebugStatsReadback[device->GetBufferIndex()], 0, &buffers[BUFFERTYPE_INDIRECT_DEBUG_0], 0, sizeof(IndirectDrawArgsInstanced), cmd);
 		indirectDebugStatsReadback_available[device->GetBufferIndex()] = true;
 
@@ -1407,26 +1416,21 @@ namespace vz::renderer
 	{
 		device->EventBegin("UpdateRenderDataAsync", cmd);
 
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
-
 		BindCommonResources(cmd);
 
 		// Wetmaps will be initialized:
-		for (uint32_t renderableIndex = 0, n = (uint32_t)view.scene->GetRenderableCount(); renderableIndex < n; ++renderableIndex)
+		for (uint32_t i = 0, n = (uint32_t)view.visibleRenderables_Mesh.size(); i < n; ++i)
 		{
-			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderableIndex];
-			if (!renderable.IsMeshRenderable())
-			{
-				continue;
-			}
-			Entity geometry_entity = renderable.GetGeometry();
-			GGeometryComponent& geomety = *(GGeometryComponent*)compfactory::GetGeometryComponent(geometry_entity);
-			if (!geomety.HasRenderData())
+			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[view.visibleRenderables_Mesh[i]];
+			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
+
+			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
+			if (!geometry.HasRenderData())
 			{
 				continue;
 			}
 
-			size_t num_parts = geomety.GetNumParts();
+			size_t num_parts = geometry.GetNumParts();
 			bool has_buffer_effect = num_parts == renderable.bufferEffects.size();
 			for (size_t part_index = 0; part_index < num_parts; ++part_index)
 			{
@@ -1458,14 +1462,13 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::OcclusionCulling_Reset(const View& view, CommandList cmd)
 	{
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
 		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
 
 		if (!renderer::isOcclusionCullingEnabled || renderer::isFreezeCullingCameraEnabled || !queryHeap.IsValid())
 		{
 			return;
 		}
-		if (view.visibleRenderables.empty() && view.visibleLights.empty())
+		if (view.visibleRenderables_All.empty() && view.visibleLights.empty())
 		{
 			return;
 		}
@@ -1479,14 +1482,13 @@ namespace vz::renderer
 	}
 	void GRenderPath3DDetails::OcclusionCulling_Render(const CameraComponent& camera, const View& view, CommandList cmd)
 	{
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
 		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
 
 		if (!renderer::isOcclusionCullingEnabled || renderer::isFreezeCullingCameraEnabled || !queryHeap.IsValid())
 		{
 			return;
 		}
-		if (view.visibleRenderables.empty() && view.visibleLights.empty())
+		if (view.visibleRenderables_All.empty() && view.visibleLights.empty())
 		{
 			return;
 		}
@@ -1499,11 +1501,11 @@ namespace vz::renderer
 
 		int query_write = scene_Gdetails->queryheapIdx;
 
-		if (!view.visibleRenderables.empty())
+		if (!view.visibleRenderables_All.empty())
 		{
 			device->EventBegin("Occlusion Culling Objects", cmd);
 
-			for (uint32_t instanceIndex : view.visibleRenderables)
+			for (uint32_t instanceIndex : view.visibleRenderables_All)
 			{
 				const GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[instanceIndex];
 				GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
@@ -1553,14 +1555,13 @@ namespace vz::renderer
 	}
 	void GRenderPath3DDetails::OcclusionCulling_Resolve(const View& view, CommandList cmd)
 	{
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
 		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
 
 		if (!renderer::isOcclusionCullingEnabled || renderer::isFreezeCullingCameraEnabled || !queryHeap.IsValid())
 		{
 			return;
 		}
-		if (view.visibleRenderables.empty() && view.visibleLights.empty())
+		if (view.visibleRenderables_All.empty() && view.visibleLights.empty())
 		{
 			return;
 		}
@@ -1601,8 +1602,6 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::RefreshLightmaps(const Scene& scene, CommandList cmd)
 	{
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)scene.GetGSceneHandle();
-
 		// TODO for lightmap_request_allocator
 		/*
 		const uint32_t lightmap_request_count = lightmapRequestAllocator.load();
@@ -1707,7 +1706,6 @@ namespace vz::renderer
 		return; // this will be useful for wetmap simulation for rainny weather...
 
 		device->EventBegin("RefreshWetmaps", cmd);
-		GSceneDetails* scene_Gdetails = (GSceneDetails*)view.scene->GetGSceneHandle();
 
 		BindCommonResources(cmd);
 		device->BindComputeShader(&shaders[CSTYPE_WETMAP_UPDATE], cmd);
@@ -1716,18 +1714,14 @@ namespace vz::renderer
 		push.wet_amount = 1.f;
 
 		// Note: every object wetmap is updated, not just visible
-		for (uint32_t renderableIndex = 0, n = (uint32_t)view.scene->GetRenderableCount(); renderableIndex < n; ++renderableIndex)
+		for (uint32_t i = 0, n = (uint32_t)view.visibleRenderables_Mesh.size(); i < n; ++i)
 		{
-			push.instanceIndex = renderableIndex;
-			GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderableIndex];
+			push.instanceIndex = view.visibleRenderables_Mesh[i];
+			GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[push.instanceIndex];
 
-			if (!renderable.IsMeshRenderable())
-			{
-				continue;
-			}
+			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
 
-			Entity geometry_entity = renderable.GetGeometry();
-			GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geometry_entity);
+			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
 
 			std::vector<Entity> materials(renderable.GetNumParts());
 			assert(renderable.GetNumParts() == renderable.bufferEffects.size());
@@ -1735,7 +1729,7 @@ namespace vz::renderer
 			for (size_t part_index = 0, n = renderable.bufferEffects.size(); part_index < n; ++part_index)
 			{
 				GPrimEffectBuffers& prim_effect_buffers = renderable.bufferEffects[part_index];
-				GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(materials[part_index]);
+				GMaterialComponent& material = *scene_Gdetails->materialComponents[renderable.materialIndices[part_index]];
 				if (!material.IsWetmapEnabled() && prim_effect_buffers.wetmapBuffer.IsValid())
 					continue;
 				uint32_t vertex_count = uint32_t(prim_effect_buffers.wetmapBuffer.desc.size

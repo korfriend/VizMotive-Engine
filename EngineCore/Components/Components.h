@@ -32,12 +32,13 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250412_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250413_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
 	struct GScene;
 	struct Resource;
+	struct ComponentBase;
 
 	class WaitForBool {
 	private:
@@ -122,18 +123,6 @@ namespace vz
 		static void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
 		static bool DestroyScene(const Entity entity);
 		static void DestroyAll();
-		static uint32_t GetIndex(const std::vector<Entity>& entities, const Entity targetEntity)
-		{
-			std::vector<Entity>& _entities = (std::vector<Entity>&)entities;
-			for (uint32_t i = 0, n = (uint32_t)entities.size(); i < n; ++i)
-			{
-				if (_entities[i] == targetEntity)
-				{
-					return i;
-				}
-			}
-			return ~0u;
-		}
 
 	protected:
 		std::string name_;
@@ -146,7 +135,9 @@ namespace vz
 
 		// Instead of Entity, VUID is stored by serialization
 		//	the index is same to the streaming index
-		std::vector<Entity> renderables_;
+		std::vector<Entity> renderables_;	// corresponding to RenderableComponent (can be used as a NODE)
+		std::vector<Entity> sprites_;		// corresponding to SpriteComponent
+		std::vector<Entity> spriteFonts_;	// corresponding to SpriteFontComponent
 		std::vector<Entity> lights_;
 		std::vector<Entity> cameras_;
 
@@ -155,52 +146,24 @@ namespace vz
 
 		// -----------------------------------------
 		// Non-serialized attributes:
-		//	Note: 
-		//		* transform states are based on those streams
-		//		* each entity has also TransformComponent and HierarchyComponent
-		//	index-map
-		std::unordered_map<Entity, size_t> lookupRenderables_;
-		std::unordered_map<Entity, size_t> lookupLights_;
-		std::unordered_map<Entity, size_t> lookupCameras_;
-
+		Entity entity_ = INVALID_ENTITY;
+		std::unordered_map<Entity, ComponentBase*> lookupEntities_;
 		std::vector<Entity> children_;
-		std::unordered_map<Entity, size_t> lookupChildren_;
-
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
-
-		// AABB culling streams:
-		std::vector<geometrics::AABB> aabbRenderables_;
-		std::vector<geometrics::AABB> aabbLights_;
-		//std::vector<geometrics::AABB> aabbProbes_;
-		//std::vector<geometrics::AABB> aabbDecals_;
-
-		// Separate stream of world matrices:
-		std::vector<XMFLOAT4X4> matrixRenderables_;
-		std::vector<XMFLOAT4X4> matrixRenderablesPrev_;
-
-		std::shared_ptr<Resource> skyMap_;
-		std::shared_ptr<Resource> colorGradingMap_;
-
 		geometrics::AABB aabb_;
-
-		Entity entity_ = INVALID_ENTITY;
-
-		// instant parameters during render-process
+		//	instant parameters during render-process
 		float dt_ = 0.f;
 		float deltaTimeAccumulator_ = 0.f;
 		bool isContentChanged_ = true;	// since last recentUpdateTime_
 		TimeStamp recentUpdateTime_ = TimerMin;	// world update time
 		TimeStamp timeStampSetter_ = TimerMin;	// add or remove scene components
 
-		GScene* handlerScene_ = nullptr;
-
 		inline size_t scanGeometryEntities() noexcept;
 		inline size_t scanMaterialEntities() noexcept;
 
 	public:
-		Scene(const Entity entity, const std::string& name);
-		~Scene();
+		Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name) {}
 
 		size_t stableCount = 0;
 		float targetFrameRate = 60;
@@ -214,22 +177,13 @@ namespace vz
 			return duration;
 		}
 
-		uint32_t mostImportantLightIndex = ~0u;
-		const void* GetTextureSkyMap() const;			// return the pointer of graphics::Texture
-		const void* GetTextureGradientMap() const;	// return the pointer of graphics::Texture
-
 		bool IsContentChanged() const { return isContentChanged_; }
 
 		inline const std::string GetSceneName() const { return name_; }
 		inline const Entity GetSceneEntity() const { return entity_; }
-		inline const GScene* GetGSceneHandle() const { return handlerScene_; }
 
 		inline void SetAmbient(const XMFLOAT3& ambient) { ambient_ = ambient; }
 		inline XMFLOAT3 GetAmbient() const { return ambient_; }
-
-		inline bool LoadIBL(const std::string& filename); // to skyMap_
-
-		inline void Update(const float dt);
 
 		inline void Clear();
 
@@ -266,14 +220,28 @@ namespace vz
 		 * Returns the total number of Entities in the Scene, whether alive or not.
 		 * @return Total number of Entities in the Scene.
 		 */
-		inline size_t GetEntityCount() const noexcept { return renderables_.size() + lights_.size(); }
+		inline size_t GetEntityCount() const noexcept { return lookupEntities_.size(); }
 
 		/**
-		 * Returns the number of active (alive) Renderable objects in the Scene.
+		 * Returns the number of active (alive) Renderable components in the Scene.
 		 *
-		 * @return The number of active (alive) Renderable objects in the Scene.
+		 * @return The number of active (alive) Renderable components in the Scene.
 		 */
 		inline size_t GetRenderableCount() const noexcept { return renderables_.size(); }
+
+		/**
+		 * Returns the number of active (alive) Sprite components in the Scene.
+		 *
+		 * @return The number of active (alive) Sprite components in the Scene.
+		 */
+		inline size_t GetSpriteCount() const noexcept { return sprites_.size(); }
+
+		/**
+		 * Returns the number of active (alive) SpriteFont components in the Scene.
+		 *
+		 * @return The number of active (alive) SpriteFont components in the Scene.
+		 */
+		inline size_t GetSpriteFontCount() const noexcept { return spriteFonts_.size(); }
 
 		/**
 		 * Returns the number of active (alive) Light objects in the Scene.
@@ -283,6 +251,8 @@ namespace vz
 		inline size_t GetLightCount() const noexcept { return lights_.size(); }
 
 		inline const std::vector<Entity>& GetRenderableEntities() const noexcept { return renderables_; }
+		inline const std::vector<Entity>& GetSpriteEntities() const noexcept { return sprites_; }
+		inline const std::vector<Entity>& GetSpriteFontEntities() const noexcept { return spriteFonts_; }
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
 		inline const std::vector<Entity>& GetCameraEntities() const noexcept { return cameras_; }
 
@@ -299,19 +269,21 @@ namespace vz
 		 *
 		 * @return Whether the given entity is in the Scene.
 		 */
-		inline bool HasEntity(const Entity entity) const noexcept;
+		inline bool HasEntity(const Entity entity) const noexcept
+		{
+			return lookupEntities_.count(entity) > 0;
+		}
 
 		inline size_t GetEntities(std::vector<Entity>& entities) const
 		{
-			entities = renderables_;
-			entities.insert(entities.end(), lights_.begin(), lights_.end());
+			entities.resize(lookupEntities_.size());
+			size_t count = 0;
+			for (auto it = lookupEntities_.begin(); it != lookupEntities_.end(); it++)
+			{
+				entities[count++] = it->first;
+			}
 			return entities.size();
 		}
-
-		//----------- stream states -------------
-		inline const std::vector<XMFLOAT4X4>& GetRenderableWorldMatrices() const { return matrixRenderables_; }
-		inline const std::vector<XMFLOAT4X4>& GetRenderableWorldMatricesPrev() const { return matrixRenderablesPrev_; }
-
 
 		struct RayIntersectionResult
 		{
@@ -343,6 +315,19 @@ namespace vz
 			uint32_t filterMask = SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE), 
 			uint32_t layerMask = ~0, uint32_t lod = 0) const;
 
+		// Details (virtual implementations)
+		uint32_t mostImportantLightIndex = ~0u;
+		virtual bool LoadIBL(const std::string& filename) = 0; // to skyMap_
+		virtual const void* GetTextureSkyMap() const = 0;		// return the pointer of graphics::Texture
+		virtual const void* GetTextureGradientMap() const = 0;	// return the pointer of graphics::Texture
+
+		virtual void Update(const float dt) = 0;
+		virtual GScene* GetGSceneHandle() const = 0;
+		virtual uint32_t GetRenderableMeshCount() const = 0;
+		virtual uint32_t GetRenderableVolumeCount() const = 0;
+		virtual uint32_t GetRenderableGSplatCount() const = 0;
+		virtual const std::vector<XMFLOAT4X4>& GetRenderableWorldMatrices() const = 0;
+		virtual const std::vector<XMFLOAT4X4>& GetRenderableWorldMatricesPrev() const = 0;
 
 		/**
 		 * Read/write scene components (renderables, lights and Scene-attached cameras), make sure their VUID-based components are serialized first
@@ -1211,22 +1196,28 @@ namespace vz
 		enum RenderableFlags : uint32_t
 		{
 			EMPTY = 0,
-			MESH_RENDERABLE = 1 << 0,
-			REQUEST_PLANAR_REFLECTION = 1 << 4,
-			LIGHTMAP_RENDER_REQUEST = 1 << 5,
-			LIGHTMAP_DISABLE_BLOCK_COMPRESSION = 1 << 6,
-			FOREGROUND = 1 << 7,
-			VOLUME_RENDERABLE = 1 << 8,
-			CLIP_BOX = 1 << 9,
-			CLIP_PLANE = 1 << 10,
-			JITTER_SAMPLE = 1 << 11,
-			SLICER_NO_SOLID_FILL = 1 << 12, // in the case that the geometry is NOT water-tight
-			OUTLINE = 1 << 13,
-			UNDERCUT = 1 << 14,
-			UNPICKABLE = 1 << 15,
+			REQUEST_PLANAR_REFLECTION = 1 << 1,
+			LIGHTMAP_RENDER_REQUEST = 1 << 2,
+			LIGHTMAP_DISABLE_BLOCK_COMPRESSION = 1 << 3,
+			FOREGROUND = 1 << 4,
+			CLIP_BOX = 1 << 5,
+			CLIP_PLANE = 1 << 6,
+			JITTER_SAMPLE = 1 << 7,
+			SLICER_NO_SOLID_FILL = 1 << 8, // in the case that the geometry is NOT water-tight
+			OUTLINE = 1 << 9,
+			UNDERCUT = 1 << 10,
+			UNPICKABLE = 1 << 11,
+		};
+		enum RenderableType : uint8_t
+		{
+			UNDEFINED = 0,
+			MESH_RENDERABLE,
+			VOLUME_RENDERABLE,
+			GSPLAT_RENDERABLE,
 		};
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
+		RenderableType renderableType_ = RenderableType::UNDEFINED;
 
 		// Renderable's layer mask; 
 		// final visibility determined by bitwise AND with target visibleLayerMask_ (e.g., CameraComponent::visibleLayerMask_)
@@ -1266,9 +1257,8 @@ namespace vz
 
 		inline void SetDirty() { isDirty_ = true; }
 		inline bool IsDirty() const { return isDirty_; }
-		inline bool IsMeshRenderable() const { return flags_ & RenderableFlags::MESH_RENDERABLE; }
-		inline bool IsVolumeRenderable() const { return flags_ & RenderableFlags::VOLUME_RENDERABLE; }
-		inline bool isGaussianSplattingEnabled() const { return flags_ & RenderableFlags::VOLUME_RENDERABLE; }
+		inline bool IsRenderable() const { return renderableType_ != RenderableType::UNDEFINED; }
+		inline RenderableType GetRenderableType() const { return renderableType_; }
 
 		inline void EnableForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
@@ -1977,6 +1967,8 @@ namespace vz::compfactory
 	CORE_EXPORT TextureComponent* GetTextureComponent(const Entity entity);
 	CORE_EXPORT VolumeComponent* GetVolumeComponent(const Entity entity);
 	CORE_EXPORT RenderableComponent* GetRenderableComponent(const Entity entity);
+	CORE_EXPORT SpriteComponent* GetSpriteComponent(const Entity entity);
+	CORE_EXPORT SpriteFontComponent* GetSpriteFontComponent(const Entity entity);
 	CORE_EXPORT LightComponent* GetLightComponent(const Entity entity);
 	CORE_EXPORT CameraComponent* GetCameraComponent(const Entity entity);
 	CORE_EXPORT SlicerComponent* GetSlicerComponent(const Entity entity);
@@ -2001,6 +1993,8 @@ namespace vz::compfactory
 	CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
 	CORE_EXPORT bool ContainGeometryComponent(const Entity entity);
 	CORE_EXPORT bool ContainRenderableComponent(const Entity entity);
+	CORE_EXPORT bool ContainSpriteComponent(const Entity entity);
+	CORE_EXPORT bool ContainSpriteFontComponent(const Entity entity);
 	CORE_EXPORT bool ContainLightComponent(const Entity entity);
 	CORE_EXPORT bool ContainCameraComponent(const Entity entity);
 	CORE_EXPORT bool ContainSlicerComponent(const Entity entity);

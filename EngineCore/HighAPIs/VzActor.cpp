@@ -61,7 +61,7 @@ namespace vzm
 	bool VzActor::IsRenderable() const
 	{
 		GET_RENDERABLE_COMP(renderable, false);
-		return renderable->IsMeshRenderable() || renderable->IsVolumeRenderable();
+		return renderable->IsRenderable();
 	}
 	void VzActor::EnablePickable(const bool enabled, const bool includeDescendants)
 	{

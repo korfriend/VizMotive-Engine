@@ -144,6 +144,7 @@ namespace vzm
 		{
 			return true;
 		}
+		UpdateTimeStamp();
 		return false;
 	}
 
