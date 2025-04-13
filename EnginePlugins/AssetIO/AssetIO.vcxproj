@@ -204,7 +204,6 @@
     <ClCompile Include="ModelImporter_PLY.cpp" />
     <ClCompile Include="ModelImporter_SPLAT.cpp" />
     <ClCompile Include="ModelImporter_STL.cpp" />
-    <ClCompile Include="splat_bk.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetIO.h" />

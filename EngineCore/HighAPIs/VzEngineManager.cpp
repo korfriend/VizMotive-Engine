@@ -66,7 +66,7 @@ namespace vzcompmanager
 		switch (comp_type)
 		{
 		case COMPONENT_TYPE::ARCHIVE: archives.erase(vid); Archive::DestroyArchive(vid); is_engine_component = false;  break;
-		case COMPONENT_TYPE::SCENE: scenes.erase(vid); Scene::DestroyScene(vid); is_engine_component = false; break;
+		case COMPONENT_TYPE::SCENE: scenes.erase(vid); scenefactory::DestroyScene(vid); is_engine_component = false; break;
 		case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); is_engine_component = false; break;
 		case COMPONENT_TYPE::CAMERA:
 		case COMPONENT_TYPE::SLICER:
@@ -94,7 +94,7 @@ namespace vzcompmanager
 			}
 
 			compfactory::Destroy(vid);
-			Scene::RemoveEntityForScenes(vid);
+			scenefactory::RemoveEntityForScenes(vid);
 		}
 		lookup.erase(it);
 
@@ -117,7 +117,7 @@ namespace vzcompmanager
 		lookup.clear();
 
 		Archive::DestroyAll();
-		Scene::DestroyAll();
+		scenefactory::DestroyAll();
 
 		canvas::DestroyAll();
 		compfactory::DestroyAll();
@@ -218,21 +218,21 @@ namespace vzm
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
 			compfactory::CreateRenderableComponent(entity);
 			{
-				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzStaticMeshActor>(vid, "vzm::NewActor"));
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorStaticMesh>(vid, "vzm::NewActorStaticMesh"));
 				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::ACTOR_SPRITE:
 			compfactory::CreateRenderableComponent(entity);
 			{
-				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzSpriteActor>(vid, "vzm::NewSpriteActor"));
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorSprite>(vid, "vzm::NewActorSprite"));
 				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::ACTOR_SPRITEFONT:
 			compfactory::CreateRenderableComponent(entity);
 			{
-				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzSpriteFontActor>(vid, "vzm::NewSpriteFontActor"));
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorSpriteFont>(vid, "vzm::NewActorSpriteFont"));
 				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
@@ -571,7 +571,7 @@ namespace vzm
 	VzScene* NewScene(const std::string& name)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
-		Scene* scene = Scene::CreateScene(name);
+		Scene* scene = scenefactory::CreateScene(name);
 		SceneVID vid = scene->GetSceneEntity();
 		auto it = vzcompmanager::scenes.emplace(vid, std::make_unique<VzScene>(vid, "vzm::NewScene"));
 		compfactory::CreateNameComponent(vid, name);
@@ -597,24 +597,24 @@ namespace vzm
 	{
 		return (VzSlicer*)newSceneComponent(COMPONENT_TYPE::SLICER, name, parentVid, curvedSlicer? 1 : 0);
 	}
-	VzStaticMeshActor* NewActor(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
+	VzActorStaticMesh* NewActorStaticMesh(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
 	{
-		VzStaticMeshActor* actor = (VzStaticMeshActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_STATIC_MESH, name, parentVid);
+		VzActorStaticMesh* actor = (VzActorStaticMesh*)newSceneComponent(COMPONENT_TYPE::ACTOR_STATIC_MESH, name, parentVid);
 		if (vidGeo) actor->SetGeometry(vidGeo);
 		if (vidMat) actor->SetMaterial(vidMat);
 		return actor;
 	}
-	VzStaticMeshActor* NewActor(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
+	VzActorStaticMesh* NewActorStaticMesh(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
 	{
-		return NewActor(name, geometry? geometry->GetVID() : 0u, material? material->GetVID() : 0u, parentVid);
+		return NewActorStaticMesh(name, geometry? geometry->GetVID() : 0u, material? material->GetVID() : 0u, parentVid);
 	}
-	VzSpriteActor* NewSpriteActor(const std::string& name, const VID parentVid)
+	VzActorSprite* NewActorSprite(const std::string& name, const VID parentVid)
 	{
-		return (VzSpriteActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_SPRITE, name, parentVid);
+		return (VzActorSprite*)newSceneComponent(COMPONENT_TYPE::ACTOR_SPRITE, name, parentVid);
 	}
-	VzSpriteFontActor* NewSpriteFontActor(const std::string& name, const VID parentVid)
+	VzActorSpriteFont* NewActorSpriteFont(const std::string& name, const VID parentVid)
 	{
-		return (VzSpriteFontActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_SPRITEFONT, name, parentVid);
+		return (VzActorSpriteFont*)newSceneComponent(COMPONENT_TYPE::ACTOR_SPRITEFONT, name, parentVid);
 	}
 	VzLight* NewLight(const std::string& name, const VID parentVid)
 	{
@@ -656,7 +656,7 @@ namespace vzm
 		auto getSceneAndVid = [](Scene** scene, const VID vid)
 			{
 				SceneVID vid_scene = vid;
-				*scene = Scene::GetScene(vid_scene);
+				*scene = scenefactory::GetScene(vid_scene);
 				if (*scene == nullptr)
 				{
 					auto itr = vzcompmanager::actors.find(vid);
@@ -676,7 +676,7 @@ namespace vzm
 							itc != vzcompmanager::cameras.end() ? itc->second.get()->sceneVid : INVALID_VID 
 						);
 						//assert(vid_scene != INVALID_VID); can be INVALID_VID
-						*scene = Scene::GetScene(vid_scene);
+						*scene = scenefactory::GetScene(vid_scene);
 					}
 				}
 				return vid_scene;
@@ -728,7 +728,7 @@ namespace vzm
 					hier->SetParentByVUID(hier_dst->GetVUID());
 				}
 			}
-			Scene::DestroyScene(vid_scene_src);
+			scenefactory::DestroyScene(vid_scene_src);
 			scene_src = nullptr;
 		}
 		else if (vidSrc != vid_scene_src && vidDst == vid_scene_dst)
@@ -761,7 +761,7 @@ namespace vzm
 				entities_moving.push_back(ett);
 			}
 
-			Scene::DestroyScene(vid_scene_src);
+			scenefactory::DestroyScene(vid_scene_src);
 			scene_src = nullptr;
 		}
 
@@ -817,7 +817,7 @@ namespace vzm
 			return INVALID_VID;
 		}
 
-		Scene* scene = Scene::GetScene(parentVid); 
+		Scene* scene = scenefactory::GetScene(parentVid);
 		if (scene)
 		{
 			return parentVid;
@@ -839,7 +839,7 @@ namespace vzm
 
 	VzScene* AppendSceneCompTo(const VZ_NONNULL VzBaseComp* comp, const VZ_NONNULL VzBaseComp* parentComp)
 	{
-		Scene* scene = Scene::GetScene(AppendSceneCompVidTo(comp->GetVID(), parentComp ? parentComp->GetVID() : 0));
+		Scene* scene = scenefactory::GetScene(AppendSceneCompVidTo(comp->GetVID(), parentComp ? parentComp->GetVID() : 0));
 		auto it = vzcompmanager::scenes.find(scene->GetSceneEntity());
 		if (it == vzcompmanager::scenes.end())
 		{
@@ -1070,17 +1070,17 @@ namespace vz::compfactory
 
 	Entity NewNodeActor(const std::string& name, const Entity parentEntity)	
 	{
-		VzBaseComp* comp = NewActor(name, 0ull, 0ull, parentEntity);
+		VzBaseComp* comp = NewActorStaticMesh(name, 0ull, 0ull, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
 	Entity NewNodeSpriteActor(const std::string& name, const Entity parentEntity)
 	{
-		VzBaseComp* comp = NewSpriteActor(name, parentEntity);
+		VzBaseComp* comp = NewActorSprite(name, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
 	Entity NewNodeSpriteFontActor(const std::string& name, const Entity parentEntity)
 	{
-		VzBaseComp* comp = NewSpriteFontActor(name, parentEntity);
+		VzBaseComp* comp = NewActorSpriteFont(name, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
 	Entity NewNodeCamera(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Camera) }

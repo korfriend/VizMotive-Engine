@@ -19,9 +19,9 @@ namespace vzm
 		bool IsPickable() const;
 	};
 
-	struct API_EXPORT VzStaticMeshActor : VzActor
+	struct API_EXPORT VzActorStaticMesh : VzActor
 	{
-		VzStaticMeshActor(const VID vid, const std::string& originFrom)
+		VzActorStaticMesh(const VID vid, const std::string& originFrom)
 			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_STATIC_MESH) {}
 
 		void SetGeometry(const GeometryVID vid);
@@ -71,17 +71,17 @@ namespace vzm
 		// 3. Rename existing VzActor to VzStaticMeshActor : VzMeshActor (in the future,  VzSkeletalMeshActor : VzMeshActor)
 	};
 
-	struct API_EXPORT VzSpriteActor : VzActor
+	struct API_EXPORT VzActorSprite : VzActor
 	{
-		VzSpriteActor(const VID vid, const std::string& originFrom)
+		VzActorSprite(const VID vid, const std::string& originFrom)
 			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITE) {
 		}
 	};
 
-	struct API_EXPORT VzSpriteFontActor : VzSpriteActor
+	struct API_EXPORT VzActorSpriteFont : VzActorSprite
 	{
-		VzSpriteFontActor(const VID vid, const std::string& originFrom)
-			: VzSpriteActor(vid, originFrom) {
+		VzActorSpriteFont(const VID vid, const std::string& originFrom)
+			: VzActorSprite(vid, originFrom) {
 			type_ = COMPONENT_TYPE::ACTOR_SPRITEFONT;
 		}
 	};

@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250413_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250413_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -115,15 +115,6 @@ namespace vz
 
 	struct CORE_EXPORT Scene
 	{
-	public:
-		static Scene* GetScene(const Entity entity);
-		static Scene* GetFirstSceneByName(const std::string& name);
-		static Scene* GetSceneIncludingEntity(const Entity entity);
-		static Scene* CreateScene(const std::string& name, const Entity entity = 0);
-		static void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
-		static bool DestroyScene(const Entity entity);
-		static void DestroyAll();
-
 	protected:
 		std::string name_;
 

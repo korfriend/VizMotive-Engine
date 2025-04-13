@@ -660,7 +660,8 @@ namespace vz
 		const std::vector<XMFLOAT4X4>& matrixRenderableCandidates = scene_->GetRenderableWorldMatrices();
 		const std::vector<XMFLOAT4X4>& matrixRenderableCandidatesPrev = scene_->GetRenderableWorldMatricesPrev();
 		// renderableEntities, matrixRenderables, matrixRenderablesPrev
-		// HERE, renderableComponents stores scene_->renderables_ whose IsRenderable() is TURE
+		//	GSceneDetails::renderableComponents stores elements of scene_->renderables_ 
+		//		whose IsRenderable() is TURE
 		uint32_t num_renderables = scene_->GetRenderableMeshCount() + scene_->GetRenderableVolumeCount() + scene_->GetRenderableGSplatCount();
 		renderableComponents.resize(num_renderables);
 		renderableEntities.resize(num_renderables);
