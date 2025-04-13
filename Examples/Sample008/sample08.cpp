@@ -213,80 +213,19 @@ int main(int, char **)
 			geo1_pos.y = sin(time) * 30;
 			geo1_pos.z = sin(time) * 30;
 
-			vzm::VzActorStaticMesh* actor_test1 = (vzm::VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor1-IcosahedronGeometry");
-			if (actor_test1 && play)
+			vzm::VzActorSprite* actor_sprite = (vzm::VzActorSprite*)vzm::GetFirstComponentByName("my sprite");
+			if (actor_sprite && play)
 			{
-				actor_test1->SetPosition(*(vfloat3*)&geo1_pos);
+				actor_sprite->SetPosition(*(vfloat3*)&geo1_pos);
 				static glm::fvec3 rot(0, 0, 0);
 				rot.x += 0.02f;
 				rot.y += 0.03f;
-				actor_test1->SetEulerAngleZXY(*(vfloat3*)&rot);
+				actor_sprite->SetEulerAngleZXY(*(vfloat3*)&rot);
 
-				for (VID vid : actor_test1->GetMaterials())
+				for (VID vid : actor_sprite->GetMaterials())
 				{
 					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
 				}
-			}
-
-			geo2_pos.x = cos(time + 10) * 30;
-			geo2_pos.y = sin(time + 10) * 30;
-			geo2_pos.z = sin(time + 10) * 30;
-
-			vzm::VzActorStaticMesh* actor_test2 = (vzm::VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor2-TorusKnot");
-			if (actor_test2 && play)
-			{
-				actor_test2->SetPosition(*(vfloat3*)&geo2_pos);
-				static glm::fvec3 rot(0, 0, 0);
-				rot.x += 0.02f;
-				rot.y += 0.03f;
-				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
-
-				for (VID vid : actor_test2->GetMaterials())
-				{
-					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
-				}
-			}
-
-			// collision test! (pairwise)
-			{
-				if (play)
-				{
-					// note:
-					//	Actor world matrices are updated during the rendering phase (within the scene update cycle)
-					//	For accurate real-time collision detection between source and destination actors, explicit matrix updates must occur before rendering
-					//	This can be accomplished by calling the actor's UpdateWorldMatrix() function
-					actor_test1->UpdateWorldMatrix();
-					actor_test2->UpdateWorldMatrix();
-
-					auto PairwiseCollision = [](VzActorStaticMesh* actorSrc, VzActorStaticMesh* actorDst, XMFLOAT4 collisionColor) {
-
-						int partSrc_index = -1, partDst_index = -1;
-						int triSrc_index = -1, triDst_index = -1;
-
-						if (actorSrc->CollisionCheck(actorDst->GetVID(), &partSrc_index, &partDst_index, &triSrc_index, &triDst_index))
-						{
-							//vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)", 
-							//	actorSrc->GetName().c_str(), actorDst->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
-							VzMaterial* mat = (VzMaterial*)vzm::GetComponent(actorDst->GetMaterial(partDst_index));
-							mat->SetBaseColor(*(vfloat4*)&collisionColor);
-
-							return true;
-						}
-						return false;
-						};
-
-					VzActorStaticMesh* actor_test3 = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor3");
-					if (actor_test3)
-					{
-						PairwiseCollision(actor_test3, actor_test1, { 1, 0, 0, 1 });
-						PairwiseCollision(actor_test3, actor_test2, { 0, 1, 0, 1 });
-					}
-
-					VzActorStaticMesh* actor_canal = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor-canal");
-					PairwiseCollision(actor_canal, actor_test1, { 1, 1, 0, 1 } );
-					PairwiseCollision(actor_canal, actor_test2, { 0, 1, 1, 1 });
-				}
-				
 			}
 
 			ImGui::Begin("3D Viewer");
@@ -760,16 +699,26 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case 'N':
 		{
 			using namespace vzm;
-			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
-			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Store(camera);
+			archive->SaveFile("D:\\VizMotive2\\Examples\\Sample008\\cam_save.ini");
+		}
+		break;
+		case 'L':
+		{
+			using namespace vzm;
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
+			archive->ReadFile("D:\\VizMotive2\\Examples\\Sample008\\cam_save.ini");
+			archive->Load(camera);
 		}
 		break;
 		case 'M':
 		{
 			using namespace vzm;
-			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
-			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Load(camera);
 		}
 		break;
