@@ -74,16 +74,58 @@ namespace vzm
 	struct API_EXPORT VzActorSprite : VzActor
 	{
 		VzActorSprite(const VID vid, const std::string& originFrom)
-			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITE) {
-		}
+			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITE) { }
+
+		virtual void SetSpriteTexture(const VID vidTexture);
+
+		void EnableCameraFacing(bool enabled = true);
+		void EnableCameraScaling(bool enabled = true);
+
+		bool IsCameraFacing() const;
+		bool IsCameraScaling() const;
+
+		void SetPosition(const vfloat3& p);
+		void SetScale(const vfloat2& s);
+		void SetUVOffset(const vfloat2& uvOffset);
+		void SetRotation(const float v);
+		void SetOpacity(const float v);
+		void SetFade(const float v);
 	};
 
 	struct API_EXPORT VzActorSpriteFont : VzActorSprite
 	{
+		enum Alignment : uint32_t
+		{
+			FONTALIGN_LEFT,		// left alignment (horizontal)
+			FONTALIGN_CENTER,	// center alignment (horizontal or vertical)
+			FONTALIGN_RIGHT,	// right alignment (horizontal)
+			FONTALIGN_TOP,		// top alignment (vertical)
+			FONTALIGN_BOTTOM	// bottom alignment (vertical)
+		};
+
 		VzActorSpriteFont(const VID vid, const std::string& originFrom)
-			: VzActorSprite(vid, originFrom) {
-			type_ = COMPONENT_TYPE::ACTOR_SPRITEFONT;
-		}
+			: VzActorSprite(vid, originFrom) { type_ = COMPONENT_TYPE::ACTOR_SPRITEFONT; }
+		
+		void SetSpriteTexture(const VID vidTexture) override;
+
+		void SetText(const std::string& value);
+
+		void SetFontStyle(const std::string& fontStyle);
+		void SetFontSize(const int size);
+		void SetSpacing(const vfloat2& spacing);
+		void SetHorizonAlign(const Alignment horizonAlign);
+		void SetVerticalAlign(const Alignment verticalAlign);
+		void SetColor(const vfloat4& color);
+		void SetShadowColor(const vfloat4& shadowColor);
+		void SetWrap(const float wrap);
+		void SetSoftness(const float softness);
+		void SetBolden(const float bolden);
+		void SetShadowSoftness(const float shadowSoftness);
+		void SetShadowBolden(const float shadowBolden);
+		void SetShadowOffset(const vfloat2 shadowOffset);
+		void SetHdrScale(const float hdrScaling);
+		void SetIntensity(const float intensity);
+		void SetShadowIntensity(const float shadowIntensity);
 	};
 
 	struct API_EXPORT VzGSplatActor : VzActor

@@ -258,3 +258,65 @@ namespace vzm
 		return false;
 	}
 }
+
+namespace vzm
+{
+	void VzActorSprite::SetSpriteTexture(const VID vidTexture)
+	{
+
+	}
+
+	void VzActorSprite::EnableCameraFacing(bool enabled)
+	{
+
+	}
+
+	void VzActorSprite::EnableCameraScaling(bool enabled)
+	{
+
+	}
+
+	bool VzActorSprite::IsCameraFacing() const
+	{
+		return true;
+	}
+
+	bool VzActorSprite::IsCameraScaling() const
+	{
+		return true;
+	}
+
+	void VzActorSprite::SetPosition(const vfloat3& p)
+	{
+
+	}
+
+	void VzActorSprite::SetScale(const vfloat2& s)
+	{
+
+	}
+	void VzActorSprite::SetUVOffset(const vfloat2& uvOffset)
+	{
+
+	}
+	void VzActorSprite::SetRotation(const float v)
+	{
+
+	}
+	void VzActorSprite::SetOpacity(const float v)
+	{
+
+	}
+	void VzActorSprite::SetFade(const float v)
+	{
+
+	}
+}
+
+namespace vzm
+{
+	void VzActorSpriteFont::SetSpriteTexture(const VID vidTexture)
+	{
+
+	}
+}
