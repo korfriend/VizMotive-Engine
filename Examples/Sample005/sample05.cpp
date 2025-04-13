@@ -220,7 +220,7 @@ int main(int, char**)
 			material_curvedslicer0->SetDoubleSided(true);
 			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Lines");
 			material_curvedslicer1->SetBaseColor({ 1, 1, 1, 1 });
-			vzm::VzStaticMeshActor* actor_cslicer_helper = vzm::NewActor("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer0);
+			vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper, material_curvedslicer0);
 			actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
 			scene->AppendChild(actor_cslicer_helper);
 			vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
@@ -244,14 +244,14 @@ int main(int, char**)
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
 			material_stl->SetBaseColor({ 1, 0, 0, 1 });
-			vzm::VzStaticMeshActor* actor_test3 = vzm::NewActor("my actor3", geometry, material_stl);
+			vzm::VzActorStaticMesh* actor_test3 = vzm::NewActorStaticMesh("my actor3", geometry, material_stl);
 			actor_test3->SetScale({ 0.5f, 0.5f, 0.5f });
 			//actor_test3->SetPosition({ 0, 0, 2 });
 			scene->AppendChild(actor_test3);
 
 			vzm::VzMaterial* material_stl_A = vzm::NewMaterial("my stl's material_A");
 			material_stl_A->SetBaseColor({ 1, 1, 0, 1 });
-			vzm::VzStaticMeshActor* actor_test5 = vzm::NewActor("my actor5", geometry, material_stl_A);
+			vzm::VzActorStaticMesh* actor_test5 = vzm::NewActorStaticMesh("my actor5", geometry, material_stl_A);
 			actor_test5->SetScale({ 0.5f, 0.5f, 0.5f });
 			actor_test5->SetRotateAxis({ 0, 1, 0 }, 90.f);
 			scene->AppendChild(actor_test5);
@@ -266,7 +266,7 @@ int main(int, char**)
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
 			material_stl->SetBaseColor({ 0, 1, 1, 1 });
-			vzm::VzStaticMeshActor* actor_test4 = vzm::NewActor("my actor4", geometry, material_stl);
+			vzm::VzActorStaticMesh* actor_test4 = vzm::NewActorStaticMesh("my actor4", geometry, material_stl);
 			actor_test4->SetScale({ 0.2f, 0.2f, 0.2f });
 			actor_test4->EnableSlicerSolidFill(false);
 			actor_test4->SetRotateAxis({ 0, 0, 1 }, 45.f);
@@ -321,7 +321,7 @@ int main(int, char**)
 			slicer_curved->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
 			slicer_curved->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
 
-			vzm::VzStaticMeshActor* volume_actor = vzm::NewActor("my volume actor", nullptr, material_volume);
+			vzm::VzActorStaticMesh* volume_actor = vzm::NewActorStaticMesh("my volume actor", nullptr, material_volume);
 			volume_actor->SetScale({ 3, 3, 3 });
 			scene->AppendChild(volume_actor);
 

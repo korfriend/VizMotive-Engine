@@ -103,6 +103,20 @@ namespace vz
 		SetReadModeAndResetPos(true);
 	}
 
+	void Archive::ReadData(const uint8_t* data, size_t size)
+	{
+		data_ptr = data;
+		data_ptr_size = size;
+		data_already_decompressed = false;
+		SetReadModeAndResetPos(true);
+	}
+
+	void Archive::SetFileName(const std::string& fileName)
+	{
+		this->fileName = fileName;
+		directory = vz::helper::GetDirectoryFromPath(fileName);
+	}
+
 	void Archive::CreateEmpty()
 	{
 		header.version = __archiveVersion;

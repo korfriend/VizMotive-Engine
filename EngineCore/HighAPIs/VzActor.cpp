@@ -89,75 +89,75 @@ namespace vzm
 
 namespace vzm
 {
-	void VzStaticMeshActor::SetGeometry(const GeometryVID vid)
+	void VzActorStaticMesh::SetGeometry(const GeometryVID vid)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetGeometry(vid);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::SetMaterial(const MaterialVID vid, const int slot)
+	void VzActorStaticMesh::SetMaterial(const MaterialVID vid, const int slot)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetMaterial(vid, slot);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::SetMaterials(const std::vector<MaterialVID> vids)
+	void VzActorStaticMesh::SetMaterials(const std::vector<MaterialVID> vids)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetMaterials(vids);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::EnableCastShadows(const bool enabled)
+	void VzActorStaticMesh::EnableCastShadows(const bool enabled)
 	{
 		assert(0 && "TODO");
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::EnableReceiveShadows(const bool enabled)
+	void VzActorStaticMesh::EnableReceiveShadows(const bool enabled)
 	{
 		assert(0 && "TODO");
 		UpdateTimeStamp();
 	}
 
-	void VzStaticMeshActor::EnableSlicerSolidFill(const bool enabled)
+	void VzActorStaticMesh::EnableSlicerSolidFill(const bool enabled)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->EnableSlicerSolidFill(enabled);
 		UpdateTimeStamp();
 	}
 
-	void VzStaticMeshActor::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
+	void VzActorStaticMesh::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
 		UpdateTimeStamp();
 	}
 
-	void VzStaticMeshActor::EnableOutline(const bool enabled)
+	void VzActorStaticMesh::EnableOutline(const bool enabled)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->EnableOutline(enabled);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::EnableUndercut(const bool enabled)
+	void VzActorStaticMesh::EnableUndercut(const bool enabled)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->EnableUndercut(enabled);
 		UpdateTimeStamp();
 	}
 
-	void VzStaticMeshActor::SetClipPlane(const vfloat4& clipPlane)
+	void VzActorStaticMesh::SetClipPlane(const vfloat4& clipPlane)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetClipPlane(*(XMFLOAT4*)&clipPlane);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::SetClipBox(const vfloat4x4& clipBox)
+	void VzActorStaticMesh::SetClipBox(const vfloat4x4& clipBox)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetClipBox(*(XMFLOAT4X4*)&clipBox);
 		UpdateTimeStamp();
 	}
-	bool VzStaticMeshActor::IsClipperEnabled(bool* clipBoxEnabled, bool* clipPlaneEnabled) const
+	bool VzActorStaticMesh::IsClipperEnabled(bool* clipBoxEnabled, bool* clipPlaneEnabled) const
 	{
 		GET_RENDERABLE_COMP(renderable, false);
 		bool box_clipped = renderable->IsBoxClipperEnabled();
@@ -167,38 +167,38 @@ namespace vzm
 		return box_clipped || plane_clipped;
 	}
 
-	void VzStaticMeshActor::SetOutineThickness(const float v)
+	void VzActorStaticMesh::SetOutineThickness(const float v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineThickness(v);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::SetOutineColor(const vfloat3 v)
+	void VzActorStaticMesh::SetOutineColor(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineColor(*(XMFLOAT3*)&v);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::SetOutineThreshold(const float v)
+	void VzActorStaticMesh::SetOutineThreshold(const float v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetOutineThreshold(v);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::SetUndercutDirection(const vfloat3 v)
+	void VzActorStaticMesh::SetUndercutDirection(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetUndercutDirection(*(XMFLOAT3*)&v);
 		UpdateTimeStamp();
 	}
-	void VzStaticMeshActor::SetUndercutColor(const vfloat3 v)
+	void VzActorStaticMesh::SetUndercutColor(const vfloat3 v)
 	{
 		GET_RENDERABLE_COMP(renderable, );
 		renderable->SetUndercutColor(*(XMFLOAT3*)&v);
 		UpdateTimeStamp();
 	}
 
-	bool VzStaticMeshActor::CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc, int* partIndexTarget, int* triIndexSrc, int* triIndexTarget) const
+	bool VzActorStaticMesh::CollisionCheck(const ActorVID targetActorVID, int* partIndexSrc, int* partIndexTarget, int* triIndexSrc, int* triIndexTarget) const
 	{
 		GET_RENDERABLE_COMP(renderable, false);
 		RenderableComponent* renderable_target = compfactory::GetRenderableComponent(targetActorVID);
@@ -216,28 +216,28 @@ namespace vzm
 		return detected;
 	}
 
-	void VzStaticMeshActor::DebugRender(const std::string& debugScript)
+	void VzActorStaticMesh::DebugRender(const std::string& debugScript)
 	{
 
 	}
 
-	std::vector<MaterialVID> VzStaticMeshActor::GetMaterials() const
+	std::vector<MaterialVID> VzActorStaticMesh::GetMaterials() const
 	{
 		GET_RENDERABLE_COMP(renderable, std::vector<MaterialVID>());
 		return renderable->GetMaterials();
 	}
-	MaterialVID VzStaticMeshActor::GetMaterial(const int slot) const
+	MaterialVID VzActorStaticMesh::GetMaterial(const int slot) const
 	{
 		GET_RENDERABLE_COMP(renderable, INVALID_VID);
 		return renderable->GetMaterial(slot);
 	}
-	GeometryVID VzStaticMeshActor::GetGeometry() const
+	GeometryVID VzActorStaticMesh::GetGeometry() const
 	{
 		GET_RENDERABLE_COMP(renderable, INVALID_VID);
 		return renderable->GetGeometry();
 	}
 
-	void VzStaticMeshActor::AssignCollider()
+	void VzActorStaticMesh::AssignCollider()
 	{
 		if (compfactory::ContainColliderComponent(componentVID_))
 		{
@@ -247,12 +247,12 @@ namespace vzm
 		compfactory::CreateColliderComponent(componentVID_);
 	}
 
-	bool VzStaticMeshActor::HasCollider() const
+	bool VzActorStaticMesh::HasCollider() const
 	{
 		return compfactory::ContainColliderComponent(componentVID_);
 	}
 
-	bool VzStaticMeshActor::ColliderCollisionCheck(const ActorVID targetActorVID) const
+	bool VzActorStaticMesh::ColliderCollisionCheck(const ActorVID targetActorVID) const
 	{
 		assert(0 && "TODO");
 		return false;

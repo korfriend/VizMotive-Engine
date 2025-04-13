@@ -13,9 +13,6 @@
     <ClCompile Include="ModelImporter_SPLAT.cpp">
       <Filter>Private</Filter>
     </ClCompile>
-    <ClCompile Include="splat_bk.cpp">
-      <Filter>Private</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetIO.h">

@@ -23,6 +23,17 @@ namespace vz
 		size_t Destroy(const Entity entity);
 		size_t DestroyAll();
 	}
+
+	namespace scenefactory
+	{
+		Scene* CreateScene(const std::string& name, const Entity entity = 0);
+		Scene* GetScene(const Entity entity);
+		Scene* GetFirstSceneByName(const std::string& name);
+		Scene* GetSceneIncludingEntity(const Entity entity);
+		void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
+		bool DestroyScene(const Entity entity);
+		void DestroyAll();
+	}
 }
 
 namespace vzm

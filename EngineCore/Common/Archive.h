@@ -83,8 +83,13 @@ namespace vz
 		Archive& operator=(const Archive&) = default;
 		Archive& operator=(Archive&&) = default;
 
+		// ----- Custom Settings -----
 		const std::string GetArchiveName() const { return name_; }
 		const Entity GetArchiveEntity() const { return entity_; }
+		void SetArchiveName(const std::string& name) { name_ = name; }
+		void SetArchiveEntity(const Entity entity) { entity_ = entity; }
+		void ReadData(const uint8_t* data, size_t size);
+		void SetFileName(const std::string& fileName);
 
 		void WriteData(std::vector<uint8_t>& dest) const;
 		const uint8_t* GetData() const { return data_ptr; }
