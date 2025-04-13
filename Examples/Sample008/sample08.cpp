@@ -2,8 +2,11 @@
 #include "vzm2/VzEngineAPIs.h"
 #include "vzm2/utils/Backlog.h"
 #include "vzm2/utils/EventHandler.h"
-#include "vzm2/utils/Profiler.h"
 #include "vzm2/utils/JobSystem.h"
+#include "vzm2/utils/Geometrics.h"
+#include "vzm2/utils/GeometryGenerator.h"
+#include "vzm2/utils/Profiler.h"
+#include "vzm2/utils/Config.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -36,28 +39,28 @@
 
 struct FrameContext
 {
-	ID3D12CommandAllocator* CommandAllocator;
-	UINT64                  FenceValue;
+	ID3D12CommandAllocator *CommandAllocator;
+	UINT64 FenceValue;
 };
 
 // Data
-static int const                    NUM_FRAMES_IN_FLIGHT = 3;
-static FrameContext                 g_frameContext[NUM_FRAMES_IN_FLIGHT] = {};
-static UINT                         g_frameIndex = 0;
+static int const NUM_FRAMES_IN_FLIGHT = 3;
+static FrameContext g_frameContext[NUM_FRAMES_IN_FLIGHT] = {};
+static UINT g_frameIndex = 0;
 
-static int const                    NUM_BACK_BUFFERS = 3;
-static ID3D12Device* g_pd3dDevice = nullptr;
-static ID3D12DescriptorHeap* g_pd3dRtvDescHeap = nullptr;
-static ID3D12DescriptorHeap* g_pd3dSrvDescHeap = nullptr;
-static ID3D12CommandQueue* g_pd3dCommandQueue = nullptr;
-static ID3D12GraphicsCommandList* g_pd3dCommandList = nullptr;
-static ID3D12Fence* g_fence = nullptr;
-static HANDLE                       g_fenceEvent = nullptr;
-static UINT64                       g_fenceLastSignaledValue = 0;
-static IDXGISwapChain3* g_pSwapChain = nullptr;
-static HANDLE                       g_hSwapChainWaitableObject = nullptr;
-static ID3D12Resource* g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
-static D3D12_CPU_DESCRIPTOR_HANDLE  g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
+static int const NUM_BACK_BUFFERS = 3;
+static ID3D12Device *g_pd3dDevice = nullptr;
+static ID3D12DescriptorHeap *g_pd3dRtvDescHeap = nullptr;
+static ID3D12DescriptorHeap *g_pd3dSrvDescHeap = nullptr;
+static ID3D12CommandQueue *g_pd3dCommandQueue = nullptr;
+static ID3D12GraphicsCommandList *g_pd3dCommandList = nullptr;
+static ID3D12Fence *g_fence = nullptr;
+static HANDLE g_fenceEvent = nullptr;
+static UINT64 g_fenceLastSignaledValue = 0;
+static IDXGISwapChain3 *g_pSwapChain = nullptr;
+static HANDLE g_hSwapChainWaitableObject = nullptr;
+static ID3D12Resource *g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
+static D3D12_CPU_DESCRIPTOR_HANDLE g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
 
 // Forward declarations of helper functions
 bool CreateDeviceD3D(HWND hWnd);
@@ -65,22 +68,23 @@ void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
 void WaitForLastSubmittedFrame();
-FrameContext* WaitForNextFrameResources();
+FrameContext *WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Main code
 DXGI_SWAP_CHAIN_DESC1 sd;
 
-int main(int, char**)
+int main(int, char **)
 {
 	// Create application window
-	//ImGui_ImplWin32_EnableDpiAwareness();
-	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
+	ImGui_ImplWin32_EnableDpiAwareness();
+	WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
 	::RegisterClassExW(&wc);
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::ParamMap<std::string> arguments;
-	if (!vzm::InitEngineLib(arguments)) {
+	if (!vzm::InitEngineLib(arguments))
+	{
 		std::cerr << "Failed to initialize engine library." << std::endl;
 		return -1;
 	}
@@ -100,20 +104,21 @@ int main(int, char**)
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	ImGuiIO &io = ImGui::GetIO();
+	(void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsLight();
+	// ImGui::StyleColorsLight();
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hwnd);
 	ImGui_ImplDX12_Init(g_pd3dDevice, NUM_FRAMES_IN_FLIGHT,
-		sd.Format, g_pd3dSrvDescHeap, //DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
-		g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
-		g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
+						sd.Format, g_pd3dSrvDescHeap, // DXGI_FORMAT_R11G11B10_FLOAT, R10G10B10A2_UNORM
+						g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
+						g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -123,119 +128,51 @@ int main(int, char**)
 	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
 	// - Read 'docs/FONTS.md' for more instructions and details.
 	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-	//io.Fonts->AddFontDefault();
-	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-	//IM_ASSERT(font != nullptr);
+	// io.Fonts->AddFontDefault();
+	// io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
+	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+	// ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+	// IM_ASSERT(font != nullptr);
 
 	using namespace vzm;
-	VzScene* scene = nullptr;
-	VzCamera* camera = nullptr;
-	VzRenderer* renderer = nullptr;
+	VzScene *scene = nullptr;
+	VzCamera *camera = nullptr;
+	VzRenderer *renderer = nullptr;
+
+	vz::jobsystem::context ctx_stl_loader;
 	{
 		scene = NewScene("my scene");
 
-		VzLight* light = NewLight("my light");
+		VzLight *light = NewLight("my light");
 		light->SetIntensity(5.f);
-		light->SetPosition({ 0.f, 0.f, 100.f });
+		light->SetPosition({0.f, 0.f, 100.f});
 		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
 		renderer->SetCanvas(1, 1, 96.f, nullptr);
-		renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
+		renderer->SetClearColor({1.f, 1.f, 0.f, 1.f});
 
+		// === camera ===
 		camera = NewCamera("my camera");
-		glm::fvec3 pos(0, 0, 5), up(0, 1, 0), at(0, 0, -4);
-		glm::fvec3 view = at - pos;
+		glm::fvec3 pos(0, 0, 100), up(0, 1, 0), view(0, 0, -1);
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		camera->SetPerspectiveProjection(0.1f, 100.f, 45.f, 1.f);
+		camera->SetPerspectiveProjection(0.1f, 5000.f, 60.f, 1.f);
+
+		vzm::VzActorSprite* actor_sprite = vzm::NewActorSprite("my sprite");
+		scene->AppendChild(actor_sprite);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		axis_helper->SetScale({ 10, 10, 10 });
 		scene->AppendChild(axis_helper);
 
-		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my geometry");
-		geometry_test->MakeTestQuadWithUVs();
-		vzm::VzMaterial* material_test = vzm::NewMaterial("my material");
-		material_test->SetShaderType(vzm::ShaderType::PBR);
-		material_test->SetDoubleSided(true);
-
-		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my triangles");
-		geometry_test2->MakeTestTriangle();
-
-		vzm::VzTexture* texture = vzm::NewTexture("my texture");
-		texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
-		material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
-
-		vzm::VzActorStaticMesh* actor_test = vzm::NewActorStaticMesh("my actor", geometry_test, material_test);
-		scene->AppendChild(actor_test);
-		actor_test->SetScale({ 2.f, 2.f, 2.f });
-		actor_test->SetPosition({ 0, 0, -1.f });
-
-		vzm::VzActorStaticMesh* actor_test2 = vzm::NewActorStaticMesh("my actor2");
-		scene->AppendChild(actor_test2);
-		actor_test2->SetGeometry(geometry_test2);
-		actor_test2->SetPosition({ 0, -2, 0 });
-		vfloat4 colors[3] = { {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1} };
-		for (size_t i = 0, n = geometry_test2->GetNumParts(); i < n; ++i)
-		{
-			vzm::VzMaterial* material = vzm::NewMaterial("my test2's material " + i);
-			actor_test2->SetMaterial(material, i);
-			material->SetShaderType(vzm::ShaderType::PBR);
-			material->SetDoubleSided(true);
-			material->SetBaseColor(colors[i]);
-		}
-
-		vzm::VzMaterial* material_volume = vzm::NewMaterial("volume material");
-		vzm::VzTexture* otf_volume = vzm::NewTexture("volume material's OTF");
-		const uint32_t otf_w = 256;
-		std::vector<uint8_t> otf_array(otf_w * 4 * 3);
-		for (size_t i = 0; i < otf_w; i++)
-		{
-			otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
-			otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
-			otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
-			otf_array[(otf_w * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
-				i < 210 ? (uint8_t)((float)(i - 180) / 30.f * 255.f) : 255;
-
-			otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
-			otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
-			otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
-			otf_array[(otf_w * 4 * 1) + 4 * i + 3] = i < 100 ? 0 :
-				i < 200 ? (uint8_t)((float)(i - 100) / 100.f * 255.f) : 255;
-
-			otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
-			otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
-			otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
-			otf_array[(otf_w * 4 * 2) + 4 * i + 3] = i < 100 ? 0 :
-				i < 130 ? (uint8_t)((float)(i - 100) / 30.f * 255.f) : 255;
-
-		}
-		otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
-		otf_volume->UpdateLookup(otf_array, 180, 255);
-
-		vzm::VzActorStaticMesh* volume_actor = vzm::NewActorStaticMesh("my volume actor", nullptr, material_volume);
-		//scene->AppendChild(volume_actor);
-		actor_test->AppendChild(volume_actor);
-
-		vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
-		{
-			vzm::ParamMap<std::string> io;
-			io.SetParam("filename", std::string("d:/aaa.dcm"));
-			io.SetParam("volume texture entity", volume->GetVID());
-			vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
-		}
-		material_volume->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
-		material_volume->SetLookupTable(otf_volume, vzm::LookupTableSlot::LOOKUP_OTF);
-
-
-		VzArchive* archive = vzm::NewArchive("test archive");
+		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 	}
 
+	// Our state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	// Main loop
@@ -262,11 +199,100 @@ int main(int, char**)
 
 		using namespace vzm;
 		{
-			ImVec2 canvas_size;
+			static size_t count = 0;
+			static bool play = true;
+			//static auto since = std::chrono::system_clock::now();
+			//auto now = std::chrono::system_clock::now();
+			//auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
+			//float time = msTime.count() / 1000.f;
+			if (play) count++;
+			float time = (float)count * 0.02f;// msTime.count() / 1000.f;
+			
+			glm::fvec3 geo1_pos, geo2_pos;
+			geo1_pos.x = cos(time) * 30;
+			geo1_pos.y = sin(time) * 30;
+			geo1_pos.z = sin(time) * 30;
+
+			vzm::VzActorStaticMesh* actor_test1 = (vzm::VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor1-IcosahedronGeometry");
+			if (actor_test1 && play)
+			{
+				actor_test1->SetPosition(*(vfloat3*)&geo1_pos);
+				static glm::fvec3 rot(0, 0, 0);
+				rot.x += 0.02f;
+				rot.y += 0.03f;
+				actor_test1->SetEulerAngleZXY(*(vfloat3*)&rot);
+
+				for (VID vid : actor_test1->GetMaterials())
+				{
+					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
+				}
+			}
+
+			geo2_pos.x = cos(time + 10) * 30;
+			geo2_pos.y = sin(time + 10) * 30;
+			geo2_pos.z = sin(time + 10) * 30;
+
+			vzm::VzActorStaticMesh* actor_test2 = (vzm::VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor2-TorusKnot");
+			if (actor_test2 && play)
+			{
+				actor_test2->SetPosition(*(vfloat3*)&geo2_pos);
+				static glm::fvec3 rot(0, 0, 0);
+				rot.x += 0.02f;
+				rot.y += 0.03f;
+				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
+
+				for (VID vid : actor_test2->GetMaterials())
+				{
+					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
+				}
+			}
+
+			// collision test! (pairwise)
+			{
+				if (play)
+				{
+					// note:
+					//	Actor world matrices are updated during the rendering phase (within the scene update cycle)
+					//	For accurate real-time collision detection between source and destination actors, explicit matrix updates must occur before rendering
+					//	This can be accomplished by calling the actor's UpdateWorldMatrix() function
+					actor_test1->UpdateWorldMatrix();
+					actor_test2->UpdateWorldMatrix();
+
+					auto PairwiseCollision = [](VzActorStaticMesh* actorSrc, VzActorStaticMesh* actorDst, XMFLOAT4 collisionColor) {
+
+						int partSrc_index = -1, partDst_index = -1;
+						int triSrc_index = -1, triDst_index = -1;
+
+						if (actorSrc->CollisionCheck(actorDst->GetVID(), &partSrc_index, &partDst_index, &triSrc_index, &triDst_index))
+						{
+							//vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)", 
+							//	actorSrc->GetName().c_str(), actorDst->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
+							VzMaterial* mat = (VzMaterial*)vzm::GetComponent(actorDst->GetMaterial(partDst_index));
+							mat->SetBaseColor(*(vfloat4*)&collisionColor);
+
+							return true;
+						}
+						return false;
+						};
+
+					VzActorStaticMesh* actor_test3 = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor3");
+					if (actor_test3)
+					{
+						PairwiseCollision(actor_test3, actor_test1, { 1, 0, 0, 1 });
+						PairwiseCollision(actor_test3, actor_test2, { 0, 1, 0, 1 });
+					}
+
+					VzActorStaticMesh* actor_canal = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor-canal");
+					PairwiseCollision(actor_canal, actor_test1, { 1, 1, 0, 1 } );
+					PairwiseCollision(actor_canal, actor_test2, { 0, 1, 1, 1 });
+				}
+				
+			}
+
 			ImGui::Begin("3D Viewer");
 			{
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);
-				canvas_size = ImGui::GetContentRegionAvail();
+				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
 
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
 				{
@@ -292,21 +318,20 @@ int main(int, char**)
 				if (is_hovered && !resized)
 				{
 					static glm::fvec2 prevMousePos(0);
-					glm::fvec2 ioPos = *(glm::fvec2*)&io.MousePos;
-					glm::fvec2 s_pos = *(glm::fvec2*)&cur_item_pos;
-					glm::fvec2 w_pos = *(glm::fvec2*)&win_pos;
+					glm::fvec2 ioPos = *(glm::fvec2 *)&io.MousePos;
+					glm::fvec2 s_pos = *(glm::fvec2 *)&cur_item_pos;
+					glm::fvec2 w_pos = *(glm::fvec2 *)&win_pos;
 					glm::fvec2 m_pos = ioPos - s_pos - w_pos;
 					glm::fvec2 pos_ss = m_pos;
 
-					OrbitalControl* orbit_control = camera->GetOrbitControl();
-					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 2.f);
+					OrbitalControl *orbit_control = camera->GetOrbitControl();
+					orbit_control->Initialize(renderer->GetVID(), {0, 0, 0}, 20.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
 						orbit_control->Start(__FC2 pos_ss);
 					}
-					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f))
-						&& glm::length2(prevMousePos - m_pos) > 0)
+					else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1.f) || ImGui::IsMouseDragging(ImGuiMouseButton_Right, 1.f)) && glm::length2(prevMousePos - m_pos) > 0)
 					{
 						if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
 							orbit_control->PanMove(__FC2 pos_ss);
@@ -353,73 +378,20 @@ int main(int, char**)
 				{
 					vzm::ReloadShader();
 				}
-
-				if (ImGui::Button("Remove Test"))
+				if (ImGui::Button("Export File"))
 				{
-					VzBaseComp* dst_actor = vzm::GetFirstComponentByName("my actor");
-					if (dst_actor)
-						vzm::RemoveComponent(dst_actor);
-					VzActorStaticMesh* vol_actor = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my volume actor");
-					vzlog("ID : %d", vol_actor->GetParent());
+					renderer->StoreRenderTargetInfoFile("d:\\test.jpg");
+				}
+				if (ImGui::Button(play ? "Stop" : "Play"))
+				{
+					play = !play;
 				}
 
-				if (ImGui::Button("Remove Test (All decedents)"))
+				static int detail_Icosahedron = 5;
+				if (ImGui::SliderInt("Icosahedron's detail", &detail_Icosahedron, 0, 10))
 				{
-					VzBaseComp* dst_actor = vzm::GetFirstComponentByName("my actor");
-					if (dst_actor)
-						vzm::RemoveComponent(dst_actor, true);
-					VzActorStaticMesh* vol_actor = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my volume actor");
-					if (vol_actor)
-					{
-						vzlog("ID : %d", vol_actor->GetParent());
-					}
-				}
-
-				static float cur_otf_value = 180, cur_otf_value_prev = 180;
-				static float cur_otf_band_width = 50;
-				ImGui::SliderFloat("OTF Slider", &cur_otf_value, 0.f, 250.f);
-				if (cur_otf_value_prev != cur_otf_value)
-				{
-					cur_otf_value_prev = cur_otf_value;
-					vzm::VzTexture* otf_volume = (vzm::VzTexture*)vzm::GetFirstComponentByName("volume material's OTF");
-					if (otf_volume)
-					{
-						const uint32_t otf_w = 256;
-						std::vector<uint8_t> otf_array(otf_w * 4 * 3);
-						for (size_t i = 0; i < otf_w; i++)
-						{
-							uint8_t a = i < cur_otf_value ? 0 :
-								i < cur_otf_value + cur_otf_band_width ? (uint8_t)((float)(i - cur_otf_value) / cur_otf_band_width * 255.f) : 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 0] = 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 1] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 2] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
-							otf_array[(otf_w * 4 * 1) + 4 * i + 0] = 0;
-							otf_array[(otf_w * 4 * 1) + 4 * i + 1] = 255;
-							otf_array[(otf_w * 4 * 1) + 4 * i + 2] = 0;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
-							otf_array[(otf_w * 4 * 2) + 4 * i + 0] = 0;
-							otf_array[(otf_w * 4 * 2) + 4 * i + 1] = 0;
-							otf_array[(otf_w * 4 * 2) + 4 * i + 2] = 255;
-							otf_array[(otf_w * 4 * 0) + 4 * i + 3] = a;
-
-						}
-
-						otf_volume->UpdateLookup(otf_array, (uint)cur_otf_value, (uint)(cur_otf_value + cur_otf_band_width));
-					}
-				}
-
-				static bool orthographics = false;
-				if (ImGui::Checkbox("ORTHOGONAL", &orthographics))
-				{
-					if (orthographics) {
-						camera->SetOrthogonalProjection(canvas_size.x, canvas_size.y, camera->GetNear(), camera->GetCullingFar(), -1);
-					}
-					else {
-						camera->SetPerspectiveProjection(camera->GetNear(), camera->GetCullingFar(), 45.f, canvas_size.x / (float)canvas_size.y);
-					}
+					VID geometry_vid = vzm::GetFirstVidByName("my icosahedron");
+					vz::geogen::GenerateIcosahedronGeometry(geometry_vid, 15.f, detail_Icosahedron);
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -433,18 +405,20 @@ int main(int, char**)
 				{
 					std::string performance_info, memory_info;
 					vz::profiler::GetProfileInfo(performance_info, memory_info);
+					ImGui::Text(scene->GetName().c_str());
+					ImGui::Separator();
 					ImGui::Text(performance_info.c_str());
+					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
 				}
 			}
 			ImGui::End();
-
 		}
 
 		// Rendering
 		ImGui::Render();
 
-		FrameContext* frameCtx = WaitForNextFrameResources();
+		FrameContext *frameCtx = WaitForNextFrameResources();
 		UINT backBufferIdx = g_pSwapChain->GetCurrentBackBufferIndex();
 		frameCtx->CommandAllocator->Reset();
 
@@ -459,7 +433,7 @@ int main(int, char**)
 		g_pd3dCommandList->ResourceBarrier(1, &barrier);
 
 		// Render Dear ImGui graphics
-		const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+		const float clear_color_with_alpha[4] = {clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w};
 		g_pd3dCommandList->ClearRenderTargetView(g_mainRenderTargetDescriptor[backBufferIdx], clear_color_with_alpha, 0, nullptr);
 		g_pd3dCommandList->OMSetRenderTargets(1, &g_mainRenderTargetDescriptor[backBufferIdx], FALSE, nullptr);
 		g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
@@ -469,10 +443,10 @@ int main(int, char**)
 		g_pd3dCommandList->ResourceBarrier(1, &barrier);
 		g_pd3dCommandList->Close();
 
-		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&g_pd3dCommandList);
+		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList *const *)&g_pd3dCommandList);
 
 		g_pSwapChain->Present(1, 0); // Present with vsync
-		//g_pSwapChain->Present(0, 0); // Present without vsync
+		// g_pSwapChain->Present(0, 0); // Present without vsync
 
 		UINT64 fenceValue = g_fenceLastSignaledValue + 1;
 		g_pd3dCommandQueue->Signal(g_fence, fenceValue);
@@ -492,7 +466,6 @@ int main(int, char**)
 	CleanupDeviceD3D();
 	::DestroyWindow(hwnd);
 	::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-
 
 	return 0;
 }
@@ -519,9 +492,9 @@ bool CreateDeviceD3D(HWND hWnd)
 
 	// [DEBUG] Enable debug interface
 #ifdef DX12_ENABLE_DEBUG_LAYER
-	ID3D12Debug* pdx12Debug = nullptr;
+	ID3D12Debug *pdx12Debug = nullptr;
 	// note : only one debug_layer is available
-	//if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pdx12Debug))))
+	// if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pdx12Debug))))
 	//	pdx12Debug->EnableDebugLayer();
 #endif
 
@@ -530,11 +503,11 @@ bool CreateDeviceD3D(HWND hWnd)
 	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
 		return false;
 
-	// [DEBUG] Setup debug interface to break on any warnings/errors
+		// [DEBUG] Setup debug interface to break on any warnings/errors
 #ifdef DX12_ENABLE_DEBUG_LAYER
 	if (pdx12Debug != nullptr)
 	{
-		ID3D12InfoQueue* pInfoQueue = nullptr;
+		ID3D12InfoQueue *pInfoQueue = nullptr;
 		g_pd3dDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue));
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -596,8 +569,8 @@ bool CreateDeviceD3D(HWND hWnd)
 		return false;
 
 	{
-		IDXGIFactory4* dxgiFactory = nullptr;
-		IDXGISwapChain1* swapChain1 = nullptr;
+		IDXGIFactory4 *dxgiFactory = nullptr;
+		IDXGISwapChain1 *swapChain1 = nullptr;
 		if (CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)) != S_OK)
 			return false;
 		if (dxgiFactory->CreateSwapChainForHwnd(g_pd3dCommandQueue, hWnd, &sd, nullptr, nullptr, &swapChain1) != S_OK)
@@ -617,20 +590,60 @@ bool CreateDeviceD3D(HWND hWnd)
 void CleanupDeviceD3D()
 {
 	CleanupRenderTarget();
-	if (g_pSwapChain) { g_pSwapChain->SetFullscreenState(false, nullptr); g_pSwapChain->Release(); g_pSwapChain = nullptr; }
-	if (g_hSwapChainWaitableObject != nullptr) { CloseHandle(g_hSwapChainWaitableObject); }
+	if (g_pSwapChain)
+	{
+		g_pSwapChain->SetFullscreenState(false, nullptr);
+		g_pSwapChain->Release();
+		g_pSwapChain = nullptr;
+	}
+	if (g_hSwapChainWaitableObject != nullptr)
+	{
+		CloseHandle(g_hSwapChainWaitableObject);
+	}
 	for (UINT i = 0; i < NUM_FRAMES_IN_FLIGHT; i++)
-		if (g_frameContext[i].CommandAllocator) { g_frameContext[i].CommandAllocator->Release(); g_frameContext[i].CommandAllocator = nullptr; }
-	if (g_pd3dCommandQueue) { g_pd3dCommandQueue->Release(); g_pd3dCommandQueue = nullptr; }
-	if (g_pd3dCommandList) { g_pd3dCommandList->Release(); g_pd3dCommandList = nullptr; }
-	if (g_pd3dRtvDescHeap) { g_pd3dRtvDescHeap->Release(); g_pd3dRtvDescHeap = nullptr; }
-	if (g_pd3dSrvDescHeap) { g_pd3dSrvDescHeap->Release(); g_pd3dSrvDescHeap = nullptr; }
-	if (g_fence) { g_fence->Release(); g_fence = nullptr; }
-	if (g_fenceEvent) { CloseHandle(g_fenceEvent); g_fenceEvent = nullptr; }
-	if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
+		if (g_frameContext[i].CommandAllocator)
+		{
+			g_frameContext[i].CommandAllocator->Release();
+			g_frameContext[i].CommandAllocator = nullptr;
+		}
+	if (g_pd3dCommandQueue)
+	{
+		g_pd3dCommandQueue->Release();
+		g_pd3dCommandQueue = nullptr;
+	}
+	if (g_pd3dCommandList)
+	{
+		g_pd3dCommandList->Release();
+		g_pd3dCommandList = nullptr;
+	}
+	if (g_pd3dRtvDescHeap)
+	{
+		g_pd3dRtvDescHeap->Release();
+		g_pd3dRtvDescHeap = nullptr;
+	}
+	if (g_pd3dSrvDescHeap)
+	{
+		g_pd3dSrvDescHeap->Release();
+		g_pd3dSrvDescHeap = nullptr;
+	}
+	if (g_fence)
+	{
+		g_fence->Release();
+		g_fence = nullptr;
+	}
+	if (g_fenceEvent)
+	{
+		CloseHandle(g_fenceEvent);
+		g_fenceEvent = nullptr;
+	}
+	if (g_pd3dDevice)
+	{
+		g_pd3dDevice->Release();
+		g_pd3dDevice = nullptr;
+	}
 
 #ifdef DX12_ENABLE_DEBUG_LAYER
-	IDXGIDebug1* pDebug = nullptr;
+	IDXGIDebug1 *pDebug = nullptr;
 	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDebug))))
 	{
 		pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY);
@@ -643,7 +656,7 @@ void CreateRenderTarget()
 {
 	for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
 	{
-		ID3D12Resource* pBackBuffer = nullptr;
+		ID3D12Resource *pBackBuffer = nullptr;
 		g_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer));
 		g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, g_mainRenderTargetDescriptor[i]);
 		g_mainRenderTargetResource[i] = pBackBuffer;
@@ -655,12 +668,16 @@ void CleanupRenderTarget()
 	WaitForLastSubmittedFrame();
 
 	for (UINT i = 0; i < NUM_BACK_BUFFERS; i++)
-		if (g_mainRenderTargetResource[i]) { g_mainRenderTargetResource[i]->Release(); g_mainRenderTargetResource[i] = nullptr; }
+		if (g_mainRenderTargetResource[i])
+		{
+			g_mainRenderTargetResource[i]->Release();
+			g_mainRenderTargetResource[i] = nullptr;
+		}
 }
 
 void WaitForLastSubmittedFrame()
 {
-	FrameContext* frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
+	FrameContext *frameCtx = &g_frameContext[g_frameIndex % NUM_FRAMES_IN_FLIGHT];
 
 	UINT64 fenceValue = frameCtx->FenceValue;
 	if (fenceValue == 0)
@@ -674,15 +691,15 @@ void WaitForLastSubmittedFrame()
 	WaitForSingleObject(g_fenceEvent, INFINITE);
 }
 
-FrameContext* WaitForNextFrameResources()
+FrameContext *WaitForNextFrameResources()
 {
 	UINT nextFrameIndex = g_frameIndex + 1;
 	g_frameIndex = nextFrameIndex;
 
-	HANDLE waitableObjects[] = { g_hSwapChainWaitableObject, nullptr };
+	HANDLE waitableObjects[] = {g_hSwapChainWaitableObject, nullptr};
 	DWORD numWaitableObjects = 1;
 
-	FrameContext* frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
+	FrameContext *frameCtx = &g_frameContext[nextFrameIndex % NUM_FRAMES_IN_FLIGHT];
 	UINT64 fenceValue = frameCtx->FenceValue;
 	if (fenceValue != 0) // means no fence was signaled
 	{
@@ -710,46 +727,52 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
 
-	vzm::VzRenderer* renderer = nullptr;
+	vzm::VzRenderer *renderer = nullptr;
 	if (vzm::IsValidEngineLib())
 	{
-		renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
+		renderer = (vzm::VzRenderer *)vzm::GetFirstComponentByName("my renderer");
 	}
 
 	switch (msg)
 	{
 	case WM_KEYDOWN:
-		switch (wParam) {
+		switch (wParam)
+		{
 		case 'R':
-			//vz::eventhandler::FireEvent(1, 0);
+			// vz::eventhandler::FireEvent(1, 0);
 			vzm::ReloadShader();
 			break;
-		case '0': renderer->ShowDebugBuffer("NONE");
+		case '0':
+			renderer->ShowDebugBuffer("NONE");
 			break;
-		case '1': renderer->ShowDebugBuffer("PRIMITIVE_ID");
+		case '1':
+			renderer->ShowDebugBuffer("PRIMITIVE_ID");
 			break;
-		case '2': renderer->ShowDebugBuffer("INSTANCE_ID");
+		case '2':
+			renderer->ShowDebugBuffer("INSTANCE_ID");
 			break;
-		case '3': renderer->ShowDebugBuffer("LINEAR_DEPTH");
+		case '3':
+			renderer->ShowDebugBuffer("LINEAR_DEPTH");
 			break;
-		case '4': renderer->ShowDebugBuffer("WITHOUT_POSTPROCESSING");
+		case '4':
+			renderer->ShowDebugBuffer("WITHOUT_POSTPROCESSING");
 			break;
 		case 'N':
 		{
 			using namespace vzm;
-			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
-			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
+			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
+			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
 			archive->Store(camera);
 		}
 		break;
-		case 'M': 
+		case 'M':
 		{
 			using namespace vzm;
-			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
-			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
+			VzArchive *archive = (VzArchive *)GetFirstComponentByName("test archive");
+			VzCamera *camera = (VzCamera *)GetFirstComponentByName("my camera");
 			archive->Load(camera);
 		}
-			break;
+		break;
 		default:
 			break;
 		}

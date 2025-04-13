@@ -1395,21 +1395,21 @@ namespace vz
 	}
 }
 
-namespace vz
+namespace vz::scenefactory
 {
 	static std::unordered_map<Entity, std::unique_ptr<SceneDetails>> scenes;
 
-	Scene* Scene::GetScene(const Entity entity) {
+	Scene* GetScene(const Entity entity) {
 		auto it = scenes.find(entity);
 		return it != scenes.end() ? it->second.get() : nullptr;
 	}
-	Scene* Scene::GetFirstSceneByName(const std::string& name) {
+	Scene* GetFirstSceneByName(const std::string& name) {
 		for (auto& it : scenes) {
 			if (it.second->GetSceneName() == name) return it.second.get();
 		}
 		return nullptr;
 	}
-	Scene* Scene::GetSceneIncludingEntity(const Entity entity)
+	Scene* GetSceneIncludingEntity(const Entity entity)
 	{
 		for (size_t i = 0, n = scenes.size(); i < n; ++i)
 		{
@@ -1421,7 +1421,7 @@ namespace vz
 		}
 		return nullptr;
 	}
-	Scene* Scene::CreateScene(const std::string& name, const Entity entity)
+	Scene* CreateScene(const std::string& name, const Entity entity)
 	{
 		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		Entity ett = entity;
@@ -1433,7 +1433,7 @@ namespace vz
 		scenes[ett] = std::make_unique<SceneDetails>(ett, name);
 		return scenes[ett].get();
 	}
-	void Scene::RemoveEntityForScenes(const Entity entity)
+	void RemoveEntityForScenes(const Entity entity)
 	{
 		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		for (auto& it : scenes)
@@ -1442,7 +1442,7 @@ namespace vz
 		}
 	}
 
-	bool Scene::DestroyScene(const Entity entity)
+	bool DestroyScene(const Entity entity)
 	{
 		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		auto it = scenes.find(entity);
@@ -1456,7 +1456,7 @@ namespace vz
 		return true;
 	}
 
-	void Scene::DestroyAll()
+	void DestroyAll()
 	{
 		scenes.clear();
 	}

@@ -189,7 +189,7 @@ namespace vzm
 
 		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 
-		renderer->scene = Scene::GetScene(vidScene);
+		renderer->scene = scenefactory::GetScene(vidScene);
 		renderer->camera = compfactory::GetCameraComponent(vidCam);
 
 		if (!renderer->scene || !renderer->camera)
@@ -273,7 +273,7 @@ namespace vzm
 			return false;
 		}
 
-		renderer->scene = Scene::GetScene(vidScene);
+		renderer->scene = scenefactory::GetScene(vidScene);
 		renderer->camera = camera;
 
 		if (!renderer->scene || !renderer->camera)

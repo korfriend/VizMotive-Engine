@@ -10,8 +10,13 @@ namespace vzm
 
 		void Close();
 		void Load(const VID vid);
+		void Load(const std::vector<VID> vids); // MUST BE PAIRED with Store(const std::vector<VID> vids)
 		void Load(const VzBaseComp* comp) { Load(comp->GetVID()); }
 		void Store(const VID vid);
+		void Store(const std::vector<VID> vids);
 		void Store(const VzBaseComp* comp) { Store(comp->GetVID()); }
+
+		bool SaveFile(const std::string& fileName, const bool saveWhenClose = false);
+		bool ReadFile(const std::string& fileName);
 	};
 }

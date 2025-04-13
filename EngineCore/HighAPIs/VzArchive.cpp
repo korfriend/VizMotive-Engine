@@ -2,6 +2,7 @@
 #include "Components/Components.h"
 #include "Common/Archive.h"
 #include "Utils/Backlog.h"
+#include "Utils/helpers.h"
 
 using namespace vz;
 using namespace std;
@@ -55,6 +56,11 @@ namespace vzm
 		archive->SetReadModeAndResetPos(true);
 		serialize(comp, archive);
 	}
+	void VzArchive::Load(const std::vector<VID> vids)
+	{
+		GET_ARCHIVE(archive, );
+		vzlog_assert(0, "TODO");
+	}
 	void VzArchive::Store(const VID vid)
 	{
 		GET_ARCHIVE(archive, );
@@ -66,5 +72,33 @@ namespace vzm
 		}
 		archive->SetReadModeAndResetPos(false);
 		serialize(comp, archive);
+	}
+	void VzArchive::Store(const std::vector<VID> vids)
+	{
+		GET_ARCHIVE(archive, );
+		vzlog_assert(0, "TODO");
+	}
+
+	bool VzArchive::SaveFile(const std::string& fileName, const bool saveWhenClose)
+	{
+		GET_ARCHIVE(archive, false);
+		archive->SetCompressionEnabled(true);
+		archive->SetFileName(fileName);
+		return archive->SaveFile(fileName);
+	}
+
+	bool VzArchive::ReadFile(const std::string& fileName)
+	{
+		GET_ARCHIVE(archive, false);
+		archive->SetCompressionEnabled(true);
+
+		std::vector<uint8_t> data;
+		if (vz::helper::FileRead(fileName, data))
+		{
+			archive->ReadData(data.data(), data.size());
+			return true;
+		}
+
+		return false;
 	}
 }

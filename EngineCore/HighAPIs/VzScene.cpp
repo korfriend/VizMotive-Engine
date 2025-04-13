@@ -41,7 +41,7 @@ namespace vzm
 
 	const std::vector<VID>& VzScene::GetChildrenVIDs() const
 	{
-		Scene* scene = Scene::GetScene(this->componentVID_);
+		Scene* scene = scenefactory::GetScene(this->componentVID_);
 		return scene->GetChildrenEntities();
 	}
 
@@ -69,7 +69,7 @@ namespace vzm
 
 		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 
-		Scene* scene = Scene::GetScene(this->componentVID_);
+		Scene* scene = scenefactory::GetScene(this->componentVID_);
 	
 		auto timestamp_prev = scene->timerStamp;
 		float delta_time = float(std::max(0.0, scene->RecordElapsedSeconds()));

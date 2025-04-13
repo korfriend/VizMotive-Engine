@@ -52,7 +52,7 @@ namespace vzimgui
 			if (component->GetType() == vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH)
 			{
 				ImGui::SameLine();
-				vzm::VzStaticMeshActor* actor = (vzm::VzStaticMeshActor*)component;
+				vzm::VzActorStaticMesh* actor = (vzm::VzActorStaticMesh*)component;
 				bool visible = actor->IsVisibleWith(0x1);
 				if (ImGui::Checkbox(" ", &visible))
 				{
