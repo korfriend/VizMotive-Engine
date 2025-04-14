@@ -20,7 +20,9 @@ namespace vzimgui
 		{
 			switch (component->GetType())
 			{
-			case vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH: comp_name = "[A] " + comp_name; break;
+			case vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH: comp_name = "[A-SM] " + comp_name; break;
+			case vzm::COMPONENT_TYPE::ACTOR_SPRITE: comp_name = "[A-SP] " + comp_name; break;
+			case vzm::COMPONENT_TYPE::ACTOR_SPRITEFONT: comp_name = "[A-SPF] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::CAMERA: comp_name = "[C] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::SLICER: comp_name = "[S] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::LIGHT: comp_name = "[L] " + comp_name; break;

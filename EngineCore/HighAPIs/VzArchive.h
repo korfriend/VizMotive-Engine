@@ -7,6 +7,7 @@ namespace vzm
 	{
 		VzArchive(const VID vid, const std::string& originFrom)
 			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::ARCHIVE) {}
+		virtual ~VzArchive() = default;
 
 		void Close();
 		void Load(const VID vid);

@@ -209,6 +209,7 @@
   <ItemGroup>
     <ClCompile Include="DeferredProcessing_Detail.cpp" />
     <ClCompile Include="DirectVolumes_Detail.cpp" />
+    <ClCompile Include="Font.cpp" />
     <ClCompile Include="GaussianSplatting_Detail.cpp" />
     <ClCompile Include="GPUBVH.cpp" />
     <ClCompile Include="GaussianSplatting.cpp" />
@@ -227,6 +228,7 @@
     <ClCompile Include="TextureHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Font.h" />
     <ClInclude Include="GPUBVH.h" />
     <ClInclude Include="GaussianSplatting.h" />
     <ClInclude Include="Image.h" />

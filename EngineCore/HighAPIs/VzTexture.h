@@ -106,7 +106,9 @@ namespace vzm
 		};
 
 		VzTexture(const VID vid, const std::string& originFrom)
-			: VzResource(vid, originFrom, COMPONENT_TYPE::TEXTURE) {}
+			: VzResource(vid, originFrom, COMPONENT_TYPE::TEXTURE) {
+		}
+		virtual ~VzTexture() = default;
 
 		// generate MIPs as default except lookup
 		bool CreateTextureFromImageFile(const std::string& fileName);
@@ -129,6 +131,9 @@ namespace vzm
 	struct API_EXPORT VzVolume : VzTexture
 	{
 		VzVolume(const VID vid, const std::string& originFrom)
-			: VzTexture(vid, originFrom) { type_ = COMPONENT_TYPE::VOLUME; }
+			: VzTexture(vid, originFrom) {
+			type_ = COMPONENT_TYPE::VOLUME;
+		}
+		virtual ~VzVolume() = default;
 	};
 }

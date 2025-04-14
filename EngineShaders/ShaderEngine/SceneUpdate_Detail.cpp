@@ -688,13 +688,15 @@ namespace vz
 		spriteComponents.resize(spriteEntities.size());
 		size_t num_sprites = spriteEntities.size();
 		jobsystem::Dispatch(ctx, (uint32_t)num_sprites, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-			spriteComponents[args.jobIndex] = (GSpriteComponent*)compfactory::GetSpriteComponent(spriteEntities[args.jobIndex]);
-			spriteComponents[args.jobIndex]->spriteIndex = args.jobIndex;
+			GSpriteComponent* sprite = (GSpriteComponent*)compfactory::GetSpriteComponent(spriteEntities[args.jobIndex]);
+			sprite->spriteIndex = args.jobIndex;
+			spriteComponents[args.jobIndex] = sprite;
 			});
 
-		spriteFontEntities = scene_->GetSpriteEntities();
+		spriteFontEntities = scene_->GetSpriteFontEntities();
 		spriteFontComponents.resize(spriteFontEntities.size());
 		size_t num_spritefonts = spriteFontEntities.size();
+		
 		jobsystem::Dispatch(ctx, (uint32_t)num_spritefonts, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 			spriteFontComponents[args.jobIndex] = (GSpriteFontComponent*)compfactory::GetSpriteFontComponent(spriteFontEntities[args.jobIndex]);
 			spriteFontComponents[args.jobIndex]->spritefontIndex = args.jobIndex;

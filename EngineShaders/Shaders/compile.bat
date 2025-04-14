@@ -94,3 +94,10 @@ dxc -T cs_6_0 ./CS/temporalaaCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gpusortlib_sortCS_uint64.hlsl -spirv
 dxc -T cs_6_0 ./CS/gpusortlib_sortInnerCS_uint64.hlsl -spirv
 dxc -T cs_6_0 ./CS/gpusortlib_sortStepCS_uint64.hlsl -spirv
+
+dxc -T cs_6_0 ./CS/upsample_bilateral_float1CS.hlsl -spirv
+dxc -T cs_6_0 ./CS/upsample_bilateral_float4CS.hlsl -spirv
+dxc -T cs_6_0 ./CS/downsample4xCS.hlsl -spirv
+
+dxc -T vs_6_0 ./VS/fontVS.hlsl -spirv
+dxc -T ps_6_0 ./PS/fontPS.hlsl -spirv

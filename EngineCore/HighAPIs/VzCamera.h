@@ -25,6 +25,7 @@ namespace vzm
 		std::unique_ptr<OrbitalControl> orbitControl_;
 	public:
 		VzCamera(const VID vid, const std::string& originFrom);
+		virtual ~VzCamera() = default;
 
 		void SetVisibleLayerMask(const uint32_t visibleLayerMask);
 		void SetVisibleLayer(const bool visible, const uint32_t layerBits);

@@ -20,7 +20,7 @@ namespace vz
 	public:
 		RenderPath2D(const Entity entity, graphics::GraphicsDevice* graphicsDevice) 
 			: RenderPath(entity, graphicsDevice) {  type_ = "RenderPath2D"; }
-		~RenderPath2D() { DeleteGPUResources(false); }
+		virtual ~RenderPath2D() { DeleteGPUResources(false); }
 
 		void SetMSAASampleCount(uint32_t value) { msaaSampleCount_ = value; }
 		constexpr uint32_t GetMSAASampleCount() const { return msaaSampleCount_; }

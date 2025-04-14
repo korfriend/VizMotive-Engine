@@ -8,18 +8,13 @@
 #include "vzm2/utils/Profiler.h"
 #include "vzm2/utils/Config.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+
+#include "imgui/vzImGuiHelpers.h"
+#include "imgui/IconsMaterialDesign.h"
+
 #include <iostream>
 #include <windowsx.h>
-
-// imgui
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_impl_dx12.h"
-#include <d3d12.h>
-#include <dxgi1_4.h>
-
-#include <tchar.h>
-#include <shellscalingapi.h>
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
@@ -162,7 +157,16 @@ int main(int, char **)
 		camera->SetPerspectiveProjection(0.1f, 5000.f, 60.f, 1.f);
 
 		vzm::VzActorSprite* actor_sprite = vzm::NewActorSprite("my sprite");
+		vzm::VzTexture* texture = vzm::NewTexture("my texture");
+		texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
+		actor_sprite->SetSpriteTexture(texture->GetVID());
+		actor_sprite->SetSpriteScale({ 20.f, 20.f });
 		scene->AppendChild(actor_sprite);
+
+		//vzm::VzActorSpriteFont* actor_font = vzm::NewActorSpriteFont("my sprite font");
+		//actor_font->SetText("MY TEST SPRITE");
+		//actor_font->SetFontSize(20);
+		//scene->AppendChild(actor_font);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 10, 10, 10 });
@@ -221,11 +225,6 @@ int main(int, char **)
 				rot.x += 0.02f;
 				rot.y += 0.03f;
 				actor_sprite->SetEulerAngleZXY(*(vfloat3*)&rot);
-
-				for (VID vid : actor_sprite->GetMaterials())
-				{
-					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
-				}
 			}
 
 			ImGui::Begin("3D Viewer");
@@ -313,9 +312,23 @@ int main(int, char **)
 
 			ImGui::Begin("Controls");
 			{
+				ImGui::Separator();
+				vzimgui::IGTextTitle("----- Scene Tree -----");
+				const std::vector<VID> root_children = scene->GetChildrenVIDs();
+				static VID selected_vid = 0u;
+				for (auto vid_root : root_children)
+				{
+					vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid) {});
+				}
+				ImGui::Separator();
 				if (ImGui::Button("Shader Reload"))
 				{
 					vzm::ReloadShader();
+				}
+				static bool face_camera = false;
+				if (ImGui::Checkbox("Face Camera", &face_camera))
+				{
+					actor_sprite->EnableCameraFacing(face_camera);
 				}
 				if (ImGui::Button("Export File"))
 				{
@@ -326,12 +339,17 @@ int main(int, char **)
 					play = !play;
 				}
 
-				static int detail_Icosahedron = 5;
-				if (ImGui::SliderInt("Icosahedron's detail", &detail_Icosahedron, 0, 10))
+				ImGui::Separator();
+				ImGui::Text("Rendering Options");
+				static bool TAA_enabled = vz::config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
+				if (ImGui::Checkbox("TAA", &TAA_enabled))
 				{
-					VID geometry_vid = vzm::GetFirstVidByName("my icosahedron");
-					vz::geogen::GenerateIcosahedronGeometry(geometry_vid, 15.f, detail_Icosahedron);
+					vzm::ParamMap<std::string> config_options;
+					config_options.SetParam("TEMPORAL_AA", TAA_enabled);
+					vzm::SetConfigure(config_options);
 				}
+
+				ImGui::Separator();
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 

@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "RenderPath3D_Detail.h"
 #include "Image.h"
+#include "Font.h"
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
@@ -142,6 +143,46 @@ namespace vz::renderer
 			rtParticleDistortion_render = {};
 		}
 
+		if (!camera->IsSlicer())
+		{
+			TextureDesc desc;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.format = renderer::FORMAT_rendertargetMain;
+			desc.width = internalResolution.x / 4;
+			desc.height = internalResolution.y / 4;
+			desc.mip_levels = std::min(8u, (uint32_t)std::log2(std::max(desc.width, desc.height)));
+			device->CreateTexture(&desc, nullptr, &rtSceneCopy);
+			device->SetName(&rtSceneCopy, "rtSceneCopy");
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS | BindFlag::RENDER_TARGET; // render target for aliasing
+			device->CreateTexture(&desc, nullptr, &rtSceneCopy_tmp, &rtPrimitiveID_1);
+			device->SetName(&rtSceneCopy_tmp, "rtSceneCopy_tmp");
+
+			for (uint32_t i = 0; i < rtSceneCopy.GetDesc().mip_levels; ++i)
+			{
+				int subresource_index;
+				subresource_index = device->CreateSubresource(&rtSceneCopy, SubresourceType::SRV, 0, 1, i, 1);
+				assert(subresource_index == i);
+				subresource_index = device->CreateSubresource(&rtSceneCopy_tmp, SubresourceType::SRV, 0, 1, i, 1);
+				assert(subresource_index == i);
+				subresource_index = device->CreateSubresource(&rtSceneCopy, SubresourceType::UAV, 0, 1, i, 1);
+				assert(subresource_index == i);
+				subresource_index = device->CreateSubresource(&rtSceneCopy_tmp, SubresourceType::UAV, 0, 1, i, 1);
+				assert(subresource_index == i);
+			}
+
+			// because this is used by SSR and SSGI before it gets a chance to be normally rendered, it MUST be cleared!
+			CommandList cmd = device->BeginCommandList();
+			device->Barrier(GPUBarrier::Image(&rtSceneCopy, rtSceneCopy.desc.layout, ResourceState::UNORDERED_ACCESS), cmd);
+			device->ClearUAV(&rtSceneCopy, 0, cmd);
+			device->Barrier(GPUBarrier::Image(&rtSceneCopy, ResourceState::UNORDERED_ACCESS, rtSceneCopy.desc.layout), cmd);
+			device->SubmitCommandLists();
+		}
+		else
+		{
+			rtSceneCopy = {};
+			rtSceneCopy_tmp = {};
+		}
+
 		if (false && !luminanceResources.luminance.IsValid())
 		{
 			float values[LUMINANCE_NUM_HISTOGRAM_BINS + 1 + 1] = {}; // 1 exposure + 1 luminance value + histogram
@@ -269,7 +310,7 @@ namespace vz::renderer
 		cameraPrevious = *camera;
 	}
 
-	// based on graphics pipeline
+	// based on graphics pipeline : Draw[...]
 	void GRenderPath3DDetails::DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags)
 	{
 		const bool opaque = flags & DRAWSCENE_OPAQUE;
@@ -342,6 +383,178 @@ namespace vz::renderer
 		device->BindShadingRate(ShadingRate::RATE_1X1, cmd);
 		device->EventEnd(cmd);
 
+	}
+
+	void GRenderPath3DDetails::DrawSpritesAndFonts(
+		const CameraComponent& camera,
+		bool distortion,
+		CommandList cmd
+	)
+	{
+		if (scene_Gdetails->spriteComponents.size() == 0 && scene_Gdetails->spriteFontComponents.size() == 0)
+			return;
+
+		std::string process_name = "Sprites and Fonts";
+		if (distortion)
+		{
+			process_name += "(distortion)";
+		}
+		device->EventBegin(process_name.c_str(), cmd);
+		auto range = profiler::BeginRangeGPU(process_name.c_str(), &cmd);
+
+		const XMMATRIX VP = XMLoadFloat4x4(&camera.GetViewProjection());
+		const XMMATRIX R = XMLoadFloat3x3(&camera.GetRotationToFaceCamera());
+
+		enum TYPE // ordering of the enums is important, it is designed to prioritize font on top of sprite rendering if distance is the same
+		{
+			FONT,
+			SPRITE,
+		};
+		union DistanceSorter {
+			struct
+			{
+				uint64_t id : 32;
+				uint64_t type : 16;
+				uint64_t distance : 16;
+			} bits;
+			uint64_t raw;
+			static_assert(sizeof(bits) == sizeof(raw));
+		};
+		static thread_local std::vector<uint64_t> distance_sorter;
+		distance_sorter.clear();
+		for (size_t i = 0, n = scene_Gdetails->spriteComponents.size(); i < n; ++i)
+		{
+			GSpriteComponent* sprite = scene_Gdetails->spriteComponents[i];
+			if (sprite->IsHidden())
+				continue;
+			if (sprite->IsExtractNormalMapEnabled() != distortion)
+				continue;
+			DistanceSorter sorter = {};
+			sorter.bits.id = uint32_t(i);
+			sorter.bits.type = SPRITE;
+			sorter.bits.distance = XMConvertFloatToHalf(math::DistanceEstimated(sprite->posW, camera.GetWorldEye()));
+			distance_sorter.push_back(sorter.raw);
+		}
+		if (!distortion)
+		{
+			for (size_t i = 0, n = scene_Gdetails->spriteFontComponents.size(); i < n; ++i)
+			{
+				GSpriteFontComponent* font = scene_Gdetails->spriteFontComponents[i];
+				if (font->IsHidden())
+					continue;
+				DistanceSorter sorter = {};
+				sorter.bits.id = uint32_t(i);
+				sorter.bits.type = FONT;
+				sorter.bits.distance = XMConvertFloatToHalf(math::DistanceEstimated(font->posW, camera.GetWorldEye()));
+				distance_sorter.push_back(sorter.raw);
+			}
+		}
+
+		std::sort(distance_sorter.begin(), distance_sorter.end(), std::greater<uint64_t>());
+		for (auto& x : distance_sorter)
+		{
+			DistanceSorter sorter = {};
+			sorter.raw = x;
+			XMMATRIX M = VP;
+			Entity entity = INVALID_ENTITY;
+
+			switch (sorter.bits.type)
+			{
+			default:
+			case SPRITE:
+			{
+				GSpriteComponent* sprite = scene_Gdetails->spriteComponents[sorter.bits.id];
+				
+				vz::image::Params params;
+				params.pos = sprite->GetPosition();
+				params.rotation = sprite->GetRotation();
+				params.scale = sprite->GetScale();
+				params.opacity = sprite->GetOpacity();
+				params.texOffset = sprite->GetUVOffset();
+
+				sprite->IsExtractNormalMapEnabled()? params.enableExtractNormalMap() : params.disableExtractNormalMap();
+				sprite->IsMirrorEnabled() ? params.enableMirror() : params.disableMirror();
+				sprite->IsHDR10OutputMappingEnabled() ? params.enableHDR10OutputMapping() : params.disableHDR10OutputMapping();
+				sprite->IsLinearOutputMappingEnabled() ? params.enableLinearOutputMapping() : params.disableLinearOutputMapping();
+				sprite->IsCornerRoundingEnabled() ? params.enableCornerRounding() : params.disableCornerRounding();
+				sprite->IsDepthTestEnabled() ? params.enableDepthTest() : params.disableDepthTest();
+				sprite->IsHighlightEnabled() ? params.enableHighlight() : params.disableHighlight();
+				
+				if (sprite->IsCameraScaling())
+				{
+					float scale = 0.05f * math::Distance(sprite->posW, camera.GetWorldEye());
+					params.scale = XMFLOAT2(params.scale.x * scale, params.scale.y * scale);
+				}
+
+				if (sprite->IsCameraFacing())
+				{
+					M = XMMatrixScaling(sprite->scaleW.x, sprite->scaleW.y, sprite->scaleW.z) * R *
+						XMMatrixTranslation(sprite->translateW.x, sprite->translateW.y, sprite->translateW.z) * M;
+				}
+				else
+				{
+					M = sprite->W * M;
+				}
+				params.customProjection = &M;
+				//if (sprite.maskResource.IsValid())
+				//{
+				//	params.setMaskMap(&sprite.maskResource.GetTexture());
+				//}
+				//else
+				//{
+				//	params.setMaskMap(nullptr);
+				//}
+
+				GTextureComponent* texture = (GTextureComponent*)compfactory::GetTextureComponentByVUID(sprite->GetSpriteTextureVUID());
+				image::Draw(texture ? &texture->GetTexture() : nullptr, params, cmd);
+			}
+			break;
+			case FONT:
+			{
+				GSpriteFontComponent* font_sprite = scene_Gdetails->spriteFontComponents[sorter.bits.id];
+				
+				vz::font::Params params;
+				params.position = font_sprite->GetPosition();
+				params.rotation = font_sprite->GetRotation();
+				params.scaling = font_sprite->GetScale();
+				params.color.fromFloat4(font_sprite->GetColor());
+
+				// params TODO attributes setting
+
+				if (font_sprite->IsCameraScaling())
+				{
+					float scale = 0.05f * math::Distance(font_sprite->posW, camera.GetWorldEye());
+					params.scaling *= scale;
+				}
+
+				if (font_sprite->IsCameraFacing())
+				{
+					M = XMMatrixScaling(font_sprite->scaleW.x, font_sprite->scaleW.y, font_sprite->scaleW.z) * R *
+						XMMatrixTranslation(font_sprite->translateW.x, font_sprite->translateW.y, font_sprite->translateW.z) * M;
+				}
+				else
+				{
+					M = font_sprite->W * M;
+				}
+
+				params.customProjection = &M;
+				vz::font::Draw(font_sprite->GetText().c_str(), font_sprite->GetCurrentTextLength(), params, cmd);
+			}
+			break;
+			}
+		}
+		profiler::EndRange(range);
+		device->EventEnd(cmd);
+	}
+
+	void GRenderPath3DDetails::DrawDebugWorld(
+		const Scene& scene,
+		const CameraComponent& camera,
+		CommandList cmd
+	)
+	{
+		static GPUBuffer wirecubeVB;
+		static GPUBuffer wirecubeIB;
 	}
 
 	void GRenderPath3DDetails::TextureStreamingReadbackCopy(const Scene& scene, graphics::CommandList cmd)
@@ -705,6 +918,205 @@ namespace vz::renderer
 		BatchDrawingFlush();
 
 		device->EventEnd(cmd);
+	}
+
+	void GRenderPath3DDetails::RenderTransparents(CommandList cmd)
+	{
+		// Water ripple rendering:
+		// TODO
+
+		if (renderer::isFSREnabled)
+		{
+			// Save the pre-alpha for FSR2 reactive mask:
+			//	Note that rtFSR temp resource is always larger or equal to rtMain, so CopyTexture is used instead of CopyResource!
+			//GPUBarrier barriers[] = {
+			//	GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::COPY_SRC),
+			//	GPUBarrier::Image(&rtFSR[1], rtFSR->desc.layout, ResourceState::COPY_DST),
+			//};
+			//device->Barrier(barriers, arraysize(barriers), cmd);
+			//device->CopyTexture(
+			//	&rtFSR[1], 0, 0, 0, 0, 0,
+			//	&rtMain, 0, 0,
+			//	cmd
+			//);
+			//for (int i = 0; i < arraysize(barriers); ++i)
+			//{
+			//	std::swap(barriers[i].image.layout_before, barriers[i].image.layout_after);
+			//}
+			//device->Barrier(barriers, arraysize(barriers), cmd);
+		}
+
+		device->BindScissorRects(1, &scissor, cmd);
+
+		Viewport vp;
+		vp.width = (float)depthBufferMain.GetDesc().width;
+		vp.height = (float)depthBufferMain.GetDesc().height;
+		vp.min_depth = 0;
+		vp.max_depth = 1;
+		device->BindViewports(1, &vp, cmd);
+
+		RenderPassImage rp[] = {
+			RenderPassImage::RenderTarget(&rtMain_render, RenderPassImage::LoadOp::LOAD),
+			RenderPassImage::DepthStencil(
+				&depthBufferMain,
+				RenderPassImage::LoadOp::LOAD,
+				RenderPassImage::StoreOp::STORE,
+				ResourceState::DEPTHSTENCIL,
+				ResourceState::DEPTHSTENCIL,
+				ResourceState::DEPTHSTENCIL
+			),
+			RenderPassImage::Resolve(&rtMain),
+		};
+
+		// Draw only the ocean first, fog and lightshafts will be blended on top:
+		// TODO
+
+		if (viewMain.IsTransparentsVisible())
+		{
+			//RenderSceneMIPChain(cmd);
+		}
+
+		device->RenderPassBegin(rp, msaaSampleCount > 1 ? 3 : 2, cmd);
+
+		// Note: volumetrics and light shafts are blended before transparent scene, because they used depth of the opaques
+		//	But the ocean is special, because it does have depth for them implicitly computed from ocean plane
+
+		if (renderer::isVolumeLightsEnabled && viewMain.IsRequestedVolumetricLights())
+		{
+			//device->EventBegin("Contribute Volumetric Lights", cmd);
+			//Postprocess_Upsample_Bilateral(
+			//	rtVolumetricLights,
+			//	rtLinearDepth,
+			//	rtMain,
+			//	cmd,
+			//	true,
+			//	1.5f
+			//);
+			//device->EventEnd(cmd);
+		}
+
+		//XMVECTOR sunDirection = XMLoadFloat3(&scene->weather.sunDirection);
+		//if (renderer::isLightShaftsEnabled() && XMVectorGetX(XMVector3Dot(sunDirection, camera->GetAt())) > 0)
+		//{
+		//	device->EventBegin("Contribute LightShafts", cmd);
+		//	image::Params fx;
+		//	fx.enableFullScreen();
+		//	fx.blendFlag = BLENDMODE_ADDITIVE;
+		//	image::Draw(&rtSun[1], fx, cmd);
+		//	device->EventEnd(cmd);
+		//}
+
+		// Transparent scene
+		if (viewMain.IsTransparentsVisible())
+		{
+			auto range = profiler::BeginRangeGPU("Transparent Scene", &cmd);
+			device->EventBegin("Transparent Scene", cmd);
+
+			// Regular:
+			vp.min_depth = 0;
+			vp.max_depth = 1;
+			device->BindViewports(1, &vp, cmd);
+			DrawScene(
+				viewMain,
+				RENDERPASS_MAIN,
+				cmd,
+				renderer::DRAWSCENE_TRANSPARENT |
+				renderer::DRAWSCENE_TESSELLATION |
+				renderer::DRAWSCENE_OCCLUSIONCULLING
+			);
+
+			// Foreground:
+			vp.min_depth = 1 - foregroundDepthRange;
+			vp.max_depth = 1;
+			device->BindViewports(1, &vp, cmd);
+			DrawScene(
+				viewMain,
+				RENDERPASS_MAIN,
+				cmd,
+				renderer::DRAWSCENE_TRANSPARENT |
+				renderer::DRAWSCENE_FOREGROUND_ONLY
+			);
+
+			// Reset normal viewport:
+			vp.min_depth = 0;
+			vp.max_depth = 1;
+			device->BindViewports(1, &vp, cmd);
+
+			device->EventEnd(cmd);
+			profiler::EndRange(range); // Transparent Scene
+		}
+
+		//DrawDebugWorld(*scene, *camera, cmd);
+
+		//DrawLightVisualizers(viewMain, cmd);
+
+		//DrawSoftParticles(viewMain, false, cmd);
+		
+		DrawSpritesAndFonts(*camera, false, cmd);
+
+		if (renderer::isLensFlareEnabled)
+		{
+			//DrawLensFlares(
+			//	visibility_main,
+			//	cmd,
+			//	scene->weather.IsVolumetricClouds() ? &volumetriccloudResources.texture_cloudMask : nullptr
+			//);
+		}
+
+		device->RenderPassEnd(cmd);
+
+		// Distortion particles:
+		if (rtParticleDistortion.IsValid())
+		{
+			//if (rtWaterRipple.IsValid())
+			//{
+			//	device->Barrier(GPUBarrier::Aliasing(&rtWaterRipple, &rtParticleDistortion), cmd);
+			//}
+
+			if (msaaSampleCount > 1)
+			{
+				RenderPassImage rp[] = {
+					RenderPassImage::RenderTarget(&rtParticleDistortion_render, RenderPassImage::LoadOp::CLEAR),
+					RenderPassImage::DepthStencil(
+						&depthBufferMain,
+						RenderPassImage::LoadOp::LOAD,
+						RenderPassImage::StoreOp::STORE,
+						ResourceState::DEPTHSTENCIL,
+						ResourceState::DEPTHSTENCIL,
+						ResourceState::DEPTHSTENCIL
+					),
+					RenderPassImage::Resolve(&rtParticleDistortion)
+				};
+				device->RenderPassBegin(rp, arraysize(rp), cmd);
+			}
+			else
+			{
+				RenderPassImage rp[] = {
+					RenderPassImage::RenderTarget(&rtParticleDistortion, RenderPassImage::LoadOp::CLEAR),
+					RenderPassImage::DepthStencil(
+						&depthBufferMain,
+						RenderPassImage::LoadOp::LOAD,
+						RenderPassImage::StoreOp::STORE,
+						ResourceState::DEPTHSTENCIL,
+						ResourceState::DEPTHSTENCIL,
+						ResourceState::DEPTHSTENCIL
+					),
+				};
+				device->RenderPassBegin(rp, arraysize(rp), cmd);
+			}
+
+			Viewport vp;
+			vp.width = (float)rtParticleDistortion.GetDesc().width;
+			vp.height = (float)rtParticleDistortion.GetDesc().height;
+			device->BindViewports(1, &vp, cmd);
+
+			//DrawSoftParticles(visibility_main, true, cmd);
+			DrawSpritesAndFonts(*camera, true, cmd);
+
+			device->RenderPassEnd(cmd);
+		}
+
+		Postprocess_Downsample4x(rtMain, rtSceneCopy, cmd);
 	}
 
 	bool GRenderPath3DDetails::ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight)
@@ -1808,50 +2220,41 @@ namespace vz::renderer
 			});
 
 		// Transparents, Special Renderers, and Post Processes, etc:
-		//cmd = device->BeginCommandList();
-		//jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
-		//
-		//	BindCameraCB(
-		//		*camera,
-		//		cameraPrevious,
-		//		cameraReflection,
-		//		cmd
-		//	);
-		//
-		//	//RenderLightShafts(cmd);
-		//	
-		//	//RenderVolumetrics(cmd);
-		//	
-		//	//RenderTransparents(cmd);
-		//	
-		//	// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
-		//	{
-		//		GPUBarrier barriers[] = {
-		//			GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
-		//			GPUBarrier::Image(&depthBuffer_Copy, ResourceState::SHADER_RESOURCE, depthBuffer_Copy.desc.layout),
-		//			GPUBarrier::Image(&debugUAV, ResourceState::UNORDERED_ACCESS, debugUAV.desc.layout),
-		//		};
-		//		device->Barrier(barriers, arraysize(barriers), cmd);
-		//	}
-		//});
+		cmd = device->BeginCommandList();
+		//if (cmd_water.IsValid())
+		//{
+		//	device->WaitCommandList(cmd, cmd_ocean);
+		//}
+		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+		
+			BindCameraCB(
+				*camera,
+				cameraPrevious,
+				cameraReflection,
+				cmd
+			);
+		
+			//RenderLightShafts(cmd);
+			
+			//RenderVolumetrics(cmd);
 
-		{
-			cmd = device->BeginCommandList();
-			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+			RenderTransparents(cmd);
 
-				BindCameraCB(
-					*camera,
-					cameraPrevious,
-					cameraReflection,
-					cmd
-				);
+			if (renderer::isGaussianSplattingEnabled)
+				RenderGaussianSplatting(cmd);
 
-				if (renderer::isGaussianSplattingEnabled)
-					RenderGaussianSplatting(cmd);
-
-				RenderDirectVolumes(cmd);
-				});
-		}
+			RenderDirectVolumes(cmd);
+			
+			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Image(&rtLinearDepth, ResourceState::SHADER_RESOURCE, rtLinearDepth.desc.layout),
+					GPUBarrier::Image(&depthBuffer_Copy, ResourceState::SHADER_RESOURCE, depthBuffer_Copy.desc.layout),
+					GPUBarrier::Image(&debugUAV, ResourceState::UNORDERED_ACCESS, debugUAV.desc.layout),
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			});
 
 		if (isWetmapRefreshEnabled)
 		{
@@ -1978,6 +2381,10 @@ namespace vz::renderer
 		rtLinearDepth = {};
 		depthBuffer_Copy = {};
 		depthBuffer_Copy1 = {};
+
+		rtSceneCopy = {};
+		rtSceneCopy_tmp = {};
+		//rtWaterRipple = {};
 
 		viewResources = {};
 

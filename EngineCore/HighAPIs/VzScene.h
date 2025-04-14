@@ -9,7 +9,9 @@ namespace vzm
 		float iblRotation_ = 0.0f;
 	public:
 		VzScene(const VID vid, const std::string& originFrom)
-			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::SCENE) {}
+			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::SCENE) {
+		}
+		virtual ~VzScene() = default;
 
 		//std::vector<VID> GetSceneCompChildren();
 		//bool LoadIBL(const std::string& iblPath);

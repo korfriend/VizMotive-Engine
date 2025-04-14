@@ -71,7 +71,9 @@ namespace vzcompmanager
 		case COMPONENT_TYPE::CAMERA:
 		case COMPONENT_TYPE::SLICER:
 			cameras.erase(vid); break;
-		case COMPONENT_TYPE::ACTOR_STATIC_MESH: actors.erase(vid); break;
+		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
+		case COMPONENT_TYPE::ACTOR_SPRITE:
+		case COMPONENT_TYPE::ACTOR_SPRITEFONT: actors.erase(vid); break;
 		case COMPONENT_TYPE::LIGHT: lights.erase(vid); break;
 		case COMPONENT_TYPE::GEOMETRY: geometries.erase(vid); break;
 		case COMPONENT_TYPE::MATERIAL: materials.erase(vid); break;
@@ -223,14 +225,14 @@ namespace vzm
 			}
 			break;
 		case COMPONENT_TYPE::ACTOR_SPRITE:
-			compfactory::CreateRenderableComponent(entity);
+			compfactory::CreateSpriteComponent(entity);
 			{
 				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorSprite>(vid, "vzm::NewActorSprite"));
 				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
 		case COMPONENT_TYPE::ACTOR_SPRITEFONT:
-			compfactory::CreateRenderableComponent(entity);
+			compfactory::CreateSpriteFontComponent(entity);
 			{
 				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorSpriteFont>(vid, "vzm::NewActorSpriteFont"));
 				hlcomp = (VzSceneObject*)it.first->second.get();

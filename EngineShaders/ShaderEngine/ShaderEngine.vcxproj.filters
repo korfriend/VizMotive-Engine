@@ -53,6 +53,9 @@
     <ClCompile Include="GaussianSplatting.cpp">
       <Filter>Processing</Filter>
     </ClCompile>
+    <ClCompile Include="Font.cpp">
+      <Filter>Processing</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\dxcapi.h">
@@ -93,6 +96,9 @@
       <Filter>Renderer\Header</Filter>
     </ClInclude>
     <ClInclude Include="GaussianSplatting.h">
+      <Filter>Processing</Filter>
+    </ClInclude>
+    <ClInclude Include="Font.h">
       <Filter>Processing</Filter>
     </ClInclude>
   </ItemGroup>

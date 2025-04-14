@@ -36,7 +36,7 @@ namespace vz
 			handlerScene = shaderEngine.pluginNewGScene(this);
 			assert(handlerScene->version == GScene::GScene_INTERFACE_VERSION);
 		};
-		~SceneDetails()
+		virtual ~SceneDetails()
 		{
 			handlerScene->Destroy();
 			delete handlerScene;
@@ -81,21 +81,25 @@ namespace vz
 
 		void RunTransformUpdateSystem(jobsystem::context& ctx)
 		{
-			//size_t num_transforms = compfactory::GetTransformComponents(renderables_, transforms);
-			//assert(num_transforms == GetRenderableCount());
+			auto updateLocal = [&](std::vector<Entity>& transformEntities) {
+				jobsystem::Dispatch(ctx, (uint32_t)transformEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-			jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+					//TransformComponent* transform = transforms[args.jobIndex];
+					TransformComponent* transform = compfactory::GetTransformComponent(transformEntities[args.jobIndex]);
+					transform->UpdateMatrix();
 
-				//TransformComponent* transform = transforms[args.jobIndex];
-				TransformComponent* transform = compfactory::GetTransformComponent(renderables_[args.jobIndex]);
-				transform->UpdateMatrix();
+					if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
+					{
+						isContentChanged_ = true;
+					}
 
-				if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
-				{
-					isContentChanged_ = true;
-				}
+					});
+				};
 
-				});
+			updateLocal(renderables_);
+			updateLocal(sprites_);
+			updateLocal(spriteFonts_);
+
 		}
 		void RunRenderableUpdateSystem(jobsystem::context& ctx)
 		{
@@ -232,6 +236,68 @@ namespace vz
 
 				}, sizeof(geometrics::AABB));
 		}
+		void RunSpriteUpdateSystem(jobsystem::context& ctx)
+		{
+			size_t num_sprites = sprites_.size();
+			jobsystem::Dispatch(ctx, (uint32_t)num_sprites, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+				Entity entity = sprites_[args.jobIndex];
+				GSpriteComponent* sprite = (GSpriteComponent*)compfactory::GetSpriteComponent(entity);
+				TransformComponent* transform = compfactory::GetTransformComponent(entity);
+				if (transform == nullptr)
+					return;
+				transform->UpdateWorldMatrix();
+
+				sprite->W = XMLoadFloat4x4(&transform->GetWorldMatrix());
+				XMVECTOR P = XMLoadFloat3(&sprite->GetPosition());
+				P = XMVector3TransformCoord(P, sprite->W);
+				XMStoreFloat3(&sprite->posW, P);
+				if (sprite->IsCameraFacing())
+				{
+					XMVECTOR S, R, T;
+					XMMatrixDecompose(&S, &R, &T, sprite->W);
+
+					XMStoreFloat3(&sprite->scaleW, S);
+					XMStoreFloat3(&sprite->translateW, T);
+				}
+
+				if (TimeDurationCount(sprite->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
+				}
+
+				});
+		}
+		void RunSpriteFontUpdateSystem(jobsystem::context& ctx)
+		{
+			size_t num_spritefonts = spriteFonts_.size();
+			jobsystem::Dispatch(ctx, (uint32_t)num_spritefonts, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+				Entity entity = spriteFonts_[args.jobIndex];
+				GSpriteFontComponent* font = (GSpriteFontComponent*)compfactory::GetSpriteFontComponent(entity);
+				TransformComponent* transform = compfactory::GetTransformComponent(entity);
+				if (transform == nullptr)
+					return;
+				transform->UpdateWorldMatrix();
+
+				font->W = XMLoadFloat4x4(&transform->GetWorldMatrix());
+				XMVECTOR P = XMLoadFloat3(&font->GetPosition());
+				P = XMVector3TransformCoord(P, font->W);
+				XMStoreFloat3(&font->posW, P);
+				if (font->IsCameraFacing())
+				{
+					XMVECTOR S, R, T;
+					XMMatrixDecompose(&S, &R, &T, font->W);
+
+					XMStoreFloat3(&font->scaleW, S);
+					XMStoreFloat3(&font->translateW, T);
+				}
+
+				if (TimeDurationCount(font->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
+				}
+
+				});
+		}
 		void RunLightUpdateSystem(jobsystem::context& ctx)
 		{
 			jobsystem::Dispatch(ctx, (uint32_t)lights_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
@@ -353,6 +419,8 @@ namespace vz
 			RunTransformUpdateSystem(ctx);
 			jobsystem::Wait(ctx); // dependencies
 			RunRenderableUpdateSystem(ctx);
+			RunSpriteUpdateSystem(ctx);
+			RunSpriteFontUpdateSystem(ctx);
 			RunLightUpdateSystem(ctx);
 			RunGeometryUpdateSystem(ctx);
 			jobsystem::Wait(ctx); // dependencies
