@@ -5,6 +5,18 @@
 
 namespace vz
 {
+	void SpriteComponent::SetSpriteTexture(const Entity entity)
+	{
+		TextureComponent* texture = compfactory::GetTextureComponent(entity);
+		if (texture == nullptr)
+		{
+			vzlog_error("SpriteComponent::SetSpriteTexture >> Invalid Texture Entity (%llu)", entity);
+			return;
+		}
+		vuidSpriteTexture_ = texture->GetVUID();
+		timeStampSetter_ = TimerNow;
+	}
+
 	void SpriteComponent::FixedUpdate()
 	{
 		if (IsDisableUpdate())
@@ -148,5 +160,17 @@ namespace vz
 		std::string retVal;
 		helper::StringConvert(text_, retVal);
 		return retVal;
+	}
+
+	size_t SpriteFontComponent::GetCurrentTextLength() const
+	{
+		size_t text_length = text_.length();
+		if (anim_.typewriter.time > 0)
+		{
+			text_length = std::min(text_length, 
+				size_t(math::Lerp(float(std::min(text_length, anim_.typewriter.characterStart)), 
+					float(text_length + 1), anim_.typewriter.elapsed / anim_.typewriter.time)));
+		}
+		return text_length;
 	}
 }

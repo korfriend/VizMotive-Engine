@@ -25,7 +25,9 @@ namespace vzm
 		};
 
 		VzRenderer(const VID vid, const std::string& originFrom)
-			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::RENDERER) {}
+			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::RENDERER) {
+		}
+		virtual ~VzRenderer() = default;
 
 		void SetCanvas(const uint32_t w, const uint32_t h, const float dpi, void* window = nullptr);
 		void ResizeCanvas(const uint32_t w, const uint32_t h, const CamVID vidCam = 0u); // preserves dpi and window handler

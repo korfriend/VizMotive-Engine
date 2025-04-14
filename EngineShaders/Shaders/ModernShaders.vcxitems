@@ -48,6 +48,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_BVH.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_DDGI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_DVR.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Font.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_FSR2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GPUSortLib.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GaussianSplatting.h" />
@@ -78,6 +79,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryspace.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_propagateaabbCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\downsample4xCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_2KB.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_xray_2KB.hlsl" />
@@ -121,11 +123,14 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerOutlineCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\temporalaaCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\tonemapCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\upsample_bilateral_float1CS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\upsample_bilateral_float4CS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\wetmap_updateCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)GS\thicknessLineGS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\debugPS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\fontPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_debug.hlsl" />
@@ -135,6 +140,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass_depthonly_alphatest.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_simple.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\vertexcolorPS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\fontVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\imageVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_common.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_debug.hlsl" />

@@ -34,7 +34,7 @@ namespace vz
 		inline static int skipStableCount = -1; // -1 refers to ignore the skip
 
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
-		~RenderPath3D();
+		virtual ~RenderPath3D();
 
 		CameraComponent* camera = nullptr; // can be used for SlicerComponent
 		Scene* scene = nullptr;

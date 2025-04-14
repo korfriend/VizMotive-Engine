@@ -189,13 +189,15 @@ namespace vzm
 		std::string originFrom_;
 		COMPONENT_TYPE type_;
 	public:
-		// User data
-		ParamMap<std::string> attributes;
 		VzBaseComp(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
 			: componentVID_(vid), originFrom_(originFrom), type_(type)
 		{
 			UpdateTimeStamp();
 		}
+		virtual ~VzBaseComp() = default;
+
+		// User data
+		ParamMap<std::string> attributes;
 		VID GetVID() const { return componentVID_; }
 		COMPONENT_TYPE GetType() const { return type_; };
 		TimeStamp GetTimeStamp() const { return timeStamp_; };
@@ -210,6 +212,7 @@ namespace vzm
     {
 		VzSceneObject(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
 			: VzBaseComp(vid, originFrom, type) {}
+		virtual ~VzSceneObject() = default;
 
 		bool IsDirtyTransform() const;
 		bool IsMatrixAutoUpdate() const;
@@ -257,6 +260,7 @@ namespace vzm
 	{
 		VzResource(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
 			: VzBaseComp(vid, originFrom, type) {}
+		virtual ~VzResource() = default;
 	};
 }
 

@@ -179,6 +179,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_FSR2.h">
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Font.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryspace.hlsl">
@@ -444,6 +447,21 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_indirectCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\upsample_bilateral_float1CS.hlsl">
+      <Filter>Compute Shaders\Image Processing</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\upsample_bilateral_float4CS.hlsl">
+      <Filter>Compute Shaders\Image Processing</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\downsample4xCS.hlsl">
+      <Filter>Compute Shaders\Image Processing</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\fontVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\fontPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

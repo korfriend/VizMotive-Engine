@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "ShaderEngine.h"
 #include "Image.h"
+#include "Font.h"
 #include "SortLib.h"
 #include "GPUBVH.h"
 #include "ShaderLoader.h"
@@ -31,6 +32,9 @@ namespace vz::renderer
 	bool isTemporalAAEnabled = true;
 	bool isTemporalAADebugEnabled = false;
 	bool isTessellationEnabled = false;
+	bool isVolumeLightsEnabled = false;
+	bool isLensFlareEnabled = false;
+	bool isLightShaftsEnabled = false;
 	bool isFSREnabled = false;
 	bool isTonemapping = true;
 	bool isWireRender = false;
@@ -512,6 +516,7 @@ namespace vz::renderer
 
 		jobsystem::context ctx;
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { image::Initialize(); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { font::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpubvh::Initialize(); });
@@ -542,6 +547,7 @@ namespace vz::renderer
 
 		shader::Deinitialize();
 		image::Deinitialize();
+		font::Deinitialize();
 		gpubvh::Deinitialize();
 		gpusortlib::Deinitialize();
 		renderer::initialized.store(false);
