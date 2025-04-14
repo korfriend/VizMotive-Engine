@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250413_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250415_4";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -155,6 +155,7 @@ namespace vz
 
 	public:
 		Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name) {}
+		virtual ~Scene() = default;
 
 		size_t stableCount = 0;
 		float targetFrameRate = 60;
@@ -360,6 +361,8 @@ namespace vz
 	public:
 		ComponentBase() = default;
 		ComponentBase(const ComponentType compType, const Entity entity, const VUID vuid);
+		virtual ~ComponentBase() = default;
+
 		ComponentType GetComponentType() const { return cType_; }
 		TimeStamp GetTimeStamp() const { return timeStampSetter_; }
 		Entity GetEntity() const { return entity_; }
@@ -377,6 +380,7 @@ namespace vz
 		std::string name_;
 	public:
 		NameComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::NAME, entity, vuid) {}
+		virtual ~NameComponent() = default;
 
 		inline void SetName(const std::string& name);
 		inline const std::string& GetName() const { return name_; }
@@ -407,6 +411,7 @@ namespace vz
 
 	public:
 		TransformComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TRANSFORM, entity, vuid) {}
+		virtual ~TransformComponent() = default;
 
 		inline bool IsDirty() const { return isDirty_; }
 		inline bool IsMatrixAutoUpdate() const { return isMatrixAutoUpdate_; }
@@ -460,6 +465,7 @@ namespace vz
 
 	public:
 		HierarchyComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::HIERARCHY, entity, vuid) {}
+		virtual ~HierarchyComponent() = default;
 
 		inline void SetParentByVUID(const VUID vuidParent);
 		inline void SetParent(const Entity entityParent);
@@ -609,7 +615,8 @@ namespace vz
 		bool isDirty_ = true;
 	public:
 		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
-		
+		virtual ~MaterialComponent() = default;
+
 		inline void SetShaderType(const ShaderType shaderType) { shaderType_ = shaderType; timeStampSetter_ = TimerNow; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
 
@@ -844,6 +851,7 @@ namespace vz
 		void update();
 	public:
 		GeometryComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::GEOMETRY, entity, vuid) {}
+		virtual ~GeometryComponent() = default;
 
 		bool IsDirtyBVH() const { return TimeDurationCount(timeStampPrimitiveUpdate_, timeStampBVHUpdate_) >= 0; }
 		bool HasBVH() const { return hasBVH_; }
@@ -1036,7 +1044,8 @@ namespace vz
 	public:
 		TextureComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::TEXTURE, entity, vuid) {};
 		TextureComponent(const ComponentType ctype, const Entity entity, const VUID vuid = 0) : ComponentBase(ctype, entity, vuid) {}
-		
+		virtual ~TextureComponent() = default;
+
 		TextureType GetTextureType() const { return textureType_; }
 		bool IsValid() const;
 
@@ -1102,6 +1111,7 @@ namespace vz
 		friend TextureComponent;
 	public:
 		VolumeComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(ComponentType::VOLUMETEXTURE, entity, vuid) {}
+		virtual ~VolumeComponent() = default;
 
 		inline bool IsValidVolume() const;
 		inline void SetVoxelSize(const XMFLOAT3& voxelSize) { voxelSize_ = voxelSize; isDirty_ = true; }
@@ -1167,6 +1177,7 @@ namespace vz
 
 	public:
 		ColliderComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::COLLIDER, entity, vuid) {}
+		virtual ~ColliderComponent() = default;
 
 		constexpr void SetCPUEnabled(bool value = true) { if (value) { flags_ |= CPU; } else { flags_ &= ~CPU; } }
 		constexpr void SetGPUEnabled(bool value = true) { if (value) { flags_ |= GPU; } else { flags_ &= ~GPU; } }
@@ -1245,6 +1256,7 @@ namespace vz
 		void updateRenderableFlags();
 	public:
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
+		virtual ~RenderableComponent() = default;
 
 		inline void SetDirty() { isDirty_ = true; }
 		inline bool IsDirty() const { return isDirty_; }
@@ -1326,6 +1338,8 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
 	};
 
+#define ENABLE_FLAG(V, FLAG) { V ? flags_ |= FLAG : flags_ &= ~FLAG; } timeStampSetter_ = TimerNow;
+
 	struct CORE_EXPORT SpriteComponent : ComponentBase
 	{
 	public:
@@ -1335,7 +1349,14 @@ namespace vz
 			HIDDEN = 1 << 0,
 			DISABLE_UPDATE = 1 << 1,
 			CAMERA_FACING = 1 << 2,
-			CAMERA_SCALING = 1 << 3
+			CAMERA_SCALING = 1 << 3,
+			EXTRACT_NORMALMAP = 1 << 4,
+			MIRROR = 1 << 5,
+			OUTPUT_COLOR_SPACE_HDR10_ST2084 = 1 << 6,
+			OUTPUT_COLOR_SPACE_LINEAR = 1 << 7,
+			CORNER_ROUNDING = 1 << 8,
+			DEPTH_TEST = 1 << 9,
+			HIGHLIGHT = 1 << 10,
 		};
 
 		struct Anim
@@ -1401,7 +1422,7 @@ namespace vz
 			WobbleAnim wobbleAnim;
 		};
 	protected:
-		uint32_t flags_ = EMPTY;
+		uint32_t flags_ = DEPTH_TEST;
 
 		VUID vuidSpriteTexture_ = INVALID_VUID;
 		Anim anim_;
@@ -1423,19 +1444,35 @@ namespace vz
 
 	public:
 		SpriteComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::SPRITE, entity, vuid) {}
+		virtual ~SpriteComponent() = default;
 
 		inline void SetSpriteTexture(const Entity entity);
 		inline VUID GetSpriteTextureVUID() const { return vuidSpriteTexture_; }
 
-		inline void SetHidden(bool value = true) { if (value) { flags_ |= HIDDEN; } else { flags_ &= ~HIDDEN; } timeStampSetter_ = TimerNow; }
-		inline bool IsHidden() const { return flags_ & HIDDEN; }
-		inline void SetDisableUpdate(bool value = true) { if (value) { flags_ |= DISABLE_UPDATE; } else { flags_ &= ~DISABLE_UPDATE; } timeStampSetter_ = TimerNow; }
-		inline void SetCameraFacing(bool value = true) { if (value) { flags_ |= CAMERA_FACING; } else { flags_ &= ~CAMERA_FACING; } timeStampSetter_ = TimerNow; }
-		inline void SetCameraScaling(bool value = true) { if (value) { flags_ |= CAMERA_SCALING; } else { flags_ &= ~CAMERA_SCALING; } timeStampSetter_ = TimerNow; }
+		inline void EnableHidden(bool enabled = true) { ENABLE_FLAG(enabled, HIDDEN); }
+		inline void EnableUpdate(bool enabled = true) { ENABLE_FLAG(!enabled, DISABLE_UPDATE); }
+		inline void EnableCameraFacing(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_FACING); }
+		inline void EnableCameraScaling(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_SCALING); }
+
+		inline void EnableExtractNormalMap(bool enabled = true) { ENABLE_FLAG(enabled, EXTRACT_NORMALMAP); }
+		inline void EnableMirror(bool enabled = true) { ENABLE_FLAG(enabled, MIRROR); }
+		inline void EnableHDR10OutputMapping(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_HDR10_ST2084); }
+		inline void EnableLinearOutputMapping(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_LINEAR); }
+		inline void EnableCornerRounding(bool enabled = true) { ENABLE_FLAG(enabled, CORNER_ROUNDING); }
+		inline void EnableDepthTest(bool enabled = true) { ENABLE_FLAG(enabled, DEPTH_TEST); }
+		inline void EnableHighlight(bool enabled = true) { ENABLE_FLAG(enabled, HIGHLIGHT); }
 
 		inline bool IsDisableUpdate() const { return flags_ & DISABLE_UPDATE; }
 		inline bool IsCameraFacing() const { return flags_ & CAMERA_FACING; }
 		inline bool IsCameraScaling() const { return flags_ & CAMERA_SCALING; }
+		inline bool IsHidden() const { return flags_ & HIDDEN; }
+		inline bool IsExtractNormalMapEnabled() const { return flags_ & EXTRACT_NORMALMAP; }
+		inline bool IsMirrorEnabled() const { return flags_ & MIRROR; }
+		inline bool IsHDR10OutputMappingEnabled() const { return flags_ & OUTPUT_COLOR_SPACE_HDR10_ST2084; }
+		inline bool IsLinearOutputMappingEnabled() const { return flags_ & OUTPUT_COLOR_SPACE_LINEAR; }
+		inline bool IsCornerRoundingEnabled() const { return flags_ & CORNER_ROUNDING; }
+		inline bool IsDepthTestEnabled() const { return flags_ & DEPTH_TEST; }
+		inline bool IsHighlightEnabled() const { return flags_ & HIGHLIGHT; }
 
 		inline void SetPosition(const XMFLOAT3& p) { position_ = p; timeStampSetter_ = TimerNow; }
 		inline void SetScale(const XMFLOAT2& s) { scale_ = s; timeStampSetter_ = TimerNow; }
@@ -1444,9 +1481,9 @@ namespace vz
 		inline void SetOpacity(const float v) { opacity_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetFade(const float v) { fade_ = v; timeStampSetter_ = TimerNow; }
 
-		inline XMFLOAT3 GetPosition() const { return position_; }
-		inline XMFLOAT2 GetScale() const { return scale_; }
-		inline XMFLOAT2 GetUVOffset() const { return uvOffset_; }
+		inline const XMFLOAT3& GetPosition() const { return position_; }
+		inline const XMFLOAT2& GetScale() const { return scale_; }
+		inline const XMFLOAT2& GetUVOffset() const { return uvOffset_; }
 		inline float GetRotation() const { return rotation_; }
 		inline float GetOpacity() const { return opacity_; }
 		inline float GetFade() const { return fade_; }
@@ -1467,7 +1504,13 @@ namespace vz
 			HIDDEN = 1 << 0,
 			DISABLE_UPDATE = 1 << 1,
 			CAMERA_FACING = 1 << 2,
-			CAMERA_SCALING = 1 << 3
+			CAMERA_SCALING = 1 << 3,
+			SDF_RENDERING = 1 << 4,
+			OUTPUT_COLOR_SPACE_HDR10_ST2084 = 1 << 5,
+			OUTPUT_COLOR_SPACE_LINEAR = 1 << 6,
+			DEPTH_TEST = 1 << 7,
+			FLIP_HORIZONTAL = 1 << 8,
+			FLIP_VERTICAL = 1 << 9,
 		};
 		enum Alignment : uint32_t
 		{
@@ -1510,7 +1553,7 @@ namespace vz
 
 	protected:
 
-		uint32_t flags_ = EMPTY;
+		uint32_t flags_ = DEPTH_TEST;
 
 		std::wstring text_;
 		std::string fontStyle_;
@@ -1539,16 +1582,30 @@ namespace vz
 
 	public:
 		SpriteFontComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::SPRITEFONT, entity, vuid) {}
+		virtual ~SpriteFontComponent() = default;
 
-		inline void SetHidden(bool value = true) { if (value) { flags_ |= HIDDEN; } else { flags_ &= ~HIDDEN; } timeStampSetter_ = TimerNow; }
+		inline void EnableHidden(bool enabled = true) { ENABLE_FLAG(enabled, HIDDEN); }
+		inline void EnableUpdate(bool enabled = true) { ENABLE_FLAG(!enabled, DISABLE_UPDATE); }
+		inline void EnableCameraFacing(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_FACING); }
+		inline void EnableCameraScaling(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_SCALING); }
+
+		inline void EnableSDFRendering(bool enabled = true) { ENABLE_FLAG(enabled, SDF_RENDERING); }
+		inline void EnableHDR10OutputMapping(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_HDR10_ST2084); }
+		inline void EnableLinearOutputMapping(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_LINEAR); }
+		inline void EnableDepthTest(bool enabled = true) { ENABLE_FLAG(enabled, DEPTH_TEST); }
+		inline void EnableFlipHorizontally(bool enabled = true) { ENABLE_FLAG(enabled, FLIP_HORIZONTAL); }
+		inline void EnableFlipVertically(bool enabled = true) { ENABLE_FLAG(enabled, FLIP_VERTICAL); }
+
 		inline bool IsHidden() const { return flags_ & HIDDEN; }
-		inline void SetDisableUpdate(bool value = true) { if (value) { flags_ |= DISABLE_UPDATE; } else { flags_ &= ~DISABLE_UPDATE; } timeStampSetter_ = TimerNow; }
-		inline void SetCameraFacing(bool value = true) { if (value) { flags_ |= CAMERA_FACING; } else { flags_ &= ~CAMERA_FACING; } timeStampSetter_ = TimerNow; }
-		inline void SetCameraScaling(bool value = true) { if (value) { flags_ |= CAMERA_SCALING; } else { flags_ &= ~CAMERA_SCALING; } timeStampSetter_ = TimerNow; }
-
 		inline bool IsDisableUpdate() const { return flags_ & DISABLE_UPDATE; }
 		inline bool IsCameraFacing() const { return flags_ & CAMERA_FACING; }
 		inline bool IsCameraScaling() const { return flags_ & CAMERA_SCALING; }
+		inline bool IsSDFRendering() const { return flags_ & SDF_RENDERING; }
+		inline bool IsHDR10OutputMapping() const { return flags_ & OUTPUT_COLOR_SPACE_HDR10_ST2084; }
+		inline bool IsLinearOutputMapping() const { return flags_ & OUTPUT_COLOR_SPACE_LINEAR; }
+		inline bool IsDepthTest() const { return flags_ & DEPTH_TEST; }
+		inline bool IsFlipHorizontally() const { return flags_ & FLIP_HORIZONTAL; }
+		inline bool IsFlipVertically() const { return flags_ & FLIP_VERTICAL; }
 
 		void FixedUpdate();
 		void Update(float dt);
@@ -1577,28 +1634,29 @@ namespace vz
 		inline void SetCursor(const Cursor& cursor) { cursor_ = cursor; timeStampSetter_ = TimerNow; }
 
 		std::string GetTextA() const;
-		std::wstring GetText() const { return text_; }
+		const std::wstring& GetText() const { return text_; }
+		size_t GetCurrentTextLength() const;
 
-		inline std::string GetFontStyle() const { return fontStyle_; }
-		inline XMFLOAT3 GetPosition() const { return position_; }
+		inline const std::string& GetFontStyle() const { return fontStyle_; }
+		inline const XMFLOAT3& GetPosition() const { return position_; }
 		inline int GetSize() const { return size_; }
 		inline float GetScale() const { return scale_; }
 		inline float GetRotation() const { return rotation_; }
-		inline XMFLOAT2 GetSpacing() const { return spacing_; }
-		inline Alignment GetHorizonAlign() const { return horizonAlign_; }
-		inline Alignment GetVerticalAlign() const { return verticalAlign_; }
-		inline XMFLOAT4 GetColor() const { return color_; }
-		inline XMFLOAT4 GetShadowColor() const { return shadowColor_; }
+		inline const XMFLOAT2& GetSpacing() const { return spacing_; }
+		inline const Alignment& GetHorizonAlign() const { return horizonAlign_; }
+		inline const Alignment& GetVerticalAlign() const { return verticalAlign_; }
+		inline const XMFLOAT4& GetColor() const { return color_; }
+		inline const XMFLOAT4& GetShadowColor() const { return shadowColor_; }
 		inline float GetWrap() const { return wrap_; }
 		inline float GetSoftness() const { return softness_; }
 		inline float GetBolden() const { return bolden_; }
 		inline float GetShadowSoftness() const { return shadowSoftness_; }
 		inline float GetShadowBolden() const { return shadowBolden_; }
-		inline XMFLOAT2 GetShadowOffset() const { return shadowOffset_; }
+		inline const XMFLOAT2& GetShadowOffset() const { return shadowOffset_; }
 		inline float GetHdrScale() const { return hdrScaling_; }
 		inline float GetIntensity() const { return intensity_; }
 		inline float GetShadowIntensity() const { return shadowIntensity_; }
-		inline Cursor GetCursor() const { return cursor_; }
+		inline const Cursor& GetCursor() const { return cursor_; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 		inline static const ComponentType IntrinsicType = ComponentType::SPRITEFONT;
@@ -1648,6 +1706,7 @@ namespace vz
 		// refer to filament engine's lightManager and wicked engine's lightComponent
 	public:
 		LightComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LIGHT, entity, vuid) {}
+		virtual ~LightComponent() = default;
 
 		// Non-serialized attributes:
 		// if there is no transformComponent, then use these attributes directly
@@ -1762,7 +1821,7 @@ namespace vz
 		XMFLOAT3 at_ = XMFLOAT3(0, 0, 1);
 		XMFLOAT3 forward_ = XMFLOAT3(0, 0, 1); // viewing direction
 		XMFLOAT3 up_ = XMFLOAT3(0, 1, 0);
-		XMFLOAT3X3 rotationMatrix_ = math::IDENTITY_MATRIX33;
+		XMFLOAT3X3 rotationMatrix_ = math::IDENTITY_MATRIX33;	// used for the rendering object to face camera
 		XMFLOAT4X4 view_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 projection_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 projectionJitterFree_ = math::IDENTITY_MATRIX;
@@ -1777,6 +1836,7 @@ namespace vz
 	public:
 		CameraComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::CAMERA, entity, vuid) {}
 		CameraComponent(const ComponentType ctype, const Entity entity, const VUID vuid = 0) : ComponentBase(ctype, entity, vuid) {}
+		virtual ~CameraComponent() = default;
 
 		// Non-serialized attributes:
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);
@@ -1817,7 +1877,7 @@ namespace vz
 		inline const XMFLOAT3& GetWorldAt() const { return at_; }
 		inline const XMFLOAT3& GetWorldForward() const { return forward_; }
 		inline const XMFLOAT3& GetWorldUp() const { return up_; }
-		inline const XMFLOAT3X3& GetWorldRotation() const { return rotationMatrix_; }
+		inline const XMFLOAT3X3& GetRotationToFaceCamera() const { return rotationMatrix_; }
 		inline const XMFLOAT4X4& GetView() const { return view_; }
 		inline const XMFLOAT4X4& GetProjection() const { return projection_; }
 		inline const XMFLOAT4X4& GetProjectionJitterFree() const { return projectionJitterFree_; }
@@ -1897,6 +1957,7 @@ namespace vz
 			flags_ = CamFlags::ORTHOGONAL | CamFlags::SLICER | (curvedSlicer? CamFlags::CURVED : 0);
 			zNearP_ = 0.f;
 		}
+		virtual ~SlicerComponent() = default;
 
 		inline void SetThickness(const float value) { thickness_ = value; timeStampSetter_ = TimerNow; }
 		inline float GetThickness() const { return thickness_; }

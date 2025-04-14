@@ -260,6 +260,9 @@ namespace vz::renderer
 	extern bool isTemporalAAEnabled;
 	extern bool isTemporalAADebugEnabled;
 	extern bool isTessellationEnabled;
+	extern bool isVolumeLightsEnabled;
+	extern bool isLensFlareEnabled;
+	extern bool isLightShaftsEnabled;
 	extern bool isFSREnabled;
 	extern bool isTonemapping;
 	extern bool isWireRender;

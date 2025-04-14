@@ -28,6 +28,7 @@ namespace vz
 			: swapChain_(swapChain), rtRenderFinal_(rtRenderFinal) {
 			version = GRenderPath2D_INTERFACE_VERSION;
 		}
+		virtual ~GRenderPath2D() = default;
 
 		graphics::GraphicsDevice* device = nullptr;
 		graphics::Rect scissor;
@@ -65,6 +66,7 @@ namespace vz
 			: GRenderPath2D(swapChain, rtRenderFinal) { 
 			version = GRenderPath3D_INTERFACE_VERSION;
 		}
+		virtual ~GRenderPath3D() = default;
 
 		Scene* scene = nullptr;
 		CameraComponent* camera = nullptr;
@@ -93,6 +95,7 @@ namespace vz
 		std::string version = GScene_INTERFACE_VERSION;
 
 		GScene(Scene* scene) : scene_(scene) {}
+		virtual ~GScene() = default;
 
 		virtual bool Update(const float dt) = 0;
 		virtual bool Destroy() = 0;

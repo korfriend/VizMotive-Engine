@@ -79,6 +79,8 @@ namespace vz::renderer
 		bool isPlanarReflectionVisible = false;
 		float closestReflectionPlane = std::numeric_limits<float>::max();
 		std::atomic_bool volumetricLightRequest{ false };
+		std::atomic_bool volumetriclight_request{ false };
+		std::atomic_bool transparentsVisible{ false };
 
 		void Clear()
 		{
@@ -98,10 +100,19 @@ namespace vz::renderer
 
 			closestReflectionPlane = std::numeric_limits<float>::max();
 			volumetricLightRequest.store(false);
+			transparentsVisible.store(false);
+		}
+		bool IsRequestedPlanarReflections() const
+		{
+			return isPlanarReflectionVisible;
 		}
 		bool IsRequestedVolumetricLights() const
 		{
 			return volumetricLightRequest.load();
+		}
+		bool IsTransparentsVisible() const
+		{
+			return transparentsVisible.load();
 		}
 	};
 
@@ -475,6 +486,7 @@ namespace vz::renderer
 		{
 			device = GetDevice();
 		}
+		virtual ~GRenderPath3DDetails() = default;
 
 		bool viewShadingInCS = false;
 		mutable bool firstFrame = true;
@@ -528,6 +540,9 @@ namespace vz::renderer
 
 		graphics::Texture rtParticleDistortion_render = {};
 		graphics::Texture rtParticleDistortion = {};
+
+		graphics::Texture rtSceneCopy; // contains the rendered scene that can be fed into transparent pass for distortion effect
+		graphics::Texture rtSceneCopy_tmp; // temporary for gaussian mipchain
 
 		graphics::Texture rtOutlineSource; // linear depth but only the regions which have outline stencil
 
@@ -589,10 +604,18 @@ namespace vz::renderer
 
 		// render based on raster-graphics pipeline
 		void DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags);
+		void DrawSpritesAndFonts(const CameraComponent& camera, bool distortion, CommandList cmd);
+		void DrawDebugWorld(
+			const Scene& scene,
+			const CameraComponent& camera,
+			CommandList cmd
+		);
 
+		// rendering process that includes render-pipelines and compute shaders
 		void RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
-		
-		// render via compute shader
+		void RenderTransparents(CommandList cmd);
+
+		// compute shaders-based rendering
 		void RenderSlicerMeshes(CommandList cmd);
 		void RenderGaussianSplatting(CommandList cmd);
 		void RenderDirectVolumes(CommandList cmd);
@@ -640,6 +663,12 @@ namespace vz::renderer
 			float hdr_calibration
 		);
 
+		void Postprocess_Downsample4x(
+			const Texture& input,
+			const Texture& output,
+			CommandList cmd
+		);
+
 		// ---------- GRenderPath3D's interfaces: -----------------
 		bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) override; // must delete all canvas-related resources and re-create
 		bool ResizeCanvasSlicer(uint32_t canvasWidth, uint32_t canvasHeight); // must delete all canvas-related resources and re-create
@@ -652,6 +681,7 @@ namespace vz::renderer
 	struct GSceneDetails : GScene
 	{
 		GSceneDetails(Scene* scene) : GScene(scene) {}
+		virtual ~GSceneDetails() = default;
 
 		// note all GPU resources (their pointers) are managed by
 		//  ComPtr or 

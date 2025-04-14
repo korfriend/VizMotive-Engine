@@ -7,6 +7,7 @@ namespace vzm
 	{
 		VzActor(const VID vid, const std::string& originFrom, const COMPONENT_TYPE scenecompType)
 			: VzSceneObject(vid, originFrom, scenecompType) {}
+		virtual ~VzActor() = default;
 
 		void SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants = false);
 		void SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants = false);
@@ -22,7 +23,9 @@ namespace vzm
 	struct API_EXPORT VzActorStaticMesh : VzActor
 	{
 		VzActorStaticMesh(const VID vid, const std::string& originFrom)
-			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_STATIC_MESH) {}
+			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_STATIC_MESH) {
+		}
+		virtual ~VzActorStaticMesh() = default;
 
 		void SetGeometry(const GeometryVID vid);
 		void SetGeometry(const VzBaseComp* geometry) { SetGeometry(geometry->GetVID()); }
@@ -73,26 +76,45 @@ namespace vzm
 
 	struct API_EXPORT VzActorSprite : VzActor
 	{
-		VzActorSprite(const VID vid, const std::string& originFrom)
-			: VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITE) { }
+		VzActorSprite(const VID vid, const std::string& originFrom) : VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITE) { }
+		virtual ~VzActorSprite() = default;
 
 		virtual void SetSpriteTexture(const VID vidTexture);
 
+		void EnableHidden(bool enabled = true);
+		void EnableUpdate(bool enabled = true);
 		void EnableCameraFacing(bool enabled = true);
 		void EnableCameraScaling(bool enabled = true);
 
+		void EnableExtractNormalMap(bool enabled = true);
+		void EnableMirror(bool enabled = true);
+		void EnableHDR10OutputMapping(bool enabled = true);
+		void EnableLinearOutputMapping(bool enabled = true);
+		void EnableCornerRounding(bool enabled = true);
+		void EnableDepthTest(bool enabled = true);
+		void EnableHighlight(bool enabled = true);
+
+		bool IsDisableUpdate() const;
 		bool IsCameraFacing() const;
 		bool IsCameraScaling() const;
+		bool IsHidden() const;
+		bool IsExtractNormalMapEnabled() const;
+		bool IsMirrorEnabled() const;
+		bool IsHDR10OutputMappingEnabled() const;
+		bool IsLinearOutputMappingEnabled() const;
+		bool IsCornerRoundingEnabled() const;
+		bool IsDepthTestEnabled() const;
+		bool IsHighlightEnabled() const;
 
-		void SetPosition(const vfloat3& p);
-		void SetScale(const vfloat2& s);
-		void SetUVOffset(const vfloat2& uvOffset);
-		void SetRotation(const float v);
-		void SetOpacity(const float v);
-		void SetFade(const float v);
+		void SetSpritePosition(const vfloat3& p);
+		void SetSpriteScale(const vfloat2& s);
+		void SetSpriteUVOffset(const vfloat2& uvOffset);
+		void SetSpriteRotation(const float v);
+		void SetSpriteOpacity(const float v);
+		void SetSpriteFade(const float v);
 	};
 
-	struct API_EXPORT VzActorSpriteFont : VzActorSprite
+	struct API_EXPORT VzActorSpriteFont : VzActor
 	{
 		enum Alignment : uint32_t
 		{
@@ -103,12 +125,33 @@ namespace vzm
 			FONTALIGN_BOTTOM	// bottom alignment (vertical)
 		};
 
-		VzActorSpriteFont(const VID vid, const std::string& originFrom)
-			: VzActorSprite(vid, originFrom) { type_ = COMPONENT_TYPE::ACTOR_SPRITEFONT; }
+		VzActorSpriteFont(const VID vid, const std::string& originFrom) : VzActor(vid, originFrom, COMPONENT_TYPE::ACTOR_SPRITEFONT) {}
+		virtual ~VzActorSpriteFont() = default;
 		
-		void SetSpriteTexture(const VID vidTexture) override;
+		void SetText(const std::string& text);
 
-		void SetText(const std::string& value);
+		void EnableHidden(bool enabled = true);
+		void EnableUpdate(bool enabled = true);
+		void EnableCameraFacing(bool enabled = true);
+		void EnableCameraScaling(bool enabled = true);
+
+		void EnableSDFRendering(bool enabled = true);
+		void EnableHDR10OutputMapping(bool enabled = true);
+		void EnableLinearOutputMapping(bool enabled = true);
+		void EnableDepthTest(bool enabled = true);
+		void EnableFlipHorizontally(bool enabled = true);
+		void EnableFlipVertically(bool enabled = true);
+
+		bool IsDisableUpdate() const;
+		bool IsCameraFacing() const;
+		bool IsCameraScaling() const;
+		bool IsHidden() const;
+		bool IsSDFRendering() const;
+		bool IsHDR10OutputMapping() const;
+		bool IsLinearOutputMapping() const;
+		bool IsDepthTest() const;
+		bool IsFlipHorizontally() const;
+		bool IsFlipVertically() const;
 
 		void SetFontStyle(const std::string& fontStyle);
 		void SetFontSize(const int size);

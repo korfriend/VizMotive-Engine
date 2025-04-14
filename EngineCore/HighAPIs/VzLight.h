@@ -14,7 +14,9 @@ namespace vzm
 		};
 
 		VzLight(const VID vid, const std::string& originFrom)
-			: VzSceneObject(vid, originFrom, COMPONENT_TYPE::LIGHT) {}
+			: VzSceneObject(vid, originFrom, COMPONENT_TYPE::LIGHT) {
+		}
+		virtual ~VzLight() = default;
 
 		void SetLightType(const LightType type);
 

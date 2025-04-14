@@ -261,62 +261,369 @@ namespace vzm
 
 namespace vzm
 {
+#define GET_SPRITE_COMP(COMP, RET) SpriteComponent* COMP = compfactory::GetSpriteComponent(componentVID_); \
+	if (!COMP) {post("SpriteComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+
 	void VzActorSprite::SetSpriteTexture(const VID vidTexture)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->SetSpriteTexture(vidTexture);
+		UpdateTimeStamp();
 	}
 
+	void VzActorSprite::EnableHidden(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableHidden(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActorSprite::EnableUpdate(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableUpdate(enabled);
+		UpdateTimeStamp();
+	}
 	void VzActorSprite::EnableCameraFacing(bool enabled)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableCameraFacing(enabled);
+		UpdateTimeStamp();
 	}
-
 	void VzActorSprite::EnableCameraScaling(bool enabled)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableCameraScaling(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActorSprite::EnableExtractNormalMap(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableExtractNormalMap(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActorSprite::EnableMirror(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableMirror(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActorSprite::EnableHDR10OutputMapping(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableHDR10OutputMapping(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActorSprite::EnableLinearOutputMapping(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableLinearOutputMapping(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActorSprite::EnableCornerRounding(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableCornerRounding(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActorSprite::EnableDepthTest(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableDepthTest(enabled);
+		UpdateTimeStamp();
+	}
+	void VzActorSprite::EnableHighlight(bool enabled)
+	{
+		GET_SPRITE_COMP(sprite, );
+		sprite->EnableHighlight(enabled);
+		UpdateTimeStamp();
 	}
 
+
+	bool VzActorSprite::IsDisableUpdate() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsDisableUpdate();
+	}
 	bool VzActorSprite::IsCameraFacing() const
 	{
-		return true;
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsCameraFacing();
 	}
-
 	bool VzActorSprite::IsCameraScaling() const
 	{
-		return true;
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsCameraScaling();
+	}
+	bool VzActorSprite::IsHidden() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsHidden();
+	}
+	bool VzActorSprite::IsExtractNormalMapEnabled() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsExtractNormalMapEnabled();
+	}
+	bool VzActorSprite::IsMirrorEnabled() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsMirrorEnabled();
+	}
+	bool VzActorSprite::IsHDR10OutputMappingEnabled() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsHDR10OutputMappingEnabled();
+	}
+	bool VzActorSprite::IsLinearOutputMappingEnabled() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsLinearOutputMappingEnabled();
+	}
+	bool VzActorSprite::IsCornerRoundingEnabled() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsCornerRoundingEnabled();
+	}
+	bool VzActorSprite::IsDepthTestEnabled() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsDepthTestEnabled();
+	}
+	bool VzActorSprite::IsHighlightEnabled() const
+	{
+		GET_SPRITE_COMP(sprite, false);
+		return sprite->IsHighlightEnabled();
 	}
 
-	void VzActorSprite::SetPosition(const vfloat3& p)
+	void VzActorSprite::SetSpritePosition(const vfloat3& p)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->SetPosition(*(XMFLOAT3*)&p);
+		UpdateTimeStamp();
 	}
 
-	void VzActorSprite::SetScale(const vfloat2& s)
+	void VzActorSprite::SetSpriteScale(const vfloat2& s)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->SetScale(*(XMFLOAT2*)&s);
+		UpdateTimeStamp();
 	}
-	void VzActorSprite::SetUVOffset(const vfloat2& uvOffset)
+	void VzActorSprite::SetSpriteUVOffset(const vfloat2& uvOffset)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->SetUVOffset(*(XMFLOAT2*)&uvOffset);
+		UpdateTimeStamp();
 	}
-	void VzActorSprite::SetRotation(const float v)
+	void VzActorSprite::SetSpriteRotation(const float v)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->SetRotation(v);
+		UpdateTimeStamp();
 	}
-	void VzActorSprite::SetOpacity(const float v)
+	void VzActorSprite::SetSpriteOpacity(const float v)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->SetOpacity(v);
+		UpdateTimeStamp();
 	}
-	void VzActorSprite::SetFade(const float v)
+	void VzActorSprite::SetSpriteFade(const float v)
 	{
-
+		GET_SPRITE_COMP(sprite, );
+		sprite->SetFade(v);
+		UpdateTimeStamp();
 	}
 }
 
 namespace vzm
 {
-	void VzActorSpriteFont::SetSpriteTexture(const VID vidTexture)
-	{
+#define GET_SPRITEFONT_COMP(COMP, RET) SpriteFontComponent* COMP = compfactory::GetSpriteFontComponent(componentVID_); \
+	if (!COMP) {post("SpriteFontComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
+	void VzActorSpriteFont::EnableHidden(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableHidden(enabled);
+	}
+	void VzActorSpriteFont::EnableUpdate(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableUpdate(enabled);
+	}
+	void VzActorSpriteFont::EnableCameraFacing(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableCameraFacing(enabled);
+	}
+	void VzActorSpriteFont::EnableCameraScaling(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableCameraScaling(enabled);
+	}
+	void VzActorSpriteFont::EnableSDFRendering(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableSDFRendering(enabled);
+	}
+	void VzActorSpriteFont::EnableHDR10OutputMapping(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableHDR10OutputMapping(enabled);
+	}
+	void VzActorSpriteFont::EnableLinearOutputMapping(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableLinearOutputMapping(enabled);
+	}
+	void VzActorSpriteFont::EnableDepthTest(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableDepthTest(enabled);
+	}
+	void VzActorSpriteFont::EnableFlipHorizontally(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableFlipHorizontally(enabled);
+	}
+	void VzActorSpriteFont::EnableFlipVertically(bool enabled)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->EnableFlipVertically(enabled);
+	}
+
+	bool VzActorSpriteFont::IsDisableUpdate() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsDisableUpdate();
+	}
+	bool VzActorSpriteFont::IsCameraFacing() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsCameraFacing();
+	}
+	bool VzActorSpriteFont::IsCameraScaling() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsCameraScaling();
+	}
+	bool VzActorSpriteFont::IsHidden() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsHidden();
+	}
+	bool VzActorSpriteFont::IsSDFRendering() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsSDFRendering();
+	}
+	bool VzActorSpriteFont::IsHDR10OutputMapping() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsHDR10OutputMapping();
+	}
+	bool VzActorSpriteFont::IsLinearOutputMapping() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsLinearOutputMapping();
+	}
+	bool VzActorSpriteFont::IsDepthTest() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsDepthTest();
+	}
+	bool VzActorSpriteFont::IsFlipHorizontally() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsFlipHorizontally();
+	}
+	bool VzActorSpriteFont::IsFlipVertically() const
+	{
+		GET_SPRITEFONT_COMP(font, false);
+		return font->IsFlipVertically();
+	}
+
+	void VzActorSpriteFont::SetText(const std::string& text)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetText(text);
+	}
+	void VzActorSpriteFont::SetFontStyle(const std::string& fontStyle)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetFontStyle(fontStyle);
+	}
+	void VzActorSpriteFont::SetFontSize(const int size)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetSize(size);
+	}
+	void VzActorSpriteFont::SetSpacing(const vfloat2& spacing)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetSpacing(*(XMFLOAT2*)&spacing);
+	}
+	void VzActorSpriteFont::SetHorizonAlign(const VzActorSpriteFont::Alignment horizonAlign)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetHorizonAlign(static_cast<SpriteFontComponent::Alignment>(horizonAlign));
+	}
+	void VzActorSpriteFont::SetVerticalAlign(const VzActorSpriteFont::Alignment verticalAlign)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetVerticalAlign(static_cast<SpriteFontComponent::Alignment>(verticalAlign));
+	}
+	void VzActorSpriteFont::SetColor(const vfloat4& color)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetColor(*(XMFLOAT4*)&color);
+	}
+	void VzActorSpriteFont::SetShadowColor(const vfloat4& shadowColor)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetShadowColor(*(XMFLOAT4*)&shadowColor);
+	}
+	void VzActorSpriteFont::SetWrap(const float wrap)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetWrap(wrap);
+	}
+	void VzActorSpriteFont::SetSoftness(const float softness)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetSoftness(softness);
+	}
+	void VzActorSpriteFont::SetBolden(const float bolden)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetBolden(bolden);
+	}
+	void VzActorSpriteFont::SetShadowSoftness(const float shadowSoftness)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetShadowSoftness(shadowSoftness);
+	}
+	void VzActorSpriteFont::SetShadowBolden(const float shadowBolden)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetShadowBolden(shadowBolden);
+	}
+	void VzActorSpriteFont::SetShadowOffset(const vfloat2 shadowOffset)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetShadowOffset(*(XMFLOAT2*)&shadowOffset);
+	}
+	void VzActorSpriteFont::SetHdrScale(const float hdrScaling)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetHdrScale(hdrScaling);
+	}
+	void VzActorSpriteFont::SetIntensity(const float intensity)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetIntensity(intensity);
+	}
+	void VzActorSpriteFont::SetShadowIntensity(const float shadowIntensity)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetShadowIntensity(shadowIntensity);
 	}
 }

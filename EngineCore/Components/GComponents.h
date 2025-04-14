@@ -50,6 +50,7 @@ namespace vz
 		};
 
 		GMaterialComponent(const Entity entity, const VUID vuid = 0) : MaterialComponent(entity, vuid) {}
+		virtual ~GMaterialComponent() = default;
 
 		uint32_t materialIndex = ~0u; // scene's geometries_ (GeometryComponent)
 		
@@ -66,6 +67,7 @@ namespace vz
 	struct CORE_EXPORT GGeometryComponent : GeometryComponent
 	{
 		GGeometryComponent(const Entity entity, const VUID vuid = 0) : GeometryComponent(entity, vuid) {}
+		virtual ~GGeometryComponent() = default;
 
 		struct BVHBuffers
 		{
@@ -368,7 +370,8 @@ namespace vz
 		Entity texureEntity_ = 0;
 	public:
 		GTextureInterface(Entity texureEntity) : texureEntity_(texureEntity) {}
-		
+		virtual ~GTextureInterface() = default;
+
 		inline int GetSparseResidencymapDescriptor() const;
 		inline int GetSparseFeedbackmapDescriptor() const;
 		inline const graphics::Texture& GetTexture() const;
@@ -383,6 +386,7 @@ namespace vz
 	private:
 	public:
 		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid), GTextureInterface(entity) {}
+		virtual ~GTextureComponent() = default;
 
 		inline uint32_t GetUVSet() const;
 		inline float GetLodClamp() const;
@@ -408,6 +412,7 @@ namespace vz
 		std::unordered_map<Entity, GPUBlockBitmask> visibleBlockBitmasks_; // for blocks
 	public:
 		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(entity) {}
+		virtual ~GVolumeComponent() = default;
 
 		void UpdateVolumeMinMaxBlocks(const XMUINT3 blockSize);
 		const graphics::Texture& GetBlockTexture() const { return volumeMinMaxBlocks_; };
@@ -426,6 +431,7 @@ namespace vz
 	struct CORE_EXPORT GRenderableComponent : RenderableComponent
 	{
 		GRenderableComponent(const Entity entity, const VUID vuid = 0) : RenderableComponent(entity, vuid) {}
+		virtual ~GRenderableComponent() = default;
 
 		// ----- buffer-based resources -----
 		struct GPrimEffectBuffers
@@ -474,7 +480,13 @@ namespace vz
 	private:
 	public:
 		GSpriteComponent(const Entity entity, const VUID vuid = 0) : SpriteComponent(entity, vuid) {}
+		virtual ~GSpriteComponent() = default;
+
 		uint32_t spriteIndex = ~0u;	// current linear array of current rendering scene
+		XMFLOAT3 scaleW;
+		XMFLOAT3 translateW;
+		XMFLOAT3 posW;
+		XMMATRIX W;
 	};
 
 	struct CORE_EXPORT GSpriteFontComponent : SpriteFontComponent
@@ -482,7 +494,13 @@ namespace vz
 	private:
 	public:
 		GSpriteFontComponent(const Entity entity, const VUID vuid = 0) : SpriteFontComponent(entity, vuid) {}
+		virtual ~GSpriteFontComponent() = default;
+		
 		uint32_t spritefontIndex = ~0u;	// current linear array of current rendering scene
+		XMFLOAT3 scaleW;
+		XMFLOAT3 translateW;
+		XMFLOAT3 posW;
+		XMMATRIX W;
 	};
 
 	struct PickingIO
@@ -524,6 +542,7 @@ namespace vz
 
 	public:
 		GCameraInterface(Entity cameraEntity) : cameraEntity_(cameraEntity) {}
+		virtual ~GCameraInterface() = default;
 
 		// temporal attributes for picking process 
 		// WILL BE DEPRECATED!!
@@ -534,12 +553,15 @@ namespace vz
 	struct CORE_EXPORT GCameraComponent : CameraComponent, GCameraInterface
 	{
 		GCameraComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(entity, vuid), GCameraInterface(entity) {}
+		virtual ~GCameraComponent() = default;
+		
 		uint32_t cameraIndex = ~0u;	// current linear array of current rendering scene
 	};
 
 	struct CORE_EXPORT GSlicerComponent : SlicerComponent, GCameraInterface
 	{
 		GSlicerComponent(const Entity entity, const VUID vuid = 0) : SlicerComponent(entity, vuid), GCameraInterface(entity) {}
+		virtual ~GSlicerComponent() = default;
 
 		void UpdateCurve() override;
 
@@ -549,6 +571,7 @@ namespace vz
 	struct CORE_EXPORT GLightComponent : LightComponent
 	{
 		GLightComponent(const Entity entity, const VUID vuid = 0) : LightComponent(entity, vuid) {}
+		virtual ~GLightComponent() = default;
 
 		uint32_t lightIndex = ~0u;	// current linear array of current rendering scene
 		std::vector<float> cascadeDistances = { 8, 80, 800 };
