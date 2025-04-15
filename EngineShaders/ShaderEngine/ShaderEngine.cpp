@@ -539,6 +539,8 @@ namespace vz::renderer
 		ReleaseRenderRes(blendStates, SAMPLER_COUNT);
 		ReleaseRenderRes(samplers, SAMPLER_COUNT);
 
+		ReleaseRenderRes(indirectDebugStatsReadback, GraphicsDevice::GetBufferCount());
+
 		deferredTextureCopy.clear();
 		deferredBufferUpdate.clear();
 		deferredBCQueue.clear();
