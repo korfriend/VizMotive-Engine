@@ -1038,6 +1038,7 @@ namespace vzm
 		CHECK_API_INIT_VALIDITY(false);
 		graphicsDevice->WaitForGPU();
 		jobsystem::ShutDown();
+		profiler::Shutdown();
 
 		// lock_gaurd MUST be placed AFTER jobsystem::ShutDown() or WaitAllJobs()!
 		std::lock_guard<std::recursive_mutex> lock(GetEngineMutex());
