@@ -395,16 +395,6 @@ namespace vz::font
 	{
 		jobsystem::WaitAllJobs();
 
-
-		static BlendState blendState;
-		static RasterizerState rasterizerState;
-		static DepthStencilState depthStencilStates[DEPTH_TEST_MODE_COUNT];
-
-		static Shader vertexShader;
-		static Shader pixelShader;
-		static PipelineState PSO[DEPTH_TEST_MODE_COUNT];
-
-
 		for (int i = 0; i < DEPTH_TEST_MODE_COUNT; i++)
 		{
 			PSO[i] = {};
