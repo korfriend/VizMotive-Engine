@@ -88,6 +88,8 @@ namespace vz::renderer
 			device->BindVertexBuffers(vbs, 0, arraysize(vbs), strides, offsets, cmd);
 
 			device->DrawInstancedIndirect(&buffers[BUFFERTYPE_INDIRECT_DEBUG_1], 0, cmd);
+
+			device->EventEnd(cmd);
 		}
 		device->EventEnd(cmd);
 	}
