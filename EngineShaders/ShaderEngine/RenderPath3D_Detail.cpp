@@ -1327,6 +1327,7 @@ namespace vz::renderer
 		{
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->materialBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_DST));
 		}
+		BarrierStackFlush(cmd);
 
 		// Indirect debug buffer - clear indirect args:
 		IndirectDrawArgsInstanced debug_indirect = {};
