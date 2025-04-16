@@ -206,9 +206,10 @@ namespace vzimgui
 				// TODO: GET_RESOURCE_SIZE
 				VID vid = it->GetVID();
 				std::string name = it->GetName();
+				uint32_t num_parts = (uint32_t)((VzGeometry*)it)->GetNumParts();
 				const char* label = name.c_str();
-				if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Leaf,
-					"%s(%d): %d Parts, %f MB", label, vid, (uint32_t)((VzGeometry*)it)->GetNumParts(), (float)((VzGeometry*)it)->GetMemoryUsageCPU() / 1024.f / 1024.f)) {
+				if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Leaf, num_parts > 1 ? "%s(%d): %d Parts, %f MB" : "%s(%d): %d Part, %f MB"
+					, label, vid, num_parts, (float)((VzGeometry*)it)->GetMemoryUsageCPU() / 1024.f / 1024.f)) {
 					if (ImGui::IsItemClicked())
 					{
 						vzlog("Clicked! %s", label);
@@ -363,7 +364,7 @@ namespace vzimgui
 
 		{
 			vzimgui::customfont = this->customfont;;
-			vzimgui::customfontlarge = this->customfontlarge;;
+			vzimgui::customfontlarge = this->customfontlarge;
 			vzimgui::defaultfont = this->defaultfont;
 			vzimgui::iconfont = this->iconfont;
 		}

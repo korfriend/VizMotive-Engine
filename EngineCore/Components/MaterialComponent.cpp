@@ -11,7 +11,7 @@ namespace vz
 			backlog::post("MaterialComponent::SetTexture >> Invalid texture entity!!", backlog::LogLevel::Warn);
 			return;
 		}
-		textureComponents_[SCU32(textureSlot)] = texture->GetVUID();
+		vuidTextureComponents_[SCU32(textureSlot)] = texture->GetVUID();
 		timeStampSetter_ = TimerNow;
 	}
 
@@ -23,7 +23,7 @@ namespace vz
 			backlog::post("MaterialComponent::SetVolumeTexture >> Invalid texture entity!!", backlog::LogLevel::Warn);
 			return;
 		}
-		volumeComponents_[SCU32(volumetextureSlot)] = volume->GetVUID();
+		vuidVolumeTextureComponents_[SCU32(volumetextureSlot)] = volume->GetVUID();
 		timeStampSetter_ = TimerNow;
 	}
 
@@ -35,7 +35,7 @@ namespace vz
 			backlog::post("MaterialComponent::SetLookupTable >> Invalid texture entity!!", backlog::LogLevel::Warn);
 			return;
 		}
-		lookupComponents_[SCU32(lookuptextureSlot)] = texture->GetVUID();
+		vuidLookupTextureComponents_[SCU32(lookuptextureSlot)] = texture->GetVUID();
 		timeStampSetter_ = TimerNow;
 	}
 
@@ -64,7 +64,7 @@ namespace vz
 	{
 		for (uint32_t slot = 0; slot < SCU32(TextureSlot::TEXTURESLOT_COUNT); ++slot)
 		{
-			Entity texture_entity = compfactory::GetEntityByVUID(textureComponents_[slot]);
+			Entity texture_entity = compfactory::GetEntityByVUID(vuidTextureComponents_[slot]);
 			//GTextureComponent* texture = (GTextureComponent*)compfactory::GetTextureComponent(texture_entity);
 			//
 			//auto& textureslot = textures[slot];
@@ -100,7 +100,7 @@ namespace vz
 		{
 			filter_mask_flags |= FILTER_GAUSSIAN_SPLATTING;
 		}
-		VolumeComponent* volume = compfactory::GetVolumeComponentByVUID(volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_MAIN_MAP)]);
+		VolumeComponent* volume = compfactory::GetVolumeComponentByVUID(vuidVolumeTextureComponents_[SCU32(VolumeTextureSlot::VOLUME_MAIN_MAP)]);
 		if (volume)
 		{
 			filter_mask_flags |= FILTER_VOLUME;

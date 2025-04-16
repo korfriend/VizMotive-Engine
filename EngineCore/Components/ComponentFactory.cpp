@@ -207,7 +207,6 @@ namespace vz::compfactory
 		{
 			comp = volumeManager.GetComponent(entity);
 		}
-		vzlog_assert(comp, "No texture!");
 		return comp;
 	}
 	VolumeComponent* GetVolumeComponent(const Entity entity)

@@ -212,7 +212,10 @@ namespace vzm
 		}
 		renderer->deltaTimeAccumulator += delta_time;
 
-		profiler::BeginFrame();
+		if (GetCountPendingSubmitCommand() == 0)
+		{
+			profiler::BeginFrame();
+		}
 
 		// Update the target Scene of this RenderPath 
 		//	this involves Animation updates

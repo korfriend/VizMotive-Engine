@@ -16,25 +16,25 @@ namespace vz
 		bool is_modified = false;
 		for (size_t i = 0; i < SCU32(TextureSlot::TEXTURESLOT_COUNT); i++)
 		{
-			if (textureComponents_[i] == vuidRef)
+			if (vuidTextureComponents_[i] == vuidRef)
 			{
-				textureComponents_[i] = INVALID_VUID;
+				vuidTextureComponents_[i] = INVALID_VUID;
 				is_modified = true;
 			}
 		}
 		for (size_t i = 0; i < SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT); i++)
 		{
-			if (volumeComponents_[i] == vuidRef)
+			if (vuidVolumeTextureComponents_[i] == vuidRef)
 			{
-				volumeComponents_[i] = INVALID_VUID;
+				vuidVolumeTextureComponents_[i] = INVALID_VUID;
 				is_modified = true;
 			}
 		}
 		for (size_t i = 0; i < SCU32(LookupTableSlot::LOOKUPTABLE_COUNT); i++)
 		{
-			if (lookupComponents_[i] == vuidRef)
+			if (vuidLookupTextureComponents_[i] == vuidRef)
 			{
-				lookupComponents_[i] = INVALID_VUID;
+				vuidLookupTextureComponents_[i] = INVALID_VUID;
 				is_modified = true;
 			}
 		}
