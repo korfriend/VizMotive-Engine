@@ -66,7 +66,7 @@ namespace vz::renderer
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
 
-			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
+			GGeometryComponent& geometry = *renderable.geometry;
 			if (!geometry.allowGaussianSplatting)
 				continue;
 
@@ -74,7 +74,7 @@ namespace vz::renderer
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 
-			renderQueue.add(renderable.geometryIndex, instanceIndex, distance, renderable.sortBits);
+			renderQueue.add(renderable.geometry->geometryIndex, instanceIndex, distance, renderable.sortBits);
 		}
 		if (!renderQueue.empty())
 		{
@@ -97,15 +97,14 @@ namespace vz::renderer
 		const RenderBatch& batch = renderQueue.batches[0];
 		for (uint i = 0; i < 1; i++)
 		{
-			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
 			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
 			assert(renderable.GetRenderableType() == RenderableType::GSPLAT_RENDERABLE);
 
-			GMaterialComponent* material = scene_Gdetails->materialComponents[renderable.materialIndices[0]];
+			GMaterialComponent* material = renderable.materials[0];
 			assert(material);
 
-			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[geometry_index];
+			GGeometryComponent& geometry = *renderable.geometry;
 			GPrimBuffers* gprim_buffer = geometry.GetGPrimBuffer(0);
 			const Primitive* primitive = geometry.GetPrimitive(0);
 
@@ -176,7 +175,7 @@ namespace vz::renderer
 					barrierStack.push_back(GPUBarrier::Buffer(&gaussianSHs, ResourceState::UNDEFINED, ResourceState::SHADER_RESOURCE_COMPUTE));
 					BarrierStackFlush(cmd);
 				}
-				device->BindUAV(&rtMain, 10, cmd); // just for debug
+				//device->BindUAV(&rtMain, 10, cmd); // just for debug
 
 				//device->BindUAV(&touchedTiles, 0, cmd);
 				device->BindUAV(&gaussianKernelAttributes, 1, cmd);
@@ -216,7 +215,7 @@ namespace vz::renderer
 					cmd
 				);
 
-				//device->BindUAV(&unbind, 10, cmd);
+				device->BindUAV(&unbind, 10, cmd);
 				device->BindUAV(&unbind, 0, cmd);
 				device->BindUAV(&unbind, 1, cmd);
 				device->BindUAV(&unbind, 2, cmd);

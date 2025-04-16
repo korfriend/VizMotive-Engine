@@ -113,21 +113,21 @@ namespace vz
 			assert(u32_data <= SCU32(TextureSlot::TEXTURESLOT_COUNT));
 			for (uint32_t i = 0, n = u32_data; i < n; ++i)
 			{
-				archive >> textureComponents_[i];
+				archive >> vuidTextureComponents_[i];
 			}
 
 			archive >> u32_data;
 			assert(u32_data <= SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT));
 			for (uint32_t i = 0, n = u32_data; i < n; ++i)
 			{
-				archive >> volumeComponents_[i];
+				archive >> vuidVolumeTextureComponents_[i];
 			}
 
 			archive >> u32_data;
 			assert(u32_data <= SCU32(LookupTableSlot::LOOKUPTABLE_COUNT));
 			for (uint32_t i = 0, n = u32_data; i < n; ++i)
 			{
-				archive >> lookupComponents_[i];
+				archive >> vuidLookupTextureComponents_[i];
 			}
 
 			archive >> texMulAdd_;
@@ -161,19 +161,19 @@ namespace vz
 			archive << tex_slot_count;
 			for (uint32_t i = 0; i < tex_slot_count; ++i)
 			{
-				archive << textureComponents_[i];
+				archive << vuidTextureComponents_[i];
 			}
 			tex_slot_count = SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT);
 			archive << tex_slot_count;
 			for (uint32_t i = 0; i < tex_slot_count; ++i)
 			{
-				archive << volumeComponents_[i];
+				archive << vuidVolumeTextureComponents_[i];
 			}
 			tex_slot_count = SCU32(LookupTableSlot::LOOKUPTABLE_COUNT);
 			archive << tex_slot_count;
 			for (uint32_t i = 0; i < tex_slot_count; ++i)
 			{
-				archive << lookupComponents_[i];
+				archive << vuidLookupTextureComponents_[i];
 			}
 
 			archive << texMulAdd_;

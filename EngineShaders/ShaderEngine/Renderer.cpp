@@ -67,8 +67,14 @@ namespace vz::renderer
 		);
 
 
+		// IMPORTANT NOTE:
+		// ALL RESOURCES CREATED HERE MUST BE CHECKED BEFORE CREATION
+		//	* resource IsValid() (MUST BE INVALID)
+		//	* if the target OPTION is activated
+
 		if (renderer::isTemporalAAEnabled && !camera->IsSlicer())
 		{
+			// updated at every frame (different values)
 			const XMFLOAT4& halton = math::GetHaltonSequence(graphics::GetDevice()->GetFrameCount() % 256);
 			camera->jitter.x = (halton.x * 2 - 1) / (float)internalResolution.x;
 			camera->jitter.y = (halton.y * 2 - 1) / (float)internalResolution.y;
@@ -98,7 +104,7 @@ namespace vz::renderer
 			temporalAAResources = {};
 		}
 
-		if (scene_Gdetails->isOutlineEnabled)
+		if (scene_Gdetails->isOutlineEnabled && !rtOutlineSource.IsValid())
 		{
 			TextureDesc desc;
 			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
@@ -141,46 +147,6 @@ namespace vz::renderer
 		{
 			rtParticleDistortion = {};
 			rtParticleDistortion_render = {};
-		}
-
-		if (!camera->IsSlicer())
-		{
-			TextureDesc desc;
-			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-			desc.format = renderer::FORMAT_rendertargetMain;
-			desc.width = internalResolution.x / 4;
-			desc.height = internalResolution.y / 4;
-			desc.mip_levels = std::min(8u, (uint32_t)std::log2(std::max(desc.width, desc.height)));
-			device->CreateTexture(&desc, nullptr, &rtSceneCopy);
-			device->SetName(&rtSceneCopy, "rtSceneCopy");
-			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS | BindFlag::RENDER_TARGET; // render target for aliasing
-			device->CreateTexture(&desc, nullptr, &rtSceneCopy_tmp, &rtPrimitiveID_1);
-			device->SetName(&rtSceneCopy_tmp, "rtSceneCopy_tmp");
-
-			for (uint32_t i = 0; i < rtSceneCopy.GetDesc().mip_levels; ++i)
-			{
-				int subresource_index;
-				subresource_index = device->CreateSubresource(&rtSceneCopy, SubresourceType::SRV, 0, 1, i, 1);
-				assert(subresource_index == i);
-				subresource_index = device->CreateSubresource(&rtSceneCopy_tmp, SubresourceType::SRV, 0, 1, i, 1);
-				assert(subresource_index == i);
-				subresource_index = device->CreateSubresource(&rtSceneCopy, SubresourceType::UAV, 0, 1, i, 1);
-				assert(subresource_index == i);
-				subresource_index = device->CreateSubresource(&rtSceneCopy_tmp, SubresourceType::UAV, 0, 1, i, 1);
-				assert(subresource_index == i);
-			}
-
-			// because this is used by SSR and SSGI before it gets a chance to be normally rendered, it MUST be cleared!
-			CommandList cmd = device->BeginCommandList();
-			device->Barrier(GPUBarrier::Image(&rtSceneCopy, rtSceneCopy.desc.layout, ResourceState::UNORDERED_ACCESS), cmd);
-			device->ClearUAV(&rtSceneCopy, 0, cmd);
-			device->Barrier(GPUBarrier::Image(&rtSceneCopy, ResourceState::UNORDERED_ACCESS, rtSceneCopy.desc.layout), cmd);
-			device->SubmitCommandLists();
-		}
-		else
-		{
-			rtSceneCopy = {};
-			rtSceneCopy_tmp = {};
 		}
 
 		if (false && !luminanceResources.luminance.IsValid())
@@ -364,7 +330,7 @@ namespace vz::renderer
 				if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 					continue;
 
-				renderQueue.add(renderable.geometryIndex, instanceIndex, distance, renderable.sortBits);
+				renderQueue.add(renderable.geometry->geometryIndex, instanceIndex, distance, renderable.sortBits);
 			}
 			if (!renderQueue.empty())
 			{
@@ -505,7 +471,7 @@ namespace vz::renderer
 				//	params.setMaskMap(nullptr);
 				//}
 
-				GTextureComponent* texture = (GTextureComponent*)compfactory::GetTextureComponentByVUID(sprite->GetSpriteTextureVUID());
+				GTextureComponent* texture = sprite->texture;
 				image::Draw(texture ? &texture->GetTexture() : nullptr, params, cmd);
 			}
 			break;
@@ -626,7 +592,6 @@ namespace vz::renderer
 			{
 				if (instancedBatch.instanceCount == 0)
 					return;
-				GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[instancedBatch.geometryIndex];
 
 				//if (!geometry.HasRenderData())
 				//{
@@ -634,6 +599,7 @@ namespace vz::renderer
 				//}
 
 				GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instancedBatch.renderableIndex];
+				GGeometryComponent& geometry = *renderable.geometry;
 
 				bool forceAlphaTestForDithering = instancedBatch.forceAlphatestForDithering != 0;
 
@@ -652,12 +618,11 @@ namespace vz::renderer
 				// Note: geometries and materials are scanned resources from the scene.	
 
 				const std::vector<Primitive>& parts = geometry.GetPrimitives();
-				assert(parts.size() == instancedBatch.materialIndices.size());
+				assert(parts.size() == renderable.materials.size());
 				for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 				{
 					const Primitive& part = parts[part_index];
-					uint32_t material_index = instancedBatch.materialIndices[part_index];
-					const GMaterialComponent& material = *scene_Gdetails->materialComponents[material_index];
+					const GMaterialComponent& material = *renderable.materials[part_index];
 
 					if (!part.HasRenderData())
 					{
@@ -690,7 +655,7 @@ namespace vz::renderer
 
 						MeshPushConstants push;
 						push.geometryIndex = geometry.geometryOffset + part_index;
-						push.materialIndex = material_index;
+						push.materialIndex = material.materialIndex;
 						push.instBufferResIndex = renderable.resLookupIndex + part_index;
 						push.instances = instanceBufferDescriptorIndex;
 						push.instance_offset = (uint)instancedBatch.dataOffset;
@@ -803,7 +768,7 @@ namespace vz::renderer
 
 					MeshPushConstants push;
 					push.geometryIndex = geometry.geometryOffset + part_index;
-					push.materialIndex = material_index;
+					push.materialIndex = material.materialIndex;
 					push.instBufferResIndex = renderable.resLookupIndex + part_index;
 					push.instances = instanceBufferDescriptorIndex;
 					push.instance_offset = (uint)instancedBatch.dataOffset;
@@ -875,7 +840,6 @@ namespace vz::renderer
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
 				instancedBatch.lod = lod;
-				instancedBatch.materialIndices = renderable.materialIndices;
 			}
 
 			const float dither = std::max(0.0f, batch.GetDistance() - renderable.GetFadeDistance()) / renderable.GetVisibleRadius();
@@ -1198,6 +1162,7 @@ namespace vz::renderer
 				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_1_render);
 				device->CreateTexture(&desc, nullptr, &rtPrimitiveID_2_render);
 				device->SetName(&rtPrimitiveID_1_render, "rtPrimitiveID_1_render");
+				device->SetName(&rtPrimitiveID_2_render, "rtPrimitiveID_2_render");
 			}
 			else
 			{
@@ -1205,6 +1170,48 @@ namespace vz::renderer
 				rtPrimitiveID_2_render = rtPrimitiveID_2;
 			}
 		}
+		{
+			if (!camera->IsSlicer())
+			{
+				TextureDesc desc;
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.format = renderer::FORMAT_rendertargetMain;
+				desc.width = internalResolution.x / 4;
+				desc.height = internalResolution.y / 4;
+				desc.mip_levels = std::min(8u, (uint32_t)std::log2(std::max(desc.width, desc.height)));
+				device->CreateTexture(&desc, nullptr, &rtSceneCopy);
+				device->SetName(&rtSceneCopy, "rtSceneCopy");
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS | BindFlag::RENDER_TARGET; // render target for aliasing
+				device->CreateTexture(&desc, nullptr, &rtSceneCopy_tmp, &rtPrimitiveID_1);
+				device->SetName(&rtSceneCopy_tmp, "rtSceneCopy_tmp");
+
+				for (uint32_t i = 0; i < rtSceneCopy.GetDesc().mip_levels; ++i)
+				{
+					int subresource_index;
+					subresource_index = device->CreateSubresource(&rtSceneCopy, SubresourceType::SRV, 0, 1, i, 1);
+					assert(subresource_index == i);
+					subresource_index = device->CreateSubresource(&rtSceneCopy_tmp, SubresourceType::SRV, 0, 1, i, 1);
+					assert(subresource_index == i);
+					subresource_index = device->CreateSubresource(&rtSceneCopy, SubresourceType::UAV, 0, 1, i, 1);
+					assert(subresource_index == i);
+					subresource_index = device->CreateSubresource(&rtSceneCopy_tmp, SubresourceType::UAV, 0, 1, i, 1);
+					assert(subresource_index == i);
+				}
+
+				// because this is used by SSR and SSGI before it gets a chance to be normally rendered, it MUST be cleared!
+				CommandList cmd = device->BeginCommandList();
+				device->Barrier(GPUBarrier::Image(&rtSceneCopy, rtSceneCopy.desc.layout, ResourceState::UNORDERED_ACCESS), cmd);
+				device->ClearUAV(&rtSceneCopy, 0, cmd);
+				device->Barrier(GPUBarrier::Image(&rtSceneCopy, ResourceState::UNORDERED_ACCESS, rtSceneCopy.desc.layout), cmd);
+				device->SubmitCommandLists();
+			}
+			else
+			{
+				rtSceneCopy = {};
+				rtSceneCopy_tmp = {};
+			}
+		}
+
 		{ // rtPostprocess
 			TextureDesc desc;
 			desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
@@ -2240,11 +2247,6 @@ namespace vz::renderer
 
 			RenderTransparents(cmd);
 
-			if (renderer::isGaussianSplattingEnabled)
-				RenderGaussianSplatting(cmd);
-
-			RenderDirectVolumes(cmd);
-			
 			// Depth buffers expect a non-pixel shader resource state as they are generated on compute queue:
 			{
 				GPUBarrier barriers[] = {
@@ -2254,7 +2256,16 @@ namespace vz::renderer
 				};
 				device->Barrier(barriers, arraysize(barriers), cmd);
 			}
-			});
+
+			// Special Rendering Features
+			//	Assuming the barrier states of the used resources are set to the 'default' barrier states
+
+			if (renderer::isGaussianSplattingEnabled)
+				RenderGaussianSplatting(cmd);
+
+			RenderDirectVolumes(cmd);
+			
+		});
 
 		if (isWetmapRefreshEnabled)
 		{
@@ -2272,7 +2283,11 @@ namespace vz::renderer
 			TextureStreamingReadbackCopy(*scene, cmd);
 		});
 
-		jobsystem::Wait(ctx);
+		// IMPORTANT NOTE:
+		//	* this is why JOBSYSTEM is used for rendering process
+		//	* ONLY ONCE call of jobsystem::Wait(ctx)
+		//	* CommandLists will be submitted sequentially w.r.t. device->BeginCommandList 
+		jobsystem::Wait(ctx);	
 
 		firstFrame = false;
 		return true;
@@ -2347,6 +2362,10 @@ namespace vz::renderer
 			RenderPostprocessChain(cmd);
 			});
 
+		// IMPORTANT NOTE:
+		//	* this is why JOBSYSTEM is used for rendering process
+		//	* ONLY ONCE call of jobsystem::Wait(ctx)
+		//	* CommandLists will be submitted sequentially w.r.t. device->BeginCommandList 
 		jobsystem::Wait(ctx);
 
 		firstFrame = false;

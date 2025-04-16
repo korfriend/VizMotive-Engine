@@ -160,13 +160,10 @@ namespace vzm
 		countPendingSubmitCommand.fetch_add(1);
 
 		uint32_t n = countPendingSubmitCommand.load();
-		if (n > 10)
+		if (n == 50)
 		{
-			vzlog_warning("# of PendingSubmitCommand (%d) is over 10!\n\t\tPlease Check unintended pending...\n\t\tRecommend to Use the RenderChain!", n);
-		}
-		if (n > 100)
-		{
-			vzlog_warning("# of PendingSubmitCommand (%d) is over 100!\n\t\tForce to Submit Commandlist!!!\n\t\tReport your scenario to korfriend@gmail.com", n);
+			vzlog_warning("# of PendingSubmitCommand (%d) is over 50!\n\t\tForce to Submit Commandlist!!!\n\t\tReport your scenario to korfriend@gmail.com", n);
+
 			graphics::GraphicsDevice* device = graphics::GetDevice();
 			graphics::CommandList cmd = device->BeginCommandList();
 			profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
@@ -1006,6 +1003,15 @@ namespace vzm
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(;);
 		isPandingSubmitCommand.store(pending);
+
+		if (GetCountPendingSubmitCommand() > 0)
+		{
+			graphics::GraphicsDevice* device = graphics::GetDevice();
+			graphics::CommandList cmd = device->BeginCommandList();
+			profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
+			device->SubmitCommandLists();
+			vzm::ResetPendingSubmitCommand();
+		}
 	}
 
 	void ReloadShader()

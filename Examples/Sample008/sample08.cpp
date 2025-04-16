@@ -156,12 +156,12 @@ int main(int, char **)
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.1f, 5000.f, 60.f, 1.f);
 
-		//vzm::VzActorSprite* actor_sprite = vzm::NewActorSprite("my sprite");
-		//vzm::VzTexture* texture = vzm::NewTexture("my texture");
-		//texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
-		//actor_sprite->SetSpriteTexture(texture->GetVID());
-		//actor_sprite->SetSpriteScale({ 20.f, 20.f });
-		//scene->AppendChild(actor_sprite);
+		vzm::VzActorSprite* actor_sprite = vzm::NewActorSprite("my sprite");
+		vzm::VzTexture* texture = vzm::NewTexture("my texture");
+		texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
+		actor_sprite->SetSpriteTexture(texture->GetVID());
+		actor_sprite->SetSpriteScale({ 20.f, 20.f });
+		scene->AppendChild(actor_sprite);
 
 		//vzm::VzActorSpriteFont* actor_font = vzm::NewActorSpriteFont("my sprite font");
 		//actor_font->SetText("MY TEST SPRITE");

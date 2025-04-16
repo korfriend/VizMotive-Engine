@@ -32,13 +32,20 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250415_4";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250416_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
 	struct GScene;
 	struct Resource;
 	struct ComponentBase;
+	struct GRenderableComponent;
+	struct GSpriteComponent;
+	struct GSpriteFontComponent;
+	struct GGeometryComponent;
+	struct GMaterialComponent;
+	struct GCameraComponent;
+	struct GLightComponent;
 
 	class WaitForBool {
 	private:
@@ -321,6 +328,17 @@ namespace vz
 		virtual const std::vector<XMFLOAT4X4>& GetRenderableWorldMatrices() const = 0;
 		virtual const std::vector<XMFLOAT4X4>& GetRenderableWorldMatricesPrev() const = 0;
 
+		virtual const std::vector<GRenderableComponent*>& GetRenderableComponents() const = 0;
+		virtual const std::vector<GSpriteComponent*>& GetSpriteComponents() const = 0;
+		virtual const std::vector<GSpriteFontComponent*>& GetSpriteFontComponents() const = 0;
+		virtual const std::vector<GGeometryComponent*>& GetGeometryComponents() const = 0;
+		virtual const std::vector<GMaterialComponent*>& GetMaterialComponents() const = 0;
+		virtual const std::vector<GCameraComponent*>& GetCameraComponents() const = 0;
+		virtual const std::vector<GLightComponent*>& GetLightComponents() const = 0;
+
+		virtual const uint32_t GetGeometryPrimitivesAllocatorSize() const = 0;
+		virtual const uint32_t GetRenderableResLookupAllocatorSize() const = 0;
+
 		/**
 		 * Read/write scene components (renderables, lights and Scene-attached cameras), make sure their VUID-based components are serialized first
 		 */
@@ -601,9 +619,9 @@ namespace vz
 
 		bool wireframe_ = false;
 
-		VUID textureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
-		VUID volumeComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
-		VUID lookupComponents_[SCU32(LookupTableSlot::LOOKUPTABLE_COUNT)] = {};
+		VUID vuidTextureComponents_[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
+		VUID vuidVolumeTextureComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
+		VUID vuidLookupTextureComponents_[SCU32(LookupTableSlot::LOOKUPTABLE_COUNT)] = {};
 
 		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
 
@@ -671,9 +689,9 @@ namespace vz
 		inline float GetMatalness() const { return metalness_; }
 		inline float GetRoughness() const { return roughness_; }
 		inline BlendMode GetBlendMode() const { return blendMode_; }
-		inline VUID GetTextureVUID(const TextureSlot slot) const { return textureComponents_[SCU32(slot)]; }
-		inline VUID GetVolumeTextureVUID(const VolumeTextureSlot slot) const { return volumeComponents_[SCU32(slot)]; }
-		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return lookupComponents_[SCU32(slot)]; }
+		inline VUID GetTextureVUID(const TextureSlot slot) const { return vuidTextureComponents_[SCU32(slot)]; }
+		inline VUID GetVolumeTextureVUID(const VolumeTextureSlot slot) const { return vuidVolumeTextureComponents_[SCU32(slot)]; }
+		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return vuidLookupTextureComponents_[SCU32(slot)]; }
 		inline XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline XMFLOAT4 GetPhongFactors() const { return phongFactors_; }
 

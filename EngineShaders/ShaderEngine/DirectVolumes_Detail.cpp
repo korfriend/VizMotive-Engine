@@ -32,7 +32,7 @@ namespace vz::renderer
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 
-			renderQueue.add(renderable.geometryIndex, instanceIndex, distance, renderable.sortBits);
+			renderQueue.add(renderable.geometry->geometryIndex, instanceIndex, distance, renderable.sortBits);
 		}
 
 		graphics::Texture slicer_textures[] = {
@@ -106,7 +106,7 @@ namespace vz::renderer
 				// Note: geometries and materials are scanned resources from the scene.	
 
 				const std::vector<Primitive>& parts = geometry.GetPrimitives();
-				assert(parts.size() == instancedBatch.materialIndices.size());
+				assert(parts.size() == renderable.materials.size());
 				for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 				{
 					const Primitive& part = parts[part_index];
@@ -116,8 +116,7 @@ namespace vz::renderer
 					}
 					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGPrimBuffer(part_index);
 
-					uint32_t material_index = instancedBatch.materialIndices[part_index];
-					const GMaterialComponent& material = *scene_Gdetails->materialComponents[material_index];
+					const GMaterialComponent& material = *renderable.materials[part_index];
 
 					bool is_renderable = filterMask & material.GetFilterMaskFlags();
 					if (!is_renderable || !part_buffer.bvhBuffers.primitiveCounterBuffer.IsValid())
@@ -126,7 +125,7 @@ namespace vz::renderer
 					}
 
 					push.instanceIndex = instancedBatch.renderableIndex;
-					push.materialIndex = material_index;
+					push.materialIndex = material.materialIndex;
 					push.BVH_counter = device->GetDescriptorIndex(&part_buffer.bvhBuffers.primitiveCounterBuffer, SubresourceType::SRV);
 					push.BVH_nodes = device->GetDescriptorIndex(&part_buffer.bvhBuffers.bvhNodeBuffer, SubresourceType::SRV);
 					push.BVH_primitives = device->GetDescriptorIndex(&part_buffer.bvhBuffers.primitiveBuffer, SubresourceType::SRV);
@@ -212,7 +211,6 @@ namespace vz::renderer
 				instancedBatch.forceAlphatestForDithering = 0;
 				instancedBatch.aabb = AABB();
 				instancedBatch.lod = lod;
-				instancedBatch.materialIndices = renderable.materialIndices;
 			}
 
 			const float dither = std::max(0.0f, batch.GetDistance() - renderable.GetFadeDistance()) / renderable.GetVisibleRadius();
@@ -321,7 +319,7 @@ namespace vz::renderer
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 
-			renderQueue.add(renderable.geometryIndex, instanceIndex, distance, renderable.sortBits);
+			renderQueue.add(~0u, instanceIndex, distance, renderable.sortBits);
 		}
 		if (!renderQueue.empty())
 		{
@@ -347,16 +345,15 @@ namespace vz::renderer
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
 			assert(renderable.GetRenderableType() == RenderableType::VOLUME_RENDERABLE);
 
-			GMaterialComponent* material = scene_Gdetails->materialComponents[renderable.materialIndices[0]];
+			GMaterialComponent* material = renderable.materials[0];
 			assert(material);
 
-			GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
-				material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
+			GVolumeComponent* volume = material->volumeTextures[SCU32(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP)];
 			assert(volume);
 			assert(volume->IsValidVolume());
 
 			MaterialComponent::LookupTableSlot target_lookup_slot = camera->GetDVRLookupSlot();
-			GTextureComponent* otf = (GTextureComponent*)compfactory::GetTextureComponentByVUID(material->GetLookupTableVUID(target_lookup_slot));
+			GTextureComponent* otf = material->textureLookups[SCU32(target_lookup_slot)];
 			assert(otf);
 			Entity entity_otf = otf->GetEntity();
 			XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();

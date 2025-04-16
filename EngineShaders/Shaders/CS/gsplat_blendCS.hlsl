@@ -41,8 +41,8 @@ void main(uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint3
     uint sortedReplicate_indexEnd = tileRange[tile_index + 1];
     //if (sortedReplicate_indexEnd - sortedReplicate_indexStart > 10000)
     //{
-    //    //inout_color[pixel] = float4(0, 1, 0, 1);
-    //    //return;
+    //inout_color[pixel] = float4(0, 1, 0, 1);
+    //return;
     //}
 
     float4 integrated_rgba = float4(0.0f, 0.0f, 0.0f, 0.0f);

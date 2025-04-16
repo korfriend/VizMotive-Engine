@@ -240,12 +240,11 @@ namespace vz::renderer
 	//	Simply understand this as 'instances' originated from a renderable
 	struct InstancedBatch
 	{
-		uint32_t geometryIndex = ~0u;	// geometryIndex
+		uint32_t geometryIndex = ~0u;
 		uint32_t renderableIndex = ~0u;
 		uint32_t instanceCount = 0;
 		uint32_t dataOffset = 0;
 		uint8_t userStencilRefOverride = 0;
-		std::vector<uint32_t> materialIndices;
 		bool forceAlphatestForDithering = false;
 		uint8_t lod = 0;
 		AABB aabb;
@@ -254,7 +253,7 @@ namespace vz::renderer
 	// Direct reference to a renderable instance:
 	struct RenderBatch
 	{
-		uint32_t geometryIndex;
+		uint32_t geometryIndex; // used for sort
 		uint32_t instanceIndex;	// renderable index
 		uint16_t distance;
 		uint8_t camera_mask;
@@ -694,25 +693,16 @@ namespace vz::renderer
 		//	supposed to be safe in a single frame
 		float deltaTime = 0.f;
 		const Scene* GetScene() const { return scene_; }
+		
 		std::vector<GLightComponent*> lightComponents; // cached (non enclosing for jobsystem)
 		std::vector<GGeometryComponent*> geometryComponents; // cached (non enclosing for jobsystem)
 		std::vector<GMaterialComponent*> materialComponents; // cached (non enclosing for jobsystem)
-
-		// each type of renderblaecomponents use different rendering system
 		std::vector<GRenderableComponent*> renderableComponents; // cached (non enclosing for jobsystem)
 		std::vector<GSpriteComponent*> spriteComponents; // cached (non enclosing for jobsystem)
 		std::vector<GSpriteFontComponent*> spriteFontComponents; // cached (non enclosing for jobsystem)
 
-		std::vector<Entity> renderableEntities; // cached (non enclosing for jobsystem)
-		std::vector<Entity> spriteEntities; // cached (non enclosing for jobsystem)
-		std::vector<Entity> spriteFontEntities; // cached (non enclosing for jobsystem)
-		std::vector<Entity> lightEntities; // cached (non enclosing for jobsystem)
-		std::vector<Entity> geometryEntities; // cached (non enclosing for jobsystem)
-		std::vector<Entity> materialEntities; // cached (non enclosing for jobsystem)
-
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
-
 		//const bool occlusionQueryEnabled = false;
 		//const bool cameraFreezeCullingEnabled = false;
 		bool isWetmapProcessingRequired = false;
@@ -735,9 +725,8 @@ namespace vz::renderer
 		//		2) emitted particles * 1
 		size_t geometryArraySize = 0;
 		graphics::GPUBuffer geometryUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
-		graphics::GPUBuffer geometryBuffer = {};	// not same to the geometryEntities, reorganized using geometryAllocator
+		graphics::GPUBuffer geometryBuffer = {};	// not same to the geometryEntities, reorganized using geometryArraySize
 		ShaderGeometry* geometryArrayMapped = nullptr;
-		std::atomic<uint32_t> geometryAllocator{ 0 };
 
 		// Materials for bindless view indexing:
 		size_t materialArraySize = 0;
@@ -754,7 +743,6 @@ namespace vz::renderer
 		graphics::GPUBuffer instanceResLookupUploadBuffer[graphics::GraphicsDevice::GetBufferCount()];
 		graphics::GPUBuffer instanceResLookupBuffer = {};
 		ShaderInstanceResLookup* instanceResLookupMapped = nullptr;
-		std::atomic<uint32_t> instanceResLookupAllocator{ 0 };
 
 		// Meshlets for 
 		//  1. MeshShader or 
@@ -790,7 +778,7 @@ namespace vz::renderer
 		bool Update(const float dt) override;
 		bool Destroy() override;
 
-		void RunPrimtiveUpdateSystem(jobsystem::context& ctx);
+		void RunGeometryUpdateSystem(jobsystem::context& ctx);
 		void RunMaterialUpdateSystem(jobsystem::context& ctx);
 		void RunRenderableUpdateSystem(jobsystem::context& ctx); // note a single renderable can generate multiple mesh instances
 	};

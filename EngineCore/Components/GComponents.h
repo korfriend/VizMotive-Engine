@@ -8,6 +8,10 @@ namespace vz
 	//	The parameters inside 'G'-components are used by Graphics pipeline and GPGPUs
 	//	So, all attributes here are Non-serialized attributes
 	//	Most parameters are strongly related to the renderer plugin
+	struct GTextureComponent;
+	struct GVolumeComponent;
+	struct GTextureComponent;
+	struct GRenderableComponent;
 
 	struct BufferView
 	{
@@ -53,6 +57,11 @@ namespace vz
 		virtual ~GMaterialComponent() = default;
 
 		uint32_t materialIndex = ~0u; // scene's geometries_ (GeometryComponent)
+
+		GTextureComponent* textures[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
+		GVolumeComponent* volumeTextures[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
+		GTextureComponent* textureLookups[SCU32(LookupTableSlot::LOOKUPTABLE_COUNT)] = {};
+		GRenderableComponent* renderableVolumeMapperRenderable = nullptr;
 		
 		// Non-serialized attributes:
 		int samplerDescriptor = -1; // optional
@@ -455,15 +464,16 @@ namespace vz
 			}
 		};
 		std::vector<GPrimEffectBuffers> bufferEffects;	// the same number of GBuffers
-		
+
 		// --- these will only be valid for a single frame: (supposed to be updated dynamically) ---
-		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
-
-		// these are for linear array of scene component's array
+		// ----- Temporal Items updated by Scene::Update
+		TransformComponent* transform = nullptr;
+		GGeometryComponent* geometry = nullptr;
+		std::vector<GMaterialComponent*> materials;
 		uint32_t renderableIndex = ~0u;	// current linear array of current rendering scene
-		uint32_t geometryIndex = ~0u; // same as GGeometry's geometryIndex
-		std::vector<uint32_t> materialIndices; // current linear array of current rendering scene
 
+		// ----- Temporal Items updated by ShaderEngine
+		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
 		uint32_t sortBits = 0;
 		uint8_t lod = 0;
 
@@ -482,6 +492,7 @@ namespace vz
 		GSpriteComponent(const Entity entity, const VUID vuid = 0) : SpriteComponent(entity, vuid) {}
 		virtual ~GSpriteComponent() = default;
 
+		GTextureComponent* texture;
 		uint32_t spriteIndex = ~0u;	// current linear array of current rendering scene
 		XMFLOAT3 scaleW;
 		XMFLOAT3 translateW;

@@ -309,7 +309,7 @@ namespace vz
 		local_ = local;
 		if (diff_sq > FLT_EPSILON)
 		{
-			timeStampWorldUpdate_ = TimerNow;
+			//timeStampWorldUpdate_ = TimerNow;
 			compfactory::SetSceneComponentsDirty(entity_);
 		}
 	}

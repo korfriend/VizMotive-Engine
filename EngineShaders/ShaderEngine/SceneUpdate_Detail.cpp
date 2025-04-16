@@ -18,7 +18,7 @@ namespace vz
 		return new GSceneDetails(scene);
 	}
 
-	void GSceneDetails::RunPrimtiveUpdateSystem(jobsystem::context& ctx)
+	void GSceneDetails::RunGeometryUpdateSystem(jobsystem::context& ctx)
 	{
 		meshletAllocator.store(0u);
 
@@ -206,7 +206,7 @@ namespace vz
 					shader_material.aniso_anisosin_anisocos_terrainblend = pack_half4(_anisotropy_strength, _anisotropy_rotation_sin, _anisotropy_rotation_cos, _blend_with_terrain_height_rcp);
 					shader_material.shaderType = (uint)material.GetShaderType();
 
-					GRenderableComponent* vol_renderable = (GRenderableComponent*)compfactory::GetComponentByVUID(material.GetVolumeMapperTargetRenderableVUID());
+					GRenderableComponent* vol_renderable = material.renderableVolumeMapperRenderable;
 					shader_material.volumemapperTargetInstIndex = -1;
 					if (vol_renderable)
 					{
@@ -229,11 +229,9 @@ namespace vz
 
 					for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
 					{
-						VUID texture_vuid = material.GetTextureVUID(static_cast<MaterialComponent::TextureSlot>(i));
-						GTextureComponent* texture_comp = nullptr;
-						if (texture_vuid != INVALID_VUID)
+						GTextureComponent* texture_comp = material.textures[i];
+						if (texture_comp)
 						{
-							texture_comp = (GTextureComponent*)compfactory::GetComponentByVUID(texture_vuid);
 							assert(texture_comp && texture_comp->GetComponentType() == ComponentType::TEXTURE);
 							shader_material.textures[i].uvset_lodclamp = (texture_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(texture_comp->GetLodClamp()) << 1u);
 							if (texture_comp->IsValid())
@@ -262,11 +260,9 @@ namespace vz
 					}
 					for (int i = 0; i < VOLUME_TEXTURESLOT_COUNT; ++i)
 					{
-						VUID volume_vuid = material.GetVolumeTextureVUID(static_cast<MaterialComponent::VolumeTextureSlot>(i));
-						GVolumeComponent* volume_comp = nullptr;
-						if (volume_vuid != INVALID_VUID)
+						GVolumeComponent* volume_comp = material.volumeTextures[i];
+						if (volume_comp)
 						{
-							volume_comp = (GVolumeComponent*)compfactory::GetComponentByVUID(volume_vuid);
 							assert(volume_comp && volume_comp->GetComponentType() == ComponentType::VOLUMETEXTURE);
 							if (volume_comp->IsValid())
 							{
@@ -282,11 +278,9 @@ namespace vz
 					}
 					for (int i = 0; i < LOOKUPTABLE_COUNT; ++i)
 					{
-						VUID lookup_vuid = material.GetLookupTableVUID(static_cast<MaterialComponent::LookupTableSlot>(i));
-						GTextureComponent* lookup_comp = nullptr;
-						if (lookup_vuid != INVALID_VUID)
+						GTextureComponent* lookup_comp = material.textureLookups[i];
+						if (lookup_comp)
 						{
-							lookup_comp = (GTextureComponent*)compfactory::GetComponentByVUID(lookup_vuid);
 							assert(lookup_comp && lookup_comp->GetComponentType() == ComponentType::TEXTURE);
 							shader_material.lookup_textures[i].uvset_lodclamp = (lookup_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(lookup_comp->GetLodClamp()) << 1u);
 							if (lookup_comp->IsValid())
@@ -324,20 +318,14 @@ namespace vz
 					const uint32_t request_uvset0 = request_packed & 0xFFFF;
 					const uint32_t request_uvset1 = (request_packed >> 16u) & 0xFFFF;
 
-					for (size_t slot = 0, n = SCU32(MaterialComponent::TextureSlot::TEXTURESLOT_COUNT);
-						slot < n; ++slot)
+					for (size_t slot = 0, n = SCU32(MaterialComponent::TextureSlot::TEXTURESLOT_COUNT); slot < n; ++slot)
 					{
-						VUID texture_vuid = material.GetTextureVUID(static_cast<MaterialComponent::TextureSlot>(slot));
-						if (texture_vuid != INVALID_VUID)
+						GTextureComponent* texture_comp = material.textures[slot];
+						if (texture_comp)
 						{
-							Entity material_entity = compfactory::GetEntityByVUID(texture_vuid);
-							GTextureComponent* texture_comp = dynamic_cast<GTextureComponent*>(compfactory::GetTextureComponent(material_entity));
-							if (texture_comp)
+							if (texture_comp->IsValid())
 							{
-								if (texture_comp->IsValid())
-								{
-									texture_comp->StreamingRequestResolution(texture_comp->GetUVSet() == 0 ? request_uvset0 : request_uvset1);
-								}
+								texture_comp->StreamingRequestResolution(texture_comp->GetUVSet() == 0 ? request_uvset0 : request_uvset1);
 							}
 						}
 					}
@@ -379,20 +367,15 @@ namespace vz
 			// Note : SceneDetails::RunRenderableUpdateSystem computes raw world matrix and its prev.
 			XMFLOAT4X4 world_matrix_prev = matrixRenderables[args.jobIndex];
 			XMFLOAT4X4 world_matrix = matrixRenderablesPrev[args.jobIndex];
-			XMMATRIX W = XMLoadFloat4x4(&world_matrix);
 
 			renderable.renderFlags = 0u;
-			renderable.renderableIndex = ~0u;
-			renderable.materialIndices.clear();
-
 			switch (renderable.GetRenderableType())
 			{
 			case RenderableType::GSPLAT_RENDERABLE:
 			case RenderableType::MESH_RENDERABLE:
 			{
 				// These will only be valid for a single frame:
-				Entity geo_entity = renderable.GetGeometry();
-				GGeometryComponent& geometry = *(GGeometryComponent*)compfactory::GetGeometryComponent(geo_entity);
+				GGeometryComponent& geometry = *renderable.geometry;
 				const std::vector<GeometryComponent::Primitive>& primitives = geometry.GetPrimitives();
 				assert(primitives.size() > 0); // if (renderable.IsRenderable())		
 
@@ -417,10 +400,7 @@ namespace vz
 
 				size_t num_parts = primitives.size();
 
-				renderable.renderableIndex = args.jobIndex;
-				renderable.geometryIndex = geometry.geometryIndex;
-				renderable.materialIndices.assign(num_parts, ~0u);
-				renderable.materialFilterFlags = 0;
+				renderable.materialFilterFlags = 0u;
 
 				// Create GPU instance data:
 				ShaderMeshInstance inst;
@@ -431,8 +411,7 @@ namespace vz
 				for (uint32_t part_index = 0; part_index < num_parts; ++part_index)
 				{
 					const Primitive& part = primitives[part_index];
-					Entity material_entity = renderable.GetMaterial(part_index);
-					const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(material_entity);
+					const GMaterialComponent& material = *renderable.materials[part_index];
 					if (!part.HasRenderData())
 					{
 						//renderableShapes.AddPrimitivePart(part, material.GetBaseColor(), world_matrix);
@@ -454,8 +433,6 @@ namespace vz
 							inst_res_lookup.vb_ao = effect_buffers.vbAO.descriptor_srv;
 						}
 					}
-
-					renderable.materialIndices[part_index] = inst_res_lookup.materialIndex;
 
 					renderable.materialFilterFlags |= material.GetFilterMaskFlags();
 					renderable.renderFlags |= material.GetRenderFlags();
@@ -537,13 +514,11 @@ namespace vz
 			} break;
 			case RenderableType::VOLUME_RENDERABLE:
 			{
-				const GMaterialComponent& material = *(GMaterialComponent*)compfactory::GetMaterialComponent(renderable.GetMaterial(0));
-				GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
-					material.GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
+				const GMaterialComponent& material = *renderable.materials[0];
+				GVolumeComponent* volume = material.volumeTextures[SCU32(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP)];
 				assert(volume);
 				assert(volume->IsValidVolume());
-				GTextureComponent* otf = (GTextureComponent*)compfactory::GetTextureComponentByVUID(
-					material.GetLookupTableVUID(MaterialComponent::LookupTableSlot::LOOKUP_OTF));
+				GTextureComponent* otf = material.textureLookups[SCU32(MaterialComponent::LookupTableSlot::LOOKUP_OTF)];
 				assert(otf);
 
 				renderable.materialFilterFlags |= material.GetFilterMaskFlags();
@@ -562,9 +537,6 @@ namespace vz
 
 				SortBits sort_bits;
 				sort_bits.bits.sort_priority = renderable.sortPriority;
-
-				renderable.renderableIndex = renderable.renderableIndex;
-				renderable.materialIndices.assign(1, material.materialIndex); // volume renderable has a single material that has volume texture
 
 				ShaderMeshInstance inst; // this will be loaded as VolumeInstance
 				inst.Init();
@@ -643,7 +615,6 @@ namespace vz
 				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 			} break;
 			default:
-				vzlog_assert(false, "this update must be called for mesh or volume renderablecomponents");
 				break;
 			}
 			});
@@ -653,80 +624,25 @@ namespace vz
 	{
 		renderableShapes.Clear();
 
+		lightComponents = scene_->GetLightComponents();
+		geometryComponents = scene_->GetGeometryComponents();
+		materialComponents = scene_->GetMaterialComponents();
+		renderableComponents = scene_->GetRenderableComponents();
+		spriteComponents = scene_->GetSpriteComponents();
+		spriteFontComponents = scene_->GetSpriteFontComponents();
+		matrixRenderables = scene_->GetRenderableWorldMatrices();
+		matrixRenderablesPrev = scene_->GetRenderableWorldMatricesPrev();
+
 		deltaTime = dt;
 		jobsystem::context ctx;
 
-		const std::vector<Entity>& renderableEntityCandidates = scene_->GetRenderableEntities();
-		const std::vector<XMFLOAT4X4>& matrixRenderableCandidates = scene_->GetRenderableWorldMatrices();
-		const std::vector<XMFLOAT4X4>& matrixRenderableCandidatesPrev = scene_->GetRenderableWorldMatricesPrev();
-		// renderableEntities, matrixRenderables, matrixRenderablesPrev
-		//	GSceneDetails::renderableComponents stores elements of scene_->renderables_ 
-		//		whose IsRenderable() is TURE
-		uint32_t num_renderables = scene_->GetRenderableMeshCount() + scene_->GetRenderableVolumeCount() + scene_->GetRenderableGSplatCount();
-		renderableComponents.resize(num_renderables);
-		renderableEntities.resize(num_renderables);
-		matrixRenderables.resize(num_renderables);
-		matrixRenderablesPrev.resize(num_renderables);
-		std::atomic<uint32_t> renderable_count = { 0 };
-		jobsystem::Dispatch(ctx, (uint32_t)renderableEntityCandidates.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-			Entity entity = renderableEntityCandidates[args.jobIndex];
-			GRenderableComponent* renderable = (GRenderableComponent*)compfactory::GetRenderableComponent(entity);
-			assert(renderable);
-			if (renderable->IsRenderable())
-			{
-				uint32_t index = renderable_count.load();
-				renderableComponents[index] = renderable;
-				renderableEntities[index] = entity;
-				matrixRenderables[index] = matrixRenderableCandidates[args.jobIndex];
-				matrixRenderablesPrev[index] = matrixRenderableCandidatesPrev[args.jobIndex];
-				renderable->renderableIndex = index;
-				renderable_count.fetch_add(1, std::memory_order_relaxed);
-			}
-			});
-
-		spriteEntities = scene_->GetSpriteEntities();
-		spriteComponents.resize(spriteEntities.size());
-		size_t num_sprites = spriteEntities.size();
-		jobsystem::Dispatch(ctx, (uint32_t)num_sprites, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-			GSpriteComponent* sprite = (GSpriteComponent*)compfactory::GetSpriteComponent(spriteEntities[args.jobIndex]);
-			sprite->spriteIndex = args.jobIndex;
-			spriteComponents[args.jobIndex] = sprite;
-			});
-
-		spriteFontEntities = scene_->GetSpriteFontEntities();
-		spriteFontComponents.resize(spriteFontEntities.size());
-		size_t num_spritefonts = spriteFontEntities.size();
-		
-		jobsystem::Dispatch(ctx, (uint32_t)num_spritefonts, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-			spriteFontComponents[args.jobIndex] = (GSpriteFontComponent*)compfactory::GetSpriteFontComponent(spriteFontEntities[args.jobIndex]);
-			spriteFontComponents[args.jobIndex]->spritefontIndex = args.jobIndex;
-			});
-
-		lightEntities = scene_->GetLightEntities();
-		lightComponents.resize(lightEntities.size());
 		size_t num_lights = lightComponents.size();
-		jobsystem::Dispatch(ctx, (uint32_t)num_lights, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-			lightComponents[args.jobIndex] = (GLightComponent*)compfactory::GetLightComponent(lightEntities[args.jobIndex]);
-			lightComponents[args.jobIndex]->lightIndex = args.jobIndex;
-			});
-
-		materialEntities = scene_->GetMaterialEntities();
-		materialComponents.resize(materialEntities.size());
-		size_t num_materials = materialComponents.size();
-		jobsystem::Dispatch(ctx, (uint32_t)num_materials, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-			materialComponents[args.jobIndex] = (GMaterialComponent*)compfactory::GetMaterialComponent(materialEntities[args.jobIndex]);
-			materialComponents[args.jobIndex]->materialIndex = args.jobIndex;
-			});
-
-		geometryEntities = scene_->GetGeometryEntities();
-		geometryComponents.resize(geometryEntities.size());
 		size_t num_geometries = geometryComponents.size();
-		jobsystem::Dispatch(ctx, (uint32_t)num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-			geometryComponents[args.jobIndex] = (GGeometryComponent*)compfactory::GetGeometryComponent(geometryEntities[args.jobIndex]);
-			geometryComponents[args.jobIndex]->geometryIndex = args.jobIndex;
-			});
-
-
+		size_t num_materials = materialComponents.size();
+		size_t num_renderables = renderableComponents.size();
+		size_t num_sprites = spriteComponents.size();
+		size_t num_spriteFonts = spriteFontComponents.size();
+		
 		device = graphics::GetDevice();
 		uint32_t pingpong_buffer_index = device->GetBufferIndex();
 		// GPU Setting-up for Update IF necessary
@@ -862,27 +778,7 @@ namespace vz
 		{
 			jobsystem::Wait(ctx); // dependencies
 			// Scan mesh subset counts and skinning data sizes to allocate GPU geometry data:
-			geometryAllocator.store(0u);
-			jobsystem::Dispatch(ctx, (uint32_t)num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-				GGeometryComponent* geometry = geometryComponents[args.jobIndex];
-				geometry->geometryOffset = geometryAllocator.fetch_add((uint32_t)geometry->GetNumParts());
-				});
-
-			// Scan renderable's materials 
-			instanceResLookupAllocator.store(0u);
-			jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-				GRenderableComponent* renderable = renderableComponents[args.jobIndex];
-				assert(renderable->IsRenderable());
-				if (renderable->GetRenderableType() == RenderableComponent::VOLUME_RENDERABLE)
-				{
-					renderable->resLookupIndex = instanceResLookupAllocator.fetch_add(1);
-				}
-				else
-				{
-					size_t num_parts = compfactory::GetGeometryComponent(renderable->GetGeometry())->GetNumParts();
-					renderable->resLookupIndex = instanceResLookupAllocator.fetch_add((uint32_t)num_parts);
-				}
-				});
+			// TODO
 
 			// initialize ShaderRenderable 
 			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
@@ -899,7 +795,7 @@ namespace vz
 		jobsystem::Wait(ctx); // dependencies
 
 		// GPU subset count allocation is ready at this point:
-		geometryArraySize = geometryAllocator.load();
+		geometryArraySize = scene_->GetGeometryPrimitivesAllocatorSize();
 		if (geometryUploadBuffer[0].desc.size < (geometryArraySize * sizeof(ShaderGeometry)))
 		{
 			GPUBufferDesc desc;
@@ -928,7 +824,7 @@ namespace vz
 		geometryArrayMapped = (ShaderGeometry*)geometryUploadBuffer[pingpong_buffer_index].mapped_data;
 
 		// GPU instance-mapping material count allocation is ready at this point:
-		instanceResLookupSize = instanceResLookupAllocator.load();
+		instanceResLookupSize = scene_->GetRenderableResLookupAllocatorSize();
 		if (instanceResLookupUploadBuffer[0].desc.size < (instanceResLookupSize * sizeof(uint)))
 		{
 			GPUBufferDesc desc;
@@ -956,7 +852,7 @@ namespace vz
 		}
 		instanceResLookupMapped = (ShaderInstanceResLookup*)instanceResLookupUploadBuffer[pingpong_buffer_index].mapped_data;
 
-		RunPrimtiveUpdateSystem(ctx);
+		RunGeometryUpdateSystem(ctx);
 		RunMaterialUpdateSystem(ctx);
 
 		jobsystem::Wait(ctx); // dependencies

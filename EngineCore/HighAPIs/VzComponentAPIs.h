@@ -126,7 +126,7 @@ namespace vzm
 			auto it = __params.find(key);
 			if (it == __params.end()) return init_v;
             if (it->second.type() != typeid(std::string)) return init_v;
-			return std::any_cast<const std::string&>(it->second);;
+			return std::any_cast<const std::string&>(it->second);
 		}
         void RemoveParam(const ID& key) {
             auto it = __params.find(key);

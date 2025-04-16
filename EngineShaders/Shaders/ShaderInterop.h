@@ -845,7 +845,7 @@ struct WetmapPush
 };
 struct MeshPushConstants
 {
-	uint geometryIndex;
+	uint geometryIndex;	// this is for geometry offset to access the bindless geometry buffer (primitives)
 	uint materialIndex;
 	int instances;
 	uint instance_offset;

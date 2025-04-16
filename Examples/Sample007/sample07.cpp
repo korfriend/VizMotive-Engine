@@ -466,6 +466,7 @@ int main(int, char**)
 			ImGui::End();
 			
 			ImGui::Begin("Curved Slicer Viewer");
+			if (0)
 			{
 				static ImVec2 canvas_size_prev = ImVec2(0, 0);
 				ImVec2 canvas_size = ImGui::GetContentRegionAvail();
