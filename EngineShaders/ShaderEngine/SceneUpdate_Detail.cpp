@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "RenderPath3D_Detail.h"
+#include "Font.h"
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
@@ -623,6 +624,8 @@ namespace vz
 	bool GSceneDetails::Update(const float dt)
 	{
 		renderableShapes.Clear();
+
+		font::UpdateAtlas();
 
 		lightComponents = scene_->GetLightComponents();
 		geometryComponents = scene_->GetGeometryComponents();

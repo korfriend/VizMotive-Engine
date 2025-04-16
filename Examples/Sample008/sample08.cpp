@@ -163,10 +163,10 @@ int main(int, char **)
 		actor_sprite->SetSpriteScale({ 20.f, 20.f });
 		scene->AppendChild(actor_sprite);
 
-		//vzm::VzActorSpriteFont* actor_font = vzm::NewActorSpriteFont("my sprite font");
-		//actor_font->SetText("MY TEST SPRITE");
-		//actor_font->SetFontSize(20);
-		//scene->AppendChild(actor_font);
+		vzm::VzActorSpriteFont* actor_font = vzm::NewActorSpriteFont("my sprite font");
+		actor_font->SetText("ACTIVATE PROFILER!");
+		actor_font->SetFontScale(0.2);
+		scene->AppendChild(actor_font);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 10, 10, 10 });
@@ -325,10 +325,15 @@ int main(int, char **)
 				{
 					vzm::ReloadShader();
 				}
-				static bool face_camera = false;
+				static bool face_camera = false, font_face_camera = false;
 				if (ImGui::Checkbox("Face Camera", &face_camera))
 				{
 					actor_sprite->EnableCameraFacing(face_camera);
+				}
+				if (ImGui::Checkbox("Font Face Camera", &font_face_camera))
+				{
+					vzm::VzActorSpriteFont* actor_font = (vzm::VzActorSpriteFont*)vzm::GetFirstComponentByName("my sprite font");
+					actor_font->EnableCameraFacing(font_face_camera);
 				}
 				if (ImGui::Button("Export File"))
 				{
@@ -367,6 +372,9 @@ int main(int, char **)
 					ImGui::Text(performance_info.c_str());
 					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
+
+					vzm::VzActorSpriteFont* actor_font = (vzm::VzActorSpriteFont*)vzm::GetFirstComponentByName("my sprite font");
+					actor_font->SetText(performance_info);
 				}
 			}
 			ImGui::End();
