@@ -486,6 +486,27 @@ namespace vz::renderer
 				params.color.fromFloat4(font_sprite->GetColor());
 
 				// params TODO attributes setting
+				//font_sprite->GetFontStyle(); // params.style
+				params.size = font_sprite->GetSize();
+				XMFLOAT2 spacing = font_sprite->GetSpacing();
+				params.spacingX = spacing.x;
+				params.spacingY = spacing.y;
+				params.h_align = font_sprite->GetHorizonAlign();
+				params.v_align = font_sprite->GetVerticalAlign();
+				params.color.fromFloat4(font_sprite->GetColor());
+				params.shadowColor.fromFloat4(font_sprite->GetShadowColor());
+				params.h_wrap = font_sprite->GetWrap();
+				params.softness = font_sprite->GetSoftness();
+				params.bolden = font_sprite->GetBolden();
+				params.shadow_softness = font_sprite->GetShadowSoftness();
+				params.shadow_bolden = font_sprite->GetShadowBolden();
+				XMFLOAT2 shadow_offset = font_sprite->GetShadowOffset();
+				params.shadow_offset_x = shadow_offset.x;
+				params.shadow_offset_y = shadow_offset.y;
+				params.hdr_scaling = font_sprite->GetHdrScale();
+				params.intensity = font_sprite->GetIntensity();
+				params.shadow_intensity = font_sprite->GetShadowIntensity();
+				params.cursor = font_sprite->GetCursor();
 
 				if (font_sprite->IsCameraScaling())
 				{
@@ -504,7 +525,7 @@ namespace vz::renderer
 				}
 
 				params.customProjection = &M;
-				vz::font::Draw(font_sprite->GetText().c_str(), font_sprite->GetCurrentTextLength(), params, cmd);
+ 				vz::font::Draw(font_sprite->GetText().c_str(), font_sprite->GetCurrentTextLength(), params, cmd);
 			}
 			break;
 			}
@@ -1603,6 +1624,11 @@ namespace vz::renderer
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderDataAsync(viewMain, frameCB, cmd);
 
+			if (isWetmapRefreshEnabled)
+			{
+				RefreshWetmaps(viewMain, cmd);
+			}
+
 			// UpdateRaytracingAccelerationStructures
 			// ComputeSkyAtmosphere
 			// SurfelGI
@@ -2267,15 +2293,8 @@ namespace vz::renderer
 			
 		});
 
-		if (isWetmapRefreshEnabled)
-		{
-			CommandList wetmap_cmd = device->BeginCommandList(QUEUE_COMPUTE);
-			device->WaitCommandList(wetmap_cmd, cmd); // wait for transparents, it will be scheduled with late frame (GUI, etc)
-			// Note: GPU processing of this compute task can overlap with beginning of the next frame because no one is waiting for it
-			jobsystem::Execute(ctx, [this, wetmap_cmd](jobsystem::JobArgs args) {
-				RefreshWetmaps(viewMain, wetmap_cmd);
-				});
-		}
+		// TODO : RenderToTexture
+		// RenderCameraComponents(ctx);
 
 		cmd = device->BeginCommandList();
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
