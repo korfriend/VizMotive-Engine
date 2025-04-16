@@ -556,6 +556,11 @@ namespace vzm
 		GET_SPRITEFONT_COMP(font, );
 		font->SetSize(size);
 	}
+	void VzActorSpriteFont::SetFontScale(const float scale)
+	{
+		GET_SPRITEFONT_COMP(font, );
+		font->SetScale(scale);
+	}
 	void VzActorSpriteFont::SetSpacing(const vfloat2& spacing)
 	{
 		GET_SPRITEFONT_COMP(font, );

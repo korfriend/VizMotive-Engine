@@ -83,7 +83,7 @@ namespace vz::font
 
 		static thread_local Canvas canvas;
 
-		static Texture texture;
+		static graphics::Texture texture;
 
 		struct FontStyle
 		{
@@ -391,9 +391,19 @@ namespace vz::font
 		isInitialized = true;
 	}
 
+	void InvalidateAtlas()
+	{
+		texture = {};
+		glyph_lookup.clear();
+		rect_lookup.clear();
+		bitmap_lookup.clear();
+	}
+
 	void Deinitialize()
 	{
 		jobsystem::WaitAllJobs();
+
+		InvalidateAtlas();
 
 		for (int i = 0; i < DEPTH_TEST_MODE_COUNT; i++)
 		{
@@ -409,14 +419,6 @@ namespace vz::font
 		isInitialized = false;
 	}
 
-
-	void InvalidateAtlas()
-	{
-		texture = {};
-		glyph_lookup.clear();
-		rect_lookup.clear();
-		bitmap_lookup.clear();
-	}
 	void UpdateAtlas(float upscaling)
 	{
 		std::scoped_lock lck(locker);

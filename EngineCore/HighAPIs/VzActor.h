@@ -154,7 +154,8 @@ namespace vzm
 		bool IsFlipVertically() const;
 
 		void SetFontStyle(const std::string& fontStyle);
-		void SetFontSize(const int size);
+		void SetFontSize(const int size);  // ATLAS Line Height
+		void SetFontScale(const float scale);
 		void SetSpacing(const vfloat2& spacing);
 		void SetHorizonAlign(const Alignment horizonAlign);
 		void SetVerticalAlign(const Alignment verticalAlign);
