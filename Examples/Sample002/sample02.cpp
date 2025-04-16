@@ -189,7 +189,7 @@ int main(int, char **)
 
 
 		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
-
+		
 			vzm::VzGeometry* geometry_stl = vzm::NewGeometry("my stl");
 			geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
 			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
@@ -198,7 +198,7 @@ int main(int, char **)
 			vzm::VzActorStaticMesh* actor_test3 = vzm::NewActorStaticMesh("my actor3", geometry_stl, material_stl);
 			actor_test3->SetScale({ 0.1f, 0.1f, 0.1f });
 			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
-
+		
 			});
 
 

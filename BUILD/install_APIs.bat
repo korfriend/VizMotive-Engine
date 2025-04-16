@@ -81,6 +81,26 @@ if exist "..\bin\!folder!\" (
         )
     )
         
+    set "sourceDir=..\dxc\windows"
+    set "targetParentDir=..\bin"
+    if not exist "%sourceDir%" (
+        echo Source directory does not exist: %sourceDir%
+        goto :eof
+    )
+    if not exist "%targetParentDir%" (
+        echo Target parent directory does not exist: %targetParentDir%
+        goto :eof
+    )
+    for /d %%d in ("%targetParentDir%\*") do (
+        set "targetDir=%%d"
+        echo Copying files to !targetDir!
+    
+        for %%f in ("%sourceDir%\*.*") do (
+            echo   Copying "%%f" to "!targetDir!"
+            xcopy "%%f" "!targetDir!\" /D /Y /I
+        )
+    )
+
     REM ----------------------------
     REM [3] Copy dxc.exe
     if exist "..\bin\!folder!\dxc.exe" (

@@ -60,6 +60,29 @@ namespace vz
 		//std::vector<geometrics::AABB> aabbProbes_;
 		//std::vector<geometrics::AABB> aabbDecals_;
 
+		std::atomic<uint32_t> geometryAllocator{ 0 }; // for Geometry::Primitive
+		std::atomic<uint32_t> instanceResLookupAllocator{ 0 };
+
+		// cache for linearized components arrary to avoid compfactory::Get...Component
+		std::vector<GRenderableComponent*> renderableComponents;
+		std::vector<GSpriteComponent*> spriteComponents;
+		std::vector<GSpriteFontComponent*> spritefontComponents;
+		std::vector<GGeometryComponent*> geometryComponents;
+		std::vector<GMaterialComponent*> materialComponents;
+		std::vector<GCameraComponent*> cameraComponents;
+		std::vector<GLightComponent*> lightComponents;
+
+		const std::vector<GRenderableComponent*>& GetRenderableComponents() const override { return renderableComponents; }
+		const std::vector<GSpriteComponent*>& GetSpriteComponents() const override { return spriteComponents; }
+		const std::vector<GSpriteFontComponent*>& GetSpriteFontComponents() const override { return spritefontComponents; }
+		const std::vector<GGeometryComponent*>& GetGeometryComponents() const override { return geometryComponents; }
+		const std::vector<GMaterialComponent*>& GetMaterialComponents() const override { return materialComponents; }
+		const std::vector<GCameraComponent*>& GetCameraComponents() const override { return cameraComponents; }
+		const std::vector<GLightComponent*>& GetLightComponents() const override { return lightComponents; }
+
+		const uint32_t GetGeometryPrimitivesAllocatorSize() const override { return geometryAllocator.load(); }
+		const uint32_t GetRenderableResLookupAllocatorSize() const override { return instanceResLookupAllocator.load(); }
+
 		// Separate stream of world matrices:
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
@@ -84,7 +107,6 @@ namespace vz
 			auto updateLocal = [&](std::vector<Entity>& transformEntities) {
 				jobsystem::Dispatch(ctx, (uint32_t)transformEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-					//TransformComponent* transform = transforms[args.jobIndex];
 					TransformComponent* transform = compfactory::GetTransformComponent(transformEntities[args.jobIndex]);
 					transform->UpdateMatrix();
 
@@ -111,140 +133,147 @@ namespace vz
 			matrixRenderables.resize(num_renderables);
 			matrixRenderablesPrev.resize(num_renderables);
 			aabbRenderables.resize(num_renderables);
+			renderableComponents.resize(num_renderables);
 
 			counterRenderable_Mesh.store(0);
 			counterRenderable_Volume.store(0);
 			counterRenderable_GSplat.store(0);
 
+			instanceResLookupAllocator.store(0u);
 			jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 				Entity entity = renderables_[args.jobIndex];
 
 				TransformComponent* transform = compfactory::GetTransformComponent(entity);
-				if (transform == nullptr)
-					return;
+				assert(transform);
 				transform->UpdateWorldMatrix();
-				if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
+
+				GRenderableComponent* renderable = (GRenderableComponent*)compfactory::GetRenderableComponent(entity);
+				assert(renderable);
+				renderableComponents[args.jobIndex] = renderable;
+				renderable->renderableIndex = args.jobIndex;
+				renderable->transform = transform;
+				Entity geometry_entity = renderable->GetGeometry();
+				renderable->geometry = geometry_entity == INVALID_ENTITY ? nullptr : (GGeometryComponent*)compfactory::GetGeometryComponent(renderable->GetGeometry());
+				std::vector<Entity> material_entities = renderable->GetMaterials();
+				size_t num_materials = material_entities.size();
+				renderable->materials.resize(num_materials);
+				for (size_t i = 0; i < num_materials; ++i)
+				{
+					renderable->materials[i] = (GMaterialComponent*)compfactory::GetMaterialComponent(material_entities[i]);
+				}
+				
+				if (renderable->IsDirty())
+				{
+					renderable->Update();	// AABB
+				}
+				if (TimeDurationCount(renderable->GetTimeStamp(), recentUpdateTime_) > 0)
 				{
 					isContentChanged_ = true;
 				}
 
-				RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
-				if (renderable)
+				renderable->resLookupIndex = ~0u;
+				if (!renderable->IsRenderable())
 				{
-					if (renderable->IsDirty())
+					return;
+				}
+				renderable->resLookupIndex = instanceResLookupAllocator.fetch_add(num_materials);
+
+				AABB aabb = renderable->GetAABB();
+				aabbRenderables[args.jobIndex] = aabb;
+				matrixRenderablesPrev[args.jobIndex] = matrixRenderables[args.jobIndex];
+				matrixRenderables[args.jobIndex] = transform->GetWorldMatrix();
+
+				{
+					AABB* shared_bounds = (AABB*)args.sharedmemory;
+					if (args.isFirstJobInGroup)
 					{
-						renderable->Update();	// AABB
+						*shared_bounds = aabb;
+					}
+					else
+					{
+						*shared_bounds = AABB::Merge(*shared_bounds, aabb);
+					}
+					if (args.isLastJobInGroup)
+					{
+						parallelBounds[args.groupID] = *shared_bounds;
+					}
+				}
+
+				RenderableType renderable_type = renderable->GetRenderableType();
+				if (renderable_type == RenderableType::VOLUME_RENDERABLE)
+				{
+					MaterialComponent* material = compfactory::GetMaterialComponent(renderable->GetMaterial(0));
+
+					GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
+						material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
+					assert(volume);
+					assert(volume->IsValidVolume());
+
+					if (!volume->GetBlockTexture().IsValid())
+					{
+						volume->UpdateVolumeMinMaxBlocks({ 8, 8, 8 });
 					}
 
-					if (!renderable->IsRenderable())
+					TimeStamp volume_timeStamp = volume->GetTimeStamp();
+					for (size_t i = 0, n = SCU32(MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT); i < n; ++i)
 					{
-						return;
-					}
-
-					AABB aabb = renderable->GetAABB();
-					aabbRenderables[args.jobIndex] = aabb;
-					matrixRenderablesPrev[args.jobIndex] = matrixRenderables[args.jobIndex];
-					matrixRenderables[args.jobIndex] = transform->GetWorldMatrix();
-
-					MaterialComponent* material = nullptr;
-					{
-						material = compfactory::GetMaterialComponent(renderable->GetMaterial(0));
-						assert(material);
-						if (TimeDurationCount(material->GetTimeStamp(), recentUpdateTime_) > 0)
+						VUID vuid = material->GetLookupTableVUID(static_cast<MaterialComponent::LookupTableSlot>(i));
+						if (vuid == INVALID_VUID)
+							continue;
+						TextureComponent* otf = compfactory::GetTextureComponentByVUID(vuid);
+						if (otf == nullptr)
 						{
-							isContentChanged_ = true;
+							continue;
 						}
-
-						AABB* shared_bounds = (AABB*)args.sharedmemory;
-						if (args.isFirstJobInGroup)
+						Entity entity_otf = otf->GetEntity();
+						XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
+						if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
+							|| volume_timeStamp < otf->GetTimeStamp())
 						{
-							*shared_bounds = aabb;
+							volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
 						}
-						else
-						{
-							*shared_bounds = AABB::Merge(*shared_bounds, aabb);
-						}
-						if (args.isLastJobInGroup)
-						{
-							parallelBounds[args.groupID] = *shared_bounds;
-						}
-					}
-
-					RenderableType renderable_type = renderable->GetRenderableType();
-					if (renderable_type == RenderableType::VOLUME_RENDERABLE)
-					{
-						MaterialComponent* material = compfactory::GetMaterialComponent(renderable->GetMaterial(0));
-
-						GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
-							material->GetVolumeTextureVUID(MaterialComponent::VolumeTextureSlot::VOLUME_MAIN_MAP));
-						assert(volume);
-						assert(volume->IsValidVolume());
-
-						if (!volume->GetBlockTexture().IsValid())
-						{
-							volume->UpdateVolumeMinMaxBlocks({ 8, 8, 8 });
-						}
-
-						TimeStamp volume_timeStamp = volume->GetTimeStamp();
-						for (size_t i = 0, n = SCU32(MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT); i < n; ++i)
-						{
-							VUID vuid = material->GetLookupTableVUID(static_cast<MaterialComponent::LookupTableSlot>(i));
-							if (vuid == INVALID_VUID)
-								continue;
-							TextureComponent* otf = compfactory::GetTextureComponentByVUID(vuid);
-							if (otf == nullptr)
-							{
-								continue;
-							}
-							Entity entity_otf = otf->GetEntity();
-							XMFLOAT2 tableValidBeginEndRatioX = otf->GetTableValidBeginEndRatioX();
-							if (!volume->GetVisibleBitmaskBuffer(entity_otf).IsValid()
-								|| volume_timeStamp < otf->GetTimeStamp())
-							{
-								volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
-							}
-							if (TimeDurationCount(otf->GetTimeStamp(), recentUpdateTime_) > 0)
-							{
-								isContentChanged_ = true;
-							}
-						}
-
-						if (TimeDurationCount(volume->GetTimeStamp(), recentUpdateTime_) > 0)
+						// will be checked by RunMaterialUpdateSystem
+						if (TimeDurationCount(otf->GetTimeStamp(), recentUpdateTime_) > 0)
 						{
 							isContentChanged_ = true;
 						}
 					}
 
-					switch (renderable_type)
-					{
-					case RenderableType::MESH_RENDERABLE:
-						counterRenderable_Mesh.fetch_add(1, std::memory_order_relaxed); break;
-					case RenderableType::VOLUME_RENDERABLE:
-						counterRenderable_Volume.fetch_add(1, std::memory_order_relaxed); break;
-					case RenderableType::GSPLAT_RENDERABLE:
-						counterRenderable_GSplat.fetch_add(1, std::memory_order_relaxed); break;
-					default:
-						vzlog_assert(0, "MUST BE RENDERABLE!"); return;
-					}
-
-					if (TimeDurationCount(renderable->GetTimeStamp(), recentUpdateTime_) > 0)
+					// will be checked by RunMaterialUpdateSystem
+					if (TimeDurationCount(volume->GetTimeStamp(), recentUpdateTime_) > 0)
 					{
 						isContentChanged_ = true;
 					}
 				}
 
+				switch (renderable_type)
+				{
+				case RenderableType::MESH_RENDERABLE:
+					counterRenderable_Mesh.fetch_add(1, std::memory_order_relaxed); break;
+				case RenderableType::VOLUME_RENDERABLE:
+					counterRenderable_Volume.fetch_add(1, std::memory_order_relaxed); break;
+				case RenderableType::GSPLAT_RENDERABLE:
+					counterRenderable_GSplat.fetch_add(1, std::memory_order_relaxed); break;
+				default:
+					vzlog_assert(0, "MUST BE RENDERABLE!"); return;
+				}
+
+
 				}, sizeof(geometrics::AABB));
 		}
 		void RunSpriteUpdateSystem(jobsystem::context& ctx)
 		{
-			size_t num_sprites = sprites_.size();
-			jobsystem::Dispatch(ctx, (uint32_t)num_sprites, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			uint32_t num_sprites = (uint32_t)sprites_.size();
+			spriteComponents.resize(num_sprites);
+
+			jobsystem::Dispatch(ctx, num_sprites, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 				Entity entity = sprites_[args.jobIndex];
 				GSpriteComponent* sprite = (GSpriteComponent*)compfactory::GetSpriteComponent(entity);
+				sprite->spriteIndex = args.jobIndex;
+				spriteComponents[args.jobIndex] = sprite;
 				TransformComponent* transform = compfactory::GetTransformComponent(entity);
-				if (transform == nullptr)
-					return;
+				assert(transform);
 				transform->UpdateWorldMatrix();
 
 				sprite->W = XMLoadFloat4x4(&transform->GetWorldMatrix());
@@ -265,17 +294,28 @@ namespace vz
 					isContentChanged_ = true;
 				}
 
+				sprite->texture = (GTextureComponent*)compfactory::GetTextureComponentByVUID(sprite->GetSpriteTextureVUID());
+				if (sprite->texture)
+				{
+					if (TimeDurationCount(sprite->texture->GetTimeStamp(), recentUpdateTime_) > 0)
+					{
+						isContentChanged_ = true;
+					}
+				}
+
 				});
 		}
 		void RunSpriteFontUpdateSystem(jobsystem::context& ctx)
 		{
-			size_t num_spritefonts = spriteFonts_.size();
-			jobsystem::Dispatch(ctx, (uint32_t)num_spritefonts, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			uint32_t num_fonts = (uint32_t)spriteFonts_.size();
+			spritefontComponents.resize(num_fonts);
+			jobsystem::Dispatch(ctx, num_fonts, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 				Entity entity = spriteFonts_[args.jobIndex];
 				GSpriteFontComponent* font = (GSpriteFontComponent*)compfactory::GetSpriteFontComponent(entity);
+				font->spritefontIndex = args.jobIndex;
+				spritefontComponents[args.jobIndex] = font;
 				TransformComponent* transform = compfactory::GetTransformComponent(entity);
-				if (transform == nullptr)
-					return;
+				assert(transform);
 				transform->UpdateWorldMatrix();
 
 				font->W = XMLoadFloat4x4(&transform->GetWorldMatrix());
@@ -300,42 +340,113 @@ namespace vz
 		}
 		void RunLightUpdateSystem(jobsystem::context& ctx)
 		{
-			jobsystem::Dispatch(ctx, (uint32_t)lights_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			uint32_t num_lights = (uint32_t)lights_.size();
+			lightComponents.resize(num_lights);
+			jobsystem::Dispatch(ctx, num_lights, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 				Entity entity = lights_[args.jobIndex];
-
 				TransformComponent* transform = compfactory::GetTransformComponent(entity);
-				if (transform == nullptr)
-					return;
+				assert(transform);
 				transform->UpdateWorldMatrix();
 
-				LightComponent* light = compfactory::GetLightComponent(entity);
-				if (light)
-				{
-					light->Update();	// AABB
+				GLightComponent* light = (GLightComponent*)compfactory::GetLightComponent(entity);
+				assert(light);
+				lightComponents[args.jobIndex] = light;
+				light->lightIndex = args.jobIndex;
+				light->Update();	// AABB
 
-					if (TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0)
-					{
-						isContentChanged_ = true;
-					}
+				if (TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
 				}
 
 				});
 		}
 		void RunGeometryUpdateSystem(jobsystem::context& ctx)
 		{
-			jobsystem::Dispatch(ctx, (uint32_t)geometries_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			uint32_t num_geometries = (uint32_t)geometries_.size();
+			geometryComponents.resize(num_geometries);
+			geometryAllocator.store(0u);
+			jobsystem::Dispatch(ctx, num_geometries, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 				Entity entity = geometries_[args.jobIndex];
-
 				GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(entity);
-				assert(geometry != nullptr);
+				assert(geometry);
+				geometryComponents[args.jobIndex] = geometry;
+				geometry->geometryIndex = args.jobIndex;
+				geometry->geometryOffset = geometryAllocator.fetch_add((uint32_t)geometry->GetNumParts());
 
 				if (TimeDurationCount(geometry->GetTimeStamp(), recentUpdateTime_) > 0
 					|| TimeDurationCount(geometry->timeStampGPUBVHUpdate, recentUpdateTime_) > 0)
 				{
 					isContentChanged_ = true;
 				}
+			});
+		}
+		void RunMaterialUpdateSystem(jobsystem::context& ctx)
+		{
+			uint32_t num_materials = (uint32_t)materials_.size();
+			materialComponents.resize(num_materials);
+
+			jobsystem::Dispatch(ctx, num_materials, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+				Entity entity = materials_[args.jobIndex];
+
+				GMaterialComponent* material = (GMaterialComponent*)compfactory::GetMaterialComponent(entity);
+				assert(material);
+				materialComponents[args.jobIndex] = material;
+				material->materialIndex = args.jobIndex;
+
+				if (TimeDurationCount(material->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
+				}
+
+				for (uint32_t i = 0, n = SCU32(MaterialComponent::TextureSlot::TEXTURESLOT_COUNT); i < n; ++i)
+				{
+					GTextureComponent* texture = (GTextureComponent*)compfactory::GetTextureComponentByVUID(
+						material->GetTextureVUID(static_cast<MaterialComponent::TextureSlot>(i))
+					);
+					material->textures[i] = texture;
+					if (texture)
+					{
+						if (TimeDurationCount(texture->GetTimeStamp(), recentUpdateTime_) > 0)
+						{
+							isContentChanged_ = true;
+						}
+					}
+				}
+				for (uint32_t i = 0, n = SCU32(MaterialComponent::VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT); i < n; ++i)
+				{
+					GVolumeComponent* volume = (GVolumeComponent*)compfactory::GetVolumeComponentByVUID(
+						material->GetVolumeTextureVUID(static_cast<MaterialComponent::VolumeTextureSlot>(i))
+					);
+					material->volumeTextures[i] = volume;
+					if (volume)
+					{
+						if (TimeDurationCount(volume->GetTimeStamp(), recentUpdateTime_) > 0)
+						{
+							isContentChanged_ = true;
+						}
+					}
+				}
+				for (uint32_t i = 0, n = SCU32(MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT); i < n; ++i)
+				{
+					GTextureComponent* texture = (GTextureComponent*)compfactory::GetTextureComponentByVUID(
+						material->GetLookupTableVUID(static_cast<MaterialComponent::LookupTableSlot>(i))
+					);
+					material->textureLookups[i] = texture;
+					if (texture)
+					{
+						if (TimeDurationCount(texture->GetTimeStamp(), recentUpdateTime_) > 0)
+						{
+							isContentChanged_ = true;
+						}
+					}
+				}
+				material->renderableVolumeMapperRenderable = (GRenderableComponent*)compfactory::GetRenderableComponentByVUID(
+					material->GetVolumeMapperTargetRenderableVUID()
+				);
 				});
 		}
 
@@ -390,6 +501,7 @@ namespace vz
 					if ((!geometry->HasBVH() || is_dirty_bvh) && !geometry->IsBusyForBVH())
 					{
 						geometry->UpdateBVH(true);
+						isContentChanged_ = true;
 					}
 					});
 			}
@@ -423,6 +535,7 @@ namespace vz
 			RunSpriteFontUpdateSystem(ctx);
 			RunLightUpdateSystem(ctx);
 			RunGeometryUpdateSystem(ctx);
+			RunMaterialUpdateSystem(ctx);
 			jobsystem::Wait(ctx); // dependencies
 
 			// Merge parallel bounds computation (depends on object update system):
@@ -437,6 +550,9 @@ namespace vz
 			// GPU updates
 			// note: since tasks in ctx has been completed
 			//		there is no need to pass ctx as an argument.
+
+
+			// ?? only when isContentChanged_?
 			handlerScene->Update(dt);
 
 			if (!isContentChanged_)

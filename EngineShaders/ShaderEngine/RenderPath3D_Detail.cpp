@@ -1425,7 +1425,7 @@ namespace vz::renderer
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[view.visibleRenderables_Mesh[i]];
 			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
 
-			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
+			GGeometryComponent& geometry = *renderable.geometry;
 			if (!geometry.HasRenderData())
 			{
 				continue;
@@ -1722,15 +1722,15 @@ namespace vz::renderer
 
 			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
 
-			GGeometryComponent& geometry = *scene_Gdetails->geometryComponents[renderable.geometryIndex];
+			GGeometryComponent& geometry = *renderable.geometry;
 
 			std::vector<Entity> materials(renderable.GetNumParts());
-			assert(renderable.GetNumParts() == renderable.bufferEffects.size());
+			assert(geometry.GetNumParts() == renderable.bufferEffects.size());
 			renderable.GetMaterials(materials.data());
 			for (size_t part_index = 0, n = renderable.bufferEffects.size(); part_index < n; ++part_index)
 			{
 				GPrimEffectBuffers& prim_effect_buffers = renderable.bufferEffects[part_index];
-				GMaterialComponent& material = *scene_Gdetails->materialComponents[renderable.materialIndices[part_index]];
+				GMaterialComponent& material = *renderable.materials[part_index];
 				if (!material.IsWetmapEnabled() && prim_effect_buffers.wetmapBuffer.IsValid())
 					continue;
 				uint32_t vertex_count = uint32_t(prim_effect_buffers.wetmapBuffer.desc.size
@@ -1739,7 +1739,7 @@ namespace vz::renderer
 				if (push.wetmap < 0)
 					continue;
 
-				push.subsetIndex = part_index;;
+				push.subsetIndex = part_index;
 
 				device->PushConstants(&push, sizeof(push), cmd);
 				device->Dispatch((vertex_count + 63u) / 64u, 1, 1, cmd);
