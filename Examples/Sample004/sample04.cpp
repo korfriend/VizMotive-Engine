@@ -174,7 +174,7 @@ int main(int, char **)
 			splat_material->SetDoubleSided(true);
 			splat_material->SetGaussianSplattingEnabled(true);
 		
-			vzm::VzActorStaticMesh* splat_actor = vzm::NewActorStaticMesh("my splat actor", geometry_splat, splat_material);
+			vzm::VzActorGSplat* splat_actor = vzm::NewActorGSplat("my splat actor", geometry_splat->GetVID(), splat_material->GetVID());
 			splat_actor->SetScale({ 1.f, 1.f, 1.f });
 			scene->AppendChild(splat_actor);
 

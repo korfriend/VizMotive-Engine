@@ -378,6 +378,7 @@ namespace vz
 
 			archive >> flags_;
 			archive >> u8_data; renderableType_ = static_cast<RenderableType>(u8_data);
+			archive >> u8_data; renderableReservedType_ = static_cast<RenderableType>(u8_data);
 			archive >> visibleLayerMask_;
 			archive >> vuidGeometry_;
 			archive >> fadeDistance_;
@@ -409,6 +410,7 @@ namespace vz
 
 			archive << flags_;
 			archive << static_cast<uint8_t>(renderableType_);
+			archive << static_cast<uint8_t>(renderableReservedType_);
 			archive << visibleLayerMask_;
 			archive << vuidGeometry_;
 			archive << fadeDistance_;

@@ -170,7 +170,7 @@ int main(int, char**)
 		texture->CreateTextureFromImageFile("../Assets/testimage_2ns.jpg");
 		material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
-		vzm::VzActorStaticMesh* actor_test = vzm::NewActorStaticMesh("my actor", geometry_test, material_test);
+		vzm::VzActorStaticMesh* actor_test = vzm::NewActorStaticMesh("my actor", geometry_test->GetVID(), material_test->GetVID());
 		scene->AppendChild(actor_test);
 		actor_test->SetScale({ 2.f, 2.f, 2.f });
 		actor_test->SetPosition({ 0, 0, -1.f });
@@ -217,7 +217,7 @@ int main(int, char**)
 		otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
 		otf_volume->UpdateLookup(otf_array, 180, 255);
 
-		vzm::VzActorStaticMesh* volume_actor = vzm::NewActorStaticMesh("my volume actor", nullptr, material_volume);
+		vzm::VzActorVolume* volume_actor = vzm::NewActorVolume("my volume actor", material_volume->GetVID());
 		//scene->AppendChild(volume_actor);
 		actor_test->AppendChild(volume_actor);
 
@@ -359,7 +359,7 @@ int main(int, char**)
 					VzBaseComp* dst_actor = vzm::GetFirstComponentByName("my actor");
 					if (dst_actor)
 						vzm::RemoveComponent(dst_actor);
-					VzActorStaticMesh* vol_actor = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my volume actor");
+					VzActorVolume* vol_actor = (VzActorVolume*)vzm::GetFirstComponentByName("my volume actor");
 					vzlog("ID : %d", vol_actor->GetParent());
 				}
 
@@ -368,7 +368,7 @@ int main(int, char**)
 					VzBaseComp* dst_actor = vzm::GetFirstComponentByName("my actor");
 					if (dst_actor)
 						vzm::RemoveComponent(dst_actor, true);
-					VzActorStaticMesh* vol_actor = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my volume actor");
+					VzActorVolume* vol_actor = (VzActorVolume*)vzm::GetFirstComponentByName("my volume actor");
 					if (vol_actor)
 					{
 						vzlog("ID : %d", vol_actor->GetParent());

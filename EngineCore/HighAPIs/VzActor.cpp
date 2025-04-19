@@ -216,11 +216,6 @@ namespace vzm
 		return detected;
 	}
 
-	void VzActorStaticMesh::DebugRender(const std::string& debugScript)
-	{
-
-	}
-
 	std::vector<MaterialVID> VzActorStaticMesh::GetMaterials() const
 	{
 		GET_RENDERABLE_COMP(renderable, std::vector<MaterialVID>());
@@ -256,6 +251,69 @@ namespace vzm
 	{
 		assert(0 && "TODO");
 		return false;
+	}
+}
+
+namespace vzm
+{
+	void VzActorVolume::SetMaterial(const MaterialVID vid)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetMaterial(vid, 0);
+		UpdateTimeStamp();
+	}
+
+	MaterialVID VzActorVolume::CreateAndSetMaterial(const VolumeVID vidVolume, 
+		const VolumeVID vidVolumeSemantic, const VolumeVID vidVolumeSculpt, const TextureVID vidOTF, const TextureVID vidWindowing)
+	{
+		std::string actor_name = GetName();
+		VzMaterial* material = vzm::NewMaterial("Material for " + actor_name);
+
+		auto setterVolumeTexture = [&material](VolumeVID vid, VzMaterial::VolumeTextureSlot slot)
+			{
+				if (vid == 0llu)
+				{
+					return;
+				}
+				if (compfactory::ContainVolumeComponent(vid))
+				{
+					material->SetVolumeTexture(vid, slot);
+				}
+				else 
+				{
+					vzlog_error("Invalid Volume Texture: (%llu)", vid);
+				}
+			};
+		auto setterLookupTexture = [&material](VolumeVID vid, LookupTableSlot slot)
+			{
+				if (vid == 0llu)
+				{
+					return;
+				}
+				if (compfactory::ContainTextureComponent(vid))
+				{
+					material->SetLookupTable(vid, slot);
+				}
+				else
+				{
+					vzlog_error("Invalid Lookup Texture: (%llu)", vid);
+				}
+			};
+
+		setterVolumeTexture(vidVolume, VzMaterial::VolumeTextureSlot::VOLUME_DENSITYMAP);
+		setterVolumeTexture(vidVolumeSemantic, VzMaterial::VolumeTextureSlot::VOLUME_SEMANTICMAP);
+		setterVolumeTexture(vidVolumeSculpt, VzMaterial::VolumeTextureSlot::VOLUME_SCULPTMAP);
+
+		setterLookupTexture(vidOTF, LookupTableSlot::LOOKUP_OTF);
+		setterLookupTexture(vidWindowing, LookupTableSlot::LOOKUP_WINDOWING);
+
+		return material->GetVID();
+	}
+	
+	MaterialVID VzActorVolume::GetMaterial() const
+	{
+		GET_RENDERABLE_COMP(renderable, INVALID_VID);
+		return renderable->GetMaterial(0);
 	}
 }
 
@@ -515,17 +573,17 @@ namespace vzm
 		GET_SPRITEFONT_COMP(font, false);
 		return font->IsSDFRendering();
 	}
-	bool VzActorSpriteFont::IsHDR10OutputMapping() const
+	bool VzActorSpriteFont::IsHDR10OutputMappingEnabled() const
 	{
 		GET_SPRITEFONT_COMP(font, false);
 		return font->IsHDR10OutputMapping();
 	}
-	bool VzActorSpriteFont::IsLinearOutputMapping() const
+	bool VzActorSpriteFont::IsLinearOutputMappingEnabled() const
 	{
 		GET_SPRITEFONT_COMP(font, false);
 		return font->IsLinearOutputMapping();
 	}
-	bool VzActorSpriteFont::IsDepthTest() const
+	bool VzActorSpriteFont::IsDepthTestEnabled() const
 	{
 		GET_SPRITEFONT_COMP(font, false);
 		return font->IsDepthTest();
@@ -561,47 +619,47 @@ namespace vzm
 		GET_SPRITEFONT_COMP(font, );
 		font->SetScale(scale);
 	}
-	void VzActorSpriteFont::SetSpacing(const vfloat2& spacing)
+	void VzActorSpriteFont::SetFontSpacing(const vfloat2& spacing)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetSpacing(*(XMFLOAT2*)&spacing);
 	}
-	void VzActorSpriteFont::SetHorizonAlign(const VzActorSpriteFont::Alignment horizonAlign)
+	void VzActorSpriteFont::SetFontHorizonAlign(const VzActorSpriteFont::Alignment horizonAlign)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetHorizonAlign(static_cast<SpriteFontComponent::Alignment>(horizonAlign));
 	}
-	void VzActorSpriteFont::SetVerticalAlign(const VzActorSpriteFont::Alignment verticalAlign)
+	void VzActorSpriteFont::SetFontVerticalAlign(const VzActorSpriteFont::Alignment verticalAlign)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetVerticalAlign(static_cast<SpriteFontComponent::Alignment>(verticalAlign));
 	}
-	void VzActorSpriteFont::SetColor(const vfloat4& color)
+	void VzActorSpriteFont::SetFontColor(const vfloat4& color)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetColor(*(XMFLOAT4*)&color);
 	}
-	void VzActorSpriteFont::SetShadowColor(const vfloat4& shadowColor)
+	void VzActorSpriteFont::SetFontShadowColor(const vfloat4& shadowColor)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetShadowColor(*(XMFLOAT4*)&shadowColor);
 	}
-	void VzActorSpriteFont::SetWrap(const float wrap)
+	void VzActorSpriteFont::SetFontWrap(const float wrap)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetWrap(wrap);
 	}
-	void VzActorSpriteFont::SetSoftness(const float softness)
+	void VzActorSpriteFont::SetFontSoftness(const float softness)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetSoftness(softness);
 	}
-	void VzActorSpriteFont::SetBolden(const float bolden)
+	void VzActorSpriteFont::SetFontBolden(const float bolden)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetBolden(bolden);
 	}
-	void VzActorSpriteFont::SetShadowSoftness(const float shadowSoftness)
+	void VzActorSpriteFont::SetFontShadowSoftness(const float shadowSoftness)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetShadowSoftness(shadowSoftness);
@@ -611,24 +669,51 @@ namespace vzm
 		GET_SPRITEFONT_COMP(font, );
 		font->SetShadowBolden(shadowBolden);
 	}
-	void VzActorSpriteFont::SetShadowOffset(const vfloat2 shadowOffset)
+	void VzActorSpriteFont::SetFontShadowOffset(const vfloat2 shadowOffset)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetShadowOffset(*(XMFLOAT2*)&shadowOffset);
 	}
-	void VzActorSpriteFont::SetHdrScale(const float hdrScaling)
+	void VzActorSpriteFont::SetFontHdrScale(const float hdrScaling)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetHdrScale(hdrScaling);
 	}
-	void VzActorSpriteFont::SetIntensity(const float intensity)
+	void VzActorSpriteFont::SetFontIntensity(const float intensity)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetIntensity(intensity);
 	}
-	void VzActorSpriteFont::SetShadowIntensity(const float shadowIntensity)
+	void VzActorSpriteFont::SetFontShadowIntensity(const float shadowIntensity)
 	{
 		GET_SPRITEFONT_COMP(font, );
 		font->SetShadowIntensity(shadowIntensity);
+	}
+}
+
+namespace vzm
+{
+	void VzActorGSplat::SetGeometry(const GeometryVID vid)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetGeometry(vid);
+		UpdateTimeStamp();
+	}
+	void VzActorGSplat::SetMaterial(const MaterialVID vid)
+	{
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetMaterial(vid, 0);
+		UpdateTimeStamp();
+	}
+
+	GeometryVID VzActorGSplat::GetGeometry() const
+	{
+		GET_RENDERABLE_COMP(renderable, INVALID_VID);
+		return renderable->GetGeometry();
+	}
+	MaterialVID VzActorGSplat::GetMaterial() const
+	{
+		GET_RENDERABLE_COMP(renderable, INVALID_VID);
+		return renderable->GetMaterial(0);
 	}
 }

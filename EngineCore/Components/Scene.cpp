@@ -233,17 +233,6 @@ namespace vz
 						{
 							volume->UpdateVolumeVisibleBlocksBuffer(entity_otf);
 						}
-						// will be checked by RunMaterialUpdateSystem
-						if (TimeDurationCount(otf->GetTimeStamp(), recentUpdateTime_) > 0)
-						{
-							isContentChanged_ = true;
-						}
-					}
-
-					// will be checked by RunMaterialUpdateSystem
-					if (TimeDurationCount(volume->GetTimeStamp(), recentUpdateTime_) > 0)
-					{
-						isContentChanged_ = true;
 					}
 				}
 

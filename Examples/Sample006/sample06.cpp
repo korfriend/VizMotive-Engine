@@ -164,13 +164,13 @@ int main(int, char **)
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
 		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 5);
 		vzm::VzMaterial *material_test = vzm::NewMaterial("icosahedron's material");
-		vzm::VzActorStaticMesh *actor_test1 = vzm::NewActorStaticMesh("my actor1-IcosahedronGeometry", geometry_test, material_test);
+		vzm::VzActorStaticMesh *actor_test1 = vzm::NewActorStaticMesh("my actor1-IcosahedronGeometry", geometry_test->GetVID(), material_test->GetVID());
 		scene->AppendChild(actor_test1);
 
 		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
 		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 8.f, 3, 128, 16);
 		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
-		vzm::VzActorStaticMesh* actor_test2 = vzm::NewActorStaticMesh("my actor2-TorusKnot", geometry_test2, material_test2);
+		vzm::VzActorStaticMesh* actor_test2 = vzm::NewActorStaticMesh("my actor2-TorusKnot", geometry_test2->GetVID(), material_test2->GetVID());
 		scene->AppendChild(actor_test2);
 
 		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
@@ -185,7 +185,7 @@ int main(int, char **)
 		}
 		vzm::VzMaterial* material_canal = vzm::NewMaterial("my material canal");
 		material_canal->SetBaseColor({ 0.5, 0.5, 1, 1 });
-		vzm::VzActorStaticMesh* actor_canal = vzm::NewActorStaticMesh("my actor-canal", geometry_canal, material_canal);
+		vzm::VzActorStaticMesh* actor_canal = vzm::NewActorStaticMesh("my actor-canal", geometry_canal->GetVID(), material_canal->GetVID());
 		scene->AppendChild(actor_canal);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
@@ -200,7 +200,7 @@ int main(int, char **)
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
 			material_stl->SetDoubleSided(true);
 			material_stl->SetBaseColor({ 1, 0.5, 0.5, 1 });
-			vzm::VzActorStaticMesh* actor_test3 = vzm::NewActorStaticMesh("my actor3", geometry_stl, material_stl);
+			vzm::VzActorStaticMesh* actor_test3 = vzm::NewActorStaticMesh("my actor3", geometry_stl->GetVID(), material_stl->GetVID());
 			actor_test3->SetScale({ 1.f, 1.f, 1.f });
 			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
 		

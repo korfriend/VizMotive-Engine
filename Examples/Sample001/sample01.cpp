@@ -184,7 +184,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     material_test->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
     material_test->SetTexture(texture, vzm::TextureSlot::BASECOLORMAP);
 
-	vzm::VzActorStaticMesh* actor_test = vzm::NewActorStaticMesh("my actor", geometry_test, material_test);
+	vzm::VzActorStaticMesh* actor_test = vzm::NewActorStaticMesh("my actor", geometry_test->GetVID(), material_test->GetVID());
 	actor_test->SetScale({ 2.f, 2.f, 2.f });
 	actor_test->SetPosition({ 0, 0, -1.f });
 
@@ -229,7 +229,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	tex_otf_test3->CreateLookupTexture("my otf 1", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otf_w, 3, 1);
     tex_otf_test3->UpdateLookup(otf_array, 180, 255);
 
-	vzm::VzActorStaticMesh* actor_test3 = vzm::NewActorStaticMesh("my actor3", nullptr, material_test3);
+	vzm::VzActorVolume* actor_test3 = vzm::NewActorVolume("my actor3", material_test3->GetVID());
 
 	material_test3->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
 	material_test3->SetLookupTable(tex_otf_test3, vzm::LookupTableSlot::LOOKUP_OTF);
@@ -348,7 +348,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             test_create__ = !test_create__;
 
 			
-            vzm::VzActorStaticMesh* actor = (vzm::VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor3");
+            vzm::VzActorVolume* actor = (vzm::VzActorVolume*)vzm::GetFirstComponentByName("my actor3");
             vzm::AppendSceneCompVidTo(actor->GetVID(), 0);
 		}
         break;
