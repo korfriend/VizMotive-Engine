@@ -60,7 +60,15 @@ namespace vz
 
 	void RenderableComponent::updateRenderableFlags()
 	{
-		renderableType_ = checkIsRenderable(vuidGeometry_, vuidMaterials_);
+		RenderableType r_type = checkIsRenderable(vuidGeometry_, vuidMaterials_);
+		if (r_type == renderableReservedType_ || renderableReservedType_ == RenderableType::ALLTYPES_RENDERABLE)
+		{
+			renderableType_ = r_type;
+		}
+		else
+		{
+			renderableType_ = RenderableType::UNDEFINED;
+		}
 	}
 
 	void RenderableComponent::SetGeometry(const Entity geometryEntity)
