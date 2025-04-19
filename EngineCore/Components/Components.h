@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250416_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250419_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1216,6 +1216,7 @@ namespace vz
 		enum RenderableFlags : uint32_t
 		{
 			EMPTY = 0,
+			UNPICKABLE = 1 << 0,
 			REQUEST_PLANAR_REFLECTION = 1 << 1,
 			LIGHTMAP_RENDER_REQUEST = 1 << 2,
 			LIGHTMAP_DISABLE_BLOCK_COMPRESSION = 1 << 3,
@@ -1226,7 +1227,6 @@ namespace vz
 			SLICER_NO_SOLID_FILL = 1 << 8, // in the case that the geometry is NOT water-tight
 			OUTLINE = 1 << 9,
 			UNDERCUT = 1 << 10,
-			UNPICKABLE = 1 << 11,
 		};
 		enum RenderableType : uint8_t
 		{
@@ -1234,10 +1234,12 @@ namespace vz
 			MESH_RENDERABLE,
 			VOLUME_RENDERABLE,
 			GSPLAT_RENDERABLE,
+			ALLTYPES_RENDERABLE,
 		};
 	private:
 		uint32_t flags_ = RenderableFlags::EMPTY;
 		RenderableType renderableType_ = RenderableType::UNDEFINED;
+		RenderableType renderableReservedType_ = RenderableType::ALLTYPES_RENDERABLE;
 
 		// Renderable's layer mask; 
 		// final visibility determined by bitwise AND with target visibleLayerMask_ (e.g., CameraComponent::visibleLayerMask_)
@@ -1280,6 +1282,7 @@ namespace vz
 		inline bool IsDirty() const { return isDirty_; }
 		inline bool IsRenderable() const { return renderableType_ != RenderableType::UNDEFINED; }
 		inline RenderableType GetRenderableType() const { return renderableType_; }
+		inline void ReserveRenderableType(const RenderableType rType) { renderableReservedType_ = rType; timeStampSetter_ = TimerNow; }
 
 		inline void EnableForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
@@ -1353,7 +1356,7 @@ namespace vz
 		void ResetRefComponents(const VUID vuidRef) override;
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
-		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
+		inline static const ComponentType IntrinsicType = ComponentType::RENDERABLE;
 	};
 
 #define ENABLE_FLAG(V, FLAG) { V ? flags_ |= FLAG : flags_ &= ~FLAG; } timeStampSetter_ = TimerNow;

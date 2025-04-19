@@ -34,7 +34,8 @@ namespace vzm
 	API_EXPORT VzCamera* NewCamera(const std::string& name, const VID parentVid = 0u);
 	API_EXPORT VzSlicer* NewSlicer(const std::string& name, const bool curvedSlicer, const VID parentVid = 0u);
 	API_EXPORT VzActorStaticMesh* NewActorStaticMesh(const std::string& name, const GeometryVID vidGeo = 0u, const MaterialVID vidMat = 0u, const VID parentVid = 0u);
-	API_EXPORT VzActorStaticMesh* NewActorStaticMesh(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid = 0u);
+	API_EXPORT VzActorGSplat* NewActorGSplat(const std::string& name, const GeometryVID vidGeo = 0u, const MaterialVID vidMat = 0u, const VID parentVid = 0u);
+	API_EXPORT VzActorVolume* NewActorVolume(const std::string& name, const MaterialVID vidMat = 0u, const VID parentVid = 0u);
 	API_EXPORT VzActorSprite* NewActorSprite(const std::string& name, const VID parentVid = 0u);
 	API_EXPORT VzActorSpriteFont* NewActorSpriteFont(const std::string& name, const VID parentVid = 0u);
 	API_EXPORT VzLight* NewLight(const std::string& name, const VID parentVid = 0u);

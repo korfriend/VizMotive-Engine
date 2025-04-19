@@ -191,6 +191,8 @@ namespace vzm
 		switch (compType)
 		{
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
+		case COMPONENT_TYPE::ACTOR_VOLUME:
+		case COMPONENT_TYPE::ACTOR_GSPLAT:
 		case COMPONENT_TYPE::ACTOR_SPRITE:
 		case COMPONENT_TYPE::ACTOR_SPRITEFONT:
 		case COMPONENT_TYPE::LIGHT:
@@ -215,9 +217,23 @@ namespace vzm
 		switch (compType)
 		{
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
-			compfactory::CreateRenderableComponent(entity);
+			compfactory::CreateRenderableComponent(entity)->ReserveRenderableType(RenderableComponent::MESH_RENDERABLE);
 			{
 				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorStaticMesh>(vid, "vzm::NewActorStaticMesh"));
+				hlcomp = (VzSceneObject*)it.first->second.get();
+			}
+			break;
+		case COMPONENT_TYPE::ACTOR_VOLUME:
+			compfactory::CreateRenderableComponent(entity)->ReserveRenderableType(RenderableComponent::VOLUME_RENDERABLE);
+			{
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorStaticMesh>(vid, "vzm::NewActorVolume"));
+				hlcomp = (VzSceneObject*)it.first->second.get();
+			}
+			break;
+		case COMPONENT_TYPE::ACTOR_GSPLAT:
+			compfactory::CreateRenderableComponent(entity)->ReserveRenderableType(RenderableComponent::GSPLAT_RENDERABLE);
+			{
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorStaticMesh>(vid, "vzm::NewActorGSplat"));
 				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
@@ -603,9 +619,18 @@ namespace vzm
 		if (vidMat) actor->SetMaterial(vidMat);
 		return actor;
 	}
-	VzActorStaticMesh* NewActorStaticMesh(const std::string& name, const VzGeometry* geometry, const VzMaterial* material, const VID parentVid)
+	VzActorGSplat* NewActorGSplat(const std::string& name, const GeometryVID vidGeo, const MaterialVID vidMat, const VID parentVid)
 	{
-		return NewActorStaticMesh(name, geometry? geometry->GetVID() : 0u, material? material->GetVID() : 0u, parentVid);
+		VzActorGSplat* actor = (VzActorGSplat*)newSceneComponent(COMPONENT_TYPE::ACTOR_GSPLAT, name, parentVid);
+		if (vidGeo) actor->SetGeometry(vidGeo);
+		if (vidMat) actor->SetMaterial(vidMat);
+		return actor;
+	}
+	VzActorVolume* NewActorVolume(const std::string& name, const MaterialVID vidMat, const VID parentVid)
+	{
+		VzActorVolume* actor = (VzActorVolume*)newSceneComponent(COMPONENT_TYPE::ACTOR_VOLUME, name, parentVid);
+		if (vidMat) actor->SetMaterial(vidMat);
+		return actor;
 	}
 	VzActorSprite* NewActorSprite(const std::string& name, const VID parentVid)
 	{

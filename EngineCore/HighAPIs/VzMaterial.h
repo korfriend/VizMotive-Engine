@@ -29,7 +29,7 @@ namespace vzm
 		{
 			VOLUME_DENSITYMAP, // this is used for volume rendering
 			VOLUME_SEMANTICMAP,
-			VOLUME_SCULPT_MAP,
+			VOLUME_SCULPTMAP,
 
 			VOLUME_TEXTURESLOT_COUNT
 		};
