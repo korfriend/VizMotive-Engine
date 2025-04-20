@@ -16,6 +16,7 @@ namespace vz::image
 	static Sampler samplers[SAMPLER_COUNT];
 	static Shader vertexShader;
 	static Shader pixelShader;
+	static Shader pixelShader_sprite;
 	static Shader debugShader;
 	static BlendState blendStates[BLENDMODE_COUNT];
 	static RasterizerState rasterizerState;
@@ -33,7 +34,7 @@ namespace vz::image
 		STRIP_MODE_COUNT,
 	};
 
-	static PipelineState imagePSO[BLENDMODE_COUNT][STENCILMODE_COUNT][STENCILREFMODE_COUNT][DEPTH_TEST_MODE_COUNT][STRIP_MODE_COUNT];
+	static PipelineState imagePSO[2][BLENDMODE_COUNT][STENCILMODE_COUNT][STENCILREFMODE_COUNT][DEPTH_TEST_MODE_COUNT][STRIP_MODE_COUNT];
 	static PipelineState debugPSO;
 	
 	static thread_local Texture backgroundTexture;
@@ -239,7 +240,7 @@ namespace vz::image
 		else
 		{
 			// vertex buffer:
-			XMMATRIX S = XMMatrixScaling(params.scale.x * params.siz.x, params.scale.y * params.siz.y, 1);
+			XMMATRIX S = XMMatrixScaling(params.scale.x * params.size.x, params.scale.y * params.size.y, 1);
 			XMMATRIX M = XMMatrixRotationZ(params.rotation);
 
 			if (params.customRotation != nullptr)
@@ -280,7 +281,7 @@ namespace vz::image
 
 			if (params.isCornerRoundingEnabled())
 			{
-				// The rounded corner mode will use a triangle fan structure (implemrnted by indexed triangle list):
+				// The rounded corner mode will use a triangle fan structure (implemented by indexed triangle list):
 				strip_mode = STRIP_OFF;
 				image.flags |= IMAGE_FLAG_CORNER_ROUNDING;
 				size_t vertex_count = 1; // start with center vertex
@@ -431,7 +432,8 @@ namespace vz::image
 		}
 		else
 		{
-			device->BindPipelineState(&imagePSO[SCU32(params.blendFlag)][params.stencilComp][params.stencilRefMode][params.isDepthTestEnabled()][strip_mode], cmd);
+			//device->BindPipelineState(&imagePSO[params.isSpriteEnabled()][SCU32(params.blendFlag)][params.stencilComp][params.stencilRefMode][params.isDepthTestEnabled()][strip_mode], cmd);
+			device->BindPipelineState(&imagePSO[0][SCU32(params.blendFlag)][params.stencilComp][params.stencilRefMode][params.isDepthTestEnabled()][strip_mode], cmd);
 		}
 
 		device->BindDynamicConstantBuffer(image, CBSLOT_IMAGE, cmd);
@@ -462,6 +464,7 @@ namespace vz::image
 	{
 		shader::LoadShader(ShaderStage::VS, vertexShader, "imageVS.cso");
 		shader::LoadShader(ShaderStage::PS, pixelShader, "imagePS.cso");
+		shader::LoadShader(ShaderStage::PS, pixelShader_sprite, "imagePS_sprite.cso");
 		shader::LoadShader(ShaderStage::PS, debugShader, "debugPS.cso");
 
 		GraphicsDevice* device = graphics::GetDevice();
@@ -471,30 +474,37 @@ namespace vz::image
 		desc.ps = &pixelShader;
 		desc.rs = &rasterizerState;
 
-		for (int j = 0; j < BLENDMODE_COUNT; ++j)
+		for (int i = 0; i < 1; i++)
 		{
-			desc.bs = &blendStates[j];
-			for (int k = 0; k < STENCILMODE_COUNT; ++k)
+			if (i == 1)
 			{
-				for (int m = 0; m < STENCILREFMODE_COUNT; ++m)
+				desc.ps = &pixelShader_sprite;
+			}
+			for (int j = 0; j < BLENDMODE_COUNT; ++j)
+			{
+				desc.bs = &blendStates[j];
+				for (int k = 0; k < STENCILMODE_COUNT; ++k)
 				{
-					for (int d = 0; d < DEPTH_TEST_MODE_COUNT; ++d)
+					for (int m = 0; m < STENCILREFMODE_COUNT; ++m)
 					{
-						desc.dss = &depthStencilStates[k][m][d];
-
-						for (int n = 0; n < STRIP_MODE_COUNT; ++n)
+						for (int d = 0; d < DEPTH_TEST_MODE_COUNT; ++d)
 						{
-							switch (n)
+							desc.dss = &depthStencilStates[k][m][d];
+
+							for (int n = 0; n < STRIP_MODE_COUNT; ++n)
 							{
-							default:
-							case STRIP_ON:
-								desc.pt = PrimitiveTopology::TRIANGLESTRIP;
-								break;
-							case STRIP_OFF:
-								desc.pt = PrimitiveTopology::TRIANGLELIST;
-								break;
+								switch (n)
+								{
+								default:
+								case STRIP_ON:
+									desc.pt = PrimitiveTopology::TRIANGLESTRIP;
+									break;
+								case STRIP_OFF:
+									desc.pt = PrimitiveTopology::TRIANGLELIST;
+									break;
+								}
+								device->CreatePipelineState(&desc, &imagePSO[i][j][k][m][d][n]);
 							}
-							device->CreatePipelineState(&desc, &imagePSO[j][k][m][d][n]);
 						}
 					}
 				}
@@ -746,17 +756,20 @@ namespace vz::image
 	{
 		jobsystem::WaitAllJobs();
 
-		for (int j = 0; j < BLENDMODE_COUNT; ++j)
+		for (int i = 0; i < 2; ++i)
 		{
-			for (int k = 0; k < STENCILMODE_COUNT; ++k)
+			for (int j = 0; j < BLENDMODE_COUNT; ++j)
 			{
-				for (int m = 0; m < STENCILREFMODE_COUNT; ++m)
+				for (int k = 0; k < STENCILMODE_COUNT; ++k)
 				{
-					for (int d = 0; d < DEPTH_TEST_MODE_COUNT; ++d)
+					for (int m = 0; m < STENCILREFMODE_COUNT; ++m)
 					{
-						for (int n = 0; n < STRIP_MODE_COUNT; ++n)
+						for (int d = 0; d < DEPTH_TEST_MODE_COUNT; ++d)
 						{
-							imagePSO[j][k][m][d][n] = {};
+							for (int n = 0; n < STRIP_MODE_COUNT; ++n)
+							{
+								imagePSO[i][j][k][m][d][n] = {};
+							}
 						}
 					}
 				}
@@ -771,6 +784,7 @@ namespace vz::image
 		}
 		vertexShader = {};
 		pixelShader = {};
+		pixelShader_sprite = {};
 		debugShader = {};
 
 		isInitialized = false;

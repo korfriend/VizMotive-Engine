@@ -71,6 +71,7 @@ namespace vzcompmanager
 		case COMPONENT_TYPE::CAMERA:
 		case COMPONENT_TYPE::SLICER:
 			cameras.erase(vid); break;
+		case COMPONENT_TYPE::ACTOR_GROUP:
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
 		case COMPONENT_TYPE::ACTOR_SPRITE:
 		case COMPONENT_TYPE::ACTOR_SPRITEFONT: actors.erase(vid); break;
@@ -190,6 +191,7 @@ namespace vzm
 		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		switch (compType)
 		{
+		case COMPONENT_TYPE::ACTOR_GROUP:
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
 		case COMPONENT_TYPE::ACTOR_VOLUME:
 		case COMPONENT_TYPE::ACTOR_GSPLAT:
@@ -209,6 +211,7 @@ namespace vzm
 		compfactory::CreateNameComponent(entity, compName);
 		compfactory::CreateTransformComponent(entity);
 		compfactory::CreateHierarchyComponent(entity);
+		compfactory::CreateLayerdMaskComponent(entity);
 
 		VID vid = entity;
 		VzSceneObject* hlcomp = nullptr;
@@ -216,6 +219,12 @@ namespace vzm
 		VID parent_vid = parentVid;
 		switch (compType)
 		{
+		case COMPONENT_TYPE::ACTOR_GROUP:
+			{
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewActorGroup", COMPONENT_TYPE::ACTOR_GROUP));
+				hlcomp = (VzSceneObject*)it.first->second.get();
+			}
+			break;
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
 			compfactory::CreateRenderableComponent(entity)->ReserveRenderableType(RenderableComponent::MESH_RENDERABLE);
 			{
@@ -238,6 +247,7 @@ namespace vzm
 			}
 			break;
 		case COMPONENT_TYPE::ACTOR_SPRITE:
+			compfactory::CreateRenderableComponent(entity)->ReserveRenderableType(RenderableComponent::SPRITE_RENDERABLE);
 			compfactory::CreateSpriteComponent(entity);
 			{
 				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorSprite>(vid, "vzm::NewActorSprite"));
@@ -245,6 +255,7 @@ namespace vzm
 			}
 			break;
 		case COMPONENT_TYPE::ACTOR_SPRITEFONT:
+			compfactory::CreateRenderableComponent(entity)->ReserveRenderableType(RenderableComponent::SPRITEFONT_RENDERABLE);
 			compfactory::CreateSpriteFontComponent(entity);
 			{
 				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActorSpriteFont>(vid, "vzm::NewActorSpriteFont"));
@@ -604,6 +615,10 @@ namespace vzm
 		return it.first->second.get();
 	}
 
+	VzActor* NewActorGroup(const std::string& name, VID parentVid)
+	{
+		return (VzActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_GROUP, name, parentVid);
+	}
 	VzCamera* NewCamera(const std::string& name, const VID parentVid)
 	{
 		return (VzCamera*)newSceneComponent(COMPONENT_TYPE::CAMERA, name, parentVid);
@@ -941,6 +956,7 @@ namespace vzm
 
 		switch (type)
 		{
+		case COMPONENT_TYPE::ACTOR_GROUP: GETTER_VZCOMP(actors); break;
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH: GETTER_VZCOMP(actors); break;
 		case COMPONENT_TYPE::LIGHT: GETTER_VZCOMP(lights); break;
 		case COMPONENT_TYPE::CAMERA: 

@@ -64,10 +64,6 @@ namespace vz
 		}
 		else
 		{
-			//if (stableCount > 0)
-			//{
-			//	vzlog("Camera has been changed (%d)", (uint32_t)stableCount);
-			//}
 			stableCount_ = 0;
 		}
 
@@ -149,6 +145,8 @@ namespace vz
 		{
 			camera->SetWorldLookAtFromHierarchyTransforms();
 		}
+
+		((GCameraComponent*)camera)->layeredmask = compfactory::GetLayeredMaskComponent(camera->GetEntity());
 
 		if (camera->IsCurvedSlicer())
 		{

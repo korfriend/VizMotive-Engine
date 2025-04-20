@@ -59,11 +59,6 @@ namespace vzm
 			: VzSceneObject(vid, originFrom, scenecompType) {}
 		virtual ~VzActor() = default;
 
-		void SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants = false);
-		void SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants = false);
-		uint32_t GetVisibleLayerMask() const;
-		bool IsVisibleWith(const uint32_t layerBits) const;
-
 		bool IsRenderable() const;
 
 		void EnablePickable(const bool enabled, const bool includeDescendants = false);

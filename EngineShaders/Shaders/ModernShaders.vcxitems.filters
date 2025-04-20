@@ -463,5 +463,8 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\fontPS.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS_sprite.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

@@ -12,24 +12,6 @@ namespace vzm
 #define GET_CAM_COMP(COMP, RET) CameraComponent* COMP = compfactory::GetCameraComponent(componentVID_); \
 	if (!COMP) {post("CameraComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
-	void VzCamera::SetVisibleLayerMask(const uint32_t visibleLayerMask)
-	{
-		GET_CAM_COMP(camera, );
-		camera->SetVisibleLayerMask(visibleLayerMask);
-		UpdateTimeStamp();
-	}
-	void VzCamera::SetVisibleLayer(const bool visible, const uint32_t layerBits)
-	{
-		GET_CAM_COMP(camera, );
-		camera->SetVisibleLayer(visible, layerBits);
-		UpdateTimeStamp();
-	}
-	uint32_t VzCamera::GetVisibleLayerMask() const
-	{
-		GET_CAM_COMP(camera, 0u);
-		return camera->GetVisibleLayerMask();
-	}
-
 	void VzCamera::SetWorldPoseByHierarchy()
 	{
 		GET_CAM_COMP(camera, );

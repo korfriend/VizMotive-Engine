@@ -20,6 +20,7 @@ namespace vzimgui
 		{
 			switch (component->GetType())
 			{
+			case vzm::COMPONENT_TYPE::ACTOR_GROUP: comp_name = "[Group] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH: comp_name = "[A-SM] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::ACTOR_SPRITE: comp_name = "[A-SP] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::ACTOR_SPRITEFONT: comp_name = "[A-SPF] " + comp_name; break;
@@ -51,10 +52,15 @@ namespace vzimgui
 			{
 				vzlog("Clicked! %s", comp_name.c_str());
 			}
-			if (component->GetType() == vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH)
+			if (component->GetType() == vzm::COMPONENT_TYPE::ACTOR_GROUP
+				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH
+				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_VOLUME
+				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_GSPLAT
+				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_SPRITE
+				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_SPRITEFONT)
 			{
 				ImGui::SameLine();
-				vzm::VzActorStaticMesh* actor = (vzm::VzActorStaticMesh*)component;
+				vzm::VzActor* actor = (vzm::VzActor*)component;
 				bool visible = actor->IsVisibleWith(0x1);
 				if (ImGui::Checkbox(" ", &visible))
 				{
@@ -182,6 +188,10 @@ namespace vzimgui
 
 		size_t total_user_components = 0;
 		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ACTOR_STATIC_MESH, actors);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ACTOR_VOLUME, actors);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ACTOR_GSPLAT, actors);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ACTOR_SPRITE, actors);
+		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::ACTOR_SPRITEFONT, actors);
 		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::GEOMETRY, geometries);
 		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::MATERIAL, materials);
 		total_user_components += vzm::GetComponentsByType(COMPONENT_TYPE::TEXTURE, textures);

@@ -38,6 +38,7 @@ namespace vz::renderer
 		// User fills these:
 		uint8_t layerMask = ~0;
 		CameraComponent* camera = nullptr;
+		LayeredMaskComponent* layeredmask = nullptr;
 		enum FLAGS
 		{
 			EMPTY = 0,
@@ -698,8 +699,8 @@ namespace vz::renderer
 		std::vector<GGeometryComponent*> geometryComponents; // cached (non enclosing for jobsystem)
 		std::vector<GMaterialComponent*> materialComponents; // cached (non enclosing for jobsystem)
 		std::vector<GRenderableComponent*> renderableComponents; // cached (non enclosing for jobsystem)
-		std::vector<GSpriteComponent*> spriteComponents; // cached (non enclosing for jobsystem)
-		std::vector<GSpriteFontComponent*> spriteFontComponents; // cached (non enclosing for jobsystem)
+		std::vector<GRenderableComponent*> spriteComponents; // cached (non enclosing for jobsystem)
+		std::vector<GRenderableComponent*> spriteFontComponents; // cached (non enclosing for jobsystem)
 
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;

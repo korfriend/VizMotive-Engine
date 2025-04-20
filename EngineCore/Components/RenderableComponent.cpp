@@ -11,7 +11,7 @@ namespace vz
 	// return 1 : Mesh renderable
 	// return 2 : Volume renderable
 	
-	inline RenderableType checkIsRenderable(const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
+	inline RenderableType checkIsRenderable(const Entity entityRenderable, const VUID vuidGeo, const std::vector<VUID>& vuidMaterials)
 	{
 		RenderableType ret = RenderableType::UNDEFINED;
 		GGeometryComponent* geomertry = (GGeometryComponent*)compfactory::GetGeometryComponent(compfactory::GetEntityByVUID(vuidGeo));
@@ -32,6 +32,18 @@ namespace vz
 					{
 						ret = RenderableType::VOLUME_RENDERABLE;
 					}
+				}
+			}
+
+			if (ret != RenderableType::VOLUME_RENDERABLE)
+			{
+				if (compfactory::ContainSpriteComponent(entityRenderable))
+				{
+					ret = RenderableType::SPRITE_RENDERABLE;
+				}
+				else if (compfactory::ContainSpriteFontComponent(entityRenderable))
+				{
+					ret = RenderableType::SPRITEFONT_RENDERABLE;
 				}
 			}
 		}
@@ -60,7 +72,7 @@ namespace vz
 
 	void RenderableComponent::updateRenderableFlags()
 	{
-		RenderableType r_type = checkIsRenderable(vuidGeometry_, vuidMaterials_);
+		RenderableType r_type = checkIsRenderable(entity_, vuidGeometry_, vuidMaterials_);
 		if (r_type == renderableReservedType_ || renderableReservedType_ == RenderableType::ALLTYPES_RENDERABLE)
 		{
 			renderableType_ = r_type;

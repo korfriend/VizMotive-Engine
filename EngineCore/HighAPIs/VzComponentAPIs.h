@@ -76,6 +76,15 @@ struct vfloat4x4 { float m[4][4]; };
 
 namespace vzm
 {
+	template<typename... Args>
+	std::string FormatString(const char* format, Args... args) {
+		int size_s = snprintf(nullptr, 0, format, args...) + 1; // +1 for exiting NULL string
+		if (size_s <= 0) { return ""; } // error case
+		std::vector<char> buf(size_s);
+		snprintf(buf.data(), size_s, format, args...);
+		return std::string(buf.data(), buf.data() + size_s - 1);
+	}
+
     template <typename ID> struct ParamMap {
     protected:
         std::string __PM_VERSION = "LIBI_2.0";
@@ -165,6 +174,7 @@ namespace vzm
 		RENDERER,
 
 		// scene objects
+		ACTOR_GROUP,
 		CAMERA,
 		SLICER,
 		LIGHT,
@@ -250,6 +260,12 @@ namespace vzm
 		void AppendChild(const VzBaseComp* child);
 		void DetachChild(const VzBaseComp* child);
 		void AttachToParent(const VzBaseComp* parent);
+
+		// Visible Layer Settings
+		void SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants = false);
+		void SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants = false);
+		uint32_t GetVisibleLayerMask() const;
+		bool IsVisibleWith(const uint32_t layerBits) const;
 
 		// note:
 		//	engine-level renderable components can belong to multiple scenes

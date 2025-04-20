@@ -631,8 +631,8 @@ namespace vz
 		geometryComponents = scene_->GetGeometryComponents();
 		materialComponents = scene_->GetMaterialComponents();
 		renderableComponents = scene_->GetRenderableComponents();
-		spriteComponents = scene_->GetSpriteComponents();
-		spriteFontComponents = scene_->GetSpriteFontComponents();
+		spriteComponents = scene_->GetRenderableSpriteComponents();
+		spriteFontComponents = scene_->GetRenderableSpritefontComponents();
 		matrixRenderables = scene_->GetRenderableWorldMatrices();
 		matrixRenderablesPrev = scene_->GetRenderableWorldMatricesPrev();
 

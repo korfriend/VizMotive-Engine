@@ -8,56 +8,15 @@ using namespace vz;
 using namespace std;
 using namespace backlog;
 
-namespace vzm
-{
 #define GET_RENDERABLE_COMP(COMP, RET) RenderableComponent* COMP = compfactory::GetRenderableComponent(componentVID_); \
 	if (!COMP) {post("RenderableComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+#define GET_SPRITE_COMP(COMP, RET) SpriteComponent* COMP = compfactory::GetSpriteComponent(componentVID_); \
+	if (!COMP) {post("SpriteComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+#define GET_SPRITEFONT_COMP(COMP, RET) SpriteFontComponent* COMP = compfactory::GetSpriteFontComponent(componentVID_); \
+	if (!COMP) {post("SpriteFontComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
-	void VzActor::SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants)
-	{
-		GET_RENDERABLE_COMP(renderable, );
-		renderable->SetVisibleLayerMask(visibleLayerMask);
-
-		if (includeDescendants)
-		{
-			std::vector<ActorVID> children = GetChildren();
-			for (size_t i = 0, n = children.size(); i < n; ++i)
-			{
-				VzActor* base_actor = (VzActor*)vzm::GetComponent(children[i]);
-				assert(base_actor);
-				base_actor->SetVisibleLayerMask(visibleLayerMask, true);
-			}
-		}
-		UpdateTimeStamp();
-	}
-	void VzActor::SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants)
-	{
-		GET_RENDERABLE_COMP(renderable, );
-		renderable->SetVisibleLayer(visible, layerBits);
-
-		if (includeDescendants)
-		{
-			std::vector<ActorVID> children = GetChildren();
-			for (size_t i = 0, n = children.size(); i < n; ++i)
-			{
-				VzActor* base_actor = (VzActor*)vzm::GetComponent(children[i]);
-				assert(base_actor);
-				base_actor->SetVisibleLayer(visible, layerBits, true);
-			}
-		}
-		UpdateTimeStamp();
-	}
-	uint32_t VzActor::GetVisibleLayerMask() const
-	{
-		GET_RENDERABLE_COMP(renderable, 0u);
-		return renderable->GetVisibleLayerMask();
-	}
-	bool VzActor::IsVisibleWith(const uint32_t layerBits) const
-	{
-		GET_RENDERABLE_COMP(renderable, false);
-		return renderable->IsVisibleWith(layerBits);
-	}
-
+namespace vzm
+{
 	bool VzActor::IsRenderable() const
 	{
 		GET_RENDERABLE_COMP(renderable, false);
@@ -319,9 +278,6 @@ namespace vzm
 
 namespace vzm
 {
-#define GET_SPRITE_COMP(COMP, RET) SpriteComponent* COMP = compfactory::GetSpriteComponent(componentVID_); \
-	if (!COMP) {post("SpriteComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
-
 	void VzActorSprite::SetSpriteTexture(const VID vidTexture)
 	{
 		GET_SPRITE_COMP(sprite, );
@@ -494,9 +450,6 @@ namespace vzm
 
 namespace vzm
 {
-#define GET_SPRITEFONT_COMP(COMP, RET) SpriteFontComponent* COMP = compfactory::GetSpriteFontComponent(componentVID_); \
-	if (!COMP) {post("SpriteFontComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
-
 	void VzActorSpriteFont::EnableHidden(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
