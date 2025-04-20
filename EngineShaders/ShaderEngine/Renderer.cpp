@@ -33,6 +33,8 @@ namespace vz::renderer
 		// Frustum culling for main camera:l,k
 		viewMain.layerMask = ~0;
 		viewMain.camera = camera;
+		viewMain.layeredmask = ((GCameraComponent*)camera)->layeredmask;
+		
 		viewMain.flags = renderer::View::ALLOW_EVERYTHING;
 		if (!renderer::isOcclusionCullingEnabled || camera->IsSlicer())
 		{
@@ -48,7 +50,7 @@ namespace vz::renderer
 			cameraReflection.jitter = XMFLOAT2(0, 0);
 			//cameraReflection.Reflect(viewMain.reflectionPlane);
 			//viewReflection.layerMask = getLayerMask();
-			viewReflection.camera = &cameraReflection;
+			viewReflection.camera = (GCameraComponent*)&cameraReflection;
 			viewReflection.flags =
 				//renderer::View::ALLOW_OBJECTS |
 				//renderer::View::ALLOW_EMITTERS |
@@ -318,7 +320,7 @@ namespace vz::renderer
 				
 				if (foreground != renderable.IsForeground())
 					continue;
-				if (!renderable.IsVisibleWith(view.camera->GetVisibleLayerMask()))
+				if (!renderable.layeredmask->IsVisibleWith(view.layeredmask->GetVisibleLayerMask()))
 					continue;
 				if ((renderable.materialFilterFlags & filterMask) == 0)
 					continue;
@@ -390,7 +392,7 @@ namespace vz::renderer
 		distance_sorter.clear();
 		for (size_t i = 0, n = scene_Gdetails->spriteComponents.size(); i < n; ++i)
 		{
-			GSpriteComponent* sprite = scene_Gdetails->spriteComponents[i];
+			GSpriteComponent* sprite = scene_Gdetails->spriteComponents[i]->sprite;
 			if (sprite->IsHidden())
 				continue;
 			if (sprite->IsExtractNormalMapEnabled() != distortion)
@@ -405,7 +407,7 @@ namespace vz::renderer
 		{
 			for (size_t i = 0, n = scene_Gdetails->spriteFontComponents.size(); i < n; ++i)
 			{
-				GSpriteFontComponent* font = scene_Gdetails->spriteFontComponents[i];
+				GSpriteFontComponent* font = scene_Gdetails->spriteFontComponents[i]->spritefont;
 				if (font->IsHidden())
 					continue;
 				DistanceSorter sorter = {};
@@ -429,12 +431,13 @@ namespace vz::renderer
 			default:
 			case SPRITE:
 			{
-				GSpriteComponent* sprite = scene_Gdetails->spriteComponents[sorter.bits.id];
+				GSpriteComponent* sprite = scene_Gdetails->spriteComponents[sorter.bits.id]->sprite;
 				
 				vz::image::Params params;
 				params.pos = sprite->GetPosition();
 				params.rotation = sprite->GetRotation();
 				params.scale = sprite->GetScale();
+				//params.size = sprite->GetSize(); // TODO or from Texture size?!
 				params.opacity = sprite->GetOpacity();
 				params.texOffset = sprite->GetUVOffset();
 
@@ -471,13 +474,14 @@ namespace vz::renderer
 				//	params.setMaskMap(nullptr);
 				//}
 
+				params.enableSprite();
 				GTextureComponent* texture = sprite->texture;
 				image::Draw(texture ? &texture->GetTexture() : nullptr, params, cmd);
 			}
 			break;
 			case FONT:
 			{
-				GSpriteFontComponent* font_sprite = scene_Gdetails->spriteFontComponents[sorter.bits.id];
+				GSpriteFontComponent* font_sprite = scene_Gdetails->spriteFontComponents[sorter.bits.id]->spritefont;
 				
 				vz::font::Params params;
 				params.position = font_sprite->GetPosition();

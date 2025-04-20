@@ -13,19 +13,16 @@ uint ImprovedHash(uint value) {
 }
 
 float3 IntToRGB_UNORM(uint value) {
-    // 향상된 해시
     value = ImprovedHash(value) % 16777216;
 
-    // 정규화된 범위 [0, 1]로 변환
     float normalized = float(value) / 16777215.0;
 
-    // Hue 기반 색상 변환
-    float hue = normalized; // [0, 1] 범위
+    float hue = normalized; // [0, 1] 
     float r = abs(hue * 6.0 - 3.0) - 1.0;
     float g = 2.0 - abs(hue * 6.0 - 2.0);
     float b = 2.0 - abs(hue * 6.0 - 4.0);
 
-    return saturate(float3(r, g, b)); // RGB 값 제한
+    return saturate(float3(r, g, b)); // RGB
 }
 
 float3 HueToRGB(float hue) {

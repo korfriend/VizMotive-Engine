@@ -61,8 +61,9 @@ namespace vz::image
 			ANGULAR_INVERSE = 1 << 11,
 			DISTORTION_MASK = 1 << 12,
 			HIGHLIGHT = 1 << 13,
-			
+
 			DEBUG_TEST = 1 << 14,
+			SPRITE = 1 << 15,
 		};
 
 		enum DEBUG_BUFFER
@@ -75,7 +76,7 @@ namespace vz::image
 		uint32_t _debugBuffer = NO_DEBUG;
 
 		XMFLOAT3 pos = XMFLOAT3(0, 0, 0);
-		XMFLOAT2 siz = XMFLOAT2(1, 1);
+		XMFLOAT2 size = XMFLOAT2(1, 1);
 		XMFLOAT2 scale = XMFLOAT2(1, 1);
 		XMFLOAT4 color = XMFLOAT4(1, 1, 1, 1);
 		XMFLOAT4 drawRect = XMFLOAT4(0, 0, 0, 0);
@@ -152,8 +153,10 @@ namespace vz::image
 		constexpr bool isDistortionMaskEnabled() const { return _flags & DISTORTION_MASK; }
 		constexpr bool isHighlightEnabled() const { return _flags & HIGHLIGHT; }
 		constexpr bool isDebugTestEnabled() const { return _flags & DEBUG_TEST; }
+		constexpr bool isSpriteEnabled() const { return _flags & SPRITE; }
 
 		constexpr void enableDebugTest() { _flags |= DEBUG_TEST; }
+		constexpr void enableSprite() { _flags |= SPRITE; }
 		// enables draw rectangle for base texture (cutout texture outside draw rectangle)
 		constexpr void enableDrawRect(const XMFLOAT4& rect) { _flags |= DRAWRECT; drawRect = rect; }
 		// enables draw rectangle for mask texture (cutout texture outside draw rectangle)
@@ -203,7 +206,7 @@ namespace vz::image
 			float width,
 			float height
 		) :
-			siz(width, height)
+			size(width, height)
 		{}
 
 		Params(
@@ -214,7 +217,7 @@ namespace vz::image
 			const XMFLOAT4& color = XMFLOAT4(1, 1, 1, 1)
 		) :
 			pos(posX, posY, 0),
-			siz(width, height),
+			size(width, height),
 			color(color)
 		{}
 
@@ -236,7 +239,7 @@ namespace vz::image
 			const geometrics::Hitbox2D& hitbox, const XMFLOAT4& color = XMFLOAT4(1, 1, 1, 1)
 		) :
 			pos(XMFLOAT3(hitbox.pos.x, hitbox.pos.y, 0)),
-			siz(hitbox.siz),
+			size(hitbox.siz),
 			color(color)
 		{}
 	};

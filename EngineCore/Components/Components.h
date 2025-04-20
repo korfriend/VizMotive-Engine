@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250419_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250421_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -133,9 +133,8 @@ namespace vz
 
 		// Instead of Entity, VUID is stored by serialization
 		//	the index is same to the streaming index
-		std::vector<Entity> renderables_;	// corresponding to RenderableComponent (can be used as a NODE)
-		std::vector<Entity> sprites_;		// corresponding to SpriteComponent
-		std::vector<Entity> spriteFonts_;	// corresponding to SpriteFontComponent
+		std::vector<Entity> transforms_;
+		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
 		std::vector<Entity> cameras_;
 
@@ -145,7 +144,7 @@ namespace vz
 		// -----------------------------------------
 		// Non-serialized attributes:
 		Entity entity_ = INVALID_ENTITY;
-		std::unordered_map<Entity, ComponentBase*> lookupEntities_;
+		std::unordered_map<Entity, uint32_t> lookupTransforms_;	// note: all entities have TransformComponent
 		std::vector<Entity> children_;
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
@@ -197,14 +196,6 @@ namespace vz
 		inline void AddEntities(const std::vector<Entity>& entities);
 
 		/**
-		 * Removes the Renderable from the Scene.
-		 *
-		 * @param entity The Entity to remove from the Scene. If the specified
-		 *                   \p entity doesn't exist, this call is ignored.
-		 */
-		inline void Remove(const Entity entity);
-
-		/**
 		 * Removes a list of entities to the Scene.
 		 *
 		 * This is equivalent to calling remove in a loop.
@@ -219,7 +210,7 @@ namespace vz
 		 * Returns the total number of Entities in the Scene, whether alive or not.
 		 * @return Total number of Entities in the Scene.
 		 */
-		inline size_t GetEntityCount() const noexcept { return lookupEntities_.size(); }
+		inline size_t GetEntityCount() const noexcept { return lookupTransforms_.size(); }
 
 		/**
 		 * Returns the number of active (alive) Renderable components in the Scene.
@@ -229,20 +220,6 @@ namespace vz
 		inline size_t GetRenderableCount() const noexcept { return renderables_.size(); }
 
 		/**
-		 * Returns the number of active (alive) Sprite components in the Scene.
-		 *
-		 * @return The number of active (alive) Sprite components in the Scene.
-		 */
-		inline size_t GetSpriteCount() const noexcept { return sprites_.size(); }
-
-		/**
-		 * Returns the number of active (alive) SpriteFont components in the Scene.
-		 *
-		 * @return The number of active (alive) SpriteFont components in the Scene.
-		 */
-		inline size_t GetSpriteFontCount() const noexcept { return spriteFonts_.size(); }
-
-		/**
 		 * Returns the number of active (alive) Light objects in the Scene.
 		 *
 		 * @return The number of active (alive) Light objects in the Scene.
@@ -250,8 +227,6 @@ namespace vz
 		inline size_t GetLightCount() const noexcept { return lights_.size(); }
 
 		inline const std::vector<Entity>& GetRenderableEntities() const noexcept { return renderables_; }
-		inline const std::vector<Entity>& GetSpriteEntities() const noexcept { return sprites_; }
-		inline const std::vector<Entity>& GetSpriteFontEntities() const noexcept { return spriteFonts_; }
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
 		inline const std::vector<Entity>& GetCameraEntities() const noexcept { return cameras_; }
 
@@ -270,14 +245,14 @@ namespace vz
 		 */
 		inline bool HasEntity(const Entity entity) const noexcept
 		{
-			return lookupEntities_.count(entity) > 0;
+			return lookupTransforms_.count(entity) > 0;
 		}
 
 		inline size_t GetEntities(std::vector<Entity>& entities) const
 		{
-			entities.resize(lookupEntities_.size());
+			entities.resize(lookupTransforms_.size());
 			size_t count = 0;
-			for (auto it = lookupEntities_.begin(); it != lookupEntities_.end(); it++)
+			for (auto it = lookupTransforms_.begin(); it != lookupTransforms_.end(); it++)
 			{
 				entities[count++] = it->first;
 			}
@@ -320,6 +295,13 @@ namespace vz
 		virtual const void* GetTextureSkyMap() const = 0;		// return the pointer of graphics::Texture
 		virtual const void* GetTextureGradientMap() const = 0;	// return the pointer of graphics::Texture
 
+		/**
+		 * Removes the Renderable from the Scene.
+		 *
+		 * @param entity The Entity to remove from the Scene. If the specified
+		 *                   \p entity doesn't exist, this call is ignored.
+		 */
+		virtual void Remove(const Entity entity) = 0;
 		virtual void Update(const float dt) = 0;
 		virtual GScene* GetGSceneHandle() const = 0;
 		virtual uint32_t GetRenderableMeshCount() const = 0;
@@ -329,8 +311,11 @@ namespace vz
 		virtual const std::vector<XMFLOAT4X4>& GetRenderableWorldMatricesPrev() const = 0;
 
 		virtual const std::vector<GRenderableComponent*>& GetRenderableComponents() const = 0;
-		virtual const std::vector<GSpriteComponent*>& GetSpriteComponents() const = 0;
-		virtual const std::vector<GSpriteFontComponent*>& GetSpriteFontComponents() const = 0;
+		virtual const std::vector<GRenderableComponent*>& GetRenderableMeshComponents() const = 0;
+		virtual const std::vector<GRenderableComponent*>& GetRenderableVolumeComponents() const = 0;
+		virtual const std::vector<GRenderableComponent*>& GetRenderableGSplatComponents() const = 0;
+		virtual const std::vector<GRenderableComponent*>& GetRenderableSpriteComponents() const = 0;
+		virtual const std::vector<GRenderableComponent*>& GetRenderableSpritefontComponents() const = 0;
 		virtual const std::vector<GGeometryComponent*>& GetGeometryComponents() const = 0;
 		virtual const std::vector<GMaterialComponent*>& GetMaterialComponents() const = 0;
 		virtual const std::vector<GCameraComponent*>& GetCameraComponents() const = 0;
@@ -350,6 +335,7 @@ namespace vz
 		UNDEFINED = 0,
 		NAME,
 		TRANSFORM,
+		LAYERDMASk,
 		HIERARCHY,
 		MATERIAL,
 		GEOMETRY,
@@ -498,6 +484,30 @@ namespace vz
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::HIERARCHY;
+	};
+
+	struct CORE_EXPORT LayeredMaskComponent : ComponentBase
+	{
+	protected:
+		// final visibility determined by bitwise AND with target visibleLayerMask_ (e.g., CameraComponent::visibleLayerMask_)
+		uint32_t visibleLayerMask_ = 0x1;	// will be checked against each CameraComponent's layer using bitwise AND
+		uint32_t stencilLayerMask_ = ~0u;
+		uint32_t userLayerMask_ = 0u;
+
+	public:
+		LayeredMaskComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LAYERDMASk, entity, vuid) {}
+		virtual ~LayeredMaskComponent() = default;
+
+		inline void SetVisibleLayerMask(const uint32_t visibleLayerMask) { visibleLayerMask_ = visibleLayerMask; timeStampSetter_ = TimerNow; }
+		inline void SetVisibleLayer(const bool visible, const uint32_t layerBits) {
+			visible ? visibleLayerMask_ |= layerBits : visibleLayerMask_ &= ~layerBits; timeStampSetter_ = TimerNow;
+		}
+		inline bool IsVisibleWith(uint32_t layerBits) const { return layerBits & visibleLayerMask_; }
+		inline uint32_t GetVisibleLayerMask() const { return visibleLayerMask_; }
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		inline static const ComponentType IntrinsicType = ComponentType::LAYERDMASk;
 	};
 
 #define FLAG_SETTER(FLAG, FLAG_ENUM) enabled ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
@@ -1234,6 +1244,8 @@ namespace vz
 			MESH_RENDERABLE,
 			VOLUME_RENDERABLE,
 			GSPLAT_RENDERABLE,
+			SPRITE_RENDERABLE,
+			SPRITEFONT_RENDERABLE,
 			ALLTYPES_RENDERABLE,
 		};
 	private:
@@ -1241,9 +1253,6 @@ namespace vz
 		RenderableType renderableType_ = RenderableType::UNDEFINED;
 		RenderableType renderableReservedType_ = RenderableType::ALLTYPES_RENDERABLE;
 
-		// Renderable's layer mask; 
-		// final visibility determined by bitwise AND with target visibleLayerMask_ (e.g., CameraComponent::visibleLayerMask_)
-		uint32_t visibleLayerMask_ = 0x1;	// will be checked against each CameraComponent's layer using bitwise AND
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
 
@@ -1297,10 +1306,6 @@ namespace vz
 		inline void SetGeometry(const Entity geometryEntity);
 		inline void SetMaterial(const Entity materialEntity, const size_t slot);
 		inline void SetMaterials(const std::vector<Entity>& materials);
-		inline void SetVisibleLayerMask(const uint32_t visibleLayerMask) { visibleLayerMask_ = visibleLayerMask; timeStampSetter_ = TimerNow; }
-		inline void SetVisibleLayer(const bool visible, const uint32_t layerBits) {
-			visible ? visibleLayerMask_ |= layerBits : visibleLayerMask_ &= ~layerBits; timeStampSetter_ = TimerNow;
-		}
 
 		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= RenderableFlags::CLIP_BOX : flags_ &= ~RenderableFlags::CLIP_BOX;
@@ -1328,8 +1333,6 @@ namespace vz
 		}
 		inline bool IsSlicerSolidFill() const { return !(flags_ & RenderableFlags::SLICER_NO_SOLID_FILL); };
 
-		inline bool IsVisibleWith(uint32_t layerBits) const { return layerBits & visibleLayerMask_; }
-		inline uint32_t GetVisibleLayerMask() const { return visibleLayerMask_; }
 		inline float GetFadeDistance() const { return fadeDistance_; }
 		inline float GetVisibleRadius() const { return visibleRadius_; }
 		inline XMFLOAT3 GetVisibleCenter() const { return visibleCenter_; }
@@ -1826,7 +1829,6 @@ namespace vz
 		float width_ = 0.0f;
 		float height_ = 0.0f;
 
-		uint32_t visibleLayerMask_ = ~0u;
 		uint32_t flags_ = CamFlags::EMPTY;
 
 		DVR_TYPE dvrType_ = DVR_TYPE::DEFAULT;
@@ -1864,11 +1866,6 @@ namespace vz
 
 		inline void SetDirty() { isDirty_ = true; }
 		inline bool IsDirty() const { return isDirty_; }
-		inline uint32_t GetVisibleLayerMask() const { return visibleLayerMask_; }
-		inline void SetVisibleLayerMask(const uint32_t visibleLayerMask) { visibleLayerMask_ = visibleLayerMask; timeStampSetter_ = TimerNow; }
-		inline void SetVisibleLayer(const bool visible, const uint32_t layerBits) {
-			visible ? visibleLayerMask_ |= layerBits : visibleLayerMask_ &= ~layerBits; timeStampSetter_ = TimerNow;
-		}
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
 		inline bool SetWorldLookAtFromHierarchyTransforms();
 		inline void SetWorldLookTo(const XMFLOAT3& eye, const XMFLOAT3& view, const XMFLOAT3& up) {
@@ -2034,6 +2031,7 @@ namespace vz::compfactory
 	CORE_EXPORT NameComponent* GetNameComponent(const Entity entity);
 	CORE_EXPORT TransformComponent* GetTransformComponent(const Entity entity);
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponent(const Entity entity);
+	CORE_EXPORT LayeredMaskComponent* GetLayeredMaskComponent(const Entity entity);
 	CORE_EXPORT ColliderComponent* GetColliderComponent(const Entity entity);
 	CORE_EXPORT MaterialComponent* GetMaterialComponent(const Entity entity);
 	CORE_EXPORT GeometryComponent* GetGeometryComponent(const Entity entity);
@@ -2062,6 +2060,7 @@ namespace vz::compfactory
 	CORE_EXPORT bool ContainNameComponent(const Entity entity);
 	CORE_EXPORT bool ContainTransformComponent(const Entity entity);
 	CORE_EXPORT bool ContainHierarchyComponent(const Entity entity);
+	CORE_EXPORT bool ContainLayeredMaskComponent(const Entity entity);
 	CORE_EXPORT bool ContainColliderComponent(const Entity entity);
 	CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
 	CORE_EXPORT bool ContainGeometryComponent(const Entity entity);

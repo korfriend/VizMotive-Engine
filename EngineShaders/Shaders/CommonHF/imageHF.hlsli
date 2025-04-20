@@ -44,17 +44,18 @@ struct VertextoPixel
 
 			// Solve for v
 			float2 uv;
-			if (abs(A) < 0.001)
-			{
-				// Linear form
-				uv.y = -C / B;
-			}
-			else
-			{
-				// Quadratic form. Take positive root for CCW winding with V-up
-				float discrim = B * B - 4 * A * C;
-				uv.y = 0.5 * (-B + sqrt(discrim)) / A;
-			}
+			//if (abs(A) < 0.001)
+			//{
+			//	// Linear form
+			//	uv.y = -C / B;
+			//}
+			//else
+			//{
+			//	// Quadratic form. Take positive root for CCW winding with V-up
+			//	float discrim = B * B - 4 * A * C;
+			//	uv.y = 0.5 * (-B + sqrt(discrim)) / A;
+			//}
+			uv.y = -C / B;
 
 			// Solve for u, using largest-magnitude component
 			float2 denom = b1 + uv.y * b3;
