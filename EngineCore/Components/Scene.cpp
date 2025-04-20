@@ -47,41 +47,25 @@ namespace vz
 		//		* transform states are based on those streams
 		//		* each entity has also TransformComponent and HierarchyComponent
 		//	index-map
-		std::unordered_map<Entity, size_t> lookupRenderables;
-		std::unordered_map<Entity, size_t> lookupSprites;
-		std::unordered_map<Entity, size_t> lookupSpriteFonts;
-		std::unordered_map<Entity, size_t> lookupLights;
-		std::unordered_map<Entity, size_t> lookupCameras;
-		std::unordered_map<Entity, size_t> lookupChildren;
+		std::unordered_map<Entity, uint32_t> lookupRenderables; // All types of renderables
+		std::unordered_map<Entity, uint32_t> lookupMeshRenderables;
+		std::unordered_map<Entity, uint32_t> lookupVolumeRenderables;
+		std::unordered_map<Entity, uint32_t> lookupGSplatRenderables;
+		std::unordered_map<Entity, uint32_t> lookupSpriteRenderables;
+		std::unordered_map<Entity, uint32_t> lookupSpritefontRenderables;
+		std::unordered_map<Entity, uint32_t> lookupLights;
+		std::unordered_map<Entity, uint32_t> lookupCameras;
+		std::unordered_map<Entity, uint32_t> lookupChildren;
 
 		// AABB culling streams:
 		std::vector<geometrics::AABB> aabbRenderables;
 		std::vector<geometrics::AABB> aabbLights;
 		//std::vector<geometrics::AABB> aabbProbes_;
 		//std::vector<geometrics::AABB> aabbDecals_;
+		std::vector<geometrics::AABB> parallelBounds;
 
 		std::atomic<uint32_t> geometryAllocator{ 0 }; // for Geometry::Primitive
 		std::atomic<uint32_t> instanceResLookupAllocator{ 0 };
-
-		// cache for linearized components arrary to avoid compfactory::Get...Component
-		std::vector<GRenderableComponent*> renderableComponents;
-		std::vector<GSpriteComponent*> spriteComponents;
-		std::vector<GSpriteFontComponent*> spritefontComponents;
-		std::vector<GGeometryComponent*> geometryComponents;
-		std::vector<GMaterialComponent*> materialComponents;
-		std::vector<GCameraComponent*> cameraComponents;
-		std::vector<GLightComponent*> lightComponents;
-
-		const std::vector<GRenderableComponent*>& GetRenderableComponents() const override { return renderableComponents; }
-		const std::vector<GSpriteComponent*>& GetSpriteComponents() const override { return spriteComponents; }
-		const std::vector<GSpriteFontComponent*>& GetSpriteFontComponents() const override { return spritefontComponents; }
-		const std::vector<GGeometryComponent*>& GetGeometryComponents() const override { return geometryComponents; }
-		const std::vector<GMaterialComponent*>& GetMaterialComponents() const override { return materialComponents; }
-		const std::vector<GCameraComponent*>& GetCameraComponents() const override { return cameraComponents; }
-		const std::vector<GLightComponent*>& GetLightComponents() const override { return lightComponents; }
-
-		const uint32_t GetGeometryPrimitivesAllocatorSize() const override { return geometryAllocator.load(); }
-		const uint32_t GetRenderableResLookupAllocatorSize() const override { return instanceResLookupAllocator.load(); }
 
 		// Separate stream of world matrices:
 		std::vector<XMFLOAT4X4> matrixRenderables;
@@ -96,32 +80,58 @@ namespace vz
 		std::atomic<uint32_t> counterRenderable_Mesh;
 		std::atomic<uint32_t> counterRenderable_Volume;
 		std::atomic<uint32_t> counterRenderable_GSplat;
+		std::atomic<uint32_t> counterRenderable_Sprite;
+		std::atomic<uint32_t> counterRenderable_Spritefont;
 
-		// AABB culling streams:
-		std::vector<geometrics::AABB> parallelBounds;
-		//std::vector<primitive::AABB> aabbRenderables;
-		//std::vector<primitive::AABB> aabbLights;
+		// cache for linearized components arrary to avoid compfactory::Get...Component
+		std::vector<GRenderableComponent*> renderableComponents;
+		std::vector<GRenderableComponent*> renderableMeshComponents;
+		std::vector<GRenderableComponent*> renderableVolumeComponents;
+		std::vector<GRenderableComponent*> renderableGSplatComponents;
+		std::vector<GRenderableComponent*> renderableSpriteComponents;
+		std::vector<GRenderableComponent*> renderableSpritefontComponents;
+		std::vector<GGeometryComponent*> geometryComponents;
+		std::vector<GMaterialComponent*> materialComponents;
+		std::vector<GCameraComponent*> cameraComponents;
+		std::vector<GLightComponent*> lightComponents;
+
+		const std::vector<GRenderableComponent*>& GetRenderableComponents() const override { return renderableComponents; }
+		const std::vector<GRenderableComponent*>& GetRenderableMeshComponents() const override { return renderableMeshComponents; }
+		const std::vector<GRenderableComponent*>& GetRenderableVolumeComponents() const override { return renderableVolumeComponents; }
+		const std::vector<GRenderableComponent*>& GetRenderableGSplatComponents() const override { return renderableGSplatComponents; }
+		const std::vector<GRenderableComponent*>& GetRenderableSpriteComponents() const override { return renderableSpriteComponents; }
+		const std::vector<GRenderableComponent*>& GetRenderableSpritefontComponents() const override { return renderableSpritefontComponents; }
+		const std::vector<GGeometryComponent*>& GetGeometryComponents() const override { return geometryComponents; }
+		const std::vector<GMaterialComponent*>& GetMaterialComponents() const override { return materialComponents; }
+		const std::vector<GCameraComponent*>& GetCameraComponents() const override { return cameraComponents; }
+		const std::vector<GLightComponent*>& GetLightComponents() const override { return lightComponents; }
+
+		const uint32_t GetGeometryPrimitivesAllocatorSize() const override { return geometryAllocator.load(); }
+		const uint32_t GetRenderableResLookupAllocatorSize() const override { return instanceResLookupAllocator.load(); }
 
 		void RunTransformUpdateSystem(jobsystem::context& ctx)
 		{
-			auto updateLocal = [&](std::vector<Entity>& transformEntities) {
-				jobsystem::Dispatch(ctx, (uint32_t)transformEntities.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			jobsystem::Dispatch(ctx, (uint32_t)transforms_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-					TransformComponent* transform = compfactory::GetTransformComponent(transformEntities[args.jobIndex]);
-					transform->UpdateMatrix();
+				Entity entity = transforms_[args.jobIndex];
+				TransformComponent* transform = compfactory::GetTransformComponent(entity);
+				transform->UpdateMatrix();
 
-					if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
+				if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
+				{
+					isContentChanged_ = true;
+				}
+
+				LayeredMaskComponent* layeredmask = compfactory::GetLayeredMaskComponent(entity);
+				if (layeredmask)
+				{
+					if (TimeDurationCount(layeredmask->GetTimeStamp(), recentUpdateTime_) > 0)
 					{
 						isContentChanged_ = true;
 					}
+				}
 
-					});
-				};
-
-			updateLocal(renderables_);
-			updateLocal(sprites_);
-			updateLocal(spriteFonts_);
-
+				});
 		}
 		void RunRenderableUpdateSystem(jobsystem::context& ctx)
 		{
@@ -133,14 +143,80 @@ namespace vz
 			matrixRenderables.resize(num_renderables);
 			matrixRenderablesPrev.resize(num_renderables);
 			aabbRenderables.resize(num_renderables);
+
 			renderableComponents.resize(num_renderables);
+			renderableMeshComponents.resize(num_renderables);
+			renderableVolumeComponents.resize(num_renderables);
+			renderableGSplatComponents.resize(num_renderables);
+			renderableSpriteComponents.resize(num_renderables);
+			renderableSpritefontComponents.resize(num_renderables);
 
 			counterRenderable_Mesh.store(0);
 			counterRenderable_Volume.store(0);
 			counterRenderable_GSplat.store(0);
+			counterRenderable_Sprite.store(0);
+			counterRenderable_Spritefont.store(0);
 
 			instanceResLookupAllocator.store(0u);
+
 			jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+				auto updateSprite = [&](GRenderableComponent* renderable) {
+
+					GSpriteComponent* sprite = (GSpriteComponent*)compfactory::GetSpriteComponent(renderable->GetEntity());
+					renderable->sprite = sprite;
+
+					sprite->W = XMLoadFloat4x4(&renderable->transform->GetWorldMatrix());
+					XMVECTOR P = XMLoadFloat3(&sprite->GetPosition());
+					P = XMVector3TransformCoord(P, sprite->W);
+					XMStoreFloat3(&sprite->posW, P);
+					if (sprite->IsCameraFacing())
+					{
+						XMVECTOR S, R, T;
+						XMMatrixDecompose(&S, &R, &T, sprite->W);
+
+						XMStoreFloat3(&sprite->scaleW, S);
+						XMStoreFloat3(&sprite->translateW, T);
+					}
+
+					if (TimeDurationCount(sprite->GetTimeStamp(), recentUpdateTime_) > 0)
+					{
+						isContentChanged_ = true;
+					}
+
+					sprite->texture = (GTextureComponent*)compfactory::GetTextureComponentByVUID(sprite->GetSpriteTextureVUID());
+					if (sprite->texture)
+					{
+						if (TimeDurationCount(sprite->texture->GetTimeStamp(), recentUpdateTime_) > 0)
+						{
+							isContentChanged_ = true;
+						}
+					}
+					};
+
+				auto updateSpriteFont = [&](GRenderableComponent* renderable) {
+
+					GSpriteFontComponent* font = (GSpriteFontComponent*)compfactory::GetSpriteFontComponent(renderable->GetEntity());
+					renderable->spritefont = font;
+
+					font->W = XMLoadFloat4x4(&renderable->transform->GetWorldMatrix());
+					XMVECTOR P = XMLoadFloat3(&font->GetPosition());
+					P = XMVector3TransformCoord(P, font->W);
+					XMStoreFloat3(&font->posW, P);
+					if (font->IsCameraFacing())
+					{
+						XMVECTOR S, R, T;
+						XMMatrixDecompose(&S, &R, &T, font->W);
+
+						XMStoreFloat3(&font->scaleW, S);
+						XMStoreFloat3(&font->translateW, T);
+					}
+
+					if (TimeDurationCount(font->GetTimeStamp(), recentUpdateTime_) > 0)
+					{
+						isContentChanged_ = true;
+					}
+					};
 
 				Entity entity = renderables_[args.jobIndex];
 
@@ -153,6 +229,7 @@ namespace vz
 				renderableComponents[args.jobIndex] = renderable;
 				renderable->renderableIndex = args.jobIndex;
 				renderable->transform = transform;
+				renderable->layeredmask = compfactory::GetLayeredMaskComponent(entity);
 				Entity geometry_entity = renderable->GetGeometry();
 				renderable->geometry = geometry_entity == INVALID_ENTITY ? nullptr : (GGeometryComponent*)compfactory::GetGeometryComponent(renderable->GetGeometry());
 				std::vector<Entity> material_entities = renderable->GetMaterials();
@@ -177,7 +254,8 @@ namespace vz
 				{
 					return;
 				}
-				renderable->resLookupIndex = instanceResLookupAllocator.fetch_add(num_materials);
+				// num_materials refers to the number of shaders
+				renderable->resLookupIndex = instanceResLookupAllocator.fetch_add(num_materials); // note Sprite/Font has no material
 
 				AABB aabb = renderable->GetAABB();
 				aabbRenderables[args.jobIndex] = aabb;
@@ -239,93 +317,28 @@ namespace vz
 				switch (renderable_type)
 				{
 				case RenderableType::MESH_RENDERABLE:
-					counterRenderable_Mesh.fetch_add(1, std::memory_order_relaxed); break;
+					renderableMeshComponents[counterRenderable_Mesh.fetch_add(1, std::memory_order_relaxed)] = renderable; 
+					break;
 				case RenderableType::VOLUME_RENDERABLE:
-					counterRenderable_Volume.fetch_add(1, std::memory_order_relaxed); break;
+					renderableVolumeComponents[counterRenderable_Volume.fetch_add(1, std::memory_order_relaxed)] = renderable; 
+					break;
 				case RenderableType::GSPLAT_RENDERABLE:
-					counterRenderable_GSplat.fetch_add(1, std::memory_order_relaxed); break;
+					renderableGSplatComponents[counterRenderable_GSplat.fetch_add(1, std::memory_order_relaxed)] = renderable; 
+					break;
+				case RenderableType::SPRITE_RENDERABLE:
+					renderableSpriteComponents[counterRenderable_Sprite.fetch_add(1, std::memory_order_relaxed)] = renderable; 
+					updateSprite(renderable);
+					break;
+				case RenderableType::SPRITEFONT_RENDERABLE:
+					renderableSpritefontComponents[counterRenderable_Spritefont.fetch_add(1, std::memory_order_relaxed)] = renderable;
+					updateSpriteFont(renderable);
+					break;
 				default:
 					vzlog_assert(0, "MUST BE RENDERABLE!"); return;
 				}
 
 
 				}, sizeof(geometrics::AABB));
-		}
-		void RunSpriteUpdateSystem(jobsystem::context& ctx)
-		{
-			uint32_t num_sprites = (uint32_t)sprites_.size();
-			spriteComponents.resize(num_sprites);
-
-			jobsystem::Dispatch(ctx, num_sprites, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-				Entity entity = sprites_[args.jobIndex];
-				GSpriteComponent* sprite = (GSpriteComponent*)compfactory::GetSpriteComponent(entity);
-				sprite->spriteIndex = args.jobIndex;
-				spriteComponents[args.jobIndex] = sprite;
-				TransformComponent* transform = compfactory::GetTransformComponent(entity);
-				assert(transform);
-				transform->UpdateWorldMatrix();
-
-				sprite->W = XMLoadFloat4x4(&transform->GetWorldMatrix());
-				XMVECTOR P = XMLoadFloat3(&sprite->GetPosition());
-				P = XMVector3TransformCoord(P, sprite->W);
-				XMStoreFloat3(&sprite->posW, P);
-				if (sprite->IsCameraFacing())
-				{
-					XMVECTOR S, R, T;
-					XMMatrixDecompose(&S, &R, &T, sprite->W);
-
-					XMStoreFloat3(&sprite->scaleW, S);
-					XMStoreFloat3(&sprite->translateW, T);
-				}
-
-				if (TimeDurationCount(sprite->GetTimeStamp(), recentUpdateTime_) > 0)
-				{
-					isContentChanged_ = true;
-				}
-
-				sprite->texture = (GTextureComponent*)compfactory::GetTextureComponentByVUID(sprite->GetSpriteTextureVUID());
-				if (sprite->texture)
-				{
-					if (TimeDurationCount(sprite->texture->GetTimeStamp(), recentUpdateTime_) > 0)
-					{
-						isContentChanged_ = true;
-					}
-				}
-
-				});
-		}
-		void RunSpriteFontUpdateSystem(jobsystem::context& ctx)
-		{
-			uint32_t num_fonts = (uint32_t)spriteFonts_.size();
-			spritefontComponents.resize(num_fonts);
-			jobsystem::Dispatch(ctx, num_fonts, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
-				Entity entity = spriteFonts_[args.jobIndex];
-				GSpriteFontComponent* font = (GSpriteFontComponent*)compfactory::GetSpriteFontComponent(entity);
-				font->spritefontIndex = args.jobIndex;
-				spritefontComponents[args.jobIndex] = font;
-				TransformComponent* transform = compfactory::GetTransformComponent(entity);
-				assert(transform);
-				transform->UpdateWorldMatrix();
-
-				font->W = XMLoadFloat4x4(&transform->GetWorldMatrix());
-				XMVECTOR P = XMLoadFloat3(&font->GetPosition());
-				P = XMVector3TransformCoord(P, font->W);
-				XMStoreFloat3(&font->posW, P);
-				if (font->IsCameraFacing())
-				{
-					XMVECTOR S, R, T;
-					XMMatrixDecompose(&S, &R, &T, font->W);
-
-					XMStoreFloat3(&font->scaleW, S);
-					XMStoreFloat3(&font->translateW, T);
-				}
-
-				if (TimeDurationCount(font->GetTimeStamp(), recentUpdateTime_) > 0)
-				{
-					isContentChanged_ = true;
-				}
-
-				});
 		}
 		void RunLightUpdateSystem(jobsystem::context& ctx)
 		{
@@ -342,6 +355,7 @@ namespace vz
 				assert(light);
 				lightComponents[args.jobIndex] = light;
 				light->lightIndex = args.jobIndex;
+				light->layeredmask = compfactory::GetLayeredMaskComponent(entity);
 				light->Update();	// AABB
 
 				if (TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0)
@@ -467,6 +481,81 @@ namespace vz
 			return &resource.GetTexture();
 		}
 
+		template<typename T>
+		void removeEntityLinearArray(std::unordered_map<Entity, uint32_t>& lookup, std::vector<Entity>& linearArray, std::vector<T*>& linearCompArray, Entity entity)
+		{
+			auto it = lookup.find(entity);
+			if (it != lookup.end())
+			{
+				size_t index = it->second;
+				lookup.erase(it);
+
+				if (index != linearArray.size() - 1 && linearArray.size() > 0)
+				{
+					Entity last_entity = linearArray.back();
+					linearArray[index] = last_entity;
+					lookup[last_entity] = index;
+				}
+				linearArray.pop_back();
+
+				if (index != linearCompArray.size() - 1 && linearCompArray.size() > 0)
+				{
+					auto comp = linearCompArray.back();
+					Entity last_entity = comp->GetEntity();
+					linearCompArray[index] = comp;
+					lookup[last_entity] = index;
+				}
+				linearCompArray.pop_back();
+			}
+		}
+
+		void Remove(const Entity entity) override
+		{
+			auto remove_entity = [](std::unordered_map<Entity, uint32_t>& lookup, std::vector<Entity>& linearArray, Entity entity)
+				{
+					auto it = lookup.find(entity);
+					if (it != lookup.end())
+					{
+						size_t index = it->second;
+						lookup.erase(it);
+
+						if (index != linearArray.size() - 1)
+						{
+							Entity last_entity = linearArray.back();
+							linearArray[index] = last_entity;
+							lookup[last_entity] = index;
+						}
+						linearArray.pop_back();
+					}
+				};
+
+			remove_entity(lookupTransforms_, transforms_, entity);
+			remove_entity(lookupRenderables, renderables_, entity);
+			remove_entity(lookupLights, lights_, entity);
+			remove_entity(lookupCameras, cameras_, entity);
+
+			remove_entity(lookupChildren, children_, entity);
+
+			// others will be updated via Update()
+
+			timeStampSetter_ = TimerNow;
+
+			//removeEntityLinearArray(lookupTransforms_, transforms_, std::vector<ComponentBase*>(), entity);
+			//removeEntityLinearArray(DOWNCAST->lookupRenderables, renderables_, renderableMeshComponents, entity);
+			//removeEntityLinearArray(DOWNCAST->lookupLights, lights_, lightComponents, entity);
+			//removeEntityLinearArray(DOWNCAST->lookupCameras, cameras_, cameraComponents, entity);
+			//
+			//removeEntityLinearArray(DOWNCAST->lookupMeshRenderables, std::vector<Entity>(), renderableMeshComponents, entity);
+			//removeEntityLinearArray(DOWNCAST->lookupVolumeRenderables, std::vector<Entity>(), renderableVolumeComponents, entity);
+			//removeEntityLinearArray(DOWNCAST->lookupGSplatRenderables, std::vector<Entity>(), renderableGSplatComponents, entity);
+			//removeEntityLinearArray(DOWNCAST->lookupSpriteRenderables, std::vector<Entity>(), renderableSpriteComponents, entity);
+			//removeEntityLinearArray(DOWNCAST->lookupSpritefontRenderables, std::vector<Entity>(), renderableSpritefontComponents, entity);
+			//
+			//removeEntityLinearArray(DOWNCAST->lookupChildren, children_, std::vector<ComponentBase*>(), entity);
+
+			timeStampSetter_ = TimerNow;
+		}
+
 		void Update(const float dt) override
 		{
 			isContentChanged_ = false;
@@ -499,33 +588,19 @@ namespace vz
 
 			jobsystem::context ctx;
 
-			// TODO:
-			// * need to consider the scene update time (timestamp)
-			//		to avoid unnecessary execution of update systems
-
-			{
-				// CHECK if skipping is available
-				// check all renderables update time (and their components) //
-				// check all lights update time 
-				// check scene's update time
-				//		compared to
-				//		recentUpdateTime_
-				// if no changes, then skip this update process
-			}
-
-			// TODO:
-			// * if the following ctx per dependency has just one job,
-			//		it would be better use a single thread code without jobsystem
-
 			RunTransformUpdateSystem(ctx);
 			jobsystem::Wait(ctx); // dependencies
 			RunRenderableUpdateSystem(ctx);
-			RunSpriteUpdateSystem(ctx);
-			RunSpriteFontUpdateSystem(ctx);
 			RunLightUpdateSystem(ctx);
 			RunGeometryUpdateSystem(ctx);
 			RunMaterialUpdateSystem(ctx);
 			jobsystem::Wait(ctx); // dependencies
+
+			renderableMeshComponents.resize(counterRenderable_Mesh.load());
+			renderableVolumeComponents.resize(counterRenderable_Volume.load());
+			renderableGSplatComponents.resize(counterRenderable_GSplat.load());
+			renderableSpriteComponents.resize(counterRenderable_Sprite.load());
+			renderableSpritefontComponents.resize(counterRenderable_Spritefont.load());
 
 			// Merge parallel bounds computation (depends on object update system):
 			aabb_ = AABB();
@@ -577,9 +652,8 @@ namespace vz
 {
 	void Scene::Clear()
 	{
+		transforms_.clear();
 		renderables_.clear();
-		sprites_.clear();
-		spriteFonts_.clear();
 		lights_.clear();
 		cameras_.clear();
 
@@ -587,101 +661,97 @@ namespace vz
 		materials_.clear();
 		geometries_.clear();
 
-		lookupEntities_.clear();
+		lookupTransforms_.clear();
 
 		DOWNCAST->lookupRenderables.clear();
-		DOWNCAST->lookupSprites.clear();
-		DOWNCAST->lookupSpriteFonts.clear();
+		DOWNCAST->lookupMeshRenderables.clear();
+		DOWNCAST->lookupVolumeRenderables.clear();
+		DOWNCAST->lookupGSplatRenderables.clear();
+		DOWNCAST->lookupSpriteRenderables.clear();
+		DOWNCAST->lookupSpritefontRenderables.clear();
 		DOWNCAST->lookupLights.clear();
 		DOWNCAST->lookupCameras.clear();
+		DOWNCAST->lookupChildren.clear();
 
 		DOWNCAST->aabbRenderables.clear();
 		DOWNCAST->aabbLights.clear();
-		//scene_details->aabbDecals.clear();
-		//
+		DOWNCAST->parallelBounds.clear();
+
+		DOWNCAST->geometryAllocator.store(0);
+		DOWNCAST->instanceResLookupAllocator.store(0);
+
 		DOWNCAST->matrixRenderables.clear();
 		DOWNCAST->matrixRenderablesPrev.clear();
+		DOWNCAST->skyMap.reset();
+		DOWNCAST->colorGradingMap.reset();
+
+		DOWNCAST->counterRenderable_Mesh.store(0);
+		DOWNCAST->counterRenderable_Volume.store(0);
+		DOWNCAST->counterRenderable_GSplat.store(0);
+
+		DOWNCAST->renderableMeshComponents.clear();
+		DOWNCAST->renderableVolumeComponents.clear();
+		DOWNCAST->renderableGSplatComponents.clear();
+		DOWNCAST->renderableSpriteComponents.clear();
+		DOWNCAST->renderableSpritefontComponents.clear();
+		DOWNCAST->geometryComponents.clear();
+		DOWNCAST->materialComponents.clear();
+		DOWNCAST->cameraComponents.clear();
+		DOWNCAST->lightComponents.clear();
 	}
 
 	void Scene::AddEntity(const Entity entity)
 	{
+		TransformComponent* transform = compfactory::GetTransformComponent(entity);
+		if (transform == nullptr || lookupTransforms_.find(entity) != lookupTransforms_.end())
+		{
+			vzlog_error("Scene::Invalid Entity, No Transform Entity (%llu)", entity);
+			return;
+		}
+
 		bool is_attached = false;
 		ComponentBase* comp = nullptr;
 
-		std::unordered_map<Entity, size_t>& lookupRenderables = DOWNCAST->lookupRenderables;
-		std::unordered_map<Entity, size_t>& lookupSprites = DOWNCAST->lookupSprites;
-		std::unordered_map<Entity, size_t>& lookupSpriteFonts = DOWNCAST->lookupSpriteFonts;
-		std::unordered_map<Entity, size_t>& lookupLights = DOWNCAST->lookupLights;
-		std::unordered_map<Entity, size_t>& lookupCameras = DOWNCAST->lookupCameras;
-		std::unordered_map<Entity, size_t>& lookupChildren = DOWNCAST->lookupChildren;
+		std::unordered_map<Entity, uint32_t>& lookupRenderables = DOWNCAST->lookupRenderables;
+		//std::unordered_map<Entity, uint32_t>& lookupMeshRenderables = DOWNCAST->lookupMeshRenderables;
+		//std::unordered_map<Entity, uint32_t>& lookupVolumeRenderables = DOWNCAST->lookupVolumeRenderables;
+		//std::unordered_map<Entity, uint32_t>& lookupGSplatRenderables = DOWNCAST->lookupGSplatRenderables;
+		//std::unordered_map<Entity, uint32_t>& lookupSpriteRenderables = DOWNCAST->lookupSpriteRenderables;
+		//std::unordered_map<Entity, uint32_t>& lookupSpritefontRenderables = DOWNCAST->lookupSpritefontRenderables;
+		std::unordered_map<Entity, uint32_t>& lookupLights = DOWNCAST->lookupLights;
+		std::unordered_map<Entity, uint32_t>& lookupCameras = DOWNCAST->lookupCameras;
+		std::unordered_map<Entity, uint32_t>& lookupChildren = DOWNCAST->lookupChildren;
 
-		if (compfactory::ContainRenderableComponent(entity))
+		RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
+		lookupTransforms_[entity] = transforms_.size();
+		transforms_.push_back(entity);
+		if (renderable)
 		{
-			if (lookupRenderables.count(entity) == 0)
-			{
-				lookupRenderables[entity] = renderables_.size();
-				renderables_.push_back(entity);
-				is_attached = true;
-				assert(lookupEntities_.find(entity) == lookupEntities_.end());
-				lookupEntities_[entity] = compfactory::GetRenderableComponent(entity);
-			}
-		}
-		else if (compfactory::ContainSpriteComponent(entity))
-		{
-			if (lookupSprites.count(entity) == 0)
-			{
-				lookupSprites[entity] = sprites_.size();
-				sprites_.push_back(entity);
-				is_attached = true;
-				assert(lookupEntities_.find(entity) == lookupEntities_.end());
-				lookupEntities_[entity] = compfactory::GetSpriteComponent(entity);
-			}
-		}
-		else if (compfactory::ContainSpriteFontComponent(entity))
-		{
-			if (lookupSpriteFonts.count(entity) == 0)
-			{
-				lookupSpriteFonts[entity] = spriteFonts_.size();
-				spriteFonts_.push_back(entity);
-				is_attached = true;
-				assert(lookupEntities_.find(entity) == lookupEntities_.end());
-				lookupEntities_[entity] = compfactory::GetSpriteFontComponent(entity);
-			}
+			assert(lookupRenderables.count(entity) == 0);
+			lookupRenderables[entity] = renderables_.size();
+			renderables_.push_back(entity);
 		}
 		else if (compfactory::ContainLightComponent(entity))
 		{
-			if (lookupLights.count(entity) == 0)
-			{
-				lookupLights[entity] = renderables_.size();
-				lights_.push_back(entity);
-				is_attached = true;
-				assert(lookupEntities_.find(entity) == lookupEntities_.end());
-				lookupEntities_[entity] = compfactory::GetLightComponent(entity);
-			}
+			assert(lookupLights.count(entity) == 0);
+			lookupLights[entity] = lights_.size();
+			lights_.push_back(entity);
 		}
 		else if (compfactory::ContainCameraComponent(entity))
 		{
-			if (lookupCameras.count(entity) == 0)
-			{
-				lookupCameras[entity] = cameras_.size();
-				cameras_.push_back(entity);
-				is_attached = true;
-				assert(lookupEntities_.find(entity) == lookupEntities_.end());
-				lookupEntities_[entity] = compfactory::GetCameraComponent(entity);
-			}
+			assert(lookupCameras.count(entity) == 0);
+			lookupCameras[entity] = cameras_.size();
+			cameras_.push_back(entity);
 		}
 
-		if (is_attached)
+		HierarchyComponent* hierarchy = compfactory::GetHierarchyComponent(entity);
+		assert(hierarchy);
+		if (hierarchy->GetParent() == INVALID_VUID)
 		{
-			HierarchyComponent* hierarchy = compfactory::GetHierarchyComponent(entity);
-			assert(hierarchy);
-			if (hierarchy->GetParent() == INVALID_VUID)
-			{
-				lookupChildren[entity] = children_.size();
-				children_.push_back(entity);
-			}
-			timeStampSetter_ = TimerNow;
+			lookupChildren[entity] = children_.size();
+			children_.push_back(entity);
 		}
+		timeStampSetter_ = TimerNow;
 	}
 	
 	void Scene::AddEntities(const std::vector<Entity>& entities)
@@ -690,37 +760,6 @@ namespace vz
 		{
 			AddEntity(ett); // isDirty_ = true;
 		}
-	}
-
-	void Scene::Remove(const Entity entity)
-	{
-		auto remove_entity = [](std::unordered_map<Entity, size_t>& lookup, std::vector<Entity>& linearArray, Entity entity)
-			{
-				auto it = lookup.find(entity);
-				if (it != lookup.end())
-				{
-					size_t index = it->second;
-					lookup.erase(it);
-
-					if (index != linearArray.size() - 1)
-					{
-						Entity last_entity = linearArray.back();
-						linearArray[index] = last_entity;
-						lookup[last_entity] = index;
-					}
-					linearArray.pop_back();
-				}
-			};
-
-		remove_entity(DOWNCAST->lookupRenderables, renderables_, entity);
-		remove_entity(DOWNCAST->lookupSprites, sprites_, entity);
-		remove_entity(DOWNCAST->lookupSpriteFonts, spriteFonts_, entity);
-		remove_entity(DOWNCAST->lookupLights, lights_, entity);
-		remove_entity(DOWNCAST->lookupCameras, cameras_, entity);
-
-		remove_entity(DOWNCAST->lookupChildren, children_, entity);
-
-		timeStampSetter_ = TimerNow;
 	}
 
 	void Scene::RemoveEntities(const std::vector<Entity>& entities)
@@ -1465,6 +1504,17 @@ namespace vz
 			archive >> skyMapName_;
 			archive >> colorGradingMapName_;
 
+			size_t num_transforms;
+			archive >> num_transforms;
+			for (size_t i = 0; i < num_transforms; ++i)
+			{
+				VUID vuid;
+				archive >> vuid;
+				Entity entity = compfactory::GetEntityByVUID(vuid);
+				assert(compfactory::ContainTransformComponent(entity));
+				AddEntity(entity);
+			}
+
 			size_t num_renderables;
 			archive >> num_renderables;
 			for (size_t i = 0; i < num_renderables; ++i)
@@ -1473,28 +1523,6 @@ namespace vz
 				archive >> vuid;
 				Entity entity = compfactory::GetEntityByVUID(vuid);
 				assert(compfactory::ContainRenderableComponent(entity));
-				AddEntity(entity);
-			}
-
-			size_t num_sprites;
-			archive >> num_sprites;
-			for (size_t i = 0; i < num_sprites; ++i)
-			{
-				VUID vuid;
-				archive >> vuid;
-				Entity entity = compfactory::GetEntityByVUID(vuid);
-				assert(compfactory::ContainSpriteComponent(entity));
-				AddEntity(entity);
-			}
-
-			size_t num_spriteFonts;
-			archive >> num_spriteFonts;
-			for (size_t i = 0; i < num_spriteFonts; ++i)
-			{
-				VUID vuid;
-				archive >> vuid;
-				Entity entity = compfactory::GetEntityByVUID(vuid);
-				assert(compfactory::ContainSpriteFontComponent(entity));
 				AddEntity(entity);
 			}
 
@@ -1529,24 +1557,17 @@ namespace vz
 			archive << skyMapName_;
 			archive << colorGradingMapName_;
 
+			archive << transforms_.size();
+			for (Entity entity : transforms_)
+			{
+				TransformComponent* comp = compfactory::GetTransformComponent(entity);
+				assert(comp);
+				archive << comp->GetVUID();
+			}
 			archive << renderables_.size();
 			for (Entity entity : renderables_)
 			{
 				RenderableComponent* comp = compfactory::GetRenderableComponent(entity);
-				assert(comp);
-				archive << comp->GetVUID();
-			}
-			archive << sprites_.size();
-			for (Entity entity : sprites_)
-			{
-				SpriteComponent* comp = compfactory::GetSpriteComponent(entity);
-				assert(comp);
-				archive << comp->GetVUID();
-			}
-			archive << spriteFonts_.size();
-			for (Entity entity : spriteFonts_)
-			{
-				SpriteFontComponent* comp = compfactory::GetSpriteFontComponent(entity);
 				assert(comp);
 				archive << comp->GetVUID();
 			}

@@ -22,8 +22,7 @@ namespace vz::renderer
 		for (uint32_t instanceIndex : viewMain.visibleRenderables_Mesh)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
-
-			if (!renderable.IsVisibleWith(viewMain.camera->GetVisibleLayerMask()))
+			if (!renderable.layeredmask->IsVisibleWith(viewMain.layeredmask->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
@@ -310,7 +309,7 @@ namespace vz::renderer
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 			if (renderable.GetRenderableType() != RenderableType::VOLUME_RENDERABLE)
 				continue;
-			if (!renderable.IsVisibleWith(viewMain.camera->GetVisibleLayerMask()))
+			if (!renderable.layeredmask->IsVisibleWith(((GCameraComponent*)viewMain.camera)->layeredmask->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;

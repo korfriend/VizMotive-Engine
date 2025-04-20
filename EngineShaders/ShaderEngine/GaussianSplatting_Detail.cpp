@@ -61,7 +61,7 @@ namespace vz::renderer
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 			assert(renderable.GetRenderableType() == RenderableType::GSPLAT_RENDERABLE);
-			if (!renderable.IsVisibleWith(viewMain.camera->GetVisibleLayerMask()))
+			if (!renderable.layeredmask->IsVisibleWith(viewMain.layeredmask->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;

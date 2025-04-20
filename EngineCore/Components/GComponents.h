@@ -468,7 +468,10 @@ namespace vz
 		// --- these will only be valid for a single frame: (supposed to be updated dynamically) ---
 		// ----- Temporal Items updated by Scene::Update
 		TransformComponent* transform = nullptr;
+		LayeredMaskComponent* layeredmask = nullptr;
 		GGeometryComponent* geometry = nullptr;
+		GSpriteComponent* sprite = nullptr;
+		GSpriteFontComponent* spritefont = nullptr;
 		std::vector<GMaterialComponent*> materials;
 		uint32_t renderableIndex = ~0u;	// current linear array of current rendering scene
 
@@ -492,8 +495,7 @@ namespace vz
 		GSpriteComponent(const Entity entity, const VUID vuid = 0) : SpriteComponent(entity, vuid) {}
 		virtual ~GSpriteComponent() = default;
 
-		GTextureComponent* texture;
-		uint32_t spriteIndex = ~0u;	// current linear array of current rendering scene
+		GTextureComponent* texture = nullptr;
 		XMFLOAT3 scaleW;
 		XMFLOAT3 translateW;
 		XMFLOAT3 posW;
@@ -506,8 +508,7 @@ namespace vz
 	public:
 		GSpriteFontComponent(const Entity entity, const VUID vuid = 0) : SpriteFontComponent(entity, vuid) {}
 		virtual ~GSpriteFontComponent() = default;
-		
-		uint32_t spritefontIndex = ~0u;	// current linear array of current rendering scene
+
 		XMFLOAT3 scaleW;
 		XMFLOAT3 translateW;
 		XMFLOAT3 posW;
@@ -555,6 +556,8 @@ namespace vz
 		GCameraInterface(Entity cameraEntity) : cameraEntity_(cameraEntity) {}
 		virtual ~GCameraInterface() = default;
 
+		TransformComponent* transform = nullptr;
+		LayeredMaskComponent* layeredmask = nullptr;
 		// temporal attributes for picking process 
 		// WILL BE DEPRECATED!!
 		bool isPickingMode = false;
@@ -565,7 +568,9 @@ namespace vz
 	{
 		GCameraComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(entity, vuid), GCameraInterface(entity) {}
 		virtual ~GCameraComponent() = default;
-		
+
+		TransformComponent* transform = nullptr;
+		LayeredMaskComponent* layeredmask = nullptr;
 		uint32_t cameraIndex = ~0u;	// current linear array of current rendering scene
 	};
 
@@ -584,6 +589,8 @@ namespace vz
 		GLightComponent(const Entity entity, const VUID vuid = 0) : LightComponent(entity, vuid) {}
 		virtual ~GLightComponent() = default;
 
+		TransformComponent* transform = nullptr;
+		LayeredMaskComponent* layeredmask = nullptr;
 		uint32_t lightIndex = ~0u;	// current linear array of current rendering scene
 		std::vector<float> cascadeDistances = { 8, 80, 800 };
 	};

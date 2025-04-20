@@ -18,6 +18,7 @@ namespace vz::compfactory
 	ComponentManager<NameComponent>& nameManager = componentLibrary.Register<NameComponent>("NAME");
 	ComponentManager<TransformComponent>& transformManager = componentLibrary.Register<TransformComponent>("TANSFORM");
 	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>("HIERARCHY");
+	ComponentManager<LayeredMaskComponent>& layeredmaskManager = componentLibrary.Register<LayeredMaskComponent>("LAYERDMASK");
 	ComponentManager<ColliderComponent>& colliderManager = componentLibrary.Register<ColliderComponent>("COLLIDER");
 
 	// ----- Graphics-related components -----
@@ -42,6 +43,7 @@ namespace vz::compfactory
 		case ComponentType::NAME: return nameManager.GetComponentByVUID(vuid);
 		case ComponentType::TRANSFORM: return transformManager.GetComponentByVUID(vuid);
 		case ComponentType::HIERARCHY: return hierarchyManager.GetComponentByVUID(vuid);
+		case ComponentType::LAYERDMASk: return layeredmaskManager.GetComponentByVUID(vuid);
 		case ComponentType::COLLIDER: return colliderManager.GetComponentByVUID(vuid);
 		case ComponentType::RENDERABLE: return renderableManager.GetComponentByVUID(vuid);
 		case ComponentType::SPRITE: return spriteManager.GetComponentByVUID(vuid);
@@ -110,6 +112,12 @@ namespace vz::compfactory
 		{
 			comp->SetParentByVUID(comp_parent->GetVUID());
 		}
+		return comp;
+	}
+	LayeredMaskComponent* CreateLayerdMaskComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		LayeredMaskComponent* comp = &layeredmaskManager.Create(entity_update);
 		return comp;
 	}
 	MaterialComponent* CreateMaterialComponent(const Entity entity)
@@ -191,6 +199,10 @@ namespace vz::compfactory
 	HierarchyComponent* GetHierarchyComponent(const Entity entity)
 	{
 		RETURN_GET_COMP(HierarchyComponent, hierarchyManager, entity);
+	}
+	LayeredMaskComponent* GetLayeredMaskComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(LayeredMaskComponent, layeredmaskManager, entity);
 	}
 	MaterialComponent* GetMaterialComponent(const Entity entity)
 	{
@@ -308,6 +320,10 @@ namespace vz::compfactory
 	{
 		return hierarchyManager.Contains(entity);
 	}
+	bool ContainLayeredMaskComponent(const Entity entity)
+	{
+		return layeredmaskManager.Contains(entity);
+	}
 	bool ContainColliderComponent(const Entity entity)
 	{
 		return colliderManager.Contains(entity);
@@ -361,6 +377,7 @@ namespace vz::compfactory
 		GET_COMP_BY_ENTITY(nameManager);
 		GET_COMP_BY_ENTITY(transformManager);
 		GET_COMP_BY_ENTITY(hierarchyManager);
+		GET_COMP_BY_ENTITY(layeredmaskManager);
 		GET_COMP_BY_ENTITY(colliderManager);
 		GET_COMP_BY_ENTITY(renderableManager);
 		GET_COMP_BY_ENTITY(spriteManager);

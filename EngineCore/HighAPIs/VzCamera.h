@@ -27,10 +27,6 @@ namespace vzm
 		VzCamera(const VID vid, const std::string& originFrom);
 		virtual ~VzCamera() = default;
 
-		void SetVisibleLayerMask(const uint32_t visibleLayerMask);
-		void SetVisibleLayer(const bool visible, const uint32_t layerBits);
-		uint32_t GetVisibleLayerMask() const;
-
 		// Pose parameters are defined in WS (not local space)
 		void SetWorldPoseByHierarchy();
 		void SetWorldPose(const vfloat3& pos, const vfloat3& view, const vfloat3& up);

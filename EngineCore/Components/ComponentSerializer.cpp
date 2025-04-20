@@ -81,6 +81,28 @@ namespace vz
 		}
 	}
 
+	void LayeredMaskComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		if (archive.IsReadMode())
+		{
+			uint8_t u8_data;
+			archive >> u8_data;
+			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
+
+			archive >> visibleLayerMask_;
+			archive >> stencilLayerMask_;
+			archive >> userLayerMask_;
+		}
+		else
+		{
+			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
+
+			archive << visibleLayerMask_;
+			archive << stencilLayerMask_;
+			archive << userLayerMask_;
+		}
+	}
+
 	void MaterialComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
 		if (archive.IsReadMode())
@@ -379,7 +401,6 @@ namespace vz
 			archive >> flags_;
 			archive >> u8_data; renderableType_ = static_cast<RenderableType>(u8_data);
 			archive >> u8_data; renderableReservedType_ = static_cast<RenderableType>(u8_data);
-			archive >> visibleLayerMask_;
 			archive >> vuidGeometry_;
 			archive >> fadeDistance_;
 			archive >> visibleCenter_;
@@ -411,7 +432,6 @@ namespace vz
 			archive << flags_;
 			archive << static_cast<uint8_t>(renderableType_);
 			archive << static_cast<uint8_t>(renderableReservedType_);
-			archive << visibleLayerMask_;
 			archive << vuidGeometry_;
 			archive << fadeDistance_;
 			archive << visibleCenter_;
@@ -648,8 +668,6 @@ namespace vz
 
 			archive >> flags_;
 
-			archive >> visibleLayerMask_;
-
 			archive >> exposure_;
 			archive >> brightness_;
 			archive >> contrast_;
@@ -687,7 +705,6 @@ namespace vz
 			archive << width_;
 			archive << height_;
 			archive << flags_;
-			archive << visibleLayerMask_;
 
 			archive << exposure_;
 			archive << brightness_;
