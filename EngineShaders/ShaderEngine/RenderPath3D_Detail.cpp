@@ -181,7 +181,15 @@ namespace vz::renderer
 			jobsystem::Dispatch(ctx, renderable_loop, groupSize, [&](jobsystem::JobArgs args) {
 
 				const RenderableComponent& renderable = *scene_Gdetails->renderableComponents[args.jobIndex];
-				//assert(!renderable.IsDirty());
+				switch (renderable.GetRenderableType())
+				{
+				case RenderableType::MESH_RENDERABLE:
+				case RenderableType::VOLUME_RENDERABLE:
+				case RenderableType::GSPLAT_RENDERABLE: 
+					break;
+				default: 
+					return;
+				}
 
 				const AABB& aabb = renderable.GetAABB();
 

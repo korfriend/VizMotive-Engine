@@ -499,6 +499,7 @@ namespace vz::renderer
 		renderer::View viewReflection;
 
 		// auxiliary cameras for special rendering effects
+		LayeredMaskComponent layeredmaskReflection = LayeredMaskComponent(0);
 		CameraComponent cameraReflection = CameraComponent(0);
 		CameraComponent cameraReflectionPrevious = CameraComponent(0);
 		CameraComponent cameraPrevious = CameraComponent(0);

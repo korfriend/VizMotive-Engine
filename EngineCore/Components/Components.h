@@ -44,8 +44,8 @@ namespace vz
 	struct GSpriteFontComponent;
 	struct GGeometryComponent;
 	struct GMaterialComponent;
-	struct GCameraComponent;
 	struct GLightComponent;
+	struct CameraComponent;
 
 	class WaitForBool {
 	private:
@@ -318,8 +318,8 @@ namespace vz
 		virtual const std::vector<GRenderableComponent*>& GetRenderableSpritefontComponents() const = 0;
 		virtual const std::vector<GGeometryComponent*>& GetGeometryComponents() const = 0;
 		virtual const std::vector<GMaterialComponent*>& GetMaterialComponents() const = 0;
-		virtual const std::vector<GCameraComponent*>& GetCameraComponents() const = 0;
 		virtual const std::vector<GLightComponent*>& GetLightComponents() const = 0;
+		virtual const std::vector<CameraComponent*>& GetCameraComponents() const = 0;
 
 		virtual const uint32_t GetGeometryPrimitivesAllocatorSize() const = 0;
 		virtual const uint32_t GetRenderableResLookupAllocatorSize() const = 0;
@@ -1948,6 +1948,8 @@ namespace vz
 		inline void SetDVRType(const DVR_TYPE type) { dvrType_ = type; timeStampSetter_ = TimerNow; }
 		inline DVR_TYPE GetDVRType() const { return dvrType_; }
 
+		virtual LayeredMaskComponent* GetLayeredMaskComponent() const { return nullptr; }
+		virtual TransformComponent* GetTransformComponent() const { return nullptr; }
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::CAMERA;

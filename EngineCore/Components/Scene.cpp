@@ -92,8 +92,8 @@ namespace vz
 		std::vector<GRenderableComponent*> renderableSpritefontComponents;
 		std::vector<GGeometryComponent*> geometryComponents;
 		std::vector<GMaterialComponent*> materialComponents;
-		std::vector<GCameraComponent*> cameraComponents;
 		std::vector<GLightComponent*> lightComponents;
+		std::vector<CameraComponent*> cameraComponents;
 
 		const std::vector<GRenderableComponent*>& GetRenderableComponents() const override { return renderableComponents; }
 		const std::vector<GRenderableComponent*>& GetRenderableMeshComponents() const override { return renderableMeshComponents; }
@@ -103,8 +103,8 @@ namespace vz
 		const std::vector<GRenderableComponent*>& GetRenderableSpritefontComponents() const override { return renderableSpritefontComponents; }
 		const std::vector<GGeometryComponent*>& GetGeometryComponents() const override { return geometryComponents; }
 		const std::vector<GMaterialComponent*>& GetMaterialComponents() const override { return materialComponents; }
-		const std::vector<GCameraComponent*>& GetCameraComponents() const override { return cameraComponents; }
 		const std::vector<GLightComponent*>& GetLightComponents() const override { return lightComponents; }
+		const std::vector<CameraComponent*>& GetCameraComponents() const override { return cameraComponents; }
 
 		const uint32_t GetGeometryPrimitivesAllocatorSize() const override { return geometryAllocator.load(); }
 		const uint32_t GetRenderableResLookupAllocatorSize() const override { return instanceResLookupAllocator.load(); }
