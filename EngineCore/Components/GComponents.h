@@ -568,10 +568,6 @@ namespace vz
 	{
 		GCameraComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(entity, vuid), GCameraInterface(entity) {}
 		virtual ~GCameraComponent() = default;
-
-		TransformComponent* transform = nullptr;
-		LayeredMaskComponent* layeredmask = nullptr;
-		uint32_t cameraIndex = ~0u;	// current linear array of current rendering scene
 	};
 
 	struct CORE_EXPORT GSlicerComponent : SlicerComponent, GCameraInterface
