@@ -568,6 +568,8 @@ namespace vz
 	{
 		GCameraComponent(const Entity entity, const VUID vuid = 0) : CameraComponent(entity, vuid), GCameraInterface(entity) {}
 		virtual ~GCameraComponent() = default;
+		LayeredMaskComponent* GetLayeredMaskComponent() const override { return layeredmask; }
+		TransformComponent* GetTransformComponent() const override { return transform; }
 	};
 
 	struct CORE_EXPORT GSlicerComponent : SlicerComponent, GCameraInterface
@@ -575,6 +577,8 @@ namespace vz
 		GSlicerComponent(const Entity entity, const VUID vuid = 0) : SlicerComponent(entity, vuid), GCameraInterface(entity) {}
 		virtual ~GSlicerComponent() = default;
 
+		LayeredMaskComponent* GetLayeredMaskComponent() const override { return layeredmask; }
+		TransformComponent* GetTransformComponent() const override { return transform; }
 		void UpdateCurve() override;
 
 		graphics::GPUBuffer curveInterpPointsBuffer;
