@@ -146,14 +146,18 @@ namespace vz
 			camera->SetWorldLookAtFromHierarchyTransforms();
 		}
 
-		((GCameraComponent*)camera)->layeredmask = compfactory::GetLayeredMaskComponent(camera->GetEntity());
+		LayeredMaskComponent* layeredmask = compfactory::GetLayeredMaskComponent(camera->GetEntity());
 
 		if (camera->IsCurvedSlicer())
 		{
-			((SlicerComponent*)camera)->UpdateCurve(); // include dirty check!
+			((GSlicerComponent*)camera)->layeredmask = layeredmask;
+			((GSlicerComponent*)camera)->transform = compfactory::GetTransformComponent(camera->GetEntity());
+			((GSlicerComponent*)camera)->UpdateCurve(); // include dirty check!
 		}
 		else
 		{
+			((GCameraComponent*)camera)->layeredmask = layeredmask;
+			((GCameraComponent*)camera)->transform = compfactory::GetTransformComponent(camera->GetEntity());
 			if (camera->IsDirty())
 			{
 				camera->UpdateMatrix();
