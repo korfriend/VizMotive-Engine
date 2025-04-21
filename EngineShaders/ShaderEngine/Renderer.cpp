@@ -33,7 +33,7 @@ namespace vz::renderer
 		// Frustum culling for main camera:l,k
 		viewMain.layerMask = ~0;
 		viewMain.camera = camera;
-		viewMain.layeredmask = ((GCameraComponent*)camera)->layeredmask;
+		viewMain.layeredmask = camera->GetLayeredMaskComponent();
 		
 		viewMain.flags = renderer::View::ALLOW_EVERYTHING;
 		if (!renderer::isOcclusionCullingEnabled || camera->IsSlicer())
@@ -50,7 +50,8 @@ namespace vz::renderer
 			cameraReflection.jitter = XMFLOAT2(0, 0);
 			//cameraReflection.Reflect(viewMain.reflectionPlane);
 			//viewReflection.layerMask = getLayerMask();
-			viewReflection.camera = (GCameraComponent*)&cameraReflection;
+			viewReflection.camera = &cameraReflection;
+			viewReflection.layeredmask = &layeredmaskReflection;
 			viewReflection.flags =
 				//renderer::View::ALLOW_OBJECTS |
 				//renderer::View::ALLOW_EMITTERS |
@@ -362,6 +363,8 @@ namespace vz::renderer
 		if (scene_Gdetails->spriteComponents.size() == 0 && scene_Gdetails->spriteFontComponents.size() == 0)
 			return;
 
+		LayeredMaskComponent* layeredmask = camera.GetLayeredMaskComponent();
+
 		std::string process_name = "Sprites and Fonts";
 		if (distortion)
 		{
@@ -392,8 +395,11 @@ namespace vz::renderer
 		distance_sorter.clear();
 		for (size_t i = 0, n = scene_Gdetails->spriteComponents.size(); i < n; ++i)
 		{
-			GSpriteComponent* sprite = scene_Gdetails->spriteComponents[i]->sprite;
-			if (sprite->IsHidden())
+			GRenderableComponent* renderable = scene_Gdetails->spriteComponents[i];
+			GSpriteComponent* sprite = renderable->sprite;
+			if (sprite->IsHidden() || 
+				!renderable->layeredmask->IsVisibleWith(layeredmask->GetVisibleLayerMask())				
+				)
 				continue;
 			if (sprite->IsExtractNormalMapEnabled() != distortion)
 				continue;
@@ -407,8 +413,11 @@ namespace vz::renderer
 		{
 			for (size_t i = 0, n = scene_Gdetails->spriteFontComponents.size(); i < n; ++i)
 			{
-				GSpriteFontComponent* font = scene_Gdetails->spriteFontComponents[i]->spritefont;
-				if (font->IsHidden())
+				GRenderableComponent* renderable = scene_Gdetails->spriteFontComponents[i];
+				GSpriteFontComponent* font = renderable->spritefont;
+				if (font->IsHidden() ||
+					!renderable->layeredmask->IsVisibleWith(layeredmask->GetVisibleLayerMask())
+					)
 					continue;
 				DistanceSorter sorter = {};
 				sorter.bits.id = uint32_t(i);
