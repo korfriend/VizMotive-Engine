@@ -642,6 +642,12 @@ namespace vzm
 		GET_SPRITEFONT_COMP(font, );
 		font->SetShadowIntensity(shadowIntensity);
 	}
+
+	int VzActorSpriteFont::GetFontSize() const
+	{
+		GET_SPRITEFONT_COMP(font, -1);
+		return font->GetSize();
+	}
 }
 
 namespace vzm
