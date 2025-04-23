@@ -210,6 +210,8 @@ namespace vzm
 		void SetFontIntensity(const float intensity);
 		void SetFontShadowIntensity(const float shadowIntensity);
 
+		int GetFontSize() const;
+
 		// ----- interfaces for VIzSprite -----
 		void EnableHidden(bool enabled = true) override;
 		void EnableUpdate(bool enabled = true) override;
