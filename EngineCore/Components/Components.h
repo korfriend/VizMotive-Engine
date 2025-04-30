@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250423_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250430_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -155,9 +155,6 @@ namespace vz
 		bool isContentChanged_ = true;	// since last recentUpdateTime_
 		TimeStamp recentUpdateTime_ = TimerMin;	// world update time
 		TimeStamp timeStampSetter_ = TimerMin;	// add or remove scene components
-
-		inline size_t scanGeometryEntities() noexcept;
-		inline size_t scanMaterialEntities() noexcept;
 
 	public:
 		Scene(const Entity entity, const std::string& name) : entity_(entity), name_(name) {}
