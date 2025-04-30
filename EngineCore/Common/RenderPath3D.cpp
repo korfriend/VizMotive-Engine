@@ -148,11 +148,14 @@ namespace vz
 
 		LayeredMaskComponent* layeredmask = compfactory::GetLayeredMaskComponent(camera->GetEntity());
 
-		if (camera->IsCurvedSlicer())
+		if (camera->IsSlicer())
 		{
 			((GSlicerComponent*)camera)->layeredmask = layeredmask;
 			((GSlicerComponent*)camera)->transform = compfactory::GetTransformComponent(camera->GetEntity());
-			((GSlicerComponent*)camera)->UpdateCurve(); // include dirty check!
+			if (camera->IsCurvedSlicer())
+			{
+				((GSlicerComponent*)camera)->UpdateCurve(); // include dirty check!
+			}
 		}
 		else
 		{
