@@ -309,7 +309,8 @@ namespace vz::renderer
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 			if (renderable.GetRenderableType() != RenderableType::VOLUME_RENDERABLE)
 				continue;
-			if (!renderable.layeredmask->IsVisibleWith(((GCameraComponent*)viewMain.camera)->layeredmask->GetVisibleLayerMask()))
+			LayeredMaskComponent* layeredmask = viewMain.camera->GetLayeredMaskComponent();
+			if (!renderable.layeredmask->IsVisibleWith(layeredmask->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;

@@ -556,14 +556,48 @@ namespace vz
 			timeStampSetter_ = TimerNow;
 		}
 
+		void scanResourceEntities(const std::vector<Entity>& renderables, std::vector<Entity>& geometries, std::vector<Entity>& materials)
+		{
+			geometries.clear();
+			materials.clear();
+
+			size_t num_renderables = renderables.size();
+			if (num_renderables == 0)
+			{
+				return;
+			}
+
+			std::unordered_set<Entity> geometry_set(num_renderables);
+			std::unordered_set<Entity> material_set(num_renderables);
+			for (auto& ett : renderables)
+			{
+				RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
+				if (renderable)
+				{
+					Entity entity = renderable->GetGeometry();
+					GeometryComponent* renderable_geometry = compfactory::GetGeometryComponent(entity);
+					if (renderable_geometry)
+					{
+						geometry_set.insert(entity);
+					}
+
+					std::vector<Entity> renderable_materials = renderable->GetMaterials();
+					material_set.insert(renderable_materials.begin(), renderable_materials.end());
+				}
+			}
+			geometries.reserve(geometry_set.size());
+			geometries.insert(geometries.end(), geometry_set.begin(), geometry_set.end());
+			materials.reserve(material_set.size());
+			materials.insert(materials.end(), material_set.begin(), material_set.end());
+		}
+
 		void Update(const float dt) override
 		{
 			isContentChanged_ = false;
 			dt_ = dt;
 			deltaTimeAccumulator_ += dt;
 
-			scanGeometryEntities();
-			scanMaterialEntities();
+			scanResourceEntities(renderables_, geometries_, materials_);
 
 			static jobsystem::context ctx_geometry_bvh; // Must be declared static to prevent context overflow, which could lead to thread access violations
 			// note this update needs to be thread-safe
@@ -768,40 +802,6 @@ namespace vz
 		{
 			Remove(ett); // isDirty_ = true;
 		}
-	}
-
-	size_t Scene::scanGeometryEntities() noexcept
-	{
-		geometries_.clear();
-		for (auto& ett : renderables_)
-		{
-			RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
-			if (renderable)
-			{
-				Entity entity = renderable->GetGeometry();
-				GeometryComponent* geometry = compfactory::GetGeometryComponent(entity);
-				if (geometry)
-				{
-					geometries_.push_back(entity);
-				}
-			}
-		}
-		return geometries_.size();
-	}
-
-	size_t Scene::scanMaterialEntities() noexcept
-	{
-		materials_.clear();
-		for (auto& ett : renderables_)
-		{
-			RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
-			if (renderable)
-			{
-				std::vector<Entity> renderable_materials = renderable->GetMaterials();
-				materials_.insert(materials_.end(), renderable_materials.begin(), renderable_materials.end());
-			}
-		}
-		return materials_.size();
 	}
 
 	namespace volumeray
