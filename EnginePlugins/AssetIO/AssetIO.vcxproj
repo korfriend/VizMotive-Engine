@@ -153,12 +153,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../../EngineCore/;./3rd_party/assimp/include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../EngineCore/;./ThirdParty/assimp/include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../../bin/$(Platform)_$(Configuration);./3rd_party/assimp/lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../bin/$(Platform)_$(Configuration);./ThirdParty/assimp/lib;</AdditionalLibraryDirectories>
       <AdditionalDependencies>VizEngined.lib;assimp-vc143-mdd.lib;draco_mdd.lib;zlibstatic_mdd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -169,13 +169,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../../EngineCore/;./3rd_party/assimp/include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../EngineCore/;./ThirdParty/assimp/include;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../../bin/$(Platform)_$(Configuration);./3rd_party/assimp/lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../bin/$(Platform)_$(Configuration);./ThirdParty/assimp/lib;</AdditionalLibraryDirectories>
       <AdditionalDependencies>VizEngined.lib;assimp-vc143-mtd.lib;draco_mtd.lib;zlibstatic_mtd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -188,14 +188,14 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../../EngineCore/;./3rd_party/assimp/include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../EngineCore/;./ThirdParty/assimp/include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../../bin/$(Platform)_$(Configuration);./3rd_party/assimp/lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../bin/$(Platform)_$(Configuration);./ThirdParty/assimp/lib;</AdditionalLibraryDirectories>
       <AdditionalDependencies>VizEngine.lib;assimp-vc143-md.lib;draco_md.lib;zlibstatic_md.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
