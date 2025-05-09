@@ -11,6 +11,8 @@ if /I "%GITUSER%"=="korfriend" (
     call %~dp0update_version_check.bat
 ) else (
     echo Install and Version Update script can only be executed by github account 'korfriend'
+    echo Install External Modules of Essential Plugin (AssetIO)
+    call %~dp0..\EnginePlugins\AssetIO\build-assimp-win32.bat
 )
 REM include all dependency PROJECTS 
 set "PROJECTS=%~dp0Engine_Windows.vcxproj"
