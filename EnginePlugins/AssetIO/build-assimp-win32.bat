@@ -39,16 +39,16 @@ for %%C in (%CONFIGS%) do (
 )
 
 if exist "%INSTALL_DIR%\lib\draco_md.lib" (
-    del "%INSTALL_DIR%\lib\draco_md.lib"
+del "%INSTALL_DIR%\lib\draco_md.lib"
 )
 if exist "%INSTALL_DIR%\lib\draco_mdd.lib" (
-    del "%INSTALL_DIR%\lib\draco_mdd.lib"
+del "%INSTALL_DIR%\lib\draco_mdd.lib"
 )
 if exist "%INSTALL_DIR%\lib\zlibstatic_md.lib" (
-    del "%INSTALL_DIR%\lib\zlibstatic_md.lib"
+del "%INSTALL_DIR%\lib\zlibstatic_md.lib"
 )
 if exist "%INSTALL_DIR%\lib\zlibstatic_mdd.lib" (
-    del "%INSTALL_DIR%\lib\zlibstatic_mdd.lib"
+del "%INSTALL_DIR%\lib\zlibstatic_mdd.lib"
 )
 
 @echo off
