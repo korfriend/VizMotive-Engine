@@ -47,6 +47,8 @@ bin/X64_Debug_MT/*.lib
 bin/X64_Release_MT/*.ini
 bin/X64_Debug_MT/*.ini
 
+EnginePlugins/AssetIO/ThirdParty/*
+
 !Examples/Assets/**/*.obj
 !Examples/Assets/models/**/*.obj
 !dxc/windows/*
