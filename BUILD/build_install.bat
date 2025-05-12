@@ -9,11 +9,13 @@ echo Current Git user: %GITUSER%
 if /I "%GITUSER%"=="korfriend" (
     echo Git user verification complete: Welcome, dojo
     call %~dp0update_version_check.bat
+    goto after_check
 ) else (
     echo Install and Version Update script can only be executed by github account 'korfriend'
     echo Install External Modules of Essential Plugin (AssetIO)
     call %~dp0..\EnginePlugins\AssetIO\build-assimp-win32.bat
 )
+:after_check
 REM include all dependency PROJECTS 
 set "PROJECTS=%~dp0Engine_Windows.vcxproj"
 set "PROJECTS=%PROJECTS% %~dp0..\GraphicsBackends\GBackendDX12.vcxproj"

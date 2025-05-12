@@ -21,6 +21,8 @@ namespace vz
 		GRenderPath3D* handlerRenderPath3D_ = nullptr;
 
 		graphics::Viewport viewport_;
+		bool clearEnabled_ = true;
+		bool skipPostprocess_ = false;
 
 		XMFLOAT4X4 matScreen_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 matScreenInv_ = math::IDENTITY_MATRIX;
@@ -46,6 +48,9 @@ namespace vz
 		void SetViewport(const graphics::Viewport& vp) {
 			viewport_ = vp; updateViewportTransforms();
 		}
+
+		void EnableClear(const bool enabled) { clearEnabled_ = enabled; }
+		void SkipPostprocess(const bool skip) { skipPostprocess_ = skip; }
 
 		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;

@@ -32,10 +32,14 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
         return;
     }
 
-	const float2 uv = ((float2)pixel + (float2)0.5) * camera.internal_resolution_rcp;
-	const float2 clipspace = uv_to_clipspace(uv);
-
 #ifndef CURVED_PLANE
+	const float2 clipspace = mul((camera.inverse_vp), float4((float2)pixel + (float2)0.5 + float2(0, -0), 0, 1)).xy;
+	if (clipspace.x < -1 || clipspace.x > 1 || clipspace.y < -1 || clipspace.y > 1)
+	{
+		return;
+	}
+	//const float2 uv = ((float2)pixel + (float2)0.5) * camera.internal_resolution_rcp;
+	//const float2 clipspace = uv_to_clipspace(uv);
 	RayDesc ray = CreateCameraRay(clipspace);
 #else
 	RayDesc ray = CreateCurvedSlicerRay(pixel);

@@ -40,7 +40,7 @@ namespace vz
 			if (rtRenderFinal_.IsValid())
 			{
 				graphics::RenderPassImage rp[] = {
-					graphics::RenderPassImage::RenderTarget(&rtRenderFinal_, graphics::RenderPassImage::LoadOp::CLEAR),
+					graphics::RenderPassImage::RenderTarget(&rtRenderFinal_, graphics::RenderPassImage::LoadOp::LOAD), //CLEAR
 				};
 				device->RenderPassBegin(rp, arraysize(rp), cmd);
 			}

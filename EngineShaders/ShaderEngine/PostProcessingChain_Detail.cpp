@@ -4,6 +4,12 @@ namespace vz::renderer
 {
 	void GRenderPath3DDetails::RenderPostprocessChain(CommandList cmd)
 	{
+		if (skipPostprocess)
+		{
+			lastPostprocessRT = &rtMain;
+			return;
+		}
+
 		BindCommonResources(cmd);
 		BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 

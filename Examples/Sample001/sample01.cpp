@@ -123,9 +123,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     vzm::VzRenderer* renderer = vzm::NewRenderer("my renderer");
     renderer->SetCanvas(w, h, dpi, hwnd);
-    renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
+    renderer->SetClearColor({ 0.f, 0.f, 0.f, 0.f });
     renderer->EnableFrameLock(true, false);
-    //renderer->SetVisibleLayerMask(0x4, 0x4);
+    //renderer->SetViewport(100, 100, 100, 100);
     
     vzm::VzCamera* cam = vzm::NewCamera("my camera");
 	glm::fvec3 p(0, 0, 10);
@@ -244,6 +244,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	vzm::AppendSceneCompTo(actor_test3, scene);
 	vzm::AppendSceneCompTo(axis_actor, scene);
 	vzm::AppendSceneCompTo(light_test, scene);
+
+	vzm::VzScene* scene_navi = vzm::NewScene("my navi scene");
+	vzm::VzActor* axis_navi_actor = vzm::LoadModelFile("../Assets/axis.obj");
+    for (auto it : axis_navi_actor->GetChildren())
+    {
+        vzm::VzActorStaticMesh* actor_mesh_navi = (vzm::VzActorStaticMesh*)vzm::GetComponent(it);
+        if (actor_mesh_navi->GetType() != vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH)
+            continue;
+        for (auto it_mat : actor_mesh_navi->GetMaterials())
+        {
+            vzm::VzMaterial* material_navi = (vzm::VzMaterial*)vzm::GetComponent(it_mat);
+            material_navi->SetShaderType(vzm::VzMaterial::ShaderType::UNLIT);
+        }
+    }
+	scene_navi->AppendChild(axis_navi_actor);
+	vzm::VzCamera* cam_navi = vzm::NewCamera("my navi camera");
+    const float navi_width = 200.f;
+    cam_navi->SetOrthogonalProjection(navi_width, navi_width, 0.f, 100.f, 10.f);
+
+    //vzm::ChainUnitRCam
     
     // Main loop
     bool done = false;
@@ -269,6 +289,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		v = glm::rotateX(v, x_rot);
 		u = glm::rotateX(u, x_rot);
 		cam->SetWorldPose(__FC3 p, __FC3 v, __FC3 u);
+		cam_navi->SetWorldPose(__FC3 p, __FC3 v, __FC3 u);
 
         static uint32_t index0 = 120, index1 = 210;
         static bool add_index = true;
@@ -296,7 +317,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				tex_otf_test3->UpdateLookup(otf_array, index0, 256);
         }
 
+        vzm::PendingSubmitCommand(true);
+		renderer->EnableClear(true);
+		renderer->SkipPostprocess(true);
 		renderer->Render(scene, cam);
+
+		float vp_x, vp_y, vp_w, vp_h;
+		renderer->GetViewport(&vp_x, &vp_y, &vp_w, &vp_h);
+		renderer->SetViewport(vp_w - navi_width, vp_h - navi_width, navi_width, navi_width);
+		renderer->EnableClear(false);
+		renderer->SkipPostprocess(false);
+		vzm::PendingSubmitCommand(false);
+		renderer->Render(scene_navi, cam_navi);
+
+		renderer->SetViewport(vp_x, vp_y, vp_w, vp_h);
     }
     vzm::DeinitEngineLib();
 
