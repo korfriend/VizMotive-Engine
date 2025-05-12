@@ -125,6 +125,30 @@ namespace vzm
 		if (h) *h = vp.height;
 	}
 
+	void VzRenderer::SetScissor(const int32_t left, const int32_t top, const int32_t right, const int32_t bottom)
+	{
+		GET_RENDERPATH(renderer, );
+
+		renderer->useManualSetScissor = true;
+
+		graphics::Rect scissor;
+		scissor.left = left;
+		scissor.top = top;
+		scissor.right = right;
+		scissor.bottom = bottom;
+		renderer->SetScissor(scissor);
+	}
+
+	void VzRenderer::GetScissor(int32_t* VZ_NULLABLE left, int32_t* VZ_NULLABLE top, int32_t* VZ_NULLABLE right, int32_t* VZ_NULLABLE bottom)
+	{
+		GET_RENDERPATH(renderer, );
+		const graphics::Rect& scissor = renderer->GetScissor();
+		if (left) *left = scissor.left;
+		if (top) *top = scissor.top;
+		if (right) *right = scissor.right;
+		if (bottom) *bottom = scissor.bottom;
+	}
+
 	void VzRenderer::UseCanvasAsViewport()
 	{
 		GET_RENDERPATH(renderer, );
@@ -149,6 +173,20 @@ namespace vzm
 	{
 		GET_RENDERPATH(renderer, );
 		memcpy(renderer->clearColor, &color, sizeof(float) * 4);
+		UpdateTimeStamp();
+	}
+
+	void VzRenderer::EnableClear(const bool enabled)
+	{
+		GET_RENDERPATH(renderer, );
+		renderer->EnableClear(enabled);
+		UpdateTimeStamp();
+	}
+
+	void VzRenderer::SkipPostprocess(const bool skip)
+	{
+		GET_RENDERPATH(renderer, );
+		renderer->SkipPostprocess(skip);
 		UpdateTimeStamp();
 	}
 

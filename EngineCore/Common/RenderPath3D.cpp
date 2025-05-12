@@ -193,6 +193,8 @@ namespace vz
 		handlerRenderPath3D_->scene = scene;
 		handlerRenderPath3D_->camera = camera;
 		handlerRenderPath3D_->viewport = viewport_;
+		handlerRenderPath3D_->clearEnabled = clearEnabled_;
+		handlerRenderPath3D_->skipPostprocess = skipPostprocess_;
 
 		handlerRenderPath3D_->matToScreen = matScreen_;
 		handlerRenderPath3D_->matToScreenInv = matScreenInv_;

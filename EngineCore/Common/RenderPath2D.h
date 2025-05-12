@@ -22,6 +22,11 @@ namespace vz
 			: RenderPath(entity, graphicsDevice) {  type_ = "RenderPath2D"; }
 		virtual ~RenderPath2D() { DeleteGPUResources(false); }
 
+		const graphics::Rect& GetScissor() const { return scissor_; }
+		void SetScissor(const graphics::Rect& scissor) {
+			scissor_ = scissor;
+		}
+
 		void SetMSAASampleCount(uint32_t value) { msaaSampleCount_ = value; }
 		constexpr uint32_t GetMSAASampleCount() const { return msaaSampleCount_; }
 		
