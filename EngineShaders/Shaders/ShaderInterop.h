@@ -1419,6 +1419,8 @@ struct alignas(16) ShaderCamera
 	float4x4	reflection_inverse_view_projection;
 	float4x4	reprojection; // view_projection_inverse_matrix * previous_view_projection_matrix
 
+	float4x4	inverse_vp;
+
 	float2		aperture_shape;
 	float		aperture_size;
 	float		focal_length;

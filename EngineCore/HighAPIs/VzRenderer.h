@@ -35,6 +35,8 @@ namespace vzm
 
 		void SetViewport(const float x, const float y, const float w, const float h);
 		void GetViewport(float* VZ_NULLABLE x, float* VZ_NULLABLE y, float* VZ_NULLABLE w, float* VZ_NULLABLE h);
+		void SetScissor(const int32_t left, const int32_t top, const int32_t right, const int32_t bottom);
+		void GetScissor(int32_t* VZ_NULLABLE left, int32_t* VZ_NULLABLE top, int32_t* VZ_NULLABLE right, int32_t* VZ_NULLABLE bottom);
 		void UseCanvasAsViewport();
 		// add scissor interfaces
 
@@ -42,6 +44,9 @@ namespace vzm
 
 		void SetClearColor(const vfloat4& color);
 		void GetClearColor(vfloat4& color) const;
+
+		void EnableClear(const bool enabled);
+		void SkipPostprocess(const bool skip);
 
 		void SetAllowHDR(const bool enable);
 		bool GetAllowHDR() const;

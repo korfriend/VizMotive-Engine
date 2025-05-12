@@ -1254,6 +1254,8 @@ namespace vz::renderer
 		XMStoreFloat4x4(&shadercam.reprojection,
 			XMLoadFloat4x4(&camera.GetInvViewProjection()) * XMLoadFloat4x4(&cameraPrevious.GetViewProjection()));
 
+		shadercam.inverse_vp = matToScreenInv;
+
 		shadercam.focal_length = camera.GetFocalLength();
 		shadercam.aperture_size = camera.GetApertureSize();
 		shadercam.aperture_shape = camera.GetApertureShape();

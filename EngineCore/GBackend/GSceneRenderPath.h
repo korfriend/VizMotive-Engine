@@ -33,6 +33,7 @@ namespace vz
 		graphics::GraphicsDevice* device = nullptr;
 		graphics::Rect scissor;
 		graphics::ColorSpace colorspace = graphics::ColorSpace::SRGB;
+		bool skipPostprocess = false;
 		uint32_t msaaSampleCount = 1;
 
 		virtual bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) = 0; // must delete all canvas-related resources and re-create
@@ -42,7 +43,7 @@ namespace vz
 
 	struct GRenderPath3D : GRenderPath2D
 	{
-		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250317";
+		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250513";
 		// this will be a component of vz::RenderPath3D
 
 		enum class Tonemap
@@ -75,6 +76,7 @@ namespace vz
 		XMFLOAT4X4 matToScreen = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 matToScreenInv = math::IDENTITY_MATRIX;
 		Tonemap tonemap = Tonemap::ACES;
+		bool clearEnabled = true;
 		graphics::Viewport viewport;
 		size_t stableCount = 0;
 

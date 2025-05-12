@@ -946,9 +946,9 @@ namespace vz::renderer
 
 		device->BindScissorRects(1, &scissor, cmd);
 
-		Viewport vp;
-		vp.width = (float)depthBufferMain.GetDesc().width;
-		vp.height = (float)depthBufferMain.GetDesc().height;
+		Viewport vp = viewport;
+		//vp.width = (float)depthBufferMain.GetDesc().width;
+		//vp.height = (float)depthBufferMain.GetDesc().height;
 		vp.min_depth = 0;
 		vp.max_depth = 1;
 		device->BindViewports(1, &vp, cmd);
@@ -1569,7 +1569,7 @@ namespace vz::renderer
 		if (rtRenderFinal_.IsValid())
 		{
 			graphics::RenderPassImage rp[] = {
-				graphics::RenderPassImage::RenderTarget(&rtRenderFinal_, graphics::RenderPassImage::LoadOp::CLEAR),
+				graphics::RenderPassImage::RenderTarget(&rtRenderFinal_, graphics::RenderPassImage::LoadOp::LOAD),//CLEAR
 			};
 			device->RenderPassBegin(rp, arraysize(rp), cmd);
 		}
@@ -1703,9 +1703,9 @@ namespace vz::renderer
 
 			device->BindScissorRects(1, &scissor, cmd);
 
-			Viewport vp;// = downcast_camera->viewport; // TODO.. viewport just for render-out result vs. viewport for enhancing performance...?!
-			vp.width = (float)depthBufferMain.GetDesc().width;
-			vp.height = (float)depthBufferMain.GetDesc().height;
+			Viewport vp = viewport; // TODO.. viewport just for render-out result vs. viewport for enhancing performance...?!
+			//vp.width = (float)depthBufferMain.GetDesc().width;
+			//vp.height = (float)depthBufferMain.GetDesc().height;
 
 			// ----- Foreground: -----
 			vp.min_depth = 1.f - foregroundDepthRange;
@@ -1893,9 +1893,9 @@ namespace vz::renderer
 				
 				device->BindScissorRects(1, &scissor, cmd);
 				
-				Viewport vp;
-				vp.width = (float)depthBufferMain.GetDesc().width;
-				vp.height = (float)depthBufferMain.GetDesc().height;
+				Viewport vp = viewport;
+				//vp.width = (float)depthBufferMain.GetDesc().width;
+				//vp.height = (float)depthBufferMain.GetDesc().height;
 				device->BindViewports(1, &vp, cmd);
 				
 				OcclusionCulling_Render(*camera, viewMain, cmd);
@@ -2164,9 +2164,9 @@ namespace vz::renderer
 				);
 			}
 
-			Viewport vp;
-			vp.width = (float)depthBufferMain.GetDesc().width;
-			vp.height = (float)depthBufferMain.GetDesc().height;
+			Viewport vp = viewport;
+			//vp.width = (float)depthBufferMain.GetDesc().width;
+			//vp.height = (float)depthBufferMain.GetDesc().height;
 			device->BindViewports(1, &vp, cmd);
 
 			device->BindScissorRects(1, &scissor, cmd);
@@ -2197,7 +2197,7 @@ namespace vz::renderer
 			uint32_t rp_count = 0;
 			rp[rp_count++] = RenderPassImage::RenderTarget(
 				&rtMain_render,
-				viewShadingInCS ? RenderPassImage::LoadOp::LOAD : RenderPassImage::LoadOp::CLEAR
+				viewShadingInCS || !clearEnabled ? RenderPassImage::LoadOp::LOAD : RenderPassImage::LoadOp::CLEAR
 			);
 			rp[rp_count++] = RenderPassImage::DepthStencil(
 				&depthBufferMain,
