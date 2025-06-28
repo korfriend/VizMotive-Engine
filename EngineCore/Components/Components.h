@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250430_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250628_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -762,6 +762,7 @@ namespace vz
 			bool useFullPrecisionUV_ = false;
 			std::shared_ptr<void> bufferHandle_;	// 'void' refers to GGeometryComponent::GPrimBuffers
 			Entity recentBelongingGeometry_ = INVALID_ENTITY;
+			bool isConvex = false;
 
 			// BVH
 			std::vector<geometrics::AABB> bvhLeafAabbs_;
@@ -801,9 +802,10 @@ namespace vz
 			inline bool IsValid() const { return vertexPositions_.size() > 0 && aabb_.IsValid(); }
 			inline void SetAABB(const geometrics::AABB& aabb) { aabb_ = aabb; }
 			inline void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
-			inline bool IsValidBVH() const { return bvh_.IsValid(); };
-			inline const geometrics::BVH& GetBVH() const { return bvh_; };
-			inline const std::vector<geometrics::AABB>& GetBVHLeafAABBs() const { return bvhLeafAabbs_; };
+			inline bool IsValidBVH() const { return bvh_.IsValid(); }
+			inline const geometrics::BVH& GetBVH() const { return bvh_; }
+			inline const std::vector<geometrics::AABB>& GetBVHLeafAABBs() const { return bvhLeafAabbs_; }
+			inline bool IsConvexShape() const { return isConvex; }
 			inline size_t GetMemoryUsageCPU() const;
 
 			// ----- Getters -----

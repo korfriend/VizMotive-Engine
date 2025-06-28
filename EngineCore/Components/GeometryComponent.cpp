@@ -1,4 +1,4 @@
-#include "GComponents.h"
+﻿#include "GComponents.h"
 #include "Common/Engine_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/Timer.h"
@@ -316,6 +316,131 @@ namespace vz
 		}
 	}
 
+	bool isMeshConvex2(const std::vector<XMFLOAT3>& positions,
+		const std::vector<uint32_t>& indices,
+		float eps = 1e-6f)
+	{
+		using namespace DirectX;
+		const size_t vCount = positions.size();
+		const size_t fCount = indices.size() / 3;
+
+		if (vCount < 4 || fCount < 4)      // need at least a tetrahedron
+			return false;
+
+		/*-----------------------------------------------------------
+		* 1. Compute mesh centroid (approximate)
+		*----------------------------------------------------------*/
+		XMVECTOR centroid = XMVectorZero();
+		for (const auto& p : positions)
+			centroid += XMLoadFloat3(&p);
+		centroid /= float(vCount);
+
+		/*-----------------------------------------------------------
+		* 2. For every face plane …
+		*----------------------------------------------------------*/
+		for (size_t f = 0; f < fCount; ++f)
+		{
+			const XMFLOAT3& p0 = positions[indices[3 * f + 0]];
+			const XMFLOAT3& p1 = positions[indices[3 * f + 1]];
+			const XMFLOAT3& p2 = positions[indices[3 * f + 2]];
+
+			const XMVECTOR v0 = XMLoadFloat3(&p0);
+			const XMVECTOR v1 = XMLoadFloat3(&p1);
+			const XMVECTOR v2 = XMLoadFloat3(&p2);
+
+			/* Face normal (unnormalised) */
+			XMVECTOR n = XMVector3Cross(v1 - v0, v2 - v0);
+
+			/* If area is ~0 the mesh is degenerate */
+			if (XMVector3Equal(n, XMVectorZero()))
+				return false;
+
+			/* Make normal point outwards */
+			if (XMVectorGetX(XMVector3Dot(n, centroid - v0)) > 0.0f)
+				n = -n;   // flip
+
+			/* Plane D param  (n·X + d = 0) */
+			const float d = -XMVectorGetX(XMVector3Dot(n, v0));
+
+			/*-------------------------------------------------------
+			* 3. All other vertices must be inside/ on plane
+			*------------------------------------------------------*/
+			for (size_t vi = 0; vi < vCount; ++vi)
+			{
+				/* Skip the face’s own vertices – not necessary but faster */
+				if (vi == indices[3 * f] ||
+					vi == indices[3 * f + 1] ||
+					vi == indices[3 * f + 2])
+					continue;
+
+				const XMVECTOR pv = XMLoadFloat3(&positions[vi]);
+				const float    dist = XMVectorGetX(XMVector3Dot(n, pv)) + d;
+
+				/* Any vertex strictly in front of plane → non-convex */
+				if (dist > eps)
+					return false;
+			}
+		}
+		return true;    /* Every face passed – mesh is convex */
+	}
+
+	bool isMeshConvex(const std::vector<XMFLOAT3>& positions,
+		const std::vector<uint32_t>& indices,
+		float eps = 1e-6f)
+	{
+		using namespace DirectX;
+
+		const size_t vCount = positions.size();
+		const size_t fCount = indices.size() / 3;
+		if (vCount < 4 || fCount < 4) return false;          // need at least a tetrahedron
+
+		// -------------------------------------------------------------------------
+		// For every face, make sure all *other* vertices lie on (or behind) that
+		// plane.  We do not care which side is “front” because we look at both signs.
+		// -------------------------------------------------------------------------
+		for (size_t f = 0; f < fCount; ++f)
+		{
+			const XMFLOAT3& p0 = positions[indices[3 * f + 0]];
+			const XMFLOAT3& p1 = positions[indices[3 * f + 1]];
+			const XMFLOAT3& p2 = positions[indices[3 * f + 2]];
+
+			const XMVECTOR v0 = XMLoadFloat3(&p0);
+			const XMVECTOR v1 = XMLoadFloat3(&p1);
+			const XMVECTOR v2 = XMLoadFloat3(&p2);
+
+			// Face normal (unnormalised) and length-check
+			const XMVECTOR n = XMVector3Cross(v1 - v0, v2 - v0);
+			const float    nLen2 = XMVectorGetX(XMVector3LengthSq(n));
+			if (nLen2 < 1e-12f) return false;                // degenerate / zero-area face
+
+			// Plane equation: n • X + d = 0
+			const float d = -XMVectorGetX(XMVector3Dot(n, v0));
+
+			float minDist = FLT_MAX;
+			float maxDist = -FLT_MAX;
+
+			// Check every vertex (except the three of this face)
+			for (size_t vi = 0; vi < vCount; ++vi)
+			{
+				if (vi == indices[3 * f] ||
+					vi == indices[3 * f + 1] ||
+					vi == indices[3 * f + 2])
+					continue;
+
+				const float dist =
+					XMVectorGetX(XMVector3Dot(n, XMLoadFloat3(&positions[vi]))) + d;
+
+				minDist = std::min(minDist, dist);
+				maxDist = std::max(maxDist, dist);
+
+				// Early exit: if vertices exist on *both* sides outside the band
+				if (minDist < -eps && maxDist > eps)
+					return false;            // non-convex
+			}
+		}
+		return true;                         // all faces passed
+	}
+
 	void Primitive::updateBVH(const bool enabled)
 	{
 		vzlog_assert(ptype_ == PrimitiveType::TRIANGLES, "BVH is allowed only for triangle mesh (no stripe)");
@@ -348,7 +473,20 @@ namespace vz
 					//aabb.userdata = part_index;
 					bvhLeafAabbs_.push_back(aabb);
 				}
+				bvh_.maxLeafTriangles = 2;
 				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
+
+				if (triangle_count < 100)
+				{
+					XMVECTOR ext = XMLoadFloat3(&aabb_._max) - XMLoadFloat3(&aabb_._min);
+					float diag = XMVectorGetX(XMVector3Length(ext));
+					const float userScale = 1e-5f;					
+					isConvex = isMeshConvex(vertexPositions_, indexPrimitives_, diag * userScale);
+					if (isConvex)
+						backlog::postThreadSafe("Simple Convex Shape");
+				}
+				else
+					isConvex = false;
 				
 				backlog::postThreadSafe("CPUBVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
 			}
