@@ -93,6 +93,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample08", "Examples\Sample
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample09", "Examples\Sample009\Sample09.vcxproj", "{95A3F877-DA1E-4948-9A33-B92BA0C4CF8B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample10", "Examples\Sample010\Sample10.vcxproj", "{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_MT|x64 = Debug_MT|x64
@@ -377,6 +379,22 @@ Global
 		{95A3F877-DA1E-4948-9A33-B92BA0C4CF8B}.Release|x64.Build.0 = Release|x64
 		{95A3F877-DA1E-4948-9A33-B92BA0C4CF8B}.Release|x86.ActiveCfg = Release|Win32
 		{95A3F877-DA1E-4948-9A33-B92BA0C4CF8B}.Release|x86.Build.0 = Release|Win32
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Debug_MT|x64.ActiveCfg = Debug_MT|x64
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Debug_MT|x64.Build.0 = Debug_MT|x64
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Debug_MT|x86.ActiveCfg = Debug_MT|Win32
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Debug_MT|x86.Build.0 = Debug_MT|Win32
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Debug|x64.ActiveCfg = Debug|x64
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Debug|x64.Build.0 = Debug|x64
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Debug|x86.ActiveCfg = Debug|Win32
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Debug|x86.Build.0 = Debug|Win32
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Release_MT|x64.ActiveCfg = Release|x64
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Release_MT|x64.Build.0 = Release|x64
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Release_MT|x86.ActiveCfg = Release|Win32
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Release_MT|x86.Build.0 = Release|Win32
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Release|x64.ActiveCfg = Release|x64
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Release|x64.Build.0 = Release|x64
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Release|x86.ActiveCfg = Release|Win32
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -407,6 +425,7 @@ Global
 		{EF98E3D7-A70B-415F-A78F-30D478DE4942} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
 		{D11747AD-93E5-453B-B359-373BCFC32954} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
 		{95A3F877-DA1E-4948-9A33-B92BA0C4CF8B} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
+		{D80F4293-1AA1-47E6-BB55-3A61182EBFDE} = {0A297EDD-E998-4D81-A886-F244FE4D7DA0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {36089187-3D11-4B2A-975E-DF87A5E77426}
@@ -419,6 +438,7 @@ Global
 		Examples\imgui\imgui.vcxitems*{aebf5849-4d10-46e4-a6ae-6536dbcc5b0f}*SharedItemsImports = 4
 		Examples\imgui\imgui.vcxitems*{b5405b8a-91b9-4add-8301-9e68d539ae60}*SharedItemsImports = 4
 		Examples\imgui\imgui.vcxitems*{d11747ad-93e5-453b-b359-373bcfc32954}*SharedItemsImports = 4
+		Examples\imgui\imgui.vcxitems*{d80f4293-1aa1-47e6-bb55-3a61182ebfde}*SharedItemsImports = 4
 		EngineCore\Engine_SOURCE.vcxitems*{d86799c4-9d93-4981-93b7-48c219d40915}*SharedItemsImports = 4
 		EngineCore\Engine_SOURCE.vcxitems*{d8d9bfe0-037d-43c2-a0e4-c5e88b21bfea}*SharedItemsImports = 9
 		Examples\imgui\imgui.vcxitems*{e4434610-a9fa-4c06-b5f1-089f13624abe}*SharedItemsImports = 4
