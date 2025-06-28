@@ -1,4 +1,3 @@
-// Filament highlevel APIs
 #include "vzm2/VzEngineAPIs.h"
 #include "vzm2/utils/Backlog.h"
 #include "vzm2/utils/EventHandler.h"
