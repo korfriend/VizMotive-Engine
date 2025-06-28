@@ -83,23 +83,20 @@ if exist "..\bin\!folder!\" (
         
     set "sourceDir=..\dxc\windows"
     set "targetParentDir=..\bin"
-    if not exist "%sourceDir%" (
-        echo Source directory does not exist: %sourceDir%
+    if not exist "!sourceDir!" (
+        echo Source directory does not exist: !sourceDir!
         goto :eof
     )
-    if not exist "%targetParentDir%" (
-        echo Target parent directory does not exist: %targetParentDir%
+    if not exist "!targetParentDir!" (
+        echo Target parent directory does not exist: !targetParentDir!
         goto :eof
     )
-    for /d %%d in ("%targetParentDir%\*") do (
-        set "targetDir=%%d"
-        echo Copying files to !targetDir!
-    
-        for %%f in ("%sourceDir%\*.*") do (
-            echo   Copying "%%f" to "!targetDir!"
-            xcopy "%%f" "!targetDir!\" /D /Y /I
-        )
+    for /d %%d in ("..\bin\*") do (
+        REM Use delayed expansion to get the directory name
+        set "targetDir=%%~fd"
+        call :CopyFilesToTarget "!targetDir!"
     )
+
 
     REM ----------------------------
     REM [3] Copy dxc.exe
@@ -114,4 +111,22 @@ if exist "..\bin\!folder!\" (
     echo Source folder does not exist: ..\bin\!folder!\
 )
 
+goto :eof
+
+:CopyFilesToTarget
+setlocal
+set "targetDir=%~1"
+echo Copying files to !targetDir!
+
+for %%f in ("%sourceDir%\*.*") do (
+    set "filename=%%~nxf"
+    REM Skip certain files
+    echo !filename! | findstr /I "DumpStack.log" >nul
+    if errorlevel 1 (
+        echo   Copying !filename! to !targetDir!
+        xcopy "%%f" "!targetDir!\" /D /Y /I >nul
+    ) else (
+        echo   Skipping !filename! (restricted)
+    )
+)
 endlocal
