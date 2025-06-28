@@ -4,13 +4,13 @@ namespace vz::renderer
 {
 	void GRenderPath3DDetails::RenderSlicerMeshes(CommandList cmd)
 	{
-		if (viewMain.visibleRenderables_Mesh.empty())
+		if (visMain.visibleRenderables_Mesh.empty())
 			return;
 
 		uint32_t filterMask = GMaterialComponent::FILTER_OPAQUE | GMaterialComponent::FILTER_TRANSPARENT;
 
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
-		XMUINT2 tile_count = GetViewTileCount(XMUINT2(rtMain.desc.width, rtMain.desc.height));
+		XMUINT2 tile_count = GetVisibilityTileCount(XMUINT2(rtMain.desc.width, rtMain.desc.height));
 
 		GPUResource unbind;
 
@@ -19,15 +19,15 @@ namespace vz::renderer
 		//	
 		static thread_local RenderQueue renderQueue;
 		renderQueue.init();
-		for (uint32_t instanceIndex : viewMain.visibleRenderables_Mesh)
+		for (uint32_t instanceIndex : visMain.visibleRenderables_Mesh)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
-			if (!renderable.layeredmask->IsVisibleWith(viewMain.layeredmask->GetVisibleLayerMask()))
+			if (!renderable.layeredmask->IsVisibleWith(visMain.layeredmask->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
 
-			const float distance = math::Distance(viewMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
+			const float distance = math::Distance(visMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 
@@ -289,13 +289,13 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::RenderDirectVolumes(CommandList cmd)
 	{
-		if (viewMain.visibleRenderables_Volume.empty())
+		if (visMain.visibleRenderables_Volume.empty())
 			return;
 
 		uint32_t filterMask = GMaterialComponent::FILTER_VOLUME;
 
 		// Note: the tile_count here must be valid whether the ViewResources was created or not!
-		XMUINT2 tile_count = GetViewTileCount(XMUINT2(rtMain.desc.width, rtMain.desc.height));
+		XMUINT2 tile_count = GetVisibilityTileCount(XMUINT2(rtMain.desc.width, rtMain.desc.height));
 
 		GPUResource unbind;
 
@@ -304,18 +304,18 @@ namespace vz::renderer
 		//	
 		static thread_local RenderQueue renderQueue;
 		renderQueue.init();
-		for (uint32_t instanceIndex : viewMain.visibleRenderables_Volume)
+		for (uint32_t instanceIndex : visMain.visibleRenderables_Volume)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 			if (renderable.GetRenderableType() != RenderableType::VOLUME_RENDERABLE)
 				continue;
-			LayeredMaskComponent* layeredmask = viewMain.camera->GetLayeredMaskComponent();
+			LayeredMaskComponent* layeredmask = visMain.camera->GetLayeredMaskComponent();
 			if (!renderable.layeredmask->IsVisibleWith(layeredmask->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
 
-			const float distance = math::Distance(viewMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
+			const float distance = math::Distance(visMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 

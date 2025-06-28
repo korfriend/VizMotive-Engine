@@ -31,40 +31,40 @@ namespace vz::renderer
 		scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
 
 		// Frustum culling for main camera:l,k
-		viewMain.layerMask = ~0;
-		viewMain.camera = camera;
-		viewMain.layeredmask = camera->GetLayeredMaskComponent();
+		visMain.layerMask = ~0;
+		visMain.camera = camera;
+		visMain.layeredmask = camera->GetLayeredMaskComponent();
 		
-		viewMain.flags = renderer::View::ALLOW_EVERYTHING;
+		visMain.flags = renderer::Visibility::ALLOW_EVERYTHING;
 		if (!renderer::isOcclusionCullingEnabled || camera->IsSlicer())
 		{
-			viewMain.flags &= ~renderer::View::ALLOW_OCCLUSION_CULLING;
+			visMain.flags &= ~renderer::Visibility::ALLOW_OCCLUSION_CULLING;
 		}
-		UpdateView(viewMain);
+		UpdateVisibility(visMain);
 
 		// TODO
-		if (viewMain.isPlanarReflectionVisible)
+		if (visMain.isPlanarReflectionVisible)
 		{
 			// Frustum culling for planar reflections:
 			cameraReflection = *camera;
 			cameraReflection.jitter = XMFLOAT2(0, 0);
-			//cameraReflection.Reflect(viewMain.reflectionPlane);
+			//cameraReflection.Reflect(visMain.reflectionPlane);
 			//viewReflection.layerMask = getLayerMask();
-			viewReflection.camera = &cameraReflection;
-			viewReflection.layeredmask = &layeredmaskReflection;
-			viewReflection.flags =
+			visReflection.camera = &cameraReflection;
+			visReflection.layeredmask = &layeredmaskReflection;
+			visReflection.flags =
 				//renderer::View::ALLOW_OBJECTS |
 				//renderer::View::ALLOW_EMITTERS |
 				//renderer::View::ALLOW_HAIRS |
-				renderer::View::ALLOW_LIGHTS;
-			UpdateView(viewReflection);
+				renderer::Visibility::ALLOW_LIGHTS;
+			UpdateVisibility(visReflection);
 		}
 
 		XMUINT2 internalResolution = XMUINT2(canvasWidth_, canvasHeight_);
 
 		UpdatePerFrameData(
 			*scene,
-			viewMain,
+			visMain,
 			frameCB,
 			renderer::isSceneUpdateEnabled ? dt : 0
 		);
@@ -199,9 +199,9 @@ namespace vz::renderer
 		}
 
 		// the given CameraComponent
-		viewMain.camera->UpdateMatrix();
+		visMain.camera->UpdateMatrix();
 
-		if (viewMain.isPlanarReflectionVisible)
+		if (visMain.isPlanarReflectionVisible)
 		{
 			cameraReflection.UpdateMatrix();
 		}
@@ -280,11 +280,11 @@ namespace vz::renderer
 	}
 
 	// based on graphics pipeline : Draw[...]
-	void GRenderPath3DDetails::DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags)
+	void GRenderPath3DDetails::DrawScene(const Visibility& vis, RENDERPASS renderPass, CommandList cmd, uint32_t flags)
 	{
 		const bool opaque = flags & DRAWSCENE_OPAQUE;
 		const bool transparent = flags & DRAWSCENE_TRANSPARENT;
-		const bool occlusion = (flags & DRAWSCENE_OCCLUSIONCULLING) && (view.flags & View::ALLOW_OCCLUSION_CULLING) && isOcclusionCullingEnabled;
+		const bool occlusion = (flags & DRAWSCENE_OCCLUSIONCULLING) && (vis.flags & Visibility::ALLOW_OCCLUSION_CULLING) && isOcclusionCullingEnabled;
 		const bool foreground = flags & DRAWSCENE_FOREGROUND_ONLY;
 
 		device->EventBegin("DrawScene", cmd);
@@ -311,7 +311,7 @@ namespace vz::renderer
 		{
 			static thread_local RenderQueue renderQueue;
 			renderQueue.init();
-			for (uint32_t instanceIndex : view.visibleRenderables_Mesh)
+			for (uint32_t instanceIndex : vis.visibleRenderables_Mesh)
 			{
 				if (occlusion && scene_Gdetails->occlusionResultsObjects[instanceIndex].IsOccluded())
 					continue;
@@ -321,7 +321,7 @@ namespace vz::renderer
 				
 				if (foreground != renderable.IsForeground())
 					continue;
-				if (!renderable.layeredmask->IsVisibleWith(view.layeredmask->GetVisibleLayerMask()))
+				if (!renderable.layeredmask->IsVisibleWith(vis.layeredmask->GetVisibleLayerMask()))
 					continue;
 				if ((renderable.materialFilterFlags & filterMask) == 0)
 					continue;
@@ -329,7 +329,7 @@ namespace vz::renderer
 				if (renderable.materialFilterFlags & GMaterialComponent::MaterialFilterFlags::FILTER_GAUSSIAN_SPLATTING)
 					continue;
 
-				const float distance = math::Distance(view.camera->GetWorldEye(), renderable.GetAABB().getCenter());
+				const float distance = math::Distance(vis.camera->GetWorldEye(), renderable.GetAABB().getCenter());
 				if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 					continue;
 
@@ -345,7 +345,7 @@ namespace vz::renderer
 				{
 					renderQueue.sort_opaque();
 				}
-				RenderMeshes(view, renderQueue, renderPass, filterMask, cmd, flags);
+				RenderMeshes(vis, renderQueue, renderPass, filterMask, cmd, flags);
 			}
 		}
 
@@ -573,7 +573,7 @@ namespace vz::renderer
 		}
 	}
 
-	void GRenderPath3DDetails::RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags, uint32_t camera_count)
+	void GRenderPath3DDetails::RenderMeshes(const Visibility& vis, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags, uint32_t camera_count)
 	{
 		if (renderQueue.empty())
 			return;
@@ -969,7 +969,7 @@ namespace vz::renderer
 		// Draw only the ocean first, fog and lightshafts will be blended on top:
 		// TODO
 
-		if (viewMain.IsTransparentsVisible())
+		if (visMain.IsTransparentsVisible())
 		{
 			//RenderSceneMIPChain(cmd);
 		}
@@ -979,7 +979,7 @@ namespace vz::renderer
 		// Note: volumetrics and light shafts are blended before transparent scene, because they used depth of the opaques
 		//	But the ocean is special, because it does have depth for them implicitly computed from ocean plane
 
-		if (renderer::isVolumeLightsEnabled && viewMain.IsRequestedVolumetricLights())
+		if (renderer::isVolumeLightsEnabled && visMain.IsRequestedVolumetricLights())
 		{
 			//device->EventBegin("Contribute Volumetric Lights", cmd);
 			//Postprocess_Upsample_Bilateral(
@@ -1005,7 +1005,7 @@ namespace vz::renderer
 		//}
 
 		// Transparent scene
-		if (viewMain.IsTransparentsVisible())
+		if (visMain.IsTransparentsVisible())
 		{
 			auto range = profiler::BeginRangeGPU("Transparent Scene", &cmd);
 			device->EventBegin("Transparent Scene", cmd);
@@ -1015,7 +1015,7 @@ namespace vz::renderer
 			vp.max_depth = 1;
 			device->BindViewports(1, &vp, cmd);
 			DrawScene(
-				viewMain,
+				visMain,
 				RENDERPASS_MAIN,
 				cmd,
 				renderer::DRAWSCENE_TRANSPARENT |
@@ -1028,7 +1028,7 @@ namespace vz::renderer
 			vp.max_depth = 1;
 			device->BindViewports(1, &vp, cmd);
 			DrawScene(
-				viewMain,
+				visMain,
 				RENDERPASS_MAIN,
 				cmd,
 				renderer::DRAWSCENE_TRANSPARENT |
@@ -1046,9 +1046,9 @@ namespace vz::renderer
 
 		//DrawDebugWorld(*scene, *camera, cmd);
 
-		//DrawLightVisualizers(viewMain, cmd);
+		//DrawLightVisualizers(visMain, cmd);
 
-		//DrawSoftParticles(viewMain, false, cmd);
+		//DrawSoftParticles(visMain, false, cmd);
 		
 		DrawSpritesAndFonts(*camera, false, cmd);
 
@@ -1611,7 +1611,7 @@ namespace vz::renderer
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
-			UpdateRenderData(viewMain, frameCB, cmd);
+			UpdateRenderData(visMain, frameCB, cmd);
 
 			uint32_t num_barriers = 2;
 			GPUBarrier barriers[] = {
@@ -1635,11 +1635,11 @@ namespace vz::renderer
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
-			UpdateRenderDataAsync(viewMain, frameCB, cmd);
+			UpdateRenderDataAsync(visMain, frameCB, cmd);
 
 			if (isWetmapRefreshEnabled)
 			{
-				RefreshWetmaps(viewMain, cmd);
+				RefreshWetmaps(visMain, cmd);
 			}
 
 			// UpdateRaytracingAccelerationStructures
@@ -1712,7 +1712,7 @@ namespace vz::renderer
 			vp.max_depth = 1.f;
 			device->BindViewports(1, &vp, cmd);
 			DrawScene(
-				viewMain,
+				visMain,
 				RENDERPASS_PREPASS,
 				cmd,
 				renderer::DRAWSCENE_OPAQUE |
@@ -1724,7 +1724,7 @@ namespace vz::renderer
 			vp.max_depth = 1;
 			device->BindViewports(1, &vp, cmd);
 			DrawScene(
-				viewMain,
+				visMain,
 				RENDERPASS_PREPASS,
 				cmd,
 				drawscene_regular_flags
@@ -1774,7 +1774,7 @@ namespace vz::renderer
 				cmd
 			);
 
-			View_Prepare(
+			Visibility_Prepare(
 				viewResources,
 				rtPrimitiveID_1_render,
 				rtPrimitiveID_2_render,
@@ -1783,14 +1783,14 @@ namespace vz::renderer
 
 			ComputeTiledLightCulling(
 				tiledLightResources,
-				viewMain,
+				visMain,
 				debugUAV,
 				cmd
 			);
 
 			if (viewShadingInCS)
 			{
-				View_Surface(
+				Visibility_Surface(
 					viewResources,
 					rtMain,
 					cmd
@@ -1884,7 +1884,7 @@ namespace vz::renderer
 					cmd
 				);
 				
-				OcclusionCulling_Reset(viewMain, cmd); // must be outside renderpass!
+				OcclusionCulling_Reset(visMain, cmd); // must be outside renderpass!
 								
 				RenderPassImage rp[] = {
 					RenderPassImage::DepthStencil(&depthBufferMain),
@@ -1898,11 +1898,11 @@ namespace vz::renderer
 				//vp.height = (float)depthBufferMain.GetDesc().height;
 				device->BindViewports(1, &vp, cmd);
 				
-				OcclusionCulling_Render(*camera, viewMain, cmd);
+				OcclusionCulling_Render(*camera, visMain, cmd);
 				
 				device->RenderPassEnd(cmd);
 
-				OcclusionCulling_Resolve(viewMain, cmd); // must be outside renderpass!
+				OcclusionCulling_Resolve(visMain, cmd); // must be outside renderpass!
 
 				device->EventEnd(cmd);
 				});
@@ -2157,7 +2157,7 @@ namespace vz::renderer
 
 			if (viewShadingInCS)
 			{
-				View_Shade(
+				Visibility_Shade(
 					viewResources,
 					rtMain,
 					cmd
@@ -2226,7 +2226,7 @@ namespace vz::renderer
 				vp.max_depth = 1;
 				device->BindViewports(1, &vp, cmd);
 				DrawScene(
-					viewMain,
+					visMain,
 					RENDERPASS_MAIN,
 					cmd,
 					renderer::DRAWSCENE_OPAQUE |
@@ -2238,7 +2238,7 @@ namespace vz::renderer
 				vp.max_depth = 1;
 				device->BindViewports(1, &vp, cmd);
 				DrawScene(
-					viewMain,
+					visMain,
 					RENDERPASS_MAIN,
 					cmd,
 					drawscene_regular_flags
@@ -2341,7 +2341,7 @@ namespace vz::renderer
 		jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
 
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
-			UpdateRenderData(viewMain, frameCB, cmd);
+			UpdateRenderData(visMain, frameCB, cmd);
 
 			barrierStack.push_back(GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::UNORDERED_ACCESS));
 			barrierStack.push_back(GPUBarrier::Image(&rtPrimitiveID_1, rtPrimitiveID_1.desc.layout, ResourceState::UNORDERED_ACCESS));

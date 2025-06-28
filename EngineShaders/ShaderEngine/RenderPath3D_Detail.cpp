@@ -79,13 +79,13 @@ namespace vz::renderer
 	//	c.f., scene-level (including animations) GPU-side updates performed in GSceneDetails::Update(..)
 	// 
 	// must be called after scene->update()
-	void GRenderPath3DDetails::UpdateView(View& view)
+	void GRenderPath3DDetails::UpdateVisibility(Visibility& vis)
 	{
 		// Perform parallel frustum culling and obtain closest reflector:
 		jobsystem::context ctx;
 		auto range = profiler::BeginRangeCPU("Frustum Culling");
 
-		assert(view.camera != nullptr); // User must provide a camera!
+		assert(vis.camera != nullptr); // User must provide a camera!
 
 		// The parallel frustum culling is first performed in shared memory, 
 		//	then each group writes out it's local list to global memory
@@ -95,23 +95,23 @@ namespace vz::renderer
 		static const size_t sharedmemory_size = (groupSize + 1) * sizeof(uint32_t); // list + counter per group
 
 		// Initialize visible indices:
-		view.Clear();
+		vis.Clear();
 
 		// TODO : add frustum culling processs
 		if (!isFreezeCullingCameraEnabled) // just for debug
 		{
-			view.frustum = view.camera->GetFrustum();
+			vis.frustum = vis.camera->GetFrustum();
 		}
 		if (!isOcclusionCullingEnabled || isFreezeCullingCameraEnabled)
 		{
-			view.flags &= ~View::ALLOW_OCCLUSION_CULLING;
+			vis.flags &= ~Visibility::ALLOW_OCCLUSION_CULLING;
 		}
 
-		if (view.flags & View::ALLOW_LIGHTS)
+		if (vis.flags & Visibility::ALLOW_LIGHTS)
 		{
 			// Cull lights:
 			const uint32_t light_loop = (uint32_t)scene_Gdetails->lightComponents.size();
-			view.visibleLights.resize(light_loop);
+			vis.visibleLights.resize(light_loop);
 			//vis.visibleLightShadowRects.clear();
 			//vis.visibleLightShadowRects.resize(light_loop);
 			jobsystem::Dispatch(ctx, light_loop, groupSize, [&](jobsystem::JobArgs args) {
@@ -129,7 +129,7 @@ namespace vz::renderer
 
 				const AABB& aabb = light.GetAABB();
 
-				if ((aabb.layerMask & view.layerMask) && view.frustum.CheckBoxFast(aabb))
+				if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
 				{
 					if (!light.IsInactive())
 					{
@@ -158,25 +158,25 @@ namespace vz::renderer
 				// Global stream compaction:
 				if (args.isLastJobInGroup && group_count > 0)
 				{
-					uint32_t prev_count = view.lightCounter.fetch_add(group_count);
+					uint32_t prev_count = vis.lightCounter.fetch_add(group_count);
 					for (uint32_t i = 0; i < group_count; ++i)
 					{
-						view.visibleLights[prev_count + i] = group_list[i];
+						vis.visibleLights[prev_count + i] = group_list[i];
 					}
 				}
 
 				}, sharedmemory_size);
 		}
 
-		if (view.flags & View::ALLOW_RENDERABLES)
+		if (vis.flags & Visibility::ALLOW_RENDERABLES)
 		{
 			// Cull objects:
 			const uint32_t renderable_loop = (uint32_t)scene_Gdetails->renderableComponents.size();
 
 			const Scene* scene = scene_Gdetails->GetScene();
-			view.visibleRenderables_Mesh.resize(scene->GetRenderableMeshCount());
-			view.visibleRenderables_Volume.resize(scene->GetRenderableVolumeCount());
-			view.visibleRenderables_GSplat.resize(scene->GetRenderableGSplatCount());
+			vis.visibleRenderables_Mesh.resize(scene->GetRenderableMeshCount());
+			vis.visibleRenderables_Volume.resize(scene->GetRenderableVolumeCount());
+			vis.visibleRenderables_GSplat.resize(scene->GetRenderableGSplatCount());
 
 			jobsystem::Dispatch(ctx, renderable_loop, groupSize, [&](jobsystem::JobArgs args) {
 
@@ -193,21 +193,21 @@ namespace vz::renderer
 
 				const AABB& aabb = renderable.GetAABB();
 
-				if ((aabb.layerMask & view.layerMask) && view.frustum.CheckBoxFast(aabb))
+				if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
 				{
 					switch (renderable.GetRenderableType())
 					{
 					case RenderableType::MESH_RENDERABLE:
-						view.visibleRenderables_Mesh[view.renderableCounterMesh.load()] = args.jobIndex;
-						view.renderableCounterMesh.fetch_add(1, std::memory_order_relaxed);
+						vis.visibleRenderables_Mesh[vis.renderableCounterMesh.load()] = args.jobIndex;
+						vis.renderableCounterMesh.fetch_add(1, std::memory_order_relaxed);
 						break;
 					case RenderableType::VOLUME_RENDERABLE:
-						view.visibleRenderables_Volume[view.renderableCounterVolume.load()] = args.jobIndex;
-						view.renderableCounterVolume.fetch_add(1, std::memory_order_relaxed);
+						vis.visibleRenderables_Volume[vis.renderableCounterVolume.load()] = args.jobIndex;
+						vis.renderableCounterVolume.fetch_add(1, std::memory_order_relaxed);
 						break;
 					case RenderableType::GSPLAT_RENDERABLE:
-						view.visibleRenderables_GSplat[view.renderableCounterGSplat.load()] = args.jobIndex;
-						view.renderableCounterGSplat.fetch_add(1, std::memory_order_relaxed);
+						vis.visibleRenderables_GSplat[vis.renderableCounterGSplat.load()] = args.jobIndex;
+						vis.renderableCounterGSplat.fetch_add(1, std::memory_order_relaxed);
 						break;
 					default:
 						vzlog_assert(0, "MUST BE RENDERABLE!");
@@ -216,17 +216,17 @@ namespace vz::renderer
 
 					GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[args.jobIndex];
 					bool occluded = false;
-					if (view.flags & View::ALLOW_OCCLUSION_CULLING)
+					if (vis.flags & Visibility::ALLOW_OCCLUSION_CULLING)
 					{
 						occluded = occlusion_result.IsOccluded();
 					}
 
-					if (view.flags & View::ALLOW_OCCLUSION_CULLING)
+					if (vis.flags & Visibility::ALLOW_OCCLUSION_CULLING)
 					{
 						assert(renderable.IsRenderable());
 						if (occlusion_result.occlusionQueries[scene_Gdetails->queryheapIdx] < 0)
 						{
-							if (aabb.intersects(view.camera->GetWorldEye()))
+							if (aabb.intersects(vis.camera->GetWorldEye()))
 							{
 								// camera is inside the instance, mark it as visible in this frame:
 								occlusion_result.occlusionHistory |= 1;
@@ -245,26 +245,26 @@ namespace vz::renderer
 		jobsystem::Wait(ctx);
 
 		// finalize stream compaction: (memory safe)
-		size_t num_Meshes = (size_t)view.renderableCounterMesh.load();
-		size_t num_Volumes = (size_t)view.renderableCounterVolume.load();
-		size_t num_GSplats = (size_t)view.renderableCounterGSplat.load();
-		view.visibleRenderables_Mesh.resize(num_Meshes);
-		view.visibleRenderables_Volume.resize(num_Volumes);
-		view.visibleRenderables_GSplat.resize(num_GSplats);
-		view.visibleLights.resize((size_t)view.lightCounter.load());
+		size_t num_Meshes = (size_t)vis.renderableCounterMesh.load();
+		size_t num_Volumes = (size_t)vis.renderableCounterVolume.load();
+		size_t num_GSplats = (size_t)vis.renderableCounterGSplat.load();
+		vis.visibleRenderables_Mesh.resize(num_Meshes);
+		vis.visibleRenderables_Volume.resize(num_Volumes);
+		vis.visibleRenderables_GSplat.resize(num_GSplats);
+		vis.visibleLights.resize((size_t)vis.lightCounter.load());
 
-		view.visibleRenderables_All.resize(num_Meshes + num_Volumes + num_GSplats);
+		vis.visibleRenderables_All.resize(num_Meshes + num_Volumes + num_GSplats);
 
 		if (num_Meshes > 0)
-			memcpy(&view.visibleRenderables_All[0], &view.visibleRenderables_Mesh[0], sizeof(uint32_t)* num_Meshes);
+			memcpy(&vis.visibleRenderables_All[0], &vis.visibleRenderables_Mesh[0], sizeof(uint32_t)* num_Meshes);
 		if (num_Volumes > 0)
-			memcpy(&view.visibleRenderables_All[num_Meshes], &view.visibleRenderables_Volume[0], sizeof(uint32_t)* num_Volumes);
+			memcpy(&vis.visibleRenderables_All[num_Meshes], &vis.visibleRenderables_Volume[0], sizeof(uint32_t)* num_Volumes);
 		if (num_GSplats > 0)
-			memcpy(&view.visibleRenderables_All[num_Meshes + num_Volumes], &view.visibleRenderables_GSplat[0], sizeof(uint32_t)* num_GSplats);
+			memcpy(&vis.visibleRenderables_All[num_Meshes + num_Volumes], &vis.visibleRenderables_GSplat[0], sizeof(uint32_t)* num_GSplats);
 
 		profiler::EndRange(range); // Frustum Culling
 	}
-	void GRenderPath3DDetails::UpdatePerFrameData(Scene& scene, const View& vis, FrameCB& frameCB, float dt)
+	void GRenderPath3DDetails::UpdatePerFrameData(Scene& scene, const Visibility& vis, FrameCB& frameCB, float dt)
 	{
 		GraphicsDevice* device = graphics::GetDevice();
 
@@ -820,20 +820,20 @@ namespace vz::renderer
 		//frameCB.forces = ShaderEntityIterator(forcefieldarray_offset, forcefieldarray_count);
 	}
 
-	void GRenderPath3DDetails::View_Prepare(
-		const ViewResources& res,
+	void GRenderPath3DDetails::Visibility_Prepare(
+		const VisibilityResources& res,
 		const Texture& input_primitiveID_1, // can be MSAA
 		const Texture& input_primitiveID_2, // can be MSAA
 		CommandList cmd
 	)
 	{
-		device->EventBegin("View_Prepare", cmd);
-		auto range = profiler::BeginRangeGPU("View_Prepare", &cmd);
+		device->EventBegin("Visibility_Prepare", cmd);
+		auto range = profiler::BeginRangeGPU("Visibility_Prepare", &cmd);
 
 		BindCommonResources(cmd);
 
-		// Note: the tile_count here must be valid whether the ViewResources was created or not!
-		XMUINT2 tile_count = GetViewTileCount(XMUINT2(input_primitiveID_1.desc.width, input_primitiveID_1.desc.height));
+		// Note: the tile_count here must be valid whether the VisibilityResources was created or not!
+		XMUINT2 tile_count = GetVisibilityTileCount(XMUINT2(input_primitiveID_1.desc.width, input_primitiveID_1.desc.height));
 
 		// Beginning barriers, clears:
 		if (res.IsValid())
@@ -961,14 +961,14 @@ namespace vz::renderer
 		device->EventEnd(cmd);
 	}
 
-	void GRenderPath3DDetails::View_Surface(
-		const ViewResources& res,
+	void GRenderPath3DDetails::Visibility_Surface(
+		const VisibilityResources& res,
 		const Texture& output,
 		CommandList cmd
 	)
 	{
-		device->EventBegin("View_Surface", cmd);
-		auto range = profiler::BeginRangeGPU("View_Surface", &cmd);
+		device->EventBegin("Visibility_Surface", cmd);
+		auto range = profiler::BeginRangeGPU("Visibility_Surface", &cmd);
 
 		BindCommonResources(cmd);
 
@@ -1010,14 +1010,14 @@ namespace vz::renderer
 		profiler::EndRange(range);
 		device->EventEnd(cmd);
 	}
-	void GRenderPath3DDetails::View_Surface_Reduced(
-		const ViewResources& res,
+	void GRenderPath3DDetails::Visibility_Surface_Reduced(
+		const VisibilityResources& res,
 		CommandList cmd
 	)
 	{
 		assert(0 && "Not Yet Supported!");
-		device->EventBegin("View_Surface_Reduced", cmd);
-		auto range = profiler::BeginRangeGPU("View_Surface_Reduced", &cmd);
+		device->EventBegin("Visibility_Surface_Reduced", cmd);
+		auto range = profiler::BeginRangeGPU("Visibility_Surface_Reduced", &cmd);
 
 		BindCommonResources(cmd);
 
@@ -1055,14 +1055,14 @@ namespace vz::renderer
 		profiler::EndRange(range);
 		device->EventEnd(cmd);
 	}
-	void GRenderPath3DDetails::View_Shade(
-		const ViewResources& res,
+	void GRenderPath3DDetails::Visibility_Shade(
+		const VisibilityResources& res,
 		const Texture& output,
 		CommandList cmd
 	)
 	{
-		device->EventBegin("View_Shade", cmd);
-		auto range = profiler::BeginRangeGPU("View_Shade", &cmd);
+		device->EventBegin("Visibility_Shade", cmd);
+		auto range = profiler::BeginRangeGPU("Visibility_Shade", &cmd);
 
 		BindCommonResources(cmd);
 
@@ -1277,7 +1277,7 @@ namespace vz::renderer
 		shadercam.entity_culling_tilecount = GetEntityCullingTileCount(shadercam.internal_resolution);
 		shadercam.entity_culling_tile_bucket_count_flat = shadercam.entity_culling_tilecount.x * shadercam.entity_culling_tilecount.y * SHADER_ENTITY_TILE_BUCKET_COUNT;
 		shadercam.sample_count = depthBufferMain.desc.sample_count;
-		shadercam.visibility_tilecount = GetViewTileCount(shadercam.internal_resolution);
+		shadercam.visibility_tilecount = GetVisibilityTileCount(shadercam.internal_resolution);
 		shadercam.visibility_tilecount_flat = shadercam.visibility_tilecount.x * shadercam.visibility_tilecount.y;
 
 		shadercam.texture_primitiveID_1_index = device->GetDescriptorIndex(&rtPrimitiveID_1, SubresourceType::SRV);
@@ -1312,7 +1312,7 @@ namespace vz::renderer
 		device->BindConstantBuffer(&buffers[BUFFERTYPE_FRAMECB], CBSLOT_RENDERER_FRAME, cmd);
 	}
 
-	void GRenderPath3DDetails::UpdateRenderData(const View& view, const FrameCB& frameCB, CommandList cmd)
+	void GRenderPath3DDetails::UpdateRenderData(const Visibility& vis, const FrameCB& frameCB, CommandList cmd)
 	{
 		device->EventBegin("UpdateRenderData", cmd);
 
@@ -1423,16 +1423,16 @@ namespace vz::renderer
 
 		device->EventEnd(cmd);
 	}
-	void GRenderPath3DDetails::UpdateRenderDataAsync(const View& view, const FrameCB& frameCB, CommandList cmd)
+	void GRenderPath3DDetails::UpdateRenderDataAsync(const Visibility& vis, const FrameCB& frameCB, CommandList cmd)
 	{
 		device->EventBegin("UpdateRenderDataAsync", cmd);
 
 		BindCommonResources(cmd);
 
 		// Wetmaps will be initialized:
-		for (uint32_t i = 0, n = (uint32_t)view.visibleRenderables_Mesh.size(); i < n; ++i)
+		for (uint32_t i = 0, n = (uint32_t)vis.visibleRenderables_Mesh.size(); i < n; ++i)
 		{
-			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[view.visibleRenderables_Mesh[i]];
+			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[vis.visibleRenderables_Mesh[i]];
 			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
 
 			GGeometryComponent& geometry = *renderable.geometry;
@@ -1471,7 +1471,7 @@ namespace vz::renderer
 		device->EventEnd(cmd);
 	}
 
-	void GRenderPath3DDetails::OcclusionCulling_Reset(const View& view, CommandList cmd)
+	void GRenderPath3DDetails::OcclusionCulling_Reset(const Visibility& vis, CommandList cmd)
 	{
 		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
 
@@ -1479,7 +1479,7 @@ namespace vz::renderer
 		{
 			return;
 		}
-		if (view.visibleRenderables_All.empty() && view.visibleLights.empty())
+		if (vis.visibleRenderables_All.empty() && vis.visibleLights.empty())
 		{
 			return;
 		}
@@ -1491,7 +1491,7 @@ namespace vz::renderer
 			cmd
 		);
 	}
-	void GRenderPath3DDetails::OcclusionCulling_Render(const CameraComponent& camera, const View& view, CommandList cmd)
+	void GRenderPath3DDetails::OcclusionCulling_Render(const CameraComponent& camera, const Visibility& vis, CommandList cmd)
 	{
 		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
 
@@ -1499,7 +1499,7 @@ namespace vz::renderer
 		{
 			return;
 		}
-		if (view.visibleRenderables_All.empty() && view.visibleLights.empty())
+		if (vis.visibleRenderables_All.empty() && vis.visibleLights.empty())
 		{
 			return;
 		}
@@ -1512,11 +1512,11 @@ namespace vz::renderer
 
 		int query_write = scene_Gdetails->queryheapIdx;
 
-		if (!view.visibleRenderables_All.empty())
+		if (!vis.visibleRenderables_All.empty())
 		{
 			device->EventBegin("Occlusion Culling Objects", cmd);
 
-			for (uint32_t instanceIndex : view.visibleRenderables_All)
+			for (uint32_t instanceIndex : vis.visibleRenderables_All)
 			{
 				const GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[instanceIndex];
 				GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
@@ -1538,11 +1538,11 @@ namespace vz::renderer
 			device->EventEnd(cmd);
 		}
 
-		if (!view.visibleLights.empty())
+		if (!vis.visibleLights.empty())
 		{
 			device->EventBegin("Occlusion Culling Lights", cmd);
 
-			for (uint32_t lightIndex : view.visibleLights)
+			for (uint32_t lightIndex : vis.visibleLights)
 			{
 				const LightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
 
@@ -1564,7 +1564,7 @@ namespace vz::renderer
 
 		profiler::EndRange(range); // Occlusion Culling Render
 	}
-	void GRenderPath3DDetails::OcclusionCulling_Resolve(const View& view, CommandList cmd)
+	void GRenderPath3DDetails::OcclusionCulling_Resolve(const Visibility& vis, CommandList cmd)
 	{
 		const GPUQueryHeap& queryHeap = scene_Gdetails->queryHeap;
 
@@ -1572,7 +1572,7 @@ namespace vz::renderer
 		{
 			return;
 		}
-		if (view.visibleRenderables_All.empty() && view.visibleLights.empty())
+		if (vis.visibleRenderables_All.empty() && vis.visibleLights.empty())
 		{
 			return;
 		}
@@ -1712,7 +1712,7 @@ namespace vz::renderer
 		/**/
 	}
 
-	void GRenderPath3DDetails::RefreshWetmaps(const View& view, CommandList cmd)
+	void GRenderPath3DDetails::RefreshWetmaps(const Visibility& vis, CommandList cmd)
 	{
 		return; // this will be useful for wetmap simulation for rainny weather...
 
@@ -1725,9 +1725,9 @@ namespace vz::renderer
 		push.wet_amount = 1.f;
 
 		// Note: every object wetmap is updated, not just visible
-		for (uint32_t i = 0, n = (uint32_t)view.visibleRenderables_Mesh.size(); i < n; ++i)
+		for (uint32_t i = 0, n = (uint32_t)vis.visibleRenderables_Mesh.size(); i < n; ++i)
 		{
-			push.instanceIndex = view.visibleRenderables_Mesh[i];
+			push.instanceIndex = vis.visibleRenderables_Mesh[i];
 			GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[push.instanceIndex];
 
 			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
@@ -1775,7 +1775,7 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::ComputeTiledLightCulling(
 		const TiledLightResources& res,
-		const View& vis,
+		const Visibility& vis,
 		const Texture& debugUAV,
 		CommandList cmd
 	)
@@ -1842,9 +1842,9 @@ namespace vz::renderer
 		profiler::EndRange(range);
 	}
 
-	void GRenderPath3DDetails::CreateViewResources(ViewResources& res, XMUINT2 resolution)
+	void GRenderPath3DDetails::CreateViewResources(VisibilityResources& res, XMUINT2 resolution)
 	{
-		res.tile_count = GetViewTileCount(resolution);
+		res.tile_count = GetVisibilityTileCount(resolution);
 		{
 			GPUBufferDesc desc;
 			desc.stride = sizeof(ShaderTypeBin);
@@ -1855,7 +1855,7 @@ namespace vz::renderer
 			assert(success);
 			device->SetName(&res.bins, "res.bins");
 
-			desc.stride = sizeof(ViewTile);
+			desc.stride = sizeof(VisibilityTile);
 			desc.size = desc.stride * res.tile_count.x * res.tile_count.y * (SCU32(MaterialComponent::ShaderType::COUNT) + 1); // +1 for sky
 			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
 			desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
