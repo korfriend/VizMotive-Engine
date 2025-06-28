@@ -237,6 +237,23 @@ int main(int, char **)
 
 		using namespace vzm;
 		{
+			auto PairwiseCollision = [](VzActorStaticMesh* actorSrc, VzActorStaticMesh* actorDst, XMFLOAT4 collisionColor) {
+
+				int partSrc_index = -1, partDst_index = -1;
+				int triSrc_index = -1, triDst_index = -1;
+
+				if (actorSrc->CollisionCheck(actorDst->GetVID(), &partSrc_index, &partDst_index, &triSrc_index, &triDst_index))
+				{
+					//vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)", 
+					//	actorSrc->GetName().c_str(), actorDst->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
+					VzMaterial* mat = (VzMaterial*)vzm::GetComponent(actorDst->GetMaterial(partDst_index));
+					mat->SetBaseColor(*(vfloat4*)&collisionColor);
+
+					return true;
+				}
+				return false;
+				};
+
 			static size_t count = 0;
 			static bool play = true;
 			//static auto since = std::chrono::system_clock::now();
@@ -244,7 +261,7 @@ int main(int, char **)
 			//auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
 			//float time = msTime.count() / 1000.f;
 			if (play) count++;
-			float time = (float)count * 0.02f;// msTime.count() / 1000.f;
+			float time = (float)count * 0.01f;// msTime.count() / 1000.f;
 			
 			glm::fvec3 geo1_pos, geo2_pos;
 			geo1_pos.x = cos(time) * 30;
@@ -295,23 +312,6 @@ int main(int, char **)
 					//	This can be accomplished by calling the actor's UpdateWorldMatrix() function
 					actor_test1->UpdateWorldMatrix();
 					actor_test2->UpdateWorldMatrix();
-
-					auto PairwiseCollision = [](VzActorStaticMesh* actorSrc, VzActorStaticMesh* actorDst, XMFLOAT4 collisionColor) {
-
-						int partSrc_index = -1, partDst_index = -1;
-						int triSrc_index = -1, triDst_index = -1;
-
-						if (actorSrc->CollisionCheck(actorDst->GetVID(), &partSrc_index, &partDst_index, &triSrc_index, &triDst_index))
-						{
-							//vzlog("A collision between %s and %s has been detected (%d part, %d tri / % part, %d tri)", 
-							//	actorSrc->GetName().c_str(), actorDst->GetName().c_str(), partSrc_index, triSrc_index, partDst_index, triDst_index);
-							VzMaterial* mat = (VzMaterial*)vzm::GetComponent(actorDst->GetMaterial(partDst_index));
-							mat->SetBaseColor(*(vfloat4*)&collisionColor);
-
-							return true;
-						}
-						return false;
-						};
 
 					VzActorStaticMesh* actor_test3 = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor3");
 					if (actor_test3)
@@ -430,6 +430,16 @@ int main(int, char **)
 				{
 					VID geometry_vid = vzm::GetFirstVidByName("my icosahedron");
 					vz::geogen::GenerateIcosahedronGeometry(geometry_vid, 15.f, detail_Icosahedron);
+				}
+
+				if (ImGui::Button("Collision Test"))
+				{
+					VzActorStaticMesh* actor_test1 = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor1-IcosahedronGeometry");
+					VzActorStaticMesh* actor_test2 = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor2-TorusKnot");
+					VzActorStaticMesh* actor_test3 = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor3");
+					VzActorStaticMesh* actor_canal = (VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor-canal");
+
+					PairwiseCollision(actor_test3, actor_test1, { 1, 1, 0, 1 });
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);

@@ -1339,9 +1339,25 @@ namespace vz::geometrics
 		uint32_t* leaf_indices = nullptr;
 		uint32_t leaf_count = 0;
 
+		uint32_t maxLeafTriangles = 2;
+		bool useSHA = false;
+		float    traversalCost = 1.0f;
+		float    triangleCost = 1.0f;
+
 		constexpr bool IsValid() const { return nodes != nullptr; }
 
-		void Build(const vz::geometrics::AABB* aabbs, uint32_t aabb_count)
+		inline float SurfaceArea(const vz::geometrics::AABB& b)
+		{
+			XMFLOAT3 e = b.getHalfWidth();           // half-extents
+			return 2.f * (e.x * e.y + e.y * e.z + e.z * e.x);
+		}
+
+		float CostSHA(uint32_t numTri, float areaParent, float areaChild)
+		{
+			return traversalCost + triangleCost * (areaChild / areaParent) * numTri;
+		}
+
+		void Build(const vz::geometrics::AABB* aabbs, uint32_t aabb_count, bool useSHA = false)
 		{
 			node_count = 0;
 			if (aabb_count == 0)
@@ -1364,13 +1380,17 @@ namespace vz::geometrics
 				node.aabb = vz::geometrics::AABB::Merge(node.aabb, aabbs[i]);
 				leaf_indices[i] = i;
 			}
-			Subdivide(0, aabbs);
+			if (useSHA)
+				SubdivideSHA(0, aabbs);
+			else
+				Subdivide(0, aabbs);
 		}
 
 		void Subdivide(uint32_t nodeIndex, const vz::geometrics::AABB* leaf_aabb_data)
 		{
 			Node& node = nodes[nodeIndex];
-			if (node.count <= 2)
+			// stop if the node already holds 2 or fewer tris
+			if (node.count <= maxLeafTriangles)
 				return;
 
 			XMFLOAT3 extent = node.aabb.getHalfWidth();
@@ -1418,6 +1438,95 @@ namespace vz::geometrics
 			UpdateNodeBounds(right_child_index, leaf_aabb_data);
 
 			// recurse
+			Subdivide(left_child_index, leaf_aabb_data);
+			Subdivide(right_child_index, leaf_aabb_data);
+		}
+
+		void SubdivideSHA(uint32_t nodeIndex, const vz::geometrics::AABB* leaf_aabb_data)
+		{
+			Node& node = nodes[nodeIndex];
+
+			if (node.count <= maxLeafTriangles)
+				return;
+
+			// ---------------- Search SHA candidates
+			const vz::geometrics::AABB parentAABB = node.aabb;
+			const float parentArea = SurfaceArea(parentAABB);
+
+			// Determine subdividing axis (longest axis)
+			XMFLOAT3 extent = parentAABB.getHalfWidth();
+			int axis = 0;
+			if (extent.y > extent.x) axis = 1;
+			if (extent.z > ((float*)&extent)[axis]) axis = 2;
+
+			// Sort the leaf_indices[node.offset ... node.offset+count) range
+			//    in ascending order based on axis position (std::sort + lambda)
+			const uint32_t begin = node.offset;
+			const uint32_t end = begin + node.count;
+			std::sort(&leaf_indices[begin], &leaf_indices[end],
+				[&](uint32_t i, uint32_t j)
+				{
+					XMFLOAT3 cen1 = leaf_aabb_data[i].getCenter();
+					XMFLOAT3 cen2 = leaf_aabb_data[j].getCenter();
+					return ((float*)&cen1)[axis] <
+						((float*)&cen2)[axis];
+				});
+
+			// Generate prefix / suffix cumulative AABBs
+			std::vector<vz::geometrics::AABB> prefix(node.count);
+			std::vector<vz::geometrics::AABB> suffix(node.count);
+
+			prefix[0] = leaf_aabb_data[leaf_indices[begin]];
+			for (uint32_t i = 1; i < node.count; ++i)
+				prefix[i] = vz::geometrics::AABB::Merge(
+					prefix[i - 1], leaf_aabb_data[leaf_indices[begin + i]]);
+
+			suffix[node.count - 1] = leaf_aabb_data[leaf_indices[end - 1]];
+			for (int i = (int)node.count - 2; i >= 0; --i)
+				suffix[i] = vz::geometrics::AABB::Merge(
+					suffix[i + 1], leaf_aabb_data[leaf_indices[begin + i]]);
+
+			// Find the minimum SAH among all candidate split positions
+			float bestCost = FLT_MAX;
+			uint32_t bestIndex = 0;
+			for (uint32_t i = 1; i < node.count; ++i)    // minimumn 1 ~ n-1
+			{
+				float cost =
+					CostSHA(i, parentArea, SurfaceArea(prefix[i - 1]))
+					+ CostSHA(node.count - i, parentArea, SurfaceArea(suffix[i]));
+
+				if (cost < bestCost)
+				{
+					bestCost = cost;
+					bestIndex = i;
+				}
+			}
+
+			// Is SAH higher than "no split" cost? ==> Keep as leaf
+			float leafCost = triangleCost * node.count;
+			if (bestCost >= leafCost)
+				return;
+
+			// ---------------- Create child nodes  
+			uint32_t left_child_index = node_count++;
+			uint32_t right_child_index = node_count++;
+
+			node.left = left_child_index;
+
+			nodes[left_child_index] = {};
+			nodes[left_child_index].offset = begin;
+			nodes[left_child_index].count = bestIndex;
+
+			nodes[right_child_index] = {};
+			nodes[right_child_index].offset = begin + bestIndex;
+			nodes[right_child_index].count = node.count - bestIndex;
+
+			// Parent becomes internal node
+			node.count = 0;
+
+			UpdateNodeBounds(left_child_index, leaf_aabb_data);
+			UpdateNodeBounds(right_child_index, leaf_aabb_data);
+
 			Subdivide(left_child_index, leaf_aabb_data);
 			Subdivide(right_child_index, leaf_aabb_data);
 		}
