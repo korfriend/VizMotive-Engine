@@ -33,7 +33,7 @@ namespace vz::renderer
 
 namespace vz::renderer
 {
-	struct View
+	struct Visibility
 	{
 		// User fills these:
 		uint8_t layerMask = ~0;
@@ -117,7 +117,7 @@ namespace vz::renderer
 		}
 	};
 
-	struct ViewResources
+	struct VisibilityResources
 	{
 		XMUINT2 tile_count = {};
 		graphics::GPUBuffer bins;
@@ -371,7 +371,7 @@ namespace vz::renderer
 		}
 	};
 
-	inline constexpr XMUINT2 GetViewTileCount(XMUINT2 internalResolution)
+	inline constexpr XMUINT2 GetVisibilityTileCount(XMUINT2 internalResolution)
 	{
 		return XMUINT2(
 			(internalResolution.x + VISIBILITY_BLOCKSIZE - 1) / VISIBILITY_BLOCKSIZE,
@@ -495,8 +495,8 @@ namespace vz::renderer
 
 		FrameCB frameCB = {};
 		// separate graphics pipelines for the combination of special rendering effects
-		renderer::View viewMain;
-		renderer::View viewReflection;
+		renderer::Visibility visMain;
+		renderer::Visibility visReflection;
 
 		// auxiliary cameras for special rendering effects
 		LayeredMaskComponent layeredmaskReflection = LayeredMaskComponent(0);
@@ -553,7 +553,7 @@ namespace vz::renderer
 
 		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
 		
-		ViewResources viewResources;	// dynamic allocation
+		VisibilityResources viewResources;	// dynamic allocation
 
 		RenderableShapeCollection renderableShapes; // dynamic allocation
 
@@ -561,17 +561,17 @@ namespace vz::renderer
 		//  * functions with an input 'CommandList' are to be implemented here, otherwise, implement 'renderer::' namespace
 
 		// call renderer::UpdatePerFrameData to update :
-		//	1. viewMain
+		//	1. visMain
 		//	2. frameCB
-		void UpdateView(View& view);
-		void UpdatePerFrameData(Scene& scene, const View& vis, FrameCB& frameCB, float dt);
+		void UpdateVisibility(Visibility& vis);
+		void UpdatePerFrameData(Scene& scene, const Visibility& vis, FrameCB& frameCB, float dt);
 		void UpdateProcess(const float dt);
 		// Updates the GPU state according to the previously called UpdatePerFrameData()
-		void UpdateRenderData(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
-		void UpdateRenderDataAsync(const renderer::View& view, const FrameCB& frameCB, CommandList cmd);
+		void UpdateRenderData(const renderer::Visibility& vis, const FrameCB& frameCB, CommandList cmd);
+		void UpdateRenderDataAsync(const renderer::Visibility& vis, const FrameCB& frameCB, CommandList cmd);
 
 		void RefreshLightmaps(const Scene& scene, CommandList cmd);
-		void RefreshWetmaps(const View& vis, CommandList cmd);
+		void RefreshWetmaps(const Visibility& vis, CommandList cmd);
 
 		void TextureStreamingReadbackCopy(const Scene& scene, graphics::CommandList cmd);
 
@@ -588,23 +588,23 @@ namespace vz::renderer
 		void BindCameraCB(const CameraComponent& camera, const CameraComponent& cameraPrevious, const CameraComponent& cameraReflection, CommandList cmd);
 		void BindCommonResources(CommandList cmd);
 
-		void OcclusionCulling_Reset(const View& view, CommandList cmd);
-		void OcclusionCulling_Render(const CameraComponent& camera, const View& view, CommandList cmd);
-		void OcclusionCulling_Resolve(const View& view, CommandList cmd);
+		void OcclusionCulling_Reset(const Visibility& vis, CommandList cmd);
+		void OcclusionCulling_Render(const CameraComponent& camera, const Visibility& vis, CommandList cmd);
+		void OcclusionCulling_Resolve(const Visibility& vis, CommandList cmd);
 
 		void CreateTiledLightResources(TiledLightResources& res, XMUINT2 resolution);
-		void ComputeTiledLightCulling(const TiledLightResources& res, const View& vis, const Texture& debugUAV, CommandList cmd);
+		void ComputeTiledLightCulling(const TiledLightResources& res, const Visibility& vis, const Texture& debugUAV, CommandList cmd);
 		void CreateGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution);
-		void CreateViewResources(ViewResources& res, XMUINT2 resolution);
+		void CreateViewResources(VisibilityResources& res, XMUINT2 resolution);
 
-		void View_Prepare(const ViewResources& res, const Texture& input_primitiveID_1, const Texture& input_primitiveID_2, CommandList cmd); // input_primitiveID can be MSAA
+		void Visibility_Prepare(const VisibilityResources& res, const Texture& input_primitiveID_1, const Texture& input_primitiveID_2, CommandList cmd); // input_primitiveID can be MSAA
 		// SURFACE need to be checked whether it requires FORWARD or DEFERRED
-		void View_Surface(const ViewResources& res, const Texture& output, CommandList cmd);
-		void View_Surface_Reduced(const ViewResources& res, CommandList cmd);
-		void View_Shade(const ViewResources& res, const Texture& output, CommandList cmd);
+		void Visibility_Surface(const VisibilityResources& res, const Texture& output, CommandList cmd);
+		void Visibility_Surface_Reduced(const VisibilityResources& res, CommandList cmd);
+		void Visibility_Shade(const VisibilityResources& res, const Texture& output, CommandList cmd);
 
 		// render based on raster-graphics pipeline
-		void DrawScene(const View& view, RENDERPASS renderPass, CommandList cmd, uint32_t flags);
+		void DrawScene(const Visibility& vis, RENDERPASS renderPass, CommandList cmd, uint32_t flags);
 		void DrawSpritesAndFonts(const CameraComponent& camera, bool distortion, CommandList cmd);
 		void DrawDebugWorld(
 			const Scene& scene,
@@ -613,7 +613,7 @@ namespace vz::renderer
 		);
 
 		// rendering process that includes render-pipelines and compute shaders
-		void RenderMeshes(const View& view, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
+		void RenderMeshes(const Visibility& vis, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
 		void RenderTransparents(CommandList cmd);
 
 		// compute shaders-based rendering

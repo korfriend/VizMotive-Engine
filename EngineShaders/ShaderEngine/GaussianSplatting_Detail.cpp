@@ -40,7 +40,7 @@ namespace vz::renderer
 			return;
 		}
 
-		if (viewMain.visibleRenderables_GSplat.empty())
+		if (visMain.visibleRenderables_GSplat.empty())
 		{
 			return;
 		}
@@ -57,11 +57,11 @@ namespace vz::renderer
 
 		static thread_local RenderQueue renderQueue;
 		renderQueue.init();
-		for (uint32_t instanceIndex : viewMain.visibleRenderables_GSplat)
+		for (uint32_t instanceIndex : visMain.visibleRenderables_GSplat)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
 			assert(renderable.GetRenderableType() == RenderableType::GSPLAT_RENDERABLE);
-			if (!renderable.layeredmask->IsVisibleWith(viewMain.layeredmask->GetVisibleLayerMask()))
+			if (!renderable.layeredmask->IsVisibleWith(visMain.layeredmask->GetVisibleLayerMask()))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
@@ -70,7 +70,7 @@ namespace vz::renderer
 			if (!geometry.allowGaussianSplatting)
 				continue;
 
-			const float distance = math::Distance(viewMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
+			const float distance = math::Distance(visMain.camera->GetWorldEye(), renderable.GetAABB().getCenter());
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 

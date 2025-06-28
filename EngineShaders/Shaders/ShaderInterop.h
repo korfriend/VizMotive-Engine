@@ -1610,7 +1610,7 @@ struct alignas(16) ShaderTypeBin
 	uint shaderType;
 };
 
-struct alignas(16) ViewTile
+struct alignas(16) VisibilityTile
 {
 	uint64_t execution_mask;
 	uint view_tile_id;

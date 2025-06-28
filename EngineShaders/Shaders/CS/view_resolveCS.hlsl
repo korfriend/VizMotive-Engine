@@ -16,7 +16,7 @@ groupshared uint local_bin_execution_mask_0[SHADERTYPE_BIN_COUNT + 1];
 groupshared uint local_bin_execution_mask_1[SHADERTYPE_BIN_COUNT + 1];
 
 RWStructuredBuffer<ShaderTypeBin> output_bins : register(u0);
-RWStructuredBuffer<ViewTile> output_binned_tiles : register(u1);
+RWStructuredBuffer<VisibilityTile> output_binned_tiles : register(u1);
 
 RWTexture2D<float> output_depth_mip0 : register(u3);
 RWTexture2D<float> output_depth_mip1 : register(u4);
@@ -123,7 +123,7 @@ void main(uint2 Gid : SV_GroupID, uint groupIndex : SV_GroupIndex)
 			uint tile_offset = 0;
 			InterlockedAdd(output_bins[groupIndex].dispatchX, 1, tile_offset);
 
-			ViewTile tile;
+			VisibilityTile tile;
 			tile.view_tile_id = pack_pixel(Gid.xy);
 			tile.entity_flat_tile_index = flatten2D(Gid.xy / VISIBILITY_TILED_CULLING_GRANULARITY, GetCamera().entity_culling_tilecount.xy) * SHADER_ENTITY_TILE_BUCKET_COUNT;
 			tile.execution_mask = uint64_t(local_bin_execution_mask_0[groupIndex]) | (uint64_t(local_bin_execution_mask_1[groupIndex]) << uint64_t(32));
