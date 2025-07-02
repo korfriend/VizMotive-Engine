@@ -71,6 +71,139 @@ namespace vz::renderer
 		y = -2 * y / (float)fsr2_constants.renderSize[1];
 		return XMFLOAT2(x, y);
 	}
+
+	// Don't store this structure on heap!
+	struct SHCAM
+	{
+		XMMATRIX view_projection;
+		Frustum frustum;					// This frustum can be used for intersection test with wiPrimitive primitives
+		BoundingFrustum boundingfrustum;	// This boundingfrustum can be used for frustum vs frustum intersection test
+
+		inline void init(const XMFLOAT3& eyePos, const XMFLOAT4& rotation, float nearPlane, float farPlane, float fov)
+		{
+			const XMVECTOR E = XMLoadFloat3(&eyePos);
+			const XMVECTOR Q = XMQuaternionNormalize(XMLoadFloat4(&rotation));
+			const XMMATRIX rot = XMMatrixRotationQuaternion(Q);
+			const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), rot);
+			const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rot);
+			const XMMATRIX V = VZMatrixLookTo(E, to, up);
+			const XMMATRIX P = VZMatrixPerspectiveFov(fov, 1.f, farPlane, nearPlane);
+			view_projection = XMMatrixMultiply(V, P);
+			frustum.Create(view_projection);
+
+			BoundingFrustum::CreateFromMatrix(boundingfrustum, P);
+			std::swap(boundingfrustum.Near, boundingfrustum.Far);
+			boundingfrustum.Transform(boundingfrustum, XMMatrixInverse(nullptr, V));
+			XMStoreFloat4(&boundingfrustum.Orientation, XMQuaternionNormalize(XMLoadFloat4(&boundingfrustum.Orientation)));
+		};
+	};
+
+	inline void CreateSpotLightShadowCam(const GLightComponent& light, SHCAM& shcam)
+	{
+		shcam.init(light.position, light.rotation, 0.1f, light.GetRange(), light.GetOuterConeAngle() * 2.f);
+	}
+	inline void CreateDirLightShadowCams(const GLightComponent& light, CameraComponent camera, SHCAM* shcams, size_t shcam_count, const rectpacker::Rect& shadow_rect)
+	{
+		// remove camera jittering
+		camera.jitter = XMFLOAT2(0, 0);
+		camera.UpdateMatrix();
+
+		const XMMATRIX lightRotation = XMMatrixRotationQuaternion(XMLoadFloat4(&light.rotation));
+		const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), lightRotation);
+		const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), lightRotation);
+		const XMMATRIX lightView = XMMatrixLookToLH(XMVectorZero(), to, up); // important to not move (zero out eye vector) the light view matrix itself because texel snapping must be done on projection matrix!
+		float farPlane;
+		camera.GetNearFar(nullptr, &farPlane);
+
+		// Unproject main frustum corners into world space (notice the reversed Z projection!):
+		const XMMATRIX unproj = XMLoadFloat4x4(&camera.GetInvViewProjection());
+		const XMVECTOR frustum_corners[] =
+		{
+			XMVector3TransformCoord(XMVectorSet(-1, -1, 1, 1), unproj),	// near
+			XMVector3TransformCoord(XMVectorSet(-1, -1, 0, 1), unproj),	// far
+			XMVector3TransformCoord(XMVectorSet(-1, 1, 1, 1), unproj),	// near
+			XMVector3TransformCoord(XMVectorSet(-1, 1, 0, 1), unproj),	// far
+			XMVector3TransformCoord(XMVectorSet(1, -1, 1, 1), unproj),	// near
+			XMVector3TransformCoord(XMVectorSet(1, -1, 0, 1), unproj),	// far
+			XMVector3TransformCoord(XMVectorSet(1, 1, 1, 1), unproj),	// near
+			XMVector3TransformCoord(XMVectorSet(1, 1, 0, 1), unproj),	// far
+		};
+
+		// Compute shadow cameras:
+		for (int cascade = 0; cascade < shcam_count; ++cascade)
+		{
+			// Compute cascade bounds in light-view-space from the main frustum corners:
+			const float split_near = cascade == 0 ? 0 : light.cascadeDistances[cascade - 1] / farPlane;
+			const float split_far = light.cascadeDistances[cascade] / farPlane;
+			const XMVECTOR corners[] =
+			{
+				XMVector3Transform(XMVectorLerp(frustum_corners[0], frustum_corners[1], split_near), lightView),
+				XMVector3Transform(XMVectorLerp(frustum_corners[0], frustum_corners[1], split_far), lightView),
+				XMVector3Transform(XMVectorLerp(frustum_corners[2], frustum_corners[3], split_near), lightView),
+				XMVector3Transform(XMVectorLerp(frustum_corners[2], frustum_corners[3], split_far), lightView),
+				XMVector3Transform(XMVectorLerp(frustum_corners[4], frustum_corners[5], split_near), lightView),
+				XMVector3Transform(XMVectorLerp(frustum_corners[4], frustum_corners[5], split_far), lightView),
+				XMVector3Transform(XMVectorLerp(frustum_corners[6], frustum_corners[7], split_near), lightView),
+				XMVector3Transform(XMVectorLerp(frustum_corners[6], frustum_corners[7], split_far), lightView),
+			};
+
+			// Compute cascade bounding sphere center:
+			XMVECTOR center = XMVectorZero();
+			for (int j = 0; j < arraysize(corners); ++j)
+			{
+				center = XMVectorAdd(center, corners[j]);
+			}
+			center = center / float(arraysize(corners));
+
+			// Compute cascade bounding sphere radius:
+			float radius = 0;
+			for (int j = 0; j < arraysize(corners); ++j)
+			{
+				radius = std::max(radius, XMVectorGetX(XMVector3Length(XMVectorSubtract(corners[j], center))));
+			}
+
+			// Fit AABB onto bounding sphere:
+			XMVECTOR vRadius = XMVectorReplicate(radius);
+			XMVECTOR vMin = XMVectorSubtract(center, vRadius);
+			XMVECTOR vMax = XMVectorAdd(center, vRadius);
+
+			// Snap cascade to texel grid:
+			const XMVECTOR extent = XMVectorSubtract(vMax, vMin);
+			const XMVECTOR texelSize = extent / float(shadow_rect.w);
+			vMin = XMVectorFloor(vMin / texelSize) * texelSize;
+			vMax = XMVectorFloor(vMax / texelSize) * texelSize;
+			center = (vMin + vMax) * 0.5f;
+
+			XMFLOAT3 _center;
+			XMFLOAT3 _min;
+			XMFLOAT3 _max;
+			XMStoreFloat3(&_center, center);
+			XMStoreFloat3(&_min, vMin);
+			XMStoreFloat3(&_max, vMax);
+
+			// Extrude bounds to avoid early shadow clipping:
+			float ext = abs(_center.z - _min.z);
+			ext = std::max(ext, std::min(1500.0f, farPlane) * 0.5f);
+			_min.z = _center.z - ext;
+			_max.z = _center.z + ext;
+
+			const XMMATRIX lightProjection = XMMatrixOrthographicOffCenterLH(_min.x, _max.x, _min.y, _max.y, _max.z, _min.z); // notice reversed Z!
+
+			shcams[cascade].view_projection = XMMatrixMultiply(lightView, lightProjection);
+			shcams[cascade].frustum.Create(shcams[cascade].view_projection);
+		}
+
+	}
+	inline void CreateCubemapCameras(const XMFLOAT3& position, float zNearP, float zFarP, SHCAM* shcams, size_t shcam_count)
+	{
+		assert(shcam_count == 6);
+		shcams[0].init(position, XMFLOAT4(0.5f, -0.5f, -0.5f, -0.5f), zNearP, zFarP, XM_PIDIV2); //+x
+		shcams[1].init(position, XMFLOAT4(0.5f, 0.5f, 0.5f, -0.5f), zNearP, zFarP, XM_PIDIV2); //-x
+		shcams[2].init(position, XMFLOAT4(1, 0, 0, -0), zNearP, zFarP, XM_PIDIV2); //+y
+		shcams[3].init(position, XMFLOAT4(0, 0, 0, -1), zNearP, zFarP, XM_PIDIV2); //-y
+		shcams[4].init(position, XMFLOAT4(0.707f, 0, 0, -0.707f), zNearP, zFarP, XM_PIDIV2); //+z
+		shcams[5].init(position, XMFLOAT4(0, 0.707f, 0.707f, 0), zNearP, zFarP, XM_PIDIV2); //-z
+	}
 }
 
 namespace vz::renderer
@@ -112,8 +245,8 @@ namespace vz::renderer
 			// Cull lights:
 			const uint32_t light_loop = (uint32_t)scene_Gdetails->lightComponents.size();
 			vis.visibleLights.resize(light_loop);
-			//vis.visibleLightShadowRects.clear();
-			//vis.visibleLightShadowRects.resize(light_loop);
+			vis.visibleLightShadowRects.clear();
+			vis.visibleLightShadowRects.resize(light_loop);
 			jobsystem::Dispatch(ctx, light_loop, groupSize, [&](jobsystem::JobArgs args) {
 
 				const LightComponent& light = *scene_Gdetails->lightComponents[args.jobIndex];
@@ -262,6 +395,142 @@ namespace vz::renderer
 		if (num_GSplats > 0)
 			memcpy(&vis.visibleRenderables_All[num_Meshes + num_Volumes], &vis.visibleRenderables_GSplat[0], sizeof(uint32_t)* num_GSplats);
 
+		// Shadow atlas packing:
+		if (isShadowsEnabled && (vis.flags & Visibility::ALLOW_SHADOW_ATLAS_PACKING) && !vis.visibleLights.empty())
+		{
+			auto range = profiler::BeginRangeCPU("Shadowmap packing");
+			float iterative_scaling = 1;
+
+			while (iterative_scaling > 0.03f)
+			{
+				vis.shadowPacker.clear();
+				for (uint32_t lightIndex : vis.visibleLights)
+				{
+					const GLightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
+					if (light.IsInactive())
+						continue;
+					if (!light.IsCastingShadow() || light.IsStatic())
+						continue;
+
+					const float dist = math::Distance(vis.camera->GetWorldEye(), light.position);
+					const float range = light.GetRange();
+					const float amount = std::min(1.0f, range / std::max(0.001f, dist)) * iterative_scaling;
+
+					rectpacker::Rect rect = {};
+					rect.id = int(lightIndex);
+					switch (light.GetLightType())
+					{
+					case LightComponent::LightType::DIRECTIONAL:
+						if (light.forcedShadowResolution >= 0)
+						{
+							rect.w = light.forcedShadowResolution * int(light.cascadeDistances.size());
+							rect.h = light.forcedShadowResolution;
+						}
+						else
+						{
+							rect.w = int(maxShadowResolution_2D * iterative_scaling) * int(light.cascadeDistances.size());
+							rect.h = int(maxShadowResolution_2D * iterative_scaling);
+						}
+						break;
+					case LightComponent::LightType::SPOT:
+						if (light.forcedShadowResolution >= 0)
+						{
+							rect.w = int(light.forcedShadowResolution);
+							rect.h = int(light.forcedShadowResolution);
+						}
+						else
+						{
+							rect.w = int(maxShadowResolution_2D * amount);
+							rect.h = int(maxShadowResolution_2D * amount);
+						}
+						break;
+					case LightComponent::LightType::POINT:
+						if (light.forcedShadowResolution >= 0)
+						{
+							rect.w = int(light.forcedShadowResolution) * 6;
+							rect.h = int(light.forcedShadowResolution);
+						}
+						else
+						{
+							rect.w = int(maxShadowResolution_2D * amount) * 6;
+							rect.h = int(maxShadowResolution_2D * amount);
+						}
+						break;
+					}
+					if (rect.w > 8 && rect.h > 8)
+					{
+						vis.shadowPacker.add_rect(rect);
+					}
+				}
+				if (!vis.shadowPacker.rects.empty())
+				{
+					if (vis.shadowPacker.pack(8192))
+					{
+						for (auto& rect : vis.shadowPacker.rects)
+						{
+							if (rect.id == -1)
+							{
+								continue;
+							}
+							uint32_t lightIndex = uint32_t(rect.id);
+							rectpacker::Rect& lightrect = vis.visibleLightShadowRects[lightIndex];
+							const GLightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
+							if (rect.was_packed)
+							{
+								lightrect = rect;
+
+								// Remove slice multipliers from rect:
+								switch (light.GetLightType())
+								{
+								case LightComponent::LightType::DIRECTIONAL:
+									lightrect.w /= int(light.cascadeDistances.size());
+									break;
+								case LightComponent::LightType::POINT:
+									lightrect.w /= 6;
+									break;
+								}
+							}
+						}
+
+						if ((int)shadowMapAtlas.desc.width < vis.shadowPacker.width || (int)shadowMapAtlas.desc.height < vis.shadowPacker.height)
+						{
+							TextureDesc desc;
+							desc.width = uint32_t(vis.shadowPacker.width);
+							desc.height = uint32_t(vis.shadowPacker.height);
+							desc.format = FORMAT_depthbufferShadowmap;
+							desc.bind_flags = BindFlag::DEPTH_STENCIL | BindFlag::SHADER_RESOURCE;
+							desc.layout = ResourceState::SHADER_RESOURCE;
+							desc.misc_flags = ResourceMiscFlag::TEXTURE_COMPATIBLE_COMPRESSION;
+							device->CreateTexture(&desc, nullptr, &shadowMapAtlas);
+							device->SetName(&shadowMapAtlas, "shadowMapAtlas");
+
+							desc.format = FORMAT_rendertargetShadowmap;
+							desc.bind_flags = BindFlag::RENDER_TARGET | BindFlag::SHADER_RESOURCE;
+							desc.layout = ResourceState::SHADER_RESOURCE;
+							desc.clear.color[0] = 1;
+							desc.clear.color[1] = 1;
+							desc.clear.color[2] = 1;
+							desc.clear.color[3] = 0;
+							device->CreateTexture(&desc, nullptr, &shadowMapAtlas_Transparent);
+							device->SetName(&shadowMapAtlas_Transparent, "shadowMapAtlas_Transparent");
+
+						}
+
+						break;
+					}
+					else
+					{
+						iterative_scaling *= 0.5f;
+					}
+				}
+				else
+				{
+					iterative_scaling = 0.0; //PE: fix - endless loop if some lights do not have shadows.
+				}
+			}
+			profiler::EndRange(range);
+		}
+
 		profiler::EndRange(range); // Frustum Culling
 	}
 	void GRenderPath3DDetails::UpdatePerFrameData(Scene& scene, const Visibility& vis, FrameCB& frameCB, float dt)
@@ -291,8 +560,14 @@ namespace vz::renderer
 		{
 			frameCB.options |= OPTION_BIT_TEMPORALAA_ENABLED;
 		}
-		//frameCB.options |= OPTION_BIT_DISABLE_ALBEDO_MAPS;
-		frameCB.options |= OPTION_BIT_FORCE_DIFFUSE_LIGHTING;
+		if (isDisableAlbedoMaps)
+		{
+			frameCB.options |= OPTION_BIT_DISABLE_ALBEDO_MAPS;
+		}
+		if (isForceDiffuseLighting)
+		{
+			frameCB.options |= OPTION_BIT_FORCE_DIFFUSE_LIGHTING;
+		}
 
 		frameCB.scene = scene_Gdetails->shaderscene;
 
@@ -487,7 +762,7 @@ namespace vz::renderer
 			//	envprobearray_count++;
 			//}
 
-			//const XMFLOAT2 atlas_dim_rcp = XMFLOAT2(1.0f / float(shadowMapAtlas.desc.width), 1.0f / float(shadowMapAtlas.desc.height));
+			const XMFLOAT2 atlas_dim_rcp = XMFLOAT2(1.0f / float(shadowMapAtlas.desc.width), 1.0f / float(shadowMapAtlas.desc.height));
 
 			// Write directional lights into entity array:
 			lightarray_offset = entity_counter;
@@ -522,33 +797,42 @@ namespace vz::renderer
 				// mark as no shadow by default:
 				shaderentity.indices = ~0;
 
-				bool shadow = false;// IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
-				//const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
+				bool shadow = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
+				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
 				if (shadow)
 				{
-					//shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
-					//shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
-					//shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
-					//shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
-					//shaderentity.SetIndices(matrixCounter, 0);
+					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
+					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
+					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
+					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
+					shaderentity.SetIndices(matrix_counter, 0);
 				}
 
 				const uint cascade_count = std::min((uint)light.cascadeDistances.size(), SHADER_ENTITY_COUNT - matrix_counter);
 				shaderentity.SetShadowCascadeCount(cascade_count);
 
-				//if (shadow && !light.cascade_distances.empty())
-				//{
-				//	SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
-				//	CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
-				//	for (size_t cascade = 0; cascade < cascade_count; ++cascade)
-				//	{
-				//		XMStoreFloat4x4(&light_matrix_array[light_matrix_counter++], shcams[cascade].view_projection);
-				//	}
-				//}
+				if (shadow && !light.cascadeDistances.empty())
+				{
+					SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
+					CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
+					for (size_t cascade = 0; cascade < cascade_count; ++cascade)
+					{
+						XMStoreFloat4x4(&frameCB.matrixArray[matrix_counter++], shcams[cascade].view_projection);
+					}
+				}
 
-				//if (light.IsStatic())
+				if (light.IsCastingShadow())
+				{
+					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_CASTING_SHADOW);
+				}
+				if (light.IsStatic())
+				{
+					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
+				}
+
+				//if (light.IsVolumetricCloudsEnabled())
 				//{
-				//	shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
+				//	shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
 				//}
 
 				std::memcpy(entity_array + entity_counter, &shaderentity, sizeof(ShaderEntity));
@@ -813,8 +1097,8 @@ namespace vz::renderer
 
 		frameCB.probes = ShaderEntityIterator(envprobearray_offset, envprobearray_count);
 		frameCB.directional_lights = ShaderEntityIterator(lightarray_offset_directional, lightarray_count_directional);
-		//frameCB.spotlights = ShaderEntityIterator(lightarray_offset_spot, lightarray_count_spot);
-		//frameCB.pointlights = ShaderEntityIterator(lightarray_offset_point, lightarray_count_point);
+		frameCB.spot_lights = ShaderEntityIterator(lightarray_offset_spot, lightarray_count_spot);
+		frameCB.point_lights = ShaderEntityIterator(lightarray_offset_point, lightarray_count_point);
 		frameCB.lights = ShaderEntityIterator(lightarray_offset, lightarray_count);
 		frameCB.decals = ShaderEntityIterator(decalarray_offset, decalarray_count);
 		//frameCB.forces = ShaderEntityIterator(forcefieldarray_offset, forcefieldarray_count);
@@ -1609,6 +1893,60 @@ namespace vz::renderer
 				device->Barrier(barriers, arraysize(barriers), cmd);
 			}
 		}
+	}
+
+	ForwardEntityMaskCB GRenderPath3DDetails::ForwardEntityCullingCPU(const Visibility& vis, const AABB& batch_aabb, RENDERPASS renderPass)
+	{
+		// Performs CPU light culling for a renderable batch:
+		//	Similar to GPU-based tiled light culling, but this is only for simple forward passes (drawcall-granularity)
+
+		ForwardEntityMaskCB cb;
+		cb.xForwardLightMask.x = 0;
+		cb.xForwardLightMask.y = 0;
+		cb.xForwardDecalMask = 0;
+		cb.xForwardEnvProbeMask = 0;
+
+		uint32_t buckets[2] = { 0,0 };
+		for (size_t i = 0; i < std::min(size_t(64), vis.visibleLights.size()); ++i) // only support indexing 64 lights at max for now
+		{
+			const uint32_t lightIndex = vis.visibleLights[i];
+			const AABB& light_aabb = scene_Gdetails->GetScene()->GetLightAABBs()[lightIndex];
+			if (light_aabb.intersects(batch_aabb))
+			{
+				const uint8_t bucket_index = uint8_t(i / 32);
+				const uint8_t bucket_place = uint8_t(i % 32);
+				buckets[bucket_index] |= 1 << bucket_place;
+			}
+		}
+		cb.xForwardLightMask.x = buckets[0];
+		cb.xForwardLightMask.y = buckets[1];
+
+		//for (size_t i = 0; i < std::min(size_t(32), vis.visibleDecals.size()); ++i)
+		//{
+		//	const uint32_t decalIndex = vis.visibleDecals[vis.visibleDecals.size() - 1 - i]; // note: reverse order, for correct blending!
+		//	const AABB& decal_aabb = vis.scene->aabb_decals[decalIndex];
+		//	if (decal_aabb.intersects(batch_aabb))
+		//	{
+		//		const uint8_t bucket_place = uint8_t(i % 32);
+		//		cb.xForwardDecalMask |= 1 << bucket_place;
+		//	}
+		//}
+
+		//if (renderPass != RENDERPASS_ENVMAPCAPTURE)
+		//{
+		//	for (size_t i = 0; i < std::min(size_t(32), vis.visibleEnvProbes.size()); ++i)
+		//	{
+		//		const uint32_t probeIndex = vis.visibleEnvProbes[vis.visibleEnvProbes.size() - 1 - i]; // note: reverse order, for correct blending!
+		//		const AABB& probe_aabb = vis.scene->aabb_probes[probeIndex];
+		//		if (probe_aabb.intersects(batch_aabb))
+		//		{
+		//			const uint8_t bucket_place = uint8_t(i % 32);
+		//			cb.xForwardEnvProbeMask |= 1 << bucket_place;
+		//		}
+		//	}
+		//}
+
+		return cb;
 	}
 
 	void GRenderPath3DDetails::RefreshLightmaps(const Scene& scene, CommandList cmd)

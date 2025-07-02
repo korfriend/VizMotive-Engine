@@ -593,5 +593,7 @@ namespace vz
 		LayeredMaskComponent* layeredmask = nullptr;
 		uint32_t lightIndex = ~0u;	// current linear array of current rendering scene
 		std::vector<float> cascadeDistances = { 8, 80, 800 };
+
+		int forcedShadowResolution = -1; // -1: disabled, greater: fixed shadow map resolution
 	};
 }

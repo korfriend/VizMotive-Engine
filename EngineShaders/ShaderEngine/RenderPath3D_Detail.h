@@ -8,6 +8,7 @@
 #include "Utils/Helpers.h"
 #include "Utils/vzMath.h"
 #include "Utils/Geometrics.h"
+#include "ThirdParty/RectPacker.h"
 
 using namespace vz::geometrics;
 
@@ -48,7 +49,7 @@ namespace vz::renderer
 			//ALLOW_ENVPROBES = 1 << 3,
 			//ALLOW_EMITTERS = 1 << 4,
 			ALLOW_OCCLUSION_CULLING = 1 << 5,
-			//ALLOW_SHADOW_ATLAS_PACKING = 1 << 6,
+			ALLOW_SHADOW_ATLAS_PACKING = 1 << 6,
 
 			ALLOW_EVERYTHING = ~0u
 		};
@@ -68,8 +69,8 @@ namespace vz::renderer
 		//std::vector<uint32_t> visibleEmitters;
 		std::vector<uint32_t> visibleLights; // index refers to the linear array of Scnee::lights
 
-		//rectpacker::State shadowPacker;
-		//std::vector<rectpacker::Rect> visibleLightShadowRects;
+		rectpacker::State shadowPacker;
+		std::vector<rectpacker::Rect> visibleLightShadowRects;
 
 		std::atomic<uint32_t> renderableCounterMesh;
 		std::atomic<uint32_t> renderableCounterVolume;
@@ -549,6 +550,11 @@ namespace vz::renderer
 
 		graphics::Texture distortion_overlay; // optional full screen distortion from an asset
 
+		graphics::Texture shadowMapAtlas;
+		graphics::Texture shadowMapAtlas_Transparent;
+		int maxShadowResolution_2D = 1024;
+		int maxShadowResolution_cube = 256;
+
 		mutable const graphics::Texture* lastPostprocessRT = &rtPostprocess;
 
 		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
@@ -591,6 +597,8 @@ namespace vz::renderer
 		void OcclusionCulling_Reset(const Visibility& vis, CommandList cmd);
 		void OcclusionCulling_Render(const CameraComponent& camera, const Visibility& vis, CommandList cmd);
 		void OcclusionCulling_Resolve(const Visibility& vis, CommandList cmd);
+
+		ForwardEntityMaskCB ForwardEntityCullingCPU(const Visibility& vis, const AABB& batch_aabb, RENDERPASS renderPass);
 
 		void CreateTiledLightResources(TiledLightResources& res, XMUINT2 resolution);
 		void ComputeTiledLightCulling(const TiledLightResources& res, const Visibility& vis, const Texture& debugUAV, CommandList cmd);
