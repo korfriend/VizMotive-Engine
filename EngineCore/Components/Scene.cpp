@@ -343,6 +343,7 @@ namespace vz
 		void RunLightUpdateSystem(jobsystem::context& ctx)
 		{
 			uint32_t num_lights = (uint32_t)lights_.size();
+			aabbLights.resize(num_lights);
 			lightComponents.resize(num_lights);
 			jobsystem::Dispatch(ctx, num_lights, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
@@ -357,6 +358,9 @@ namespace vz
 				light->lightIndex = args.jobIndex;
 				light->layeredmask = compfactory::GetLayeredMaskComponent(entity);
 				light->Update();	// AABB
+
+				AABB aabb = light->GetAABB();
+				aabbLights[args.jobIndex] = aabb;
 
 				if (TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0)
 				{
@@ -679,6 +683,9 @@ namespace vz
 
 		const std::vector<XMFLOAT4X4>& GetRenderableWorldMatrices() const override { return matrixRenderables; }
 		const std::vector<XMFLOAT4X4>& GetRenderableWorldMatricesPrev() const override { return matrixRenderablesPrev; }
+
+		const std::vector<geometrics::AABB>& GetRenderableAABBs() const { return aabbRenderables; }
+		const std::vector<geometrics::AABB>& GetLightAABBs() const { return aabbLights; }
 	};
 }
 

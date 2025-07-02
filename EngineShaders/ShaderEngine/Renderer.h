@@ -259,6 +259,8 @@ namespace vz::renderer
 	extern bool isSceneUpdateEnabled;
 	extern bool isTemporalAAEnabled;
 	extern bool isTemporalAADebugEnabled;
+	extern bool isDisableAlbedoMaps;
+	extern bool isForceDiffuseLighting;
 	extern bool isTessellationEnabled;
 	extern bool isVolumeLightsEnabled;
 	extern bool isLensFlareEnabled;

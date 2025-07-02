@@ -31,6 +31,8 @@ namespace vz::renderer
 	bool isSceneUpdateEnabled = true;
 	bool isTemporalAAEnabled = true;
 	bool isTemporalAADebugEnabled = false;
+	bool isDisableAlbedoMaps = false;
+	bool isForceDiffuseLighting = false;
 	bool isTessellationEnabled = false;
 	bool isVolumeLightsEnabled = false;
 	bool isLensFlareEnabled = false;

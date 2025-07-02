@@ -217,8 +217,10 @@ enum SHADER_ENTITY_TYPE
 enum SHADER_ENTITY_FLAGS
 {
 	ENTITY_FLAG_LIGHT_STATIC = 1 << 0,
-	ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS = 1 << 1,
-	ENTITY_FLAG_DECAL_BASECOLOR_ONLY_ALPHA = 1 << 0,
+	ENTITY_FLAG_LIGHT_CASTING_SHADOW = 1 << 1,
+	ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS = 1 << 2,
+	ENTITY_FLAG_DECAL_BASECOLOR_ONLY_ALPHA = 1 << 3,
+	ENTITY_FLAG_CAPSULE_SHADOW_COLLIDER = 1 << 4,
 };
 
 //---------- Shader Parameters -----------
@@ -1260,8 +1262,8 @@ struct alignas(16) FrameCB
 	// Lights
 	uint probes;	// NOTE YET SUPPORTED
 	uint directional_lights;
-	uint spot_lights; // NOTE YET SUPPORTED
-	uint point_lights; // NOTE YET SUPPORTED
+	uint spot_lights;
+	uint point_lights;
 
 	uint lights;
 	uint decals; // NOTE YET SUPPORTED

@@ -148,7 +148,9 @@ namespace vz
 		std::vector<Entity> children_;
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
-		geometrics::AABB aabb_;
+
+		geometrics::AABB aabb_;	// entire scene box (renderables, lights, ...)
+		
 		//	instant parameters during render-process
 		float dt_ = 0.f;
 		float deltaTimeAccumulator_ = 0.f;
@@ -304,8 +306,12 @@ namespace vz
 		virtual uint32_t GetRenderableMeshCount() const = 0;
 		virtual uint32_t GetRenderableVolumeCount() const = 0;
 		virtual uint32_t GetRenderableGSplatCount() const = 0;
+
 		virtual const std::vector<XMFLOAT4X4>& GetRenderableWorldMatrices() const = 0;
 		virtual const std::vector<XMFLOAT4X4>& GetRenderableWorldMatricesPrev() const = 0;
+
+		virtual const std::vector<geometrics::AABB>& GetRenderableAABBs() const = 0;
+		virtual const std::vector<geometrics::AABB>& GetLightAABBs() const = 0;
 
 		virtual const std::vector<GRenderableComponent*>& GetRenderableComponents() const = 0;
 		virtual const std::vector<GRenderableComponent*>& GetRenderableMeshComponents() const = 0;
@@ -1692,7 +1698,7 @@ namespace vz
 			DIRECTIONAL = 0,
 			POINT,
 			SPOT,
-			RECT_AREA,
+			RECT_AREA,	// NOT YET
 			COUNT
 		};
 	private:
@@ -1702,6 +1708,7 @@ namespace vz
 			CAST_SHADOW = 1 << 0,
 			VOLUMETRICS = 1 << 1,
 			VISUALIZER = 1 << 2,
+			LIGHTMAPONLY_STATIC = 1 << 3,
 		};
 
 		uint32_t lightFlag_ = Flags::EMPTY;
@@ -1752,8 +1759,11 @@ namespace vz
 		inline void SetLength(const float length) { length_ = length; timeStampSetter_ = TimerNow; }
 		inline void SetLightType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
 		inline void SetLightIntensity(const float intensity) { intensity_ = intensity; }
-		inline void SetOuterConeAngle(const float angle) { outerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow;}
+		inline void SetOuterConeAngle(const float angle) { outerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetInnerConeAngle(const float angle) { innerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetCastShadow(bool value) { if (value) { lightFlag_ |= CAST_SHADOW; } else { lightFlag_ &= ~CAST_SHADOW; } isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetVisualizerEnabled(bool value) { if (value) { lightFlag_ |= VISUALIZER; } else { lightFlag_ &= ~VISUALIZER; } isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetStatic(bool value) { if (value) { lightFlag_ |= LIGHTMAPONLY_STATIC; } else { lightFlag_ &= ~LIGHTMAPONLY_STATIC; } isDirty_ = true; timeStampSetter_ = TimerNow; }
 
 		inline XMFLOAT3 GetLightColor() const { return color_; }
 		inline float GetLightIntensity() const { return intensity_; }
@@ -1771,6 +1781,9 @@ namespace vz
 		inline float GetOuterConeAngle() const { return outerConeAngle_; }
 		inline float GetInnerConeAngle() const { return innerConeAngle_; }
 
+		inline bool IsCastingShadow() const { return lightFlag_ & CAST_SHADOW; }
+		inline bool IsVisualizerEnabled() const { return lightFlag_ & VISUALIZER; }
+		inline bool IsStatic() const { return lightFlag_ & LIGHTMAPONLY_STATIC; }
 		inline bool IsInactive() const { return intensity_ == 0 || range_ == 0; }
 
 		inline void Update();	// if there is a transform entity, make sure the transform is updated!
