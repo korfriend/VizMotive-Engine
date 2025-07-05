@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250705_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250706_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1713,7 +1713,6 @@ namespace vz
 			DIRECTIONAL = 0,
 			POINT,
 			SPOT,
-			RECT_AREA,	// NOT YET
 			COUNT
 		};
 	private:

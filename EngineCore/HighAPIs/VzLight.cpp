@@ -44,4 +44,22 @@ namespace vzm
 		GET_LIGHT_COMP(light, );
 		light->SetIntensity(intensity);
 	}
+
+	void VzLight::SetRadius(const float radius)
+	{
+		GET_LIGHT_COMP(light, );
+		light->SetRadius(radius);
+	}
+
+	void VzLight::SetLength(const float length)
+	{
+		GET_LIGHT_COMP(light, );
+		light->SetLength(length);
+	}
+
+	void VzLight::EnableVisualizer(const bool enabled)
+	{
+		GET_LIGHT_COMP(light, );
+		light->SetVisualizerEnabled(enabled);
+	}
 }
