@@ -217,7 +217,7 @@ int main(int, char **)
 		std::uniform_real_distribution<float> dist_y(20.f, 420.f);
 		std::uniform_real_distribution<float> dist_z(-200.f, 200.f);
 		std::uniform_real_distribution<float> dist_color(0.0f, 1.0f);
-		const float lightRange = 500.0f;
+		const float lightRange = 200.0f;
 		VzGeometry* sphereGeometry = vzm::NewGeometry("sphere_geometry");
 		VzMaterial* sphereMaterial = vzm::NewMaterial("sphere_material");
 		sphereMaterial->SetBaseColor({ 0.8f, 0.8f, 0.8f, 1.0f }); // ¹àÀº È¸»ö  
@@ -253,6 +253,21 @@ int main(int, char **)
 			light->SetPosition({ lx, ly, lz });
 			scene->AppendChild(light);
 		}
+
+
+		//VzLight* light = vzm::NewLight("light_" + std::to_string(0));
+		//light->SetLightType(VzLight::LightType::POINT);
+		//float lx = 0;
+		//float ly = 200.f;
+		//float lz = 0;
+		//float r = 1.f;
+		//float g = 1.f;
+		//float b = 0;
+		//light->SetColor({ r, g, b });
+		//light->SetIntensity(100.0f);
+		//light->SetRange(lightRange);
+		//light->SetPosition({ lx, ly, lz });
+		//scene->AppendChild(light);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 100, 100, 100 });

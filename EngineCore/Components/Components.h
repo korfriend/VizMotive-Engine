@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250704_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250705_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -1736,9 +1736,10 @@ namespace vz
 		//  refer to: https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual
 		float intensity_ = 1.0f; 
 		
-		// spotlight only
-		float radius_ = 0.25; 
-		float length_ = 0.f;
+		float radius_ = 0.025; // for softshadow sampling or source size of spot/point lights
+		float length_ = 0.f;	// for line source (point light-ext) or rectangle light
+
+		// spot light only
 		float outerConeAngle_ = XM_PIDIV4;
 		float innerConeAngle_ = 0; // default value is 0, means only outer cone angle is used
 
