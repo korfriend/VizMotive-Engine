@@ -614,7 +614,11 @@ namespace vz::renderer
 
 		// render based on raster-graphics pipeline
 		void DrawScene(const Visibility& vis, RENDERPASS renderPass, CommandList cmd, uint32_t flags);
+		// Draw the sprites and fonts from the scene
 		void DrawSpritesAndFonts(const CameraComponent& camera, bool distortion, CommandList cmd);
+		// Draw simple light visualizer geometries
+		void DrawLightVisualizers(const Visibility& vis, graphics::CommandList cmd);
+		// Draw debug world. You must also enable what parts to draw, eg. SetToDrawGridHelper, etc, see implementation for details what can be enabled.
 		void DrawDebugWorld(
 			const Scene& scene,
 			const CameraComponent& camera,

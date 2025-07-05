@@ -49,9 +49,12 @@ namespace vz::renderer
 	Shader				shaders[SHADERTYPE_COUNT];		// shaders
 
 	std::unordered_map<uint32_t, PipelineState> PSO_render[RENDERPASS_COUNT][SHADERTYPE_BIN_COUNT];	// shaders
+
 	PipelineState		PSO_wireframe;											// shaders
 	PipelineState		PSO_occlusionquery;										// shaders
 	PipelineState		PSO_RenderableShapes[SHAPE_RENDERING_COUNT];			// shaders
+	PipelineState		PSO_lightvisualizer[SCU32(LightComponent::LightType::COUNT)];	// shaders
+	PipelineState		PSO_volumetriclight[SCU32(LightComponent::LightType::COUNT)];	// shaders
 
 	PipelineState* GetObjectPSO(MeshRenderingVariant variant)
 	{
@@ -469,6 +472,8 @@ namespace vz::shader
 		renderer::PSO_wireframe = {};
 		renderer::PSO_occlusionquery = {};
 		ReleaseRenderRes(renderer::PSO_RenderableShapes, SHAPE_RENDERING_COUNT);
+		ReleaseRenderRes(renderer::PSO_lightvisualizer, SCU32(LightComponent::LightType::COUNT));
+		ReleaseRenderRes(renderer::PSO_volumetriclight, SCU32(LightComponent::LightType::COUNT));
 
 		for (size_t i = 0, n = (size_t)RENDERPASS_COUNT; i < n; ++i)
 		{
@@ -534,6 +539,13 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VERTEXCOLOR], "vertexcolorVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_OCCLUDEE], "occludeeVS.cso"); });
 
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VOLUMETRICLIGHT_DIRECTIONAL], "volumetriclight_directionalVS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VOLUMETRICLIGHT_POINT], "volumetriclight_pointVS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VOLUMETRICLIGHT_SPOT], "volumetriclight_spotVS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_LIGHTVISUALIZER_SPOTLIGHT], "vSpotLightVS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_LIGHTVISUALIZER_POINTLIGHT], "vPointLightVS.cso"); });
+
+
 		//----- GS -----
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::GS, shaders[GSTYPE_LINE_ASSIGNTHICKNESS], "thicknessLineGS.cso"); });
 
@@ -544,6 +556,11 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS], "meshPS_prepass.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS_ALPHATEST], "meshPS_prepass_alphatest.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_MESH_PREPASS_DEPTHONLY_ALPHATEST], "meshPS_prepass_depthonly_alphatest.cso"); });
+
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_LIGHTVISUALIZER], "lightVisualizerPS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_VOLUMETRICLIGHT_DIRECTIONAL], "volumetricLight_DirectionalPS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_VOLUMETRICLIGHT_POINT], "volumetricLight_PointPS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_VOLUMETRICLIGHT_SPOT], "volumetricLight_SpotPS.cso"); });
 
 		//----- PS materials by permutation -----
 		static const std::vector<std::string> shaderTypeDefines[] = {
@@ -737,6 +754,66 @@ namespace vz::shader
 			}
 
 			device->CreatePipelineState(&desc, &PSO_RenderableShapes[args.jobIndex]);
+			});
+		
+		jobsystem::Dispatch(ctx, SCU32(LightComponent::LightType::COUNT), 1, [](jobsystem::JobArgs args) {
+			PipelineStateDesc desc = {};
+
+			// deferred lights:
+			desc.pt = PrimitiveTopology::TRIANGLELIST;
+
+			// light visualizers:
+			if (args.jobIndex != SCU32(LightComponent::LightType::DIRECTIONAL))
+			{
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.ps = &shaders[PSTYPE_LIGHTVISUALIZER];
+
+				switch (static_cast<LightComponent::LightType>(args.jobIndex))
+				{
+				case LightComponent::LightType::POINT:
+					desc.bs = &blendStates[BSTYPE_ADDITIVE];
+					desc.vs = &shaders[VSTYPE_LIGHTVISUALIZER_POINTLIGHT];
+					desc.rs = &rasterizers[RSTYPE_FRONT];
+					desc.il = &inputLayouts[ILTYPE_POSITION];
+					break;
+				case LightComponent::LightType::SPOT:
+					desc.bs = &blendStates[BSTYPE_ADDITIVE];
+					desc.vs = &shaders[VSTYPE_LIGHTVISUALIZER_SPOTLIGHT];
+					desc.rs = &rasterizers[RSTYPE_DOUBLESIDED];
+					break;
+				}
+
+				device->CreatePipelineState(&desc, &PSO_lightvisualizer[args.jobIndex]);
+			}
+
+
+			// volumetric lights:
+			if (args.jobIndex <= SCU32(LightComponent::LightType::SPOT))
+			{
+				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.bs = &blendStates[BSTYPE_ADDITIVE];
+				desc.rs = &rasterizers[RSTYPE_BACK];
+
+				switch (static_cast<LightComponent::LightType>(args.jobIndex))
+				{
+				case LightComponent::LightType::DIRECTIONAL:
+					desc.vs = &shaders[VSTYPE_VOLUMETRICLIGHT_DIRECTIONAL];
+					desc.ps = &shaders[PSTYPE_VOLUMETRICLIGHT_DIRECTIONAL];
+					break;
+				case LightComponent::LightType::POINT:
+					desc.vs = &shaders[VSTYPE_VOLUMETRICLIGHT_POINT];
+					desc.ps = &shaders[PSTYPE_VOLUMETRICLIGHT_POINT];
+					break;
+				case LightComponent::LightType::SPOT:
+					desc.vs = &shaders[VSTYPE_VOLUMETRICLIGHT_SPOT];
+					desc.ps = &shaders[PSTYPE_VOLUMETRICLIGHT_SPOT];
+					break;
+				}
+
+				device->CreatePipelineState(&desc, &PSO_volumetriclight[args.jobIndex]);
+			}
+
+
 			});
 
 		jobsystem::Wait(ctx);

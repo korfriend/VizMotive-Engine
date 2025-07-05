@@ -189,7 +189,7 @@ inline void light_point(in ShaderEntity light, in Surface surface, inout Lightin
 
     const half dist2 = (half) dot(Lunnormalized, Lunnormalized);
 	const half range = light.GetRange();
-	const half range2 = (float)range * (float)range;
+	const half range2 = range * range;
 	
 	if (dist2 > range2)
 		return; // early exit: outside range

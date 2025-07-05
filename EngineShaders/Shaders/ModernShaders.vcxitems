@@ -19,11 +19,14 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\bc6h.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\blockCompress.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\brdf.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\circle.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\cone.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\cullingShaderHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\curvedSlicerHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\dvrHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\fogHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\gaussianSplattingHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\icosphere.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\imageHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\kbufferHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\lightingHF.hlsli" />
@@ -33,6 +36,8 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\shadingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\shadowHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\surfaceHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\uvsphere.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\volumetricLightHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\voxelConeTracingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\zfragmentHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)compile.bat" />
@@ -133,6 +138,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\fontPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS_sprite.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\lightVisualizerPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_debug.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass.hlsl" />
@@ -141,6 +147,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_prepass_depthonly_alphatest.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_simple.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\vertexcolorPS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_DirectionalPS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_PointPS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_SpotPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\fontVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\imageVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_common.hlsl" />
@@ -153,5 +162,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_simple.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\occludeeVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\vertexcolorVS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_directionalVS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_pointVS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_spotVS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\vPointLightVS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\vSpotLightVS.hlsl" />
   </ItemGroup>
 </Project>
