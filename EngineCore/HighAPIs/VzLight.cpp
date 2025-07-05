@@ -15,7 +15,7 @@ namespace vzm
 	void VzLight::SetLightType(const LightType type)
 	{
 		GET_LIGHT_COMP(light, );
-		light->SetLightType((LightComponent::LightType)type);
+		light->SetType((LightComponent::LightType)type);
 	}
 	void VzLight::SetSpotlightConeAngle(const float outerConeAngle, const float innerConeAngle)
 	{
@@ -36,12 +36,12 @@ namespace vzm
 	void VzLight::SetColor(const vfloat3 color)
 	{
 		GET_LIGHT_COMP(light, );
-		light->SetLightColor(*(XMFLOAT3*)&color);
+		light->SetColor(*(XMFLOAT3*)&color);
 	}
 
 	void VzLight::SetIntensity(const float intensity)
 	{
 		GET_LIGHT_COMP(light, );
-		light->SetLightIntensity(intensity);
+		light->SetIntensity(intensity);
 	}
 }

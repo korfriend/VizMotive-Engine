@@ -68,6 +68,7 @@ namespace vz::renderer
 		//std::vector<uint32_t> visibleEnvProbes;
 		//std::vector<uint32_t> visibleEmitters;
 		std::vector<uint32_t> visibleLights; // index refers to the linear array of Scnee::lights
+		std::vector<ColliderComponent> visibleColliders;
 
 		rectpacker::State shadowPacker;
 		std::vector<rectpacker::Rect> visibleLightShadowRects;

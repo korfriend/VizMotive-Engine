@@ -585,6 +585,8 @@ namespace vz
 		renderer::isGaussianSplattingEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
 		renderer::isTonemapping = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TONEMAPPING");
 
+		renderer::isDebugLightCulling = config::GetBoolConfig("DEBUG_SETTINGS", "LIGHT_CULLING");
+
 		return true;
 	}
 

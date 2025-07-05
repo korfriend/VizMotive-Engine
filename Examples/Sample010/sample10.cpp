@@ -256,7 +256,7 @@ int main(int, char **)
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 100, 100, 100 });
-		//scene->AppendChild(axis_helper);
+		scene->AppendChild(axis_helper);
 	}
 
 	// Our state
@@ -422,10 +422,10 @@ int main(int, char **)
 				vzimgui::IGTextTitle("----- Scene Tree -----");
 				const std::vector<VID> root_children = scene->GetChildrenVIDs();
 				static VID selected_vid = 0u;
-				for (auto vid_root : root_children)
-				{
-					vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid) {});
-				}
+				//for (auto vid_root : root_children)
+				//{
+				//	vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid) {});
+				//}
 				ImGui::Separator();
 				if (ImGui::Button("Shader Reload"))
 				{
@@ -461,6 +461,17 @@ int main(int, char **)
 					vzm::ParamMap<std::string> config_options;
 					config_options.SetParam("TEMPORAL_AA", TAA_enabled);
 					vzm::SetConfigure(config_options);
+				}
+
+				ImGui::Separator();
+
+				ImGui::Text("Debug Options");
+				static bool debug_lightculling_enabled = vz::config::GetBoolConfig("DEBUG_SETTINGS", "LIGHT_CULLING");
+				if (ImGui::Checkbox("DEBUG_LIGHT_CULLING", &debug_lightculling_enabled))
+				{
+					vzm::ParamMap<std::string> config_options;
+					config_options.SetParam("LIGHT_CULLING", debug_lightculling_enabled);
+					vzm::SetConfigure(config_options, "DEBUG_SETTINGS");
 				}
 
 				ImGui::Separator();

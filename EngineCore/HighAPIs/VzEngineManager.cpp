@@ -573,7 +573,8 @@ namespace vzm
 		initializer::InitializeComponentsAsync();	// involving jobsystem initializer
 
 		initialized = true;
-		SetConfigure(arguments);
+		//SetConfigure(arguments); 
+		shaderEngine.pluginApplyConfiguration();
 
 		return true;
 	}
@@ -1062,19 +1063,46 @@ namespace vzm
 		graphicsDevice->ClearPipelineStateCache();
 	}
 
-	void SetConfigure(const vzm::ParamMap<std::string>& configure)
+	void SetConfigure(const vzm::ParamMap<std::string>& configure, const std::string& section)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(;);
 
-		std::string ses_string = "SHADER_ENGINE_SETTINGS";
+		std::string ses_string = section;
 		const char* ses_string_c = ses_string.c_str();
 		config::Section& ses_section = configFile.GetSection(ses_string_c);
 
 #define CONFIG_SET(STR, FUNC) ses_section.Set(STR, configure.GetParam(STR, ses_section.FUNC(STR)));
 
-		CONFIG_SET("TEMPORAL_AA", GetBool);
-		CONFIG_SET("TONEMAPPING", GetBool);
-		CONFIG_SET("GAUSSIAN_SPLATTING", GetBool);
+		for (auto itr = configure.begin(); itr != configure.end(); itr++)
+		{
+			std::any v = itr->second;
+
+			std::cout << "Type: " << v.type().name() << std::endl;
+
+			if (v.type() == typeid(bool)) {
+				//bool value = std::any_cast<bool>(v);
+				CONFIG_SET(itr->first.c_str(), GetBool);
+			}
+			else if (v.type() == typeid(int) || v.type() == typeid(unsigned int)) {
+				//int value = std::any_cast<int>(v);
+				CONFIG_SET(itr->first.c_str(), GetInt);
+			}
+			else if (v.type() == typeid(float)) {
+				//float value = std::any_cast<int>(v);
+				CONFIG_SET(itr->first.c_str(), GetFloat);
+			}
+			else if (v.type() == typeid(std::string)) {
+				//std::string value = std::any_cast<std::string>(v);
+				CONFIG_SET(itr->first.c_str(), GetText);
+			}
+			else
+			{
+				vzlog_assert(0, "Invalid Configuration Type!");
+			}
+		}
+		//CONFIG_SET("TEMPORAL_AA", GetBool);
+		//CONFIG_SET("TONEMAPPING", GetBool);
+		//CONFIG_SET("GAUSSIAN_SPLATTING", GetBool);
 		configFile.Commit();
 
 		shaderEngine.pluginApplyConfiguration();
