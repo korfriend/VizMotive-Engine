@@ -58,6 +58,9 @@
     <Filter Include="Compute Shaders\GaussianSplatting\unused">
       <UniqueIdentifier>{4e3a4ae9-1f1f-44cf-8ea8-7a71cb1fe5c6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="CommonHF\Shapes">
+      <UniqueIdentifier>{970ec47b-8b03-4890-9f1f-2eddbdaf6c75}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)compile.bat">
@@ -131,6 +134,21 @@
     </None>
     <None Include="$(MSBuildThisFileDirectory)CommonHF\gaussianSplattingHF.hlsli">
       <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\volumetricLightHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\circle.hlsli">
+      <Filter>CommonHF\Shapes</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\cone.hlsli">
+      <Filter>CommonHF\Shapes</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\icosphere.hlsli">
+      <Filter>CommonHF\Shapes</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\uvsphere.hlsli">
+      <Filter>CommonHF\Shapes</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -464,6 +482,33 @@
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS_sprite.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_directionalVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_pointVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_spotVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\vPointLightVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\vSpotLightVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\lightVisualizerPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_DirectionalPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_PointPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_SpotPS.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
   </ItemGroup>

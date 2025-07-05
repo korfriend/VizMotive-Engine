@@ -236,6 +236,8 @@ namespace vz::renderer
 	extern PipelineState		PSO_wireframe;
 	extern PipelineState		PSO_occlusionquery;
 	extern PipelineState		PSO_RenderableShapes[SHAPE_RENDERING_COUNT];
+	extern PipelineState		PSO_lightvisualizer[SCU32(LightComponent::LightType::COUNT)];
+	extern PipelineState		PSO_volumetriclight[SCU32(LightComponent::LightType::COUNT)];
 
 	// progressive components
 	extern std::vector<Entity> deferredGeometryGPUBVHGens; // BVHBuffers

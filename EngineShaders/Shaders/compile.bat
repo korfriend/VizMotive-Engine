@@ -101,3 +101,17 @@ dxc -T cs_6_0 ./CS/downsample4xCS.hlsl -spirv
 
 dxc -T vs_6_0 ./VS/fontVS.hlsl -spirv
 dxc -T ps_6_0 ./PS/fontPS.hlsl -spirv
+
+dxc -T vs_6_0 ./VS/volumetriclight_directionalVS.hlsl -spirv
+dxc -T vs_6_0 ./VS/volumetriclight_pointVS.hlsl -spirv
+dxc -T vs_6_0 ./VS/volumetriclight_spotVS.hlsl -spirv
+dxc -T vs_6_0 ./VS/vPointLightVS.hlsl -spirv
+dxc -T vs_6_0 ./VS/vSpotLightVS.hlsl -spirv
+
+dxc -T ps_6_0 ./PS/lightVisualizerPS.hlsl -spirv
+dxc -T ps_6_0 ./PS/volumetricLight_DirectionalPS.hlsl -spirv
+dxc -T ps_6_0 ./PS/volumetricLight_PointPS.hlsl -spirv
+dxc -T ps_6_0 ./PS/volumetricLight_SpotPS.hlsl -spirv
+
+
+
