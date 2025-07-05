@@ -69,7 +69,8 @@ bool SphereInsidePlane(Sphere sphere, Plane plane)
 	return dot(plane.N, sphere.c) - plane.d < -sphere.r;
 }
 // Check to see of a light is partially contained within the frustum.
-bool SphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar) // this can only be used in view space
+// RHS
+bool SphereInsideFrustumVS(Sphere sphere, Frustum frustum, float zNear, float zFar) // this can only be used in view space
 {
 	bool result = true;
 
@@ -88,7 +89,7 @@ bool SphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
 	//}
 
 	// Better to just unroll:
-	result = ((sphere.c.z + sphere.r < zNear || sphere.c.z - sphere.r > zFar) ? false : result);
+	result = ((-sphere.c.z + sphere.r < zNear || -sphere.c.z - sphere.r > zFar) ? false : result);
 	result = ((SphereInsidePlane(sphere, frustum.planes[0])) ? false : result);
 	result = ((SphereInsidePlane(sphere, frustum.planes[1])) ? false : result);
 	result = ((SphereInsidePlane(sphere, frustum.planes[2])) ? false : result);

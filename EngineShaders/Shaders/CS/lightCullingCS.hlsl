@@ -106,9 +106,10 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 	{
 		uint2 pixel = DTid.xy * uint2(TILED_CULLING_GRANULARITY, TILED_CULLING_GRANULARITY) + unflatten2D(granularity, TILED_CULLING_GRANULARITY);
 		pixel = min(pixel, dim - 1); // avoid loading from outside the texture, it messes up the min-max depth!
-		depth[granularity] = texture_depth[pixel];
-		depthMinUnrolled = min(depthMinUnrolled, depth[granularity]);
-		depthMaxUnrolled = max(depthMaxUnrolled, depth[granularity]);
+		float zDepth = texture_depth[pixel];
+		depth[granularity] = zDepth;
+		depthMinUnrolled = min(depthMinUnrolled, zDepth);
+		depthMaxUnrolled = max(depthMaxUnrolled, zDepth);
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -178,9 +179,9 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 	}
 
 	// Convert depth values to view space.
-	float minDepthVS = ScreenToView(float4(0, 0, fMinDepth, 1), dim_rcp).z;
-	float maxDepthVS = ScreenToView(float4(0, 0, fMaxDepth, 1), dim_rcp).z;
-	float nearClipVS = ScreenToView(float4(0, 0, 1, 1), dim_rcp).z;
+	float minDepthVS = -ScreenToView(float4(0, 0, fMinDepth, 1), dim_rcp).z;
+	float maxDepthVS = -ScreenToView(float4(0, 0, fMaxDepth, 1), dim_rcp).z;
+	float nearClipVS = -ScreenToView(float4(0, 0, 1, 1), dim_rcp).z;
 
 #ifdef ADVANCED_CULLING
 	// We divide the minmax depth bounds to 32 equal slices
@@ -192,7 +193,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 	[unroll]
 	for (uint granularity = 0; granularity < TILED_CULLING_GRANULARITY * TILED_CULLING_GRANULARITY; ++granularity)
 	{
-		float realDepthVS = ScreenToView(float4(0, 0, depth[granularity], 1), dim_rcp).z;
+		float realDepthVS = -ScreenToView(float4(0, 0, depth[granularity], 1), dim_rcp).z;
 		const uint __depthmaskcellindex = max(0, min(31, floor((realDepthVS - minDepthVS) * __depthRangeRecip)));
 		__depthmaskUnrolled |= 1u << __depthmaskcellindex;
 	}
@@ -208,110 +209,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 
 	const uint depth_mask = uDepthMask; // take out from groupshared into register
 
-#if 0
-	// Each thread will cull one entity until all entities have been culled:
-	for (uint i = groupIndex; i < entityCount; i += TILED_CULLING_THREADSIZE * TILED_CULLING_THREADSIZE)
-	{
-		ShaderEntity entity = load_entity(i);
-
-		switch (entity.GetType())
-		{
-		case ENTITY_TYPE_POINTLIGHT:
-		{
-			if (entity.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
-				break; // static lights will be skipped here (they are used at lightmap baking)
-			if (!any(entity.GetColor().rgb))
-				break;
-			float3 positionVS = mul(GetCamera().view, float4(entity.position, 1)).xyz;
-			Sphere sphere = { positionVS.xyz, entity.GetRange() + entity.GetLength() };
-			if (SphereInsideFrustum(sphere, GroupFrustum, nearClipVS, maxDepthVS))
-			{
-				AppendEntity_Transparent(i);
-
-				if (SphereIntersectsAABB(sphere, GroupAABB)) // tighter fit than sphere-frustum culling
-				{
-#ifdef ADVANCED_CULLING
-					if (depth_mask & ConstructEntityMask(minDepthVS, __depthRangeRecip, sphere))
-#endif
-					{
-						AppendEntity_Opaque(i);
-					}
-				}
-			}
-		}
-		break;
-		case ENTITY_TYPE_SPOTLIGHT:
-		{
-			if (entity.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
-				break; // static lights will be skipped here (they are used at lightmap baking)
-			if (!any(entity.GetColor().rgb))
-				break;
-			float3 positionVS = mul(GetCamera().view, float4(entity.position, 1)).xyz;
-			float3 directionVS = mul((float3x3)GetCamera().view, entity.GetDirection());
-			// Construct a tight fitting sphere around the spotlight cone:
-			const float r = entity.GetRange() * 0.5f / (entity.GetConeAngleCos() * entity.GetConeAngleCos());
-			Sphere sphere = { positionVS - directionVS * r, r };
-			if (SphereInsideFrustum(sphere, GroupFrustum, nearClipVS, maxDepthVS))
-			{
-				AppendEntity_Transparent(i);
-
-				if (SphereIntersectsAABB(sphere, GroupAABB)) // tighter fit than sphere-frustum culling
-				{
-#ifdef ADVANCED_CULLING
-					if (depth_mask & ConstructEntityMask(minDepthVS, __depthRangeRecip, sphere))
-#endif
-					{
-						AppendEntity_Opaque(i);
-					}
-				}
-
-			}
-		}
-		break;
-		case ENTITY_TYPE_DIRECTIONALLIGHT:
-		{
-			if (entity.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
-				break; // static lights will be skipped here (they are used at lightmap baking)
-			if (!any(entity.GetColor().rgb))
-				break;
-			AppendEntity_Transparent(i);
-			AppendEntity_Opaque(i);
-		}
-		break;
-		case ENTITY_TYPE_DECAL:
-		case ENTITY_TYPE_ENVMAP:
-		{
-			float3 positionVS = mul(GetCamera().view, float4(entity.position, 1)).xyz;
-			Sphere sphere = { positionVS.xyz, entity.GetRange() };
-			if (SphereInsideFrustum(sphere, GroupFrustum, nearClipVS, maxDepthVS))
-			{
-				AppendEntity_Transparent(i);
-
-				// unit AABB: 
-				AABB a;
-				a.c = 0;
-				a.e = 1.0;
-
-				// frustum AABB in world space transformed into the space of the probe/decal OBB:
-				AABB b = GroupAABB_WS;
-				AABBtransform(b, load_entitymatrix(entity.GetMatrixIndex()));
-
-				if (IntersectAABB(a, b))
-				{
-#ifdef ADVANCED_CULLING
-					if (depth_mask & ConstructEntityMask(minDepthVS, __depthRangeRecip, sphere))
-#endif
-					{
-						AppendEntity_Opaque(i);
-					}
-				}
-			}
-		}
-		break;
-		}
-	}
-#else
-
+	// IMPORTANT
 	// This is an optimized version of the above, separated entity processing loops by type, reduces divergence and increases performance:
 
 	// Point lights:
@@ -322,9 +220,15 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 		if (entity.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
 			continue; // static lights will be skipped here (they are used at lightmap baking)
 		float3 positionVS = mul(GetCamera().view, float4(entity.position, 1)).xyz;
+		
 		Sphere sphere = { positionVS.xyz, entity.GetRange() + entity.GetLength() };
-		if (SphereInsideFrustum(sphere, GroupFrustum, nearClipVS, maxDepthVS))
+
+		if (SphereInsideFrustumVS(sphere, GroupFrustum, nearClipVS, maxDepthVS))
 		{
+#ifdef DEBUG_TILEDLIGHTCULLING
+			//if (entity.GetRange() + entity.GetLength() > 100)
+			//entityCountDebug = 100;
+#endif //  DEBUG_TILEDLIGHTCULLING
 			AppendEntity_Transparent(i);
 
 			if (SphereIntersectsAABB(sphere, GroupAABB)) // tighter fit than sphere-frustum culling
@@ -343,7 +247,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 	for (uint i = spotlights().first_item() + groupIndex; i < spotlights().end_item(); i += TILED_CULLING_THREADSIZE * TILED_CULLING_THREADSIZE)
 	{
 		ShaderEntity entity = load_entity(i);
-		
+
 		if (entity.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
 			continue; // static lights will be skipped here (they are used at lightmap baking)
 		float3 positionVS = mul(GetCamera().view, float4(entity.position, 1)).xyz;
@@ -351,7 +255,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 		// Construct a tight fitting sphere around the spotlight cone:
 		const float r = entity.GetRange() * 0.5f / (entity.GetConeAngleCos() * entity.GetConeAngleCos());
 		Sphere sphere = { positionVS - directionVS * r, r };
-		if (SphereInsideFrustum(sphere, GroupFrustum, nearClipVS, maxDepthVS))
+		if (SphereInsideFrustumVS(sphere, GroupFrustum, nearClipVS, maxDepthVS))
 		{
 			AppendEntity_Transparent(i);
 
@@ -385,7 +289,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 		ShaderEntity entity = load_entity(i);
 		float3 positionVS = mul(GetCamera().view, float4(entity.position, 1)).xyz;
 		Sphere sphere = { positionVS.xyz, entity.GetRange() };
-		if (SphereInsideFrustum(sphere, GroupFrustum, nearClipVS, maxDepthVS))
+		if (SphereInsideFrustumVS(sphere, GroupFrustum, nearClipVS, maxDepthVS))
 		{
 			AppendEntity_Transparent(i);
 
@@ -416,7 +320,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 		ShaderEntity entity = load_entity(i);
 		float3 positionVS = mul(GetCamera().view, float4(entity.position, 1)).xyz;
 		Sphere sphere = { positionVS.xyz, entity.GetRange() };
-		if (SphereInsideFrustum(sphere, GroupFrustum, nearClipVS, maxDepthVS))
+		if (SphereInsideFrustumVS(sphere, GroupFrustum, nearClipVS, maxDepthVS))
 		{
 			AppendEntity_Transparent(i);
 
@@ -440,8 +344,6 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 			}
 		}
 	}
-
-#endif
 
 	GroupMemoryBarrierWithGroupSync();
 	
