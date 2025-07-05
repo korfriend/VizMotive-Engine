@@ -108,51 +108,51 @@ inline void ForwardLighting(inout Surface surface, inout Lighting lighting)
 	}
 
 	[branch]
-		if (any(xForwardLightMask))
-		{
-			// Loop through light buckets for the draw call:
-			const uint first_item = 0;
-			const uint last_item = first_item + lights().item_count() - 1;
-			const uint first_bucket = first_item / 32;
-			const uint last_bucket = min(last_item / 32, 1); // only 2 buckets max (uint2) for forward pass!
-			[loop]
-				for (uint bucket = first_bucket; bucket <= last_bucket; ++bucket)
-				{
-					uint bucket_bits = xForwardLightMask[bucket];
+	if (any(xForwardLightMask))
+	{
+		// Loop through light buckets for the draw call:
+		const uint first_item = 0;
+		const uint last_item = first_item + lights().item_count() - 1;
+		const uint first_bucket = first_item / 32;
+		const uint last_bucket = min(last_item / 32, 1); // only 2 buckets max (uint2) for forward pass!
+		[loop]
+			for (uint bucket = first_bucket; bucket <= last_bucket; ++bucket)
+			{
+				uint bucket_bits = xForwardLightMask[bucket];
 
-					[loop]
-						while (bucket_bits != 0)
+				[loop]
+					while (bucket_bits != 0)
+					{
+						// Retrieve global entity index from local bucket, then remove bit from local bucket:
+						const uint bucket_bit_index = firstbitlow(bucket_bits);
+						const uint entity_index = bucket * 32 + bucket_bit_index;
+						bucket_bits ^= 1u << bucket_bit_index;
+
+						ShaderEntity light = load_entity(lights().first_item() + entity_index);
+						if (light.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
+							continue; // static lights will be skipped here (they are used at lightmap baking)
+
+						switch (light.GetType())
 						{
-							// Retrieve global entity index from local bucket, then remove bit from local bucket:
-							const uint bucket_bit_index = firstbitlow(bucket_bits);
-							const uint entity_index = bucket * 32 + bucket_bit_index;
-							bucket_bits ^= 1u << bucket_bit_index;
-
-							ShaderEntity light = load_entity(lights().first_item() + entity_index);
-							if (light.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
-								continue; // static lights will be skipped here (they are used at lightmap baking)
-
-							switch (light.GetType())
-							{
-							case ENTITY_TYPE_DIRECTIONALLIGHT:
-							{
-								light_directional(light, surface, lighting);
-							}
-							break;
-							case ENTITY_TYPE_POINTLIGHT:
-							{
-								light_point(light, surface, lighting);
-							}
-							break;
-							case ENTITY_TYPE_SPOTLIGHT:
-							{
-								light_spot(light, surface, lighting);
-							}
-							break;
-							}
+						case ENTITY_TYPE_DIRECTIONALLIGHT:
+						{
+							light_directional(light, surface, lighting);
 						}
-				}
-		}
+						break;
+						case ENTITY_TYPE_POINTLIGHT:
+						{
+							light_point(light, surface, lighting);
+						}
+						break;
+						case ENTITY_TYPE_SPOTLIGHT:
+						{
+							light_spot(light, surface, lighting);
+						}
+						break;
+						}
+					}
+			}
+	}
 
 }
 
@@ -488,7 +488,7 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 					}
 				}
 #endif // SHADOW_MASK_ENABLED && !TRANSPARENT
-
+				
 				light_point(light, surface, lighting, shadow_mask);
 
 			}

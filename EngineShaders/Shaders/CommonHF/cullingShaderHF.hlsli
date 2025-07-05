@@ -69,7 +69,7 @@ bool SphereInsidePlane(Sphere sphere, Plane plane)
 	return dot(plane.N, sphere.c) - plane.d < -sphere.r;
 }
 // Check to see of a light is partially contained within the frustum.
-// RHS
+// modify LHS-based code to RHS-based code
 bool SphereInsideFrustumVS(Sphere sphere, Frustum frustum, float zNear, float zFar) // this can only be used in view space
 {
 	bool result = true;

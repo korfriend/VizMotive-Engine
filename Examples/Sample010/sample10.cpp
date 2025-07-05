@@ -242,13 +242,13 @@ int main(int, char **)
 			VzLight* light = vzm::NewLight("light_" + std::to_string(idx));
 			light->SetLightType(VzLight::LightType::POINT);
 			float lx = dist_x(gen);
-		    float ly = dist_y(gen);
-		    float lz = dist_z(gen);
+			float ly = dist_y(gen);
+			float lz = dist_z(gen);
 			float r = dist_color(gen);
 			float g = dist_color(gen);
 			float b = dist_color(gen);
 			light->SetColor({ r, g, b });
-			light->SetIntensity(100.0f);
+			light->SetIntensity(10000.0f);
 			light->SetRange(lightRange);
 			light->SetPosition({ lx, ly, lz });
 			scene->AppendChild(light);
@@ -264,14 +264,14 @@ int main(int, char **)
 		//float g = 1.f;
 		//float b = 0;
 		//light->SetColor({ r, g, b });
-		//light->SetIntensity(100.0f);
+		//light->SetIntensity(10000.0f);
 		//light->SetRange(lightRange);
 		//light->SetPosition({ lx, ly, lz });
 		//scene->AppendChild(light);
-
-		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
-		axis_helper->SetScale({ 100, 100, 100 });
-		scene->AppendChild(axis_helper);
+		//
+		//vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		//axis_helper->SetScale({ 100, 100, 100 });
+		//scene->AppendChild(axis_helper);
 	}
 
 	// Our state

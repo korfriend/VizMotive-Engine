@@ -184,7 +184,11 @@ namespace vz
 				return;
 			}
 		}
-		forceToRenderCall = false;
+		if (forceToRenderCall)
+		{
+			stableCount_ = 0;
+			forceToRenderCall = false;
+		}
 
 		// This involves the following process
 		//	1. update view (for each rendering pipeline)

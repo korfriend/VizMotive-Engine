@@ -186,6 +186,15 @@ namespace vzm
 		return result;
 	}
 
+	inline void forceToRenderSet()
+	{
+		for (auto& it : vzcompmanager::renderers)
+		{
+			RenderPath3D* renderer = (RenderPath3D*)canvas::GetCanvas(it.first);
+			renderer->forceToRenderCall = true;
+		}
+	}
+
 	VzSceneObject* newSceneComponent(const COMPONENT_TYPE compType, const std::string& compName, const VID parentVid, const uint64_t userData = 0)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
@@ -1061,6 +1070,7 @@ namespace vzm
 		CHECK_API_LOCKGUARD_VALIDITY(;);
 		eventhandler::FireEvent(eventhandler::EVENT_RELOAD_SHADERS, 0);
 		graphicsDevice->ClearPipelineStateCache();
+		forceToRenderSet();
 	}
 
 	void SetConfigure(const vzm::ParamMap<std::string>& configure, const std::string& section)
@@ -1076,8 +1086,6 @@ namespace vzm
 		for (auto itr = configure.begin(); itr != configure.end(); itr++)
 		{
 			std::any v = itr->second;
-
-			std::cout << "Type: " << v.type().name() << std::endl;
 
 			if (v.type() == typeid(bool)) {
 				//bool value = std::any_cast<bool>(v);
@@ -1107,11 +1115,7 @@ namespace vzm
 
 		shaderEngine.pluginApplyConfiguration();
 
-		for (auto& it : vzcompmanager::renderers)
-		{
-			RenderPath3D* renderer = (RenderPath3D*)canvas::GetCanvas(it.first);
-			renderer->forceToRenderCall = true;
-		}
+		forceToRenderSet();
 	}
 
 	bool DeinitEngineLib()
