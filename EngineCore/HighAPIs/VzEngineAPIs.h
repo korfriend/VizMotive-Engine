@@ -89,5 +89,5 @@ namespace vzm
 	// Reload shaders
 	API_EXPORT void ReloadShader();
 
-	API_EXPORT void SetConfigure(const vzm::ParamMap<std::string>& configure);
+	API_EXPORT void SetConfigure(const vzm::ParamMap<std::string>& configure, const std::string& section = "SHADER_ENGINE_SETTINGS");
 }

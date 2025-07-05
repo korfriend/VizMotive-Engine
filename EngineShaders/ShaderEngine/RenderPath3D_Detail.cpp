@@ -418,7 +418,7 @@ namespace vz::renderer
 
 					rectpacker::Rect rect = {};
 					rect.id = int(lightIndex);
-					switch (light.GetLightType())
+					switch (light.GetType())
 					{
 					case LightComponent::LightType::DIRECTIONAL:
 						if (light.forcedShadowResolution >= 0)
@@ -480,7 +480,7 @@ namespace vz::renderer
 								lightrect = rect;
 
 								// Remove slice multipliers from rect:
-								switch (light.GetLightType())
+								switch (light.GetType())
 								{
 								case LightComponent::LightType::DIRECTIONAL:
 									lightrect.w /= int(light.cascadeDistances.size());
@@ -777,21 +777,21 @@ namespace vz::renderer
 				}
 
 				const GLightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
-				if (light.GetLightType() != LightComponent::LightType::DIRECTIONAL || light.IsInactive())
+				if (light.GetType() != LightComponent::LightType::DIRECTIONAL || light.IsInactive())
 					continue;
 
 				ShaderEntity shaderentity = {};
 				shaderentity.layerMask = ~0u;
 
-				shaderentity.SetType(SCU32(light.GetLightType()));
+				shaderentity.SetType(SCU32(light.GetType()));
 				shaderentity.position = light.position;
 				shaderentity.SetRange(light.GetRange());
 				shaderentity.SetRadius(light.GetRadius());
 				shaderentity.SetLength(light.GetLength());
 				// note: the light direction used in shader refers to the direction to the light source
 				shaderentity.SetDirection(XMFLOAT3(-light.direction.x, -light.direction.y, -light.direction.z));
-				XMFLOAT3 light_color = light.GetLightColor();
-				float light_intensity = light.GetLightIntensity();
+				XMFLOAT3 light_color = light.GetColor();
+				float light_intensity = light.GetIntensity();
 				shaderentity.SetColor(float4(light_color.x * light_intensity, light_color.y * light_intensity, light_color.z * light_intensity, 1.f));
 
 				// mark as no shadow by default:
@@ -817,7 +817,7 @@ namespace vz::renderer
 					CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
 					for (size_t cascade = 0; cascade < cascade_count; ++cascade)
 					{
-						XMStoreFloat4x4(&frameCB.matrixArray[matrix_counter++], shcams[cascade].view_projection);
+						XMStoreFloat4x4(&light_matrix_array[matrix_counter++], shcams[cascade].view_projection);
 					}
 				}
 
@@ -840,8 +840,6 @@ namespace vz::renderer
 				lightarray_count_directional++;
 			}
 
-
-			/*
 			// Write spot lights into entity array:
 			lightarray_offset_spot = entity_counter;
 			for (uint32_t lightIndex : vis.visibleLights)
@@ -852,33 +850,34 @@ namespace vz::renderer
 					break;
 				}
 
-				const LightComponent& light = vis.scene->lights[lightIndex];
-				if (light.GetType() != LightComponent::SPOT || light.IsInactive())
+				const GLightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
+				if (light.GetType() != LightComponent::LightType::SPOT || light.IsInactive())
 					continue;
 
 				ShaderEntity shaderentity = {};
 				shaderentity.layerMask = ~0u;
 
-				Entity entity = vis.scene->lights.GetEntity(lightIndex);
-				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
+				const LayeredMaskComponent* layer = light.layeredmask;
 				if (layer != nullptr)
 				{
-					shaderentity.layerMask = layer->layerMask;
+					shaderentity.layerMask = layer->GetVisibleLayerMask();
 				}
 
-				shaderentity.SetType(light.GetType());
+				shaderentity.SetType(static_cast<uint>(light.GetType()));
 				shaderentity.position = light.position;
 				shaderentity.SetRange(light.GetRange());
-				shaderentity.SetRadius(light.radius);
-				shaderentity.SetLength(light.length);
+				shaderentity.SetRadius(light.GetRadius());
+				shaderentity.SetLength(light.GetLength());
 				// note: the light direction used in shader refers to the direction to the light source
 				shaderentity.SetDirection(XMFLOAT3(-light.direction.x, -light.direction.y, -light.direction.z));
-				shaderentity.SetColor(float4(light.color.x * light.intensity, light.color.y * light.intensity, light.color.z * light.intensity, 1));
+				XMFLOAT3 light_color = light.GetColor();
+				float light_intensity = light.GetIntensity();
+				shaderentity.SetColor(float4(light_color.x* light_intensity, light_color.y* light_intensity, light_color.z* light_intensity, 1.f));
 
 				// mark as no shadow by default:
 				shaderentity.indices = ~0;
 
-				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
+				bool shadow = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
 				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
 
 				if (shadow)
@@ -890,8 +889,8 @@ namespace vz::renderer
 					shaderentity.SetIndices(matrix_counter, 0);
 				}
 
-				const float outerConeAngle = light.outerConeAngle;
-				const float innerConeAngle = std::min(light.innerConeAngle, outerConeAngle);
+				const float outerConeAngle = light.GetOuterConeAngle();
+				const float innerConeAngle = std::min(light.GetInnerConeAngle(), outerConeAngle);
 				const float outerConeAngleCos = std::cos(outerConeAngle);
 				const float innerConeAngleCos = std::cos(innerConeAngle);
 
@@ -907,7 +906,7 @@ namespace vz::renderer
 				{
 					SHCAM shcam;
 					CreateSpotLightShadowCam(light, shcam);
-					XMStoreFloat4x4(&matrixArray[matrix_counter++], shcam.view_projection);
+					XMStoreFloat4x4(&light_matrix_array[matrix_counter++], shcam.view_projection);
 				}
 
 				if (light.IsStatic())
@@ -915,12 +914,12 @@ namespace vz::renderer
 					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
 				}
 
-				if (light.IsVolumetricCloudsEnabled())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
-				}
+				//if (light.IsVolumetricCloudsEnabled())
+				//{
+				//	shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
+				//}
 
-				std::memcpy(entityArray + entity_counter, &shaderentity, sizeof(ShaderEntity));
+				std::memcpy(entity_array + entity_counter, &shaderentity, sizeof(ShaderEntity));
 				entity_counter++;
 				lightarray_count_spot++;
 			}
@@ -935,33 +934,34 @@ namespace vz::renderer
 					break;
 				}
 
-				const LightComponent& light = vis.scene->lights[lightIndex];
-				if (light.GetType() != LightComponent::POINT || light.IsInactive())
+				const GLightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
+				if (light.GetType() != LightComponent::LightType::POINT || light.IsInactive())
 					continue;
 
 				ShaderEntity shaderentity = {};
 				shaderentity.layerMask = ~0u;
 
-				Entity entity = vis.scene->lights.GetEntity(lightIndex);
-				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
+				const LayeredMaskComponent* layer = light.layeredmask;
 				if (layer != nullptr)
 				{
-					shaderentity.layerMask = layer->layerMask;
+					shaderentity.layerMask = layer->GetVisibleLayerMask();
 				}
 
-				shaderentity.SetType(light.GetType());
+				shaderentity.SetType(static_cast<uint>(light.GetType()));
 				shaderentity.position = light.position;
 				shaderentity.SetRange(light.GetRange());
-				shaderentity.SetRadius(light.radius);
-				shaderentity.SetLength(light.length);
+				shaderentity.SetRadius(light.GetRadius());
+				shaderentity.SetLength(light.GetLength());
 				// note: the light direction used in shader refers to the direction to the light source
 				shaderentity.SetDirection(XMFLOAT3(-light.direction.x, -light.direction.y, -light.direction.z));
-				shaderentity.SetColor(float4(light.color.x * light.intensity, light.color.y * light.intensity, light.color.z * light.intensity, 1));
+				XMFLOAT3 light_color = light.GetColor();
+				float light_intensity = light.GetIntensity();
+				shaderentity.SetColor(float4(light_color.x* light_intensity, light_color.y* light_intensity, light_color.z* light_intensity, 1.f));
 
 				// mark as no shadow by default:
 				shaderentity.indices = ~0;
 
-				bool shadow = IsShadowsEnabled() && light.IsCastingShadow() && !light.IsStatic();
+				bool shadow = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
 				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
 
 				if (shadow)
@@ -989,111 +989,106 @@ namespace vz::renderer
 					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_STATIC);
 				}
 
-				if (light.IsVolumetricCloudsEnabled())
-				{
-					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
-				}
+				//if (light.IsVolumetricCloudsEnabled())
+				//{
+				//	shaderentity.SetFlags(ENTITY_FLAG_LIGHT_VOLUMETRICCLOUDS);
+				//}
 
-				std::memcpy(entityArray + entity_counter, &shaderentity, sizeof(ShaderEntity));
+				std::memcpy(entity_array + entity_counter, &shaderentity, sizeof(ShaderEntity));
 				entity_counter++;
 				lightarray_count_point++;
 			}
-			/**/
 
 			lightarray_count = lightarray_count_directional + lightarray_count_spot + lightarray_count_point;
 			frameCB.entity_culling_count = lightarray_count + decalarray_count + envprobearray_count;
 
-			/*
+			// TODO: JOLT PHYSICS
 			// Write colliders into entity array:
-			forcefieldarray_offset = entityCounter;
-			for (size_t i = 0; i < vis.scene->collider_count_gpu; ++i)
-			{
-				if (entityCounter == SHADER_ENTITY_COUNT)
-				{
-					entityCounter--;
-					break;
-				}
-				ShaderEntity shaderentity = {};
-
-				const ColliderComponent& collider = vis.scene->colliders_gpu[i];
-				shaderentity.layerMask = collider.layerMask;
-
-				switch (collider.shape)
-				{
-				case ColliderComponent::Shape::Sphere:
-					shaderentity.SetType(ENTITY_TYPE_COLLIDER_SPHERE);
-					shaderentity.position = collider.sphere.center;
-					shaderentity.SetRange(collider.sphere.radius);
-					break;
-				case ColliderComponent::Shape::Capsule:
-					shaderentity.SetType(ENTITY_TYPE_COLLIDER_CAPSULE);
-					shaderentity.position = collider.capsule.base;
-					shaderentity.SetColliderTip(collider.capsule.tip);
-					shaderentity.SetRange(collider.capsule.radius);
-					break;
-				case ColliderComponent::Shape::Plane:
-					shaderentity.SetType(ENTITY_TYPE_COLLIDER_PLANE);
-					shaderentity.position = collider.plane.origin;
-					shaderentity.SetDirection(collider.plane.normal);
-					shaderentity.SetIndices(matrixCounter, ~0u);
-					matrixArray[matrixCounter++] = collider.plane.projection;
-					break;
-				default:
-					assert(0);
-					break;
-				}
-
-				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-				entityCounter++;
-				forcefieldarray_count++;
-			}
-
-			// Write force fields into entity array:
-			for (size_t i = 0; i < vis.scene->forces.GetCount(); ++i)
-			{
-				if (entityCounter == SHADER_ENTITY_COUNT)
-				{
-					entityCounter--;
-					break;
-				}
-				ShaderEntity shaderentity = {};
-
-				const ForceFieldComponent& force = vis.scene->forces[i];
-
-				shaderentity.layerMask = ~0u;
-
-				Entity entity = vis.scene->forces.GetEntity(i);
-				const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
-				if (layer != nullptr)
-				{
-					shaderentity.layerMask = layer->layerMask;
-				}
-
-				switch (force.type)
-				{
-				default:
-				case ForceFieldComponent::Type::Point:
-					shaderentity.SetType(ENTITY_TYPE_FORCEFIELD_POINT);
-					break;
-				case ForceFieldComponent::Type::Plane:
-					shaderentity.SetType(ENTITY_TYPE_FORCEFIELD_PLANE);
-					break;
-				}
-				shaderentity.position = force.position;
-				shaderentity.SetGravity(force.gravity);
-				shaderentity.SetRange(std::max(0.001f, force.GetRange()));
-				// The default planar force field is facing upwards, and thus the pull direction is downwards:
-				shaderentity.SetDirection(force.direction);
-
-				std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-				entityCounter++;
-				forcefieldarray_count++;
-			}
-			/**/
-
+			//forcefieldarray_offset = entity_counter;
+			//for (size_t i = 0; i < vis.scene->collider_count_gpu; ++i)
+			//{
+			//	if (entityCounter == SHADER_ENTITY_COUNT)
+			//	{
+			//		entityCounter--;
+			//		break;
+			//	}
+			//	ShaderEntity shaderentity = {};
+			//
+			//	const ColliderComponent& collider = vis.scene->colliders_gpu[i];
+			//	shaderentity.layerMask = collider.layerMask;
+			//
+			//	switch (collider.shape)
+			//	{
+			//	case ColliderComponent::Shape::Sphere:
+			//		shaderentity.SetType(ENTITY_TYPE_COLLIDER_SPHERE);
+			//		shaderentity.position = collider.sphere.center;
+			//		shaderentity.SetRange(collider.sphere.radius);
+			//		break;
+			//	case ColliderComponent::Shape::Capsule:
+			//		shaderentity.SetType(ENTITY_TYPE_COLLIDER_CAPSULE);
+			//		shaderentity.position = collider.capsule.base;
+			//		shaderentity.SetColliderTip(collider.capsule.tip);
+			//		shaderentity.SetRange(collider.capsule.radius);
+			//		break;
+			//	case ColliderComponent::Shape::Plane:
+			//		shaderentity.SetType(ENTITY_TYPE_COLLIDER_PLANE);
+			//		shaderentity.position = collider.plane.origin;
+			//		shaderentity.SetDirection(collider.plane.normal);
+			//		shaderentity.SetIndices(matrixCounter, ~0u);
+			//		matrixArray[matrixCounter++] = collider.plane.projection;
+			//		break;
+			//	default:
+			//		assert(0);
+			//		break;
+			//	}
+			//
+			//	std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
+			//	entityCounter++;
+			//	forcefieldarray_count++;
+			//}
+			//
+			//// Write force fields into entity array:
+			//for (size_t i = 0; i < vis.scene->forces.GetCount(); ++i)
+			//{
+			//	if (entityCounter == SHADER_ENTITY_COUNT)
+			//	{
+			//		entityCounter--;
+			//		break;
+			//	}
+			//	ShaderEntity shaderentity = {};
+			//
+			//	const ForceFieldComponent& force = vis.scene->forces[i];
+			//
+			//	shaderentity.layerMask = ~0u;
+			//
+			//	Entity entity = vis.scene->forces.GetEntity(i);
+			//	const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
+			//	if (layer != nullptr)
+			//	{
+			//		shaderentity.layerMask = layer->layerMask;
+			//	}
+			//
+			//	switch (force.type)
+			//	{
+			//	default:
+			//	case ForceFieldComponent::Type::Point:
+			//		shaderentity.SetType(ENTITY_TYPE_FORCEFIELD_POINT);
+			//		break;
+			//	case ForceFieldComponent::Type::Plane:
+			//		shaderentity.SetType(ENTITY_TYPE_FORCEFIELD_PLANE);
+			//		break;
+			//	}
+			//	shaderentity.position = force.position;
+			//	shaderentity.SetGravity(force.gravity);
+			//	shaderentity.SetRange(std::max(0.001f, force.GetRange()));
+			//	// The default planar force field is facing upwards, and thus the pull direction is downwards:
+			//	shaderentity.SetDirection(force.direction);
+			//
+			//	std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
+			//	entityCounter++;
+			//	forcefieldarray_count++;
+			//}
 		}
-
-
 
 		frameCB.probes = ShaderEntityIterator(envprobearray_offset, envprobearray_count);
 		frameCB.directional_lights = ShaderEntityIterator(lightarray_offset_directional, lightarray_count_directional);

@@ -1,13 +1,14 @@
 #include "GComponents.h"
+#include "Common/Archive.h"
+#include "Common/ResourceManager.h"
+#include "Common/Engine_Internal.h"
 #include "Utils/Backlog.h"
 #include "Utils/ECS.h"
 #include "Utils/JobSystem.h"
 #include "Utils/Platform.h"
-#include "Common/Archive.h"
 #include "Utils/Geometrics.h"
+#include "Utils/Profiler.h"
 #include "GBackend/GModuleLoader.h"
-#include "Common/ResourceManager.h"
-#include "Common/Engine_Internal.h"
 
 #include <cstdint>
 #include <atomic>
@@ -17,6 +18,11 @@
 #include <memory>
 #include <unordered_map>
 
+#if __has_include("sanitizer/asan_interface.h")
+#include <sanitizer/asan_interface.h>
+#else
+#define ASAN_UNPOISON_MEMORY_REGION(ptr,size)
+#endif
 
 namespace vz
 {
@@ -94,7 +100,21 @@ namespace vz
 		std::vector<GMaterialComponent*> materialComponents;
 		std::vector<GLightComponent*> lightComponents;
 		std::vector<CameraComponent*> cameraComponents;
+		std::vector<ColliderComponent*> colliderComponents;
 
+		// CPU/GPU Colliders:
+		std::vector<uint8_t> colliderDeinterleavedData;
+		uint32_t colliderCountCPU = 0;
+		uint32_t colliderCountGPU = 0;
+		geometrics::AABB* aabbCollidersCPU = nullptr;
+		geometrics::AABB* aabbCollidersGPU = nullptr;
+		ColliderComponent* collidersCPU = nullptr;
+		ColliderComponent* collidersGPU = nullptr;
+		geometrics::BVH colliderBvh;
+		geometrics::BVH colliderBvhNext;
+		jobsystem::context colliderBvhWorkload;
+
+		// Method Details:
 		const std::vector<GRenderableComponent*>& GetRenderableComponents() const override { return renderableComponents; }
 		const std::vector<GRenderableComponent*>& GetRenderableMeshComponents() const override { return renderableMeshComponents; }
 		const std::vector<GRenderableComponent*>& GetRenderableVolumeComponents() const override { return renderableVolumeComponents; }
@@ -159,7 +179,7 @@ namespace vz
 
 			instanceResLookupAllocator.store(0u);
 
-			jobsystem::Dispatch(ctx, (uint32_t)renderables_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+			jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 				auto updateSprite = [&](GRenderableComponent* renderable) {
 
@@ -456,7 +476,161 @@ namespace vz
 				);
 				});
 		}
+		void RunProceduralAnimationUpdateSystem(jobsystem::context& ctx)
+		{
+			auto range = profiler::BeginRangeCPU("Procedural Animations");
 
+			// Character & Humanoid, ... TODO:
+
+			// Colliders:
+			jobsystem::Wait(colliderBvhWorkload); // waits for BVH build and collider counts
+			std::swap(colliderBvh, colliderBvhNext);
+			const size_t size =
+				sizeof(geometrics::AABB) * colliderCountCPU +
+				sizeof(geometrics::AABB) * colliderCountGPU +
+				sizeof(ColliderComponent) * colliderCountCPU +
+				sizeof(ColliderComponent) * colliderCountGPU
+				;
+			colliderDeinterleavedData.reserve(size);
+			ASAN_UNPOISON_MEMORY_REGION(colliderDeinterleavedData.data(), size);
+			aabbCollidersCPU = (geometrics::AABB*)colliderDeinterleavedData.data();
+			aabbCollidersGPU = aabbCollidersCPU + colliderCountCPU;
+			collidersCPU = (ColliderComponent*)(aabbCollidersGPU + colliderCountGPU);
+			collidersGPU = collidersCPU + colliderCountCPU;
+
+			uint32_t num_colliders = (uint32_t)colliders_.size();
+			jobsystem::Dispatch(ctx, num_colliders, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+				
+				ColliderComponent& collider = *colliderComponents[args.jobIndex];
+				Entity entity = collider.GetEntity();
+				const TransformComponent* transform = compfactory::GetTransformComponent(entity);
+				if (transform == nullptr)
+					return;
+
+				XMFLOAT3 scale = transform->GetScale();
+				float collider_radius = collider.GetRadius();
+				XMFLOAT3 collider_offset = collider.GetOffset();
+				XMFLOAT3 collider_tail = collider.GetTail();
+
+				collider.sphere.radius = collider_radius * std::max(scale.x, std::max(scale.y, scale.z));
+				collider.capsule.radius = collider.sphere.radius;
+
+				XMMATRIX W = XMLoadFloat4x4(&transform->GetWorldMatrix());
+				XMVECTOR offset = XMLoadFloat3(&collider_offset);
+				XMVECTOR tail = XMLoadFloat3(&collider_tail);
+				offset = XMVector3Transform(offset, W);
+				tail = XMVector3Transform(tail, W);
+
+				XMStoreFloat3(&collider.sphere.center, offset);
+				XMVECTOR N = XMVector3Normalize(offset - tail);
+				offset += N * collider.capsule.radius;
+				tail -= N * collider.capsule.radius;
+				XMStoreFloat3(&collider.capsule.base, offset);
+				XMStoreFloat3(&collider.capsule.tip, tail);
+
+				AABB aabb;
+
+				switch (collider.GetShape())
+				{
+				default:
+				case ColliderComponent::Shape::Sphere:
+					aabb.createFromHalfWidth(collider.sphere.center, XMFLOAT3(collider.sphere.radius, collider.sphere.radius, collider.sphere.radius));
+					break;
+				case ColliderComponent::Shape::Capsule:
+					aabb = collider.capsule.getAABB();
+					break;
+				case ColliderComponent::Shape::Plane:
+				{
+					collider.plane.origin = collider.sphere.center;
+					XMVECTOR N = XMVectorSet(0, 1, 0, 0);
+					N = XMVector3Normalize(XMVector3TransformNormal(N, W));
+					XMStoreFloat3(&collider.plane.normal, N);
+
+					aabb.createFromHalfWidth(XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+
+					XMMATRIX PLANE = XMMatrixScaling(collider_radius, 1, collider_radius);
+					PLANE = PLANE * XMMatrixTranslationFromVector(XMLoadFloat3(&collider_offset));
+					PLANE = PLANE * W;
+					aabb = aabb.transform(PLANE);
+
+					PLANE = XMMatrixInverse(nullptr, PLANE);
+					XMStoreFloat4x4(&collider.plane.projection, PLANE);
+				}
+				break;
+				}
+
+				const LayeredMaskComponent* layer = compfactory::GetLayeredMaskComponent(entity);
+				if (layer != nullptr)
+				{
+					collider.layerMask = layer->GetVisibleLayerMask();
+				}
+
+				if (collider.IsCPUEnabled())
+				{
+					collidersCPU[collider.indexCpuEnabled] = collider;
+					aabbCollidersCPU[collider.indexCpuEnabled] = aabb;
+				}
+				if (collider.IsGPUEnabled())
+				{
+					collidersGPU[collider.indexGpuEnabled] = collider;
+					aabbCollidersGPU[collider.indexGpuEnabled] = aabb;
+				}
+
+				});
+
+			jobsystem::Wait(ctx);
+			colliderBvh.Update(aabbCollidersCPU, colliderCountCPU);
+
+			// TODO: Jolt Physics
+			// Springs:
+			//jobsystem::Wait(spring_dependency_scan_workload);
+			//if (dt > 0)
+			//{
+			//	jobsystem::Dispatch(ctx, (uint32_t)spring_queues.size(), 1, [this](jobsystem::JobArgs args) {
+			//		UpdateSpringsTopDownRecursive(nullptr, *spring_queues[args.jobIndex]);
+			//		});
+			//	jobsystem::Wait(ctx);
+			//}
+
+			if (colliderCountCPU > 0)
+			{
+				// Issue the bvh rebuild on a background thread, the result will be used next frame...
+				colliderBvhWorkload.priority = jobsystem::Priority::Low;
+				jobsystem::Execute(colliderBvhWorkload, [this](jobsystem::JobArgs args) {
+					colliderBvhNext.Build(aabbCollidersCPU, colliderCountCPU);
+					});
+			}
+
+			profiler::EndRange(range);
+		}
+
+		void CountCPUandGPUColliders()
+		{
+			uint32_t num_colliders = (uint32_t)colliders_.size();
+			if (num_colliders != colliderComponents.size())
+				colliderComponents.resize(num_colliders);
+
+			// Note: the collider arrays must be consistent across frames, so can't be counted with multiple threads, this is why it's separated from collider updating
+			colliderCountCPU = 0;
+			colliderCountGPU = 0;
+			for (size_t i = 0; i < num_colliders; ++i)
+			{
+				Entity entity = colliders_[i];
+				ColliderComponent& collider = *compfactory::GetColliderComponent(entity);
+				colliderComponents[i] = &collider;
+
+				if (collider.IsCPUEnabled())
+				{
+					collider.indexCpuEnabled = colliderCountCPU;
+					colliderCountCPU++;
+				}
+				if (collider.IsGPUEnabled())
+				{
+					collider.indexGpuEnabled = colliderCountGPU;
+					colliderCountGPU++;
+				}
+			}
+		}
 		// ----- OVERRIDE -----
 
 		GScene* GetGSceneHandle() const override
@@ -560,39 +734,73 @@ namespace vz
 			timeStampSetter_ = TimerNow;
 		}
 
-		void scanResourceEntities(const std::vector<Entity>& renderables, std::vector<Entity>& geometries, std::vector<Entity>& materials)
+		void scanResourceEntities()
 		{
-			geometries.clear();
-			materials.clear();
+			geometries_.clear();
+			materials_.clear();
+			colliders_.clear();
+			geometryComponents.clear();
+			materialComponents.clear();
+			colliderComponents.clear();
 
-			size_t num_renderables = renderables.size();
+			size_t num_renderables = renderables_.size();
 			if (num_renderables == 0)
 			{
 				return;
 			}
 
 			std::unordered_set<Entity> geometry_set(num_renderables);
-			std::unordered_set<Entity> material_set(num_renderables);
-			for (auto& ett : renderables)
+			std::unordered_set<Entity> material_set;
+			material_set.reserve(num_renderables);
+			std::unordered_set<Entity> collider_set;
+			collider_set.reserve(num_renderables);
+
+			// TODO: atomic set in parallel
+			for (auto& ett : renderables_)
 			{
 				RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
 				if (renderable)
 				{
+					auto Attach_ChildColliders = [&collider_set](Entity ett) {
+
+						HierarchyComponent* hierarchy = compfactory::GetHierarchyComponent(ett);
+						if (hierarchy == nullptr)
+						{
+							// note: geometry that has collider components must have a HierarchyComponent
+							return;
+						}
+						for (auto vuid : hierarchy->GetChildren())
+						{
+							if (ComponentType::COLLIDER == compfactory::GetCompTypeFromVUID(vuid))
+							{
+								ColliderComponent* collider = compfactory::GetColliderComponentByVUID(vuid);
+								collider_set.insert(collider->GetEntity());
+							}
+						}
+						};
+
+					// actor's colliders
+					Attach_ChildColliders(ett);
+
 					Entity entity = renderable->GetGeometry();
 					GeometryComponent* renderable_geometry = compfactory::GetGeometryComponent(entity);
 					if (renderable_geometry)
 					{
 						geometry_set.insert(entity);
+
+						Attach_ChildColliders(entity);
 					}
 
 					std::vector<Entity> renderable_materials = renderable->GetMaterials();
 					material_set.insert(renderable_materials.begin(), renderable_materials.end());
 				}
 			}
-			geometries.reserve(geometry_set.size());
-			geometries.insert(geometries.end(), geometry_set.begin(), geometry_set.end());
-			materials.reserve(material_set.size());
-			materials.insert(materials.end(), material_set.begin(), material_set.end());
+			geometries_.reserve(geometry_set.size());
+			geometries_.insert(geometries_.end(), geometry_set.begin(), geometry_set.end());
+			materials_.reserve(material_set.size());
+			materials_.insert(materials_.end(), material_set.begin(), material_set.end());
+			colliders_.reserve(collider_set.size());
+			colliders_.insert(colliders_.end(), collider_set.begin(), collider_set.end());
 		}
 
 		void Update(const float dt) override
@@ -601,7 +809,13 @@ namespace vz
 			dt_ = dt;
 			deltaTimeAccumulator_ += dt;
 
-			scanResourceEntities(renderables_, geometries_, materials_);
+			scanResourceEntities();
+
+			//ScanAnimationDependencies();
+			// count colliders in background thread before procedural anim system
+			jobsystem::Execute(colliderBvhWorkload, [this](jobsystem::JobArgs args) {
+				CountCPUandGPUColliders();
+				});
 
 			static jobsystem::context ctx_geometry_bvh; // Must be declared static to prevent context overflow, which could lead to thread access violations
 			// note this update needs to be thread-safe

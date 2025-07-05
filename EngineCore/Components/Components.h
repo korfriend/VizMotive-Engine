@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250628_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250704_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -148,6 +148,7 @@ namespace vz
 		std::vector<Entity> children_;
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
+		std::vector<Entity> colliders_;
 
 		geometrics::AABB aabb_;	// entire scene box (renderables, lights, ...)
 		
@@ -234,6 +235,7 @@ namespace vz
 		// requires scanning process
 		inline std::vector<Entity> GetGeometryEntities() const noexcept { return geometries_; }
 		inline std::vector<Entity> GetMaterialEntities() const noexcept { return materials_; }
+		inline std::vector<Entity> GetColliderEntities() const noexcept { return colliders_; }
 
 		inline const geometrics::AABB& GetAABB() const { return aabb_; }
 
@@ -1202,23 +1204,36 @@ namespace vz
 		XMFLOAT3 tail_ = {};
 
 		// Non-serialized attributes:
-		geometrics::Sphere sphere_;
-		geometrics::Capsule capsule_;
-		geometrics::Plane plane_;
-		uint32_t layerMask_ = ~0u;
-		float dist_ = 0;
 
 	public:
 		ColliderComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::COLLIDER, entity, vuid) {}
 		virtual ~ColliderComponent() = default;
 
-		constexpr void SetCPUEnabled(bool value = true) { if (value) { flags_ |= CPU; } else { flags_ &= ~CPU; } }
-		constexpr void SetGPUEnabled(bool value = true) { if (value) { flags_ |= GPU; } else { flags_ &= ~GPU; } }
-		constexpr void SetCapsuleShadowEnabled(bool value = true) { if (value) { flags_ |= CAPSULE_SHADOW; } else { flags_ &= ~CAPSULE_SHADOW; } }
+		// Non-serialized attributes:
+		uint32_t indexCpuEnabled = 0;
+		uint32_t indexGpuEnabled = 0;
+		geometrics::Sphere sphere;
+		geometrics::Capsule capsule;
+		geometrics::Plane plane;
+		uint32_t layerMask = ~0u;
+		float dist = 0.f;
 
-		constexpr bool IsCPUEnabled() const { return flags_ & CPU; }
-		constexpr bool IsGPUEnabled() const { return flags_ & GPU; }
-		constexpr bool IsCapsuleShadowEnabled() const { return flags_ & CAPSULE_SHADOW; }
+		inline void SetCPUEnabled(bool value = true) { if (value) { flags_ |= CPU; } else { flags_ &= ~CPU; } timeStampSetter_ = TimerNow; }
+		inline void SetGPUEnabled(bool value = true) { if (value) { flags_ |= GPU; } else { flags_ &= ~GPU; } timeStampSetter_ = TimerNow; }
+		inline void SetCapsuleShadowEnabled(bool value = true) { if (value) { flags_ |= CAPSULE_SHADOW; } else { flags_ &= ~CAPSULE_SHADOW; } timeStampSetter_ = TimerNow; }
+
+		inline void SetShape(const Shape value) { shape_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetRadius(const float value) { radius_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetOffset(const XMFLOAT3 value) { offset_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetTail(const XMFLOAT3 value) { tail_ = value; timeStampSetter_ = TimerNow; }
+		inline Shape GetShape() const { return shape_; }
+		inline float GetRadius() const { return radius_; }
+		inline XMFLOAT3 GetOffset() const { return offset_; }
+		inline XMFLOAT3 GetTail() const { return tail_; }
+
+		inline bool IsCPUEnabled() const { return flags_ & CPU; }
+		inline bool IsGPUEnabled() const { return flags_ & GPU; }
+		inline bool IsCapsuleShadowEnabled() const { return flags_ & CAPSULE_SHADOW; }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -1753,20 +1768,20 @@ namespace vz
 		inline bool IsDirty() const { return isDirty_; }
 
 		inline void SetDirty() { isDirty_ = true; }
-		inline void SetLightColor(XMFLOAT3 color) { color_ = color; timeStampSetter_ = TimerNow; }
+		inline void SetColor(XMFLOAT3 color) { color_ = color; timeStampSetter_ = TimerNow; }
 		inline void SetRange(const float range) { range_ = range; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetRadius(const float radius) { radius_ = radius; timeStampSetter_ = TimerNow; }
 		inline void SetLength(const float length) { length_ = length; timeStampSetter_ = TimerNow; }
-		inline void SetLightType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
-		inline void SetLightIntensity(const float intensity) { intensity_ = intensity; }
+		inline void SetType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
+		inline void SetIntensity(const float intensity) { intensity_ = intensity; }
 		inline void SetOuterConeAngle(const float angle) { outerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetInnerConeAngle(const float angle) { innerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetCastShadow(bool value) { if (value) { lightFlag_ |= CAST_SHADOW; } else { lightFlag_ &= ~CAST_SHADOW; } isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetVisualizerEnabled(bool value) { if (value) { lightFlag_ |= VISUALIZER; } else { lightFlag_ &= ~VISUALIZER; } isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetStatic(bool value) { if (value) { lightFlag_ |= LIGHTMAPONLY_STATIC; } else { lightFlag_ &= ~LIGHTMAPONLY_STATIC; } isDirty_ = true; timeStampSetter_ = TimerNow; }
 
-		inline XMFLOAT3 GetLightColor() const { return color_; }
-		inline float GetLightIntensity() const { return intensity_; }
+		inline XMFLOAT3 GetColor() const { return color_; }
+		inline float GetIntensity() const { return intensity_; }
 		inline float GetRange() const
 		{
 			float retval = range_;
@@ -1777,7 +1792,7 @@ namespace vz
 		inline float GetRadius() const { return radius_; }
 		inline float GetLength() const { return length_; }
 		inline const geometrics::AABB& GetAABB() const { return aabb_; }
-		inline LightType GetLightType() const { return type_; }
+		inline LightType GetType() const { return type_; }
 		inline float GetOuterConeAngle() const { return outerConeAngle_; }
 		inline float GetInnerConeAngle() const { return innerConeAngle_; }
 
@@ -2038,6 +2053,7 @@ namespace vz::compfactory
 	// VUID Manager
 	CORE_EXPORT ComponentBase* GetComponentByVUID(const VUID vuid);
 	CORE_EXPORT Entity GetEntityByVUID(const VUID vuid);
+	inline ComponentType GetCompTypeFromVUID(VUID vuid) { return static_cast<ComponentType>(uint32_t(vuid & 0xFF)); }
 
 	// Component Manager
 	CORE_EXPORT size_t SetSceneComponentsDirty(const Entity entity);
