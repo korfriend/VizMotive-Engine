@@ -9,7 +9,6 @@ namespace vzm
 			DIRECTIONAL = 0,
 			POINT,
 			SPOT,
-			RECT_AREA,
 			COUNT
 		};
 
@@ -25,6 +24,9 @@ namespace vzm
 		void SetRange(const float range);
 		void SetIntensity(const float intensity);
 		void SetColor(const vfloat3 color);
+		void SetRadius(const float radius);
+		void SetLength(const float length);
+		void EnableVisualizer(const bool enabled);
 		//void SetLightTexture(const LightVID); //  TODO
 	};
 
