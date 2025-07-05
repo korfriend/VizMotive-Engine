@@ -178,11 +178,13 @@ namespace vz
 
 		if (skipStableCount > 0)
 		{
-			if (scene->stableCount > skipStableCount && stableCount_ > skipStableCount)
+			if (scene->stableCount > skipStableCount && stableCount_ > skipStableCount
+				&& !forceToRenderCall)
 			{
 				return;
 			}
 		}
+		forceToRenderCall = false;
 
 		// This involves the following process
 		//	1. update view (for each rendering pipeline)

@@ -507,9 +507,6 @@ int main(int, char **)
 					ImGui::Text(performance_info.c_str());
 					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
-
-					vzm::VzActorSpriteFont* actor_font = (vzm::VzActorSpriteFont*)vzm::GetFirstComponentByName("my sprite font");
-					actor_font->SetText(performance_info);
 				}
 			}
 			ImGui::End();
