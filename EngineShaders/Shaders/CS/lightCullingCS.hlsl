@@ -225,10 +225,6 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 
 		if (SphereInsideFrustumVS(sphere, GroupFrustum, nearClipVS, maxDepthVS))
 		{
-#ifdef DEBUG_TILEDLIGHTCULLING
-			//if (entity.GetRange() + entity.GetLength() > 100)
-			//entityCountDebug = 100;
-#endif //  DEBUG_TILEDLIGHTCULLING
 			AppendEntity_Transparent(i);
 
 			if (SphereIntersectsAABB(sphere, GroupAABB)) // tighter fit than sphere-frustum culling

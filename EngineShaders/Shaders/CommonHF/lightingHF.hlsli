@@ -164,13 +164,13 @@ inline half attenuation_pointlight(in half dist2, in half range, in half range2)
 	// Removed pow(x, 4):
 	half dist_per_range = dist2 / range2; // pow2 (note: range cannot be 0, in that case light is not uploaded to GPU, so here will not be zero-division)
 	dist_per_range *= dist_per_range; // pow4
-	return saturate(1 - dist_per_range) / max(0.0001, dist2);
+	return (half)(saturate(1.f - (float)dist_per_range) / max(0.0001, (float)dist2));
 }
 inline void light_point(in ShaderEntity light, in Surface surface, inout Lighting lighting, in half shadow_mask = 1)
 {
 	if ((light.layerMask & surface.layerMask) == 0)
 		return; // early exit: layer mismatch
-	
+
 	float3 Lunnormalized = light.position - surface.P;
 	const float3 LunnormalizedShadow = Lunnormalized;
 
@@ -189,7 +189,7 @@ inline void light_point(in ShaderEntity light, in Surface surface, inout Lightin
 
     const half dist2 = (half) dot(Lunnormalized, Lunnormalized);
 	const half range = light.GetRange();
-	const half range2 = range * range;
+	const half range2 = (float)range * (float)range;
 	
 	if (dist2 > range2)
 		return; // early exit: outside range
@@ -202,7 +202,7 @@ inline void light_point(in ShaderEntity light, in Surface surface, inout Lightin
 		
 	if (!any(surface_to_light.NdotL_sss))
 		return; // early exit: facing away from light
-		
+
 	half3 light_color = light.GetColor().rgb * shadow_mask;
 
 	[branch]
