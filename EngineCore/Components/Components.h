@@ -1736,7 +1736,7 @@ namespace vz
 		//  refer to: https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual
 		float intensity_ = 1.0f; 
 		
-		float radius_ = 0.025; // for softshadow sampling or source size of spot/point lights
+		float radius_ = 0.025f; // for softshadow sampling or source size of spot/point lights
 		float length_ = 0.f;	// for line source (point light-ext) or rectangle light
 
 		// spot light only

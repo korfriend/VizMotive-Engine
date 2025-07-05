@@ -1106,6 +1106,12 @@ namespace vzm
 		configFile.Commit();
 
 		shaderEngine.pluginApplyConfiguration();
+
+		for (auto& it : vzcompmanager::renderers)
+		{
+			RenderPath3D* renderer = (RenderPath3D*)canvas::GetCanvas(it.first);
+			renderer->forceToRenderCall = true;
+		}
 	}
 
 	bool DeinitEngineLib()
