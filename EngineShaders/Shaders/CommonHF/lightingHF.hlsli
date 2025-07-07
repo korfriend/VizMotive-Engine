@@ -219,6 +219,14 @@ inline void light_point(in ShaderEntity light, in Surface surface, inout Lightin
 		QuadBlur(light_color);
 	}
 
+	const uint maskTex = light.GetTextureIndex();
+	[branch]
+	if (maskTex > 0)
+	{
+		half4 mask = bindless_cubemaps_half4[descriptor_index(maskTex)].SampleLevel(sampler_linear_clamp, -LunnormalizedShadow, 0);
+		light_color *= mask.rgb * mask.a;
+	}
+
 	light_color *= attenuation_pointlight(dist2, range, range2);
 
 	lighting.direct.diffuse = mad(light_color, BRDF_GetDiffuse(surface, surface_to_light), lighting.direct.diffuse);
@@ -255,9 +263,9 @@ inline void light_point(in ShaderEntity light, in Surface surface, inout Lightin
 		surface_to_light.create(surface, L); // recompute all surface-light vectors
 	}
 #endif // DISABLE_AREA_LIGHTS
-
+	
 	lighting.direct.specular = mad(light_color, BRDF_GetSpecular(surface, surface_to_light), lighting.direct.specular);
-				
+	
 #ifdef LIGHTING_SCATTER
 	const half scattering = ComputeScattering(saturate(dot(L, -surface.V)));
 	lighting.indirect.specular += scattering * light_color * (1 - surface.extinction) * (1 - sqr(1 - saturate(1 - surface.N.y)));
@@ -510,7 +518,7 @@ inline void VoxelGI(inout Surface surface, inout Lighting lighting)
 		[branch]
 		if (GetFrame().options & OPTION_BIT_VXGI_REFLECTIONS_ENABLED)
 		{
-			half roughnessBRDF = sqr(clamp(surface.roughness, min_roughness, 1));
+			half roughnessBRDF = sqr(clamp(surface.roughness, MIN_ROUGHNESS, 1));
             half4 trace = (half4) ConeTraceSpecular(voxels, surface.P, surface.N, surface.V, roughnessBRDF, surface.pixel);
 			lighting.indirect.specular = mad(lighting.indirect.specular, 1 - trace.a, trace.rgb * surface.F);
 		}

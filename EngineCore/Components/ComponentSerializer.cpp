@@ -124,8 +124,27 @@ namespace vz
 			archive >> metalness_;
 			archive >> roughness_;
 			archive >> alphaRef_;
-			archive >> saturate_;
+			archive >> saturation_;
 			archive >> wireframe_;
+
+			archive >> sheenColor_;
+			archive >> subsurfaceScattering_;
+			archive >> extinctionColor_;
+			archive >> sheenRoughness_;
+			archive >> clearcoat_;
+			archive >> clearcoatRoughness_;
+			archive >> reflectance_;
+			archive >> refraction_;
+			archive >> normalMapStrength_;
+			archive >> parallaxOcclusionMapping_;
+			archive >> displacementMapping_;
+			archive >> transmission_;
+			archive >> alphaRef_;
+			archive >> anisotropyStrength_;
+			archive >> anisotropyRotation_; 
+			archive >> blendWithTerrainHeight_;
+			archive >> cloak_;
+			archive >> chromaticAberration_;
 
 			archive >> u32_data;
 			engineStencilRef_ = static_cast<StencilRef>(u32_data);
@@ -174,8 +193,27 @@ namespace vz
 			archive << metalness_;
 			archive << roughness_;
 			archive << alphaRef_;
-			archive << saturate_;
+			archive << saturation_;
 			archive << wireframe_;
+
+			archive << sheenColor_;
+			archive << subsurfaceScattering_;
+			archive << extinctionColor_;
+			archive << sheenRoughness_;
+			archive << clearcoat_;
+			archive << clearcoatRoughness_;
+			archive << reflectance_;
+			archive << refraction_;
+			archive << normalMapStrength_;
+			archive << parallaxOcclusionMapping_;
+			archive << displacementMapping_;
+			archive << transmission_;
+			archive << alphaRef_;
+			archive << anisotropyStrength_;
+			archive << anisotropyRotation_;
+			archive << blendWithTerrainHeight_;
+			archive << cloak_;
+			archive << chromaticAberration_;
 
 			archive << SCU32(engineStencilRef_);
 

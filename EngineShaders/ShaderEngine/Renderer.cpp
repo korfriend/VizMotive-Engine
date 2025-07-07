@@ -1264,7 +1264,7 @@ namespace vz::renderer
 
 		//DrawDebugWorld(*scene, *camera, cmd);
 
-		//DrawLightVisualizers(visMain, cmd);
+		DrawLightVisualizers(visMain, cmd);
 
 		//DrawSoftParticles(visMain, false, cmd);
 		

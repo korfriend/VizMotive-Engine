@@ -543,6 +543,7 @@ namespace vz
 		{
 			PHONG = 0,
 			PBR,
+			//PBR_ANISOTROPIC,
 			UNLIT,
 			VOLUMEMAP,
 
@@ -622,15 +623,33 @@ namespace vz
 		BlendMode blendMode_ = BlendMode::BLENDMODE_OPAQUE;
 		StencilRef engineStencilRef_ = StencilRef::STENCILREF_DEFAULT;
 
-		float alphaRef_ = 1.f;
 		XMFLOAT4 baseColor_ = XMFLOAT4(1, 1, 1, 1);
 		XMFLOAT4 specularColor_ = XMFLOAT4(1, 1, 1, 1);
 		XMFLOAT4 emissiveColor_ = XMFLOAT4(1, 1, 1, 0);
-
+		XMFLOAT4 sheenColor_ = XMFLOAT4(1, 1, 1, 1);
+		XMFLOAT4 subsurfaceScattering_ = XMFLOAT4(1, 1, 1, 0);
+		XMFLOAT4 extinctionColor_ = XMFLOAT4(0, 0.9f, 1, 1);
 		XMFLOAT4 phongFactors_ = XMFLOAT4(0.2f, 1, 1, 1);	// only used for ShaderType::PHONG
-		float metalness_ = 0.f; // only used for ShaderType::PBR
-		float roughness_ = 0.f; // only used for ShaderType::PBR
-		float saturate_ = 1.f;
+
+		float alphaRef_ = 1.f;
+		float sheenRoughness_ = 0;
+		float clearcoat_ = 0;
+		float clearcoatRoughness_ = 0;
+		float reflectance_ = 0.02f;
+		float refraction_ = 0.0f;
+		float normalMapStrength_ = 1.0f;
+		float parallaxOcclusionMapping_ = 0.0f;
+		float displacementMapping_ = 0.0f;
+		float transmission_ = 0.0f;
+		float anisotropyStrength_ = 0;
+		float anisotropyRotation_ = 0; //radians, counter-clockwise
+		float blendWithTerrainHeight_ = 0;
+		float cloak_ = 0;
+		float chromaticAberration_ = 0;
+
+		float metalness_ = 0.f; 
+		float roughness_ = 0.2f; 
+		float saturation_ = 1.f;
 
 		bool wireframe_ = false;
 
@@ -638,7 +657,7 @@ namespace vz
 		VUID vuidVolumeTextureComponents_[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
 		VUID vuidLookupTextureComponents_[SCU32(LookupTableSlot::LOOKUPTABLE_COUNT)] = {};
 
-		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0);
+		XMFLOAT4 texMulAdd_ = XMFLOAT4(1, 1, 0, 0); // dynamic multiplier (.xy) and addition (.zw) for UV coordinates
 
 		VUID vuidVolumeMapperRenderable_ = INVALID_VUID;
 		VolumeTextureSlot volumemapperVolumeSlot_ = VolumeTextureSlot::VOLUME_MAIN_MAP;
@@ -650,6 +669,9 @@ namespace vz
 		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
 		virtual ~MaterialComponent() = default;
 
+		inline bool IsDirty() const { return isDirty_; }
+		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
+
 		inline void SetShaderType(const ShaderType shaderType) { shaderType_ = shaderType; timeStampSetter_ = TimerNow; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
 
@@ -659,7 +681,7 @@ namespace vz
 		inline const XMFLOAT4& GetEmissiveColor() const { return emissiveColor_; }	// w is emissive strength
 
 		inline void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; timeStampSetter_ = TimerNow; }
-		inline void SetSaturate(const float saturate) { saturate_ = saturate; timeStampSetter_ = TimerNow; }
+		inline void SetSaturate(const float saturate) { saturation_ = saturate; timeStampSetter_ = TimerNow; }
 		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; timeStampSetter_ = TimerNow;}
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; timeStampSetter_ = TimerNow;}
@@ -671,7 +693,25 @@ namespace vz
 		inline void EnableDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void EnableGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void EnableWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetPhongFactors(const XMFLOAT4 phongFactors) { phongFactors_ = phongFactors; timeStampSetter_ = TimerNow; }
+		inline void SetPhongFactors(const XMFLOAT4& phongFactors) { phongFactors_ = phongFactors; timeStampSetter_ = TimerNow; }
+
+		inline void SetSheenColor(const XMFLOAT4& value) { sheenColor_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetSubsurfaceScattering(const XMFLOAT4& value) { subsurfaceScattering_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetExtinctionColor(const XMFLOAT4& value) { extinctionColor_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetSheenRoughness(const float value) { sheenRoughness_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetClearcoat(const float value) { clearcoat_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetClearcoatRoughness(const float value) { clearcoatRoughness_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetReflectance(const float value) { reflectance_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetRefraction(const float value) { refraction_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetNormalMapStrength(const float value) { normalMapStrength_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetParallaxOcclusionMapping(const float value) { parallaxOcclusionMapping_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetDisplacementMapping(const float value) { displacementMapping_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetTransmission(const float value) { transmission_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetAnisotropyStrength(const float value) { anisotropyStrength_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetAnisotropyRotation(const float value) { anisotropyRotation_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetBlendWithTerrainHeight(const float value) { blendWithTerrainHeight_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetCloak(const float value) { cloak_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetChromaticAberration(const float value) { chromaticAberration_ = value; timeStampSetter_ = TimerNow; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
@@ -682,8 +722,6 @@ namespace vz
 		inline VolumeTextureSlot GetVolumeMapperVolumeSlot() const { return volumemapperVolumeSlot_; }
 		inline LookupTableSlot GetVolumeMapperLookupSlot() const { return volumemapperLookupSlot_; }
 
-		inline bool IsDirty() const { return isDirty_; }
-		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
 		inline bool IsOutlineEnabled() const { return flags_ & SCU32(RenderFlags::OUTLINE); }
 		inline bool IsDoubleSided() const { return flags_ & SCU32(RenderFlags::DOUBLE_SIDED); }
 		inline bool IsTesellated() const { return flags_ & SCU32(RenderFlags::TESSELATION); }
@@ -700,7 +738,7 @@ namespace vz
 		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
 
 		inline float GetAlphaRef() const { return alphaRef_; }
-		inline float GetSaturate() const { return saturate_; }
+		inline float GetSaturate() const { return saturation_; }
 		inline float GetMatalness() const { return metalness_; }
 		inline float GetRoughness() const { return roughness_; }
 		inline BlendMode GetBlendMode() const { return blendMode_; }
@@ -709,6 +747,24 @@ namespace vz
 		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return vuidLookupTextureComponents_[SCU32(slot)]; }
 		inline XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
 		inline XMFLOAT4 GetPhongFactors() const { return phongFactors_; }
+
+		inline XMFLOAT4 GetSheenColor() const { return sheenColor_; }
+		inline XMFLOAT4 GetSubsurfaceScattering() const { return subsurfaceScattering_; }
+		inline XMFLOAT4 GetExtinctionColor() const { return extinctionColor_; }
+		inline float GetSheenRoughness() const { return sheenRoughness_; }
+		inline float GetClearcoat() const { return clearcoat_; }
+		inline float GetClearcoatRoughness() const { return clearcoatRoughness_; }
+		inline float GetReflectance() const { return reflectance_; }
+		inline float GetRefraction() const { return refraction_; }
+		inline float GetNormalMapStrength() const { return normalMapStrength_; }
+		inline float GetParallaxOcclusionMapping() const { return parallaxOcclusionMapping_; }
+		inline float GetDisplacementMapping() const { return displacementMapping_; }
+		inline float GetTransmission() const { return transmission_; }
+		inline float GetAnisotropyStrength() const { return anisotropyStrength_; }
+		inline float GetAnisotropyRotation() const { return anisotropyRotation_; }
+		inline float GetBlendWithTerrainHeight() const { return blendWithTerrainHeight_; }
+		inline float GetCloak() const { return cloak_; }
+		inline float GetChromaticAberration() const { return chromaticAberration_; }
 
 		virtual void UpdateAssociatedTextures() = 0;
 
@@ -1767,13 +1823,13 @@ namespace vz
 
 		inline bool IsDirty() const { return isDirty_; }
 
-		inline void SetDirty() { isDirty_ = true; }
+		inline void SetDirty() { isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetColor(XMFLOAT3 color) { color_ = color; timeStampSetter_ = TimerNow; }
 		inline void SetRange(const float range) { range_ = range; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetRadius(const float radius) { radius_ = radius; timeStampSetter_ = TimerNow; }
 		inline void SetLength(const float length) { length_ = length; timeStampSetter_ = TimerNow; }
 		inline void SetType(LightType type) { type_ = type; isDirty_ = true; timeStampSetter_ = TimerNow; };
-		inline void SetIntensity(const float intensity) { intensity_ = intensity; }
+		inline void SetIntensity(const float intensity) { intensity_ = intensity; timeStampSetter_ = TimerNow; }
 		inline void SetOuterConeAngle(const float angle) { outerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetInnerConeAngle(const float angle) { innerConeAngle_ = angle; isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline void SetCastShadow(bool value) { if (value) { lightFlag_ |= CAST_SHADOW; } else { lightFlag_ &= ~CAST_SHADOW; } isDirty_ = true; timeStampSetter_ = TimerNow; }

@@ -155,19 +155,19 @@ namespace vz
 					const float alphaRef = material.GetAlphaRef();
 
 					// will add the material feature..
-					const float roughness = 0.f;
-					const float reflectance = 0.f;
-					const float metalness = 0.f;
-					const float refraction = 0.f;
-					const float normalMapStrength = 0.f;
-					const float parallaxOcclusionMapping = 0.f;
-					const float displacementMapping = 0.f;
-					const XMFLOAT4 subsurfaceScattering = XMFLOAT4(1, 1, 1, 0);
-					const XMFLOAT4 sheenColor = XMFLOAT4(1, 1, 1, 1);
-					const float transmission = 0.f;
-					const float sheenRoughness = 0.f;
-					const float clearcoat = 0.f;
-					const float clearcoatRoughness = 0.f;
+					const float roughness = material.GetRoughness();
+					const float reflectance = material.GetReflectance();
+					const float metalness = material.GetMatalness();
+					const float refraction = material.GetRefraction();
+					const float normalMapStrength = material.GetNormalMapStrength();
+					const float parallaxOcclusionMapping = material.GetParallaxOcclusionMapping();
+					const float displacementMapping = material.GetDisplacementMapping();
+					const XMFLOAT4 subsurfaceScattering = material.GetSubsurfaceScattering();
+					const XMFLOAT4 sheenColor = material.GetSheenColor();
+					const float transmission = material.GetTransmission();
+					const float sheenRoughness = material.GetSheenRoughness();
+					const float clearcoat = material.GetClearcoat();
+					const float clearcoatRoughness = material.GetClearcoatRoughness();
 
 					shader_material.roughness_reflectance_metalness_refraction = pack_half4(roughness, reflectance, metalness, refraction);
 					shader_material.normalmap_pom_alphatest_displacement = pack_half4(normalMapStrength, parallaxOcclusionMapping, 1 - alphaRef, displacementMapping);
@@ -198,9 +198,10 @@ namespace vz
 					float _anisotropy_rotation_sin = 0;
 					float _anisotropy_rotation_cos = 0;
 					float _blend_with_terrain_height_rcp = 0;
-					//if (shaderType == SHADERTYPE_PBR_ANISOTROPIC)
+					//if (shaderType == MaterialComponent::ShaderType::PBR_ANISOTROPIC)
 					//{
-					//	_anisotropy_strength = clamp(anisotropy_strength, 0.0f, 0.99f);
+					//	const float anisotropy_rotation = material.GetAnisotropyRotation();
+					//	_anisotropy_strength = clamp(material.GetAnisotropyStrength(), 0.0f, 0.99f);
 					//	_anisotropy_rotation_sin = std::sin(anisotropy_rotation);
 					//	_anisotropy_rotation_cos = std::cos(anisotropy_rotation);
 					//}
