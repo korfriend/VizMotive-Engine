@@ -248,9 +248,11 @@ int main(int, char **)
 			float g = dist_color(gen);
 			float b = dist_color(gen);
 			light->SetColor({ r, g, b });
-			light->SetIntensity(10000.0f);
+			light->SetIntensity(5000.0f);
 			light->SetRange(lightRange);
 			light->SetPosition({ lx, ly, lz });
+			light->EnableVisualizer(false);
+			light->SetRadius(5.f);
 			scene->AppendChild(light);
 		}
 
@@ -446,18 +448,32 @@ int main(int, char **)
 				{
 					vzm::ReloadShader();
 				}
-				static bool face_camera = false, font_face_camera = false;
-				if (ImGui::Checkbox("Face Camera", &face_camera))
+				static bool light_visualizer = false;
+				static float light_radius = 5.f;
+				static float light_intensity = 5000.f;
+				if (ImGui::Checkbox("Light Visualizer", &light_visualizer))
 				{
-					for (size_t i = 0; i < num_sprites; i++) {
-						vzm::VzActorSprite* sprite = actor_sprites[i];
-						sprite->EnableCameraFacing(face_camera);
+					for (int idx = 0; idx < 50; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->EnableVisualizer(light_visualizer);
 					}
 				}
-				if (ImGui::Checkbox("Font Face Camera", &font_face_camera))
+				if (ImGui::SliderFloat("Light Radius", &light_radius, 1.f, 30.f))
 				{
-					vzm::VzActorSpriteFont* actor_font = (vzm::VzActorSpriteFont*)vzm::GetFirstComponentByName("my sprite font");
-					actor_font->EnableCameraFacing(font_face_camera);
+					for (int idx = 0; idx < 50; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->SetRadius(light_radius);
+					}
+				}
+				if (ImGui::SliderFloat("Light Intensity", &light_intensity, 100.f, 10000.f))
+				{
+					for (int idx = 0; idx < 50; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->SetIntensity(light_intensity);
+					}
 				}
 				if (ImGui::Button("Export File"))
 				{

@@ -594,6 +594,12 @@ namespace vz
 		uint32_t lightIndex = ~0u;	// current linear array of current rendering scene
 		std::vector<float> cascadeDistances = { 8, 80, 800 };
 
+		int maskTexDescriptor = -1;
+		mutable int occlusionquery = -1;
+
 		int forcedShadowResolution = -1; // -1: disabled, greater: fixed shadow map resolution
+
+		std::vector<std::string> lensFlareNames;
+		std::vector<std::shared_ptr<Resource>> lensFlareRimTextures;
 	};
 }

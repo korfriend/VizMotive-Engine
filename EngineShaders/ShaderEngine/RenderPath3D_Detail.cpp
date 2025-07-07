@@ -797,21 +797,23 @@ namespace vz::renderer
 				// mark as no shadow by default:
 				shaderentity.indices = ~0;
 
-				bool shadow = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
+				const bool shadowmap = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
 				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
-				if (shadow)
+				
+				if (shadowmap)
 				{
 					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
 					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
 					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
 					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
-					shaderentity.SetIndices(matrix_counter, 0);
 				}
 
-				const uint cascade_count = std::min((uint)light.cascadeDistances.size(), SHADER_ENTITY_COUNT - matrix_counter);
+				shaderentity.SetIndices(matrix_counter, 0);
+
+				const uint cascade_count = std::min((uint)light.cascadeDistances.size(), MATRIXARRAY_COUNT - matrix_counter);
 				shaderentity.SetShadowCascadeCount(cascade_count);
 
-				if (shadow && !light.cascadeDistances.empty())
+				if (shadowmap && !light.cascadeDistances.empty())
 				{
 					SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
 					CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
@@ -877,17 +879,20 @@ namespace vz::renderer
 				// mark as no shadow by default:
 				shaderentity.indices = ~0;
 
-				bool shadow = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
+				const bool shadowmap = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
 				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
+				
+				const uint maskTex = light.maskTexDescriptor < 0 ? 0 : light.maskTexDescriptor;
 
-				if (shadow)
+				if (shadowmap)
 				{
 					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
 					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
 					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
 					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
-					shaderentity.SetIndices(matrix_counter, 0);
 				}
+
+				shaderentity.SetIndices(matrix_counter, maskTex);
 
 				const float outerConeAngle = light.GetOuterConeAngle();
 				const float innerConeAngle = std::min(light.GetInnerConeAngle(), outerConeAngle);
@@ -902,11 +907,16 @@ namespace vz::renderer
 				shaderentity.SetAngleScale(lightAngleScale);
 				shaderentity.SetAngleOffset(lightAngleOffset);
 
-				if (shadow)
+				if (shadowmap || (maskTex > 0))
 				{
 					SHCAM shcam;
 					CreateSpotLightShadowCam(light, shcam);
 					XMStoreFloat4x4(&light_matrix_array[matrix_counter++], shcam.view_projection);
+				}
+
+				if (light.IsCastingShadow())
+				{
+					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_CASTING_SHADOW);
 				}
 
 				if (light.IsStatic())
@@ -961,19 +971,22 @@ namespace vz::renderer
 				// mark as no shadow by default:
 				shaderentity.indices = ~0;
 
-				bool shadow = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
+				const bool shadowmap = isShadowsEnabled && light.IsCastingShadow() && !light.IsStatic();
 				const rectpacker::Rect& shadow_rect = vis.visibleLightShadowRects[lightIndex];
 
-				if (shadow)
+				const uint maskTex = light.maskTexDescriptor < 0 ? 0 : light.maskTexDescriptor;
+
+				if (shadowmap)
 				{
 					shaderentity.shadowAtlasMulAdd.x = shadow_rect.w * atlas_dim_rcp.x;
 					shaderentity.shadowAtlasMulAdd.y = shadow_rect.h * atlas_dim_rcp.y;
 					shaderentity.shadowAtlasMulAdd.z = shadow_rect.x * atlas_dim_rcp.x;
 					shaderentity.shadowAtlasMulAdd.w = shadow_rect.y * atlas_dim_rcp.y;
-					shaderentity.SetIndices(matrix_counter, 0);
 				}
 
-				if (shadow)
+				shaderentity.SetIndices(matrix_counter, maskTex);
+
+				if (shadowmap)
 				{
 					const float FarZ = 0.1f;	// watch out: reversed depth buffer! Also, light near plane is constant for simplicity, this should match on cpu side!
 					const float NearZ = std::max(1.0f, light.GetRange()); // watch out: reversed depth buffer!
