@@ -71,7 +71,7 @@ namespace vzcompmanager
 		case COMPONENT_TYPE::CAMERA:
 		case COMPONENT_TYPE::SLICER:
 			cameras.erase(vid); break;
-		case COMPONENT_TYPE::ACTOR_GROUP:
+		case COMPONENT_TYPE::ACTOR_NODE:
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
 		case COMPONENT_TYPE::ACTOR_SPRITE:
 		case COMPONENT_TYPE::ACTOR_SPRITEFONT: actors.erase(vid); break;
@@ -200,7 +200,7 @@ namespace vzm
 		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
 		switch (compType)
 		{
-		case COMPONENT_TYPE::ACTOR_GROUP:
+		case COMPONENT_TYPE::ACTOR_NODE:
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH:
 		case COMPONENT_TYPE::ACTOR_VOLUME:
 		case COMPONENT_TYPE::ACTOR_GSPLAT:
@@ -228,9 +228,9 @@ namespace vzm
 		VID parent_vid = parentVid;
 		switch (compType)
 		{
-		case COMPONENT_TYPE::ACTOR_GROUP:
+		case COMPONENT_TYPE::ACTOR_NODE:
 			{
-				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewActorGroup", COMPONENT_TYPE::ACTOR_GROUP));
+				auto it = vzcompmanager::actors.emplace(vid, std::make_unique<VzActor>(vid, "vzm::NewActorNode", COMPONENT_TYPE::ACTOR_NODE));
 				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
@@ -625,9 +625,9 @@ namespace vzm
 		return it.first->second.get();
 	}
 
-	VzActor* NewActorGroup(const std::string& name, VID parentVid)
+	VzActor* NewActorNode(const std::string& name, VID parentVid)
 	{
-		return (VzActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_GROUP, name, parentVid);
+		return (VzActor*)newSceneComponent(COMPONENT_TYPE::ACTOR_NODE, name, parentVid);
 	}
 	VzCamera* NewCamera(const std::string& name, const VID parentVid)
 	{
@@ -888,6 +888,7 @@ namespace vzm
 
 	VzScene* AppendSceneCompTo(const VZ_NONNULL VzBaseComp* comp, const VZ_NONNULL VzBaseComp* parentComp)
 	{
+		vzlog_assert(comp != parentComp, "NOT ALLOWED for SELF-PARENT!");
 		Scene* scene = scenefactory::GetScene(AppendSceneCompVidTo(comp->GetVID(), parentComp ? parentComp->GetVID() : 0));
 		auto it = vzcompmanager::scenes.find(scene->GetSceneEntity());
 		if (it == vzcompmanager::scenes.end())
@@ -966,7 +967,7 @@ namespace vzm
 
 		switch (type)
 		{
-		case COMPONENT_TYPE::ACTOR_GROUP: GETTER_VZCOMP(actors); break;
+		case COMPONENT_TYPE::ACTOR_NODE: GETTER_VZCOMP(actors); break;
 		case COMPONENT_TYPE::ACTOR_STATIC_MESH: GETTER_VZCOMP(actors); break;
 		case COMPONENT_TYPE::LIGHT: GETTER_VZCOMP(lights); break;
 		case COMPONENT_TYPE::CAMERA: 
@@ -1156,32 +1157,38 @@ namespace vz::compfactory
         VzBaseComp* comp = New##TYPE(name); \
         return comp ? comp->GetVID() : INVALID_ENTITY; 
 
-	Entity NewNodeActor(const std::string& name, const Entity parentEntity)	
+	Entity MakeNodeActor(const std::string& name, const Entity parentEntity)
+	{
+		VzBaseComp* comp = NewActorNode(name, parentEntity);
+		//VzBaseComp* comp = NewActorStaticMesh(name, 0ull, 0ull, parentEntity);
+		return comp ? comp->GetVID() : INVALID_ENTITY;
+	}
+	Entity MakeNodeStaticMeshActor(const std::string& name, const Entity parentEntity)
 	{
 		VzBaseComp* comp = NewActorStaticMesh(name, 0ull, 0ull, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
-	Entity NewNodeSpriteActor(const std::string& name, const Entity parentEntity)
+	Entity MakeNodeSpriteActor(const std::string& name, const Entity parentEntity)
 	{
 		VzBaseComp* comp = NewActorSprite(name, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
-	Entity NewNodeSpriteFontActor(const std::string& name, const Entity parentEntity)
+	Entity MakeNodeSpriteFontActor(const std::string& name, const Entity parentEntity)
 	{
 		VzBaseComp* comp = NewActorSpriteFont(name, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
-	Entity NewNodeCamera(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Camera) }
-	Entity NewNodeSlicer(const std::string& name, const bool curvedSlicer, const Entity parentEntity) 
+	Entity MakeNodeCamera(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Camera) }
+	Entity MakeNodeSlicer(const std::string& name, const bool curvedSlicer, const Entity parentEntity) 
 	{
 		VzBaseComp* comp = NewSlicer(name, curvedSlicer, parentEntity);
 		return comp ? comp->GetVID() : INVALID_ENTITY;
 	}
-	Entity NewNodeLight(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Light) }
-	Entity NewResGeometry(const std::string& name) { DEFINE_NEW_RES_FUNC(Geometry) }
-	Entity NewResMaterial(const std::string& name) { DEFINE_NEW_RES_FUNC(Material) }
-	Entity NewResTexture(const std::string& name) { DEFINE_NEW_RES_FUNC(Texture) }
-	Entity NewResVolume(const std::string& name) { DEFINE_NEW_RES_FUNC(Volume) }
+	Entity MakeNodeLight(const std::string& name, const Entity parentEntity) { DEFINE_NEW_NODE_FUNC(Light) }
+	Entity MakeResGeometry(const std::string& name) { DEFINE_NEW_RES_FUNC(Geometry) }
+	Entity MakeResMaterial(const std::string& name) { DEFINE_NEW_RES_FUNC(Material) }
+	Entity MakeResTexture(const std::string& name) { DEFINE_NEW_RES_FUNC(Texture) }
+	Entity MakeResVolume(const std::string& name) { DEFINE_NEW_RES_FUNC(Volume) }
 
 	size_t RemoveEntity(const Entity entity, const bool includeDescendants)
 	{

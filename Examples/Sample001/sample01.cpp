@@ -236,8 +236,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	vzm::VzLight* light_test = vzm::NewLight("my light");
     light_test->SetIntensity(5.f);
-    light_test->SetPosition({ 0.f, 0.f, 100.f }); 
-    light_test->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 
 	vzm::AppendSceneCompTo(actor_test, scene);
 	vzm::AppendSceneCompTo(actor_test2, scene);

@@ -384,7 +384,6 @@ namespace vz::renderer
 			uint32_t* data_debug = (uint32_t*)gaussianSplattingResources.debugBuffer_readback[pingplong_readback_index].mapped_data;
 			std::vector<uint32_t> data_debug_vtr(1000);
 			memcpy(data_debug_vtr.data(), data_debug, sizeof(uint32_t) * 2 * 500);
-			int gg = 0;
 			{
 				barrierStack.push_back(GPUBarrier::Buffer(&debug_src_buffer, ResourceState::COPY_SRC, ResourceState::UNORDERED_ACCESS));
 				BarrierStackFlush(cmd);

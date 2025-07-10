@@ -8,6 +8,7 @@ using namespace vz;
 using namespace std;
 using namespace backlog;
 
+#define GET_RENDERABLE_COMP_NO_POST(COMP) RenderableComponent* COMP = compfactory::GetRenderableComponent(componentVID_); 
 #define GET_RENDERABLE_COMP(COMP, RET) RenderableComponent* COMP = compfactory::GetRenderableComponent(componentVID_); \
 	if (!COMP) {post("RenderableComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 #define GET_SPRITE_COMP(COMP, RET) SpriteComponent* COMP = compfactory::GetSpriteComponent(componentVID_); \
@@ -19,13 +20,18 @@ namespace vzm
 {
 	bool VzActor::IsRenderable() const
 	{
-		GET_RENDERABLE_COMP(renderable, false);
+		GET_RENDERABLE_COMP_NO_POST(renderable);
+		if (renderable == nullptr) return false;
 		return renderable->IsRenderable();
 	}
 	void VzActor::EnablePickable(const bool enabled, const bool includeDescendants)
 	{
-		GET_RENDERABLE_COMP(renderable, );
-		renderable->EnablePickable(enabled);
+		GET_RENDERABLE_COMP_NO_POST(renderable);
+
+		if (renderable)
+		{
+			renderable->EnablePickable(enabled);
+		}
 		
 		if (includeDescendants)
 		{

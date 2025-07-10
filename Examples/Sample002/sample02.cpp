@@ -143,8 +143,6 @@ int main(int, char **)
 
 		VzLight *light = NewLight("my light");
 		light->SetIntensity(5.f);
-		light->SetPosition({0.f, 0.f, 100.f});
-		light->SetEulerAngleZXYInDegree({0, 180, 0});
 
 		renderer = NewRenderer("my renderer");
 		renderer->SetCanvas(1, 1, 96.f, nullptr);
@@ -205,6 +203,9 @@ int main(int, char **)
 		vzm::AppendSceneCompTo(actor_test, scene);
 		vzm::AppendSceneCompTo(actor_test2, scene);
 		vzm::AppendSceneCompTo(light, scene);
+
+		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		scene->AppendChild(axis_helper);
 
 		VzArchive *archive = vzm::NewArchive("test archive");
 		archive->Store(camera);

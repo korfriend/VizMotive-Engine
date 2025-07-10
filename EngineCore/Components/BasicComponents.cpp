@@ -360,7 +360,7 @@ namespace vz
 
 namespace vz
 {
-	const XMVECTOR BASE_LIGHT_DIR = XMVectorSet(0, 0, 1, 0);
+	const XMVECTOR BASE_LIGHT_DIR = XMVectorSet(0, 0, -1, 0); // Forward direction
 	inline void LightComponent::Update()
 	{
 		TransformComponent* transform = compfactory::GetTransformComponent(entity_);

@@ -56,7 +56,7 @@ namespace vz
 		GMaterialComponent(const Entity entity, const VUID vuid = 0) : MaterialComponent(entity, vuid) {}
 		virtual ~GMaterialComponent() = default;
 
-		uint32_t materialIndex = ~0u; // scene's geometries_ (GeometryComponent)
+		uint32_t materialIndex = ~0u; // scene's cached array index
 
 		GTextureComponent* textures[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};
 		GVolumeComponent* volumeTextures[SCU32(VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT)] = {};
@@ -150,8 +150,8 @@ namespace vz
 
 		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
 
-		uint32_t geometryIndex = ~0u; // scene's geometries_ (GeometryComponent)
-		uint32_t geometryOffset = 0u; // (including # of parts)
+		uint32_t geometryIndex = ~0u; // scene's cached array index
+		uint32_t geometryOffset = ~0u; // (including # of parts)
 
 		// ----- BVH -----
 		TimeStamp timeStampGPUBVHUpdate = TimerMin;
@@ -473,14 +473,14 @@ namespace vz
 		GSpriteComponent* sprite = nullptr;
 		GSpriteFontComponent* spritefont = nullptr;
 		std::vector<GMaterialComponent*> materials;
-		uint32_t renderableIndex = ~0u;	// current linear array of current rendering scene
+		uint32_t renderableIndex = ~0u;	// scene's cached array index
 
 		// ----- Temporal Items updated by ShaderEngine
 		uint32_t sortPriority = 0; // increase to draw earlier (currently 4 bits will be used)
 		uint32_t sortBits = 0;
 		uint8_t lod = 0;
 
-		uint32_t resLookupIndex = ~0u; // refer to geometryOffset defined in GGeometryComponent
+		uint32_t resLookupOffset = ~0u; // refer to geometryOffset defined in GGeometryComponent
 
 		//----- determined by associated materials -----
 		mutable uint32_t materialFilterFlags = 0u;
@@ -591,7 +591,7 @@ namespace vz
 
 		TransformComponent* transform = nullptr;
 		LayeredMaskComponent* layeredmask = nullptr;
-		uint32_t lightIndex = ~0u;	// current linear array of current rendering scene
+		uint32_t lightIndex = ~0u;	// scene's cached array index
 		std::vector<float> cascadeDistances = { 8, 80, 800 };
 
 		int maskTexDescriptor = -1;

@@ -51,7 +51,7 @@ namespace vz
 
 			if (!compfactory::ContainTextureComponent(entityLoadingTexture))
 			{
-				entityLoadingTexture = compfactory::NewResTexture("ShaderEngine Loading Texture");
+				entityLoadingTexture = compfactory::MakeResTexture("ShaderEngine Loading Texture");
 			}
 			GTextureComponent* texture = (GTextureComponent*)compfactory::GetTextureComponent(entityLoadingTexture);
 			if (!texture->HasRenderData())

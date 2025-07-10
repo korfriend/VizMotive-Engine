@@ -26,6 +26,7 @@ namespace vz
 		jobsystem::Dispatch(ctx, (uint32_t)geometryComponents.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			GGeometryComponent& geometry = *geometryComponents[args.jobIndex];
+			assert(geometry.geometryIndex == args.jobIndex);
 
 			const std::vector<Primitive>& primitives = geometry.GetPrimitives();
 			geometry.meshletCount = 0;
@@ -104,7 +105,7 @@ namespace vz
 					shader_geometry_part.uv_range_max = primitive.GetUVRangeMax();
 					shader_geometry_part.tessellation_factor = tessealation_factor;
 
-					std::memcpy(geometryArrayMapped + geometry.geometryOffset + part_index, &shader_geometry_part, sizeof(shader_geometry_part));
+					std::memcpy(geometryArrayMapped + geometry.geometryOffset + part_index, &shader_geometry_part, sizeof(ShaderGeometry));
 
 				}
 			}
@@ -122,6 +123,7 @@ namespace vz
 		jobsystem::Dispatch(ctx, (uint32_t)materialComponents.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			GMaterialComponent& material = *materialComponents[args.jobIndex];
+			assert(material.materialIndex == args.jobIndex);
 
 			if (material.IsOutlineEnabled())
 			{
@@ -310,11 +312,11 @@ namespace vz
 					std::memcpy(dest, &shader_material, sizeof(ShaderMaterial)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 				};
 
-			writeShaderMaterial(materialArrayMapped + args.jobIndex);
+			writeShaderMaterial(materialArrayMapped + material.materialIndex);
 
 			if (textureStreamingFeedbackMapped != nullptr)
 			{
-				const uint32_t request_packed = textureStreamingFeedbackMapped[args.jobIndex];
+				const uint32_t request_packed = textureStreamingFeedbackMapped[material.materialIndex];
 				if (request_packed != 0)
 				{
 					const uint32_t request_uvset0 = request_packed & 0xFFFF;
@@ -344,9 +346,10 @@ namespace vz
 		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 			GRenderableComponent& renderable = *renderableComponents[args.jobIndex];
+			assert(renderable.renderableIndex == args.jobIndex);
 
 			// Update occlusion culling status:
-			OcclusionResult& occlusion_result = occlusionResultsObjects[args.jobIndex];
+			OcclusionResult& occlusion_result = occlusionResultsObjects[renderable.renderableIndex];
 			if (!isFreezeCullingCameraEnabled)
 			{
 				occlusion_result.occlusionHistory <<= 1u; // advance history by 1 frame
@@ -367,8 +370,8 @@ namespace vz
 			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
 
 			// Note : SceneDetails::RunRenderableUpdateSystem computes raw world matrix and its prev.
-			XMFLOAT4X4 world_matrix_prev = matrixRenderables[args.jobIndex];
-			XMFLOAT4X4 world_matrix = matrixRenderablesPrev[args.jobIndex];
+			XMFLOAT4X4 world_matrix_prev = matrixRenderables[renderable.renderableIndex];
+			XMFLOAT4X4 world_matrix = matrixRenderablesPrev[renderable.renderableIndex];
 
 			renderable.renderFlags = 0u;
 			switch (renderable.GetRenderableType())
@@ -408,16 +411,20 @@ namespace vz
 				ShaderMeshInstance inst;
 				inst.Init();
 
-				bool hasBufferEffect = renderable.bufferEffects.size() == num_parts;
+				bool hasBufferEffect = renderable.bufferEffects.size() == num_parts && num_parts > 0;
+				// in the case that no primitives but has material (shader) for rendering (volume)
+				uint32_t shader_num = renderable.materials.size();
+				assert(num_parts == shader_num ? num_parts > 0 : num_parts == 0);
 
-				for (uint32_t part_index = 0; part_index < num_parts; ++part_index)
+				for (uint32_t shader_index = 0; shader_index < shader_num; ++shader_index)
 				{
-					const Primitive& part = primitives[part_index];
-					const GMaterialComponent& material = *renderable.materials[part_index];
-					if (!part.HasRenderData())
+					const Primitive* part = num_parts > 0 ? &primitives[shader_index] : nullptr;
+					const GMaterialComponent& material = *renderable.materials[shader_index];
+					if (part)
 					{
-						//renderableShapes.AddPrimitivePart(part, material.GetBaseColor(), world_matrix);
-						continue;
+						if (!part->HasRenderData())
+							//renderableShapes.AddPrimitivePart(part, material.GetBaseColor(), world_matrix);
+							continue;
 					}
 
 					ShaderInstanceResLookup inst_res_lookup;
@@ -425,7 +432,7 @@ namespace vz
 					inst_res_lookup.materialIndex = material.materialIndex;
 					if (hasBufferEffect)
 					{
-						GPrimEffectBuffers& effect_buffers = renderable.bufferEffects[part_index];
+						GPrimEffectBuffers& effect_buffers = renderable.bufferEffects[shader_index];
 						if (effect_buffers.vbWetmap.IsValid() && material.IsWetmapEnabled())
 						{
 							inst_res_lookup.vb_wetmap = effect_buffers.vbWetmap.descriptor_srv;
@@ -446,7 +453,7 @@ namespace vz
 					sort_bits.bits.blendmode |= 1 << SCU32(material.GetBlendMode());
 					sort_bits.bits.alphatest |= material.IsAlphaTestEnabled();
 
-					std::memcpy(instanceResLookupMapped + renderable.resLookupIndex + part_index,
+					std::memcpy(instanceResLookupMapped + renderable.resLookupOffset + shader_index,
 						&inst_res_lookup, sizeof(ShaderInstanceResLookup));
 				}
 
@@ -491,7 +498,7 @@ namespace vz
 				// TODO : applying adaptive LOD 
 				inst.baseGeometryOffset = geometry.geometryOffset;
 				inst.baseGeometryCount = geometry.GetNumParts();
-				inst.resLookupIndex = renderable.resLookupIndex;
+				inst.resLookupIndex = renderable.resLookupOffset;
 				inst.geometryOffset = inst.baseGeometryOffset;// inst.baseGeometryOffset + first_part;
 				inst.geometryCount = (uint)num_parts;;//last_part - first_part;
 				inst.meshletOffset = geometry.meshletOffset;
@@ -512,7 +519,7 @@ namespace vz
 				float rimHighlightFalloff = renderable.GetRimHighLightFalloff();
 				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
 
-				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
+				std::memcpy(instanceArrayMapped + renderable.renderableIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 			} break;
 			case RenderableType::VOLUME_RENDERABLE:
 			{
@@ -596,7 +603,7 @@ namespace vz
 				XMStoreFloat4x4(&mat_alignedvbox_ws2bs, xmat_alignedvbox_ws2bs);
 				inst.transformRaw.Create(mat_alignedvbox_ws2bs); // TODO... this is supposed to be world_matrix
 
-				inst.resLookupIndex = material.materialIndex;
+				inst.resLookupIndex = material.materialIndex; // renderable.resLookupOffset;
 				const XMFLOAT2& min_max_stored_v = volume->GetStoredMinMax();
 				float value_range = min_max_stored_v.y - min_max_stored_v.x;
 				inst.geometryOffset = *(uint*)&value_range;
@@ -614,7 +621,7 @@ namespace vz
 
 				renderable.sortBits = sort_bits.value;
 
-				std::memcpy(instanceArrayMapped + args.jobIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
+				std::memcpy(instanceArrayMapped + renderable.renderableIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 			} break;
 			default:
 				break;

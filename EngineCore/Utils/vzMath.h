@@ -595,7 +595,7 @@ namespace vz::math
 
 	inline XMFLOAT3 GetForward(const XMFLOAT4X4& _m)
 	{
-		return XMFLOAT3(_m.m[2][0], _m.m[2][1], _m.m[2][2]);
+		return XMFLOAT3(-_m.m[2][0], -_m.m[2][1], -_m.m[2][2]);
 	}
 	inline XMFLOAT3 GetUp(const XMFLOAT4X4& _m)
 	{

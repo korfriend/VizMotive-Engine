@@ -80,7 +80,7 @@ int main(int, char **)
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::ParamMap<std::string> arguments;
-	arguments.SetParam("MAX_THREADS", 1u);
+	//arguments.SetParam("MAX_THREADS", 1u);
 	if (!vzm::InitEngineLib(arguments))
 	{
 		std::cerr << "Failed to initialize engine library." << std::endl;
@@ -138,9 +138,8 @@ int main(int, char **)
 	VzScene *scene = nullptr;
 	VzCamera *camera = nullptr;
 	VzRenderer *renderer = nullptr;
-
-	// THIS EXAMPLE IS FROM A THREEJS's SPRITE EXAMPLE
-	// https://github.com/mrdoob/three.js/blob/master/examples/css3d_sprites.html
+	const int NUM_RANDOM_OBJS = 50;
+	const int LIGHT_TYPE = 0;
 
 	const size_t num_sprites = 0;
 	static const float sprite_size = 100.f;
@@ -226,7 +225,7 @@ int main(int, char **)
 			20.0f,    // radius    
 			2         // detail level for smoother sphere    
 		);
-		for (int idx = 0; idx < 50; ++idx)
+		for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
 		{
 			VzActorStaticMesh* sphere = vzm::NewActorStaticMesh(
 				"sphere_" + std::to_string(idx),
@@ -240,7 +239,7 @@ int main(int, char **)
 			scene->AppendChild(sphere);
 
 			VzLight* light = vzm::NewLight("light_" + std::to_string(idx));
-			light->SetLightType(VzLight::LightType::POINT);
+			light->SetLightType(LIGHT_TYPE == 0 ? VzLight::LightType::POINT : VzLight::LightType::SPOT);
 			float lx = dist_x(gen);
 			float ly = dist_y(gen);
 			float lz = dist_z(gen);
@@ -253,7 +252,15 @@ int main(int, char **)
 			light->SetPosition({ lx, ly, lz });
 			light->EnableVisualizer(false);
 			light->SetRadius(5.f);
+			light->SetRotateToLookUp({ -lx, -ly, -lz }, { 0, 1, 0 });
+			//light->SetLength(300.f);
 			scene->AppendChild(light);
+
+			vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+			axis_helper->SetScale({ 20, 20, 20 });
+			axis_helper->SetName("light_" + std::to_string(idx) + "_axis");
+			//axis_helper->SetPosition({ x, y, z });
+			light->AppendChild(axis_helper);
 		}
 
 
@@ -271,9 +278,9 @@ int main(int, char **)
 		//light->SetPosition({ lx, ly, lz });
 		//scene->AppendChild(light);
 		//
-		//vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
-		//axis_helper->SetScale({ 100, 100, 100 });
-		//scene->AppendChild(axis_helper);
+		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		axis_helper->SetScale({ 100, 100, 100 });
+		scene->AppendChild(axis_helper);
 	}
 
 	// Our state
@@ -439,10 +446,10 @@ int main(int, char **)
 				vzimgui::IGTextTitle("----- Scene Tree -----");
 				const std::vector<VID> root_children = scene->GetChildrenVIDs();
 				static VID selected_vid = 0u;
-				//for (auto vid_root : root_children)
-				//{
-				//	vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid) {});
-				//}
+				for (auto vid_root : root_children)
+				{
+					//vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid) {});
+				}
 				ImGui::Separator();
 				if (ImGui::Button("Shader Reload"))
 				{
@@ -450,10 +457,11 @@ int main(int, char **)
 				}
 				static bool light_visualizer = false;
 				static float light_radius = 5.f;
+				static float light_range = 200.f;
 				static float light_intensity = 5000.f;
 				if (ImGui::Checkbox("Light Visualizer", &light_visualizer))
 				{
-					for (int idx = 0; idx < 50; ++idx)
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
 					{
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->EnableVisualizer(light_visualizer);
@@ -461,18 +469,38 @@ int main(int, char **)
 				}
 				if (ImGui::SliderFloat("Light Radius", &light_radius, 1.f, 30.f))
 				{
-					for (int idx = 0; idx < 50; ++idx)
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
 					{
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->SetRadius(light_radius);
 					}
 				}
-				if (ImGui::SliderFloat("Light Intensity", &light_intensity, 100.f, 10000.f))
+				if (ImGui::SliderFloat("Light Intensity", &light_intensity, 100.f, 100000.f))
 				{
-					for (int idx = 0; idx < 50; ++idx)
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
 					{
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->SetIntensity(light_intensity);
+					}
+				}
+				if (ImGui::SliderFloat("Light Range", &light_range, 10.f, 1000.f))
+				{
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->SetRange(light_range);
+					}
+				}
+				static int ltype = LIGHT_TYPE, ltype_prev = LIGHT_TYPE;
+				ImGui::RadioButton("Point", &ltype, 0); ImGui::SameLine();
+				ImGui::RadioButton("Spot", &ltype, 1); ImGui::SameLine();
+				if (ltype_prev != ltype)
+				{
+					ltype_prev = ltype;
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->SetLightType(ltype == 0 ? VzLight::LightType::POINT : VzLight::LightType::SPOT);
 					}
 				}
 				if (ImGui::Button("Export File"))
@@ -524,6 +552,12 @@ int main(int, char **)
 					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
 				}
+			}
+			ImGui::End();
+
+			ImGui::Begin("System Monitor");
+			{
+				vzimgui::UpdateResourceMonitor([](const VID vid) {});
 			}
 			ImGui::End();
 		}
@@ -843,7 +877,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	vzm::VzRenderer *renderer = nullptr;
 	if (vzm::IsValidEngineLib())
 	{
-		renderer = (vzm::VzRenderer *)vzm::GetFirstComponentByName("my renderer");
+		renderer = (vzm::VzRenderer *)vzm::GetFirstComponentByName("main renderer");
 	}
 
 	switch (msg)

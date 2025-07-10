@@ -728,13 +728,15 @@ namespace vz::renderer
 						}
 						else if (type == SCU32(LightComponent::LightType::SPOT))
 						{
+							const XMMATRIX CONE_ROT = XMMatrixRotationX(XM_PIDIV2) * XMMatrixRotationQuaternion(XMLoadFloat4(&light.rotation));
+							const float SPOT_LIGHT_RANGE_SCALE = 0.15f;
 							if (inner_cone_angle > 0)
 							{
 								float coneS = (float)(std::min(inner_cone_angle, outer_cone_angle) * 2 / XM_PIDIV4);
-								lcb.xLightEnerdis.w = light.GetRange() * 0.1f; // scale
+								lcb.xLightEnerdis.w = light.GetRange() * SPOT_LIGHT_RANGE_SCALE; // scale
 								XMStoreFloat4x4(&lcb.xLightWorld,
 									XMMatrixScaling(coneS * lcb.xLightEnerdis.w, lcb.xLightEnerdis.w, coneS * lcb.xLightEnerdis.w) *
-									XMMatrixRotationQuaternion(XMLoadFloat4(&light.rotation)) *
+									CONE_ROT *
 									XMMatrixTranslationFromVector(XMLoadFloat3(&light.position))
 								);
 
@@ -744,10 +746,10 @@ namespace vz::renderer
 							}
 
 							float coneS = (float)(outer_cone_angle * 2 / XM_PIDIV4);
-							lcb.xLightEnerdis.w = light.GetRange() * 0.1f; // scale
+							lcb.xLightEnerdis.w = light.GetRange() * SPOT_LIGHT_RANGE_SCALE; // scale
 							XMStoreFloat4x4(&lcb.xLightWorld,
 								XMMatrixScaling(coneS * lcb.xLightEnerdis.w, lcb.xLightEnerdis.w, coneS * lcb.xLightEnerdis.w) *
-								XMMatrixRotationQuaternion(XMLoadFloat4(&light.rotation)) *
+								CONE_ROT *
 								XMMatrixTranslationFromVector(XMLoadFloat3(&light.position))
 							);
 
@@ -908,7 +910,7 @@ namespace vz::renderer
 						MeshPushConstants push;
 						push.geometryIndex = geometry.geometryOffset + part_index;
 						push.materialIndex = material.materialIndex;
-						push.instBufferResIndex = renderable.resLookupIndex + part_index;
+						push.instBufferResIndex = renderable.resLookupOffset + part_index;
 						push.instances = instanceBufferDescriptorIndex;
 						push.instance_offset = (uint)instancedBatch.dataOffset;
 
@@ -1021,7 +1023,7 @@ namespace vz::renderer
 					MeshPushConstants push;
 					push.geometryIndex = geometry.geometryOffset + part_index;
 					push.materialIndex = material.materialIndex;
-					push.instBufferResIndex = renderable.resLookupIndex + part_index;
+					push.instBufferResIndex = renderable.resLookupOffset + part_index;
 					push.instances = instanceBufferDescriptorIndex;
 					push.instance_offset = (uint)instancedBatch.dataOffset;
 

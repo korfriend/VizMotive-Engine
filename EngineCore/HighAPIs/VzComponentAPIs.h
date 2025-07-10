@@ -174,7 +174,7 @@ namespace vzm
 		RENDERER,
 
 		// scene objects
-		ACTOR_GROUP,
+		ACTOR_NODE,
 		CAMERA,
 		SLICER,
 		LIGHT,
@@ -249,6 +249,7 @@ namespace vzm
 		void SetEulerAngleZXYInDegree(const vfloat3& v); // ROLL->PITCH->YAW (mainly used CG-convention) 
 		void SetQuaternion(const vfloat4& v);
 		void SetRotateAxis(const vfloat3& v, const float angle); // angle in degree
+		void SetRotateToLookUp(const vfloat3& view, const vfloat3& up); // view refers to (-)z-axis, up to y-axis in the local space based on LookTo interface
         void SetMatrix(const vfloat4x4& mat, const bool rowMajor = false);
 
 		void UpdateMatrix();	// local matrix

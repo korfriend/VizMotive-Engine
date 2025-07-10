@@ -84,8 +84,8 @@ namespace vz::renderer
 			const XMVECTOR E = XMLoadFloat3(&eyePos);
 			const XMVECTOR Q = XMQuaternionNormalize(XMLoadFloat4(&rotation));
 			const XMMATRIX rot = XMMatrixRotationQuaternion(Q);
-			const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), rot);
-			const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rot);
+			const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), rot);
+			const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rot);
 			const XMMATRIX V = VZMatrixLookTo(E, to, up);
 			const XMMATRIX P = VZMatrixPerspectiveFov(fov, 1.f, farPlane, nearPlane);
 			view_projection = XMMatrixMultiply(V, P);
@@ -109,9 +109,9 @@ namespace vz::renderer
 		camera.UpdateMatrix();
 
 		const XMMATRIX lightRotation = XMMatrixRotationQuaternion(XMLoadFloat4(&light.rotation));
-		const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), lightRotation);
-		const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), lightRotation);
-		const XMMATRIX lightView = XMMatrixLookToLH(XMVectorZero(), to, up); // important to not move (zero out eye vector) the light view matrix itself because texel snapping must be done on projection matrix!
+		const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), lightRotation);
+		const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), lightRotation);
+		const XMMATRIX lightView = VZMatrixLookTo(XMVectorZero(), to, up); // important to not move (zero out eye vector) the light view matrix itself because texel snapping must be done on projection matrix!
 		float farPlane;
 		camera.GetNearFar(nullptr, &farPlane);
 
@@ -187,7 +187,7 @@ namespace vz::renderer
 			_min.z = _center.z - ext;
 			_max.z = _center.z + ext;
 
-			const XMMATRIX lightProjection = XMMatrixOrthographicOffCenterLH(_min.x, _max.x, _min.y, _max.y, _max.z, _min.z); // notice reversed Z!
+			const XMMATRIX lightProjection = VZMatrixOrthographicOffCenter(_min.x, _max.x, _min.y, _max.y, _max.z, _min.z); // notice reversed Z!
 
 			shcams[cascade].view_projection = XMMatrixMultiply(lightView, lightProjection);
 			shcams[cascade].frustum.Create(shcams[cascade].view_projection);
@@ -224,7 +224,7 @@ namespace vz::renderer
 		//	then each group writes out it's local list to global memory
 		//	The shared memory approach reduces atomics and helps the list to remain
 		//	more coherent (less randomly organized compared to original order)
-		static const uint32_t groupSize = 64;
+		static constexpr uint32_t groupSize = 64u;
 		static const size_t sharedmemory_size = (groupSize + 1) * sizeof(uint32_t); // list + counter per group
 
 		// Initialize visible indices:
@@ -235,7 +235,7 @@ namespace vz::renderer
 		{
 			vis.frustum = vis.camera->GetFrustum();
 		}
-		if (!isOcclusionCullingEnabled || isFreezeCullingCameraEnabled)
+ 		if (!isOcclusionCullingEnabled || isFreezeCullingCameraEnabled)
 		{
 			vis.flags &= ~Visibility::ALLOW_OCCLUSION_CULLING;
 		}
@@ -249,7 +249,7 @@ namespace vz::renderer
 			vis.visibleLightShadowRects.resize(light_loop);
 			jobsystem::Dispatch(ctx, light_loop, groupSize, [&](jobsystem::JobArgs args) {
 
-				const LightComponent& light = *scene_Gdetails->lightComponents[args.jobIndex];
+				const GLightComponent& light = *scene_Gdetails->lightComponents[args.jobIndex];
 				assert(!light.IsDirty());
 
 				// Setup stream compaction:
@@ -275,23 +275,23 @@ namespace vz::renderer
 						//	vis.volumetricLightRequest.store(true);
 						//}
 
-						//if (vis.flags & View::ALLOW_OCCLUSION_CULLING)
-						//{
-						//	if (!light.IsStatic() && light.GetType() != LightComponent::DIRECTIONAL || light.occlusionquery < 0)
-						//	{
-						//		if (!aabb.intersects(vis.camera->Eye))
-						//		{
-						//			light.occlusionquery = vis.scene->queryAllocator.fetch_add(1); // allocate new occlusion query from heap
-						//		}
-						//	}
-						//}
+						if (vis.flags & Visibility::ALLOW_OCCLUSION_CULLING)
+						{
+							if (!light.IsStatic() && light.GetType() != LightComponent::LightType::DIRECTIONAL || light.occlusionquery < 0)
+							{
+								if (!aabb.intersects(vis.camera->GetWorldEye()))
+								{
+									light.occlusionquery = scene_Gdetails->queryAllocator.fetch_add(1); // allocate new occlusion query from heap
+								}
+							}
+						}
 					}
 				}
 
 				// Global stream compaction:
 				if (args.isLastJobInGroup && group_count > 0)
 				{
-					uint32_t prev_count = vis.lightCounter.fetch_add(group_count);
+					uint32_t prev_count = vis.counterLight.fetch_add(group_count);
 					for (uint32_t i = 0; i < group_count; ++i)
 					{
 						vis.visibleLights[prev_count + i] = group_list[i];
@@ -313,7 +313,8 @@ namespace vz::renderer
 
 			jobsystem::Dispatch(ctx, renderable_loop, groupSize, [&](jobsystem::JobArgs args) {
 
-				const RenderableComponent& renderable = *scene_Gdetails->renderableComponents[args.jobIndex];
+				uint32_t renderable_index = args.jobIndex;
+				const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
 				switch (renderable.GetRenderableType())
 				{
 				case RenderableType::MESH_RENDERABLE:
@@ -321,7 +322,7 @@ namespace vz::renderer
 				case RenderableType::GSPLAT_RENDERABLE: 
 					break;
 				default: 
-					return;
+					vzlog_assert(0, "Non-renderable Type! ShaderEngine's Scene Update"); return;
 				}
 
 				const AABB& aabb = renderable.GetAABB();
@@ -331,31 +332,25 @@ namespace vz::renderer
 					switch (renderable.GetRenderableType())
 					{
 					case RenderableType::MESH_RENDERABLE:
-						vis.visibleRenderables_Mesh[vis.renderableCounterMesh.load()] = args.jobIndex;
-						vis.renderableCounterMesh.fetch_add(1, std::memory_order_relaxed);
+						vis.visibleRenderables_Mesh[vis.counterRenderableMesh.fetch_add(1)] = renderable_index;
 						break;
 					case RenderableType::VOLUME_RENDERABLE:
-						vis.visibleRenderables_Volume[vis.renderableCounterVolume.load()] = args.jobIndex;
-						vis.renderableCounterVolume.fetch_add(1, std::memory_order_relaxed);
+						vis.visibleRenderables_Volume[vis.counterRenderableVolume.fetch_add(1)] = renderable_index;
 						break;
 					case RenderableType::GSPLAT_RENDERABLE:
-						vis.visibleRenderables_GSplat[vis.renderableCounterGSplat.load()] = args.jobIndex;
-						vis.renderableCounterGSplat.fetch_add(1, std::memory_order_relaxed);
+						vis.visibleRenderables_GSplat[vis.counterRenderableGSplat.fetch_add(1)] = renderable_index;
 						break;
 					default:
 						vzlog_assert(0, "MUST BE RENDERABLE!");
 						return;
 					}
 
-					GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[args.jobIndex];
+					GSceneDetails::OcclusionResult& occlusion_result = scene_Gdetails->occlusionResultsObjects[renderable_index];
 					bool occluded = false;
-					if (vis.flags & Visibility::ALLOW_OCCLUSION_CULLING)
-					{
-						occluded = occlusion_result.IsOccluded();
-					}
 
 					if (vis.flags & Visibility::ALLOW_OCCLUSION_CULLING)
 					{
+						occluded = occlusion_result.IsOccluded();
 						assert(renderable.IsRenderable());
 						if (occlusion_result.occlusionQueries[scene_Gdetails->queryheapIdx] < 0)
 						{
@@ -378,13 +373,13 @@ namespace vz::renderer
 		jobsystem::Wait(ctx);
 
 		// finalize stream compaction: (memory safe)
-		size_t num_Meshes = (size_t)vis.renderableCounterMesh.load();
-		size_t num_Volumes = (size_t)vis.renderableCounterVolume.load();
-		size_t num_GSplats = (size_t)vis.renderableCounterGSplat.load();
+		size_t num_Meshes = (size_t)vis.counterRenderableMesh.load();
+		size_t num_Volumes = (size_t)vis.counterRenderableVolume.load();
+		size_t num_GSplats = (size_t)vis.counterRenderableGSplat.load();
 		vis.visibleRenderables_Mesh.resize(num_Meshes);
 		vis.visibleRenderables_Volume.resize(num_Volumes);
 		vis.visibleRenderables_GSplat.resize(num_GSplats);
-		vis.visibleLights.resize((size_t)vis.lightCounter.load());
+		vis.visibleLights.resize((size_t)vis.counterLight.load());
 
 		vis.visibleRenderables_All.resize(num_Meshes + num_Volumes + num_GSplats);
 
@@ -1725,7 +1720,7 @@ namespace vz::renderer
 		for (uint32_t i = 0, n = (uint32_t)vis.visibleRenderables_Mesh.size(); i < n; ++i)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[vis.visibleRenderables_Mesh[i]];
-			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
+			vzlog_assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE, compfactory::GetNameComponent(renderable.GetEntity())->GetName().c_str());
 
 			GGeometryComponent& geometry = *renderable.geometry;
 			if (!geometry.HasRenderData())
