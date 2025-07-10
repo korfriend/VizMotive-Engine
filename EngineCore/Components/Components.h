@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250706_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250710_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	class Archive;
@@ -2170,15 +2170,16 @@ namespace vz::compfactory
 	//	engine developers are restricted to using node-based components 
 	//	(which are composed of groups of ECS-based components) defined in high-level APIs
 	// ** NOTE: Only Engine Framework owners are allowed to create specific ECS-based components
-	CORE_EXPORT Entity NewNodeActor(const std::string& name, const Entity parentEntity = 0ull);
-	CORE_EXPORT Entity NewNodeSpriteActor(const std::string& name, const Entity parentEntity = 0ull);
-	CORE_EXPORT Entity NewNodeSpriteFontActor(const std::string& name, const Entity parentEntity = 0ull);
-	CORE_EXPORT Entity NewNodeCamera(const std::string& name, const Entity parentEntity = 0ull);
-	CORE_EXPORT Entity NewNodeSlicer(const std::string& name, const bool curvedSlicer, const Entity parentEntity = 0ull);
-	CORE_EXPORT Entity NewNodeLight(const std::string& name, const Entity parentEntity = 0ull);
-	CORE_EXPORT Entity NewResGeometry(const std::string& name);
-	CORE_EXPORT Entity NewResMaterial(const std::string& name);
-	CORE_EXPORT Entity NewResTexture(const std::string& name);
-	CORE_EXPORT Entity NewResVolume(const std::string& name);
+	CORE_EXPORT Entity MakeNodeActor(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity MakeNodeStaticMeshActor(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity MakeNodeSpriteActor(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity MakeNodeSpriteFontActor(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity MakeNodeCamera(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity MakeNodeSlicer(const std::string& name, const bool curvedSlicer, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity MakeNodeLight(const std::string& name, const Entity parentEntity = 0ull);
+	CORE_EXPORT Entity MakeResGeometry(const std::string& name);
+	CORE_EXPORT Entity MakeResMaterial(const std::string& name);
+	CORE_EXPORT Entity MakeResTexture(const std::string& name);
+	CORE_EXPORT Entity MakeResVolume(const std::string& name);
 	CORE_EXPORT size_t RemoveEntity(const Entity entity, const bool includeDescendants = false); // Only ECS compoenents
 }

@@ -27,6 +27,7 @@
 namespace vz
 {
 	const uint32_t SMALL_SUBTASK_GROUPSIZE = 64u;
+
 	using namespace graphics;
 	using namespace geometrics;
 	using RenderableType = RenderableComponent::RenderableType;
@@ -269,13 +270,12 @@ namespace vz
 					isContentChanged_ = true;
 				}
 
-				renderable->resLookupIndex = ~0u;
 				if (!renderable->IsRenderable())
 				{
 					return;
 				}
-				// num_materials refers to the number of shaders
-				renderable->resLookupIndex = instanceResLookupAllocator.fetch_add(num_materials); // note Sprite/Font has no material
+
+				renderable->resLookupOffset = instanceResLookupAllocator.fetch_add(num_materials);
 
 				AABB aabb = renderable->GetAABB();
 				aabbRenderables[args.jobIndex] = aabb;
@@ -283,18 +283,18 @@ namespace vz
 				matrixRenderables[args.jobIndex] = transform->GetWorldMatrix();
 
 				{
-					AABB* shared_bounds = (AABB*)args.sharedmemory;
+					AABB& shared_bounds = *(AABB*)args.sharedmemory;
 					if (args.isFirstJobInGroup)
 					{
-						*shared_bounds = aabb;
+						shared_bounds = aabb;
 					}
 					else
 					{
-						*shared_bounds = AABB::Merge(*shared_bounds, aabb);
+						shared_bounds = AABB::Merge(shared_bounds, aabb);
 					}
 					if (args.isLastJobInGroup)
 					{
-						parallelBounds[args.groupID] = *shared_bounds;
+						parallelBounds[args.groupID] = shared_bounds;
 					}
 				}
 
@@ -357,7 +357,6 @@ namespace vz
 					vzlog_assert(0, "MUST BE RENDERABLE!"); return;
 				}
 
-
 				}, sizeof(geometrics::AABB));
 		}
 		void RunLightUpdateSystem(jobsystem::context& ctx)
@@ -408,7 +407,8 @@ namespace vz
 				{
 					isContentChanged_ = true;
 				}
-			});
+
+				});
 		}
 		void RunMaterialUpdateSystem(jobsystem::context& ctx)
 		{
@@ -822,9 +822,10 @@ namespace vz
 
 			if (!jobsystem::IsBusy(ctx_geometry_bvh))
 			{
-				jobsystem::Dispatch(ctx_geometry_bvh, (uint32_t)geometries_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+				static std::vector<Entity> geometries_prev(geometries_);
+				jobsystem::Dispatch(ctx_geometry_bvh, (uint32_t)geometries_prev.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
-					Entity entity = geometries_[args.jobIndex];
+					Entity entity = geometries_prev[args.jobIndex];
 					GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(entity);
 					assert(geometry != nullptr);
 					bool is_dirty_bvh = geometry->IsDirtyBVH();

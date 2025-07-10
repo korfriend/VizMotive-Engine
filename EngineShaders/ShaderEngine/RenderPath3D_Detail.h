@@ -59,6 +59,7 @@ namespace vz::renderer
 
 		// TODO: visibleRenderables into visibleMeshRenderables and visibleVolumeRenderables
 		//	and use them instead of visibleRenderables
+		//	index for scene_Gdetails->renderableComponents
 		std::vector<uint32_t> visibleRenderables_All;
 		std::vector<uint32_t> visibleRenderables_Mesh;
 		std::vector<uint32_t> visibleRenderables_Volume;
@@ -73,10 +74,10 @@ namespace vz::renderer
 		rectpacker::State shadowPacker;
 		std::vector<rectpacker::Rect> visibleLightShadowRects;
 
-		std::atomic<uint32_t> renderableCounterMesh;
-		std::atomic<uint32_t> renderableCounterVolume;
-		std::atomic<uint32_t> renderableCounterGSplat;
-		std::atomic<uint32_t> lightCounter;
+		std::atomic<uint32_t> counterRenderableMesh;
+		std::atomic<uint32_t> counterRenderableVolume;
+		std::atomic<uint32_t> counterRenderableGSplat;
+		std::atomic<uint32_t> counterLight;
 
 		vz::SpinLock locker;
 		bool isPlanarReflectionVisible = false;
@@ -96,10 +97,10 @@ namespace vz::renderer
 			//visibleEnvProbes.clear();
 			//visibleEmitters.clear();
 
-			renderableCounterMesh.store(0);
-			renderableCounterVolume.store(0);
-			renderableCounterGSplat.store(0);
-			lightCounter.store(0);
+			counterRenderableMesh.store(0);
+			counterRenderableVolume.store(0);
+			counterRenderableGSplat.store(0);
+			counterLight.store(0);
 
 			closestReflectionPlane = std::numeric_limits<float>::max();
 			volumetricLightRequest.store(false);
@@ -763,7 +764,7 @@ namespace vz::renderer
 		//  1. MeshShader or 
 		//  2. substitute data structure for reducing PritmiveID texture size:
 		graphics::GPUBuffer meshletBuffer = {};
-		std::atomic<uint32_t> meshletAllocator{ 0 };
+		std::atomic<uint32_t> meshletAllocator{ 0 };	// meshlet refers to a triangle or meshlet
 
 		// Occlusion query state:
 		struct OcclusionResult

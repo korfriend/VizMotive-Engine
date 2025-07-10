@@ -164,6 +164,25 @@ namespace vzm
 		transform->SetRotateAxis(*(XMFLOAT3*)&v, angle);
 		UpdateTimeStamp();
 	}
+	void VzSceneObject::SetRotateToLookUp(const vfloat3& view, const vfloat3& up)
+	{
+		GET_TRANS_COMP(transform, );
+
+		XMVECTOR look_to = XMLoadFloat3((XMFLOAT3*)&view);
+		look_to = XMVector3Normalize(look_to);
+		XMVECTOR look_up = XMLoadFloat3((XMFLOAT3*)&up);
+		XMVECTOR right = XMVector3Cross(look_to, look_up);
+		vzlog_assert(XMVectorGetX(XMVector3LengthSq(right)) > 0.0001f, "view and up must be different vector!");
+		right = XMVector3Normalize(right);
+		look_up = XMVector3Cross(right, look_to);
+		XMMATRIX mat_r = VZMatrixLookTo(XMVectorSet(0, 0, 0, 1.f), look_to, look_up);
+		XMVECTOR q_view = XMQuaternionRotationMatrix(mat_r);
+		XMVECTOR q = XMQuaternionConjugate(q_view); // use this instead of using XMQuaternionInverse due to unit q_view by XMQuaternionRotationMatrix 
+		XMFLOAT4 qt;
+		XMStoreFloat4(&qt, q);
+		transform->SetQuaternion(qt);
+		UpdateTimeStamp();
+	}
 	void VzSceneObject::SetMatrix(const vfloat4x4& mat, const bool rowMajor)
 	{
 		GET_TRANS_COMP(transform, );

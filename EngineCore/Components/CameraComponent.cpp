@@ -63,10 +63,10 @@ namespace vz
 
 		eye_ = *((XMFLOAT3*)&mat_world._41);
 		up_ = vz::math::GetUp(mat_world);
-		XMFLOAT3 z_axis = vz::math::GetForward(mat_world);
-		XMVECTOR _At = XMLoadFloat3(&eye_) - XMLoadFloat3(&z_axis);
+		XMFLOAT3 forward = vz::math::GetForward(mat_world);
+		XMVECTOR _At = XMLoadFloat3(&eye_) + XMLoadFloat3(&forward);
 		XMStoreFloat3(&at_, _At);
-		XMStoreFloat3(&forward_, XMVector3Normalize(-XMLoadFloat3(&z_axis)));
+		XMStoreFloat3(&forward_, XMVector3Normalize(XMLoadFloat3(&forward)));
 
 		const float epsilon = 1e-06f;
 		if (math::DistanceSquared(eye_, eye_prev) < epsilon &&

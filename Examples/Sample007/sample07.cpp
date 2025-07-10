@@ -173,8 +173,6 @@ int main(int, char**)
 
 		VzLight* light = NewLight("my light");
 		light->SetIntensity(5.f);
-		light->SetPosition({ 0.f, 0.f, 100.f });
-		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 		scene->AppendChild(light);
 
 		// === camera ===

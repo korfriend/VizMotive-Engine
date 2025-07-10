@@ -107,14 +107,14 @@ Entity ImportModel_OBJ(const std::string& fileName)
 	if (success)
 	{
 		// root actor //
-		root_entity = compfactory::NewNodeActor(name);
+		root_entity = compfactory::MakeNodeActor(name);
 
 		std::vector<Entity> materials;
 
 		// Load material library:
 		for (auto& obj_material : obj_materials)
 		{
-			Entity material_entity = compfactory::NewResMaterial(obj_material.name);
+			Entity material_entity = compfactory::MakeResMaterial(obj_material.name);
 			materials.push_back(material_entity);
 			MaterialComponent& material = *compfactory::GetMaterialComponent(material_entity);
 			material.SetShaderType(MaterialComponent::ShaderType::PBR);
@@ -128,7 +128,7 @@ Entity ImportModel_OBJ(const std::string& fileName)
 					std::string mat_filename = directory + obj_mat_name;
 					if (helper::FileExists(mat_filename))
 					{
-						Entity texture_entity = compfactory::NewResTexture(obj_mat_name);
+						Entity texture_entity = compfactory::MakeResTexture(obj_mat_name);
 						TextureComponent& texture = *compfactory::GetTextureComponent(texture_entity);
 						if (!texture.LoadImageFile(mat_filename))
 						{
@@ -166,15 +166,15 @@ Entity ImportModel_OBJ(const std::string& fileName)
 		if (materials.empty())
 		{
 			// Create default material if nothing was found:
-			materials.push_back(compfactory::NewResMaterial("OBJImport_defaultMaterial::" + name));
+			materials.push_back(compfactory::MakeResMaterial("OBJImport_defaultMaterial::" + name));
 		}
 
 		// Load actors, meshes:
 		for (auto& shape : obj_shapes)
 		{
-			Entity actor_entity = compfactory::NewNodeActor(shape.name, root_entity);
+			Entity actor_entity = compfactory::MakeNodeStaticMeshActor(shape.name, root_entity);
 
-			Entity mesh_entity = compfactory::NewResGeometry(shape.name + "_mesh");
+			Entity mesh_entity = compfactory::MakeResGeometry(shape.name + "_mesh");
 			
 			RenderableComponent& renderable = *compfactory::GetRenderableComponent(actor_entity);
 			renderable.SetGeometry(mesh_entity);

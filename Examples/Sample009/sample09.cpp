@@ -201,8 +201,6 @@ int main(int, char **)
 
 		VzLight *light = NewLight("my light");
 		light->SetIntensity(5.f);
-		light->SetPosition({0.f, 0.f, 100.f});
-		light->SetEulerAngleZXYInDegree({ 0, 180, 0 });
 		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
@@ -223,7 +221,7 @@ int main(int, char **)
 		auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
 		float time = msTime.count() / 1000.f;
 
-		vzm::VzActor* actor_group = vzm::NewActorGroup("sprite group");
+		vzm::VzActor* actor_group = vzm::NewActorNode("sprite group");
 		scene->AppendChild(actor_group);
 
 		glm::fvec3* init_positions = &shape_positions[OFFSET_RANDOM];
@@ -409,6 +407,11 @@ int main(int, char **)
 			}
 
 			ImGui::End();
+
+			ImGui::Begin("System Monitor");
+			{
+				vzimgui::UpdateResourceMonitor([](const VID vid) {});
+			}
 
 			ImGui::Begin("Controls");
 			{
