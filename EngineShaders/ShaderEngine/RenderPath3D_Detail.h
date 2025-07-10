@@ -717,6 +717,9 @@ namespace vz::renderer
 		std::vector<GRenderableComponent*> spriteComponents; // cached (non enclosing for jobsystem)
 		std::vector<GRenderableComponent*> spriteFontComponents; // cached (non enclosing for jobsystem)
 
+		std::vector<geometrics::AABB> aabbRenderables;
+		std::vector<geometrics::AABB> aabbLights;
+		
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
 		//const bool occlusionQueryEnabled = false;

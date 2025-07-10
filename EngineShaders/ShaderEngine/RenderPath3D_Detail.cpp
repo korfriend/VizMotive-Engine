@@ -251,6 +251,7 @@ namespace vz::renderer
 
 				const GLightComponent& light = *scene_Gdetails->lightComponents[args.jobIndex];
 				assert(!light.IsDirty());
+				assert(light.lightIndex == args.jobIndex);
 
 				// Setup stream compaction:
 				uint32_t& group_count = *(uint32_t*)args.sharedmemory;
@@ -260,7 +261,7 @@ namespace vz::renderer
 					group_count = 0; // first thread initializes local counter
 				}
 
-				const AABB& aabb = light.GetAABB();
+				const AABB& aabb = scene_Gdetails->aabbLights[args.jobIndex];
 
 				if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
 				{
@@ -315,6 +316,7 @@ namespace vz::renderer
 
 				uint32_t renderable_index = args.jobIndex;
 				const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
+				assert(renderable.renderableIndex == args.jobIndex);
 				switch (renderable.GetRenderableType())
 				{
 				case RenderableType::MESH_RENDERABLE:
@@ -325,7 +327,7 @@ namespace vz::renderer
 					vzlog_assert(0, "Non-renderable Type! ShaderEngine's Scene Update"); return;
 				}
 
-				const AABB& aabb = renderable.GetAABB();
+				const AABB& aabb = scene_Gdetails->aabbRenderables[args.jobIndex];
 
 				if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
 				{
@@ -777,6 +779,11 @@ namespace vz::renderer
 
 				ShaderEntity shaderentity = {};
 				shaderentity.layerMask = ~0u;
+				const LayeredMaskComponent* layer = light.layeredmask;
+				if (layer != nullptr)
+				{
+					shaderentity.layerMask = layer->GetVisibleLayerMask();
+				}
 
 				shaderentity.SetType(SCU32(light.GetType()));
 				shaderentity.position = light.position;
@@ -1811,7 +1818,7 @@ namespace vz::renderer
 				int queryIndex = occlusion_result.occlusionQueries[query_write];
 				if (queryIndex >= 0)
 				{
-					const AABB& aabb = renderable.GetAABB();
+					const AABB& aabb = scene_Gdetails->aabbRenderables[renderable.renderableIndex];
 					const XMMATRIX transform = aabb.getAsBoxMatrix() * VP;
 					device->PushConstants(&transform, sizeof(transform), cmd);
 
@@ -1831,12 +1838,12 @@ namespace vz::renderer
 
 			for (uint32_t lightIndex : vis.visibleLights)
 			{
-				const LightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
+				const GLightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
 
 				if (light.occlusionquery >= 0)
 				{
 					uint32_t queryIndex = (uint32_t)light.occlusionquery;
-					const AABB& aabb = light.GetAABB();
+					const AABB& aabb = scene_Gdetails->aabbLights[light.lightIndex];
 					const XMMATRIX transform = aabb.getAsBoxMatrix() * VP;
 					device->PushConstants(&transform, sizeof(transform), cmd);
 

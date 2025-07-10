@@ -50,6 +50,34 @@ namespace vzm
 		GET_RENDERABLE_COMP(renderable, false);
 		return renderable->IsPickable();
 	}
+
+	void VzActor::EnableUnlit(const bool enabled, const bool includeDescendants)
+	{
+		GET_RENDERABLE_COMP_NO_POST(renderable);
+
+		if (renderable)
+		{
+			auto materials = renderable->GetMaterials();
+			for (Entity ett : materials)
+			{
+				MaterialComponent* mat = compfactory::GetMaterialComponent(ett);
+				assert(mat);
+				mat->SetShaderType(MaterialComponent::ShaderType::UNLIT);
+			}
+		}
+
+		if (includeDescendants)
+		{
+			std::vector<ActorVID> children = GetChildren();
+			for (size_t i = 0, n = children.size(); i < n; ++i)
+			{
+				VzActor* base_actor = (VzActor*)vzm::GetComponent(children[i]);
+				assert(base_actor);
+				base_actor->EnableUnlit(enabled, true);
+			}
+		}
+		UpdateTimeStamp();
+	}
 }
 
 namespace vzm

@@ -277,8 +277,16 @@ namespace vz
 
 				renderable->resLookupOffset = instanceResLookupAllocator.fetch_add(num_materials);
 
-				AABB aabb = renderable->GetAABB();
-				aabbRenderables[args.jobIndex] = aabb;
+				AABB& aabb = aabbRenderables[args.jobIndex];
+				aabb = renderable->GetAABB();
+				if (renderable->layeredmask)
+				{
+					aabb.layerMask = renderable->layeredmask->GetVisibleLayerMask();
+				}
+				else
+				{
+					aabb.layerMask = ~0u;
+				}
 				matrixRenderablesPrev[args.jobIndex] = matrixRenderables[args.jobIndex];
 				matrixRenderables[args.jobIndex] = transform->GetWorldMatrix();
 
@@ -378,8 +386,16 @@ namespace vz
 				light->layeredmask = compfactory::GetLayeredMaskComponent(entity);
 				light->Update();	// AABB
 
-				AABB aabb = light->GetAABB();
-				aabbLights[args.jobIndex] = aabb;
+				AABB& aabb = aabbLights[args.jobIndex];
+				aabb = light->GetAABB();
+				if (light->layeredmask)
+				{
+					aabb.layerMask = light->layeredmask->GetVisibleLayerMask();
+				}
+				else
+				{
+					aabb.layerMask = ~0u;
+				}
 
 				if (TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0)
 				{

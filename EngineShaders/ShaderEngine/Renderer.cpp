@@ -835,7 +835,7 @@ namespace vz::renderer
 
 		InstancedBatch instancedBatch = {};
 
-		uint32_t prev_stencilref = SCU32(MaterialComponent::StencilRef::STENCILREF_DEFAULT);
+		uint32_t prev_stencilref = SCU32(StencilRef::STENCILREF_DEFAULT);
 		device->BindStencilRef(prev_stencilref, cmd);
 
 		const GPUBuffer* prev_ib = nullptr;
@@ -997,7 +997,7 @@ namespace vz::renderer
 					}
 
 					const bool is_meshshader_pso = pso->desc.ms != nullptr;
-					uint32_t stencilRef = CombineStencilrefs(material.GetStencilRef(), material.userStencilRef);
+					uint32_t stencilRef = material.GetUserStencilRef();// CombineStencilrefs(material.GetStencilRef(), material.GetUserStencilRef());
 					if (stencilRef != prev_stencilref)
 					{
 						prev_stencilref = stencilRef;

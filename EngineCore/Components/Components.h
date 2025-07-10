@@ -32,8 +32,32 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250710_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250711_0";
 	CORE_EXPORT std::string GetComponentVersion();
+
+	// engine stencil reference values. These can be in range of [0, 15].
+	enum class StencilRef : uint8_t
+	{
+		STENCILREF_EMPTY = 0,
+		STENCILREF_DEFAULT = 1,
+		STENCILREF_CUSTOMSHADER = 2,
+		STENCILREF_OUTLINE = 3,
+		STENCILREF_CUSTOMSHADER_OUTLINE = 4,
+		STENCILREF_LAST = 15
+	};
+	// There are two different kinds of stencil refs:
+	//	ENGINE	: managed by the engine systems (STENCILREF enum values between 0-15)
+	//	USER	: managed by the user (raw numbers between 0-15)
+	enum class StencilRefMask : uint8_t
+	{
+		STENCILREF_MASK_ENGINE = 0x0F,
+		STENCILREF_MASK_USER = 0xF0,
+		STENCILREF_MASK_ALL = STENCILREF_MASK_ENGINE | STENCILREF_MASK_USER,
+	};
+	inline constexpr uint32_t CombineStencilrefs(StencilRef engineStencilRef, uint8_t userStencilRef)
+	{
+		return (userStencilRef << 4) | static_cast<uint8_t>(engineStencilRef);
+	}
 
 	class Archive;
 	struct GScene;
@@ -597,31 +621,12 @@ namespace vz
 			BLENDMODE_COUNT
 		};
 
-		// engine stencil reference values. These can be in range of [0, 15].
-		enum class StencilRef : uint8_t
-		{
-			STENCILREF_EMPTY = 0,
-			STENCILREF_DEFAULT = 1,
-			STENCILREF_CUSTOMSHADER = 2,
-			STENCILREF_OUTLINE = 3,
-			STENCILREF_CUSTOMSHADER_OUTLINE = 4,
-			STENCILREF_LAST = 15
-		};
-		// There are two different kinds of stencil refs:
-		//	ENGINE	: managed by the engine systems (STENCILREF enum values between 0-15)
-		//	USER	: managed by the user (raw numbers between 0-15)
-		enum class StencilRefMask : uint8_t
-		{
-			STENCILREF_MASK_ENGINE = 0x0F,
-			STENCILREF_MASK_USER = 0xF0,
-			STENCILREF_MASK_ALL = STENCILREF_MASK_ENGINE | STENCILREF_MASK_USER,
-		};
-
 	protected:
 		uint32_t flags_ = (uint32_t)RenderFlags::FORWARD;
 		ShaderType shaderType_ = ShaderType::PHONG;
 		BlendMode blendMode_ = BlendMode::BLENDMODE_OPAQUE;
 		StencilRef engineStencilRef_ = StencilRef::STENCILREF_DEFAULT;
+		uint8_t userStencilRef_ = 0;
 
 		XMFLOAT4 baseColor_ = XMFLOAT4(1, 1, 1, 1);
 		XMFLOAT4 specularColor_ = XMFLOAT4(1, 1, 1, 1);
@@ -735,8 +740,6 @@ namespace vz
 
 		inline uint32_t GetRenderFlags() const { return flags_; }
 
-		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
-
 		inline float GetAlphaRef() const { return alphaRef_; }
 		inline float GetSaturate() const { return saturation_; }
 		inline float GetMatalness() const { return metalness_; }
@@ -765,6 +768,12 @@ namespace vz
 		inline float GetBlendWithTerrainHeight() const { return blendWithTerrainHeight_; }
 		inline float GetCloak() const { return cloak_; }
 		inline float GetChromaticAberration() const { return chromaticAberration_; }
+
+		inline void SetStencilRef(StencilRef value) { engineStencilRef_ = value; }
+		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
+		// User stencil value can be in range [0, 15]
+		inline void SetUserStencilRef(uint8_t value) { userStencilRef_ = value & 0x0F; }
+		uint32_t GetUserStencilRef() const { return CombineStencilrefs(engineStencilRef_, userStencilRef_); }
 
 		virtual void UpdateAssociatedTextures() = 0;
 
@@ -1329,6 +1338,9 @@ namespace vz
 		RenderableType renderableType_ = RenderableType::UNDEFINED;
 		RenderableType renderableReservedType_ = RenderableType::ALLTYPES_RENDERABLE;
 
+		StencilRef engineStencilRef_ = StencilRef::STENCILREF_DEFAULT;
+		uint8_t userStencilRef_ = 0;
+
 		VUID vuidGeometry_ = INVALID_ENTITY;
 		std::vector<VUID> vuidMaterials_;
 
@@ -1428,7 +1440,13 @@ namespace vz
 		inline std::vector<Entity> GetMaterials() const;
 		inline size_t GetNumParts() const;
 		inline size_t GetMaterials(Entity* entities) const;
-		inline geometrics::AABB GetAABB() const { return aabb_; }
+		inline const geometrics::AABB& GetAABB() const { return aabb_; }
+
+		inline void SetStencilRef(StencilRef value) { engineStencilRef_ = value; }
+		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
+		// User stencil value can be in range [0, 15]
+		inline void SetUserStencilRef(uint8_t value) { userStencilRef_ = value & 0x0F; }
+		uint32_t GetUserStencilRef() const { return CombineStencilrefs(engineStencilRef_, userStencilRef_); }
 
 		inline void Update();
 
