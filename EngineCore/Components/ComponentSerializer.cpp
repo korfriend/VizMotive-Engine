@@ -148,6 +148,7 @@ namespace vz
 
 			archive >> u32_data;
 			engineStencilRef_ = static_cast<StencilRef>(u32_data);
+			archive >> userStencilRef_;
 
 			// need to check version 
 			archive >> u32_data;
@@ -216,6 +217,7 @@ namespace vz
 			archive << chromaticAberration_;
 
 			archive << SCU32(engineStencilRef_);
+			archive << userStencilRef_;
 
 			uint32_t tex_slot_count = SCU32(TextureSlot::TEXTURESLOT_COUNT);
 			archive << tex_slot_count;
@@ -439,6 +441,8 @@ namespace vz
 			archive >> flags_;
 			archive >> u8_data; renderableType_ = static_cast<RenderableType>(u8_data);
 			archive >> u8_data; renderableReservedType_ = static_cast<RenderableType>(u8_data);
+			archive >> u8_data; engineStencilRef_ = static_cast<StencilRef>(u8_data);
+			archive >> userStencilRef_;
 			archive >> vuidGeometry_;
 			archive >> fadeDistance_;
 			archive >> visibleCenter_;
@@ -470,6 +474,8 @@ namespace vz
 			archive << flags_;
 			archive << static_cast<uint8_t>(renderableType_);
 			archive << static_cast<uint8_t>(renderableReservedType_);
+			archive << static_cast<uint8_t>(engineStencilRef_);
+			archive << userStencilRef_;
 			archive << vuidGeometry_;
 			archive << fadeDistance_;
 			archive << visibleCenter_;

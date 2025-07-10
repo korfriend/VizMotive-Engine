@@ -348,6 +348,16 @@ namespace vz
 			GRenderableComponent& renderable = *renderableComponents[args.jobIndex];
 			assert(renderable.renderableIndex == args.jobIndex);
 
+			uint32_t layermask;
+			if (renderable.layeredmask == nullptr)
+			{
+				layermask = ~0;
+			}
+			else
+			{
+				layermask = renderable.layeredmask->GetVisibleLayerMask();
+			}
+
 			// Update occlusion culling status:
 			OcclusionResult& occlusion_result = occlusionResultsObjects[renderable.renderableIndex];
 			if (!isFreezeCullingCameraEnabled)
@@ -370,8 +380,11 @@ namespace vz
 			occlusion_result.occlusionQueries[queryheapIdx] = -1; // invalidate query
 
 			// Note : SceneDetails::RunRenderableUpdateSystem computes raw world matrix and its prev.
-			XMFLOAT4X4 world_matrix_prev = matrixRenderables[renderable.renderableIndex];
-			XMFLOAT4X4 world_matrix = matrixRenderablesPrev[renderable.renderableIndex];
+			XMFLOAT4X4 world_matrix = matrixRenderables[renderable.renderableIndex];
+			XMFLOAT4X4 world_matrix_prev = matrixRenderablesPrev[renderable.renderableIndex];
+
+			geometrics::AABB& aabb = aabbRenderables[renderable.renderableIndex];
+			aabb.layerMask = layermask;
 
 			renderable.renderFlags = 0u;
 			switch (renderable.GetRenderableType())
@@ -465,7 +478,8 @@ namespace vz
 				//	then transform and transformPrev are the same as transformRaw
 				inst.transformRaw.Create(world_matrix);
 
-				XMMATRIX W_inv = XMMatrixInverse(nullptr, XMLoadFloat4x4(&world_matrix));
+				XMMATRIX W = XMLoadFloat4x4(&world_matrix);
+				XMMATRIX W_inv = XMMatrixInverse(nullptr, W);
 				XMFLOAT4X4 world_matrix_inv;
 				XMStoreFloat4x4(&world_matrix_inv, W_inv);
 				inst.transformRawInv.Create(world_matrix_inv);
@@ -480,12 +494,9 @@ namespace vz
 				inst.transform.Create(world_matrix);
 				inst.transformPrev.Create(world_matrix_prev);
 
-				XMMATRIX W = XMLoadFloat4x4(&world_matrix);
 				XMVECTOR S, R, T;
 				XMMatrixDecompose(&S, &R, &T, W);
 				float size = std::max(XMVectorGetX(S), std::max(XMVectorGetY(S), XMVectorGetZ(S)));
-
-				const geometrics::AABB& aabb = renderable.GetAABB();
 
 				inst.uid = renderable.GetEntity();
 				inst.fadeDistance = renderable.GetFadeDistance();
@@ -506,7 +517,7 @@ namespace vz
 				// TODO: clipper setting
 				inst.clipIndex = -1;
 
-				inst.layerMask = 0u;
+				inst.layerMask = layermask;
 
 				inst.aabbCenter = aabb.getCenter();
 				inst.aabbRadius = aabb.getRadius();
@@ -514,12 +525,12 @@ namespace vz
 				//inst.vb_wetmap = device->GetDescriptorIndex(&renderable.wetmap, SubresourceType::SRV);
 
 				inst.alphaTest_size = math::pack_half2(XMFLOAT2(0, size));
-				//inst.SetUserStencilRef(renderable.userStencilRef);
+				inst.SetUserStencilRef(renderable.userStencilRef);
 				XMFLOAT4 rimHighlightColor = renderable.GetRimHighLightColor();
 				float rimHighlightFalloff = renderable.GetRimHighLightFalloff();
 				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
 
-				std::memcpy(instanceArrayMapped + renderable.renderableIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
+				std::memcpy(instanceArrayMapped + renderable.renderableIndex, &inst, sizeof(ShaderMeshInstance)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 			} break;
 			case RenderableType::VOLUME_RENDERABLE:
 			{
@@ -621,11 +632,13 @@ namespace vz
 
 				renderable.sortBits = sort_bits.value;
 
-				std::memcpy(instanceArrayMapped + renderable.renderableIndex, &inst, sizeof(inst)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
+				std::memcpy(instanceArrayMapped + renderable.renderableIndex, &inst, sizeof(ShaderMeshInstance)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 			} break;
 			default:
 				break;
 			}
+			// lightmap things:...
+
 			});
 	}
 
@@ -643,6 +656,9 @@ namespace vz
 		spriteFontComponents = scene_->GetRenderableSpritefontComponents();
 		matrixRenderables = scene_->GetRenderableWorldMatrices();
 		matrixRenderablesPrev = scene_->GetRenderableWorldMatricesPrev();
+
+		aabbRenderables = scene_->GetRenderableAABBs();
+		aabbLights = scene_->GetLightAABBs();
 
 		deltaTime = dt;
 		jobsystem::context ctx;

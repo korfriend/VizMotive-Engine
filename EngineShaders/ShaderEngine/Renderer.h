@@ -42,7 +42,6 @@ namespace vz::renderer
 	constexpr Format FORMAT_rendertargetEnvprobe = Format::R11G11B10_FLOAT;
 	constexpr Format FORMAT_depthbufferEnvprobe = Format::D16_UNORM;
 
-	using StencilRef = MaterialComponent::StencilRef;
 	using BlendMode = MaterialComponent::BlendMode;
 
 	// Common blendmodes used across multiple systems
@@ -203,11 +202,6 @@ namespace vz::renderer
 		uint32_t value;
 	};
 	static_assert(sizeof(MeshRenderingVariant) == sizeof(uint32_t));
-
-	inline constexpr uint32_t CombineStencilrefs(StencilRef engineStencilRef, uint8_t userStencilRef)
-	{
-		return (userStencilRef << 4) | static_cast<uint8_t>(engineStencilRef);
-	}
 
 	bool IsInitialized();
 }

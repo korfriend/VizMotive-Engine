@@ -65,7 +65,6 @@ namespace vz
 		
 		// Non-serialized attributes:
 		int samplerDescriptor = -1; // optional
-		uint8_t userStencilRef = 0;
 		graphics::ShadingRate shadingRate = graphics::ShadingRate::RATE_1X1;
 
 		// Create texture resources for GPU
@@ -481,6 +480,7 @@ namespace vz
 		uint8_t lod = 0;
 
 		uint32_t resLookupOffset = ~0u; // refer to geometryOffset defined in GGeometryComponent
+		uint8_t userStencilRef = 0;
 
 		//----- determined by associated materials -----
 		mutable uint32_t materialFilterFlags = 0u;

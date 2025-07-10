@@ -61,8 +61,10 @@ namespace vzm
 
 		bool IsRenderable() const;
 
-		void EnablePickable(const bool enabled, const bool includeDescendants = false);
+		void EnablePickable(const bool enabled, const bool includeDescendants = true);
 		bool IsPickable() const;
+
+		void EnableUnlit(const bool enabled, const bool includeDescendants = true);
 	};
 
 	struct API_EXPORT VzActorStaticMesh : VzActor, VIzClip, VIzHighlight, VIzCollision, VIzGI

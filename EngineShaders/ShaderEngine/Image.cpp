@@ -11,7 +11,7 @@ using namespace vz::renderer;
 
 namespace vz::image
 {
-	using STENCILREF_MASK = MaterialComponent::StencilRefMask;
+	using STENCILREF_MASK = StencilRefMask;
 
 	static Sampler samplers[SAMPLER_COUNT];
 	static Shader vertexShader;
@@ -421,7 +421,7 @@ namespace vz::image
 		uint32_t stencilRef = params.stencilRef;
 		if (params.stencilRefMode == STENCILREFMODE_USER)
 		{
-			stencilRef = renderer::CombineStencilrefs(StencilRef::STENCILREF_EMPTY, (uint8_t)stencilRef);
+			stencilRef = CombineStencilrefs(StencilRef::STENCILREF_EMPTY, (uint8_t)stencilRef);
 		}
 		device->BindStencilRef(stencilRef, cmd);
 

@@ -225,6 +225,11 @@ int main(int, char **)
 			20.0f,    // radius    
 			2         // detail level for smoother sphere    
 		);
+
+		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		axis_helper->SetScale({ 100, 100, 100 });
+		scene->AppendChild(axis_helper);
+
 		for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
 		{
 			VzActorStaticMesh* sphere = vzm::NewActorStaticMesh(
@@ -253,34 +258,15 @@ int main(int, char **)
 			light->EnableVisualizer(false);
 			light->SetRadius(5.f);
 			light->SetRotateToLookUp({ -lx, -ly, -lz }, { 0, 1, 0 });
-			//light->SetLength(300.f);
 			scene->AppendChild(light);
 
-			vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
-			axis_helper->SetScale({ 20, 20, 20 });
-			axis_helper->SetName("light_" + std::to_string(idx) + "_axis");
-			//axis_helper->SetPosition({ x, y, z });
-			light->AppendChild(axis_helper);
+			vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
+			axis_helper_light->SetScale({ 20, 20, 20 });
+			axis_helper_light->SetName("light_" + std::to_string(idx) + "_axis");
+			axis_helper_light->EnableUnlit(true);
+			light->AppendChild(axis_helper_light);
 		}
 
-
-		//VzLight* light = vzm::NewLight("light_" + std::to_string(0));
-		//light->SetLightType(VzLight::LightType::POINT);
-		//float lx = 0;
-		//float ly = 200.f;
-		//float lz = 0;
-		//float r = 1.f;
-		//float g = 1.f;
-		//float b = 0;
-		//light->SetColor({ r, g, b });
-		//light->SetIntensity(10000.0f);
-		//light->SetRange(lightRange);
-		//light->SetPosition({ lx, ly, lz });
-		//scene->AppendChild(light);
-		//
-		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
-		axis_helper->SetScale({ 100, 100, 100 });
-		scene->AppendChild(axis_helper);
 	}
 
 	// Our state
