@@ -220,7 +220,7 @@ namespace vzm
 		compfactory::CreateNameComponent(entity, compName);
 		compfactory::CreateTransformComponent(entity);
 		compfactory::CreateHierarchyComponent(entity);
-		compfactory::CreateLayerdMaskComponent(entity);
+		compfactory::CreateLayeredMaskComponent(entity);
 
 		VID vid = entity;
 		VzSceneObject* hlcomp = nullptr;

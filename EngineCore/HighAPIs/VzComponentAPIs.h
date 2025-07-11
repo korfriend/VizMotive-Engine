@@ -264,9 +264,10 @@ namespace vzm
 
 		// Visible Layer Settings
 		void SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants = false);
-		void SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants = false);
 		uint32_t GetVisibleLayerMask() const;
 		bool IsVisibleWith(const uint32_t layerBits) const;
+		void SetUserLayerMask(const uint32_t userLayerMask, const bool includeDescendants = false);
+		uint32_t GetUserLayerMask() const;
 
 		// note:
 		//	engine-level renderable components can belong to multiple scenes

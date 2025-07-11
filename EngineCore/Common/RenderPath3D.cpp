@@ -58,13 +58,14 @@ namespace vz
 			return;
 		}
 
-		if (TimeDurationCount(recentRender3D_UpdateTime, camera->GetTimeStamp()) > 0)
+		if (TimeDurationCount(camera->GetTimeStamp(), recentRender3D_UpdateTime) > 0 
+			|| TimeDurationCount(layerMask->GetTimeStamp(), recentRender3D_UpdateTime) > 0)
 		{
-			stableCount_++;
+			stableCount_ = 0;
 		}
 		else
 		{
-			stableCount_ = 0;
+			stableCount_++;
 		}
 
 		handlerRenderPath3D_->stableCount = stableCount_;
@@ -146,11 +147,9 @@ namespace vz
 			camera->SetWorldLookAtFromHierarchyTransforms();
 		}
 
-		LayeredMaskComponent* layeredmask = compfactory::GetLayeredMaskComponent(camera->GetEntity());
-
 		if (camera->IsSlicer())
 		{
-			((GSlicerComponent*)camera)->layeredmask = layeredmask;
+			((GSlicerComponent*)camera)->layeredmask = layerMask;
 			((GSlicerComponent*)camera)->transform = compfactory::GetTransformComponent(camera->GetEntity());
 			if (camera->IsCurvedSlicer())
 			{
@@ -159,7 +158,7 @@ namespace vz
 		}
 		else
 		{
-			((GCameraComponent*)camera)->layeredmask = layeredmask;
+			((GCameraComponent*)camera)->layeredmask = layerMask;
 			((GCameraComponent*)camera)->transform = compfactory::GetTransformComponent(camera->GetEntity());
 			if (camera->IsDirty())
 			{

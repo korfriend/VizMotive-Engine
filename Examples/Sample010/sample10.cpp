@@ -208,6 +208,7 @@ int main(int, char **)
 		VzActor* plane = vzm::LoadModelFile("../Assets/models/cube/cube.obj");
 		plane->SetScale({ 500.f, 1.f, 500.f });
 		plane->SetPosition({ 0.f, 0.f, 0.f });
+		plane->SetVisibleLayerMask(0x4, true);
 		scene->AppendChild(plane);
 
 		std::random_device rd;
@@ -228,6 +229,7 @@ int main(int, char **)
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 100, 100, 100 });
+		axis_helper->SetVisibleLayerMask(0xF, true);
 		scene->AppendChild(axis_helper);
 
 		for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
@@ -241,6 +243,7 @@ int main(int, char **)
 			float y = dist_y(gen);
 			float z = dist_z(gen);
 			sphere->SetPosition({ x, y, z });
+			sphere->SetVisibleLayerMask(0x1, true);
 			scene->AppendChild(sphere);
 
 			VzLight* light = vzm::NewLight("light_" + std::to_string(idx));
@@ -258,6 +261,7 @@ int main(int, char **)
 			light->EnableVisualizer(false);
 			light->SetRadius(5.f);
 			light->SetRotateToLookUp({ -lx, -ly, -lz }, { 0, 1, 0 });
+			light->SetVisibleLayerMask(0x8, true);
 			scene->AppendChild(light);
 
 			vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
@@ -268,11 +272,14 @@ int main(int, char **)
 			//{
 			//	((VzMaterial*)vzm::GetComponent(id))->SetVisibleLayerMask(0u);
 			//}
+			axis_helper_light->SetVisibleLayerMask(0x2, true);
 			axis_helper_light->EnableUnlit(true);
 			light->AppendChild(axis_helper_light);
 		}
 
 	}
+	//renderer->SetLayerMask(0xF);
+	camera->SetVisibleLayerMask(0xF);
 
 	// Our state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -433,6 +440,23 @@ int main(int, char **)
 
 			ImGui::Begin("Controls");
 			{
+				ImGui::Separator();
+				static bool bits[4] = { true, true, true, true };
+				static uint32_t camera_layeredmask_prev = 0u;
+				vzimgui::IGTextTitle("----- Camera VisbleLayerMask -----");
+				ImGui::Checkbox("Sphere##0", &bits[0]);
+				ImGui::SameLine(); ImGui::Checkbox("LightAxis##1", &bits[1]);
+				ImGui::SameLine(); ImGui::Checkbox("Floor##2", &bits[2]);
+				ImGui::SameLine(); ImGui::Checkbox("Light##3", &bits[3]);
+				uint32_t camera_layeredmask = (uint32_t)bits[0] | ((uint32_t)bits[1] << 1)
+					| ((uint32_t)bits[2] << 2) | ((uint32_t)bits[3] << 3);
+				if (camera_layeredmask != camera_layeredmask_prev)
+				{
+					camera_layeredmask_prev = camera_layeredmask;
+					camera->SetVisibleLayerMask(camera_layeredmask);
+					//renderer->SetLayerMask(camera_layeredmask);
+				}
+				
 				ImGui::Separator();
 				if (ImGui::Button("Shader Reload"))
 				{

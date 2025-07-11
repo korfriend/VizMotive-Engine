@@ -39,7 +39,6 @@ namespace vz::renderer
 		// User fills these:
 		uint8_t layerMask = ~0;
 		CameraComponent* camera = nullptr;
-		LayeredMaskComponent* layeredmask = nullptr;
 		enum FLAGS
 		{
 			EMPTY = 0,

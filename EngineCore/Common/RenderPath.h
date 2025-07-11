@@ -45,6 +45,7 @@ namespace vz
 		Tonemap tonemap = Tonemap::ACES;
 		float clearColor[4] = {};
 
+		mutable bool forceToRenderCall = false;
 		// framerate controllers
 		uint64_t frameCount = 0;
 		float deltaTimeAccumulator = 0;
@@ -75,7 +76,12 @@ namespace vz
 		bool GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex, uint64_t& descriptorHandle, void** resPtr);
 
 		uint32_t GetLayerMask() const { return layerMask_; }
-		void SetlayerMask(uint32_t value) { layerMask_ = value; }
+		void SetlayerMask(uint32_t value) {
+			if (layerMask_ != value) {
+				layerMask_ = value; 
+				forceToRenderCall = true;
+			}
+		}
 
 		virtual void DeleteGPUResources(const bool resizableOnly) = 0;
 		virtual void ResizeResources() = 0;

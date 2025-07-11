@@ -34,12 +34,12 @@ namespace vz
 
 	public:
 		inline static int skipStableCount = -1; // -1 refers to ignore the skip
-		mutable bool forceToRenderCall = false;
 
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
 		virtual ~RenderPath3D();
 
 		CameraComponent* camera = nullptr; // can be used for SlicerComponent
+		LayeredMaskComponent* layerMask = nullptr; // can be used for SlicerComponent
 		Scene* scene = nullptr;
 
 		bool useManualSetViewport = false;

@@ -22,7 +22,7 @@ namespace vz::renderer
 		for (uint32_t instanceIndex : visMain.visibleRenderables_Mesh)
 		{
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instanceIndex];
-			if (!renderable.layeredmask->IsVisibleWith(visMain.layeredmask->GetVisibleLayerMask()))
+			if (!renderable.layeredmask->IsVisibleWith(visMain.layerMask))
 				continue;
 			if ((renderable.materialFilterFlags & filterMask) == 0)
 				continue;
