@@ -65,6 +65,8 @@ namespace vzm
 		bool IsPickable() const;
 
 		void EnableUnlit(const bool enabled, const bool includeDescendants = true);
+
+		std::vector<MaterialVID> GetAllMaterials(const bool includeDescendants = true);
 	};
 
 	struct API_EXPORT VzActorStaticMesh : VzActor, VIzClip, VIzHighlight, VIzCollision, VIzGI

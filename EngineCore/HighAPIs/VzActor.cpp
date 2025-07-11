@@ -78,6 +78,28 @@ namespace vzm
 		}
 		UpdateTimeStamp();
 	}
+
+	std::vector<MaterialVID> VzActor::GetAllMaterials(const bool includeDescendants)
+	{
+		std::vector<ActorVID> actor_vids = {componentVID_};
+		if (includeDescendants)
+		{
+			std::vector<ActorVID> children = GetChildren();
+			actor_vids.insert(actor_vids.end(), children.begin(), children.end());
+		}
+		std::vector<MaterialVID> materials;
+		for (Entity ett : actor_vids)
+		{
+			RenderableComponent* renderable = compfactory::GetRenderableComponent(ett);
+			if (!renderable)
+			{
+				continue;
+			}
+			std::vector<MaterialVID> mats = renderable->GetMaterials();
+			materials.insert(materials.end(), mats.begin(), mats.end());
+		}
+		return materials;
+	}
 }
 
 namespace vzm

@@ -26,6 +26,7 @@ namespace vz
 		void* resPtr_ = nullptr;
 		uint64_t sharedHandleDescriptorPtr_ = 0u;
 
+		uint32_t layerMask_ = ~0u;
 
 		// resize check variables
 		uint32_t prevWidth_ = 0;
@@ -72,6 +73,9 @@ namespace vz
 		//const graphics::Texture& GetFinalRenderTarget() const { return rtRenderFinal_; }
 		//const graphics::SwapChain& GetSwapChain() const { return swapChain_; }
 		bool GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex, uint64_t& descriptorHandle, void** resPtr);
+
+		uint32_t GetLayerMask() const { return layerMask_; }
+		void SetlayerMask(uint32_t value) { layerMask_ = value; }
 
 		virtual void DeleteGPUResources(const bool resizableOnly) = 0;
 		virtual void ResizeResources() = 0;

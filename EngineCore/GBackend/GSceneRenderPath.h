@@ -12,11 +12,13 @@ namespace vz
 
 	struct GRenderPath2D
 	{
-		inline static const std::string GRenderPath2D_INTERFACE_VERSION = "GRenderPath2D::20250310";
+		inline static const std::string GRenderPath2D_INTERFACE_VERSION = "GRenderPath2D::20250711";
 
 	protected:
 		graphics::SwapChain& swapChain_;	// same as the SwapChain in GRenderPath3D
 		graphics::Texture& rtRenderFinal_;
+
+		uint32_t layerMask_ = ~0u;
 
 		// canvas size is supposed to be updated via ResizeCanvas()
 		uint32_t canvasWidth_ = 0u;
@@ -35,6 +37,9 @@ namespace vz
 		graphics::ColorSpace colorspace = graphics::ColorSpace::SRGB;
 		bool skipPostprocess = false;
 		uint32_t msaaSampleCount = 1;
+
+		uint32_t GetLayerMask() const { return layerMask_; }
+		void SetlayerMask(uint32_t value) { layerMask_ = value; }
 
 		virtual bool ResizeCanvas(uint32_t canvasWidth, uint32_t canvasHeight) = 0; // must delete all canvas-related resources and re-create
 		virtual bool Render2D(const float dt) = 0;

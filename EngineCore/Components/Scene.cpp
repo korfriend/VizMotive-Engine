@@ -138,18 +138,12 @@ namespace vz
 				TransformComponent* transform = compfactory::GetTransformComponent(entity);
 				transform->UpdateMatrix();
 
-				if (TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0)
-				{
-					isContentChanged_ = true;
-				}
+				isContentChanged_ |= TimeDurationCount(transform->GetTimeStamp(), recentUpdateTime_) > 0;
 
 				LayeredMaskComponent* layeredmask = compfactory::GetLayeredMaskComponent(entity);
 				if (layeredmask)
 				{
-					if (TimeDurationCount(layeredmask->GetTimeStamp(), recentUpdateTime_) > 0)
-					{
-						isContentChanged_ = true;
-					}
+					isContentChanged_ |= TimeDurationCount(layeredmask->GetTimeStamp(), recentUpdateTime_) > 0;
 				}
 
 				});
@@ -200,18 +194,12 @@ namespace vz
 						XMStoreFloat3(&sprite->translateW, T);
 					}
 
-					if (TimeDurationCount(sprite->GetTimeStamp(), recentUpdateTime_) > 0)
-					{
-						isContentChanged_ = true;
-					}
+					isContentChanged_ |= TimeDurationCount(sprite->GetTimeStamp(), recentUpdateTime_) > 0;
 
 					sprite->texture = (GTextureComponent*)compfactory::GetTextureComponentByVUID(sprite->GetSpriteTextureVUID());
 					if (sprite->texture)
 					{
-						if (TimeDurationCount(sprite->texture->GetTimeStamp(), recentUpdateTime_) > 0)
-						{
-							isContentChanged_ = true;
-						}
+						isContentChanged_ |= TimeDurationCount(sprite->texture->GetTimeStamp(), recentUpdateTime_) > 0;
 					}
 					};
 
@@ -233,10 +221,7 @@ namespace vz
 						XMStoreFloat3(&font->translateW, T);
 					}
 
-					if (TimeDurationCount(font->GetTimeStamp(), recentUpdateTime_) > 0)
-					{
-						isContentChanged_ = true;
-					}
+					isContentChanged_ |= TimeDurationCount(font->GetTimeStamp(), recentUpdateTime_) > 0;
 					};
 
 				Entity entity = renderables_[args.jobIndex];
@@ -265,10 +250,8 @@ namespace vz
 				{
 					renderable->Update();	// AABB
 				}
-				if (TimeDurationCount(renderable->GetTimeStamp(), recentUpdateTime_) > 0)
-				{
-					isContentChanged_ = true;
-				}
+
+				isContentChanged_ |= TimeDurationCount(renderable->GetTimeStamp(), recentUpdateTime_) > 0; // renderable->layeredmask is checked in Transform Updates
 
 				if (!renderable->IsRenderable())
 				{
@@ -397,10 +380,7 @@ namespace vz
 					aabb.layerMask = ~0u;
 				}
 
-				if (TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0)
-				{
-					isContentChanged_ = true;
-				}
+				isContentChanged_ |= TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0;
 
 				});
 		}
@@ -418,11 +398,8 @@ namespace vz
 				geometry->geometryIndex = args.jobIndex;
 				geometry->geometryOffset = geometryAllocator.fetch_add((uint32_t)geometry->GetNumParts());
 
-				if (TimeDurationCount(geometry->GetTimeStamp(), recentUpdateTime_) > 0
-					|| TimeDurationCount(geometry->timeStampGPUBVHUpdate, recentUpdateTime_) > 0)
-				{
-					isContentChanged_ = true;
-				}
+				isContentChanged_ |= TimeDurationCount(geometry->GetTimeStamp(), recentUpdateTime_) > 0
+					|| TimeDurationCount(geometry->timeStampGPUBVHUpdate, recentUpdateTime_) > 0;
 
 				});
 		}
@@ -439,11 +416,13 @@ namespace vz
 				assert(material);
 				materialComponents[args.jobIndex] = material;
 				material->materialIndex = args.jobIndex;
-
-				if (TimeDurationCount(material->GetTimeStamp(), recentUpdateTime_) > 0)
+				material->layeredmask = compfactory::GetLayeredMaskComponent(entity);
+				if (material->layeredmask)
 				{
-					isContentChanged_ = true;
+					isContentChanged_ |= TimeDurationCount(material->layeredmask->GetTimeStamp(), recentUpdateTime_) > 0;
 				}
+
+				isContentChanged_ |= TimeDurationCount(material->GetTimeStamp(), recentUpdateTime_) > 0;
 
 				for (uint32_t i = 0, n = SCU32(MaterialComponent::TextureSlot::TEXTURESLOT_COUNT); i < n; ++i)
 				{
@@ -453,10 +432,7 @@ namespace vz
 					material->textures[i] = texture;
 					if (texture)
 					{
-						if (TimeDurationCount(texture->GetTimeStamp(), recentUpdateTime_) > 0)
-						{
-							isContentChanged_ = true;
-						}
+						isContentChanged_ |= TimeDurationCount(texture->GetTimeStamp(), recentUpdateTime_) > 0;
 					}
 				}
 				for (uint32_t i = 0, n = SCU32(MaterialComponent::VolumeTextureSlot::VOLUME_TEXTURESLOT_COUNT); i < n; ++i)
@@ -467,10 +443,7 @@ namespace vz
 					material->volumeTextures[i] = volume;
 					if (volume)
 					{
-						if (TimeDurationCount(volume->GetTimeStamp(), recentUpdateTime_) > 0)
-						{
-							isContentChanged_ = true;
-						}
+						isContentChanged_ |= TimeDurationCount(volume->GetTimeStamp(), recentUpdateTime_) > 0;
 					}
 				}
 				for (uint32_t i = 0, n = SCU32(MaterialComponent::LookupTableSlot::LOOKUPTABLE_COUNT); i < n; ++i)
@@ -481,10 +454,7 @@ namespace vz
 					material->textureLookups[i] = texture;
 					if (texture)
 					{
-						if (TimeDurationCount(texture->GetTimeStamp(), recentUpdateTime_) > 0)
-						{
-							isContentChanged_ = true;
-						}
+						isContentChanged_ |= TimeDurationCount(texture->GetTimeStamp(), recentUpdateTime_) > 0;
 					}
 				}
 				material->renderableVolumeMapperRenderable = (GRenderableComponent*)compfactory::GetRenderableComponentByVUID(

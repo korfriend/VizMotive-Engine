@@ -1,5 +1,6 @@
 #include "VzEngineAPIs.h"
 #include "Components/Components.h"
+#include "Common/Engine_Internal.h"
 #include "Utils/Backlog.h"
 
 using namespace vz;
@@ -304,5 +305,18 @@ namespace vzm
 	{
 		GET_LAYEREDMASK_COMP(layerdmask, false);
 		return layerdmask->IsVisibleWith(layerBits);
+	}
+}
+
+namespace vzm
+{
+#define GET_LAYEREDMASK_COMP_OR_NEW(COMP) LayeredMaskComponent* COMP = compfactory::GetLayeredMaskComponent(componentVID_); \
+	if (!COMP) { COMP = compfactory::CreateLayerdMaskComponent(componentVID_); }
+	
+	void VzResource::SetVisibleLayerMask(const uint32_t visibleLayerMask)
+	{
+		GET_LAYEREDMASK_COMP_OR_NEW(layerdmask);
+		layerdmask->SetVisibleLayerMask(visibleLayerMask);
+		UpdateTimeStamp();
 	}
 }
