@@ -56,6 +56,7 @@ namespace vz
 		GMaterialComponent(const Entity entity, const VUID vuid = 0) : MaterialComponent(entity, vuid) {}
 		virtual ~GMaterialComponent() = default;
 
+		LayeredMaskComponent* layeredmask = nullptr;
 		uint32_t materialIndex = ~0u; // scene's cached array index
 
 		GTextureComponent* textures[SCU32(TextureSlot::TEXTURESLOT_COUNT)] = {};

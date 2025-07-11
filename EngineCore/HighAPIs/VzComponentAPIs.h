@@ -278,6 +278,8 @@ namespace vzm
 		VzResource(const VID vid, const std::string& originFrom, const COMPONENT_TYPE& type)
 			: VzBaseComp(vid, originFrom, type) {}
 		virtual ~VzResource() = default;
+
+		void SetVisibleLayerMask(const uint32_t visibleLayerMask);
 	};
 }
 

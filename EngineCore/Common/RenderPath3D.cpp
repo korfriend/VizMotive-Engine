@@ -202,6 +202,8 @@ namespace vz
 		handlerRenderPath3D_->clearEnabled = clearEnabled_;
 		handlerRenderPath3D_->skipPostprocess = skipPostprocess_;
 
+		handlerRenderPath3D_->SetlayerMask(layerMask_);
+
 		handlerRenderPath3D_->matToScreen = matScreen_;
 		handlerRenderPath3D_->matToScreenInv = matScreenInv_;
 		handlerRenderPath3D_->tonemap = static_cast<GRenderPath3D::Tonemap>(tonemap);

@@ -40,7 +40,7 @@ namespace vzm
 		void UseCanvasAsViewport();
 		// add scissor interfaces
 
-		void SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits);
+		void SetLayerMask(const uint32_t layerMask);
 
 		void SetClearColor(const vfloat4& color);
 		void GetClearColor(vfloat4& color) const;

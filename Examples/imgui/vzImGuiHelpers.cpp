@@ -11,6 +11,7 @@ namespace vzimgui
 		vzm::VzSceneObject* component = (vzm::VzSceneObject*)vzm::GetComponent(vid);
 		if (component == nullptr)
 			return;
+
 		std::string comp_name = component->GetName();
 		if (comp_name.empty())
 		{
@@ -22,6 +23,8 @@ namespace vzimgui
 			{
 			case vzm::COMPONENT_TYPE::ACTOR_NODE: comp_name = "[Group] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH: comp_name = "[A-SM] " + comp_name; break;
+			case vzm::COMPONENT_TYPE::ACTOR_VOLUME: comp_name = "[A-V] " + comp_name; break;
+			case vzm::COMPONENT_TYPE::ACTOR_GSPLAT: comp_name = "[A-G] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::ACTOR_SPRITE: comp_name = "[A-SP] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::ACTOR_SPRITEFONT: comp_name = "[A-SPF] " + comp_name; break;
 			case vzm::COMPONENT_TYPE::CAMERA: comp_name = "[C] " + comp_name; break;
@@ -32,51 +35,79 @@ namespace vzimgui
 		}
 
 		static std::set<VID> pickedParents;
-
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
+
 		if (vidSelected == vid)
 		{
 			flags |= ImGuiTreeNodeFlags_Selected;
 		}
-		if (component->GetChildren().size() == 0)
+
+		std::vector<VID> children = component->GetChildren();
+		if (children.size() == 0)
 		{
 			flags |= ImGuiTreeNodeFlags_Leaf;
 		}
+
 		if (pickedParents.find(vid) != pickedParents.end())
 		{
 			ImGui::SetNextItemOpen(true);
 		}
 
-		if (ImGui::TreeNodeEx((const void*)(uint64_t)vid, flags, "%s", comp_name.c_str())) {
-			if (ImGui::IsItemClicked())
+		bool hasVisibilityControl = false;
+		switch (component->GetType())
+		{
+		case vzm::COMPONENT_TYPE::ACTOR_NODE:
+		case vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH:
+		case vzm::COMPONENT_TYPE::ACTOR_VOLUME:
+		case vzm::COMPONENT_TYPE::ACTOR_GSPLAT:
+		case vzm::COMPONENT_TYPE::ACTOR_SPRITE:
+		case vzm::COMPONENT_TYPE::ACTOR_SPRITEFONT:
+		{
+			vzm::VzActor* actor = (vzm::VzActor*)component;
+			bool visible = actor->IsVisibleWith(0x1);
+			if (ImGui::Checkbox(("##vis_" + std::to_string(vid)).c_str(), &visible))
 			{
-				vzlog("Clicked! %s", comp_name.c_str());
+				actor->SetVisibleLayer(visible, 0x1, true);
 			}
-			if (component->GetType() == vzm::COMPONENT_TYPE::ACTOR_NODE
-				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_STATIC_MESH
-				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_VOLUME
-				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_GSPLAT
-				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_SPRITE
-				|| component->GetType() == vzm::COMPONENT_TYPE::ACTOR_SPRITEFONT)
+			hasVisibilityControl = true;
+		}
+		break;
+		case vzm::COMPONENT_TYPE::LIGHT:
+		{
+			vzm::VzLight* light = (vzm::VzLight*)component;
+			bool visible = light->IsVisibleWith(0x1);
+			if (ImGui::Checkbox(("##vis_" + std::to_string(vid)).c_str(), &visible))
 			{
-				ImGui::SameLine();
-				vzm::VzActor* actor = (vzm::VzActor*)component;
-				bool visible = actor->IsVisibleWith(0x1);
-				if (ImGui::Checkbox(" ", &visible))
-				{
-					actor->SetVisibleLayer(visible, 0x1, true);
-				}
+				light->SetVisibleLayer(visible, 0x1, true);
 			}
-			std::vector<VID> children = component->GetChildren();
-			for (auto child_vid : children) {
+			hasVisibilityControl = true;
+		}
+		break;
+		}
+
+		if (hasVisibilityControl)
+		{
+			ImGui::SameLine(); 
+		}
+
+		if (ImGui::TreeNodeEx((const void*)(uint64_t)vid, flags, "%s", comp_name.c_str()))
+		{
+			if (ImGui::IsItemClicked() && callback)
+			{
+				callback(vid);
+			}
+
+			for (auto child_vid : children)
+			{
 				UpdateTreeNode(child_vid, vidSelected, callback);
 			}
 			ImGui::TreePop();
 		}
-		else {
-			if (ImGui::IsItemClicked())
+		else
+		{
+			if (ImGui::IsItemClicked() && callback)
 			{
-				//vzlog("Clicked2! %s", comp_name.c_str());
+				callback(vid);
 			}
 		}
 	}

@@ -163,10 +163,11 @@ namespace vzm
 		renderer->SetViewport(vp);
 	}
 
-	void VzRenderer::SetVisibleLayerMask(const uint8_t layerBits, const uint8_t maskBits)
+	void VzRenderer::SetLayerMask(const uint32_t layerMask)
 	{
-		// to do //
-		// add visibleMask(uint8_t) to RenderPath3D
+		GET_RENDERPATH(renderer, );
+		renderer->SetlayerMask(layerMask);
+		UpdateTimeStamp();
 	}
 
 	void VzRenderer::SetClearColor(const vfloat4& color)

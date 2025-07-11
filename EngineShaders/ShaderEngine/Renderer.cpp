@@ -36,7 +36,7 @@ namespace vz::renderer
 		scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
 
 		// Frustum culling for main camera:l,k
-		visMain.layerMask = ~0;
+		visMain.layerMask = layerMask_;
 		visMain.camera = camera;
 		visMain.layeredmask = camera->GetLayeredMaskComponent();
 		

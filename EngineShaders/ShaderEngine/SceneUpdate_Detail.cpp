@@ -228,8 +228,8 @@ namespace vz
 					}
 					
 					shader_material.userdata = 0u;
-
 					shader_material.options_stencilref = 0;
+					shader_material.layerMask = material.layeredmask ? material.layeredmask->GetVisibleLayerMask() : ~0u;
 
 					for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
 					{

@@ -263,6 +263,11 @@ int main(int, char **)
 			vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
 			axis_helper_light->SetScale({ 20, 20, 20 });
 			axis_helper_light->SetName("light_" + std::to_string(idx) + "_axis");
+
+			//for (ActorVID id : axis_helper_light->GetAllMaterials(true))
+			//{
+			//	((VzMaterial*)vzm::GetComponent(id))->SetVisibleLayerMask(0u);
+			//}
 			axis_helper_light->EnableUnlit(true);
 			light->AppendChild(axis_helper_light);
 		}
@@ -429,14 +434,6 @@ int main(int, char **)
 			ImGui::Begin("Controls");
 			{
 				ImGui::Separator();
-				vzimgui::IGTextTitle("----- Scene Tree -----");
-				const std::vector<VID> root_children = scene->GetChildrenVIDs();
-				static VID selected_vid = 0u;
-				for (auto vid_root : root_children)
-				{
-					//vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid) {});
-				}
-				ImGui::Separator();
 				if (ImGui::Button("Shader Reload"))
 				{
 					vzm::ReloadShader();
@@ -537,6 +534,15 @@ int main(int, char **)
 					ImGui::Text(performance_info.c_str());
 					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
+				}
+
+				ImGui::Separator();
+				vzimgui::IGTextTitle("----- Scene Tree -----");
+				const std::vector<VID> root_children = scene->GetChildrenVIDs();
+				static VID selected_vid = 0u;
+				for (auto vid_root : root_children)
+				{
+					vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid) {});
 				}
 			}
 			ImGui::End();
