@@ -43,7 +43,7 @@ namespace vz::compfactory
 		case ComponentType::NAME: return nameManager.GetComponentByVUID(vuid);
 		case ComponentType::TRANSFORM: return transformManager.GetComponentByVUID(vuid);
 		case ComponentType::HIERARCHY: return hierarchyManager.GetComponentByVUID(vuid);
-		case ComponentType::LAYERDMASk: return layeredmaskManager.GetComponentByVUID(vuid);
+		case ComponentType::LAYERDMASK: return layeredmaskManager.GetComponentByVUID(vuid);
 		case ComponentType::COLLIDER: return colliderManager.GetComponentByVUID(vuid);
 		case ComponentType::RENDERABLE: return renderableManager.GetComponentByVUID(vuid);
 		case ComponentType::SPRITE: return spriteManager.GetComponentByVUID(vuid);
@@ -114,7 +114,7 @@ namespace vz::compfactory
 		}
 		return comp;
 	}
-	LayeredMaskComponent* CreateLayerdMaskComponent(const Entity entity)
+	LayeredMaskComponent* CreateLayeredMaskComponent(const Entity entity)
 	{
 		ENTITY_UPDATE(entity_update);
 		LayeredMaskComponent* comp = &layeredmaskManager.Create(entity_update);

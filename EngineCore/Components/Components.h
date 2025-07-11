@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250711_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250711_2";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -364,7 +364,7 @@ namespace vz
 		UNDEFINED = 0,
 		NAME,
 		TRANSFORM,
-		LAYERDMASk,
+		LAYERDMASK,
 		HIERARCHY,
 		MATERIAL,
 		GEOMETRY,
@@ -524,19 +524,22 @@ namespace vz
 		uint32_t userLayerMask_ = 0u;
 
 	public:
-		LayeredMaskComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LAYERDMASk, entity, vuid) {}
+		LayeredMaskComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LAYERDMASK, entity, vuid) {}
 		virtual ~LayeredMaskComponent() = default;
 
 		inline void SetVisibleLayerMask(const uint32_t visibleLayerMask) { visibleLayerMask_ = visibleLayerMask; timeStampSetter_ = TimerNow; }
-		inline void SetVisibleLayer(const bool visible, const uint32_t layerBits) {
-			visible ? visibleLayerMask_ |= layerBits : visibleLayerMask_ &= ~layerBits; timeStampSetter_ = TimerNow;
-		}
 		inline bool IsVisibleWith(uint32_t layerBits) const { return layerBits & visibleLayerMask_; }
 		inline uint32_t GetVisibleLayerMask() const { return visibleLayerMask_; }
 
+		inline void SetStencilLayerMask(const uint32_t stencilLayerMask) { stencilLayerMask_ = stencilLayerMask_; timeStampSetter_ = TimerNow; }
+		inline uint32_t GetStencilLayerMask() const { return stencilLayerMask_; }
+
+		inline void SetUserLayerMask(const uint32_t userLayerMask) { userLayerMask_ = userLayerMask; timeStampSetter_ = TimerNow; }
+		inline uint32_t GetUserLayerMask() const { return userLayerMask_; }
+
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
-		inline static const ComponentType IntrinsicType = ComponentType::LAYERDMASk;
+		inline static const ComponentType IntrinsicType = ComponentType::LAYERDMASK;
 	};
 
 #define FLAG_SETTER(FLAG, FLAG_ENUM) enabled ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);

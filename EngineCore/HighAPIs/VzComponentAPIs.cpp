@@ -264,59 +264,65 @@ namespace vzm
 	// Visible Layer Settings
 	void VzSceneObject::SetVisibleLayerMask(const uint32_t visibleLayerMask, const bool includeDescendants)
 	{
-		GET_LAYEREDMASK_COMP(layerdmask, );
-		layerdmask->SetVisibleLayerMask(visibleLayerMask);
+		GET_LAYEREDMASK_COMP(layeredmask, );
+		layeredmask->SetVisibleLayerMask(visibleLayerMask);
 
 		if (includeDescendants)
 		{
 			std::vector<ActorVID> children = GetChildren();
 			for (size_t i = 0, n = children.size(); i < n; ++i)
 			{
-				VzActor* base_actor = (VzActor*)vzm::GetComponent(children[i]);
-				assert(base_actor);
-				base_actor->SetVisibleLayerMask(visibleLayerMask, true);
-			}
-		}
-		UpdateTimeStamp();
-	}
-	void VzSceneObject::SetVisibleLayer(const bool visible, const uint32_t layerBits, const bool includeDescendants)
-	{
-		GET_LAYEREDMASK_COMP(layerdmask, );
-		layerdmask->SetVisibleLayer(visible, layerBits);
-
-		if (includeDescendants)
-		{
-			std::vector<ActorVID> children = GetChildren();
-			for (size_t i = 0, n = children.size(); i < n; ++i)
-			{
-				VzActor* base_actor = (VzActor*)vzm::GetComponent(children[i]);
-				assert(base_actor);
-				base_actor->SetVisibleLayer(visible, layerBits, true);
+				VzSceneObject* scene_comp = (VzSceneObject*)vzm::GetComponent(children[i]);
+				assert(scene_comp);
+				scene_comp->SetVisibleLayerMask(visibleLayerMask, true);
 			}
 		}
 		UpdateTimeStamp();
 	}
 	uint32_t VzSceneObject::GetVisibleLayerMask() const
 	{
-		GET_LAYEREDMASK_COMP(layerdmask, 0u);
-		return layerdmask->GetVisibleLayerMask();
+		GET_LAYEREDMASK_COMP(layeredmask, 0u);
+		return layeredmask->GetVisibleLayerMask();
 	}
 	bool VzSceneObject::IsVisibleWith(const uint32_t layerBits) const
 	{
-		GET_LAYEREDMASK_COMP(layerdmask, false);
-		return layerdmask->IsVisibleWith(layerBits);
+		GET_LAYEREDMASK_COMP(layeredmask, false);
+		return layeredmask->IsVisibleWith(layerBits);
+	}
+
+	void VzSceneObject::SetUserLayerMask(const uint32_t userLayerMask, const bool includeDescendants)
+	{
+		GET_LAYEREDMASK_COMP(layeredmask, );
+		layeredmask->SetUserLayerMask(userLayerMask);
+
+		if (includeDescendants)
+		{
+			std::vector<ActorVID> children = GetChildren();
+			for (size_t i = 0, n = children.size(); i < n; ++i)
+			{
+				VzSceneObject* scene_comp = (VzSceneObject*)vzm::GetComponent(children[i]);
+				assert(scene_comp);
+				scene_comp->SetUserLayerMask(userLayerMask, true);
+			}
+		}
+		UpdateTimeStamp();
+	}
+	uint32_t VzSceneObject::GetUserLayerMask() const
+	{
+		GET_LAYEREDMASK_COMP(layeredmask, 0u);
+		return layeredmask->GetUserLayerMask();
 	}
 }
 
 namespace vzm
 {
 #define GET_LAYEREDMASK_COMP_OR_NEW(COMP) LayeredMaskComponent* COMP = compfactory::GetLayeredMaskComponent(componentVID_); \
-	if (!COMP) { COMP = compfactory::CreateLayerdMaskComponent(componentVID_); }
+	if (!COMP) { COMP = compfactory::CreateLayeredMaskComponent(componentVID_); }
 	
 	void VzResource::SetVisibleLayerMask(const uint32_t visibleLayerMask)
 	{
-		GET_LAYEREDMASK_COMP_OR_NEW(layerdmask);
-		layerdmask->SetVisibleLayerMask(visibleLayerMask);
+		GET_LAYEREDMASK_COMP_OR_NEW(layeredmask);
+		layeredmask->SetVisibleLayerMask(visibleLayerMask);
 		UpdateTimeStamp();
 	}
 }

@@ -35,10 +35,14 @@ namespace vz::renderer
 
 		scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
 
-		// Frustum culling for main camera:l,k
+		// Frustum culling for main camera:
 		visMain.layerMask = layerMask_;
+		LayeredMaskComponent* layeredmask = camera->GetLayeredMaskComponent();
+		if (layeredmask)
+		{
+			visMain.layerMask &= layeredmask->GetVisibleLayerMask();
+		}
 		visMain.camera = camera;
-		visMain.layeredmask = camera->GetLayeredMaskComponent();
 		
 		visMain.flags = renderer::Visibility::ALLOW_EVERYTHING;
 		if (!renderer::isOcclusionCullingEnabled || camera->IsSlicer())
@@ -56,7 +60,7 @@ namespace vz::renderer
 			//cameraReflection.Reflect(visMain.reflectionPlane);
 			//viewReflection.layerMask = getLayerMask();
 			visReflection.camera = &cameraReflection;
-			visReflection.layeredmask = &layeredmaskReflection;
+			visReflection.layerMask = layeredmaskReflection.GetVisibleLayerMask();
 			visReflection.flags =
 				//renderer::View::ALLOW_OBJECTS |
 				//renderer::View::ALLOW_EMITTERS |
@@ -326,7 +330,7 @@ namespace vz::renderer
 				
 				if (foreground != renderable.IsForeground())
 					continue;
-				if (!renderable.layeredmask->IsVisibleWith(vis.layeredmask->GetVisibleLayerMask()))
+				if (!renderable.layeredmask->IsVisibleWith(vis.layerMask))
 					continue;
 				if ((renderable.materialFilterFlags & filterMask) == 0)
 					continue;

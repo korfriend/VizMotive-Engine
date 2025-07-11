@@ -62,23 +62,19 @@ namespace vzimgui
 		case vzm::COMPONENT_TYPE::ACTOR_GSPLAT:
 		case vzm::COMPONENT_TYPE::ACTOR_SPRITE:
 		case vzm::COMPONENT_TYPE::ACTOR_SPRITEFONT:
-		{
-			vzm::VzActor* actor = (vzm::VzActor*)component;
-			bool visible = actor->IsVisibleWith(0x1);
-			if (ImGui::Checkbox(("##vis_" + std::to_string(vid)).c_str(), &visible))
-			{
-				actor->SetVisibleLayer(visible, 0x1, true);
-			}
-			hasVisibilityControl = true;
-		}
-		break;
 		case vzm::COMPONENT_TYPE::LIGHT:
 		{
-			vzm::VzLight* light = (vzm::VzLight*)component;
-			bool visible = light->IsVisibleWith(0x1);
+			vzm::VzSceneObject* sobj = (vzm::VzSceneObject*)component;
+			uint32_t ref_layer = sobj->GetVisibleLayerMask();
+			if (ref_layer && ref_layer != sobj->GetUserLayerMask())
+			{
+				sobj->SetUserLayerMask(ref_layer, true);
+			}
+			ref_layer = sobj->GetUserLayerMask();
+			bool visible = sobj->IsVisibleWith(ref_layer);
 			if (ImGui::Checkbox(("##vis_" + std::to_string(vid)).c_str(), &visible))
 			{
-				light->SetVisibleLayer(visible, 0x1, true);
+				sobj->SetVisibleLayerMask(visible? ref_layer : 0u, true);
 			}
 			hasVisibilityControl = true;
 		}
