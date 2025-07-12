@@ -135,11 +135,6 @@ namespace vz
 				isWetmapProcessingRequired = true;
 			}
 
-			if (material.IsDirty())
-			{
-				material.SetDirty(false);
-			}
-
 			auto writeShaderMaterial = [&](ShaderMaterial* dest)
 				{
 					using namespace vz::math;

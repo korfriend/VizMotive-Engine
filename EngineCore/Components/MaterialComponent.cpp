@@ -42,7 +42,6 @@ namespace vz
 	void MaterialComponent::SetVolumeMapper(const Entity targetRenderableEntity, const VolumeTextureSlot volumetextureSlot, const LookupTableSlot lookupSlot)
 	{
 		RenderableComponent* renderable = compfactory::GetRenderableComponent(targetRenderableEntity);
-		isDirty_ = true; 
 		timeStampSetter_ = TimerNow;
 		volumemapperVolumeSlot_ = volumetextureSlot;
 		volumemapperLookupSlot_ = lookupSlot;

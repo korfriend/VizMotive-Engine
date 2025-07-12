@@ -177,8 +177,8 @@ namespace vz
 			archive >> vuidVolumeMapperRenderable_;
 			archive >> u32_data; volumemapperVolumeSlot_ = static_cast<VolumeTextureSlot>(u32_data);
 			archive >> u32_data; volumemapperLookupSlot_ = static_cast<LookupTableSlot>(u32_data);
-
-			isDirty_ = true;
+			
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{

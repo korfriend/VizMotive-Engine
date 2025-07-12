@@ -27,6 +27,7 @@ namespace vzm
 		void SetRadius(const float radius);
 		void SetLength(const float length);
 		void EnableVisualizer(const bool enabled);
+		void EnableCastShadow(const bool enabled);
 		//void SetLightTexture(const LightVID); //  TODO
 	};
 
