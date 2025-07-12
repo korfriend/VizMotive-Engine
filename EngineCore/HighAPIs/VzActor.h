@@ -28,8 +28,8 @@ namespace vzm
 	};
 	struct API_EXPORT VIzGI
 	{
-		virtual void EnableCastShadows(const bool enabled) = 0;
-		virtual void EnableReceiveShadows(const bool enabled) = 0;
+		virtual void EnableShadowsCast(const bool enabled) = 0;
+		virtual void EnableShadowsReceive(const bool enabled) = 0;
 	};
 	struct API_EXPORT VIzSprite
 	{
@@ -111,8 +111,8 @@ namespace vzm
 			int* partIndexSrc = nullptr, int* partIndexTarget = nullptr, int* triIndexSrc = nullptr, int* triIndexTarget = nullptr) const override;
 
 		// ----- interfaces for VIzGI -----
-		void EnableCastShadows(const bool enabled) override;
-		void EnableReceiveShadows(const bool enabled) override;
+		void EnableShadowsCast(const bool enabled) override;
+		void EnableShadowsReceive(const bool enabled) override;
 	};
 
 	struct API_EXPORT VzActorVolume : VzActor

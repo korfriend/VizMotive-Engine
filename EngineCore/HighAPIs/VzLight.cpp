@@ -62,4 +62,10 @@ namespace vzm
 		GET_LIGHT_COMP(light, );
 		light->SetVisualizerEnabled(enabled);
 	}
+
+	void VzLight::EnableCastShadow(const bool enabled)
+	{
+		GET_LIGHT_COMP(light, );
+		light->SetCastShadow(enabled);
+	};
 }

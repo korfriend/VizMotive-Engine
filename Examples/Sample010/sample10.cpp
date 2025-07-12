@@ -225,8 +225,8 @@ int main(int, char **)
 				vzm::VzActorStaticMesh* mesh = vzm::NewActorStaticMesh(axis_light->GetName() + "_" + std::to_string(vid),
 					mesh_loaded->GetGeometry(), mesh_loaded->GetMaterial(), axis_light->GetVID());
 
-				mesh->SetGeometry(mesh_loaded->GetGeometry());
-				mesh->SetMaterials(mesh_loaded->GetMaterials());
+				//mesh->SetGeometry(mesh_loaded->GetGeometry());
+				//mesh->SetMaterials(mesh_loaded->GetMaterials());
 			}
 			axis_light->SetScale({ 20, 20, 20 });
 			axis_light->SetVisibleLayerMask(0x2, true);

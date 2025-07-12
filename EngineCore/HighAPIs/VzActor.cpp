@@ -122,12 +122,12 @@ namespace vzm
 		renderable->SetMaterials(vids);
 		UpdateTimeStamp();
 	}
-	void VzActorStaticMesh::EnableCastShadows(const bool enabled)
+	void VzActorStaticMesh::EnableShadowsCast(const bool enabled)
 	{
 		assert(0 && "TODO");
 		UpdateTimeStamp();
 	}
-	void VzActorStaticMesh::EnableReceiveShadows(const bool enabled)
+	void VzActorStaticMesh::EnableShadowsReceive(const bool enabled)
 	{
 		assert(0 && "TODO");
 		UpdateTimeStamp();

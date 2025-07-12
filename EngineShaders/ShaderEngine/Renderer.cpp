@@ -936,7 +936,7 @@ namespace vz::renderer
 
 					if (shadow_rendering)
 					{
-						is_renderable = is_renderable && material.IsCastShadow();
+						is_renderable = is_renderable && material.IsShadowCast();
 					}
 
 					if (!is_renderable)

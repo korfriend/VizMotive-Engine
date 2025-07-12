@@ -551,20 +551,18 @@ namespace vz
 	public:
 		enum class RenderFlags : uint32_t
 		{
-			DAFAULT = 1 << 0, // same as FORWARD PHONG
-			USE_VERTEXCOLORS = 1 << 1, // Forced OPAQUENESS 
-			DOUBLE_SIDED = 1 << 2,
-			OUTLINE = 1 << 3,
-			FORWARD = 1 << 4, // "not forward" refers to "deferred"
-			TRANSPARENCY = 1 << 5,
-			TESSELATION = 1 << 6,
-			ALPHA_TEST = 1 << 7,
-			WETMAP = 1 << 8,
-			CAST_SHADOW = 1 << 9,
-			RECEIVE_SHADOW = 1 << 10,
-			VERTEXAO = 1 << 11,
-			GAUSSIAN_SPLATTING = 1 << 12,
-			WIREFRAME = 1 << 13,
+			USE_VERTEXCOLORS = 1 << 0,
+			DOUBLE_SIDED = 1 << 1, // Forced OPAQUENESS 
+			OUTLINE = 1 << 2,
+			WIREFRAME = 1 << 3,
+			TRANSPARENCY = 1 << 4, // "not forward" refers to "deferred"
+			TESSELATION = 1 << 5,
+			ALPHA_TEST = 1 << 6,
+			WETMAP = 1 << 7,
+			SHADOW_CAST = 1 << 8,
+			SHADOW_RECEIVE = 1 << 9,
+			VERTEXAO = 1 << 10,
+			GAUSSIAN_SPLATTING = 1 << 11,
 		};
 		enum class ShaderType : uint32_t
 		{
@@ -625,7 +623,7 @@ namespace vz
 		};
 
 	protected:
-		uint32_t flags_ = (uint32_t)RenderFlags::FORWARD;
+		uint32_t flags_ = 0u;
 		ShaderType shaderType_ = ShaderType::PHONG;
 		BlendMode blendMode_ = BlendMode::BLENDMODE_OPAQUE;
 		StencilRef engineStencilRef_ = StencilRef::STENCILREF_DEFAULT;
@@ -672,13 +670,9 @@ namespace vz
 		LookupTableSlot volumemapperLookupSlot_ = LookupTableSlot::LOOKUP_COLOR;
 
 		// Non-serialized Attributes:
-		bool isDirty_ = true;
 	public:
 		MaterialComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::MATERIAL, entity, vuid) {}
 		virtual ~MaterialComponent() = default;
-
-		inline bool IsDirty() const { return isDirty_; }
-		inline void SetDirty(const bool dirty) { isDirty_ = dirty; }
 
 		inline void SetShaderType(const ShaderType shaderType) { shaderType_ = shaderType; timeStampSetter_ = TimerNow; }
 		inline ShaderType GetShaderType() const { return shaderType_; }
@@ -690,17 +684,17 @@ namespace vz
 
 		inline void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; timeStampSetter_ = TimerNow; }
 		inline void SetSaturate(const float saturate) { saturation_ = saturate; timeStampSetter_ = TimerNow; }
-		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; isDirty_ = true; timeStampSetter_ = TimerNow;}
-		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; isDirty_ = true; timeStampSetter_ = TimerNow;}
-		inline void SetMatalness(const float metalness) { metalness_ = metalness; isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void SetRoughness(const float roughness) { roughness_ = roughness; isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void EnableWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void EnableCastShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::CAST_SHADOW) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void EnableReceiveShadow(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::RECEIVE_SHADOW) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void EnableDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void EnableGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING) isDirty_ = true; timeStampSetter_ = TimerNow; }
-		inline void EnableWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME) isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline void SetBaseColor(const XMFLOAT4& baseColor) { baseColor_ = baseColor; timeStampSetter_ = TimerNow; }
+		inline void SetSpecularColor(const XMFLOAT4& specularColor) { specularColor_ = specularColor; timeStampSetter_ = TimerNow;}
+		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; timeStampSetter_ = TimerNow;}
+		inline void SetMatalness(const float metalness) { metalness_ = metalness; timeStampSetter_ = TimerNow; }
+		inline void SetRoughness(const float roughness) { roughness_ = roughness; timeStampSetter_ = TimerNow; }
+		inline void EnableWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP); timeStampSetter_ = TimerNow; }
+		inline void EnableShadowCast(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::SHADOW_CAST); timeStampSetter_ = TimerNow; }
+		inline void EnableShadowReceive(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
+		inline void EnableDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED); timeStampSetter_ = TimerNow; }
+		inline void EnableGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING); timeStampSetter_ = TimerNow; }
+		inline void EnableWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME); timeStampSetter_ = TimerNow; }
 		inline void SetPhongFactors(const XMFLOAT4& phongFactors) { phongFactors_ = phongFactors; timeStampSetter_ = TimerNow; }
 
 		inline void SetSheenColor(const XMFLOAT4& value) { sheenColor_ = value; timeStampSetter_ = TimerNow; }
@@ -735,8 +729,8 @@ namespace vz
 		inline bool IsTesellated() const { return flags_ & SCU32(RenderFlags::TESSELATION); }
 		inline bool IsAlphaTestEnabled() const { return flags_ & SCU32(RenderFlags::ALPHA_TEST); }
 		inline bool IsWetmapEnabled() const { return flags_ & SCU32(RenderFlags::WETMAP); }
-		inline bool IsCastShadow() const { return flags_ & SCU32(RenderFlags::CAST_SHADOW); }
-		inline bool IsReceiveShadow() const { return flags_ & SCU32(RenderFlags::RECEIVE_SHADOW); }
+		inline bool IsShadowCast() const { return flags_ & SCU32(RenderFlags::SHADOW_CAST); }
+		inline bool IsShadowReceive() const { return flags_ & SCU32(RenderFlags::SHADOW_RECEIVE); }
 		inline bool IsVertexAOEnabled() const { return flags_ & SCU32(RenderFlags::VERTEXAO); }
 		inline bool IsGaussianSplattingEnabled() const { return flags_ & SCU32(RenderFlags::GAUSSIAN_SPLATTING); }
 		inline bool IsWireframeEnabled() const { return flags_ & SCU32(RenderFlags::WIREFRAME); }
@@ -1325,6 +1319,7 @@ namespace vz
 			SLICER_NO_SOLID_FILL = 1 << 8, // in the case that the geometry is NOT water-tight
 			OUTLINE = 1 << 9,
 			UNDERCUT = 1 << 10,
+			CAST_SHADOW = 1 << 11,
 		};
 		enum RenderableType : uint8_t
 		{
@@ -1337,7 +1332,7 @@ namespace vz
 			ALLTYPES_RENDERABLE,
 		};
 	private:
-		uint32_t flags_ = RenderableFlags::EMPTY;
+		uint32_t flags_ = RenderableFlags::EMPTY | RenderableFlags::CAST_SHADOW;
 		RenderableType renderableType_ = RenderableType::UNDEFINED;
 		RenderableType renderableReservedType_ = RenderableType::ALLTYPES_RENDERABLE;
 
