@@ -15,6 +15,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx12.h"
+#include "imgui/device_manager_dx12.h"
 #include <d3d12.h>
 #include <dxgi1_4.h>
 
@@ -545,8 +546,7 @@ bool CreateDeviceD3D(HWND hWnd)
 #endif
 
 	// Create device
-	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_12_1;
-	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
+	if ((g_pd3dDevice = CreateDeviceHelper()) == nullptr)
 		return false;
 
 		// [DEBUG] Setup debug interface to break on any warnings/errors

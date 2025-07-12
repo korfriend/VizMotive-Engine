@@ -1340,7 +1340,6 @@ namespace vz::geometrics
 		uint32_t leaf_count = 0;
 
 		uint32_t maxLeafTriangles = 2;
-		bool useSHA = false;
 		float    traversalCost = 1.0f;
 		float    triangleCost = 1.0f;
 

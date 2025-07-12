@@ -12,6 +12,7 @@
 
 #include "imgui/vzImGuiHelpers.h"
 #include "imgui/IconsMaterialDesign.h"
+#include "imgui/device_manager_dx12.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -462,11 +463,10 @@ bool CreateDeviceD3D(HWND hWnd)
 #endif
 
 	// Create device
-	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_12_1;
-	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
+	if ((g_pd3dDevice = CreateDeviceHelper()) == nullptr)
 		return false;
 
-		// [DEBUG] Setup debug interface to break on any warnings/errors
+	// [DEBUG] Setup debug interface to break on any warnings/errors
 #ifdef DX12_ENABLE_DEBUG_LAYER
 	if (pdx12Debug != nullptr)
 	{

@@ -5165,6 +5165,28 @@ std::mutex queue_locker;
 		return -1;
 	}
 
+	bool CheckCrossAdapterCompatibility(ID3D12Device* device1, ID3D12Device* device2)
+	{
+		// Get adapters for both devices
+		ComPtr<IDXGIAdapter> adapter1, adapter2;
+
+		// Get adapter from device1
+		LUID luid1 = device1->GetAdapterLuid();
+		LUID luid2 = device2->GetAdapterLuid();
+
+		// Check if they're the same adapter
+		if (luid1.HighPart == luid2.HighPart && luid1.LowPart == luid2.LowPart)
+		{
+			return true; // Same adapter
+		}
+
+		// For different adapters, check cross-adapter support
+		// This requires additional validation
+
+		vzlog_warning("Engine's GPU adaptor is different from Main SW's GPU adaptor!! : Performance Warning!");
+		return false;
+	}
+
 	bool GraphicsDevice_DX12::OpenSharedResource(
 		const void* device2, const void* srvDescHeap2, const int descriptorIndex, const Texture* textureShared,
 		uint64_t& gpuDesciptorHandlerPtr, GPUResource& sharedRes, void** backendResPtr
@@ -5179,6 +5201,10 @@ std::mutex queue_locker;
 
 		auto internal_state = std::make_shared<Resource_DX12>();
 		internal_state->allocationhandler = allocationhandler;
+
+		// Cross-adapter compatibility check
+		CheckCrossAdapterCompatibility(device.Get(), device_another);
+
 		sharedRes = {};
 		sharedRes.internal_state = internal_state;
 		sharedRes.type = GPUResource::Type::TEXTURE;

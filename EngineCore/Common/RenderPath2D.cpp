@@ -17,7 +17,7 @@ namespace vz
 			if (!graphicsDevice_->OpenSharedResource(device2, srvDescHeap2, descriptorIndex, &rtRenderFinal_,
 				sharedHandleDescriptorPtr_, resShared_, &resPtr_))
 			{
-				backlog::post("Failure to OpenSharedResource!", backlog::LogLevel::Error);
+				vzlog_error("Failure to OpenSharedResource!");
 				return false;
 			}
 		}
