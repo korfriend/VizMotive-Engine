@@ -321,8 +321,11 @@ namespace vz::renderer
 				{
 				case RenderableType::MESH_RENDERABLE:
 				case RenderableType::VOLUME_RENDERABLE:
-				case RenderableType::GSPLAT_RENDERABLE: 
+				case RenderableType::GSPLAT_RENDERABLE:
 					break;
+				case RenderableType::SPRITE_RENDERABLE:
+				case RenderableType::SPRITEFONT_RENDERABLE:
+					return;
 				default: 
 					vzlog_assert(0, "Non-renderable Type! ShaderEngine's Scene Update"); return;
 				}

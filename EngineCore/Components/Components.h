@@ -1319,7 +1319,8 @@ namespace vz
 			SLICER_NO_SOLID_FILL = 1 << 8, // in the case that the geometry is NOT water-tight
 			OUTLINE = 1 << 9,
 			UNDERCUT = 1 << 10,
-			CAST_SHADOW = 1 << 11,
+			DISABLE_SHADOW_CAST = 1 << 11,
+			DISABLE_SHADOW_RECEIVE = 1 << 12,
 		};
 		enum RenderableType : uint8_t
 		{
@@ -1332,7 +1333,7 @@ namespace vz
 			ALLTYPES_RENDERABLE,
 		};
 	private:
-		uint32_t flags_ = RenderableFlags::EMPTY | RenderableFlags::CAST_SHADOW;
+		uint32_t flags_ = RenderableFlags::EMPTY;
 		RenderableType renderableType_ = RenderableType::UNDEFINED;
 		RenderableType renderableReservedType_ = RenderableType::ALLTYPES_RENDERABLE;
 
@@ -1417,6 +1418,12 @@ namespace vz
 			enabled? flags_ &= ~RenderableFlags::SLICER_NO_SOLID_FILL : flags_ |= RenderableFlags::SLICER_NO_SOLID_FILL; 
 			timeStampSetter_ = TimerNow; 
 		}
+
+		inline void DisableShadowCast(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::DISABLE_SHADOW_CAST); timeStampSetter_ = TimerNow; }
+		inline void DisableShadowReceive(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::DISABLE_SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
+
+		inline bool IsShadowCastDisabled() const { return flags_ & SCU32(RenderableFlags::DISABLE_SHADOW_CAST); }
+		inline bool IsShadowReceiveDisabled() const { return flags_ & SCU32(RenderableFlags::DISABLE_SHADOW_RECEIVE); }
 		inline bool IsSlicerSolidFill() const { return !(flags_ & RenderableFlags::SLICER_NO_SOLID_FILL); };
 
 		inline float GetFadeDistance() const { return fadeDistance_; }
