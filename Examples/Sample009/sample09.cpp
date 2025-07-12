@@ -12,6 +12,7 @@
 
 #include "imgui/vzImGuiHelpers.h"
 #include "imgui/IconsMaterialDesign.h"
+#include "imgui/device_manager_dx12.h"
 
 #include <iostream>
 #include <windowsx.h>
@@ -158,8 +159,8 @@ int main(int, char **)
 		const float offsetX = ((amountX - 1) * separationPlane) / 2.0f;
 		const float offsetZ = ((amountZ - 1) * separationPlane) / 2.0f;
 		for (int i = 0; i < num_sprites; i++) {
-			const float x = (i % amountX) * separationPlane;
-			const float z = floor(i / amountX) * separationPlane;
+			const float x = (float)(i % amountX) * separationPlane;
+			const float z = floor((float)i / (float)amountX) * separationPlane;
 			const float y = (sin(x * 0.5f) + sin(z * 0.5f)) * 200.0f;
 			shape_positions.push_back(glm::fvec3(x - offsetX, y, z - offsetZ));
 		}
@@ -171,8 +172,8 @@ int main(int, char **)
 		const float offset = ((amount - 1) * separationCube) / 2.0f;
 		for (int i = 0; i < num_sprites; i++) {
 			const float x = (i % amount) * separationCube;
-			const float y = floor((i / amount) % amount) * separationCube;
-			const float z = floor(i / (amount * amount)) * separationCube;
+			const float y = (float)floor((i / amount) % amount) * separationCube;
+			const float z = floor((float)i / (float)(amount * amount)) * separationCube;
 			shape_positions.push_back(glm::fvec3(x - offset, y - offset, z - offset));
 		}
 
@@ -570,11 +571,10 @@ bool CreateDeviceD3D(HWND hWnd)
 #endif
 
 	// Create device
-	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_12_1;
-	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
+	if ((g_pd3dDevice = CreateDeviceHelper()) == nullptr)
 		return false;
 
-		// [DEBUG] Setup debug interface to break on any warnings/errors
+	// [DEBUG] Setup debug interface to break on any warnings/errors
 #ifdef DX12_ENABLE_DEBUG_LAYER
 	if (pdx12Debug != nullptr)
 	{

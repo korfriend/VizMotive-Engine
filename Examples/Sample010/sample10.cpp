@@ -11,11 +11,12 @@
 
 #include "imgui/vzImGuiHelpers.h"
 #include "imgui/IconsMaterialDesign.h"
+#include "imgui/device_manager_dx12.h"
 
 #include <iostream>
 #include <windowsx.h>
 #include <cstdlib> 
-#include <ctime>>
+#include <ctime>
 #include <random>
 
 #include "glm/gtc/matrix_transform.hpp"
@@ -141,60 +142,6 @@ int main(int, char **)
 	const int NUM_RANDOM_OBJS = 50;
 	const int LIGHT_TYPE = 0;
 
-	const size_t num_sprites = 0;
-	static const float sprite_size = 100.f;
-	vz::jobsystem::context ctx_stl_loader;
-	std::vector<vzm::VzActorSprite*> actor_sprites(num_sprites);
-	std::vector<glm::fvec3> shape_positions;
-	size_t OFFSET_PLANE, OFFSET_CUBE, OFFSET_RANDOM, OFFSET_SPHERE;
-	srand(time(NULL));
-	{
-		// Plane
-		OFFSET_PLANE = 0;
-		const int amountX = 16;
-		const int amountZ = 32;
-		const float separationPlane = 150.0f;
-		const float offsetX = ((amountX - 1) * separationPlane) / 2.0f;
-		const float offsetZ = ((amountZ - 1) * separationPlane) / 2.0f;
-		for (int i = 0; i < num_sprites; i++) {
-			const float x = (i % amountX) * separationPlane;
-			const float z = floor(i / amountX) * separationPlane;
-			const float y = (sin(x * 0.5f) + sin(z * 0.5f)) * 200.0f;
-			shape_positions.push_back(glm::fvec3(x - offsetX, y, z - offsetZ));
-		}
-
-		// Cube
-		OFFSET_CUBE = shape_positions.size();
-		const int amount = 8;
-		const float separationCube = 150.0f;
-		const float offset = ((amount - 1) * separationCube) / 2.0f;
-		for (int i = 0; i < num_sprites; i++) {
-			const float x = (i % amount) * separationCube;
-			const float y = floor((i / amount) % amount) * separationCube;
-			const float z = floor(i / (amount * amount)) * separationCube;
-			shape_positions.push_back(glm::fvec3(x - offset, y - offset, z - offset));
-		}
-
-		// Random
-		OFFSET_RANDOM = shape_positions.size();
-		for (int i = 0; i < num_sprites; i++) {
-			shape_positions.push_back(glm::fvec3(
-				((float)rand() / RAND_MAX) * 4000.0f - 2000.0f,
-				((float)rand() / RAND_MAX) * 4000.0f - 2000.0f,
-				((float)rand() / RAND_MAX) * 4000.0f - 2000.0f
-			));
-		}
-
-		// Sphere
-		OFFSET_SPHERE = shape_positions.size();
-		const float radius = 750.0f;
-		for (int i = 0; i < num_sprites; i++) {
-			float phi = acos(-1.0f + (2.0f * i) / num_sprites);
-			float theta = sqrtf(num_sprites * glm::pi<float>()) * phi;
-			shape_positions.push_back(glm::fvec3(radius * cos(theta) * sin(phi),
-				radius * sin(theta) * sin(phi), radius * cos(phi)));
-		}
-	}
 	{
 		scene = NewScene("my scene");
 		renderer = NewRenderer("main renderer");
@@ -306,10 +253,6 @@ int main(int, char **)
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-		enum SHAPE_MOVE
-		{
-			PLANE = 0, CUBE, RANDOM, SPHERE, COUNT
-		};
 		using namespace vzm;
 		{
 			static auto since = std::chrono::system_clock::now();
@@ -321,39 +264,6 @@ int main(int, char **)
 
 			const size_t duration = 150;
 			static size_t offset = 0;
-
-			static SHAPE_MOVE current_shape = RANDOM;
-			static bool play = true;
-
-			SHAPE_MOVE target_shape = (SHAPE_MOVE)(((int)current_shape + 1) % (int)COUNT);
-			if (play)
-			{
-				const int start_offset = (int)current_shape * num_sprites;
-				const int end_offset = (int)target_shape * num_sprites;
-				float t = (float)play_count / (float)duration;
-				t *= t;
-				t *= t;
-				for (size_t i = 0; i < num_sprites; i++) {
-
-					const glm::fvec3 posS = shape_positions[start_offset + i];
-					const glm::fvec3 posE = shape_positions[end_offset + i];
-					const glm::fvec3 pos = (1 - t) * posS + t * posE;
-					
-					vzm::VzActorSprite* sprite = actor_sprites[i];
-					sprite->SetPosition(__FC3 pos);
-
-					float scale = sin((floor(pos.x) + time) * 0.002f) * 0.3f + 1;
-					sprite->SetSpriteScale({ scale * sprite_size, scale * sprite_size });
-				}
-
-				play_count++;
-
-				if (play_count % duration == 0)
-				{
-					current_shape = target_shape;
-					play_count = 0;
-				}
-			}
 
 			ImGui::Begin("3D Viewer");
 			{
@@ -514,10 +424,6 @@ int main(int, char **)
 				{
 					renderer->StoreRenderTargetInfoFile("d:\\test.jpg");
 				}
-				if (ImGui::Button(play ? "Stop" : "Play"))
-				{
-					play = !play;
-				}
 
 				ImGui::Separator();
 				ImGui::Text("Rendering Options");
@@ -661,12 +567,10 @@ bool CreateDeviceD3D(HWND hWnd)
 	//	pdx12Debug->EnableDebugLayer();
 #endif
 
-	// Create device
-	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_12_1;
-	if (D3D12CreateDevice(nullptr, featureLevel, IID_PPV_ARGS(&g_pd3dDevice)) != S_OK)
+	if ((g_pd3dDevice = CreateDeviceHelper()) == nullptr)
 		return false;
 
-		// [DEBUG] Setup debug interface to break on any warnings/errors
+	// [DEBUG] Setup debug interface to break on any warnings/errors
 #ifdef DX12_ENABLE_DEBUG_LAYER
 	if (pdx12Debug != nullptr)
 	{
