@@ -178,6 +178,11 @@ int main(int, char **)
 		axis_helper->SetScale({ 100, 100, 100 });
 		axis_helper->SetVisibleLayerMask(0xF, true);
 		scene->AppendChild(axis_helper);
+		//std::vector<ActorVID> axis_helper_children = axis_helper->GetChildren();
+
+		vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
+		std::vector<ActorVID> axis_helper_children = axis_helper_light->GetChildren();
+		axis_helper_light->EnableUnlit(true);
 
 		for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
 		{
@@ -211,17 +216,22 @@ int main(int, char **)
 			light->SetVisibleLayerMask(0x8, true);
 			scene->AppendChild(light);
 
-			vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
-			axis_helper_light->SetScale({ 20, 20, 20 });
-			axis_helper_light->SetName("light_" + std::to_string(idx) + "_axis");
+			//vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
+			//axis_light->SetName("light_" + std::to_string(idx) + "_axis");
+			vzm::VzActor* axis_light = vzm::NewActorNode("light_" + std::to_string(idx) + "_axis");
+			for (ActorVID vid : axis_helper_children)
+			{
+				vzm::VzActorStaticMesh* mesh_loaded = (vzm::VzActorStaticMesh*)vzm::GetComponent(vid);
+				vzm::VzActorStaticMesh* mesh = vzm::NewActorStaticMesh(axis_light->GetName() + "_" + std::to_string(vid),
+					mesh_loaded->GetGeometry(), mesh_loaded->GetMaterial(), axis_light->GetVID());
 
-			//for (ActorVID id : axis_helper_light->GetAllMaterials(true))
-			//{
-			//	((VzMaterial*)vzm::GetComponent(id))->SetVisibleLayerMask(0u);
-			//}
-			axis_helper_light->SetVisibleLayerMask(0x2, true);
-			axis_helper_light->EnableUnlit(true);
-			light->AppendChild(axis_helper_light);
+				mesh->SetGeometry(mesh_loaded->GetGeometry());
+				mesh->SetMaterials(mesh_loaded->GetMaterials());
+			}
+			axis_light->SetScale({ 20, 20, 20 });
+			axis_light->SetVisibleLayerMask(0x2, true);
+			axis_light->EnableUnlit(true);
+			light->AppendChild(axis_light);
 		}
 
 	}

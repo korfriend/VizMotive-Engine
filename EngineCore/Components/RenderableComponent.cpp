@@ -97,7 +97,6 @@ namespace vz
 		vuidGeometry_ = geo_comp->GetVUID();
 
 		isDirty_ = true;
-		//Update();
 
 		timeStampSetter_ = TimerNow;
 	}
@@ -123,7 +122,6 @@ namespace vz
 		vuidMaterials_[slot] = mat_comp->GetVUID();
 
 		isDirty_ = true;
-		//Update();
 
 		timeStampSetter_ = TimerNow;
 	}
@@ -131,14 +129,14 @@ namespace vz
 	{
 		vuidMaterials_.clear();
 		size_t n = materials.size();
-		vuidMaterials_.reserve(n);
+		vuidMaterials_.resize(n);
 		for (size_t i = 0; i < n; ++i)
 		{
 			MaterialComponent* mat_comp = compfactory::GetMaterialComponent(materials[i]);
-			vuidMaterials_.push_back(mat_comp->GetVUID());
+			vuidMaterials_[i] = mat_comp->GetVUID();
 		}
 
-		Update();
+		isDirty_ = true;
 
 		timeStampSetter_ = TimerNow;
 	}
