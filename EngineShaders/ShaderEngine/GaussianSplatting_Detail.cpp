@@ -55,7 +55,6 @@ namespace vz::renderer
 
 		GPUResource unbind;
 
-		static thread_local RenderQueue renderQueue;
 		renderQueue.init();
 		for (uint32_t instanceIndex : visMain.visibleRenderables_GSplat)
 		{

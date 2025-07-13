@@ -230,7 +230,6 @@ namespace vzm
 
 		renderer->scene = scenefactory::GetScene(vidScene);
 		renderer->camera = compfactory::GetCameraComponent(vidCam);
-		renderer->layerMask = compfactory::GetLayeredMaskComponent(vidCam);
 
 		if (!renderer->scene || !renderer->camera)
 		{

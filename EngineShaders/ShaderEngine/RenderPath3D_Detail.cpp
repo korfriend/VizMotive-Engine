@@ -1582,8 +1582,8 @@ namespace vz::renderer
 		shadercam.texture_depth_index = device->GetDescriptorIndex(&depthBuffer_Copy, SubresourceType::SRV);
 		shadercam.texture_lineardepth_index = device->GetDescriptorIndex(&rtLinearDepth, SubresourceType::SRV);
 		//shadercam.texture_velocity_index = camera.texture_velocity_index;
-		shadercam.texture_normal_index = device->GetDescriptorIndex(&viewResources.texture_normals, SubresourceType::SRV);
-		shadercam.texture_roughness_index = device->GetDescriptorIndex(&viewResources.texture_roughness, SubresourceType::SRV);
+		shadercam.texture_normal_index = device->GetDescriptorIndex(&visibilityResources.texture_normals, SubresourceType::SRV);
+		shadercam.texture_roughness_index = device->GetDescriptorIndex(&visibilityResources.texture_roughness, SubresourceType::SRV);
 		shadercam.buffer_entitytiles_index = device->GetDescriptorIndex(&tiledLightResources.entityTiles, SubresourceType::SRV);
 		//shadercam.texture_reflection_index = camera.texture_reflection_index;
 		//shadercam.texture_reflection_depth_index = camera.texture_reflection_depth_index;
@@ -2193,7 +2193,7 @@ namespace vz::renderer
 		profiler::EndRange(range);
 	}
 
-	void GRenderPath3DDetails::CreateViewResources(VisibilityResources& res, XMUINT2 resolution)
+	void GRenderPath3DDetails::CreateVisibilityResources(VisibilityResources& res, XMUINT2 resolution)
 	{
 		res.tile_count = GetVisibilityTileCount(resolution);
 		{

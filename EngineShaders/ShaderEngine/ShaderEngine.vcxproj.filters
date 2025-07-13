@@ -56,6 +56,15 @@
     <ClCompile Include="Font.cpp">
       <Filter>Processing</Filter>
     </ClCompile>
+    <ClCompile Include="ShadowMap_Details.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SpriteDraw_Details.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugVisualizer_Details.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\dxcapi.h">

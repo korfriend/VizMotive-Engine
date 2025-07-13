@@ -43,7 +43,8 @@ namespace vz::renderer
 	bool isDebugLightCulling = false;
 	bool isAdvancedLightCulling = false;
 	bool isMeshShaderAllowed = false;
-	bool isShadowsEnabled = false;
+	bool isShadowsEnabled = true;
+	bool isShadowLODOverride = true;
 	bool isVariableRateShadingClassification = false;
 	bool isSurfelGIDebugEnabled = false;
 	bool isColorGradingEnabled = false;
@@ -584,6 +585,7 @@ namespace vz
 		renderer::isTemporalAAEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
 		renderer::isGaussianSplattingEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
 		renderer::isTonemapping = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TONEMAPPING");
+		renderer::isShadowsEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "SHADOW_ENABLED");
 
 		renderer::isDebugLightCulling = config::GetBoolConfig("DEBUG_SETTINGS", "LIGHT_CULLING");
 

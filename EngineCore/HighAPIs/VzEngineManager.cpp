@@ -432,6 +432,21 @@ namespace vzm
 			{
 				ses_section.Set("TONEMAPPING", true);
 			}
+			if (!ses_section.Has("SHADOW_ENABLED"))
+			{
+				ses_section.Set("SHADOW_ENABLED", true);
+			}
+			configFile.Commit();
+		}
+
+		std::string dbs_string = "DEBUG_SETTINGS";
+		const char* dbs_string_c = dbs_string.c_str();
+		config::Section& dbs_section = configFile.GetSection(dbs_string_c);
+		{
+			if (!dbs_section.Has("LIGHT_CULLING"))
+			{
+				dbs_section.Set("LIGHT_CULLING", false);
+			}
 			configFile.Commit();
 		}
 	}

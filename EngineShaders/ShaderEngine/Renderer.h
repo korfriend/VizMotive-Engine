@@ -268,6 +268,7 @@ namespace vz::renderer
 	extern bool isAdvancedLightCulling;
 	extern bool isMeshShaderAllowed;
 	extern bool isShadowsEnabled;
+	extern bool isShadowLODOverride;
 	extern bool isVariableRateShadingClassification;
 	extern bool isSurfelGIDebugEnabled;
 	extern bool isColorGradingEnabled;

@@ -490,8 +490,16 @@ namespace vz::renderer
 		}
 		virtual ~GRenderPath3DDetails() = default;
 
-		bool viewShadingInCS = false;
+		// NOTE: "static thread_local" technique!!!
+		//	the parameter must be initialized after the "static thread_local" declaration!
+		inline static thread_local RenderQueue renderQueue;
+		inline static thread_local RenderQueue renderQueue_transparent;
+
 		mutable bool firstFrame = true;
+
+		// this needs to be renderpath option NOR renderer engine option
+		//  visibilityShadingInCS is good to a complex scene rather than a simple scene (e.g., axis view)
+		bool visibilityShadingInCS = false; 
 		
 		GSceneDetails* scene_Gdetails = nullptr;
 
@@ -560,7 +568,7 @@ namespace vz::renderer
 
 		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
 		
-		VisibilityResources viewResources;	// dynamic allocation
+		VisibilityResources visibilityResources;	// dynamic allocation
 
 		RenderableShapeCollection renderableShapes; // dynamic allocation
 
@@ -604,7 +612,7 @@ namespace vz::renderer
 		void CreateTiledLightResources(TiledLightResources& res, XMUINT2 resolution);
 		void ComputeTiledLightCulling(const TiledLightResources& res, const Visibility& vis, const Texture& debugUAV, CommandList cmd);
 		void CreateGaussianResources(GaussianSplattingResources& res, XMUINT2 resolution);
-		void CreateViewResources(VisibilityResources& res, XMUINT2 resolution);
+		void CreateVisibilityResources(VisibilityResources& res, XMUINT2 resolution);
 
 		void Visibility_Prepare(const VisibilityResources& res, const Texture& input_primitiveID_1, const Texture& input_primitiveID_2, CommandList cmd); // input_primitiveID can be MSAA
 		// SURFACE need to be checked whether it requires FORWARD or DEFERRED
@@ -624,6 +632,7 @@ namespace vz::renderer
 			const CameraComponent& camera,
 			CommandList cmd
 		);
+		void DrawShadowmaps(const Visibility& vis, CommandList cmd);
 
 		// rendering process that includes render-pipelines and compute shaders
 		void RenderMeshes(const Visibility& vis, const RenderQueue& renderQueue, RENDERPASS renderPass, uint32_t filterMask, CommandList cmd, uint32_t flags = 0, uint32_t camera_count = 1);
