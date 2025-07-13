@@ -207,6 +207,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DebugVisualizer_Details.cpp" />
     <ClCompile Include="DeferredProcessing_Detail.cpp" />
     <ClCompile Include="DirectVolumes_Detail.cpp" />
     <ClCompile Include="Font.cpp" />
@@ -224,7 +225,9 @@
     <ClCompile Include="ShaderCompiler.cpp" />
     <ClCompile Include="ShaderLoader.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="ShadowMap_Details.cpp" />
     <ClCompile Include="SortLib.cpp" />
+    <ClCompile Include="SpriteDraw_Details.cpp" />
     <ClCompile Include="TextureHelper.cpp" />
   </ItemGroup>
   <ItemGroup>

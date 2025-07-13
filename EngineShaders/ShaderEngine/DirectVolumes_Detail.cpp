@@ -13,11 +13,7 @@ namespace vz::renderer
 		XMUINT2 tile_count = GetVisibilityTileCount(XMUINT2(rtMain.desc.width, rtMain.desc.height));
 
 		GPUResource unbind;
-
-		// NOTE: "static thread_local" technique!!!
-		//	the parameter must be initialized after the "static thread_local" declaration!
-		//	
-		static thread_local RenderQueue renderQueue;
+	
 		renderQueue.init();
 		for (uint32_t instanceIndex : visMain.visibleRenderables_Mesh)
 		{
@@ -299,10 +295,6 @@ namespace vz::renderer
 
 		GPUResource unbind;
 
-		// NOTE: "static thread_local" technique!!!
-		//	the parameter must be initialized after the "static thread_local" declaration!
-		//	
-		static thread_local RenderQueue renderQueue;
 		renderQueue.init();
 		for (uint32_t instanceIndex : visMain.visibleRenderables_Volume)
 		{
