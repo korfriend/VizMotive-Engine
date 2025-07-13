@@ -148,6 +148,7 @@ int main(int, char **)
 
 		VzLight *light = NewLight("my light");
 		light->SetIntensity(5.f);
+		light->EnableCastShadow(true);
 		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
@@ -189,7 +190,17 @@ int main(int, char **)
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 10, 10, 10 });
+		axis_helper->EnableUnlit(true);
 		scene->AppendChild(axis_helper);
+
+		vzm::VzGeometry* floor_geo = vzm::NewGeometry("floor mesh");
+		vz::geogen::GenerateBoxGeometry(floor_geo->GetVID());
+		vzm::VzMaterial* floor_material = vzm::NewMaterial("floor mesh");
+		vzm::VzActorStaticMesh* floor_actor = vzm::NewActorStaticMesh("floor", floor_geo->GetVID(), floor_material->GetVID());
+		floor_actor->SetScale({ 100.f, 5.f, 100.f });
+		floor_actor->SetPosition({ 0.f, 0.f, -50.f });
+		floor_actor->SetEulerAngleZXYInDegree({ 90, 0, 0 });
+		scene->AppendChild(floor_actor);
 
 		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
 		

@@ -558,7 +558,7 @@ namespace vz::geogen
 	class BoxGeometry
 	{
 		/**
-		 * Constructs a new box geometry.
+		 * Constructs a new box geometry for Right-Handed System (RHS).
 		 *
 		 * @param {number} [width=1] - Width of the box.
 		 * @param {number} [height=1] - Height of the box.
@@ -651,9 +651,7 @@ namespace vz::geogen
 			}
 
 			// Indices
-			// 1. You need three indices to draw a single face
-			// 2. A single segment consists of two faces
-			// 3. So we need to generate six (2*3) indices per segment
+			// For RHS, we need clockwise winding order when viewed from outside
 			for (uint32_t iy = 0; iy < gridY; iy++) {
 				for (uint32_t ix = 0; ix < gridX; ix++) {
 					const uint32_t a = numberOfVertices + ix + gridX1 * iy;
@@ -661,14 +659,14 @@ namespace vz::geogen
 					const uint32_t c = numberOfVertices + (ix + 1) + gridX1 * (iy + 1);
 					const uint32_t d = numberOfVertices + (ix + 1) + gridX1 * iy;
 
-					// Faces with winding order for RHS
+					// Faces with clockwise winding order for RHS
 					indices.push_back(a);
-					indices.push_back(d);
 					indices.push_back(b);
+					indices.push_back(d);
 
 					indices.push_back(b);
-					indices.push_back(d);
 					indices.push_back(c);
+					indices.push_back(d);
 
 					// Increase counter
 					groupCount += 6;
@@ -676,7 +674,6 @@ namespace vz::geogen
 			}
 
 			// We keep track of material groups through groupStart and groupCount
-			// but we don't store the actual material groups since Primitive doesn't support it
 			groupStart += groupCount;
 
 			// Update total number of vertices
@@ -711,12 +708,25 @@ namespace vz::geogen
 			uint32_t groupStart = 0;
 
 			// Build each side of the box geometry
-			buildPlane('z', 'y', 'x', -1.f, -1.f, depth, height, width, depthSegments, heightSegments, 0, vertices, normals, uvs, indices, numberOfVertices, groupStart); // px
-			buildPlane('z', 'y', 'x', 1.f, -1.f, depth, height, -width, depthSegments, heightSegments, 1, vertices, normals, uvs, indices, numberOfVertices, groupStart); // nx
-			buildPlane('x', 'z', 'y', 1.f, 1.f, width, depth, height, widthSegments, depthSegments, 2, vertices, normals, uvs, indices, numberOfVertices, groupStart); // py
-			buildPlane('x', 'z', 'y', 1.f, -1.f, width, depth, -height, widthSegments, depthSegments, 3, vertices, normals, uvs, indices, numberOfVertices, groupStart); // ny
-			buildPlane('x', 'y', 'z', 1.f, -1.f, width, height, depth, widthSegments, heightSegments, 4, vertices, normals, uvs, indices, numberOfVertices, groupStart); // pz
-			buildPlane('x', 'y', 'z', -1.f, -1.f, width, height, -depth, widthSegments, heightSegments, 5, vertices, normals, uvs, indices, numberOfVertices, groupStart); // nz
+			// For RHS: +X is right, +Y is up, +Z is forward (towards viewer)
+
+			// +X face (right)
+			buildPlane('z', 'y', 'x', -1.f, -1.f, depth, height, width, depthSegments, heightSegments, 0, vertices, normals, uvs, indices, numberOfVertices, groupStart);
+
+			// -X face (left)
+			buildPlane('z', 'y', 'x', 1.f, -1.f, depth, height, -width, depthSegments, heightSegments, 1, vertices, normals, uvs, indices, numberOfVertices, groupStart);
+
+			// +Y face (top)
+			buildPlane('x', 'z', 'y', 1.f, 1.f, width, depth, height, widthSegments, depthSegments, 2, vertices, normals, uvs, indices, numberOfVertices, groupStart);
+
+			// -Y face (bottom)
+			buildPlane('x', 'z', 'y', 1.f, -1.f, width, depth, -height, widthSegments, depthSegments, 3, vertices, normals, uvs, indices, numberOfVertices, groupStart);
+
+			// +Z face (front - towards viewer)
+			buildPlane('x', 'y', 'z', 1.f, -1.f, width, height, depth, widthSegments, heightSegments, 4, vertices, normals, uvs, indices, numberOfVertices, groupStart);
+
+			// -Z face (back - away from viewer)
+			buildPlane('x', 'y', 'z', -1.f, -1.f, width, height, -depth, widthSegments, heightSegments, 5, vertices, normals, uvs, indices, numberOfVertices, groupStart);
 
 			// Set geometry data
 			std::vector<XMFLOAT3>& vtxPositions = primitive.GetMutableVtxPositions();
@@ -743,6 +753,22 @@ namespace vz::geogen
 	
 	bool GenerateBoxGeometry(Entity geometryEntity, const float width, const float height, const float depth, const uint32_t widthSegments, const uint32_t heightSegments, const uint32_t depthSegments)
 	{
+		GeometryComponent* geometry = compfactory::GetGeometryComponent(geometryEntity);
+		if (geometry == nullptr)
+		{
+			vzlog_error("Invalid geometryEntity");
+			return false;
+		}
+
+		BoxGeometry box(width, height, depth, widthSegments, heightSegments, depthSegments);
+
+		{
+			std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+			geometry->ClearGeometry();
+			geometry->AddMovePrimitiveFrom(std::move(box.GetPrimitive()));
+			geometry->UpdateRenderData();
+		}
+
 		return true;
 	}
 
