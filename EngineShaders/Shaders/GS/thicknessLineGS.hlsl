@@ -56,23 +56,32 @@ void MakeThickLinesTriStream(VertexToPixel input[2], inout TriangleStream<Vertex
     p1.w = 1.0f;
 
     // Calculate the angle between the line and positive x-axis
-    float3 lineDirection = p0.xyz - p1.xyz;
-    float3 xAxis = float3(1.0f, 0.0f, 0.0f);
+    //float3 lineDirection = p0.xyz - p1.xyz;
+    //float3 xAxis = float3(1.0f, 0.0f, 0.0f);
+    //
+    //lineDirection.z = 0.0f; // Ensure we're working in 2D space
+    //
+    //float lineLength = length(lineDirection.xy);
+    //float angle = acos(dot(lineDirection.xy, xAxis.xy) / lineLength);
+    //
+    //// Determine if angle is clockwise or counter-clockwise
+    //if (cross(lineDirection, xAxis).z < 0.0f)
+    //{
+    //    angle = 2.0f * PI - angle;
+    //}
+    //
+    //// Adjust angle to be perpendicular to line direction
+    //angle *= -1.0f;
+    //angle -= PI * 0.5f;
 
-    lineDirection.z = 0.0f; // Ensure we're working in 2D space
+    float2 d = p0.xy - p1.xy;
+    float  ls = dot(d, d);
+    if (ls < 1e-10) return;           // skip zero-length
 
-    float lineLength = length(lineDirection.xy);
-    float angle = acos(dot(lineDirection.xy, xAxis.xy) / lineLength);
-
-    // Determine if angle is clockwise or counter-clockwise
-    if (cross(lineDirection, xAxis).z < 0.0f)
-    {
-        angle = 2.0f * PI - angle;
-    }
-
-    // Adjust angle to be perpendicular to line direction
-    angle *= -1.0f;
-    angle -= PI * 0.5f;
+    float  cosA = clamp(d.x * rsqrt(ls), -1.0, 1.0);
+    float  angle = acos(cosA);
+    if (d.y > 0) angle = 2.0f * PI - angle;
+    angle = -(angle + PI * 0.5f);
 
     // Calculate thickness in screen space
     const float thicknessX = g_xThickness * g_xCamera.cameras[0].internal_resolution_rcp.x;
