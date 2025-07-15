@@ -1133,9 +1133,9 @@ namespace vz
 		inline float TrilinearSampleVolume_Safe(const float3& posSampleVS, const float3& vol_size, const uint2& vol_wwh, const T* volumeData)
 		{
 			if (
-				posSampleVS.x < 0 || posSampleVS.x >= vol_size.x - 1.f ||
-				posSampleVS.y < 0 || posSampleVS.y >= vol_size.y - 1.f ||
-				posSampleVS.z < 0 || posSampleVS.z >= vol_size.z - 1.f
+				posSampleVS.x < 0 || posSampleVS.x >= vol_size.x - 1.001f ||
+				posSampleVS.y < 0 || posSampleVS.y >= vol_size.y - 1.001f ||
+				posSampleVS.z < 0 || posSampleVS.z >= vol_size.z - 1.001f
 				)
 				return 0.f;
 			return TrilinearSampleVolume(posSampleVS, vol_wwh, volumeData);
