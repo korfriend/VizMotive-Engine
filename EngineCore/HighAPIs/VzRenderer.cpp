@@ -448,5 +448,6 @@ namespace vzm
 	{
 		GET_RENDERPATH(renderer, );
 		renderer->ShowDebugBuffer(debugMode);
+		renderer->forceToRenderCall = true;
 	}
 }

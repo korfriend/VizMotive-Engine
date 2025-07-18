@@ -872,7 +872,7 @@ namespace vz
 			inline bool IsValid() const { return vertexPositions_.size() > 0 && aabb_.IsValid(); }
 			inline void SetAABB(const geometrics::AABB& aabb) { aabb_ = aabb; }
 			inline void SetPrimitiveType(const PrimitiveType ptype) { ptype_ = ptype; }
-			inline bool IsValidBVH() const { return bvh_.IsValid(); }
+			inline bool HasValidBVH() const { return bvh_.IsValid(); }
 			inline const geometrics::BVH& GetBVH() const { return bvh_; }
 			inline const std::vector<geometrics::AABB>& GetBVHLeafAABBs() const { return bvhLeafAabbs_; }
 			inline bool IsConvexShape() const { return isConvex; }
@@ -1346,7 +1346,7 @@ namespace vz
 		// parameters for visibility effect
 		XMFLOAT3 visibleCenter_ = XMFLOAT3(0, 0, 0);
 		float visibleRadius_ = 0;
-		float fadeDistance_ = std::numeric_limits<float>::max();
+		float fadeDistance_ = std::numeric_limits<float>::max(); // object will begin to fade out at this distance to camera
 		XMFLOAT4 rimHighlightColor_ = XMFLOAT4(1, 1, 1, 0);
 		float rimHighlightFalloff_ = 8;
 		float lod_bias_ = 0;

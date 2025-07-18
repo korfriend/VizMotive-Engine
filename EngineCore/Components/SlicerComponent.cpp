@@ -376,8 +376,9 @@ namespace vz
 
 		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
 		{
-			geometry->MovePrimitivesFrom(std::move(primitives));
-			//geometry->MovePrimitiveFrom(std::move(primitives[2]), 0);
+			//geometry->MovePrimitivesFrom(std::move(primitives));
+
+			geometry->MovePrimitiveFrom(std::move(primitives[1]), 0);
 			geometry->UpdateRenderData();
 		}
 		return true;
