@@ -1553,15 +1553,17 @@ namespace vz
 					for (size_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 					{
 						const Primitive& part = parts[part_index];
-						if (part.GetPrimitiveType() != GeometryComponent::PrimitiveType::TRIANGLES)
-							continue;
-						assert(part.IsValidBVH());	// this is supposed to be TRUE because geometry.IsAutoUpdateBVH() is TRUE
 
 						const std::vector<XMFLOAT3>& positions = part.GetVtxPositions();
 						const std::vector<XMFLOAT3>& normals = part.GetVtxNormals();
 						const std::vector<uint32_t>& indices = part.GetIdxPrimives();
 						const std::vector<XMFLOAT2>& uvset_0 = part.GetVtxUVSet0();
 						const std::vector<XMFLOAT2>& uvset_1 = part.GetVtxUVSet1();
+
+						Ray ray_local = Ray(ray_origin_local, ray_direction_local);
+						const BVH& bvh = part.GetBVH();
+						const std::vector<geometrics::AABB>& bvh_leaf_aabbs = part.GetBVHLeafAABBs();
+
 						auto intersectTriangle = [&](const uint32_t subsetIndex, const uint32_t indexOffset, const uint32_t triangleIndex)
 							{
 								const uint32_t i0 = indices[indexOffset + triangleIndex * 3 + 0];
@@ -1646,17 +1648,153 @@ namespace vz
 								}
 							};
 
-						Ray ray_local = Ray(ray_origin_local, ray_direction_local);
+						auto intersectLine = [&](const uint32_t subsetIndex, const uint32_t indexOffset, const uint32_t lineIndex, const float R)
+							{
+								const uint32_t i0 = indices[indexOffset + lineIndex * 2 + 0];
+								const uint32_t i1 = indices[indexOffset + lineIndex * 2 + 1];
 
-						const BVH& bvh = part.GetBVH();
-						const std::vector<geometrics::AABB>& bvh_leaf_aabbs = part.GetBVHLeafAABBs();
-						bvh.Intersects(ray_local, 0, [&](uint32_t index) {
-							const AABB& leaf = bvh_leaf_aabbs[index];
-							const uint32_t triangleIndex = leaf.layerMask;
-							const uint32_t subsetIndex = leaf.userdata;
+								XMVECTOR p0 = XMLoadFloat3(&positions[i0]);
+								XMVECTOR p1 = XMLoadFloat3(&positions[i1]);
 
-							intersectTriangle(subsetIndex, 0, triangleIndex);
-							});
+								auto raySegmentThin = [](const XMVECTOR& ray_origin,
+									const XMVECTOR& ray_dir,
+									const XMVECTOR& p0,
+									const XMVECTOR& p1,
+									float threshold,  // local space Radius
+									float tMax,       // instead of ray.tMax
+									float& tHit,
+									float& outU) -> bool
+									{
+										XMVECTOR u = XMVectorSubtract(p1, p0);           // segment direction
+										const XMVECTOR& v = ray_dir;                     // ray direction
+										XMVECTOR w = XMVectorSubtract(p0, ray_origin);   // p0 - ray_origin
+
+										float a = XMVectorGetX(XMVector3Dot(u, u));      // |u|©÷
+										float b = XMVectorGetX(XMVector3Dot(u, v));      // u¡¤v
+										float c = XMVectorGetX(XMVector3Dot(v, v));      // |v|©÷
+										float d = XMVectorGetX(XMVector3Dot(u, w));      // u¡¤w
+										float e = XMVectorGetX(XMVector3Dot(v, w));      // v¡¤w
+
+										float denom = a * c - b * b;
+										if (fabsf(denom) < 1e-8f)   // parallel lines
+											return false;
+
+										float sc = (b * e - c * d) / denom;   // parameter on segment
+										float tc = (a * e - b * d) / denom;   // parameter on ray
+
+										if (sc < 0.0f || sc > 1.0f)          // outside segment range
+											return false;
+										if (tc < 0.0f || tc > tMax)          // outside ray range
+											return false;
+
+										// calculate distance between closest points on the two lines
+										XMVECTOR seg_point = XMVectorAdd(p0, XMVectorScale(u, sc));
+										XMVECTOR ray_point = XMVectorAdd(ray_origin, XMVectorScale(v, tc));
+										XMVECTOR dp = XMVectorSubtract(seg_point, ray_point);
+
+										float dist2 = XMVectorGetX(XMVector3Dot(dp, dp));
+										if (dist2 > threshold * threshold)    // too far from threshold
+											return false;
+
+										tHit = tc;   // ray hit distance
+										outU = sc;   // hit position within segment [0,1]
+										return true;
+									};
+
+
+								float distance = FLT_MAX;
+								float u;
+								if (raySegmentThin(ray_origin_local, ray_direction_local, p0, p1, 3.f, FLT_MAX, distance, u))
+								{
+									const XMVECTOR pos_local = XMVectorAdd(ray_origin_local, ray_direction_local * distance);
+									const XMVECTOR pos = XMVector3Transform(pos_local, world_mat);
+									distance = math::Distance(pos, ray_origin);
+
+									// Note: we do the TMin, Tmax check here, in world space! We use the RayTriangleIntersects in local space, so we don't use those in there
+									if (distance < result.distance && distance >= ray.TMin && distance <= ray.TMax)
+									{
+										XMVECTOR nor;
+										if (normals.empty()) // Note: for soft body we compute it instead of loading the simulated normals
+										{
+											nor = XMVectorSet(0, 0, 0, 0);
+										}
+										else
+										{
+											nor = XMVectorLerp(
+												XMLoadFloat3(&normals[i0]),
+												XMLoadFloat3(&normals[i1]), u
+											);
+											nor = XMVector3Normalize(XMVector3TransformNormal(nor, world_mat));
+										}
+										const XMVECTOR vel = pos - XMVector3Transform(pos_local, world_mat_prev);
+
+										result.uv = {};
+										if (!uvset_0.empty())
+										{
+											XMVECTOR uv = XMVectorLerp(
+												XMLoadFloat2(&uvset_0[i0]),
+												XMLoadFloat2(&uvset_0[i1]), u
+											);
+											result.uv.x = XMVectorGetX(uv);
+											result.uv.y = XMVectorGetY(uv);
+										}
+										if (!uvset_1.empty())
+										{
+											XMVECTOR uv = XMVectorLerp(
+												XMLoadFloat2(&uvset_1[i0]),
+												XMLoadFloat2(&uvset_1[i1]), u
+											);
+											result.uv.z = XMVectorGetX(uv);
+											result.uv.w = XMVectorGetY(uv);
+										}
+
+										result.entity = entity;
+										XMStoreFloat3(&result.position, pos);
+										XMStoreFloat3(&result.normal, nor);
+										XMStoreFloat3(&result.velocity, vel);
+										result.distance = distance;
+										result.subsetIndex = (int)subsetIndex;
+										result.vertexID0 = (int)i0;
+										result.vertexID1 = (int)i1;
+										result.vertexID2 = -1;
+										result.bary = XMFLOAT2(u, u);
+										result.triIndex = (int)lineIndex;
+									}
+								}
+							};
+
+						switch (part.GetPrimitiveType())
+						{
+						case GeometryComponent::PrimitiveType::TRIANGLES:
+							assert(part.HasValidBVH());	// this is supposed to be TRUE because geometry.IsAutoUpdateBVH() is TRUE
+
+							bvh.Intersects(ray_local, 0, [&](uint32_t index) {
+								const AABB& leaf = bvh_leaf_aabbs[index];
+								const uint32_t triangleIndex = leaf.layerMask;
+								const uint32_t subsetIndex = leaf.userdata;
+
+								intersectTriangle(subsetIndex, 0, triangleIndex);
+								});
+
+							break;
+						case GeometryComponent::PrimitiveType::LINES:
+							assert(part.HasValidBVH());	// this is supposed to be TRUE because geometry.IsAutoUpdateBVH() is TRUE
+
+							bvh.Intersects(ray_local, 0, [&](uint32_t index) {
+								const AABB& leaf = bvh_leaf_aabbs[index];
+								const uint32_t lineIndex = leaf.layerMask;
+								const uint32_t subsetIndex = leaf.userdata;
+
+								intersectLine(subsetIndex, 0, lineIndex, 3);
+								});
+
+							break;
+						default:
+							continue;
+						}
+
+
+
 					}
 				} break;
 				case RenderableType::VOLUME_RENDERABLE:

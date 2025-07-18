@@ -1339,14 +1339,14 @@ namespace vz::geometrics
 		uint32_t* leaf_indices = nullptr;
 		uint32_t leaf_count = 0;
 
-		uint32_t maxLeafTriangles = 2;
+		uint32_t maxLeafPrimitives = 2;
 		float    traversalCost = 1.0f;
-		float    triangleCost = 1.0f;
+		float    primitiveCost = 1.0f;
 
 		constexpr bool IsValid() const { return nodes != nullptr; }
 
 		// Completely rebuilds tree from scratch
-		void Build(const AABB* aabbs, uint32_t aabb_count, bool useSHA = false)
+		void Build(const AABB* aabbs, uint32_t aabb_count, bool useSAH = false)
 		{
 			node_count = 0;
 			if (aabb_count == 0)
@@ -1369,7 +1369,7 @@ namespace vz::geometrics
 				node.aabb = vz::geometrics::AABB::Merge(node.aabb, aabbs[i]);
 				leaf_indices[i] = i;
 			}
-			if (useSHA)
+			if (useSAH)
 				subdivideSHA(0, aabbs);
 			else
 				subdivide(0, aabbs);
@@ -1478,7 +1478,7 @@ namespace vz::geometrics
 		{
 			Node& node = nodes[nodeIndex];
 			// stop if the node already holds 2 or fewer tris
-			if (node.count <= maxLeafTriangles)
+			if (node.count <= maxLeafPrimitives)
 				return;
 
 			XMFLOAT3 extent = node.aabb.getHalfWidth();
@@ -1534,7 +1534,7 @@ namespace vz::geometrics
 		{
 			Node& node = nodes[nodeIndex];
 
-			if (node.count <= maxLeafTriangles)
+			if (node.count <= maxLeafPrimitives)
 				return;
 
 			// ---------------- Search SHA candidates
@@ -1591,7 +1591,7 @@ namespace vz::geometrics
 			}
 
 			// Is SAH higher than "no split" cost? ==> Keep as leaf
-			float leafCost = triangleCost * node.count;
+			float leafCost = primitiveCost * node.count;
 			if (bestCost >= leafCost)
 				return;
 
@@ -1622,12 +1622,13 @@ namespace vz::geometrics
 		inline float surfaceArea(const vz::geometrics::AABB& b)
 		{
 			XMFLOAT3 e = b.getHalfWidth();           // half-extents
-			return 2.f * (e.x * e.y + e.y * e.z + e.z * e.x);
+			float a = 2.f * (e.x * e.y + e.y * e.z + e.z * e.x);
+			return std::max(a, 1e-20f); // epsilon
 		}
 
 		float costSHA(uint32_t numTri, float areaParent, float areaChild)
 		{
-			return traversalCost + triangleCost * (areaChild / areaParent) * numTri;
+			return traversalCost + primitiveCost * (areaChild / areaParent) * numTri;
 		}
 	};
 }

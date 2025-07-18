@@ -443,7 +443,7 @@ namespace vz
 
 	void Primitive::updateBVH(const bool enabled)
 	{
-		vzlog_assert(ptype_ == PrimitiveType::TRIANGLES, "BVH is allowed only for triangle mesh (no stripe)");
+		//vzlog_assert(ptype_ == PrimitiveType::TRIANGLES, "BVH is allowed only for triangle mesh (no stripe)");
 
 		if (!enabled)
 		{
@@ -455,7 +455,9 @@ namespace vz
 			if (index_count == 0)
 				return;
 
-			if (ptype_ == PrimitiveType::TRIANGLES)
+			switch (ptype_)
+			{
+			case PrimitiveType::TRIANGLES:
 			{
 				Timer timer;
 
@@ -473,26 +475,48 @@ namespace vz
 					//aabb.userdata = part_index;
 					bvhLeafAabbs_.push_back(aabb);
 				}
-				bvh_.maxLeafTriangles = 2;
+				bvh_.maxLeafPrimitives = 2;
 				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
 
 				if (triangle_count < 100)
 				{
 					XMVECTOR ext = XMLoadFloat3(&aabb_._max) - XMLoadFloat3(&aabb_._min);
 					float diag = XMVectorGetX(XMVector3Length(ext));
-					const float userScale = 1e-5f;					
+					const float userScale = 1e-5f;
 					isConvex = isMeshConvex(vertexPositions_, indexPrimitives_, diag * userScale);
 					if (isConvex)
 						backlog::postThreadSafe("Simple Convex Shape");
 				}
 				else
 					isConvex = false;
-				
+
 				backlog::postThreadSafe("CPUBVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(triangle_count));
-			}
-			else
+			} 
+			break;
+			case PrimitiveType::LINES:
 			{
-				backlog::postThreadSafe("Current CPUBVH is only supported for triangle meshes!", backlog::LogLevel::Warn);
+				Timer timer;
+
+				const uint32_t line_count = index_count / 2;
+				for (uint32_t line_index = 0; line_index < line_count; ++line_index)
+				{
+					const uint32_t i0 = indexPrimitives_[line_index * 2 + 0];
+					const uint32_t i1 = indexPrimitives_[line_index * 2 + 1];
+					const XMFLOAT3& p0 = vertexPositions_[i0];
+					const XMFLOAT3& p1 = vertexPositions_[i1];
+					geometrics::AABB aabb = geometrics::AABB(math::Min(p0, p1), math::Max(p0, p1));
+					aabb.layerMask = line_index;
+					//aabb.userdata = part_index;
+					bvhLeafAabbs_.push_back(aabb);
+				}
+				bvh_.maxLeafPrimitives = 2;
+				bvh_.Build(bvhLeafAabbs_.data(), (uint32_t)bvhLeafAabbs_.size());
+
+				backlog::postThreadSafe("CPUBVH updated (" + std::to_string((int)std::round(timer.elapsed())) + " ms)" + " # of tris: " + std::to_string(line_count));
+			}
+			default:
+				backlog::postThreadSafe("Invalid Primitive Type for CPUBVH!", backlog::LogLevel::Warn);
+				return;
 			}
 		}
 		else
@@ -955,9 +979,14 @@ namespace vz
 		
 		for (Primitive& prim : parts_)
 		{
-			if (prim.GetPrimitiveType() == PrimitiveType::TRIANGLES)
+			switch (prim.GetPrimitiveType())
 			{
+			case PrimitiveType::TRIANGLES:
+			case PrimitiveType::LINES:
 				prim.updateBVH(enabled);
+				break;
+			default:
+				break;
 			}
 		}
 		hasBVH_ = enabled;
