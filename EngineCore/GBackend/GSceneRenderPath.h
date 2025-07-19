@@ -94,7 +94,7 @@ namespace vz
 
 	struct GScene
 	{
-		inline static const std::string GScene_INTERFACE_VERSION = "GScene::20240921";
+		inline static const std::string GScene_INTERFACE_VERSION = "GScene::20250719";
 		// this will be a component of vz::Scene
 	protected:
 		Scene* scene_ = nullptr;
@@ -106,5 +106,9 @@ namespace vz
 
 		virtual bool Update(const float dt) = 0;
 		virtual bool Destroy() = 0;
+
+		virtual void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const = 0;
+		virtual void Debug_AddPoint(const XMFLOAT3 p, const XMFLOAT4 color, const bool depthTest) const = 0;
+		virtual void Debug_AddCircle(const XMFLOAT3 p, const float r, const XMFLOAT4 color, const bool depthTest) const = 0;
 	};
 }

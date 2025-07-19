@@ -424,7 +424,7 @@ int main(int, char**)
 							vfloat3 pos_picked;
 							ActorVID actor_vid;
 							if (renderer3D->Picking(scene, camera, *(vfloat2*)&pos_ss,
-								vzm::VzRenderer::ActorFilter::MESH_OPAQUE | vzm::VzRenderer::ActorFilter::VOLUME, pos_picked, actor_vid))
+								vzm::VzRenderer::ActorFilter::MESH_OPAQUE | vzm::VzRenderer::ActorFilter::VOLUME, 0, pos_picked, actor_vid))
 							{
 								view3D_gizmo.SetHighlighedVID(actor_vid);
 								belongto = 0;
@@ -536,7 +536,7 @@ int main(int, char**)
 							vfloat3 pos_picked;
 							ActorVID actor_vid;
 							if (renderer3D1->Picking(scene, camera1, *(vfloat2*)&pos_ss,
-								vzm::VzRenderer::ActorFilter::MESH_OPAQUE | vzm::VzRenderer::ActorFilter::VOLUME, pos_picked, actor_vid))
+								vzm::VzRenderer::ActorFilter::MESH_OPAQUE | vzm::VzRenderer::ActorFilter::VOLUME, 0, pos_picked, actor_vid))
 							{
 								belongto = 1;
 								view3D_gizmo.SetHighlighedVID(actor_vid);

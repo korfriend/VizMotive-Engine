@@ -242,6 +242,7 @@ namespace vz::renderer
 
 		if (vis.flags & Visibility::ALLOW_LIGHTS)
 		{
+			// Â÷ÀÌ??
 			// Cull lights:
 			const uint32_t light_loop = (uint32_t)scene_Gdetails->lightComponents.size();
 			vis.visibleLights.resize(light_loop);

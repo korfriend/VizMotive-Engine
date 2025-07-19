@@ -460,6 +460,8 @@ namespace vz
 			archive >> lod_bias_;
 			archive >> alphaRef_;
 
+			archive >> lineThickness_;
+
 			uint32_t u32_data;
 			archive >> u32_data;
 			for (size_t i = 0, n = u32_data; i < n; ++i)
@@ -492,6 +494,8 @@ namespace vz
 			archive << undercutColor_;
 			archive << lod_bias_;
 			archive << alphaRef_;
+
+			archive << lineThickness_;
 
 			archive << vuidMaterials_.size();
 			for (size_t i = 0, n = vuidMaterials_.size(); i < n; ++i)

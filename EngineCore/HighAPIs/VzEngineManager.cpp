@@ -447,6 +447,14 @@ namespace vzm
 			{
 				dbs_section.Set("LIGHT_CULLING", false);
 			}
+			if (!dbs_section.Has("DEBUG_SHAPE"))
+			{
+				dbs_section.Set("DEBUG_SHAPE", false);
+			}
+			if (!dbs_section.Has("DEBUG_SHAPE_CLEAN_START"))
+			{
+				dbs_section.Set("DEBUG_SHAPE_CLEAN_START", false);
+			}
 			configFile.Commit();
 		}
 	}

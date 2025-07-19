@@ -411,7 +411,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			int y = GET_Y_LPARAM(lParam);
             vfloat3 w_pos;
             VID vid;
-            renderer->Picking(scene, camera, { (float)x, (float)y }, vzm::VzRenderer::ActorFilter::MESH_OPAQUE, w_pos, vid);
+            renderer->Picking(scene, camera, { (float)x, (float)y }, vzm::VzRenderer::ActorFilter::MESH_OPAQUE, 0, w_pos, vid);
         }
         break;
     }
