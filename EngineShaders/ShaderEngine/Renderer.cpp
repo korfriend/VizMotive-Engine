@@ -25,8 +25,6 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::UpdateProcess(const float dt)
 	{
-		renderableShapes.Clear();
-
 		scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
 
 		// Frustum culling for main camera:
@@ -459,11 +457,11 @@ namespace vz::renderer
 
 					if (!part.HasRenderData())
 					{
-						if (renderPass == RENDERPASS_MAIN)
-						{
-							XMFLOAT4X4 world_matrix = scene->GetRenderableWorldMatrices()[instancedBatch.renderableIndex];
-							renderableShapes.AddPrimitivePart(part, material.GetBaseColor(), world_matrix);
-						}
+						//if (renderPass == RENDERPASS_MAIN)
+						//{
+						//	XMFLOAT4X4 world_matrix = scene->GetRenderableWorldMatrices()[instancedBatch.renderableIndex];
+						//	renderableShapes.AddPrimitivePart(part, material.GetBaseColor(), world_matrix);
+						//}
 						continue;
 					}
 
@@ -2046,7 +2044,10 @@ namespace vz::renderer
 			}
 
 			//RenderOutline(cmd);
-			renderableShapes.DrawLines(*camera, cmd, false);
+			if (renderer::isDebugShapeEnabled)
+			{
+				scene_Gdetails->debugShapes.DrawLines(*camera, cmd, false);
+			}
 
 			device->RenderPassEnd(cmd);
 

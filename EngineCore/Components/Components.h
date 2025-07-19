@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250711_2";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250720_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -312,7 +312,7 @@ namespace vz
 		//	lod				:	specify min level of detail for meshes
 		RayIntersectionResult Intersects(const geometrics::Ray& ray, const Entity entityCamera,
 			uint32_t filterMask = SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE), 
-			uint32_t layerMask = ~0, uint32_t lod = 0) const;
+			uint32_t layerMask = ~0, uint32_t lod = 0, float toleranceRadius = 0, int screenW = -1, int screenH = -1) const;
 
 		// Details (virtual implementations)
 		uint32_t mostImportantLightIndex = ~0u;
@@ -352,6 +352,10 @@ namespace vz
 
 		virtual const uint32_t GetGeometryPrimitivesAllocatorSize() const = 0;
 		virtual const uint32_t GetRenderableResLookupAllocatorSize() const = 0;
+
+		virtual void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const = 0;
+		virtual void Debug_AddPoint(const XMFLOAT3 p, const XMFLOAT4 color, const bool depthTest) const = 0;
+		virtual void Debug_AddCircle(const XMFLOAT3 p, const float r, const XMFLOAT4 color, const bool depthTest) const = 0;
 
 		/**
 		 * Read/write scene components (renderables, lights and Scene-attached cameras), make sure their VUID-based components are serialized first
@@ -1351,6 +1355,7 @@ namespace vz
 		float rimHighlightFalloff_ = 8;
 		float lod_bias_ = 0;
 		float alphaRef_ = 1;
+		float lineThickness_ = 1.3f;	// used for line thickness for rendering
 
 		// clipper
 		XMFLOAT4X4 clipBox_ = math::IDENTITY_MATRIX; // WS to origin-centered unit cube
@@ -1447,11 +1452,14 @@ namespace vz
 		inline size_t GetMaterials(Entity* entities) const;
 		inline const geometrics::AABB& GetAABB() const { return aabb_; }
 
-		inline void SetStencilRef(StencilRef value) { engineStencilRef_ = value; }
+		inline void SetStencilRef(const StencilRef value) { engineStencilRef_ = value; timeStampSetter_ = TimerNow; }
 		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
 		// User stencil value can be in range [0, 15]
-		inline void SetUserStencilRef(uint8_t value) { userStencilRef_ = value & 0x0F; }
-		uint32_t GetUserStencilRef() const { return CombineStencilrefs(engineStencilRef_, userStencilRef_); }
+		inline void SetUserStencilRef(const uint8_t value) { userStencilRef_ = value & 0x0F; timeStampSetter_ = TimerNow; }
+		inline uint32_t GetUserStencilRef() const { return CombineStencilrefs(engineStencilRef_, userStencilRef_); }
+
+		inline void SetLineThickness(const float lineThickness) { lineThickness_ = lineThickness; timeStampSetter_ = TimerNow; }
+		inline float GetLineThickness() { return lineThickness_; }
 
 		inline void Update();
 

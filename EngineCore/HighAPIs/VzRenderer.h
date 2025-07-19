@@ -60,12 +60,11 @@ namespace vzm
 
 		void RenderChain(const std::vector<ChainUnitSCam>& scChain);
 
-		bool Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const uint32_t filterFlags,
+		bool Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const uint32_t filterFlags, const float toleranceRadius,
 			vfloat3& worldPosition, ActorVID& vid, int* primitiveID = nullptr, int* maskValue = nullptr) const;
-		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, const uint32_t filterFlags,
-			vfloat3& worldPosition, ActorVID& vid, 
-			int* primitiveID = nullptr, int* maskValue = nullptr) const {
-			return Picking(scene->GetVID(), camera->GetVID(), pos, filterFlags, worldPosition, vid, primitiveID, maskValue);
+		bool Picking(const VzScene* scene, const VzCamera* camera, const vfloat2& pos, const uint32_t filterFlags, const float toleranceRadius,
+			vfloat3& worldPosition, ActorVID& vid, int* primitiveID = nullptr, int* maskValue = nullptr) const {
+			return Picking(scene->GetVID(), camera->GetVID(), pos, filterFlags, toleranceRadius, worldPosition, vid, primitiveID, maskValue);
 		}
 
 		vfloat3 UnprojToWorld(const vfloat2& posOnScreen, const VzCamera* camera = nullptr);

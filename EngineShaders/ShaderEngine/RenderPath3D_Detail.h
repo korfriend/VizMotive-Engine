@@ -67,7 +67,7 @@ namespace vz::renderer
 		//std::vector<uint32_t> visibleDecals;
 		//std::vector<uint32_t> visibleEnvProbes;
 		//std::vector<uint32_t> visibleEmitters;
-		std::vector<uint32_t> visibleLights; // index refers to the linear array of Scnee::lights
+		std::vector<uint32_t> visibleLights; // scene_Gdetails->lightComponents
 		std::vector<ColliderComponent> visibleColliders;
 
 		rectpacker::State shadowPacker;
@@ -411,7 +411,7 @@ namespace vz::renderer
 
 namespace vz::renderer
 {
-	struct RenderableLine
+	struct DebugLine
 	{
 		XMFLOAT3 start = XMFLOAT3(0, 0, 0);
 		XMFLOAT3 end = XMFLOAT3(0, 0, 0);
@@ -419,41 +419,41 @@ namespace vz::renderer
 		XMFLOAT4 color_end = XMFLOAT4(1, 1, 1, 1);
 	};
 
-	struct RenderablePoint
+	struct DebugPoint
 	{
 		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
 		float size = 1.0f;
 		XMFLOAT4 color = XMFLOAT4(1, 1, 1, 1);
 	};
 
-	struct RenderableShapeCollection
+	struct DebugShapeCollection
 	{
 	private:
-		std::vector<RenderableLine> renderableLines_;
-		std::vector<RenderableLine> renderableLines_depth_;
-		std::vector<RenderablePoint> renderablePoints_;
-		std::vector<RenderablePoint> renderablePoints_depth_;
+		mutable std::vector<DebugLine> renderableLines_;
+		mutable std::vector<DebugLine> renderableLines_depth_;
+		mutable std::vector<DebugPoint> renderablePoints_;
+		mutable std::vector<DebugPoint> renderablePoints_depth_;
 
-		std::vector<std::pair<XMFLOAT4X4, XMFLOAT4>> renderableBoxes_;
-		std::vector<std::pair<XMFLOAT4X4, XMFLOAT4>> renderableBoxes_depth_;
-		std::vector<std::pair<Sphere, XMFLOAT4>> renderableSpheres_;
-		std::vector<std::pair<Sphere, XMFLOAT4>> renderableSpheres_depth_;
-		std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_;
-		std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_depth_;
+		mutable std::vector<std::pair<XMFLOAT4X4, XMFLOAT4>> renderableBoxes_;
+		mutable std::vector<std::pair<XMFLOAT4X4, XMFLOAT4>> renderableBoxes_depth_;
+		mutable std::vector<std::pair<Sphere, XMFLOAT4>> renderableSpheres_;
+		mutable std::vector<std::pair<Sphere, XMFLOAT4>> renderableSpheres_depth_;
+		mutable std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_;
+		mutable std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_depth_;
 
-		void drawAndClearLines(const CameraComponent& camera, std::vector<RenderableLine>& renderableLines, CommandList cmd, bool clearEnabled);
+		void drawAndClearLines(const CameraComponent& camera, std::vector<DebugLine>& renderableLines, CommandList cmd, bool clearEnabled);
 	public:
 		float depthLineThicknessPixel = 1.3f;
 
 		static constexpr size_t RENDERABLE_SHAPE_RESERVE = 2048; // for fast growing
-		RenderableShapeCollection() {
+		DebugShapeCollection() {
 			renderableLines_.reserve(RENDERABLE_SHAPE_RESERVE);
 			renderableLines_depth_.reserve(RENDERABLE_SHAPE_RESERVE);
 			renderablePoints_.reserve(RENDERABLE_SHAPE_RESERVE);
 			renderablePoints_depth_.reserve(RENDERABLE_SHAPE_RESERVE);
 		}
 
-		void AddDrawLine(const RenderableLine& line, bool depth)
+		void AddDrawLine(const DebugLine& line, bool depth) const
 		{
 			if (depth)
 				renderableLines_depth_.push_back(line);
@@ -464,7 +464,7 @@ namespace vz::renderer
 
 		void AddPrimitivePart(const GeometryComponent::Primitive& part, const XMFLOAT4& baseColor, const XMFLOAT4X4& world);
 
-		void Clear()
+		void Clear() const
 		{
 			// *this = RenderableShapeCollection(); // not recommend this due to inefficient memory footprint
 			renderableLines_.clear();
@@ -569,8 +569,6 @@ namespace vz::renderer
 		//graphics::Texture reprojectedDepth; // prev frame depth reprojected into current, and downsampled for meshlet occlusion culling
 		
 		VisibilityResources visibilityResources;	// dynamic allocation
-
-		RenderableShapeCollection renderableShapes; // dynamic allocation
 
 		// ---------- GRenderPath3D's internal impl.: -----------------
 		//  * functions with an input 'CommandList' are to be implemented here, otherwise, implement 'renderer::' namespace
@@ -800,7 +798,7 @@ namespace vz::renderer
 		uint32_t queryheapIdx = 0;
 		mutable std::atomic<uint32_t> queryAllocator{ 0 };
 
-		RenderableShapeCollection renderableShapes; // dynamic allocation
+		DebugShapeCollection debugShapes; // dynamic allocation
 
 		bool Update(const float dt) override;
 		bool Destroy() override;
@@ -808,6 +806,10 @@ namespace vz::renderer
 		void RunGeometryUpdateSystem(jobsystem::context& ctx);
 		void RunMaterialUpdateSystem(jobsystem::context& ctx);
 		void RunRenderableUpdateSystem(jobsystem::context& ctx); // note a single renderable can generate multiple mesh instances
+
+		void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const override; 
+		void Debug_AddPoint(const XMFLOAT3 p, const XMFLOAT4 color, const bool depthTest) const override;
+		void Debug_AddCircle(const XMFLOAT3 p, const float r, const XMFLOAT4 color, const bool depthTest) const override;
 	};
 }
 

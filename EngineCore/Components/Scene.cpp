@@ -40,14 +40,14 @@ namespace vz
 	{
 		SceneDetails(const Entity entity, const std::string& name) : Scene(entity, name) 
 		{
-			handlerScene = shaderEngine.pluginNewGScene(this);
-			assert(handlerScene->version == GScene::GScene_INTERFACE_VERSION);
+			sceneShader = shaderEngine.pluginNewGScene(this);
+			assert(sceneShader->version == GScene::GScene_INTERFACE_VERSION);
 		};
 		virtual ~SceneDetails()
 		{
-			handlerScene->Destroy();
-			delete handlerScene;
-			handlerScene = nullptr;
+			sceneShader->Destroy();
+			delete sceneShader;
+			sceneShader = nullptr;
 		}
 
 		//	Note: 
@@ -79,7 +79,7 @@ namespace vz
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
 		std::shared_ptr<Resource> skyMap;
 		std::shared_ptr<Resource> colorGradingMap;
-		GScene* handlerScene = nullptr;
+		GScene* sceneShader = nullptr;
 
 		// Here, "stream" refers to the GPU memory upload via a single upload operation
 		// the process is 1. gathering, 2. streaming up (sync/async)
@@ -621,7 +621,7 @@ namespace vz
 
 		GScene* GetGSceneHandle() const override
 		{
-			return handlerScene;
+			return sceneShader;
 		}
 
 		bool LoadIBL(const std::string& filename) override
@@ -856,7 +856,7 @@ namespace vz
 
 
 			// ?? only when isContentChanged_?
-			handlerScene->Update(dt);
+			sceneShader->Update(dt);
 
 			if (!isContentChanged_)
 			{
@@ -887,6 +887,20 @@ namespace vz
 
 		const std::vector<geometrics::AABB>& GetRenderableAABBs() const { return aabbRenderables; }
 		const std::vector<geometrics::AABB>& GetLightAABBs() const { return aabbLights; }
+
+
+		void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const override
+		{
+			sceneShader->Debug_AddLine(p0, p1, color0, color1, depthTest);
+		}
+		void Debug_AddPoint(const XMFLOAT3 p, const XMFLOAT4 color, const bool depthTest) const override
+		{
+			sceneShader->Debug_AddPoint(p, color, depthTest);
+		}
+		void Debug_AddCircle(const XMFLOAT3 p, const float r, const XMFLOAT4 color, const bool depthTest) const override
+		{
+			sceneShader->Debug_AddCircle(p, r, color, depthTest);
+		}
 	};
 }
 
@@ -1501,10 +1515,21 @@ namespace vz
 		}
 	}
 
-	Scene::RayIntersectionResult Scene::Intersects(const Ray& ray, const Entity entityCamera, uint32_t filterMask, uint32_t layerMask, uint32_t lod) const
+	Scene::RayIntersectionResult Scene::Intersects(const Ray& ray, const Entity entityCamera, 
+		uint32_t filterMask, uint32_t layerMask, uint32_t lod, float toleranceRadius, int screenW, int screenH) const
 	{
 		using Primitive = GeometryComponent::Primitive;
 		RayIntersectionResult result;
+
+		CameraComponent* camera = compfactory::GetCameraComponent(entityCamera);
+		LayeredMaskComponent* cam_layer = compfactory::GetLayeredMaskComponent(entityCamera);
+		uint32_t visibility_layermask = ~0u;
+		if (cam_layer)
+		{
+			visibility_layermask = cam_layer->GetVisibleLayerMask() & layerMask;
+		}
+
+		XMMATRIX VP = XMLoadFloat4x4(&camera->GetViewProjection());
 
 		const XMVECTOR ray_origin = XMLoadFloat3(&ray.origin);
 		const XMVECTOR ray_direction = XMVector3Normalize(XMLoadFloat3(&ray.direction));
@@ -1518,19 +1543,44 @@ namespace vz
 			//
 		}
 		
+		auto projectionToScreen2D = [&](const XMVECTOR projCoords) {
+			XMFLOAT2 p;
+			XMStoreFloat2(&p, projCoords);
+			// NDC to Screend
+			XMFLOAT2 screen = {
+				(p.x + 1.0f) * 0.5f * screenW,
+				(1.0f - p.y) * 0.5f * screenH
+			};
+
+			return screen;
+			};
+
+		using namespace geometrics;
 		if (filterMask & SCU32(RenderableFilterFlags::RENDERABLE_ALL))
 		{
 			const size_t renderable_count = renderables_.size();
 			for (size_t renderable_index = 0; renderable_index < renderable_count; ++renderable_index)
 			{
 				Entity entity = renderables_[renderable_index];
-				RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
+				GRenderableComponent* renderable = (GRenderableComponent*)compfactory::GetRenderableComponent(entity);
 				assert(renderable);
 				if (!renderable->IsPickable())
 					continue;
-				const AABB& aabb = renderable->GetAABB();
-				if ((layerMask & aabb.layerMask) == 0)
+				uint32_t renderable_layermask = ~0u;
+				if (renderable->layeredmask)
+				{
+					renderable_layermask = renderable->layeredmask->GetVisibleLayerMask();
+				}
+				if ((visibility_layermask & renderable_layermask) == 0)
 					continue;
+
+				AABB aabb = renderable->GetAABB();
+				aabb._min.x -= toleranceRadius;
+				aabb._min.y -= toleranceRadius;
+				aabb._min.z -= toleranceRadius;
+				aabb._max.x += toleranceRadius;
+				aabb._max.y += toleranceRadius;
+				aabb._max.z += toleranceRadius;
 				if (!ray.intersects(aabb))
 					continue;
 
@@ -1648,7 +1698,7 @@ namespace vz
 								}
 							};
 
-						auto intersectLine = [&](const uint32_t subsetIndex, const uint32_t indexOffset, const uint32_t lineIndex, const float R)
+						auto intersectLine = [&](const uint32_t subsetIndex, const uint32_t indexOffset, const uint32_t lineIndex, const float R, const bool isScreenPixelR = false)
 							{
 								const uint32_t i0 = indices[indexOffset + lineIndex * 2 + 0];
 								const uint32_t i1 = indices[indexOffset + lineIndex * 2 + 1];
@@ -1656,7 +1706,7 @@ namespace vz
 								XMVECTOR p0 = XMLoadFloat3(&positions[i0]);
 								XMVECTOR p1 = XMLoadFloat3(&positions[i1]);
 
-								auto raySegmentThin = [](const XMVECTOR& ray_origin,
+								auto raySegmentThin = [isScreenPixelR, &world_mat, &VP, &projectionToScreen2D](const XMVECTOR& ray_origin,
 									const XMVECTOR& ray_dir,
 									const XMVECTOR& p0,
 									const XMVECTOR& p1,
@@ -1669,30 +1719,56 @@ namespace vz
 										const XMVECTOR& v = ray_dir;                     // ray direction
 										XMVECTOR w = XMVectorSubtract(p0, ray_origin);   // p0 - ray_origin
 
-										float a = XMVectorGetX(XMVector3Dot(u, u));      // |u|©÷
-										float b = XMVectorGetX(XMVector3Dot(u, v));      // u¡¤v
-										float c = XMVectorGetX(XMVector3Dot(v, v));      // |v|©÷
-										float d = XMVectorGetX(XMVector3Dot(u, w));      // u¡¤w
-										float e = XMVectorGetX(XMVector3Dot(v, w));      // v¡¤w
+										float a = XMVectorGetX(XMVector3Dot(u, u));
+										float b = XMVectorGetX(XMVector3Dot(u, v));
+										float c = XMVectorGetX(XMVector3Dot(v, v));
+										float d = XMVectorGetX(XMVector3Dot(u, w));
+										float e = XMVectorGetX(XMVector3Dot(v, w));
 
 										float denom = a * c - b * b;
 										if (fabsf(denom) < 1e-8f)   // parallel lines
 											return false;
 
-										float sc = (b * e - c * d) / denom;   // parameter on segment
+										float sc = 0;
 										float tc = (a * e - b * d) / denom;   // parameter on ray
+										XMVECTOR seg_point;
+										if (a < 1e-5f)
+										{
+											seg_point = p0;
+										}
+										else
+										{
+											sc = (b * e - c * d) / denom;   // parameter on segment
+											if (sc < 0.0f || sc > 1.0f)          // outside segment range
+												return false;
+											seg_point = XMVectorAdd(p0, XMVectorScale(u, sc));
+										}
 
-										if (sc < 0.0f || sc > 1.0f)          // outside segment range
-											return false;
 										if (tc < 0.0f || tc > tMax)          // outside ray range
 											return false;
 
 										// calculate distance between closest points on the two lines
-										XMVECTOR seg_point = XMVectorAdd(p0, XMVectorScale(u, sc));
 										XMVECTOR ray_point = XMVectorAdd(ray_origin, XMVectorScale(v, tc));
-										XMVECTOR dp = XMVectorSubtract(seg_point, ray_point);
+										XMVECTOR seg_point_ws = XMVector3TransformCoord(seg_point, world_mat);
+										XMVECTOR ray_point_ws = XMVector3TransformCoord(ray_point, world_mat);
 
-										float dist2 = XMVectorGetX(XMVector3Dot(dp, dp));
+										float dist2 = 0;
+										if (isScreenPixelR)
+										{
+											XMVECTOR seg_point_ps = XMVector3TransformCoord(seg_point_ws, VP);
+											XMVECTOR ray_point_ps = XMVector3TransformCoord(ray_point_ws, VP);
+
+											XMFLOAT2 seg_point_ss = projectionToScreen2D(seg_point_ps);
+											XMFLOAT2 ray_point_ss = projectionToScreen2D(ray_point_ps);
+											XMFLOAT2 diff = XMFLOAT2(seg_point_ss.x - ray_point_ss.x, seg_point_ss.y - ray_point_ss.y);
+											dist2 = diff.x * diff.x + diff.y * diff.y;
+										}
+										else // in world space
+										{
+											XMVECTOR dp = XMVectorSubtract(seg_point_ws, ray_point_ws);
+											dist2 = XMVectorGetX(XMVector3Dot(dp, dp));
+										}
+
 										if (dist2 > threshold * threshold)    // too far from threshold
 											return false;
 
@@ -1704,8 +1780,16 @@ namespace vz
 
 								float distance = FLT_MAX;
 								float u;
-								if (raySegmentThin(ray_origin_local, ray_direction_local, p0, p1, 3.f, FLT_MAX, distance, u))
+								if (raySegmentThin(ray_origin_local, ray_direction_local, p0, p1, R * 4.f, FLT_MAX, distance, u))
 								{
+									const XMVECTOR pos0 = XMVector3Transform(p0, world_mat);
+									const XMVECTOR pos1 = XMVector3Transform(p1, world_mat);
+									XMFLOAT3 start, end;
+									XMStoreFloat3(&start, pos0);
+									XMStoreFloat3(&end, pos1);
+									Debug_AddLine(start, end, XMFLOAT4(1, 1, 0, 1), XMFLOAT4(1, 1, 0, 1), false);
+
+
 									const XMVECTOR pos_local = XMVectorAdd(ray_origin_local, ray_direction_local * distance);
 									const XMVECTOR pos = XMVector3Transform(pos_local, world_mat);
 									distance = math::Distance(pos, ray_origin);
@@ -1780,13 +1864,96 @@ namespace vz
 						case GeometryComponent::PrimitiveType::LINES:
 							assert(part.HasValidBVH());	// this is supposed to be TRUE because geometry.IsAutoUpdateBVH() is TRUE
 
-							bvh.Intersects(ray_local, 0, [&](uint32_t index) {
-								const AABB& leaf = bvh_leaf_aabbs[index];
-								const uint32_t lineIndex = leaf.layerMask;
-								const uint32_t subsetIndex = leaf.userdata;
+							{
+								auto pointInside = [](const XMFLOAT3& p, const geometrics::AABB& aabb)
+									{
+										if (p.x > aabb._max.x) return false;
+										if (p.x < aabb._min.x) return false;
+										if (p.y > aabb._max.y) return false;
+										if (p.y < aabb._min.y) return false;
+										if (p.z > aabb._max.z) return false;
+										if (p.z < aabb._min.z) return false;
+										return true;
+									};
+								auto rayIntersects = [&pointInside, &toleranceRadius](geometrics::AABB aabb, const Ray& ray)
+									{
+										aabb._min.x -= toleranceRadius;
+										aabb._min.y -= toleranceRadius;
+										aabb._min.z -= toleranceRadius;
+										aabb._max.x += toleranceRadius;
+										aabb._max.y += toleranceRadius;
+										aabb._max.z += toleranceRadius;
 
-								intersectLine(subsetIndex, 0, lineIndex, 3);
-								});
+										if (!aabb.IsValid())
+											return false;
+
+										if (pointInside(ray.origin, aabb))
+											return true;
+
+										XMFLOAT3 MIN = aabb.getMin();
+										XMFLOAT3 MAX = aabb.getMax();
+
+										float tx1 = (MIN.x - ray.origin.x) * ray.direction_inverse.x;
+										float tx2 = (MAX.x - ray.origin.x) * ray.direction_inverse.x;
+
+										float tmin = std::min(tx1, tx2);
+										float tmax = std::max(tx1, tx2);
+										if (ray.TMax < tmin || ray.TMin > tmax)
+											return false;
+
+										float ty1 = (MIN.y - ray.origin.y) * ray.direction_inverse.y;
+										float ty2 = (MAX.y - ray.origin.y) * ray.direction_inverse.y;
+
+										tmin = std::max(tmin, std::min(ty1, ty2));
+										tmax = std::min(tmax, std::max(ty1, ty2));
+										if (ray.TMax < tmin || ray.TMin > tmax)
+											return false;
+
+										float tz1 = (MIN.z - ray.origin.z) * ray.direction_inverse.z;
+										float tz2 = (MAX.z - ray.origin.z) * ray.direction_inverse.z;
+
+										tmin = std::max(tmin, std::min(tz1, tz2));
+										tmax = std::min(tmax, std::max(tz1, tz2));
+										if (ray.TMax < tmin || ray.TMin > tmax)
+											return false;
+
+										return tmax >= tmin;
+									};
+
+								std::function<void(const BVH&, const Ray&, uint32_t, const std::function<void(uint32_t)>&)> bvhIntersects;
+								bvhIntersects = [&bvhIntersects, &rayIntersects](
+									const BVH& bvh,
+									const Ray& ray,
+									uint32_t nodeIndex,
+									const std::function<void(uint32_t index)>& callback
+									)
+									{
+										BVH::Node& node = bvh.nodes[nodeIndex];
+										if (!rayIntersects(node.aabb, ray))
+											return;
+										if (node.isLeaf())
+										{
+											for (uint32_t i = 0; i < node.count; ++i)
+											{
+												callback(bvh.leaf_indices[node.offset + i]);
+											}
+										}
+										else
+										{
+											bvhIntersects(bvh, ray, node.left, callback);
+											bvhIntersects(bvh, ray, node.left + 1, callback);
+										}
+									};
+
+
+								bvhIntersects(bvh, ray_local, 0, [&](uint32_t index) {
+									const AABB& leaf = bvh_leaf_aabbs[index];
+									const uint32_t lineIndex = leaf.layerMask;
+									const uint32_t subsetIndex = leaf.userdata;
+
+									intersectLine(subsetIndex, 0, lineIndex, renderable->GetLineThickness(), screenW > 0 && screenH > 0);
+									});
+							}
 
 							break;
 						default:
@@ -1810,7 +1977,6 @@ namespace vz
 					);
 					assert(volume);
 					TransformComponent* transform = compfactory::GetTransformComponent(entity);
-					CameraComponent* camera = compfactory::GetCameraComponent(entityCamera);
 
 					float hit_distance;
 					XMFLOAT4X4 ws2vs;

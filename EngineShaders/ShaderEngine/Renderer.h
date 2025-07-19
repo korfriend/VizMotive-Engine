@@ -273,6 +273,9 @@ namespace vz::renderer
 	extern bool isSurfelGIDebugEnabled;
 	extern bool isColorGradingEnabled;
 	extern bool isGaussianSplattingEnabled;
+
+	extern bool isDebugShapeEnabled;
+	extern bool isDebugShapeCleanStart;
 }
 
 #define ReleaseRenderRes(SRC, R_COUNT) for (size_t i = 0, n = (size_t)R_COUNT; i < n; ++i) SRC[i] = {};

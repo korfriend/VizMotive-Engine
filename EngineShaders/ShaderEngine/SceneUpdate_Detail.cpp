@@ -639,7 +639,10 @@ namespace vz
 
 	bool GSceneDetails::Update(const float dt)
 	{
-		renderableShapes.Clear();
+		if (renderer::isDebugShapeCleanStart && renderer::isDebugShapeEnabled)
+		{
+			debugShapes.Clear();
+		}
 
 		font::UpdateAtlas();
 
@@ -1017,5 +1020,21 @@ namespace vz
 		}
 
 		return true;
+	}
+
+	void GSceneDetails::Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const
+	{
+		DebugLine line;
+		line.start = p0;
+		line.end = p1;
+		line.color_start = color0;
+		line.color_end = color1;
+		debugShapes.AddDrawLine(line, depthTest);
+	}
+	void GSceneDetails::Debug_AddPoint(const XMFLOAT3 p, const XMFLOAT4 color, const bool depthTest) const
+	{
+	}
+	void GSceneDetails::Debug_AddCircle(const XMFLOAT3 p, const float r, const XMFLOAT4 color, const bool depthTest) const
+	{
 	}
 }

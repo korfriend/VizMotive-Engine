@@ -49,6 +49,9 @@ namespace vz::renderer
 	bool isSurfelGIDebugEnabled = false;
 	bool isColorGradingEnabled = false;
 	bool isGaussianSplattingEnabled = true;
+
+	bool isDebugShapeEnabled = true;
+	bool isDebugShapeCleanStart = true;
 }
 
 namespace vz::renderer 
@@ -588,6 +591,8 @@ namespace vz
 		renderer::isShadowsEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "SHADOW_ENABLED");
 
 		renderer::isDebugLightCulling = config::GetBoolConfig("DEBUG_SETTINGS", "LIGHT_CULLING");
+		renderer::isDebugShapeEnabled = config::GetBoolConfig("DEBUG_SETTINGS", "DEBUG_SHAPE");
+		renderer::isDebugShapeCleanStart = config::GetBoolConfig("DEBUG_SETTINGS", "DEBUG_SHAPE_CLEAN_START");
 
 		return true;
 	}

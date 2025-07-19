@@ -44,7 +44,7 @@
     <ClCompile Include="SceneUpdate_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="RenderableShapes_Detail.cpp">
+    <ClCompile Include="DebugShapes_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
     <ClCompile Include="RenderPath2D_Detail.cpp">

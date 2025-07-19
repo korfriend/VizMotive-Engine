@@ -61,7 +61,7 @@ namespace vz::renderer
 
 		for (uint32_t lightIndex : vis.visibleLights)
 		{
-			const LightComponent& light = vis.scene->lights[lightIndex];
+			const GLightComponent& light = scene_Gdetails->lightComponents[lightIndex];
 			if (light.IsInactive())
 				continue;
 
@@ -77,7 +77,7 @@ namespace vz::renderer
 			{
 			case LightComponent::DIRECTIONAL:
 			{
-				if (max_shadow_resolution_2D == 0 && light.forced_shadow_resolution < 0)
+				if (maxShadowResolution_2D == 0 && light.forced_shadow_resolution < 0)
 					break;
 				if (light.cascade_distances.empty())
 					break;
@@ -88,16 +88,18 @@ namespace vz::renderer
 				SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
 				CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
 
-				for (size_t i = 0; i < vis.scene->aabb_objects.size(); ++i)
+				std::vector<geometrics::AABB>& aabb_renderables = scene_Gdetails->aabbRenderables;
+				
+				for (size_t i = 0; i < aabb_renderables.size(); ++i)
 				{
-					const AABB& aabb = vis.scene->aabb_objects[i];
+					const AABB& aabb = aabb_renderables[i];
 					if (aabb.layerMask & vis.layerMask)
 					{
-						const ObjectComponent& object = vis.scene->objects[i];
-						if (object.IsRenderable() && object.IsCastingShadow())
+						const GRenderableComponent& renderable = scene_Gdetails->renderableComponents[i];
+						if (renderable.IsRenderable() && renderable.IsCastingShadow())
 						{
-							const float distanceSq = math::DistanceSquared(EYE, object.center);
-							if (distanceSq > sqr(object.draw_distance + object.radius)) // Note: here I use draw_distance instead of fadeDeistance because this doesn't account for impostor switch fade
+							const float distanceSq = math::DistanceSquared(EYE, renderable.center);
+							if (distanceSq > sqr(renderable.draw_distance + renderable.radius)) // Note: here I use draw_distance instead of fadeDeistance because this doesn't account for impostor switch fade
 								continue;
 
 							// Determine which cascades the object is contained in:
@@ -105,12 +107,12 @@ namespace vz::renderer
 							uint8_t shadow_lod = 0xFF;
 							for (uint32_t cascade = 0; cascade < cascade_count; ++cascade)
 							{
-								if ((cascade < (cascade_count - object.cascadeMask)) && shcams[cascade].frustum.CheckBoxFast(aabb))
+								if ((cascade < (cascade_count - renderable.cascadeMask)) && shcams[cascade].frustum.CheckBoxFast(aabb))
 								{
 									camera_mask |= 1 << cascade;
 									if (shadow_lod_override)
 									{
-										const uint8_t candidate_lod = (uint8_t)vis.scene->ComputeObjectLODForView(object, aabb, vis.scene->meshes[object.mesh_index], shcams[cascade].view_projection);
+										const uint8_t candidate_lod = (uint8_t)vis.scene->ComputeObjectLODForView(renderable, aabb, vis.scene->meshes[renderable.mesh_index], shcams[cascade].view_projection);
 										shadow_lod = std::min(shadow_lod, candidate_lod);
 									}
 								}
@@ -119,9 +121,9 @@ namespace vz::renderer
 								continue;
 
 							RenderBatch batch;
-							batch.Create(object.mesh_index, uint32_t(i), 0, object.sort_bits, camera_mask, shadow_lod);
+							batch.Create(renderable.mesh_index, uint32_t(i), 0, renderable.sort_bits, camera_mask, shadow_lod);
 
-							const uint32_t filterMask = object.GetFilterMask();
+							const uint32_t filterMask = renderable.GetFilterMask();
 							if (filterMask & FILTER_OPAQUE)
 							{
 								renderQueue.add(batch);
@@ -213,9 +215,9 @@ namespace vz::renderer
 				if (!cam_frustum.Intersects(shcam.boundingfrustum))
 					break;
 
-				for (size_t i = 0; i < vis.scene->aabb_objects.size(); ++i)
+				for (size_t i = 0; i < aabb_renderables.size(); ++i)
 				{
-					const AABB& aabb = vis.scene->aabb_objects[i];
+					const AABB& aabb = aabb_renderables[i];
 					if ((aabb.layerMask & vis.layerMask) && shcam.frustum.CheckBoxFast(aabb))
 					{
 						const ObjectComponent& object = vis.scene->objects[i];
@@ -367,9 +369,9 @@ namespace vz::renderer
 					}
 				}
 
-				for (size_t i = 0; i < vis.scene->aabb_objects.size(); ++i)
+				for (size_t i = 0; i < aabb_renderables.size(); ++i)
 				{
-					const AABB& aabb = vis.scene->aabb_objects[i];
+					const AABB& aabb = aabb_renderables[i];
 					if ((aabb.layerMask & vis.layerMask) && boundingsphere.intersects(aabb))
 					{
 						const ObjectComponent& object = vis.scene->objects[i];
@@ -486,9 +488,9 @@ namespace vz::renderer
 			CreateDirLightShadowCams(vis.scene->rain_blocker_dummy_light, *vis.camera, &shcam, 1, vis.rain_blocker_shadow_rect);
 
 			renderQueue.init();
-			for (size_t i = 0; i < vis.scene->aabb_objects.size(); ++i)
+			for (size_t i = 0; i < aabb_renderables.size(); ++i)
 			{
-				const AABB& aabb = vis.scene->aabb_objects[i];
+				const AABB& aabb = aabb_renderables[i];
 				if (aabb.layerMask & vis.layerMask)
 				{
 					const ObjectComponent& object = vis.scene->objects[i];

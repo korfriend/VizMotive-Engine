@@ -304,7 +304,7 @@ namespace vzm
 	}
 
 
-	bool VzRenderer::Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const uint32_t filterFlags,
+	bool VzRenderer::Picking(const SceneVID vidScene, const CamVID vidCam, const vfloat2& pos, const uint32_t filterFlags, const float toleranceRadius,
 		vfloat3& worldPosition, ActorVID& vid, int* primitiveID, int* maskValue) const
 	{
 		GET_RENDERPATH(renderer, false);
@@ -353,7 +353,9 @@ namespace vzm
 		{
 			// TODO volume!
 			geometrics::Ray ray = renderer->GetPickRay(pos.x, pos.y, *camera);
-			Scene::RayIntersectionResult intersect_result = renderer->scene->Intersects(ray, camera->GetEntity(), filterFlags);
+			Scene::RayIntersectionResult intersect_result = 
+				renderer->scene->Intersects(ray, camera->GetEntity(), filterFlags, ~0u, 0, 
+					toleranceRadius, renderer->GetPhysicalWidth(), renderer->GetPhysicalHeight());
 			if (intersect_result.entity != INVALID_ENTITY)
 			{
 				ret = true;

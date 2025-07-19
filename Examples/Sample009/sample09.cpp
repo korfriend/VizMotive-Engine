@@ -413,6 +413,7 @@ int main(int, char **)
 			{
 				vzimgui::UpdateResourceMonitor([](const VID vid) {});
 			}
+			ImGui::End();
 
 			ImGui::Begin("Controls");
 			{

@@ -4,6 +4,8 @@
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/Profiler.h"
 #include "vzm2/utils/JobSystem.h"
+#include "vzm2/utils/Config.h"
+
 
 #include <iostream>
 #include <windowsx.h>
@@ -419,6 +421,14 @@ int main(int, char**)
 					else {
 						camera->SetPerspectiveProjection(camera->GetNear(), camera->GetCullingFar(), 45.f, canvas_size.x / (float)canvas_size.y);
 					}
+				}
+
+				static bool TAA_enabled = vz::config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
+				if (ImGui::Checkbox("TAA", &TAA_enabled))
+				{
+					vzm::ParamMap<std::string> config_options;
+					config_options.SetParam("TEMPORAL_AA", TAA_enabled);
+					vzm::SetConfigure(config_options);
 				}
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
