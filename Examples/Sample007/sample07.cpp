@@ -191,13 +191,13 @@ int main(int, char**)
 		{
 			vzm::VzGeometry* geometry_cslicer_helper = vzm::NewGeometry("geometry helper for curved slicer");
 			slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
-			//vzm::VzMaterial* material_curvedslicer0 = vzm::NewMaterial("curved slicer helper material: Plane");
-			//material_curvedslicer0->SetDoubleSided(true);
+			vzm::VzMaterial* material_curvedslicer0 = vzm::NewMaterial("curved slicer helper material: Plane");
+			material_curvedslicer0->SetDoubleSided(true);
 			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Lines");
 			material_curvedslicer1->SetBaseColor({ 1, 1, 1, 1 });
-			//vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper->GetVID(), material_curvedslicer0->GetVID());
-			vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper->GetVID(), material_curvedslicer1->GetVID());
-			//actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
+			vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper->GetVID(), material_curvedslicer0->GetVID());
+			//vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper->GetVID(), material_curvedslicer1->GetVID());
+			actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
 			scene->AppendChild(actor_cslicer_helper);
 			vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
 		}
@@ -300,11 +300,11 @@ int main(int, char**)
 			volume_actor->SetScale({ 3, 3, 3 });
 			scene->AppendChild(volume_actor);
 
-			//vzm::VzMaterial* material_curvedslicer0 = (vzm::VzMaterial*)vzm::GetFirstComponentByName("curved slicer helper material: Plane");
-			//material_curvedslicer0->SetShaderType(vzm::ShaderType::VOLUMEMAP);
-			//material_curvedslicer0->SetVolumeMapper(volume_actor->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP, LookupTableSlot::LOOKUP_WINDOWING);
-			//material_curvedslicer0->SetVolumeTexture(volume->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP);
-			//material_curvedslicer0->SetLookupTable(windowing_volume->GetVID(), LookupTableSlot::LOOKUP_WINDOWING);
+			vzm::VzMaterial* material_curvedslicer0 = (vzm::VzMaterial*)vzm::GetFirstComponentByName("curved slicer helper material: Plane");
+			material_curvedslicer0->SetShaderType(vzm::ShaderType::VOLUMEMAP);
+			material_curvedslicer0->SetVolumeMapper(volume_actor->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP, LookupTableSlot::LOOKUP_WINDOWING);
+			material_curvedslicer0->SetVolumeTexture(volume->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP);
+			material_curvedslicer0->SetLookupTable(windowing_volume->GetVID(), LookupTableSlot::LOOKUP_WINDOWING);
 
 			});
 
