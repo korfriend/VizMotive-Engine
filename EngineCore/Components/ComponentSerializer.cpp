@@ -267,7 +267,16 @@ namespace vz
 			{
 				std::vector<uint8_t>& custom_buffer = customBuffers_[i];
 				archive >> custom_buffer;
-			}			
+			}
+
+			size_t subset_count;
+			archive >> subset_count;
+			subsets_.resize(subset_count);
+			for (size_t i = 0; i < subset_count; ++i)
+			{
+				archive >> subsets_[i].indexOffset;
+				archive >> subsets_[i].indexCount;
+			}
 		}
 		else
 		{
@@ -285,6 +294,13 @@ namespace vz
 			{
 				archive << it;
 			}
+
+			archive << subsets_.size();
+			for (size_t i = 0; i < subsets_.size(); ++i)
+			{
+				archive << subsets_[i].indexOffset;
+				archive << subsets_[i].indexCount;
+			}
 		}
 	}
 
@@ -297,6 +313,9 @@ namespace vz
 			assert(IntrinsicType == static_cast<ComponentType>(u8_data));	// or ctype_
 			
 			archive >> tessellationFactor_;
+			archive >> isGPUBVHEnabled_;
+			archive >> partLODs_;
+
 			uint32_t u32_data;
 			archive >> u32_data; // num of parts
 			for (size_t i = 0, n = u32_data; i < n; ++i)
@@ -312,6 +331,9 @@ namespace vz
 			archive << static_cast<uint8_t>(IntrinsicType); // or ctype_
 
 			archive << tessellationFactor_;
+			archive << isGPUBVHEnabled_;
+			archive << partLODs_;
+
 			archive << parts_.size();
 			for (size_t i = 0, n = parts_.size(); i < n; ++i)
 			{
@@ -445,6 +467,7 @@ namespace vz
 			archive >> userStencilRef_;
 			archive >> vuidGeometry_;
 			archive >> fadeDistance_;
+			archive >> cascadeMask_;
 			archive >> visibleCenter_;
 			archive >> visibleRadius_;
 			archive >> rimHighlightColor_;
@@ -457,7 +480,7 @@ namespace vz
 			archive >> outlineThreshold_;
 			archive >> undercutDirection_;
 			archive >> undercutColor_;
-			archive >> lod_bias_;
+			archive >> lodBias_;
 			archive >> alphaRef_;
 
 			archive >> lineThickness_;
@@ -480,6 +503,7 @@ namespace vz
 			archive << userStencilRef_;
 			archive << vuidGeometry_;
 			archive << fadeDistance_;
+			archive << cascadeMask_;
 			archive << visibleCenter_;
 			archive << visibleRadius_;
 			archive << rimHighlightColor_;
@@ -492,7 +516,7 @@ namespace vz
 			archive << outlineThreshold_;
 			archive << undercutDirection_;
 			archive << undercutColor_;
-			archive << lod_bias_;
+			archive << lodBias_;
 			archive << alphaRef_;
 
 			archive << lineThickness_;

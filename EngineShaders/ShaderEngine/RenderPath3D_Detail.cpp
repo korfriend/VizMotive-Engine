@@ -72,37 +72,11 @@ namespace vz::renderer
 		return XMFLOAT2(x, y);
 	}
 
-	// Don't store this structure on heap!
-	struct SHCAM
-	{
-		XMMATRIX view_projection;
-		Frustum frustum;					// This frustum can be used for intersection test with wiPrimitive primitives
-		BoundingFrustum boundingfrustum;	// This boundingfrustum can be used for frustum vs frustum intersection test
-
-		inline void init(const XMFLOAT3& eyePos, const XMFLOAT4& rotation, float nearPlane, float farPlane, float fov)
-		{
-			const XMVECTOR E = XMLoadFloat3(&eyePos);
-			const XMVECTOR Q = XMQuaternionNormalize(XMLoadFloat4(&rotation));
-			const XMMATRIX rot = XMMatrixRotationQuaternion(Q);
-			const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), rot);
-			const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rot);
-			const XMMATRIX V = VZMatrixLookTo(E, to, up);
-			const XMMATRIX P = VZMatrixPerspectiveFov(fov, 1.f, farPlane, nearPlane);
-			view_projection = XMMatrixMultiply(V, P);
-			frustum.Create(view_projection);
-
-			BoundingFrustum::CreateFromMatrix(boundingfrustum, P);
-			std::swap(boundingfrustum.Near, boundingfrustum.Far);
-			boundingfrustum.Transform(boundingfrustum, XMMatrixInverse(nullptr, V));
-			XMStoreFloat4(&boundingfrustum.Orientation, XMQuaternionNormalize(XMLoadFloat4(&boundingfrustum.Orientation)));
-		};
-	};
-
-	inline void CreateSpotLightShadowCam(const GLightComponent& light, SHCAM& shcam)
+	void CreateSpotLightShadowCam(const GLightComponent& light, SHCAM& shcam)
 	{
 		shcam.init(light.position, light.rotation, 0.1f, light.GetRange(), light.GetOuterConeAngle() * 2.f);
 	}
-	inline void CreateDirLightShadowCams(const GLightComponent& light, CameraComponent camera, SHCAM* shcams, size_t shcam_count, const rectpacker::Rect& shadow_rect)
+	void CreateDirLightShadowCams(const GLightComponent& light, CameraComponent camera, SHCAM* shcams, size_t shcam_count, const rectpacker::Rect& shadow_rect)
 	{
 		// remove camera jittering
 		camera.jitter = XMFLOAT2(0, 0);
@@ -194,7 +168,7 @@ namespace vz::renderer
 		}
 
 	}
-	inline void CreateCubemapCameras(const XMFLOAT3& position, float zNearP, float zFarP, SHCAM* shcams, size_t shcam_count)
+	void CreateCubemapCameras(const XMFLOAT3& position, float zNearP, float zFarP, SHCAM* shcams, size_t shcam_count)
 	{
 		assert(shcam_count == 6);
 		shcams[0].init(position, XMFLOAT4(0.5f, -0.5f, -0.5f, -0.5f), zNearP, zFarP, XM_PIDIV2); //+x

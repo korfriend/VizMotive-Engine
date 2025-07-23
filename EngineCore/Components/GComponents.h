@@ -45,6 +45,7 @@ namespace vz
 
 			FILTER_VOLUME = 1 << 3,
 			FILTER_GAUSSIAN_SPLATTING = 1 << 4,
+			FILTER_WATER = 1 << 5,
 
 			// Other filtering types:
 			FILTER_COLLIDER = 1 << 5,
