@@ -222,6 +222,11 @@ namespace vz
 			timeStampSetter_ = TimerNow;
 		}
 		aabb_ = aabb;
+
+		// world space convention
+		center = aabb.getCenter();
+		radius = aabb.getRadius();
+
 		isDirty_ = false;
 	}
 }

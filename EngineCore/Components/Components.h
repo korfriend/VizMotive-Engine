@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250720_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250723_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -137,6 +137,7 @@ namespace vz
 	{
 		RENDERABLE_MESH_OPAQUE = 1 << 0,
 		RENDERABLE_MESH_TRANSPARENT = 1 << 1,
+		RENDERABLE_MESH_WATER = 1 << 2,
 		RENDERABLE_MESH_NAVIGATION = 1 << 3,
 		RENDERABLE_COLLIDER = 1 << 4,
 		RENDERABLE_VOLUME_DVR = 1 << 5,
@@ -823,6 +824,13 @@ namespace vz
 			std::vector<uint32_t> vertexColors_;
 			std::vector<uint32_t> indexPrimitives_;
 
+			struct Subset // LOD
+			{
+				uint32_t indexOffset = 0;
+				uint32_t indexCount = 0;
+			};
+			std::vector<Subset> subsets_;	// will be updated via GeometryComponent::update()
+
 			// --- User Custom Buffers ---
 			std::vector<std::vector<uint8_t>> customBuffers_;
 
@@ -900,6 +908,8 @@ namespace vz
 			inline std::vector<uint32_t>& GetMutableVtxColors() { return vertexColors_; }
 			inline std::vector<std::vector<uint8_t>>& GetMutableCustomBuffers() { return customBuffers_; }	
 
+			inline std::vector<Subset>& GetSubsets() { return subsets_; }
+
 			inline size_t GetNumVertices() const { return vertexPositions_.size(); }
 			inline size_t GetNumIndices() const { return indexPrimitives_.size(); }
 
@@ -938,6 +948,7 @@ namespace vz
 		std::vector<Primitive> parts_;	
 		float tessellationFactor_ = 0.f;
 		bool isGPUBVHEnabled_ = false;
+		uint32_t partLODs_ = 0; // note: each prim of parts_ has the same LOD
 
 		// Non-serialized attributes
 		bool isDirty_ = true;	// BVH, AABB, ...
@@ -958,6 +969,8 @@ namespace vz
 		bool HasBVH() const { return hasBVH_; }
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
+
+		uint32_t GetLODCount() const { return partLODs_; }
 
 		// ----- WaitForBool -----
 		void MovePrimitivesFrom(std::vector<Primitive>&& primitives);
@@ -1351,9 +1364,10 @@ namespace vz
 		XMFLOAT3 visibleCenter_ = XMFLOAT3(0, 0, 0);
 		float visibleRadius_ = 0;
 		float fadeDistance_ = std::numeric_limits<float>::max(); // object will begin to fade out at this distance to camera
+		uint32_t cascadeMask_ = 0; // which shadow cascades to skip from lowest detail to highest detail (0: skip none, 1: skip first, etc...)
 		XMFLOAT4 rimHighlightColor_ = XMFLOAT4(1, 1, 1, 0);
 		float rimHighlightFalloff_ = 8;
-		float lod_bias_ = 0;
+		float lodBias_ = 0;
 		float alphaRef_ = 1;
 		float lineThickness_ = 1.3f;	// used for line thickness for rendering
 
@@ -1379,6 +1393,22 @@ namespace vz
 		RenderableComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::RENDERABLE, entity, vuid) {}
 		virtual ~RenderableComponent() = default;
 
+		// Non-serialized attributes:
+		// caches for world space convention, updated during RenderableComponent::Update()
+		XMFLOAT3 center = XMFLOAT3(0, 0, 0);
+		float radius = 0;
+
+		inline void SetGeometry(const Entity geometryEntity);
+		inline void SetMaterial(const Entity materialEntity, const size_t slot);
+		inline void SetMaterials(const std::vector<Entity>& materials);
+
+		inline Entity GetGeometry() const;
+		inline Entity GetMaterial(const size_t slot) const;
+		inline std::vector<Entity> GetMaterials() const;
+		inline size_t GetNumParts() const;
+		inline size_t GetMaterials(Entity* entities) const;
+		inline const geometrics::AABB& GetAABB() const { return aabb_; }
+
 		inline void SetDirty() { isDirty_ = true; }
 		inline bool IsDirty() const { return isDirty_; }
 		inline bool IsRenderable() const { return renderableType_ != RenderableType::UNDEFINED; }
@@ -1395,9 +1425,8 @@ namespace vz
 		inline void SetFadeDistance(const float fadeDistance) { fadeDistance_ = fadeDistance; timeStampSetter_ = TimerNow; }
 		inline void SetVisibleRadius(const float radius) { visibleRadius_ = radius; timeStampSetter_ = TimerNow; }
 		inline void SetVisibleCenter(const XMFLOAT3 center) { visibleCenter_ = center; timeStampSetter_ = TimerNow; }
-		inline void SetGeometry(const Entity geometryEntity);
-		inline void SetMaterial(const Entity materialEntity, const size_t slot);
-		inline void SetMaterials(const std::vector<Entity>& materials);
+		inline void SetCascadeMask(const uint32_t cascadeMask) { cascadeMask_ = cascadeMask; timeStampSetter_ = TimerNow; }
+		inline void SetLODBias(const float lodBias) { lodBias_ = lodBias; timeStampSetter_ = TimerNow; }
 
 		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= RenderableFlags::CLIP_BOX : flags_ &= ~RenderableFlags::CLIP_BOX;
@@ -1434,6 +1463,8 @@ namespace vz
 		inline float GetFadeDistance() const { return fadeDistance_; }
 		inline float GetVisibleRadius() const { return visibleRadius_; }
 		inline XMFLOAT3 GetVisibleCenter() const { return visibleCenter_; }
+		inline uint32_t GetCascadeMask() const { return cascadeMask_; }		
+		inline float GetLODBias() const { return lodBias_; }
 		inline XMFLOAT4 GetRimHighLightColor() const { return rimHighlightColor_; }
 		inline float GetRimHighLightFalloff() const { return rimHighlightFalloff_; }
 		inline XMFLOAT4 GetClipPlane() const { return clipPlane_; }
@@ -1444,13 +1475,6 @@ namespace vz
 		inline float GetOutlineThreshold() const { return outlineThreshold_; }
 		inline XMFLOAT3 GetUndercutDirection() const { return undercutDirection_; }
 		inline XMFLOAT3 GetUndercutColor() const { return undercutColor_; }
-
-		inline Entity GetGeometry() const;
-		inline Entity GetMaterial(const size_t slot) const;
-		inline std::vector<Entity> GetMaterials() const;
-		inline size_t GetNumParts() const;
-		inline size_t GetMaterials(Entity* entities) const;
-		inline const geometrics::AABB& GetAABB() const { return aabb_; }
 
 		inline void SetStencilRef(const StencilRef value) { engineStencilRef_ = value; timeStampSetter_ = TimerNow; }
 		inline StencilRef GetStencilRef() const { return engineStencilRef_; }

@@ -85,6 +85,17 @@ namespace vz::renderer
 		return initialized.load();
 	}
 
+	uint32_t ComputeObjectLODForView(const RenderableComponent& renderable, const geometrics::AABB& aabb, const GeometryComponent& geometry, const XMMATRIX& ViewProjection)
+	{
+		XMFLOAT4 rect = aabb.ProjectToScreen(ViewProjection);
+		float width = rect.z - rect.x;
+		float height = rect.w - rect.y;
+		float maxdim = std::max(width, height);
+		float lod_max = float(geometry.GetLODCount() - 1);
+		float lod = clamp(std::log2(1.0f / maxdim) + renderable.GetLODBias(), 0.0f, lod_max);
+		return uint32_t(lod);
+	}
+
 	GraphicsDevice*& device = GetDevice();
 
 	void LoadBuffers()

@@ -9,6 +9,7 @@ namespace vzm
 		{
 			MESH_OPAQUE = 1 << 0,
 			MESH_TRANSPARENT = 1 << 1,
+			MESH_WATER = 1 << 2,
 			MESH_NAVIGATION = 1 << 3,
 			COLLIDER = 1 << 4,
 			VOLUME = 1 << 5,

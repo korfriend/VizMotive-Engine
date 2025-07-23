@@ -132,6 +132,7 @@ namespace vz
 {
 	void GeometryComponent::update()
 	{
+		size_t subset_count = 0;
 		aabb_ = {};
 		for (size_t i = 0, n = parts_.size(); i < n; ++i)
 		{
@@ -139,9 +140,22 @@ namespace vz
 
 			prim.updateGpuEssentials();	// update prim.aabb_
 
+			size_t count = prim.subsets_.size();
+			if (count == 0)
+			{
+				prim.subsets_ = { {0, (uint32_t)prim.indexPrimitives_.size()} };
+				count = 1;
+			}
+			if (subset_count > 0) vzlog_assert(subset_count == count, "Each part MUST have the same LODs!");
+			subset_count = count;
+
 			aabb_._max = math::Max(aabb_._max, prim.aabb_._max);
 			aabb_._min = math::Min(aabb_._min, prim.aabb_._min);
 		}
+
+		// TODO: UPDATE 'partLODs_'
+		partLODs_ = subset_count;
+
 		timeStampPrimitiveUpdate_ = TimerNow;
 		hasBVH_ = false;
 		isDirty_ = false;

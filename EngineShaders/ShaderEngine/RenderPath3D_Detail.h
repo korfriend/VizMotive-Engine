@@ -253,6 +253,35 @@ namespace vz::renderer
 		AABB aabb;
 	};
 
+	// Don't store this structure on heap!
+	struct SHCAM
+	{
+		XMMATRIX view_projection;
+		Frustum frustum;					// This frustum can be used for intersection test with wiPrimitive primitives
+		BoundingFrustum boundingfrustum;	// This boundingfrustum can be used for frustum vs frustum intersection test
+
+		inline void init(const XMFLOAT3& eyePos, const XMFLOAT4& rotation, float nearPlane, float farPlane, float fov)
+		{
+			const XMVECTOR E = XMLoadFloat3(&eyePos);
+			const XMVECTOR Q = XMQuaternionNormalize(XMLoadFloat4(&rotation));
+			const XMMATRIX rot = XMMatrixRotationQuaternion(Q);
+			const XMVECTOR to = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), rot);
+			const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rot);
+			const XMMATRIX V = VZMatrixLookTo(E, to, up);
+			const XMMATRIX P = VZMatrixPerspectiveFov(fov, 1.f, farPlane, nearPlane);
+			view_projection = XMMatrixMultiply(V, P);
+			frustum.Create(view_projection);
+
+			BoundingFrustum::CreateFromMatrix(boundingfrustum, P);
+			std::swap(boundingfrustum.Near, boundingfrustum.Far);
+			boundingfrustum.Transform(boundingfrustum, XMMatrixInverse(nullptr, V));
+			XMStoreFloat4(&boundingfrustum.Orientation, XMQuaternionNormalize(XMLoadFloat4(&boundingfrustum.Orientation)));
+		};
+	};
+	void CreateSpotLightShadowCam(const GLightComponent& light, SHCAM& shcam);
+	void CreateDirLightShadowCams(const GLightComponent& light, CameraComponent camera, SHCAM* shcams, size_t shcam_count, const rectpacker::Rect& shadow_rect);
+	void CreateCubemapCameras(const XMFLOAT3& position, float zNearP, float zFarP, SHCAM* shcams, size_t shcam_count);
+
 	// Direct reference to a renderable instance:
 	struct RenderBatch
 	{
@@ -354,6 +383,10 @@ namespace vz::renderer
 		inline void add(uint32_t geometryIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint8_t camera_mask = 0xFF, uint8_t lod_override = 0xFF)
 		{
 			batches.emplace_back().Create(geometryIndex, instanceIndex, distance, sort_bits, camera_mask, lod_override);
+		}
+		inline void add(const RenderBatch& batch)
+		{
+			batches.push_back(batch);
 		}
 		inline void sort_transparent()
 		{
