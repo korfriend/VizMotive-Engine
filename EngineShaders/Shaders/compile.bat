@@ -9,17 +9,35 @@ dxc -T vs_6_0 ./VS/meshVS_prepass_alphatest.hlsl -spirv
 dxc -T vs_6_0 ./VS/meshVS_prepass_alphatest_tessellation.hlsl -spirv
 dxc -T vs_6_0 ./VS/meshVS_prepass_tessellation.hlsl -spirv
 dxc -T vs_6_0 ./VS/meshVS_primitive.hlsl -spirv
+dxc -T vs_6_0 ./VS/envMapVS.hlsl -spirv 
+dxc -T vs_6_0 ./VS/envMapVS_sky.hlsl -spirv 
+dxc -T vs_6_0 ./VS/shadowVS.hlsl -spirv 
+dxc -T vs_6_0 ./VS/shadowVS_alphatest.hlsl -spirv 
+dxc -T vs_6_0 ./VS/shadowVS_transparent.hlsl -spirv 
+dxc -T vs_6_0 ./VS/meshVS_voxelizer.hlsl -spirv 
+dxc -T vs_6_0 ./VS/voxelVS.hlsl -spirv 
 
 dxc -T ps_6_0 ./PS/meshPS_debug.hlsl -spirv
 dxc -T ps_6_0 ./PS/meshPS_simple.hlsl -spirv
 dxc -T ps_6_0 ./PS/meshPS.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T ps_6_0 ./PS/meshPS.hlsl -spirv /D TRANSPARENT=1 -fspv-target-env=vulkan1.1
+dxc -T ps_6_0 ./PS/meshPS_voxelizer.hlsl -spirv -fspv-target-env="vulkan1.1"
+dxc -T ps_6_0 ./PS/voxelPS.hlsl -spirv 
 
 dxc -T ps_6_0 ./PS/vertexcolorPS.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T ps_6_0 ./PS/meshPS_prepass.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T ps_6_0 ./PS/meshPS_prepass_alphatest.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T ps_6_0 ./PS/meshPS_prepass_depthonly.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T ps_6_0 ./PS/meshPS_prepass_depthonly_alphatest.hlsl -spirv -fspv-target-env=vulkan1.1
+
+dxc -T ps_6_0 ./PS/envMapPS.hlsl -spirv
+dxc -T ps_6_0 ./PS/envMapPS_sky_static.hlsl -spirv
+dxc -T ps_6_0 ./PS/envMapPS_sky_dynamic.hlsl -spirv
+dxc -T ps_6_0 ./PS/cubeMapPS.hlsl -spirv
+
+dxc -T ps_6_0 ./PS/shadowPS_alphatest.hlsl -spirv
+dxc -T ps_6_0 ./PS/shadowPS_transparent.hlsl -spirv
+dxc -T ps_6_0 ./PS/shadowPS_water.hlsl -spirv
 
 dxc -T ps_6_0 ./PS/imagePS.hlsl -spirv
 dxc -T ps_6_0 ./PS/debugPS.hlsl -spirv
@@ -52,6 +70,12 @@ dxc -T cs_6_0 ./CS/blockcompressCS_BC4.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC5.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC6H.hlsl -spirv
 dxc -T cs_6_0 ./CS/blockcompressCS_BC6H_cubemap.hlsl -spirv
+dxc -T cs_6_0 ./CS/screenspaceshadowCS.hlsl -spirv -fspv-target-env=vulkan1.1
+dxc -T cs_6_0 ./CS/rtshadowCS_denoise_filter.hlsl -spirv
+dxc -T cs_6_0 ./CS/rtshadowCS_denoise_temporal.hlsl -spirv
+dxc -T cs_6_0 ./CS/rtshadowCS_denoise_tileclassification.hlsl -spirv -fspv-target-env=vulkan1.1
+dxc -T cs_6_0 ./CS/rtshadowCS_upsample.hlsl -spirv -fspv-target-env=vulkan1.1
+dxc -T cs_6_5 ./CS/rtshadowCS.hlsl -spirv -fspv-target-env=vulkan1.1
 
 dxc -T cs_6_0 ./CS/bvh_hierarchyCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/bvh_primitivesCS.hlsl -spirv
@@ -78,6 +102,8 @@ dxc -T cs_6_0 ./CS/slicerOutlineCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/slicerResolveCS_KB2.hlsl -spirv
 
 dxc -T gs_6_0 ./GS/thicknessLineGS.hlsl -spirv
+dxc -T gs_6_0 ./GS/meshGS_voxelizer.hlsl -spirv
+dxc -T gs_6_0 ./GS/voxelGS.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/dvrCS_curved_slicer_2KB.hlsl -spirv
 dxc -T cs_6_0 ./CS/dvrCS_slicer_2KB.hlsl -spirv
@@ -99,19 +125,21 @@ dxc -T cs_6_0 ./CS/upsample_bilateral_float1CS.hlsl -spirv
 dxc -T cs_6_0 ./CS/upsample_bilateral_float4CS.hlsl -spirv
 dxc -T cs_6_0 ./CS/downsample4xCS.hlsl -spirv
 
+dxc -T cs_6_0 ./CS/filterEnvMapCS.hlsl -spirv
+
 dxc -T vs_6_0 ./VS/fontVS.hlsl -spirv
 dxc -T ps_6_0 ./PS/fontPS.hlsl -spirv
 
-dxc -T vs_6_0 ./VS/volumetriclight_directionalVS.hlsl -spirv
-dxc -T vs_6_0 ./VS/volumetriclight_pointVS.hlsl -spirv
-dxc -T vs_6_0 ./VS/volumetriclight_spotVS.hlsl -spirv
+dxc -T vs_6_0 ./VS/volumetriclightVS_directional.hlsl -spirv
+dxc -T vs_6_0 ./VS/volumetriclightVS_point.hlsl -spirv
+dxc -T vs_6_0 ./VS/volumetriclightVS_spot.hlsl -spirv
 dxc -T vs_6_0 ./VS/vPointLightVS.hlsl -spirv
 dxc -T vs_6_0 ./VS/vSpotLightVS.hlsl -spirv
 
 dxc -T ps_6_0 ./PS/lightVisualizerPS.hlsl -spirv
-dxc -T ps_6_0 ./PS/volumetricLight_DirectionalPS.hlsl -spirv
-dxc -T ps_6_0 ./PS/volumetricLight_PointPS.hlsl -spirv
-dxc -T ps_6_0 ./PS/volumetricLight_SpotPS.hlsl -spirv
+dxc -T ps_6_0 ./PS/volumetricLightPS_Directional.hlsl -spirv
+dxc -T ps_6_0 ./PS/volumetricLightPS_Point.hlsl -spirv
+dxc -T ps_6_0 ./PS/volumetricLightPS_Spot.hlsl -spirv
 
 
 

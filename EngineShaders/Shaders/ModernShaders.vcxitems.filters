@@ -61,6 +61,21 @@
     <Filter Include="CommonHF\Shapes">
       <UniqueIdentifier>{970ec47b-8b03-4890-9f1f-2eddbdaf6c75}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compute Shaders\ScrrenSpace">
+      <UniqueIdentifier>{a92a93e8-bd5a-4826-8922-dc995d29627c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compute Shaders\RayTracing">
+      <UniqueIdentifier>{17ed1a06-a7fc-4525-9ea4-d6b27ccab6e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FFX Packages">
+      <UniqueIdentifier>{112876f8-d58b-4e5d-98c8-f001963d896e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FFX Packages\ffx-fsr2">
+      <UniqueIdentifier>{f358f62b-9d66-4d04-9e76-48072703d5c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FFX Packages\ffx-shadows-dnsr">
+      <UniqueIdentifier>{fcb41e9f-0596-4282-8a0c-516b6d8f7951}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)compile.bat">
@@ -150,6 +165,27 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\uvsphere.hlsli">
       <Filter>CommonHF\Shapes</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\skyHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\skyAtmosphere.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\stochasticSSRHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\capsuleShadowHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\voxelHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\volumetricCloudsHF.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\cube.hlsli">
+      <Filter>CommonHF\Shapes</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GaussianSplatting.h">
@@ -199,6 +235,90 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Font.h">
       <Filter>Interop %28root%29</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Environment.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_common_types.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_core.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_core_cpu.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_core_gpu_common.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_core_gpu_common_half.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_core_hlsl.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_core_portability.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr1.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_accumulate.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_callbacks_hlsl.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_common.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_compute_luminance_pyramid.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_depth_clip.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_lock.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_postprocess_lock_status.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_prepare_input_color.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_rcas.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_reconstruct_dilated_velocity_and_previous_depth.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_reproject.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_resources.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_sample.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_fsr2_upsample.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-fsr2\ffx_spd.h">
+      <Filter>FFX Packages\ffx-fsr2</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-shadows-dnsr\ffx_denoiser_shadows_filter.h">
+      <Filter>FFX Packages\ffx-shadows-dnsr</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-shadows-dnsr\ffx_denoiser_shadows_prepare.h">
+      <Filter>FFX Packages\ffx-shadows-dnsr</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-shadows-dnsr\ffx_denoiser_shadows_tileclassification.h">
+      <Filter>FFX Packages\ffx-shadows-dnsr</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ffx-shadows-dnsr\ffx_denoiser_shadows_util.h">
+      <Filter>FFX Packages\ffx-shadows-dnsr</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -484,15 +604,6 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\imagePS_sprite.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_directionalVS.hlsl">
-      <Filter>Raster-Pipeline Shaders\VS</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_pointVS.hlsl">
-      <Filter>Raster-Pipeline Shaders\VS</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetriclight_spotVS.hlsl">
-      <Filter>Raster-Pipeline Shaders\VS</Filter>
-    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\vPointLightVS.hlsl">
       <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
@@ -502,14 +613,104 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\lightVisualizerPS.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_DirectionalPS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLightPS_Directional.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_PointPS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLightPS_Point.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLight_SpotPS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLightPS_Spot.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\envMapVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\shadowVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\shadowVS_alphatest.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\shadowVS_transparent.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\meshVS_voxelizer.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\envMapVS_sky.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS_sky_dynamic.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS_sky_static.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS_basic.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS_advanced.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\filterEnvMapCS.hlsl">
+      <Filter>Compute Shaders\Post Processing Chains</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\cubeMapPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\shadowPS_alphatest.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\shadowPS_transparent.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\shadowPS_water.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS_denoise_filter.hlsl">
+      <Filter>Compute Shaders\RayTracing</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS_denoise_temporal.hlsl">
+      <Filter>Compute Shaders\RayTracing</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS_denoise_tileclassification.hlsl">
+      <Filter>Compute Shaders\RayTracing</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS_upsample.hlsl">
+      <Filter>Compute Shaders\RayTracing</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS.hlsl">
+      <Filter>Compute Shaders\RayTracing</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\screenspaceshadowCS.hlsl">
+      <Filter>Compute Shaders\ScrrenSpace</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)GS\meshGS_voxelizer.hlsl">
+      <Filter>Raster-Pipeline Shaders\GS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\meshPS_voxelizer.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\voxelVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\voxelPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)GS\voxelGS.hlsl">
+      <Filter>Raster-Pipeline Shaders\GS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetricLightVS_directional.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetricLightVS_point.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetricLightVS_spot.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

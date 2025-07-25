@@ -120,7 +120,7 @@ struct SurfaceToLight
 		NdotL_sss = (NdotL + surface.sss.rgb) * surface.sss_inv.rgb;
 
 		NdotH = clamp(saturate(dot(surface.N, H)), 0, 0.999);	// clamp to avoid over-reflectance
-        LdotH = saturate(dot((float3)L, H));
+        LdotH = (half)saturate(dot((float3)L, H));
 		VdotH = (half)saturate(dot(surface.V, H));
 
 		F = F_Schlick(surface.f0, VdotH);
@@ -161,7 +161,7 @@ half3 BRDF_GetSpecular(in Surface surface, in SurfaceToLight surface_to_light)
 	half Vis = V_SmithGGXCorrelated_Anisotropic(surface.aniso.at, surface.aniso.ab, surface.aniso.TdotV, surface.aniso.BdotV,
 		surface_to_light.TdotL, surface_to_light.BdotL, surface.NdotV, surface_to_light.NdotL);
 #else
-	half roughnessBRDF = sqr(clamp(surface.roughness, MIN_ROUGHNESS, 1.f));
+	half roughnessBRDF = sqr(clamp(surface.roughness, (half)MIN_ROUGHNESS, (half)1.f));
 	half D = D_GGX(roughnessBRDF, surface_to_light.NdotH, surface_to_light.H);
 	half Vis = V_SmithGGXCorrelated(roughnessBRDF, surface.NdotV, surface_to_light.NdotL);
 #endif // ANISOTROPIC

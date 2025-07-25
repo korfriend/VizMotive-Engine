@@ -68,8 +68,8 @@ struct GaussianSplattingInstance
 		uid = meshInst.uid;
 		flags = meshInst.flags;
 		clipIndex = meshInst.clipIndex;
-		aabbCenter = meshInst.aabbCenter;
-		aabbRadius = meshInst.aabbRadius;
+		aabbCenter = meshInst.center;
+		aabbRadius = meshInst.radius;
 		fadeDistance = meshInst.fadeDistance;
 		color = meshInst.color;
 		lightmap = meshInst.lightmap;

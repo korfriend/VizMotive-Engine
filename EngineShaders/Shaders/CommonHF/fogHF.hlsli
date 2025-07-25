@@ -1,7 +1,7 @@
 #ifndef FOG_HF
 #define FOG_HF
 #include "../globals.hlsli"
-//#include "skyAtmosphere.hlsli"
+#include "skyAtmosphere.hlsli"
 
 // [-0.999; 0.999] Describes how the lighting is destributed across sky
 #define FOG_INSCATTERING_PHASE_G 0.6
@@ -14,7 +14,7 @@
 inline float GetFogAmount(float distance, float3 O, float3 V)
 {
     //ShaderFog fog = GetWeather().fog;
-	ShaderFog fog = GetScene().fog;
+	ShaderFog fog = GetEnvironment().fog;
 	
 	float startDistanceFalloff = saturate((distance - fog.start) / fog.start);
 	
@@ -75,37 +75,32 @@ float HgPhase(float g, float cosTheta)
 #endif
 }
 
-float UniformPhase()
-{
-    return 1.0f / (4.0f * PI);
-}
-
 inline float4 GetFog(float distance, float3 O, float3 V)
 {
 	float3 fogColor = 0;
 	
-	//if ((GetFrame().options & OPTION_BIT_REALISTIC_SKY) && (GetFrame().options & OPTION_BIT_OVERRIDE_FOG_COLOR) == 0)
-	//{
-	//	// Sample captured ambient color from realisitc sky:
-	//	fogColor = texture_skyluminancelut.SampleLevel(sampler_point_clamp, float2(0.5, 0.5), 0).rgb;
-	//}
-	//else
+	if ((GetFrame().options & OPTION_BIT_REALISTIC_SKY) && (GetFrame().options & OPTION_BIT_OVERRIDE_FOG_COLOR) == 0)
+	{
+		// Sample captured ambient color from realisitc sky:
+		fogColor = texture_skyluminancelut.SampleLevel(sampler_point_clamp, float2(0.5, 0.5), 0).rgb;
+	}
+	else
 	{
         fogColor = GetHorizonColor();
     }
 
 	// Sample inscattering color:
 	{
-		const float3 L = GetSunDirection();
+		const half3 L = GetSunDirection();
 		
 		float3 inscatteringColor = GetSunColor();
 
 		// Apply atmosphere transmittance:
-		//if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
-		//{
-		//	// 0 for position since fog is centered around world center
-		//	inscatteringColor *= GetAtmosphericLightTransmittance(GetWeather().atmosphere, float3(0.0, 0.0, 0.0), L, texture_transmittancelut);
-		//}
+		if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
+		{
+			// 0 for position since fog is centered around world center
+			inscatteringColor *= GetAtmosphericLightTransmittance(GetEnvironment().atmosphere, float3(0.0, 0.0, 0.0), L, texture_transmittancelut);
+		}
 		
 		// Apply phase function solely for directionality:
 		const float cosTheta = dot(-V, L);
