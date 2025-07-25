@@ -923,24 +923,12 @@ namespace vz::shader
 											desc.hs = realHS < SHADERTYPE_COUNT ? &shaders[realHS] : nullptr;
 											desc.ds = realDS < SHADERTYPE_COUNT ? &shaders[realDS] : nullptr;
 											desc.gs = realGS < SHADERTYPE_COUNT ? &shaders[realGS] : nullptr;
-
-											// DEBUG: GG
-											if (realVS < SHADERTYPE_COUNT && desc.vs == nullptr)
-												int gg = 0;
-											if (realHS < SHADERTYPE_COUNT && desc.hs == nullptr)
-												int gg = 0;
-											if (realDS < SHADERTYPE_COUNT && desc.ds == nullptr)
-												int gg = 0;
-											if (realGS < SHADERTYPE_COUNT && desc.gs == nullptr)
-												int gg = 0;
 										}
 
 										const uint32_t deferred_enabled = 0; // (TODO) 1
 
 										SHADERTYPE realPS = GetPSTYPE((RENDERPASS)renderPass, deferred_enabled, alphatest, transparency, static_cast<MaterialComponent::ShaderType>(shaderType));
 										desc.ps = realPS < SHADERTYPE_COUNT ? &shaders[realPS] : nullptr;
-										if (realPS < SHADERTYPE_COUNT && desc.ps == nullptr)
-											int gg = 0;
 
 										switch (blendMode)
 										{
