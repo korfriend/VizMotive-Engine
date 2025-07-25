@@ -9,7 +9,7 @@ namespace vz::gpubvh
 	bool UpdateGeometryGPUBVH(const Entity geometryEntity, graphics::CommandList cmd);
 
 	// this is called during the rendering process (after UpdateRenderData that involves FrameCB)
-	bool UpdateSceneGPUBVH(const ShaderScene& sceneShader, graphics::CommandList cmd);
+	bool UpdateSceneGPUBVH(const Entity sceneEntity);
 
 	void Initialize();
 	void Deinitialize();

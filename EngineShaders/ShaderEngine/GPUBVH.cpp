@@ -323,7 +323,7 @@ namespace vz::gpubvh
 		return true;
 	}
 
-	bool UpdateSceneGPUBVH(const ShaderScene& sceneShader, graphics::CommandList cmd)
+	bool UpdateSceneGPUBVH(const Entity sceneEntity)
 	{
 		//sceneShader.geometrybuffer
 		vzlog_assert(0, "TODO");

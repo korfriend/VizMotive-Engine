@@ -57,7 +57,10 @@ namespace vzm
 		void SetLookupTable(const VzResource* res, const LookupTableSlot slot) { SetLookupTable(res->GetVID(), slot); }
 
 		void SetShaderType(const ShaderType shaderType);
+		
 		void SetDoubleSided(const bool enabled);
+		void SetShadowCast(const bool enabled);
+		void SetShadowReceive(const bool enabled);
 		void SetBaseColor(const vfloat4& color);
 		void SetGaussianSplattingEnabled(const bool enabled);
 		void SetWireframe(const bool enabled);
@@ -68,6 +71,8 @@ namespace vzm
 		ShaderType GetShaderType() const;
 		vfloat4 GetBaseColor() const;
 		bool IsDoubleSided() const;
+		bool IsShadowCast() const;
+		bool IsShadowReceive() const;
 	};
 	using TextureSlot = VzMaterial::TextureSlot;
 	using VolumeTextureSlot = VzMaterial::VolumeTextureSlot;

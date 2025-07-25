@@ -162,7 +162,7 @@ namespace vzm
 	void VzGeometry::EnableGPUBVH(const bool enabled)
 	{
 		GET_GEO_COMP(geometry, );
-		geometry->EnableGPUBVH(enabled);
+		geometry->SetGPUBVHEnabled(enabled);
 	}
 
 	size_t VzGeometry::GetMemoryUsageCPU() const

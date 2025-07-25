@@ -48,7 +48,21 @@ namespace vzm
 	void VzMaterial::SetDoubleSided(const bool enabled)
 	{
 		GET_MATERIAL_COMP(material, );
-		material->EnableDoubleSided(enabled);
+		material->SetDoubleSidedEnabled(enabled);
+		UpdateTimeStamp();
+	}
+
+	void VzMaterial::SetShadowCast(const bool enabled)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetShadowCastEnabled(enabled);
+		UpdateTimeStamp();
+	}
+
+	void VzMaterial::SetShadowReceive(const bool enabled)
+	{
+		GET_MATERIAL_COMP(material, );
+		material->SetShadowReceiveEnabled(enabled);
 		UpdateTimeStamp();
 	}
 
@@ -62,14 +76,14 @@ namespace vzm
 	void VzMaterial::SetGaussianSplattingEnabled(const bool enabled)
 	{
 		GET_MATERIAL_COMP(material, );
-		material->EnableGaussianSplatting(enabled);
+		material->SetGaussianSplattingEnabled(enabled);
 		UpdateTimeStamp();
 	}
 
 	void VzMaterial::SetWireframe(const bool enabled)
 	{
 		GET_MATERIAL_COMP(material, );
-		material->EnableWireframe(enabled);
+		material->SetWireframeEnabled(enabled);
 		UpdateTimeStamp();
 	}
 
@@ -101,5 +115,17 @@ namespace vzm
 	{
 		GET_MATERIAL_COMP(material, false);
 		return material->IsDoubleSided();
+	}
+
+	bool VzMaterial::IsShadowCast() const
+	{
+		GET_MATERIAL_COMP(material, false);
+		return material->IsShadowCast();
+	}
+
+	bool VzMaterial::IsShadowReceive() const
+	{
+		GET_MATERIAL_COMP(material, false);
+		return material->IsShadowReceive();
 	}
 }

@@ -148,7 +148,7 @@ int main(int, char **)
 
 		VzLight *light = NewLight("my light");
 		light->SetIntensity(5.f);
-		light->EnableCastShadow(true);
+		//light->EnableCastShadow(true);
 		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
@@ -163,13 +163,18 @@ int main(int, char **)
 
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
 		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 5);
-		vzm::VzMaterial *material_test = vzm::NewMaterial("icosahedron's material");
+		vzm::VzMaterial* material_test = vzm::NewMaterial("icosahedron's material");
+		//material_test->SetShadowCast(true);
+		//material_test->SetShadowReceive(true);
+		
 		vzm::VzActorStaticMesh *actor_test1 = vzm::NewActorStaticMesh("my actor1-IcosahedronGeometry", geometry_test->GetVID(), material_test->GetVID());
 		scene->AppendChild(actor_test1);
 
 		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
 		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 8.f, 3, 128, 16);
 		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
+		//material_test2->SetShadowCast(true);
+		//material_test2->SetShadowReceive(true);
 		vzm::VzActorStaticMesh* actor_test2 = vzm::NewActorStaticMesh("my actor2-TorusKnot", geometry_test2->GetVID(), material_test2->GetVID());
 		scene->AppendChild(actor_test2);
 
@@ -184,18 +189,21 @@ int main(int, char **)
 			vz::geogen::GenerateTubeGeometry(geometry_canal->GetVID(), curve_points, 64, 3.f);
 		}
 		vzm::VzMaterial* material_canal = vzm::NewMaterial("my material canal");
+		//material_canal->SetShadowCast(true);
+		//material_canal->SetShadowReceive(true);
 		material_canal->SetBaseColor({ 0.5, 0.5, 1, 1 });
 		vzm::VzActorStaticMesh* actor_canal = vzm::NewActorStaticMesh("my actor-canal", geometry_canal->GetVID(), material_canal->GetVID());
 		scene->AppendChild(actor_canal);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetScale({ 10, 10, 10 });
-		axis_helper->EnableUnlit(true);
+		//axis_helper->EnableUnlit(true);
 		scene->AppendChild(axis_helper);
 
 		vzm::VzGeometry* floor_geo = vzm::NewGeometry("floor mesh");
 		vz::geogen::GenerateBoxGeometry(floor_geo->GetVID());
 		vzm::VzMaterial* floor_material = vzm::NewMaterial("floor mesh");
+		//floor_material->SetShadowReceive(true);
 		vzm::VzActorStaticMesh* floor_actor = vzm::NewActorStaticMesh("floor", floor_geo->GetVID(), floor_material->GetVID());
 		floor_actor->SetScale({ 100.f, 5.f, 100.f });
 		floor_actor->SetPosition({ 0.f, 0.f, -50.f });
@@ -208,6 +216,8 @@ int main(int, char **)
 			geometry_stl->LoadGeometryFile("../Assets/stl_files/AntagonistScan.stl");
 			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material");
 			material_stl->SetShaderType(vzm::ShaderType::PBR);
+			//material_stl->SetShadowReceive(true);
+			//material_stl->SetShadowCast(true);
 			material_stl->SetDoubleSided(true);
 			material_stl->SetBaseColor({ 1, 0.5, 0.5, 1 });
 			vzm::VzActorStaticMesh* actor_test3 = vzm::NewActorStaticMesh("my actor3", geometry_stl->GetVID(), material_stl->GetVID());

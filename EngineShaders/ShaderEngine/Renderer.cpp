@@ -1708,10 +1708,10 @@ namespace vz::renderer
 		// Shadow maps:
 		if (isShadowsEnabled)
 		{
-			//cmd = device->BeginCommandList();
-			//jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
-			//	renderer::DrawShadowmaps(visibility_main, cmd);
-			//	});
+			cmd = device->BeginCommandList();
+			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {
+				DrawShadowmaps(visMain, cmd);
+				});
 		}
 
 		//if (renderer::GetVXGIEnabled() && getSceneUpdateEnabled())

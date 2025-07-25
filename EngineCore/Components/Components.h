@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250723_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250723_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -567,7 +567,12 @@ namespace vz
 			SHADOW_CAST = 1 << 8,
 			SHADOW_RECEIVE = 1 << 9,
 			VERTEXAO = 1 << 10,
-			GAUSSIAN_SPLATTING = 1 << 11,
+			SPECULAR_GLOSSINESS_WORKFLOW = 1 << 11,
+			OCCLUSION_PRIMARY = 1 << 12,
+			OCCLUSION_SECONDARY = 1 << 13,
+			USE_WIND = 1 << 14,
+			DISABLE_CAPSULE_SHADOW = 1 << 15,	// default is CAPSULE SHADOW!
+			GAUSSIAN_SPLATTING = 1 << 16,
 		};
 		enum class ShaderType : uint32_t
 		{
@@ -694,14 +699,20 @@ namespace vz
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; timeStampSetter_ = TimerNow;}
 		inline void SetMatalness(const float metalness) { metalness_ = metalness; timeStampSetter_ = TimerNow; }
 		inline void SetRoughness(const float roughness) { roughness_ = roughness; timeStampSetter_ = TimerNow; }
-		inline void EnableWetmap(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP); timeStampSetter_ = TimerNow; }
-		inline void EnableShadowCast(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::SHADOW_CAST); timeStampSetter_ = TimerNow; }
-		inline void EnableShadowReceive(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
-		inline void EnableDoubleSided(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED); timeStampSetter_ = TimerNow; }
-		inline void EnableGaussianSplatting(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING); timeStampSetter_ = TimerNow; }
-		inline void EnableWireframe(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME); timeStampSetter_ = TimerNow; }
+		inline void SetWetmapEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP); timeStampSetter_ = TimerNow; }
+		inline void SetShadowCastEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::SHADOW_CAST); timeStampSetter_ = TimerNow; }
+		inline void SetShadowReceiveEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
+		inline void SetDoubleSidedEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED); timeStampSetter_ = TimerNow; }
+		inline void SetGaussianSplattingEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING); timeStampSetter_ = TimerNow; }
+		inline void SetWireframeEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME); timeStampSetter_ = TimerNow; }
+		inline void SetUseVertexColorEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::USE_VERTEXCOLORS); timeStampSetter_ = TimerNow; }
+		inline void SetUseSpecularGlossinessWorkflowEnabled(bool enabled) { FLAG_SETTER(flags_, RenderFlags::USE_VERTEXCOLORS); timeStampSetter_ = TimerNow; }
 		inline void SetPhongFactors(const XMFLOAT4& phongFactors) { phongFactors_ = phongFactors; timeStampSetter_ = TimerNow; }
-
+		inline void SetOcclusionEnabled_Primary(bool enabled) { FLAG_SETTER(flags_, RenderFlags::OCCLUSION_PRIMARY); timeStampSetter_ = TimerNow; }
+		inline void SetOcclusionEnabled_Secondary(bool enabled) { FLAG_SETTER(flags_, RenderFlags::OCCLUSION_SECONDARY); timeStampSetter_ = TimerNow; }
+		inline void SetUseWindEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::USE_WIND); timeStampSetter_ = TimerNow; }
+		inline void SetCapsuleShadowEnabled(const bool enabled) { UNFLAG_SETTER(flags_, RenderFlags::DISABLE_CAPSULE_SHADOW); timeStampSetter_ = TimerNow; }
+		
 		inline void SetSheenColor(const XMFLOAT4& value) { sheenColor_ = value; timeStampSetter_ = TimerNow; }
 		inline void SetSubsurfaceScattering(const XMFLOAT4& value) { subsurfaceScattering_ = value; timeStampSetter_ = TimerNow; }
 		inline void SetExtinctionColor(const XMFLOAT4& value) { extinctionColor_ = value; timeStampSetter_ = TimerNow; }
@@ -739,6 +750,12 @@ namespace vz
 		inline bool IsVertexAOEnabled() const { return flags_ & SCU32(RenderFlags::VERTEXAO); }
 		inline bool IsGaussianSplattingEnabled() const { return flags_ & SCU32(RenderFlags::GAUSSIAN_SPLATTING); }
 		inline bool IsWireframeEnabled() const { return flags_ & SCU32(RenderFlags::WIREFRAME); }
+		inline bool IsUsingVertexColor() const { return flags_ & SCU32(RenderFlags::USE_VERTEXCOLORS); }
+		inline bool IsUsingSpecularGlossinessWorkflow() const { return flags_ & SCU32(RenderFlags::SPECULAR_GLOSSINESS_WORKFLOW); }
+		inline bool IsOcclusionEnabled_Primary() const { return flags_ & SCU32(RenderFlags::OCCLUSION_PRIMARY); }
+		inline bool IsOcclusionEnabled_Secondary() const { return flags_ & SCU32(RenderFlags::OCCLUSION_SECONDARY); }
+		inline bool IsUsingWind() const { return flags_ & SCU32(RenderFlags::USE_WIND); }
+		inline bool IsCapsuleShadowEnabled() const { return flags_ & ~SCU32(RenderFlags::DISABLE_CAPSULE_SHADOW); }
 
 		inline uint32_t GetRenderFlags() const { return flags_; }
 
@@ -997,7 +1014,7 @@ namespace vz
 		// GPU interfaces //
 		bool HasRenderData() const { return hasRenderData_; }
 		bool IsGPUBVHEnabled() const { return isGPUBVHEnabled_; }
-		void EnableGPUBVH(const bool enabled) { isGPUBVHEnabled_ = enabled; }
+		void SetGPUBVHEnabled(const bool enabled) { isGPUBVHEnabled_ = enabled; }
 
 		virtual void DeleteRenderData() = 0;
 		virtual void UpdateRenderData() = 0;
@@ -1415,9 +1432,9 @@ namespace vz
 		inline RenderableType GetRenderableType() const { return renderableType_; }
 		inline void ReserveRenderableType(const RenderableType rType) { renderableReservedType_ = rType; timeStampSetter_ = TimerNow; }
 
-		inline void EnableForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
+		inline void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
-		inline void EnablePickable(const bool enabled) { UNFLAG_SETTER(flags_, RenderableFlags::UNPICKABLE) timeStampSetter_ = TimerNow; }
+		inline void SetPickable(const bool enabled) { UNFLAG_SETTER(flags_, RenderableFlags::UNPICKABLE) timeStampSetter_ = TimerNow; }
 		inline bool IsPickable() const { return !(flags_ & RenderableFlags::UNPICKABLE); }
 
 		inline uint32_t GetFlags() const { return flags_; }
@@ -1428,7 +1445,7 @@ namespace vz
 		inline void SetCascadeMask(const uint32_t cascadeMask) { cascadeMask_ = cascadeMask; timeStampSetter_ = TimerNow; }
 		inline void SetLODBias(const float lodBias) { lodBias_ = lodBias; timeStampSetter_ = TimerNow; }
 
-		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
+		inline void SetClipperEnabled(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= RenderableFlags::CLIP_BOX : flags_ &= ~RenderableFlags::CLIP_BOX;
 			clipPlaneEnabled ? flags_ |= RenderableFlags::CLIP_PLANE : flags_ &= ~RenderableFlags::CLIP_PLANE; timeStampSetter_ = TimerNow;
 		}
@@ -1445,10 +1462,10 @@ namespace vz
 		inline void SetOutineThreshold(const float v) { outlineThreshold_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutDirection(const XMFLOAT3& v) { undercutDirection_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutColor(const XMFLOAT3& v) { undercutColor_ = v; timeStampSetter_ = TimerNow; }
-		inline void EnableOutline(const bool enabled) { enabled ? flags_ |= RenderableFlags::OUTLINE : flags_ &= ~RenderableFlags::OUTLINE; timeStampSetter_ = TimerNow; }
-		inline void EnableUndercut(const bool enabled) { enabled ? flags_ |= RenderableFlags::UNDERCUT : flags_ &= ~RenderableFlags::UNDERCUT; timeStampSetter_ = TimerNow; }
+		inline void SetOutlineEnabled(const bool enabled) { enabled ? flags_ |= RenderableFlags::OUTLINE : flags_ &= ~RenderableFlags::OUTLINE; timeStampSetter_ = TimerNow; }
+		inline void SetUndercutEnabled(const bool enabled) { enabled ? flags_ |= RenderableFlags::UNDERCUT : flags_ &= ~RenderableFlags::UNDERCUT; timeStampSetter_ = TimerNow; }
 
-		inline void EnableSlicerSolidFill(const bool enabled) { 
+		inline void SetSlicerSolidFillEnabled(const bool enabled) { 
 			enabled? flags_ &= ~RenderableFlags::SLICER_NO_SOLID_FILL : flags_ |= RenderableFlags::SLICER_NO_SOLID_FILL; 
 			timeStampSetter_ = TimerNow; 
 		}
@@ -1604,18 +1621,18 @@ namespace vz
 		inline void SetSpriteTexture(const Entity entity);
 		inline VUID GetSpriteTextureVUID() const { return vuidSpriteTexture_; }
 
-		inline void EnableHidden(bool enabled = true) { ENABLE_FLAG(enabled, HIDDEN); }
-		inline void EnableUpdate(bool enabled = true) { ENABLE_FLAG(!enabled, DISABLE_UPDATE); }
-		inline void EnableCameraFacing(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_FACING); }
-		inline void EnableCameraScaling(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_SCALING); }
+		inline void SetHidden(bool enabled = true) { ENABLE_FLAG(enabled, HIDDEN); }
+		inline void SetUpdateEnabled(bool enabled = true) { ENABLE_FLAG(!enabled, DISABLE_UPDATE); }
+		inline void SetCameraFacingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_FACING); }
+		inline void SetCameraScalingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_SCALING); }
 
-		inline void EnableExtractNormalMap(bool enabled = true) { ENABLE_FLAG(enabled, EXTRACT_NORMALMAP); }
-		inline void EnableMirror(bool enabled = true) { ENABLE_FLAG(enabled, MIRROR); }
-		inline void EnableHDR10OutputMapping(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_HDR10_ST2084); }
-		inline void EnableLinearOutputMapping(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_LINEAR); }
-		inline void EnableCornerRounding(bool enabled = true) { ENABLE_FLAG(enabled, CORNER_ROUNDING); }
-		inline void EnableDepthTest(bool enabled = true) { ENABLE_FLAG(enabled, DEPTH_TEST); }
-		inline void EnableHighlight(bool enabled = true) { ENABLE_FLAG(enabled, HIGHLIGHT); }
+		inline void SetExtractNormalMapEnabled(bool enabled = true) { ENABLE_FLAG(enabled, EXTRACT_NORMALMAP); }
+		inline void SetMirrorEnabled(bool enabled = true) { ENABLE_FLAG(enabled, MIRROR); }
+		inline void SetHDR10OutputMappingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_HDR10_ST2084); }
+		inline void SetLinearOutputMappingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_LINEAR); }
+		inline void SetCornerRoundingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, CORNER_ROUNDING); }
+		inline void SetDepthTestEnabled(bool enabled = true) { ENABLE_FLAG(enabled, DEPTH_TEST); }
+		inline void SetHighlightEnabled(bool enabled = true) { ENABLE_FLAG(enabled, HIGHLIGHT); }
 
 		inline bool IsDisableUpdate() const { return flags_ & DISABLE_UPDATE; }
 		inline bool IsCameraFacing() const { return flags_ & CAMERA_FACING; }
@@ -1739,17 +1756,17 @@ namespace vz
 		SpriteFontComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::SPRITEFONT, entity, vuid) {}
 		virtual ~SpriteFontComponent() = default;
 
-		inline void EnableHidden(bool enabled = true) { ENABLE_FLAG(enabled, HIDDEN); }
-		inline void EnableUpdate(bool enabled = true) { ENABLE_FLAG(!enabled, DISABLE_UPDATE); }
-		inline void EnableCameraFacing(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_FACING); }
-		inline void EnableCameraScaling(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_SCALING); }
+		inline void SetHiddenEnabled(bool enabled = true) { ENABLE_FLAG(enabled, HIDDEN); }
+		inline void SetUpdateEnabled(bool enabled = true) { ENABLE_FLAG(!enabled, DISABLE_UPDATE); }
+		inline void SetCameraFacingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_FACING); }
+		inline void SetCameraScalingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, CAMERA_SCALING); }
 
-		inline void EnableSDFRendering(bool enabled = true) { ENABLE_FLAG(enabled, SDF_RENDERING); }
-		inline void EnableHDR10OutputMapping(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_HDR10_ST2084); }
-		inline void EnableLinearOutputMapping(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_LINEAR); }
-		inline void EnableDepthTest(bool enabled = true) { ENABLE_FLAG(enabled, DEPTH_TEST); }
-		inline void EnableFlipHorizontally(bool enabled = true) { ENABLE_FLAG(enabled, FLIP_HORIZONTAL); }
-		inline void EnableFlipVertically(bool enabled = true) { ENABLE_FLAG(enabled, FLIP_VERTICAL); }
+		inline void SetSDFRenderingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, SDF_RENDERING); }
+		inline void SetHDR10OutputMappingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_HDR10_ST2084); }
+		inline void SetLinearOutputMappingEnabled(bool enabled = true) { ENABLE_FLAG(enabled, OUTPUT_COLOR_SPACE_LINEAR); }
+		inline void SetDepthTestEnabled(bool enabled = true) { ENABLE_FLAG(enabled, DEPTH_TEST); }
+		inline void SetFlipHorizontallyEnabled(bool enabled = true) { ENABLE_FLAG(enabled, FLIP_HORIZONTAL); }
+		inline void SetFlipVerticallyEnabled(bool enabled = true) { ENABLE_FLAG(enabled, FLIP_VERTICAL); }
 
 		inline bool IsHidden() const { return flags_ & HIDDEN; }
 		inline bool IsDisableUpdate() const { return flags_ & DISABLE_UPDATE; }
@@ -2015,7 +2032,7 @@ namespace vz
 		virtual void SetOrtho(const float width, const float height, const float nearP, const float farP, const float orthoVerticalSize);
 		virtual void SetIntrinsicsProjection(const float width, const float height, const float nearP, const float farP, const float fx, const float fy, const float cx, const float cy, const float s = 1.f);
 
-		inline void EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
+		inline void SetClipperEnabled(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= CamFlags::CLIP_BOX : flags_ &= ~CamFlags::CLIP_BOX;
 			clipPlaneEnabled ? flags_ |= CamFlags::CLIP_PLANE : flags_ &= ~CamFlags::CLIP_PLANE;
 		}
