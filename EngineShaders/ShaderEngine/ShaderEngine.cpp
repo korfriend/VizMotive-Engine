@@ -534,8 +534,7 @@ namespace vz::renderer
 		jobsystem::context ctx;
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { image::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { font::Initialize(); });
-		//jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::Initialize(); });
-		shader::Initialize(); // GG
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { shader::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpusortlib::Initialize(); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { gpubvh::Initialize(); });
 
