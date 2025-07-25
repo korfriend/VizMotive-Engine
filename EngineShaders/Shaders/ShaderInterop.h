@@ -107,6 +107,7 @@ static const uint32_t SHADERTYPE_BIN_COUNT = 4;
 #define CBSLOT_FSR								4
 
 #include "ShaderInterop_VXGI.h"
+#include "ShaderInterop_Environment.h"
 
 static const uint SHADER_ENTITY_COUNT = 256;
 static const uint SHADER_ENTITY_TILE_BUCKET_COUNT = SHADER_ENTITY_COUNT / 32;
@@ -160,6 +161,7 @@ enum SHADERMATERIAL_OPTIONS
 	SHADERMATERIAL_OPTION_BIT_ADDITIVE = 1 << 9,
 	SHADERMATERIAL_OPTION_BIT_UNLIT = 1 << 10,
 	SHADERMATERIAL_OPTION_BIT_USE_VERTEXAO = 1 << 11,
+	SHADERMATERIAL_OPTION_BIT_CAPSULE_SHADOW_DISABLED = 1 << 12,
 };
 
 // Same as MaterialComponent::TextureSlot
@@ -291,13 +293,18 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable // packed to VolumeInst
 	uint2 color; // packed half4
 	uint2 emissive; // packed half4
 
+	int vb_ao;
+	int vb_wetmap;
 	int lightmap;
-	uint alphaTest_size;
+	uint alphaTest_size; // packed half2
+
 	uint resLookupIndex;
 	uint clipIndex;
+	uint padding0;
+	uint padding1;
 
-	float3 aabbCenter;
-	float aabbRadius;
+	float3 center;
+	float radius;
 
 	ShaderTransform transform; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
 	ShaderTransform transformPrev; // Note: this could contain quantization remapping from UNORM -> FLOAT depending on vertex position format
@@ -321,8 +328,8 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable // packed to VolumeInst
 		clipIndex = ~0u;
 		layerMask = 0u;
 
-		aabbCenter = float3(0, 0, 0);
-		aabbRadius = 0;
+		center = float3(0, 0, 0);
+		radius = 0;
 
 		emissive = uint2(0, 0);
 		color = pack_half4(1, 1, 1, 1);
@@ -333,6 +340,11 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable // packed to VolumeInst
 		transformPrev.Init();
 		transformRaw.Init();
 		transformRawInv.Init();
+
+		vb_ao = -1;
+		vb_wetmap = -1;
+		alphaTest_size = 0;
+		rimHighlight = uint2(0, 0);
 	}
 
 	inline void SetUserStencilRef(uint stencilRef)
@@ -673,6 +685,9 @@ struct alignas(16) ShaderMaterial
 	inline half GetAnisotropySin() { return unpack_half4(aniso_anisosin_anisocos_terrainblend).y; }
 	inline half GetAnisotropyCos() { return unpack_half4(aniso_anisosin_anisocos_terrainblend).z; }
 	inline half GetTerrainBlendRcp() { return unpack_half4(aniso_anisosin_anisocos_terrainblend).w; }
+	inline half3 GetInteriorScale() { return unpack_half3(subsurfaceScattering); }
+	inline half3 GetInteriorOffset() { return unpack_half3(subsurfaceScattering_inv); }
+	inline half2 GetInteriorSinCos() { return half2(unpack_half4(subsurfaceScattering).w, unpack_half4(subsurfaceScattering_inv).w); }
 	inline uint GetStencilRef() { return options_stencilref >> 24u; }
 #endif // __cplusplus
 
@@ -689,6 +704,7 @@ struct alignas(16) ShaderMaterial
 	inline bool IsTransparent() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_TRANSPARENT; }
 	inline bool IsAdditive() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_ADDITIVE; }
 	inline bool IsDoubleSided() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED; }
+	inline bool IsCapsuleShadowDisabled() { return GetOptions() & SHADERMATERIAL_OPTION_BIT_CAPSULE_SHADOW_DISABLED; }
 };
 
 enum SHADERMESH_FLAGS
@@ -886,13 +902,20 @@ struct MipgenPushConstants
 static const uint MIPGEN_OPTION_BIT_PRESERVE_COVERAGE = 1 << 0;
 static const uint MIPGEN_OPTION_BIT_SRGB = 1 << 1;
 
-
-struct alignas(16) ShaderFog
+struct FilterEnvmapPushConstants
 {
-	float start;
-	float density;
-	float height_start;
-	float height_end;
+	uint2 filterResolution;
+	float2 filterResolution_rcp;
+
+	float filterRoughness;
+	uint filterRayCount;
+	uint padding_filterCB;
+	int texture_input;
+
+	int texture_output;
+	int padding0;
+	int padding1;
+	int padding2;
 };
 
 struct alignas(16) ShaderScene
@@ -915,22 +938,10 @@ struct alignas(16) ShaderScene
 	float3 aabb_extents;		// enclosing AABB abs(max - min)
 	int instanceResLookupBuffer;
 	float3 aabb_extents_rcp;	// enclosing AABB 1.0f / abs(max - min)
-	int mostImportantLightIndex;
-
-	// ----- IBL and scene color -----
-	float3 ambient;
 	int meshletbuffer;	// buffer group (not IBL or scene color)
 
-	float3 horizonColor;
-	uint padding1;
-
-	float3 sunColor;
-	float sunExposure;
-
-	float3 sunDirection;
-	uint padding3;
-
-	ShaderFog fog;
+	// ----- IBL and scene color -----
+	ShaderEnvironment environment;
 
 	// TODO
 	struct alignas(16) DDGI
@@ -1002,13 +1013,13 @@ struct alignas(16) ShaderEntity
 
 #ifndef __cplusplus
 	// Shader-side:
-	inline uint GetType()
+	inline min16uint GetType()
 	{
-		return type8_flags8_range16 & 0xFF;
+		return min16uint(type8_flags8_range16 & 0xFF);
 	}
-	inline uint GetFlags()
+	inline min16uint GetFlags()
 	{
-		return (type8_flags8_range16 >> 8u) & 0xFF;
+		return min16uint((type8_flags8_range16 >> 8u) & 0xFF);
 	}
 	inline half GetRange()
 	{
@@ -1034,9 +1045,9 @@ struct alignas(16) ShaderEntity
 	{
 		return (half)f16tof32(direction16_coneAngleCos16.y >> 16u);
 	}
-	inline uint GetShadowCascadeCount()
+	inline min16uint GetShadowCascadeCount()
 	{
-		return direction16_coneAngleCos16.y >> 16u;
+		return min16uint(direction16_coneAngleCos16.y >> 16u);
 	}
 	inline half GetAngleScale()
 	{
@@ -1063,17 +1074,21 @@ struct alignas(16) ShaderEntity
 		retVal.w = (half)f16tof32(color.y >> 16u);
 		return retVal;
 	}
-	inline uint GetMatrixIndex()
+	inline min16uint GetMatrixIndex()
 	{
-		return indices & 0xFFFF;
+		return min16uint(indices & 0xFFF);
 	}
-	inline uint GetTextureIndex()
+	inline min16uint GetTextureIndex()
 	{
-		return indices >> 16u;
+		return min16uint(indices >> 12u);
 	}
 	inline bool IsCastingShadow()
 	{
-		return indices != ~0;
+		return GetFlags() & ENTITY_FLAG_LIGHT_CASTING_SHADOW;
+	}
+	inline bool IsStaticLight()
+	{
+		return GetFlags() & ENTITY_FLAG_LIGHT_STATIC;
 	}
 	inline half GetGravity()
 	{
@@ -1145,8 +1160,8 @@ struct alignas(16) ShaderEntity
 	}
 	inline void SetIndices(uint matrixIndex, uint textureIndex)
 	{
-		indices = matrixIndex & 0xFFFF;
-		indices |= (textureIndex & 0xFFFF) << 16u;
+		indices = matrixIndex & 0xFFF;
+		indices |= (textureIndex & 0xFFFFF) << 12u;
 	}
 	inline void SetGravity(float value)
 	{
@@ -1249,15 +1264,30 @@ struct alignas(16) FrameCB
 	uint2		shadow_atlas_resolution;
 	float2		shadow_atlas_resolution_rcp;
 
-	uint		giboost_packed;
+	float		cloudShadowFarPlaneKm;
+	int			texture_volumetricclouds_shadow_index;
+	uint		giboost_packed; // force fp16 load
 	uint		entity_culling_count;
+
+	uint		capsuleshadow_fade_angle;
 	int			indirect_debugbufferindex;
 	uint		padding0;
+	uint		padding1;
 
 	float		blue_noise_phase;
 	int			texture_random64x64_index;
 	int			texture_bluenoise_index;
 	int			texture_sheenlut_index;
+
+	int			texture_skyviewlut_index;
+	int			texture_transmittancelut_index;
+	int			texture_multiscatteringlut_index;
+	int			texture_skyluminancelut_index;
+
+	int			texture_cameravolumelut_index;
+	int			texture_wind_index;
+	int			texture_wind_prev_index;
+	int			texture_caustics_index;
 
 	ShaderScene scene;
 
@@ -1271,7 +1301,7 @@ struct alignas(16) FrameCB
 
 	uint lights;
 	uint decals; // NOTE YET SUPPORTED
-	uint padding1; // NOTE YET SUPPORTED
+	uint forces; // NOTE YET SUPPORTED
 	uint padding2; 
 
 	// Note: 

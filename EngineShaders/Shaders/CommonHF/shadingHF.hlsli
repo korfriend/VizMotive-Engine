@@ -6,6 +6,7 @@
 #include "brdf.hlsli"
 #include "../ShaderInterop_SurfelGI.h"
 #include "../ShaderInterop_DDGI.h"
+#include "capsuleShadowHF.hlsli"
 
 inline void LightMapping(in int lightmap, in float2 ATLAS, inout Lighting lighting, inout Surface surface)
 {
@@ -116,47 +117,46 @@ inline void ForwardLighting(inout Surface surface, inout Lighting lighting)
 		const uint first_bucket = first_item / 32;
 		const uint last_bucket = min(last_item / 32, 1); // only 2 buckets max (uint2) for forward pass!
 		[loop]
-			for (uint bucket = first_bucket; bucket <= last_bucket; ++bucket)
+		for (uint bucket = first_bucket; bucket <= last_bucket; ++bucket)
+		{
+			uint bucket_bits = xForwardLightMask[bucket];
+
+			[loop]
+			while (bucket_bits != 0)
 			{
-				uint bucket_bits = xForwardLightMask[bucket];
+				// Retrieve global entity index from local bucket, then remove bit from local bucket:
+				const uint bucket_bit_index = firstbitlow(bucket_bits);
+				const uint entity_index = bucket * 32 + bucket_bit_index;
+				bucket_bits ^= 1u << bucket_bit_index;
 
-				[loop]
-					while (bucket_bits != 0)
-					{
-						// Retrieve global entity index from local bucket, then remove bit from local bucket:
-						const uint bucket_bit_index = firstbitlow(bucket_bits);
-						const uint entity_index = bucket * 32 + bucket_bit_index;
-						bucket_bits ^= 1u << bucket_bit_index;
+				ShaderEntity light = load_entity(lights().first_item() + entity_index);
+				if (light.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
+					continue; // static lights will be skipped here (they are used at lightmap baking)
 
-						ShaderEntity light = load_entity(lights().first_item() + entity_index);
-						if (light.GetFlags() & ENTITY_FLAG_LIGHT_STATIC)
-							continue; // static lights will be skipped here (they are used at lightmap baking)
-
-						switch (light.GetType())
-						{
-						case ENTITY_TYPE_DIRECTIONALLIGHT:
-						{
-							light_directional(light, surface, lighting);
-						}
-						break;
-						case ENTITY_TYPE_POINTLIGHT:
-						{
-							light_point(light, surface, lighting);
-						}
-						break;
-						case ENTITY_TYPE_SPOTLIGHT:
-						{
-							light_spot(light, surface, lighting);
-						}
-						break;
-						}
-					}
+				switch (light.GetType())
+				{
+				case ENTITY_TYPE_DIRECTIONALLIGHT:
+				{
+					light_directional(light, surface, lighting);
+				}
+				break;
+				case ENTITY_TYPE_POINTLIGHT:
+				{
+					light_point(light, surface, lighting);
+				}
+				break;
+				case ENTITY_TYPE_SPOTLIGHT:
+				{
+					light_spot(light, surface, lighting);
+				}
+				break;
+				}
 			}
+		}
 	}
 
 }
 
-#define DISABLE_DECALS
 inline void ForwardDecals(inout Surface surface, inout half4 surfaceMap, SamplerState sam)
 {
 #ifndef DISABLE_DECALS
@@ -205,8 +205,8 @@ inline void ForwardDecals(inout Surface surface, inout half4 surfaceMap, Sampler
 			const float2 decalDY = mul(P_dy, (float3x3)decalProjection).xy;
 			half4 decalColor = decal.GetColor();
 			// blend out if close to cube Z:
-			const half edgeBlend = 1 - pow(saturate(abs(clipSpacePos.z)), 8);
-			const half slopeBlend = decal.GetConeAngleCos() > 0 ? pow(saturate(dot(surface.N, decal.GetDirection())), decal.GetConeAngleCos()) : 1;
+			const half edgeBlend = 1 - (half)pow(saturate(abs(clipSpacePos.z)), 8);
+			const half slopeBlend = decal.GetConeAngleCos() > 0 ? (half)pow(saturate(dot(surface.N, decal.GetDirection())), decal.GetConeAngleCos()) : 1;
 			decalColor.a *= edgeBlend * slopeBlend;
 			[branch]
 			if (decalDisplacementmap >= 0)
@@ -218,7 +218,7 @@ inline void ForwardDecals(inout Surface surface, inout half4 surfaceMap, Sampler
 				float4 inoutuv = uvw.xyxy;
 				ParallaxOcclusionMapping_Impl(
 					inoutuv,
-					surface.V,
+					(half)surface.V,
 					tbn,
 					decal.GetLength(),
 					bindless_textures_half4[descriptor_index(decalDisplacementmap)],
@@ -562,8 +562,8 @@ inline void TiledDecals(inout Surface surface, uint flatTileIndex, inout half4 s
 				const float2 decalDY = mul(P_dy, (float3x3)decalProjection).xy;
 				half4 decalColor = decal.GetColor();
 				// blend out if close to cube Z:
-				const half edgeBlend = 1 - pow(saturate(abs(clipSpacePos.z)), 8);
-				const half slopeBlend = decal.GetConeAngleCos() > 0 ? pow(saturate(dot(surface.N, decal.GetDirection())), decal.GetConeAngleCos()) : 1;
+				const half edgeBlend = 1 - (half)pow(saturate(abs(clipSpacePos.z)), 8);
+				const half slopeBlend = decal.GetConeAngleCos() > 0 ? (half)pow(saturate(dot(surface.N, decal.GetDirection())), decal.GetConeAngleCos()) : 1;
 				decalColor.a *= edgeBlend * slopeBlend;
 				[branch]
 				if (decalDisplacementmap >= 0)
@@ -575,7 +575,7 @@ inline void TiledDecals(inout Surface surface, uint flatTileIndex, inout half4 s
 					float4 inoutuv = uvw.xyxy;
 					ParallaxOcclusionMapping_Impl(
 						inoutuv,
-						surface.V,
+						(half)surface.V,
 						tbn,
 						decal.GetLength(),
 						bindless_textures_half4[descriptor_index(decalDisplacementmap)],
@@ -634,11 +634,11 @@ inline void ApplyFog(in float distance, float3 V, inout float4 color)
 
 inline void ApplyAerialPerspective(float2 uv, float3 P, inout float4 color)
 {
-	//if (GetFrame().options & OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE)
-	//{
-	//	const float4 AP = GetAerialPerspectiveTransmittance(uv, P, GetCamera().position, texture_cameravolumelut);
-	//	color.rgb = color.rgb * (1.0 - AP.a) + AP.rgb;
-	//}
+	if (GetFrame().options & OPTION_BIT_REALISTIC_SKY_AERIAL_PERSPECTIVE)
+	{
+		const float4 AP = GetAerialPerspectiveTransmittance(uv, P, GetCamera().position, texture_cameravolumelut);
+		color.rgb = color.rgb * (1.0 - AP.a) + AP.rgb;
+	}
 }
 
 inline uint AlphaToCoverage(float alpha, float alphaTest, float4 svposition)
@@ -670,6 +670,57 @@ inline uint AlphaToCoverage(float alpha, float alphaTest, float4 svposition)
 		return ~0u >> (31u - uint(alpha * GetCamera().sample_count));
 	}
 	return 0;
+}
+
+half4 InteriorMapping(in float3 P, in float3 N, in float3 V, in ShaderMaterial material, in ShaderMeshInstance meshinstance)
+{
+	[branch]
+	if (!material.textures[BASECOLORMAP].IsValid())
+		return 0;
+
+	TextureCube<half4> cubemap = bindless_cubemaps_half4[descriptor_index(material.textures[BASECOLORMAP].texture_descriptor)];
+
+	// Note: there is some heavy per-pixel matrix math here (mul, inverse, decompose) by intention
+	//	to not increase common structure sizes for single shader that would require these things!
+
+	half3 scale = material.GetInteriorScale();
+	half3 offset = material.GetInteriorOffset();
+	float4x4 modMatrix = float4x4(
+		scale.x, 0, 0, offset.x,
+		0, scale.y, 0, offset.y,
+		0, 0, scale.z, offset.z,
+		0, 0, 0, 1
+	);
+	float4x4 interiorTransform = mul(meshinstance.transformRaw.GetMatrix(), modMatrix);
+	float4x4 interiorProjection = inverse(interiorTransform);
+	const half3 clipSpacePos = (half3)mul(interiorProjection, float4(P, 1)).xyz; // needs fp32 if offset is used
+
+	// We can handle distortion by normals with refract:
+	half3 R = (half3)refract(-V, N, 1 - material.GetRefraction());
+
+	// This part is exactly like the local environment probes parallax correction:
+	half3 RayLS = mul((half3x3)interiorProjection, R);
+	half3 FirstPlaneIntersect = (1 - clipSpacePos) / RayLS;
+	half3 SecondPlaneIntersect = (-1 - clipSpacePos) / RayLS;
+	half3 FurthestPlane = max(FirstPlaneIntersect, SecondPlaneIntersect);
+	half Distance = min(FurthestPlane.x, min(FurthestPlane.y, FurthestPlane.z));
+	half3 R_parallaxCorrected = (half3)P - (half3)meshinstance.center + R * Distance;
+
+	// By rotating the sampling vector I fix the cube projection to the object's rotation:
+	float3 t, s;
+	float4 r;
+	decompose(interiorProjection, t, r, s);
+	R_parallaxCorrected = rotate_vector(R_parallaxCorrected, (half)r);
+
+	half2 rot_sincos = material.GetInteriorSinCos();
+	float3x3 rotMatrix = float3x3(
+		rot_sincos.y, 0, -rot_sincos.x,
+		0, 1, 0,
+		rot_sincos.x, 0, rot_sincos.y
+	);
+	R_parallaxCorrected = (half3)mul(rotMatrix, (float3)R_parallaxCorrected);
+
+	return cubemap.SampleLevel(sampler_linear_clamp, R_parallaxCorrected, 0);
 }
 
 #endif // SHADING_HF

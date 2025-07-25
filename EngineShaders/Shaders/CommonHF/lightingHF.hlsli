@@ -4,7 +4,7 @@
 #include "shadowHF.hlsli"
 #include "brdf.hlsli"
 #include "voxelConeTracingHF.hlsli"
-#//include "skyHF.hlsli"
+#include "skyHF.hlsli"
 
 #ifdef CARTOON
 #define DISABLE_SOFT_SHADOWMAP
@@ -78,6 +78,7 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
 	[branch]
 	if (light.IsCastingShadow() && surface.IsReceiveShadow())
 	{
+		light_color = half3(1, 0, 0);
 		if (GetFrame().options & OPTION_BIT_VOLUMETRICCLOUDS_CAST_SHADOW)
 		{
 			light_color *= shadow_2D_volumetricclouds(surface.P);
@@ -367,7 +368,7 @@ inline half3 GetAmbient(in float3 N)
 #ifdef ENVMAPRENDERING
 
 	// Set realistic_sky_stationary to true so we capture ambient at float3(0.0, 0.0, 0.0), similar to the standard sky to avoid flickering and weird behavior
-	ambient = lerp(
+	ambient = (half3)lerp(
 		GetDynamicSkyColor(float3(0, -1, 0), false, false, true),
 		GetDynamicSkyColor(float3(0, 1, 0), false, false, true),
 		saturate(N.y * 0.5 + 0.5));
@@ -413,7 +414,7 @@ inline half3 EnvironmentReflection_Global(in Surface surface)
 		GetDynamicSkyColor(float3(0, 1, 0), false, false, true),
 		saturate(surface.R.y * 0.5 + 0.5));
 
-	envColor = lerp(skycolor_real, skycolor_rough, surface.roughness) * surface.F;
+	envColor = (half3)lerp(skycolor_real, skycolor_rough, (float)surface.roughness) * surface.F;
 
 #else
 	
