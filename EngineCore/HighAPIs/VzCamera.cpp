@@ -251,7 +251,7 @@ namespace vzm
 	void VzCamera::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
 	{
 		GET_CAM_COMP(camera, );
-		camera->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
+		camera->SetClipperEnabled(clipBoxEnabled, clipPlaneEnabled);
 		UpdateTimeStamp();
 	}
 	void VzCamera::SetClipPlane(const vfloat4& clipPlane)

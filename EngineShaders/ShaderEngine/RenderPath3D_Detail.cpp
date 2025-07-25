@@ -569,6 +569,16 @@ namespace vz::renderer
 			}
 		}
 
+		// Note: shadow maps always assumed to be valid to avoid shader branching logic
+		const Texture& shadowMap = shadowMapAtlas.IsValid() ? shadowMapAtlas : *texturehelper::getBlack();
+		const Texture& shadowMapTransparent = shadowMapAtlas_Transparent.IsValid() ? shadowMapAtlas_Transparent : *texturehelper::getWhite();
+		frameCB.texture_shadowatlas_index = device->GetDescriptorIndex(&shadowMap, SubresourceType::SRV);
+		frameCB.texture_shadowatlas_transparent_index = device->GetDescriptorIndex(&shadowMapTransparent, SubresourceType::SRV);
+		frameCB.shadow_atlas_resolution.x = shadowMap.desc.width;
+		frameCB.shadow_atlas_resolution.y = shadowMap.desc.height;
+		frameCB.shadow_atlas_resolution_rcp.x = 1.0f / frameCB.shadow_atlas_resolution.x;
+		frameCB.shadow_atlas_resolution_rcp.y = 1.0f / frameCB.shadow_atlas_resolution.y;
+
 		// Indirect debug buffers: 0 is always WRITE, 1 is always READ
 		std::swap(buffers[BUFFERTYPE_INDIRECT_DEBUG_0], buffers[BUFFERTYPE_INDIRECT_DEBUG_1]);
 		frameCB.indirect_debugbufferindex = device->GetDescriptorIndex(&buffers[BUFFERTYPE_INDIRECT_DEBUG_0], SubresourceType::UAV);

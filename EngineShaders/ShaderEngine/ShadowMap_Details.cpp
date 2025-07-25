@@ -60,6 +60,8 @@ namespace vz::renderer
 		};
 		device->RenderPassBegin(rp, arraysize(rp), cmd);
 
+		std::vector<geometrics::AABB>& aabb_renderables = scene_Gdetails->aabbRenderables;
+
 		for (uint32_t lightIndex : vis.visibleLights)
 		{
 			const GLightComponent& light = *scene_Gdetails->lightComponents[lightIndex];
@@ -88,8 +90,6 @@ namespace vz::renderer
 				Rect* scissors = (Rect*)alloca(sizeof(Rect) * cascade_count);
 				SHCAM* shcams = (SHCAM*)alloca(sizeof(SHCAM) * cascade_count);
 				CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
-
-				std::vector<geometrics::AABB>& aabb_renderables = scene_Gdetails->aabbRenderables;
 				
 				for (size_t i = 0; i < aabb_renderables.size(); ++i)
 				{
@@ -182,9 +182,9 @@ namespace vz::renderer
 				if (!cam_frustum.Intersects(shcam.boundingfrustum))
 					break;
 
-				for (size_t i = 0; i < scene_Gdetails->aabbRenderables.size(); ++i)
+				for (size_t i = 0; i < aabb_renderables.size(); ++i)
 				{
-					const AABB& aabb = scene_Gdetails->aabbRenderables[i];
+					const AABB& aabb = aabb_renderables[i];
 					if ((aabb.layerMask & vis.layerMask) && shcam.frustum.CheckBoxFast(aabb))
 					{
 						const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[i];
@@ -304,9 +304,9 @@ namespace vz::renderer
 					}
 				}
 
-				for (size_t i = 0; i < scene_Gdetails->aabbRenderables.size(); ++i)
+				for (size_t i = 0; i < aabb_renderables.size(); ++i)
 				{
-					const AABB& aabb = scene_Gdetails->aabbRenderables[i];
+					const AABB& aabb = aabb_renderables[i];
 					if ((aabb.layerMask & vis.layerMask) && boundingsphere.intersects(aabb))
 					{
 						const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[i];

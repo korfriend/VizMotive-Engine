@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "RenderPath3D_Detail.h"
 #include "Font.h"
+#include "GPUBVH.h"
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
@@ -135,8 +136,7 @@ namespace vz
 				isWetmapProcessingRequired = true;
 			}
 
-			auto writeShaderMaterial = [&](ShaderMaterial* dest)
-				{
+			auto writeShaderMaterial = [&](ShaderMaterial* dest) {
 					using namespace vz::math;
 
 					ShaderMaterial shader_material;
@@ -224,6 +224,62 @@ namespace vz
 					
 					shader_material.userdata = 0u;
 					shader_material.options_stencilref = 0;
+					{	// options_stencilref
+						if (material.IsUsingVertexColor())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_USE_VERTEXCOLORS;
+						}
+						if (material.IsUsingSpecularGlossinessWorkflow())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_SPECULARGLOSSINESS_WORKFLOW;
+						}
+						if (material.IsOcclusionEnabled_Primary())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_OCCLUSION_PRIMARY;
+						}
+						if (material.IsOcclusionEnabled_Secondary())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_OCCLUSION_SECONDARY;
+						}
+						if (material.IsUsingWind())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_USE_WIND;
+						}
+						if (material.IsShadowReceive())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_RECEIVE_SHADOW;
+						}
+						if (material.IsShadowCast())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_CAST_SHADOW;
+						}
+						if (material.IsDoubleSided())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_DOUBLE_SIDED;
+						}
+						if (material.GetFilterMaskFlags() & GMaterialComponent::FILTER_TRANSPARENT)
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_TRANSPARENT;
+						}
+						if (material.GetBlendMode() == MaterialComponent::BlendMode::BLENDMODE_ADDITIVE)
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_ADDITIVE;
+						}
+						if (material.GetShaderType() == MaterialComponent::ShaderType::UNLIT)
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_UNLIT;
+						}
+						if (material.IsVertexAOEnabled())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_USE_VERTEXAO;
+						}
+						if (!material.IsCapsuleShadowEnabled())
+						{
+							shader_material.options_stencilref |= SHADERMATERIAL_OPTION_BIT_CAPSULE_SHADOW_DISABLED;
+						}
+
+						shader_material.options_stencilref |= CombineStencilrefs(material.GetStencilRef(), material.GetUserStencilRef()) << 24u;
+					}
 					shader_material.layerMask = material.layeredmask ? material.layeredmask->GetVisibleLayerMask() : ~0u;
 
 					for (int i = 0; i < TEXTURESLOT_COUNT; ++i)
@@ -514,8 +570,8 @@ namespace vz
 
 				inst.layerMask = layermask;
 
-				inst.aabbCenter = aabb.getCenter();
-				inst.aabbRadius = aabb.getRadius();
+				inst.center = aabb.getCenter();
+				inst.radius = aabb.getRadius();
 				//inst.vb_ao = renderable.vb_ao_srv;
 				//inst.vb_wetmap = device->GetDescriptorIndex(&renderable.wetmap, SubresourceType::SRV);
 
@@ -577,8 +633,8 @@ namespace vz
 				inst.flags = renderable.GetFlags();
 
 				const geometrics::AABB& aabb = renderable.GetAABB();
-				inst.aabbCenter = aabb.getCenter();
-				inst.aabbRadius = aabb.getRadius();
+				inst.center = aabb.getCenter();
+				inst.radius = aabb.getRadius();
 				XMFLOAT4 rimHighlightColor = renderable.GetRimHighLightColor();
 				float rimHighlightFalloff = renderable.GetRimHighLightFalloff();
 				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
@@ -819,6 +875,36 @@ namespace vz
 
 		jobsystem::Wait(ctx); // dependencies
 
+		// Lightmap requests are determined at this point, so we know if we need TLAS or not:
+		//if (lightmap_request_allocator.load() > 0)
+		//{
+		//	SetAccelerationStructureUpdateRequested(true);
+		//}
+
+		// This must be after lightmap requests were determined:
+		TLAS_instancesMapped = nullptr;
+		if (this->isAccelerationStructureUpdateRequested && device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+		{
+			GPUBufferDesc desc;
+			desc.stride = (uint32_t)device->GetTopLevelAccelerationStructureInstanceSize();
+			desc.size = desc.stride * instanceArraySize * 2; // *2 to grow fast
+			desc.usage = Usage::UPLOAD;
+			if (TLAS_instancesUpload->desc.size < desc.size)
+			{
+				for (int i = 0; i < arraysize(TLAS_instancesUpload); ++i)
+				{
+					device->CreateBuffer(&desc, nullptr, &TLAS_instancesUpload[i]);
+					device->SetName(&TLAS_instancesUpload[i], "Scene::TLAS_instancesUpload");
+				}
+			}
+			TLAS_instancesMapped = TLAS_instancesUpload[device->GetBufferIndex()].mapped_data;
+
+			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
+				// Must not keep inactive TLAS instances, so zero them out for safety:
+				std::memset(TLAS_instancesMapped, 0, TLAS_instancesUpload->desc.size);
+				});
+		}
+
 		// GPU subset count allocation is ready at this point:
 		geometryArraySize = scene_->GetGeometryPrimitivesAllocatorSize();
 		if (geometryUploadBuffer[0].desc.size < (geometryArraySize * sizeof(ShaderGeometry)))
@@ -904,13 +990,43 @@ namespace vz
 			assert(success);
 			device->SetName(&meshletBuffer, "meshletBuffer");
 		}
-
-		//BVH.Update(*this); // scene
+		
+		if (this->isAccelerationStructureUpdateRequested)
+		{
+			if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+			{
+				// Recreate top level acceleration structure if the object count changed:
+				if (TLAS.desc.top_level.count < instanceArraySize)
+				{
+					RaytracingAccelerationStructureDesc desc;
+					desc.flags = RaytracingAccelerationStructureDesc::FLAG_PREFER_FAST_BUILD;
+					desc.type = RaytracingAccelerationStructureDesc::Type::TOPLEVEL;
+					desc.top_level.count = (uint32_t)instanceArraySize * 2; // *2 to grow fast
+					GPUBufferDesc bufdesc;
+					bufdesc.misc_flags |= ResourceMiscFlag::RAY_TRACING;
+					bufdesc.stride = (uint32_t)device->GetTopLevelAccelerationStructureInstanceSize();
+					bufdesc.size = bufdesc.stride * desc.top_level.count;
+					bool success = device->CreateBuffer(&bufdesc, nullptr, &desc.top_level.instance_buffer);
+					assert(success);
+					device->SetName(&desc.top_level.instance_buffer, "Scene::TLAS.instanceBuffer");
+					success = device->CreateRaytracingAccelerationStructure(&desc, &TLAS);
+					assert(success);
+					device->SetName(&TLAS, "Scene::TLAS");
+				}
+			}
+			else
+			{
+				// Software GPU BVH:
+				// sceneBVH is supposed to be updated
+				gpubvh::UpdateSceneGPUBVH(scene_->GetSceneEntity());
+			}
+		}
 
 		// content updates...
 
 		// Shader scene resources:
 		shaderscene.Init();
+
 		if (device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
 		{
 			shaderscene.instancebuffer = device->GetDescriptorIndex(&instanceUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
@@ -927,6 +1043,8 @@ namespace vz
 		}			
 		shaderscene.meshletbuffer = device->GetDescriptorIndex(&meshletBuffer, SubresourceType::SRV);
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
+		
+		// TODO : Scene 의 SkyBox 리소스 및 attributes 참조
 		//if (weather.skyMap.IsValid())
 		//{
 		//	shaderscene.globalenvmap = device->GetDescriptorIndex(&weather.skyMap.GetTexture(), SubresourceType::SRV, weather.skyMap.GetTextureSRGBSubresource());
@@ -949,10 +1067,10 @@ namespace vz
 			shaderscene.globalprobe = -1;
 		}
 
-		//shaderscene.TLAS = device->GetDescriptorIndex(&TLAS, SubresourceType::SRV);
-		//shaderscene.BVH_counter = device->GetDescriptorIndex(&BVH.primitiveCounterBuffer, SubresourceType::SRV);
-		//shaderscene.BVH_nodes = device->GetDescriptorIndex(&BVH.bvhNodeBuffer, SubresourceType::SRV);
-		//shaderscene.BVH_primitives = device->GetDescriptorIndex(&BVH.primitiveBuffer, SubresourceType::SRV);
+		shaderscene.TLAS = device->GetDescriptorIndex(&TLAS, SubresourceType::SRV);
+		shaderscene.BVH_counter = device->GetDescriptorIndex(&sceneBVH.primitiveCounterBuffer, SubresourceType::SRV);
+		shaderscene.BVH_nodes = device->GetDescriptorIndex(&sceneBVH.bvhNodeBuffer, SubresourceType::SRV);
+		shaderscene.BVH_primitives = device->GetDescriptorIndex(&sceneBVH.primitiveBuffer, SubresourceType::SRV);
 
 		const geometrics::AABB& bounds = scene_->GetAABB();
 		shaderscene.aabb_min = bounds.getMin();
@@ -964,7 +1082,43 @@ namespace vz
 		shaderscene.aabb_extents_rcp.y = 1.0f / shaderscene.aabb_extents.y;
 		shaderscene.aabb_extents_rcp.z = 1.0f / shaderscene.aabb_extents.z;
 
-		shaderscene.ambient = scene_->GetAmbient();
+		{
+			shaderscene.environment.sun_color = math::pack_half3(XMFLOAT3(0, 0, 0));
+			shaderscene.environment.sun_direction = math::pack_half3(XMFLOAT3(0, 1, 0));
+			shaderscene.environment.most_important_light_index = ~0u;
+			shaderscene.environment.ambient = math::pack_half3(scene_->GetAmbient());
+			shaderscene.environment.sky_rotation_sin = std::sin(0.f);
+			shaderscene.environment.sky_rotation_cos = std::cos(0.f);
+			shaderscene.environment.fog.start = 100.f;
+			shaderscene.environment.fog.density = 0;
+			shaderscene.environment.fog.height_start = 1.f;
+			shaderscene.environment.fog.height_end = 3.f;
+			shaderscene.environment.horizon = math::pack_half3(XMFLOAT3(0.0f, 0.0f, 0.0f));
+			shaderscene.environment.zenith = math::pack_half3(XMFLOAT3(0.0f, 0.0f, 0.0f));
+			shaderscene.environment.sky_exposure = 1.f;
+			shaderscene.environment.wind.speed = 1.f;
+			shaderscene.environment.wind.randomness = 5.f;
+			shaderscene.environment.wind.wavesize = 1.f;
+			shaderscene.environment.wind.direction = XMFLOAT3(0, 0, 0);
+			shaderscene.environment.atmosphere = {};
+			shaderscene.environment.volumetric_clouds = {};
+			shaderscene.environment.ocean.water_color = XMFLOAT4(0.0f, 2.0f / 255.0f, 6.0f / 255.0f, 0.6f);
+			shaderscene.environment.ocean.extinction_color = XMFLOAT4(1.f, 0.1f, 0, 1);
+			shaderscene.environment.ocean.water_height = 0.f;
+			shaderscene.environment.ocean.patch_size_rcp = 1.0f / 50.0f;
+			shaderscene.environment.ocean.texture_displacementmap = -1;// device->GetDescriptorIndex(ocean.getDisplacementMap(), SubresourceType::SRV);
+			shaderscene.environment.ocean.texture_gradientmap = -1;//device->GetDescriptorIndex(ocean.getGradientMap(), SubresourceType::SRV);
+			shaderscene.environment.stars = 0.5f;
+			XMFLOAT4 stars_rotation(0, 0, 0, 1);
+			XMStoreFloat4(&shaderscene.environment.stars_rotation, XMQuaternionNormalize(XMQuaternionInverse(XMLoadFloat4(&stars_rotation))));
+			shaderscene.environment.rain_amount = 0;
+			shaderscene.environment.rain_length = 0.04f;
+			shaderscene.environment.rain_speed = 1.f;
+			shaderscene.environment.rain_scale = 1.f;
+			shaderscene.environment.rain_splash_scale = 0.1f;
+			shaderscene.environment.rain_color = XMFLOAT4(0.6f, 0.8f, 1, 0.5f);
+		}
+
 		//shaderscene.ddgi.grid_dimensions = ddgi.grid_dimensions;
 		//shaderscene.ddgi.probe_count = ddgi.grid_dimensions.x * ddgi.grid_dimensions.y * ddgi.grid_dimensions.z;
 		//shaderscene.ddgi.color_texture_resolution = uint2(ddgi.color_texture.desc.width, ddgi.color_texture.desc.height);
@@ -1000,6 +1154,9 @@ namespace vz
 		materialArraySize = 0;
 		instanceResLookupSize = 0;
 
+		TLAS = {};
+		sceneBVH = {};
+
 		constexpr uint32_t buffer_count = graphics::GraphicsDevice::GetBufferCount();
 		instanceBuffer = {};
 		geometryBuffer = {};
@@ -1017,6 +1174,7 @@ namespace vz
 			textureStreamingFeedbackBuffer_readback[i] = {};
 			queryResultBuffer[i] = {};
 			instanceResLookupUploadBuffer[i] = {};
+			TLAS_instancesUpload[i] = {};
 		}
 
 		return true;

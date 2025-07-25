@@ -768,6 +768,13 @@ namespace vz::renderer
 
 		ShaderScene shaderscene = {};
 
+		bool isAccelerationStructureUpdateRequested = false;
+		graphics::RaytracingAccelerationStructure TLAS;
+		graphics::GPUBuffer TLAS_instancesUpload[graphics::GraphicsDevice::GetBufferCount()];
+		void* TLAS_instancesMapped = nullptr;
+		using GPUBVH = GGeometryComponent::BVHBuffers;
+		GPUBVH sceneBVH; // this is for non-hardware accelerated raytracing
+
 		graphics::GraphicsDevice* device = nullptr;
 		// Instances (parts) for bindless renderables:
 		//	contains in order:

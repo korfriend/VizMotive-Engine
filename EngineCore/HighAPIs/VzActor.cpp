@@ -30,7 +30,7 @@ namespace vzm
 
 		if (renderable)
 		{
-			renderable->EnablePickable(enabled);
+			renderable->SetPickable(enabled);
 		}
 		
 		if (includeDescendants)
@@ -136,27 +136,27 @@ namespace vzm
 	void VzActorStaticMesh::EnableSlicerSolidFill(const bool enabled)
 	{
 		GET_RENDERABLE_COMP(renderable, );
-		renderable->EnableSlicerSolidFill(enabled);
+		renderable->SetSlicerSolidFillEnabled(enabled);
 		UpdateTimeStamp();
 	}
 
 	void VzActorStaticMesh::EnableClipper(const bool clipBoxEnabled, const bool clipPlaneEnabled)
 	{
 		GET_RENDERABLE_COMP(renderable, );
-		renderable->EnableClipper(clipBoxEnabled, clipPlaneEnabled);
+		renderable->SetClipperEnabled(clipBoxEnabled, clipPlaneEnabled);
 		UpdateTimeStamp();
 	}
 
 	void VzActorStaticMesh::EnableOutline(const bool enabled)
 	{
 		GET_RENDERABLE_COMP(renderable, );
-		renderable->EnableOutline(enabled);
+		renderable->SetOutlineEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorStaticMesh::EnableUndercut(const bool enabled)
 	{
 		GET_RENDERABLE_COMP(renderable, );
-		renderable->EnableUndercut(enabled);
+		renderable->SetUndercutEnabled(enabled);
 		UpdateTimeStamp();
 	}
 
@@ -344,67 +344,67 @@ namespace vzm
 	void VzActorSprite::EnableHidden(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableHidden(enabled);
+		sprite->SetHidden(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableUpdate(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableUpdate(enabled);
+		sprite->SetUpdateEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableCameraFacing(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableCameraFacing(enabled);
+		sprite->SetCameraFacingEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableCameraScaling(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableCameraScaling(enabled);
+		sprite->SetCameraScalingEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableExtractNormalMap(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableExtractNormalMap(enabled);
+		sprite->SetExtractNormalMapEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableMirror(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableMirror(enabled);
+		sprite->SetMirrorEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableHDR10OutputMapping(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableHDR10OutputMapping(enabled);
+		sprite->SetHDR10OutputMappingEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableLinearOutputMapping(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableLinearOutputMapping(enabled);
+		sprite->SetLinearOutputMappingEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableCornerRounding(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableCornerRounding(enabled);
+		sprite->SetCornerRoundingEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableDepthTest(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableDepthTest(enabled);
+		sprite->SetDepthTestEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorSprite::EnableHighlight(bool enabled)
 	{
 		GET_SPRITE_COMP(sprite, );
-		sprite->EnableHighlight(enabled);
+		sprite->SetHighlightEnabled(enabled);
 		UpdateTimeStamp();
 	}
 
@@ -509,52 +509,52 @@ namespace vzm
 	void VzActorSpriteFont::EnableHidden(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableHidden(enabled);
+		font->SetHiddenEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableUpdate(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableUpdate(enabled);
+		font->SetUpdateEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableCameraFacing(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableCameraFacing(enabled);
+		font->SetCameraFacingEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableCameraScaling(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableCameraScaling(enabled);
+		font->SetCameraScalingEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableSDFRendering(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableSDFRendering(enabled);
+		font->SetSDFRenderingEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableHDR10OutputMapping(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableHDR10OutputMapping(enabled);
+		font->SetHDR10OutputMappingEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableLinearOutputMapping(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableLinearOutputMapping(enabled);
+		font->SetLinearOutputMappingEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableDepthTest(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableDepthTest(enabled);
+		font->SetDepthTestEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableFlipHorizontally(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableFlipHorizontally(enabled);
+		font->SetFlipHorizontallyEnabled(enabled);
 	}
 	void VzActorSpriteFont::EnableFlipVertically(bool enabled)
 	{
 		GET_SPRITEFONT_COMP(font, );
-		font->EnableFlipVertically(enabled);
+		font->SetFlipVerticallyEnabled(enabled);
 	}
 
 	bool VzActorSpriteFont::IsDisableUpdate() const
