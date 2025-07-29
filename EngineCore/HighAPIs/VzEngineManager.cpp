@@ -275,6 +275,9 @@ namespace vzm
 			compfactory::CreateLightComponent(entity);
 			{
 				auto it = vzcompmanager::lights.emplace(vid, std::make_unique<VzLight>(vid, "vzm::NewLight"));
+				{
+					((GLightComponent*)compfactory::GetLightComponent(entity))->cascadeDistances = config::GetFloatArrayConfig("SHADER_ENGINE_SETTINGS", "DEFAULT_CASCADE_DISTANCES");
+				}
 				hlcomp = (VzSceneObject*)it.first->second.get();
 			}
 			break;
@@ -435,6 +438,11 @@ namespace vzm
 			if (!ses_section.Has("SHADOW_ENABLED"))
 			{
 				ses_section.Set("SHADOW_ENABLED", true);
+			}
+			if (!ses_section.Has("DEFAULT_CASCADE_DISTANCES"))
+			{
+				std::vector<float> default_dist = { 8, 80, 800 };
+				ses_section.Set("DEFAULT_CASCADE_DISTANCES", default_dist);
 			}
 			configFile.Commit();
 		}
