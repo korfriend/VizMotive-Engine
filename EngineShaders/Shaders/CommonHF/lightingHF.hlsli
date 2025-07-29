@@ -101,9 +101,9 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
 				[branch]
 				if (is_saturated(shadow_uv))
 				{
-                    const half2 cascade_edgefactor = (half2) saturate(saturate(abs(shadow_pos.xy)) - 0.8) * 5.0; // fade will be on edge and inwards 10%
+                    const half2 cascade_edgefactor = (half2) saturate(saturate(abs(shadow_pos.xy)) - 0.8) * 2.0; // fade will be on edge and inwards 10%
 					const half cascade_fade = max(cascade_edgefactor.x, cascade_edgefactor.y);
-						
+
 					// If we are on cascade edge threshold and not the last cascade, then fallback to a larger cascade:
 					[branch]
 					if (cascade_fade > 0 && dither(surface.pixel + GetTemporalAASampleRotation()) < cascade_fade)
@@ -118,11 +118,11 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
 		QuadBlur(light_color);
 	}
 
-	//[branch]
-	//if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
-	//{
-	//	light_color *= GetAtmosphericLightTransmittance(GetWeather().atmosphere, surface.P, L, texture_transmittancelut);
-	//}
+	[branch]
+	if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
+	{
+		light_color *= GetAtmosphericLightTransmittance(GetEnvironment().atmosphere, surface.P, L, texture_transmittancelut);
+	}
 
 	lighting.direct.diffuse = mad(light_color, BRDF_GetDiffuse(surface, surface_to_light), lighting.direct.diffuse);
 	lighting.direct.specular = mad(light_color, BRDF_GetSpecular(surface, surface_to_light), lighting.direct.specular);
