@@ -29,6 +29,7 @@ namespace vzm
 		void EnableVisualizer(const bool enabled);
 		void EnableCastShadow(const bool enabled);
 		//void SetLightTexture(const LightVID); //  TODO
+		void SetCascadeShadowMapDistances(const std::vector<float>& cascadeDistances);
 	};
 
 	using LightType = VzLight::LightType;

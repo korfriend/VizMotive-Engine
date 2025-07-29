@@ -31,6 +31,7 @@ namespace vz::config
 		int GetInt(const char* name) const;
 		float GetFloat(const char* name) const;
 		std::string GetText(const char* name) const;
+		std::vector<float> GetFloatArray(const char* name) const;
 
 		// Set the associated value for the key:
 		void Set(const char* name, bool value);
@@ -38,6 +39,7 @@ namespace vz::config
 		void Set(const char* name, float value);
 		void Set(const char* name, const char* value);
 		void Set(const char* name, const std::string& value);
+		void Set(const char* name, const std::vector<float>& values);
 
 		std::unordered_map<std::string, std::string>::iterator begin() { return values.begin(); }
 		std::unordered_map<std::string, std::string>::const_iterator begin() const { return values.begin(); }
@@ -80,5 +82,6 @@ namespace vz::config
 	UTIL_EXPORT bool GetBoolConfig(const std::string& sectionName, const std::string& optionName);
 	UTIL_EXPORT int GetIntConfig(const std::string& sectionName, const std::string& optionName);
 	UTIL_EXPORT float GetFloatConfig(const std::string& sectionName, const std::string& optionName);
+	UTIL_EXPORT std::vector<float>  GetFloatArrayConfig(const std::string& sectionName, const std::string& optionName);
 	UTIL_EXPORT std::string GetStringConfig(const std::string& sectionName, const std::string& optionName);
 }

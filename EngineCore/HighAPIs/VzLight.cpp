@@ -1,5 +1,5 @@
 #include "VzEngineAPIs.h"
-#include "Components/Components.h"
+#include "Components/GComponents.h"
 #include "Utils/Backlog.h"
 
 using namespace vz;
@@ -68,4 +68,10 @@ namespace vzm
 		GET_LIGHT_COMP(light, );
 		light->SetCastShadow(enabled);
 	};
+
+	void VzLight::SetCascadeShadowMapDistances(const std::vector<float>& cascadeDistances)
+	{
+		GET_LIGHT_COMP(light, );
+		((GLightComponent*)light)->cascadeDistances = cascadeDistances;
+	}
 }
