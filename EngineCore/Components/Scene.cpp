@@ -363,6 +363,7 @@ namespace vz
 				transform->UpdateWorldMatrix();
 
 				GLightComponent* light = (GLightComponent*)compfactory::GetLightComponent(entity);
+
 				assert(light);
 				lightComponents[args.jobIndex] = light;
 				light->lightIndex = args.jobIndex;

@@ -594,8 +594,8 @@ namespace vz::renderer
 
 		graphics::Texture shadowMapAtlas;
 		graphics::Texture shadowMapAtlas_Transparent;
-		int maxShadowResolution_2D = 1024;
-		int maxShadowResolution_cube = 256;
+		int maxShadowResolution_2D = 1024;	// cascade mapping's max resolution
+		int maxShadowResolution_cube = 256;	// cascade mapping's max resolution
 
 		mutable const graphics::Texture* lastPostprocessRT = &rtPostprocess;
 

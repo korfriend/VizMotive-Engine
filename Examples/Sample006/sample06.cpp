@@ -159,7 +159,7 @@ int main(int, char **)
 		camera = NewCamera("my camera");
 		glm::fvec3 pos(0, 0, 100), up(0, 1, 0), view(0, 0, -1);
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		camera->SetPerspectiveProjection(0.1f, 5000.f, 60.f, 1.f);
+		camera->SetPerspectiveProjection(0.1f, 1000.f, 60.f, 1.f);
 
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
 		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 5);

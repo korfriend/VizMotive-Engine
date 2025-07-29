@@ -216,7 +216,7 @@ namespace vz::renderer
 
 		if (vis.flags & Visibility::ALLOW_LIGHTS)
 		{
-			// ¬˜¿Ã??
+			// Ï∞®Ïù¥??
 			// Cull lights:
 			const uint32_t light_loop = (uint32_t)scene_Gdetails->lightComponents.size();
 			vis.visibleLights.resize(light_loop);
@@ -1390,7 +1390,7 @@ namespace vz::renderer
 		// NOTE:
 		//  the following parameters need to be set according to 
 		//	* shadercam.options : RenderPath3D's property
-		//  * shadercam.clip_plane  : RenderPath3D's property
+		//  * shadercam.clip_plane : RenderPath3D's property
 		//  * shadercam.reflection_plane : Scene's property
 
 		shadercam.options = SHADERCAMERA_OPTION_NONE;//camera.shadercamera_options;
@@ -1501,8 +1501,8 @@ namespace vz::renderer
 					const XMMATRIX& invViewProj)
 					{
 						float ndcX = ((screenX - viewportX) / viewportWidth) * 2.0f - 1.0f;
-						float ndcY = 1.0f - ((screenY - viewportY) / viewportHeight) * 2.0f; // y¥¬ π›¿¸
-						float ndcZ = screenZ; // ∫∏≈Î 0~1 π¸¿ß∑Œ ¡¶∞¯µ 
+						float ndcY = 1.0f - ((screenY - viewportY) / viewportHeight) * 2.0f; // yÎäî Î∞òÏ†Ñ
+						float ndcZ = screenZ; // Î≥¥ÌÜµ 0~1 Î≤îÏúÑÎ°ú Ï†úÍ≥µÎê®
 
 						XMVECTOR ndcPos = XMVectorSet(ndcX, ndcY, ndcZ, 1.0f);
 
