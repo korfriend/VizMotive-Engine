@@ -4,6 +4,7 @@
 #define INSTANCE_ID 2
 #define LINEAR_DEPTH 3
 #define WITHOUT_POSTPROCESSING 4
+#define CASCADE_SHADOW_MAP 5
 
 uint ImprovedHash(uint value) {
     value ^= (value >> 21);
@@ -45,6 +46,7 @@ float4 main(VertextoPixel input) : SV_TARGET
 	//half4 color = unpack_half4(image.packed_color);
 	float4 color = float4(0, 0, 0, 1);
 
+	SamplerState sam = bindless_samplers[descriptor_index(image.sampler_index)];
 	Texture2D texture = bindless_textures[image.texture_base_index];
 
 	// in this debug mode, sampler_index is used for specifying the debug buffer
@@ -75,7 +77,20 @@ float4 main(VertextoPixel input) : SV_TARGET
 		} break;
 		case WITHOUT_POSTPROCESSING:
 		{
-			color = texture.Load(int3(input.pos.xy, 0));
+			float4 uvsets = input.compute_uvs();
+			color = texture.Sample(sam, uvsets.xy);
+			//color = texture.Load(int3(uv_screen, 0));
+		} break;
+		case CASCADE_SHADOW_MAP:
+		{
+			Texture2D<half4> texture_shadowatlas = bindless_textures_half4[descriptor_index(GetFrame().texture_shadowatlas_index)];
+			float4 uvsets = input.compute_uvs();
+			//float2 uv_screen = input.uv_screen();
+			color.rgb = texture.Sample(sam, uvsets.xy).rrr;
+			if (uvsets.x < 0.005 || uvsets.y < 0.005)
+			{
+				color.rgb = float3(1, 1, 0);
+			}
 		} break;
 	}	
 

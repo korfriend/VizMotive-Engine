@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "RenderPath3D_Detail.h"
 #include "Image.h"
+#include "Font.h"
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
@@ -1235,6 +1236,7 @@ namespace vz::renderer
 		auto range = profiler::BeginRangeCPU("Compose");
 
 		image::SetCanvas(canvasWidth_, canvasHeight_, 96.F);
+		font::SetCanvas(canvasWidth_, canvasHeight_, 96.F);
 
 		image::Params fx;
 		fx.blendFlag = MaterialComponent::BlendMode::BLENDMODE_OPAQUE;
@@ -1276,6 +1278,27 @@ namespace vz::renderer
 				break;
 			case DEBUG_BUFFER::WITHOUT_POSTPROCESSING:
 				image::Draw(&rtMain, fx, cmd);
+				break;
+			case DEBUG_BUFFER::CASCADE_SHADOW_MAP:
+				fx.disableDebugTest();
+				image::Draw(lastPostprocessRT, fx, cmd);
+				{
+					fx.enableDebugTest();
+					image::Params fx_sm = fx;
+					fx_sm.disableFullScreen();
+					fx_sm.pos = XMFLOAT3(canvasWidth_ * 0.75f, canvasHeight_ * 0.75f, 0);
+					fx_sm.size = XMFLOAT2(canvasWidth_ * 0.25f, canvasHeight_ * 0.25f);
+					image::Draw(&shadowMapAtlas, fx_sm, cmd);
+				}
+				{
+					font::Params fx_font;
+					fx_font.disableDepthTest();
+					fx_font.posX = canvasWidth_ * 0.76f;
+					fx_font.posY = canvasHeight_ * 0.76f;
+					fx_font.bolden = 0.1f;
+					fx_font.shadowColor = Color(255, 255, 0, 150);
+					font::Draw("Shadow Map", fx_font, cmd);
+				}
 				break;
 			case DEBUG_BUFFER::NONE:
 			default:

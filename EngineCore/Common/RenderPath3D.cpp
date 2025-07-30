@@ -276,6 +276,7 @@ namespace vz
 	constexpr static size_t HASH_INSTANCE_ID = FNV1aHash("INSTANCE_ID");   // target at rtPrimitiveID
 	constexpr static size_t HASH_LINEAR_DEPTH = FNV1aHash("LINEAR_DEPTH"); // target at rtLinearDepth
 	constexpr static size_t HASH_WITHOUT_POSTPROCESSING = FNV1aHash("WITHOUT_POSTPROCESSING"); // target at rtMain
+	constexpr static size_t HASH_CASCADE_SHADOW_MAP = FNV1aHash("CASCADE_SHADOW_MAP"); // target at shadowMapAtlas
 
 	void RenderPath3D::ShowDebugBuffer(const std::string& debugMode)
 	{
@@ -288,6 +289,7 @@ namespace vz
 		case HASH_INSTANCE_ID: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::INSTANCE_ID; break;
 		case HASH_LINEAR_DEPTH: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::LINEAR_DEPTH; break;
 		case HASH_WITHOUT_POSTPROCESSING: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::WITHOUT_POSTPROCESSING; break;
+		case HASH_CASCADE_SHADOW_MAP: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::CASCADE_SHADOW_MAP; break;
 		default: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::NONE; break;
 		}
 	}
