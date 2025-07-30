@@ -276,6 +276,7 @@ int main(int, char **)
 
 			static size_t count = 0;
 			static bool play = true;
+			static bool shadowmap_debug = false;
 			//static auto since = std::chrono::system_clock::now();
 			//auto now = std::chrono::system_clock::now();
 			//auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
@@ -443,6 +444,18 @@ int main(int, char **)
 				if (ImGui::Button(play ? "Stop" : "Play"))
 				{
 					play = !play;
+				}
+				if (ImGui::Button(shadowmap_debug ? "Hide ShadowMap" : "Show ShadowMap"))
+				{
+					shadowmap_debug = !shadowmap_debug;
+					if (shadowmap_debug)
+					{
+						renderer->ShowDebugBuffer("CASCADE_SHADOW_MAP");
+					}
+					else
+					{
+						renderer->ShowDebugBuffer("NONE");
+					}
 				}
 
 				static int detail_Icosahedron = 5;

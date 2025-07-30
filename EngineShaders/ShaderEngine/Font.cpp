@@ -760,6 +760,13 @@ namespace vz::font
 		canvas = current_canvas;
 	}
 
+	void SetCanvas(const uint32_t canvasWidth, const uint32_t canvasHeight, const float dpi)
+	{
+		canvas.width = canvasWidth;
+		canvas.height = canvasHeight;
+		canvas.dpi = dpi;
+	}
+
 	Cursor Draw(const char* text, size_t text_length, const Params& params, CommandList cmd)
 	{
 		return Draw_internal(text, text_length, params, cmd);

@@ -48,7 +48,7 @@ namespace vz
 
 	struct GRenderPath3D : GRenderPath2D
 	{
-		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250513";
+		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250730";
 		// this will be a component of vz::RenderPath3D
 
 		enum class Tonemap
@@ -63,6 +63,7 @@ namespace vz
 			INSTANCE_ID,
 			LINEAR_DEPTH,
 			WITHOUT_POSTPROCESSING,
+			CASCADE_SHADOW_MAP,
 		};
 	protected:
 

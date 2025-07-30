@@ -459,7 +459,6 @@ namespace vz::image
 		device->EventEnd(cmd);
 	}
 
-
 	void LoadShaders()
 	{
 		shader::LoadShader(ShaderStage::VS, vertexShader, "imageVS.cso");
