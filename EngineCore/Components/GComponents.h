@@ -28,7 +28,44 @@ namespace vz
 		}
 	};
 
-	// resources
+	// This can hold an asset
+	//	It can be loaded from file or memory using vz::resourcemanager::Load()
+	struct CORE_EXPORT Resource
+	{
+		std::shared_ptr<void> internalState;
+
+		// BASIC interfaces //
+		inline bool IsValid() const { return internalState.get() != nullptr; }
+		const std::vector<uint8_t>& GetFileData() const;
+		int GetFontStyle() const;
+		void CopyFromData(const std::vector<uint8_t>& data);
+		void MoveFromData(std::vector<uint8_t>&& data);
+		void SetOutdated(); // Resource marked for recreate on resourcemanager::Load()
+
+		// GRAPHICS interfaces //
+		const graphics::Texture& GetTexture() const;
+		int GetTextureSRGBSubresource() const;
+		// Allows to set a Texture to the resource from outside
+		//	srgb_subresource: you can provide a subresource for SRGB view if the texture is going to be used as SRGB with the GetTextureSRGBSubresource() (optional)
+		void SetTexture(const graphics::Texture& texture, int srgb_subresource = -1);
+		// Let the streaming system know the required resolution of this resource
+		void StreamingRequestResolution(uint32_t resolution);
+		const graphics::GPUResource* GetGPUResource() const
+		{
+			if (!IsValid() || !GetTexture().IsValid())
+				return nullptr;
+			return &GetTexture();
+		}
+
+		void ReleaseTexture();
+
+		// ----- GPU resource parameters -----
+		uint32_t uvSet = 0;
+		// Non-serialized attributes:
+		float lodClamp = 0;						// optional, can be used by texture streaming
+		int sparseResidencymapDescriptor = -1;	// optional, can be used by texture streaming
+		int sparseFeedbackmapDescriptor = -1;		// optional, can be used by texture streaming
+	};
 
 	struct CORE_EXPORT GMaterialComponent : MaterialComponent
 	{
@@ -374,39 +411,17 @@ namespace vz
 		};
 	};
 
-	struct CORE_EXPORT GTextureInterface
-	{
-	protected:
-		Entity texureEntity_ = 0;
-	public:
-		GTextureInterface(Entity texureEntity) : texureEntity_(texureEntity) {}
-		virtual ~GTextureInterface() = default;
-
-		inline int GetSparseResidencymapDescriptor() const;
-		inline int GetSparseFeedbackmapDescriptor() const;
-		inline const graphics::Texture& GetTexture() const;
-		// Allows to set a Texture to the resource from outside
-		//	srgb_subresource: you can provide a subresource for SRGB view if the texture is going to be used as SRGB with the GetTextureSRGBSubresource() (optional)
-		inline void SetTexture(const graphics::Texture& texture, int srgb_subresource = -1);
-		inline const graphics::GPUResource* GetGPUResource() const;
-	};
-
-	struct CORE_EXPORT GTextureComponent : TextureComponent, GTextureInterface
+	struct CORE_EXPORT GTextureComponent : TextureComponent
 	{
 	private:
 	public:
-		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid), GTextureInterface(entity) {}
+		GTextureComponent(const Entity entity, const VUID vuid = 0) : TextureComponent(entity, vuid) {}
 		virtual ~GTextureComponent() = default;
 
-		inline uint32_t GetUVSet() const;
-		inline float GetLodClamp() const;
-
-		inline int GetTextureSRGBSubresource() const;
-		// Let the streaming system know the required resolution of this resource
-		inline void StreamingRequestResolution(uint32_t resolution);
+		Resource resource;
 	};
 
-	struct CORE_EXPORT GVolumeComponent : VolumeComponent, GTextureInterface
+	struct CORE_EXPORT GVolumeComponent : VolumeComponent
 	{
 	private:
 		std::vector<uint8_t> volumeMinMaxBlocksData_;
@@ -421,8 +436,11 @@ namespace vz
 		};
 		std::unordered_map<Entity, GPUBlockBitmask> visibleBlockBitmasks_; // for blocks
 	public:
-		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid), GTextureInterface(entity) {}
+		GVolumeComponent(const Entity entity, const VUID vuid = 0) : VolumeComponent(entity, vuid) {}
 		virtual ~GVolumeComponent() = default;
+
+		Resource resource;
+		Resource internalBlock;
 
 		void UpdateVolumeMinMaxBlocks(const XMUINT3 blockSize);
 		const graphics::Texture& GetBlockTexture() const { return volumeMinMaxBlocks_; };
@@ -603,5 +621,21 @@ namespace vz
 
 		std::vector<std::string> lensFlareNames;
 		std::vector<std::shared_ptr<Resource>> lensFlareRimTextures;
+	};
+
+	struct CORE_EXPORT GEnvironmentComponent : EnvironmentComponent
+	{
+		GEnvironmentComponent(const Entity entity, const VUID vuid = 0) : EnvironmentComponent(entity, vuid) {}
+		virtual ~GEnvironmentComponent() = default;
+
+		Resource skyMap;
+		Resource colorGradingMap;
+		Resource volumetricCloudsWeatherMapFirst;
+		Resource volumetricCloudsWeatherMapSecond;
+
+		void LoadSkyMap(const std::string& fileName) override;
+		void LoadColorGradingMap(const std::string& fileName) override;
+		void LoadVolumetricCloudsWeatherMapFirst(const std::string& fileName) override;
+		void LoadVolumetricCloudsWeatherMapSecond(const std::string& fileName) override;
 	};
 }

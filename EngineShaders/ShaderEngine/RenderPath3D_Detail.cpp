@@ -1,4 +1,4 @@
-#include "RenderPath3D_Detail.h"
+﻿#include "RenderPath3D_Detail.h"
 #include "TextureHelper.h"
 
 namespace fsr2
@@ -542,6 +542,11 @@ namespace vz::renderer
 		if (isForceDiffuseLighting)
 		{
 			frameCB.options |= OPTION_BIT_FORCE_DIFFUSE_LIGHTING;
+		}
+		
+		if (scene_Gdetails->envrironment->skyMap.IsValid() && !has_flag(scene_Gdetails->envrironment->skyMap.GetTexture().desc.misc_flags, ResourceMiscFlag::TEXTURECUBE))
+		{
+			frameCB.options |= OPTION_BIT_STATIC_SKY_SPHEREMAP;
 		}
 
 		frameCB.scene = scene_Gdetails->shaderscene;

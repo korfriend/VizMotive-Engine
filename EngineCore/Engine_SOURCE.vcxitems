@@ -30,7 +30,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GBackend.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GBackendDevice.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GModuleLoader.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GSceneRenderPath.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GShaderInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzActor.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzArchive.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.h" />
@@ -93,6 +93,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentRefReset.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\EnvironmentComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\MaterialComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\BasicComponents.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\RenderableComponent.cpp" />

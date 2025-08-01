@@ -9,45 +9,6 @@
 
 namespace vz
 {
-	// This can hold an asset
-	//	It can be loaded from file or memory using vz::resourcemanager::Load()
-	struct Resource
-	{
-		std::shared_ptr<void> internal_state;
-
-		// BASIC interfaces //
-		inline bool IsValid() const { return internal_state.get() != nullptr; }
-		const std::vector<uint8_t>& GetFileData() const;
-		int GetFontStyle() const;
-		void CopyFromData(const std::vector<uint8_t>& data);
-		void MoveFromData(std::vector<uint8_t>&& data);
-		void SetOutdated(); // Resource marked for recreate on resourcemanager::Load()
-
-		// GRAPHICS interfaces //
-		const graphics::Texture& GetTexture() const;
-		int GetTextureSRGBSubresource() const;
-		// Allows to set a Texture to the resource from outside
-		//	srgb_subresource: you can provide a subresource for SRGB view if the texture is going to be used as SRGB with the GetTextureSRGBSubresource() (optional)
-		void SetTexture(const graphics::Texture& texture, int srgb_subresource = -1);
-		// Let the streaming system know the required resolution of this resource
-		void StreamingRequestResolution(uint32_t resolution);
-		const graphics::GPUResource* GetGPUResource() const
-		{
-			if (!IsValid() || !GetTexture().IsValid())
-				return nullptr;
-			return &GetTexture();
-		}
-
-		void ReleaseTexture();
-
-		// ----- GPU resource parameters -----
-		uint32_t uvset = 0;
-		// Non-serialized attributes:
-		float lod_clamp = 0;						// optional, can be used by texture streaming
-		int sparse_residencymap_descriptor = -1;	// optional, can be used by texture streaming
-		int sparse_feedbackmap_descriptor = -1;		// optional, can be used by texture streaming
-	};
-
 	namespace resourcemanager
 	{
 		enum class Mode

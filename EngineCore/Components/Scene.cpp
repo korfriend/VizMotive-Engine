@@ -40,11 +40,15 @@ namespace vz
 	{
 		SceneDetails(const Entity entity, const std::string& name) : Scene(entity, name) 
 		{
+			environment_ = compfactory::CreateEnvironmentComponent(0)->GetEntity();
+
 			sceneShader = shaderEngine.pluginNewGScene(this);
 			assert(sceneShader->version == GScene::GScene_INTERFACE_VERSION);
 		};
 		virtual ~SceneDetails()
 		{
+			compfactory::Destroy(environment_);
+
 			sceneShader->Destroy();
 			delete sceneShader;
 			sceneShader = nullptr;
@@ -627,23 +631,14 @@ namespace vz
 
 		bool LoadIBL(const std::string& filename) override
 		{
-			skyMap = std::make_shared<Resource>(
-				resourcemanager::Load(filename, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA | resourcemanager::Flags::STREAMING)
-			);
-
-			skyMapName_ = filename;
-			Resource& resource = *skyMap.get();
-			return resource.IsValid();
-		}
-		const void* GetTextureSkyMap() const override
-		{
-			Resource& resource = *skyMap.get();
-			return &resource.GetTexture();
-		}
-		const void* GetTextureGradientMap() const override
-		{
-			Resource& resource = *colorGradingMap.get();
-			return &resource.GetTexture();
+			GEnvironmentComponent* env = (GEnvironmentComponent*)compfactory::GetEnvironmentComponent(environment_);
+			if (env == nullptr)
+			{
+				vzlog_error("Scene(%s) has no Environment component!", name_.c_str());
+				return false;
+			}
+			env->LoadSkyMap(filename);
+			return env->skyMap.IsValid();
 		}
 
 		template<typename T>
@@ -855,6 +850,11 @@ namespace vz
 			// note: since tasks in ctx has been completed
 			//		there is no need to pass ctx as an argument.
 
+			EnvironmentComponent* env = compfactory::GetEnvironmentComponent(environment_);
+			if (env)
+			{
+				isContentChanged_ |= TimeDurationCount(env->GetTimeStamp(), recentUpdateTime_) > 0;
+			}
 
 			// ?? only when isContentChanged_?
 			sceneShader->Update(dt);
@@ -2013,9 +2013,15 @@ namespace vz
 			assert(seri_name == "Scene");
 			archive >> name_;
 
+
 			archive >> ambient_;
-			archive >> skyMapName_;
-			archive >> colorGradingMapName_;
+			{
+				VUID vuid;
+				archive >> vuid;
+				Entity entity = compfactory::GetEntityByVUID(vuid);
+				assert(compfactory::ContainEnvironmentComponent(entity));
+				environment_ = entity;
+			}
 
 			size_t num_transforms;
 			archive >> num_transforms;
@@ -2067,8 +2073,10 @@ namespace vz
 			archive << name_;
 
 			archive << ambient_;
-			archive << skyMapName_;
-			archive << colorGradingMapName_;
+			{
+				EnvironmentComponent* env = compfactory::GetEnvironmentComponent(environment_);
+				archive << (env ? env->GetVUID() : 0u);
+			}
 
 			archive << transforms_.size();
 			for (Entity entity : transforms_)
@@ -2166,5 +2174,21 @@ namespace vz::scenefactory
 	void DestroyAll()
 	{
 		scenes.clear();
+	}
+
+	size_t ResetRefEnvironment(const Entity entityEnv)
+	{
+		size_t count = 0;
+		for (auto& it : scenes)
+		{
+			Scene& scene = *it.second.get();
+			Entity ett_env = scene.GetEnvironment();
+			if (ett_env == entityEnv)
+			{
+				scene.SetEnvironment(INVALID_ENTITY);
+				count++;
+			}
+		}
+		return count;
 	}
 }

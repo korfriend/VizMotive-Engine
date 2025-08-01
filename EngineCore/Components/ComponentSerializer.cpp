@@ -1,10 +1,54 @@
 #include "Components.h"
 #include "Common/Archive.h"
+#include "Common/ResourceManager.h"
+
 #include "Utils/ECS.h"
+#include "Utils/Helpers.h"
 
 namespace vz
 {
 	using namespace vz::ecs;
+
+	struct EntitySerializer
+	{
+		std::mutex mutex;
+		jobsystem::context ctx; // allow components to spawn serialization subtasks
+		uint64_t version = 0; // The ComponentLibrary serialization will modify this by the registered component's version number
+		std::unordered_set<std::string> resourceRegistration; // register for resource manager serialization
+		ComponentLibrary* componentlibrary = nullptr;
+		std::unordered_map<std::string, uint64_t> libraryVersions;
+
+		~EntitySerializer()
+		{
+			jobsystem::Wait(ctx); // automatically wait for all subtasks after serialization
+		}
+
+		// Returns the library version of the currently serializing Component
+		//	If not using ComponentLibrary, it returns version set by the user.
+		uint64_t GetVersion() const
+		{
+			return version;
+		}
+		uint64_t GetVersion(const std::string& name) const
+		{
+			auto it = libraryVersions.find(name);
+			if (it != libraryVersions.end())
+			{
+				return it->second;
+			}
+			return 0;
+		}
+
+		void RegisterResource(const std::string& resource_name)
+		{
+			if (resource_name.empty())
+				return;
+			std::lock_guard<std::mutex> lock(mutex);
+			resourceRegistration.insert(resource_name);
+		}
+	};
+
+	EntitySerializer entitySerializer;
 
 	void NameComponent::Serialize(vz::Archive& archive, const uint64_t version) 
 	{
@@ -815,6 +859,362 @@ namespace vz
 			archive << isReverseSide_;
 
 			archive << curvedSlicerUp_;
+		}
+	}
+
+	void EnvironmentComponent::Serialize(Archive& archive, const uint64_t version)
+	{
+		std::string dir = archive.GetSourceDirectory();
+
+		GEnvironmentComponent* env = (GEnvironmentComponent*)this;
+
+		if (archive.IsReadMode())
+		{
+			archive >> flag_;
+			archive >> sunDirection_;
+			archive >> sunColor_;
+			archive >> horizon_;
+			archive >> zenith_;
+			archive >> ambient_;
+			archive >> fogStart_;
+			archive >> fogDensity_;
+			fogDensity_ = (1.0f / fogDensity_);
+			archive >> windDirection_;
+			archive >> windRandomness_;
+			archive >> windWaveSize_;
+
+			archive >> oceanParameters_.dmapDim;
+			archive >> oceanParameters_.patchLength;
+			archive >> oceanParameters_.timeScale;
+			archive >> oceanParameters_.waveAmplitude;
+			archive >> oceanParameters_.windDir;
+			archive >> oceanParameters_.windSpeed;
+			archive >> oceanParameters_.windDependency;
+			archive >> oceanParameters_.choppyScale;
+			archive >> oceanParameters_.waterColor;
+			archive >> oceanParameters_.waterHeight;
+			archive >> oceanParameters_.surfaceDetail;
+			archive >> oceanParameters_.surfaceDisplacementTolerance;
+			archive >> skyMapName_;
+			if (!skyMapName_.empty())
+			{
+				skyMapName_ = dir + skyMapName_;
+				env->skyMap = resourcemanager::Load(skyMapName_);
+			}
+			archive >> windSpeed_;
+			archive >> colorGradingMapName_;
+			if (!colorGradingMapName_.empty())
+			{
+				colorGradingMapName_ = dir + colorGradingMapName_;
+				env->colorGradingMap = resourcemanager::Load(colorGradingMapName_, resourcemanager::Flags::IMPORT_COLORGRADINGLUT);
+			}
+
+			archive >> skyExposure_;
+
+			archive >> atmosphereParameters_.bottomRadius;
+			archive >> atmosphereParameters_.topRadius;
+			archive >> atmosphereParameters_.planetCenter;
+			archive >> atmosphereParameters_.rayleighDensityExpScale;
+			archive >> atmosphereParameters_.rayleighScattering;
+			archive >> atmosphereParameters_.mieDensityExpScale;
+			archive >> atmosphereParameters_.mieScattering;
+			archive >> atmosphereParameters_.mieExtinction;
+			archive >> atmosphereParameters_.mieAbsorption;
+			archive >> atmosphereParameters_.absorptionDensity0LayerWidth;
+			archive >> atmosphereParameters_.absorptionDensity0ConstantTerm;
+			archive >> atmosphereParameters_.absorptionDensity0LinearTerm;
+			archive >> atmosphereParameters_.absorptionDensity1ConstantTerm;
+			archive >> atmosphereParameters_.absorptionDensity1LinearTerm;
+			archive >> atmosphereParameters_.absorptionExtinction;
+			archive >> atmosphereParameters_.groundAlbedo;
+
+			archive >> volumetricCloudParameters_.layerFirst.albedo;
+			archive >> volumetricCloudParameters_.ambientGroundMultiplier;
+			archive >> volumetricCloudParameters_.layerFirst.extinctionCoefficient;
+			archive >> volumetricCloudParameters_.beerPowder;
+			archive >> volumetricCloudParameters_.beerPowderPower;
+			archive >> volumetricCloudParameters_.phaseG;
+			archive >> volumetricCloudParameters_.phaseG2;
+			archive >> volumetricCloudParameters_.phaseBlend;
+			archive >> volumetricCloudParameters_.multiScatteringScattering;
+			archive >> volumetricCloudParameters_.multiScatteringExtinction;
+			archive >> volumetricCloudParameters_.multiScatteringEccentricity;
+			archive >> volumetricCloudParameters_.shadowStepLength;
+			archive >> volumetricCloudParameters_.horizonBlendAmount;
+			archive >> volumetricCloudParameters_.horizonBlendPower;
+			archive >> volumetricCloudParameters_.layerFirst.rainAmount;
+			archive >> volumetricCloudParameters_.cloudStartHeight;
+			archive >> volumetricCloudParameters_.cloudThickness;
+			archive >> volumetricCloudParameters_.layerFirst.skewAlongWindDirection;
+			archive >> volumetricCloudParameters_.layerFirst.totalNoiseScale;
+			archive >> volumetricCloudParameters_.layerFirst.detailScale;
+			archive >> volumetricCloudParameters_.layerFirst.weatherScale;
+			archive >> volumetricCloudParameters_.layerFirst.curlScale;
+			archive >> volumetricCloudParameters_.layerFirst.detailNoiseModifier;
+			archive >> volumetricCloudParameters_.layerFirst.detailNoiseHeightFraction;
+			archive >> volumetricCloudParameters_.layerFirst.curlNoiseModifier;
+			archive >> volumetricCloudParameters_.layerFirst.coverageAmount;
+			archive >> volumetricCloudParameters_.layerFirst.coverageMinimum;
+			archive >> volumetricCloudParameters_.layerFirst.typeAmount;
+			archive >> volumetricCloudParameters_.layerFirst.typeMinimum;
+			archive >> volumetricCloudParameters_.animationMultiplier;
+			archive >> volumetricCloudParameters_.layerFirst.windSpeed;
+			archive >> volumetricCloudParameters_.layerFirst.windAngle;
+			archive >> volumetricCloudParameters_.layerFirst.windUpAmount;
+			archive >> volumetricCloudParameters_.layerFirst.coverageWindSpeed;
+			archive >> volumetricCloudParameters_.layerFirst.coverageWindAngle;
+			archive >> volumetricCloudParameters_.layerFirst.gradientSmall;
+			archive >> volumetricCloudParameters_.layerFirst.gradientMedium;
+			archive >> volumetricCloudParameters_.layerFirst.gradientLarge;
+			archive >> volumetricCloudParameters_.maxStepCount;
+			archive >> volumetricCloudParameters_.maxMarchingDistance;
+			archive >> volumetricCloudParameters_.inverseDistanceStepCount;
+			archive >> volumetricCloudParameters_.renderDistance;
+			archive >> volumetricCloudParameters_.LODDistance;
+			archive >> volumetricCloudParameters_.LODMin;
+			archive >> volumetricCloudParameters_.bigStepMarch;
+			archive >> volumetricCloudParameters_.transmittanceThreshold;
+			archive >> volumetricCloudParameters_.shadowSampleCount;
+			archive >> volumetricCloudParameters_.groundContributionSampleCount;
+
+			archive >> fogHeightStart_;
+			archive >> fogHeightEnd_;
+
+			archive >> stars_;
+				
+			archive >> volumetricCloudsWeatherMapFirstName_;
+			if (!volumetricCloudsWeatherMapFirstName_.empty())
+			{
+				volumetricCloudsWeatherMapFirstName_ = dir + volumetricCloudsWeatherMapFirstName_;
+				env->volumetricCloudsWeatherMapFirst = resourcemanager::Load(volumetricCloudsWeatherMapFirstName_);
+			}
+
+			archive >> volumetricCloudsWeatherMapSecondName_;
+			if (!volumetricCloudsWeatherMapSecondName_.empty())
+			{
+				volumetricCloudsWeatherMapSecondName_ = dir + volumetricCloudsWeatherMapSecondName_;
+				env->volumetricCloudsWeatherMapSecond = resourcemanager::Load(volumetricCloudsWeatherMapSecondName_);
+			}
+
+			archive >> volumetricCloudParameters_.layerFirst.curlNoiseHeightFraction;
+			archive >> volumetricCloudParameters_.layerFirst.skewAlongCoverageWindDirection;
+			archive >> volumetricCloudParameters_.layerFirst.rainMinimum;
+			archive >> volumetricCloudParameters_.layerFirst.anvilDeformationSmall;
+			archive >> volumetricCloudParameters_.layerFirst.anvilDeformationMedium;
+			archive >> volumetricCloudParameters_.layerFirst.anvilDeformationLarge;
+
+			archive >> volumetricCloudParameters_.layerSecond.albedo;
+			archive >> volumetricCloudParameters_.layerSecond.extinctionCoefficient;
+			archive >> volumetricCloudParameters_.layerSecond.skewAlongWindDirection;
+			archive >> volumetricCloudParameters_.layerSecond.totalNoiseScale;
+			archive >> volumetricCloudParameters_.layerSecond.curlScale;
+			archive >> volumetricCloudParameters_.layerSecond.curlNoiseHeightFraction;
+			archive >> volumetricCloudParameters_.layerSecond.curlNoiseModifier;
+			archive >> volumetricCloudParameters_.layerSecond.detailScale;
+			archive >> volumetricCloudParameters_.layerSecond.detailNoiseHeightFraction;
+			archive >> volumetricCloudParameters_.layerSecond.detailNoiseModifier;
+			archive >> volumetricCloudParameters_.layerSecond.skewAlongCoverageWindDirection;
+			archive >> volumetricCloudParameters_.layerSecond.weatherScale;
+			archive >> volumetricCloudParameters_.layerSecond.coverageAmount;
+			archive >> volumetricCloudParameters_.layerSecond.coverageMinimum;
+			archive >> volumetricCloudParameters_.layerSecond.typeAmount;
+			archive >> volumetricCloudParameters_.layerSecond.typeMinimum;
+			archive >> volumetricCloudParameters_.layerSecond.rainAmount;
+			archive >> volumetricCloudParameters_.layerSecond.rainMinimum;
+			archive >> volumetricCloudParameters_.layerSecond.gradientSmall;
+			archive >> volumetricCloudParameters_.layerSecond.gradientMedium;
+			archive >> volumetricCloudParameters_.layerSecond.gradientLarge;
+			archive >> volumetricCloudParameters_.layerSecond.anvilDeformationSmall;
+			archive >> volumetricCloudParameters_.layerSecond.anvilDeformationMedium;
+			archive >> volumetricCloudParameters_.layerSecond.anvilDeformationLarge;
+			archive >> volumetricCloudParameters_.layerSecond.windSpeed;
+			archive >> volumetricCloudParameters_.layerSecond.windAngle;
+			archive >> volumetricCloudParameters_.layerSecond.windUpAmount;
+			archive >> volumetricCloudParameters_.layerSecond.coverageWindSpeed;
+			archive >> volumetricCloudParameters_.layerSecond.coverageWindAngle;
+
+			archive >> gravity_;
+			
+			archive >> atmosphereParameters_.rayMarchMinMaxSPP;
+			archive >> atmosphereParameters_.distanceSPPMaxInv;
+			archive >> atmosphereParameters_.aerialPerspectiveScale;
+				
+			archive >> skyRotation_;
+			
+			archive >> rainAmount_;
+			archive >> rainLength_;
+			archive >> rainSpeed_;
+			archive >> rainScale_;
+			archive >> rainSplashScale_;
+			archive >> rainColor_;
+			
+			archive >> oceanParameters_.extinctionColor;
+		}
+		else
+		{
+			entitySerializer.RegisterResource(skyMapName_);
+			entitySerializer.RegisterResource(colorGradingMapName_);
+			entitySerializer.RegisterResource(volumetricCloudsWeatherMapFirstName_);
+			entitySerializer.RegisterResource(volumetricCloudsWeatherMapSecondName_);
+
+			archive << flag_;
+			archive << sunDirection_;
+			archive << sunColor_;
+			archive << horizon_;
+			archive << zenith_;
+			archive << ambient_;
+			archive << fogStart_;
+			archive << fogDensity_;
+			archive << windDirection_;
+			archive << windRandomness_;
+			archive << windWaveSize_;
+
+			archive << oceanParameters_.dmapDim;
+			archive << oceanParameters_.patchLength;
+			archive << oceanParameters_.timeScale;
+			archive << oceanParameters_.waveAmplitude;
+			archive << oceanParameters_.windDir;
+			archive << oceanParameters_.windSpeed;
+			archive << oceanParameters_.windDependency;
+			archive << oceanParameters_.choppyScale;
+			archive << oceanParameters_.waterColor;
+			archive << oceanParameters_.waterHeight;
+			archive << oceanParameters_.surfaceDetail;
+			archive << oceanParameters_.surfaceDisplacementTolerance;
+
+			archive << helper::GetPathRelative(dir, skyMapName_);
+			archive << windSpeed_;
+			archive << helper::GetPathRelative(dir, colorGradingMapName_);
+
+			archive << skyExposure_;
+
+			archive << atmosphereParameters_.bottomRadius;
+			archive << atmosphereParameters_.topRadius;
+			archive << atmosphereParameters_.planetCenter;
+			archive << atmosphereParameters_.rayleighDensityExpScale;
+			archive << atmosphereParameters_.rayleighScattering;
+			archive << atmosphereParameters_.mieDensityExpScale;
+			archive << atmosphereParameters_.mieScattering;
+			archive << atmosphereParameters_.mieExtinction;
+			archive << atmosphereParameters_.mieAbsorption;
+			archive << atmosphereParameters_.absorptionDensity0LayerWidth;
+			archive << atmosphereParameters_.absorptionDensity0ConstantTerm;
+			archive << atmosphereParameters_.absorptionDensity0LinearTerm;
+			archive << atmosphereParameters_.absorptionDensity1ConstantTerm;
+			archive << atmosphereParameters_.absorptionDensity1LinearTerm;
+			archive << atmosphereParameters_.absorptionExtinction;
+			archive << atmosphereParameters_.groundAlbedo;
+
+			archive << volumetricCloudParameters_.layerFirst.albedo;
+			archive << volumetricCloudParameters_.ambientGroundMultiplier;
+			archive << volumetricCloudParameters_.layerFirst.extinctionCoefficient;
+			archive << volumetricCloudParameters_.beerPowder;
+			archive << volumetricCloudParameters_.beerPowderPower;
+			archive << volumetricCloudParameters_.phaseG;
+			archive << volumetricCloudParameters_.phaseG2;
+			archive << volumetricCloudParameters_.phaseBlend;
+			archive << volumetricCloudParameters_.multiScatteringScattering;
+			archive << volumetricCloudParameters_.multiScatteringExtinction;
+			archive << volumetricCloudParameters_.multiScatteringEccentricity;
+			archive << volumetricCloudParameters_.shadowStepLength;
+			archive << volumetricCloudParameters_.horizonBlendAmount;
+			archive << volumetricCloudParameters_.horizonBlendPower;
+			archive << volumetricCloudParameters_.layerFirst.rainAmount;
+			archive << volumetricCloudParameters_.cloudStartHeight;
+			archive << volumetricCloudParameters_.cloudThickness;
+			archive << volumetricCloudParameters_.layerFirst.skewAlongWindDirection;
+			archive << volumetricCloudParameters_.layerFirst.totalNoiseScale;
+			archive << volumetricCloudParameters_.layerFirst.detailScale;
+			archive << volumetricCloudParameters_.layerFirst.weatherScale;
+			archive << volumetricCloudParameters_.layerFirst.curlScale;
+			archive << volumetricCloudParameters_.layerFirst.detailNoiseModifier;
+			archive << volumetricCloudParameters_.layerFirst.detailNoiseHeightFraction;
+			archive << volumetricCloudParameters_.layerFirst.curlNoiseModifier;
+			archive << volumetricCloudParameters_.layerFirst.coverageAmount;
+			archive << volumetricCloudParameters_.layerFirst.coverageMinimum;
+			archive << volumetricCloudParameters_.layerFirst.typeAmount;
+			archive << volumetricCloudParameters_.layerFirst.typeMinimum;
+			archive << volumetricCloudParameters_.animationMultiplier;
+			archive << volumetricCloudParameters_.layerFirst.windSpeed;
+			archive << volumetricCloudParameters_.layerFirst.windAngle;
+			archive << volumetricCloudParameters_.layerFirst.windUpAmount;
+			archive << volumetricCloudParameters_.layerFirst.coverageWindSpeed;
+			archive << volumetricCloudParameters_.layerFirst.coverageWindAngle;
+			archive << volumetricCloudParameters_.layerFirst.gradientSmall;
+			archive << volumetricCloudParameters_.layerFirst.gradientMedium;
+			archive << volumetricCloudParameters_.layerFirst.gradientLarge;
+			archive << volumetricCloudParameters_.maxStepCount;
+			archive << volumetricCloudParameters_.maxMarchingDistance;
+			archive << volumetricCloudParameters_.inverseDistanceStepCount;
+			archive << volumetricCloudParameters_.renderDistance;
+			archive << volumetricCloudParameters_.LODDistance;
+			archive << volumetricCloudParameters_.LODMin;
+			archive << volumetricCloudParameters_.bigStepMarch;
+			archive << volumetricCloudParameters_.transmittanceThreshold;
+			archive << volumetricCloudParameters_.shadowSampleCount;
+			archive << volumetricCloudParameters_.groundContributionSampleCount;
+
+			archive << fogHeightStart_;
+			archive << fogHeightEnd_;
+
+			archive << stars_;
+
+			archive << helper::GetPathRelative(dir, volumetricCloudsWeatherMapFirstName_);
+
+			archive << helper::GetPathRelative(dir, volumetricCloudsWeatherMapSecondName_);
+
+			archive << volumetricCloudParameters_.layerFirst.curlNoiseHeightFraction;
+			archive << volumetricCloudParameters_.layerFirst.skewAlongCoverageWindDirection;
+			archive << volumetricCloudParameters_.layerFirst.rainMinimum;
+			archive << volumetricCloudParameters_.layerFirst.anvilDeformationSmall;
+			archive << volumetricCloudParameters_.layerFirst.anvilDeformationMedium;
+			archive << volumetricCloudParameters_.layerFirst.anvilDeformationLarge;
+
+			archive << volumetricCloudParameters_.layerSecond.albedo;
+			archive << volumetricCloudParameters_.layerSecond.extinctionCoefficient;
+			archive << volumetricCloudParameters_.layerSecond.skewAlongWindDirection;
+			archive << volumetricCloudParameters_.layerSecond.totalNoiseScale;
+			archive << volumetricCloudParameters_.layerSecond.curlScale;
+			archive << volumetricCloudParameters_.layerSecond.curlNoiseHeightFraction;
+			archive << volumetricCloudParameters_.layerSecond.curlNoiseModifier;
+			archive << volumetricCloudParameters_.layerSecond.detailScale;
+			archive << volumetricCloudParameters_.layerSecond.detailNoiseHeightFraction;
+			archive << volumetricCloudParameters_.layerSecond.detailNoiseModifier;
+			archive << volumetricCloudParameters_.layerSecond.skewAlongCoverageWindDirection;
+			archive << volumetricCloudParameters_.layerSecond.weatherScale;
+			archive << volumetricCloudParameters_.layerSecond.coverageAmount;
+			archive << volumetricCloudParameters_.layerSecond.coverageMinimum;
+			archive << volumetricCloudParameters_.layerSecond.typeAmount;
+			archive << volumetricCloudParameters_.layerSecond.typeMinimum;
+			archive << volumetricCloudParameters_.layerSecond.rainAmount;
+			archive << volumetricCloudParameters_.layerSecond.rainMinimum;
+			archive << volumetricCloudParameters_.layerSecond.gradientSmall;
+			archive << volumetricCloudParameters_.layerSecond.gradientMedium;
+			archive << volumetricCloudParameters_.layerSecond.gradientLarge;
+			archive << volumetricCloudParameters_.layerSecond.anvilDeformationSmall;
+			archive << volumetricCloudParameters_.layerSecond.anvilDeformationMedium;
+			archive << volumetricCloudParameters_.layerSecond.anvilDeformationLarge;
+			archive << volumetricCloudParameters_.layerSecond.windSpeed;
+			archive << volumetricCloudParameters_.layerSecond.windAngle;
+			archive << volumetricCloudParameters_.layerSecond.windUpAmount;
+			archive << volumetricCloudParameters_.layerSecond.coverageWindSpeed;
+			archive << volumetricCloudParameters_.layerSecond.coverageWindAngle;
+
+			archive << gravity_;
+				
+			archive << atmosphereParameters_.rayMarchMinMaxSPP;
+			archive << atmosphereParameters_.distanceSPPMaxInv;
+			archive << atmosphereParameters_.aerialPerspectiveScale;
+			
+			archive << skyRotation_;
+
+			archive << rainAmount_;
+			archive << rainLength_;
+			archive << rainSpeed_;
+			archive << rainScale_;
+			archive << rainSplashScale_;
+			archive << rainColor_;
+			archive << oceanParameters_.extinctionColor;
 		}
 	}
 }

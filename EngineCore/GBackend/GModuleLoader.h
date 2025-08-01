@@ -1,5 +1,5 @@
 #pragma once
-#include "GSceneRenderPath.h"
+#include "GShaderInterface.h"
 
 #include <memory>
 #include <limits>

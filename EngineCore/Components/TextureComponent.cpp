@@ -85,7 +85,15 @@
 
 namespace vz
 {
-#define GETTER_RES(RES, RET) Resource* RES = resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); return RET; };
+	inline Resource& GetResource(TextureComponent* tcomp) {
+		if (tcomp->GetComponentType() == ComponentType::TEXTURE)
+			return static_cast<GTextureComponent*>(tcomp)->resource;
+		else
+			return static_cast<GVolumeComponent*>(tcomp)->resource;
+	}
+
+#define GETTER_RES(RES) Resource& RES = GetResource((TextureComponent*)this);
+#define GETTER_RES_RET(RES, RET) GETTER_RES(RES) if (!RES.IsValid()) { return RET; };
 
 	TextureComponent::TextureType getTextureType(const graphics::Texture& texture)
 	{
@@ -116,42 +124,39 @@ namespace vz
 
 	bool TextureComponent::IsValid() const
 	{
-		GETTER_RES(resource, false);
-		return resource->IsValid();
+		GETTER_RES_RET(resource, false);
+		return resource.IsValid();
 	}
 	const std::vector<uint8_t>& TextureComponent::GetData() const
 	{
 		static std::vector<uint8_t> empty;
-		GETTER_RES(resource, empty);
-		return resource->GetFileData();
+		GETTER_RES_RET(resource, empty);
+		return resource.GetFileData();
 	}
 	int TextureComponent::GetFontStyle() const
 	{
-		GETTER_RES(resource, -1);
-		return resource->GetFontStyle();
+		GETTER_RES_RET(resource, -1);
+		return resource.GetFontStyle();
 	}
 	void TextureComponent::CopyFromData(const std::vector<uint8_t>& data)
 	{
-		GETTER_RES(resource, );
-		assert(resource->GetFileData().size() == data.size());
-		resource->CopyFromData(data);
-		resource->SetOutdated();
+		GETTER_RES_RET(resource, );
+		assert(resource.GetFileData().size() == data.size());
+		resource.CopyFromData(data);
+		resource.SetOutdated();
 	}
 	void TextureComponent::MoveFromData(std::vector<uint8_t>&& data)
 	{
-		GETTER_RES(resource, );
-		assert(resource->GetFileData().size() == data.size());
-		resource->MoveFromData(std::move(data));
-		resource->SetOutdated();
+		GETTER_RES_RET(resource, );
+		assert(resource.GetFileData().size() == data.size());
+		resource.MoveFromData(std::move(data));
+		resource.SetOutdated();
 	}
 
 	bool TextureComponent::LoadImageFile(const std::string& fileName)
 	{
-		resource_ = std::make_shared<Resource>(
-			resourcemanager::Load(fileName, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA | resourcemanager::Flags::STREAMING)
-		);
-
-		Resource& resource = *resource_.get();
+		GETTER_RES(resource);
+		resource = resourcemanager::Load(fileName, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA | resourcemanager::Flags::STREAMING);
 		if (resource.IsValid())
 		{
 			if (resName_ != fileName)
@@ -199,11 +204,9 @@ namespace vz
 			vzlog_warning("Use VolumeTexture::LoadVolume instead of using TextureComponent::LoadMemory");
 		}
 
-		resource_ = std::make_shared<Resource>(
-			resourcemanager::LoadMemory(name, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, data.data(), w, h, d, textureFormat, false)
-		);
+		GETTER_RES(resource);
+		resource = resourcemanager::LoadMemory(name, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, data.data(), w, h, d, textureFormat, false);
 
-		Resource& resource = *resource_.get();
 		if (resource.IsValid())
 		{
 			if (resName_ != name)
@@ -355,12 +358,10 @@ namespace vz
 			return false;
 		}
 
-		resource_ = std::make_shared<Resource>(
-			resourcemanager::LoadVolume(fileName, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, volData.data(), w, h, d, volFormat)
-		);
+		GETTER_RES(resource);
+		resource = resourcemanager::LoadVolume(fileName, resourcemanager::Flags::IMPORT_RETAIN_FILEDATA, volData.data(), w, h, d, volFormat);
 
 		resName_ = fileName;
-		Resource& resource = *resource_.get();
 		if (resource.IsValid())
 		{
 			graphics::Texture texture = resource.GetTexture();
@@ -400,7 +401,7 @@ namespace vz
 
 	void GVolumeComponent::UpdateVolumeMinMaxBlocks(const XMUINT3 blockSize)
 	{
-		GETTER_RES(resource, );
+		GETTER_RES(resource);
 
 		if (!IsValid())
 		{
@@ -411,7 +412,7 @@ namespace vz
 		blockPitch_ = blockSize;
 		volumeMinMaxBlocks_ = {};
 
-		const uint8_t* vol_data = resource_->GetFileData().data();
+		const uint8_t* vol_data = resource.GetFileData().data();
 
 		uint modX = width_ % blockPitch_.x;
 		uint modY = height_ % blockPitch_.y;
@@ -556,7 +557,7 @@ namespace vz
 
 	void GVolumeComponent::UpdateVolumeVisibleBlocksBuffer(const Entity entityVisibleMap)
 	{
-		GETTER_RES(resource, );
+		GETTER_RES_RET(resource, );
 
 		if (!IsValid() || !volumeMinMaxBlocks_.IsValid())
 		{
@@ -703,67 +704,5 @@ namespace vz
 			return nullptr;
 		}
 		return it->second.bitmask.data();
-	}
-}
-
-namespace vz
-{
-#define GETTER_RES_GTI(RES, RET) TextureComponent* texture = compfactory::GetTextureComponent(texureEntity_); \
-	Resource* RES = texture->resource_.get(); if (RES == nullptr) { backlog::post("Invalid Resource >> TextureComponent", backlog::LogLevel::Error); \
-	return RET; };
-
-	int GTextureInterface::GetSparseResidencymapDescriptor() const
-	{
-		GETTER_RES_GTI(resource, -1);
-		return resource->sparse_residencymap_descriptor;
-	}
-	int GTextureInterface::GetSparseFeedbackmapDescriptor() const
-	{
-		GETTER_RES_GTI(resource, -1);
-		return resource->sparse_feedbackmap_descriptor;
-	}
-	const graphics::Texture& GTextureInterface::GetTexture() const
-	{
-		static graphics::Texture empty;
-		GETTER_RES_GTI(resource, empty);
-		return resource->GetTexture();
-	}
-	void GTextureInterface::SetTexture(const graphics::Texture& texture_, int srgb_subresource)
-	{
-		GETTER_RES_GTI(resource, );
-		resource->SetTexture(texture_, srgb_subresource);
-	}
-
-	const graphics::GPUResource* GTextureInterface::GetGPUResource() const {
-		GETTER_RES_GTI(resource, nullptr);
-		if (!texture->IsValid() || !GetTexture().IsValid())
-			return nullptr;
-		return &GetTexture();
-	}
-}
-namespace vz
-{
-	uint32_t GTextureComponent::GetUVSet() const
-	{
-		GETTER_RES(resource, 0);
-		return resource->uvset;
-	}
-	float GTextureComponent::GetLodClamp() const
-	{
-		GETTER_RES(resource, 0);
-		return resource->lod_clamp;
-	}
-
-	int GTextureComponent::GetTextureSRGBSubresource() const
-	{
-		GETTER_RES(resource, -1);
-		return resource->GetTextureSRGBSubresource();
-	}
-
-	
-	void GTextureComponent::StreamingRequestResolution(uint32_t resolution)
-	{
-		GETTER_RES(resource, );
-		resource->StreamingRequestResolution(resolution);
 	}
 }

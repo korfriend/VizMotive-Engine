@@ -104,7 +104,6 @@ struct alignas(16) AtmosphereParameters
 #endif // __cplusplus
 };
 
-
 struct alignas(16) VolumetricCloudLayer
 {
 	// Lighting

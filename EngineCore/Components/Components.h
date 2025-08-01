@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250723_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250801_1";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -60,16 +60,15 @@ namespace vz
 	}
 
 	class Archive;
-	struct GScene;
-	struct Resource;
 	struct ComponentBase;
+	struct CameraComponent;
+	struct GScene;
 	struct GRenderableComponent;
 	struct GSpriteComponent;
 	struct GSpriteFontComponent;
 	struct GGeometryComponent;
 	struct GMaterialComponent;
 	struct GLightComponent;
-	struct CameraComponent;
 
 	class WaitForBool {
 	private:
@@ -153,9 +152,6 @@ namespace vz
 		// Scene lights (Skybox or Weather something...)
 		XMFLOAT3 ambient_ = XMFLOAT3(0.25f, 0.25f, 0.25f);
 
-		std::string skyMapName_;	// resourcemanager's key
-		std::string colorGradingMapName_; // resourcemanager's key
-
 		// Instead of Entity, VUID is stored by serialization
 		//	the index is same to the streaming index
 		std::vector<Entity> transforms_;
@@ -176,6 +172,8 @@ namespace vz
 		std::vector<Entity> colliders_;
 
 		geometrics::AABB aabb_;	// entire scene box (renderables, lights, ...)
+
+		Entity environment_ = INVALID_ENTITY;
 		
 		//	instant parameters during render-process
 		float dt_ = 0.f;
@@ -204,9 +202,6 @@ namespace vz
 
 		inline const std::string GetSceneName() const { return name_; }
 		inline const Entity GetSceneEntity() const { return entity_; }
-
-		inline void SetAmbient(const XMFLOAT3& ambient) { ambient_ = ambient; }
-		inline XMFLOAT3 GetAmbient() const { return ambient_; }
 
 		inline void Clear();
 
@@ -315,11 +310,13 @@ namespace vz
 			uint32_t filterMask = SCU32(RenderableFilterFlags::RENDERABLE_MESH_OPAQUE), 
 			uint32_t layerMask = ~0, uint32_t lod = 0, float toleranceRadius = 0, int screenW = -1, int screenH = -1) const;
 
-		// Details (virtual implementations)
+		// Temporal version of Environment interfaces
+		inline void SetAmbient(const XMFLOAT3& ambient) { ambient_ = ambient; timeStampSetter_ = TimerNow; }
+		inline XMFLOAT3 GetAmbient() const { return ambient_; }
 		uint32_t mostImportantLightIndex = ~0u;
-		virtual bool LoadIBL(const std::string& filename) = 0; // to skyMap_
-		virtual const void* GetTextureSkyMap() const = 0;		// return the pointer of graphics::Texture
-		virtual const void* GetTextureGradientMap() const = 0;	// return the pointer of graphics::Texture
+		virtual bool LoadIBL(const std::string& filename) = 0;
+		const Entity GetEnvironment() const { return environment_; };
+		void SetEnvironment(const Entity entityEnv) { environment_ = entityEnv; timeStampSetter_ = TimerNow; }
 
 		/**
 		 * Removes the Renderable from the Scene.
@@ -382,6 +379,7 @@ namespace vz
 		LIGHT,
 		CAMERA,
 		SLICER,
+		ENVIRONMENT,
 	};
 
 	struct CORE_EXPORT ComponentBase
@@ -869,8 +867,6 @@ namespace vz
 
 			// OpenMesh-based data structures for acceleration / editing
 
-			//std::shared_ptr<Resource> internalBlock_;
-
 			void updateGpuEssentials(); // supposed to be called in GeometryComponent
 
 			// CPU-side BVH acceleration structure
@@ -1053,7 +1049,6 @@ namespace vz
 			histogram[index]++;
 		}
 	};
-	struct GTextureInterface;
 	constexpr size_t TEXTURE_MAX_RESOLUTION = 4096;
 	struct CORE_EXPORT TextureComponent : ComponentBase
 	{
@@ -1169,7 +1164,6 @@ namespace vz
 		// sampler 
 
 		// Non-serialized attributes
-		std::shared_ptr<Resource> resource_;
 		bool hasRenderData_ = false;
 
 	public:
@@ -1210,7 +1204,6 @@ namespace vz
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::TEXTURE;
-		friend struct GTextureInterface;
 	};
 
 	struct CORE_EXPORT VolumeComponent : TextureComponent
@@ -1223,7 +1216,6 @@ namespace vz
 			FLOAT = 4,
 		};
 	protected:
-		std::shared_ptr<Resource> internalBlock_;
 		VolumeFormat volFormat_ = VolumeFormat::UNDEF;
 		XMFLOAT3 voxelSize_ = {};
 		XMFLOAT2 storedMinMax_ = XMFLOAT2(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
@@ -2165,6 +2157,489 @@ namespace vz
 
 		inline static const ComponentType IntrinsicType = ComponentType::SLICER;
 	};
+
+	struct CORE_EXPORT EnvironmentComponent : ComponentBase
+	{
+		enum FLAGS
+		{
+			EMPTY = 0,
+			OCEAN_ENABLED = 1 << 0,
+			REALISTIC_SKY = 1 << 1,
+			VOLUMETRIC_CLOUDS = 1 << 2,
+			HEIGHT_FOG = 1 << 3,
+			VOLUMETRIC_CLOUDS_CAST_SHADOW = 1 << 4,
+			OVERRIDE_FOG_COLOR = 1 << 5,
+			REALISTIC_SKY_AERIAL_PERSPECTIVE = 1 << 6,
+			REALISTIC_SKY_HIGH_QUALITY = 1 << 7,
+			REALISTIC_SKY_RECEIVE_SHADOW = 1 << 8,
+			VOLUMETRIC_CLOUDS_RECEIVE_SHADOW = 1 << 9,
+		};
+
+		struct OceanParameters
+		{
+			// Must be power of 2.
+			int dmapDim = 512;
+			// Typical value is 1000 ~ 2000
+			float patchLength = 50.0f;
+
+			// Adjust the time interval for simulation.
+			float timeScale = 0.3f;
+			// Amplitude for transverse wave. Around 1.0
+			float waveAmplitude = 1000.0f;
+			// Wind direction. Normalization not required.
+			XMFLOAT2 windDir = XMFLOAT2(0.8f, 0.6f);
+			// Around 100 ~ 1000
+			float windSpeed = 600.0f;
+			// This value damps out the waves against the wind direction.
+			// Smaller value means higher wind dependency.
+			float windDependency = 0.07f;
+			// The amplitude for longitudinal wave. Must be positive.
+			float choppyScale = 1.3f;
+
+
+			XMFLOAT4 waterColor = XMFLOAT4(0.0f, 2.0f / 255.0f, 6.0f / 255.0f, 0.6f);
+			XMFLOAT4 extinctionColor = XMFLOAT4(0, 0.9f, 1, 1);
+			float waterHeight = 0.0f;
+			uint32_t surfaceDetail = 4;
+			float surfaceDisplacementTolerance = 2;
+		};
+		struct AtmosphereParameters
+		{
+			// Radius of the planet (center to ground)
+			float bottomRadius;
+			// Maximum considered atmosphere height (center to atmosphere top)
+			float topRadius;
+
+			// Center of the planet
+			XMFLOAT3 planetCenter;
+			// Rayleigh scattering exponential distribution scale in the atmosphere
+			float rayleighDensityExpScale;
+
+			// Rayleigh scattering coefficients
+			XMFLOAT3 rayleighScattering;
+			// Mie scattering exponential distribution scale in the atmosphere
+			float mieDensityExpScale;
+
+			// Mie scattering coefficients
+			XMFLOAT3 mieScattering;
+			// Mie extinction coefficients
+			XMFLOAT3 mieExtinction;
+
+			// Mie absorption coefficients
+			XMFLOAT3 mieAbsorption;
+			// Mie phase function excentricity
+			float miePhaseG;
+
+			// Another medium type in the atmosphere
+			float absorptionDensity0LayerWidth;
+			float absorptionDensity0ConstantTerm;
+			float absorptionDensity0LinearTerm;
+			float absorptionDensity1ConstantTerm;
+
+			float absorptionDensity1LinearTerm;
+
+			// This other medium only absorb light, e.g. useful to represent ozone in the earth atmosphere
+			XMFLOAT3 absorptionExtinction;
+
+			// The albedo of the ground.
+			XMFLOAT3 groundAlbedo;
+
+			// Varying sample count for sky rendering based on the 'distanceSPPMaxInv' with min-max
+			XMFLOAT2 rayMarchMinMaxSPP;
+			// Describes how the raymarching samples are distributed no the screen
+			float distanceSPPMaxInv;
+			// Aerial Perspective exposure override
+			float aerialPerspectiveScale;
+
+			// Init default values (All units in kilometers)
+			void Init(
+				float earthBottomRadius = 6360.0f,
+				float earthTopRadius = 6460.0f, // 100km atmosphere radius, less edge visible and it contain 99.99% of the atmosphere medium https://en.wikipedia.org/wiki/K%C3%A1rm%C3%A1n_line
+				float earthRayleighScaleHeight = 8.0f,
+				float earthMieScaleHeight = 1.2f
+			)
+			{
+
+				// Values shown here are the result of integration over wavelength power spectrum integrated with paricular function.
+				// Refer to https://github.com/ebruneton/precomputed_atmospheric_scattering for details.
+
+				// Translation from Bruneton2017 parameterisation.
+				rayleighDensityExpScale = -1.0f / earthRayleighScaleHeight;
+				mieDensityExpScale = -1.0f / earthMieScaleHeight;
+				absorptionDensity0LayerWidth = 25.0f;
+				absorptionDensity0ConstantTerm = -2.0f / 3.0f;
+				absorptionDensity0LinearTerm = 1.0f / 15.0f;
+				absorptionDensity1ConstantTerm = 8.0f / 3.0f;
+				absorptionDensity1LinearTerm = -1.0f / 15.0f;
+
+				miePhaseG = 0.8f;
+				rayleighScattering = XMFLOAT3(0.005802f, 0.013558f, 0.033100f);
+				mieScattering = XMFLOAT3(0.003996f, 0.003996f, 0.003996f);
+				mieExtinction = XMFLOAT3(0.004440f, 0.004440f, 0.004440f);
+				mieAbsorption.x = mieExtinction.x - mieScattering.x;
+				mieAbsorption.y = mieExtinction.y - mieScattering.y;
+				mieAbsorption.z = mieExtinction.z - mieScattering.z;
+
+				absorptionExtinction = XMFLOAT3(0.000650f, 0.001881f, 0.000085f);
+
+				groundAlbedo = XMFLOAT3(0.3f, 0.3f, 0.3f); // 0.3 for earths ground albedo, see https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html
+				bottomRadius = earthBottomRadius;
+				topRadius = earthTopRadius;
+				planetCenter = XMFLOAT3(0.0f, -earthBottomRadius - 0.1f, 0.0f); // Spawn 100m in the air
+
+				rayMarchMinMaxSPP = XMFLOAT2(4.0f, 14.0f);
+				distanceSPPMaxInv = 0.01f;
+				aerialPerspectiveScale = 1.0f;
+			}
+
+			AtmosphereParameters() { Init(); }
+		};
+		struct VolumetricCloudLayer
+		{
+			// Lighting
+			XMFLOAT3 albedo; // Cloud albedo is normally very close to white
+			XMFLOAT3 extinctionCoefficient;
+
+			// Modelling
+			float skewAlongWindDirection;
+			float totalNoiseScale;
+			float curlScale;
+			float curlNoiseHeightFraction;
+
+			float curlNoiseModifier;
+			float detailScale;
+			float detailNoiseHeightFraction;
+			float detailNoiseModifier;
+
+			float skewAlongCoverageWindDirection;
+			float weatherScale;
+			float coverageAmount;
+			float coverageMinimum;
+
+			float typeAmount;
+			float typeMinimum;
+			float rainAmount; // Rain clouds disabled by default.
+			float rainMinimum;
+
+			// Cloud types: 4 positions of a black, white, white, black gradient
+			XMFLOAT4 gradientSmall;
+			XMFLOAT4 gradientMedium;
+			XMFLOAT4 gradientLarge;
+
+			// amountTop, offsetTop, amountBot, offsetBot: Control with 'amount' the coverage scale along the current gradient height, and can be adjusted with 'offset'
+			XMFLOAT4 anvilDeformationSmall;
+			XMFLOAT4 anvilDeformationMedium;
+			XMFLOAT4 anvilDeformationLarge;
+
+			// Animation
+			float windSpeed;
+			float windAngle;
+			float windUpAmount;
+			float coverageWindSpeed;
+			float coverageWindAngle;
+		};
+		struct VolumetricCloudParameters
+		{
+			float beerPowder;
+			float beerPowderPower;
+			float ambientGroundMultiplier; // [0; 1] Amount of ambient light to reach the bottom of clouds
+			float phaseG; // [-0.999; 0.999]
+
+			float phaseG2; // [-0.999; 0.999]
+			float phaseBlend; // [0; 1]
+			float multiScatteringScattering;
+			float multiScatteringExtinction;
+
+			float multiScatteringEccentricity;
+			float shadowStepLength;
+			float horizonBlendAmount;
+			float horizonBlendPower;
+
+			float cloudStartHeight;
+			float cloudThickness;
+			float animationMultiplier;
+
+			VolumetricCloudLayer layerFirst;
+			VolumetricCloudLayer layerSecond;
+
+			// Performance
+			int maxStepCount; // Maximum number of iterations. Higher gives better images but may be slow.
+			float maxMarchingDistance; // Clamping the marching steps to be within a certain distance.
+			float inverseDistanceStepCount; // Distance over which the raymarch steps will be evenly distributed.
+			float renderDistance; // Maximum distance to march before returning a miss.
+
+			float LODDistance; // After a certain distance, noises will get higher LOD
+			float LODMin; // 
+			float bigStepMarch; // How long inital rays should be until they hit something. Lower values may give a better image but may be slower.
+			float transmittanceThreshold; // Default: 0.005. If the clouds transmittance has reached it's desired opacity, there's no need to keep raymarching for performance.
+
+			float shadowSampleCount;
+			float groundContributionSampleCount;
+
+			void Init()
+			{
+				// Lighting
+				beerPowder = 20.0f;
+				beerPowderPower = 0.5f;
+				ambientGroundMultiplier = 0.75f;
+				phaseG = 0.5f; // [-0.999; 0.999]
+				phaseG2 = -0.5f; // [-0.999; 0.999]
+				phaseBlend = 0.2f; // [0; 1]
+				multiScatteringScattering = 1.0f;
+				multiScatteringExtinction = 0.1f;
+				multiScatteringEccentricity = 0.2f;
+				shadowStepLength = 3000.0f;
+				horizonBlendAmount = 0.0000125f;
+				horizonBlendPower = 2.0f;
+
+				// Modelling
+				cloudStartHeight = 1500.0f;
+				cloudThickness = 5000.0f;
+
+				// First
+				{
+					// Lighting
+					layerFirst.albedo = XMFLOAT3(0.9f, 0.9f, 0.9f);
+					layerFirst.extinctionCoefficient = XMFLOAT3(0.71f * 0.1f, 0.86f * 0.1f, 1.0f * 0.1f);
+
+					// Modelling
+					layerFirst.skewAlongWindDirection = 700.0f;
+					layerFirst.totalNoiseScale = 0.0006f;
+					layerFirst.curlScale = 0.3f;
+					layerFirst.curlNoiseHeightFraction = 5.0f;
+					layerFirst.curlNoiseModifier = 500.0f;
+					layerFirst.detailScale = 4.0f;
+					layerFirst.detailNoiseHeightFraction = 10.0f;
+					layerFirst.detailNoiseModifier = 0.3f;
+					layerFirst.skewAlongCoverageWindDirection = 2500.0f;
+					layerFirst.weatherScale = 0.00002f;
+					layerFirst.coverageAmount = 1.0f;
+					layerFirst.coverageMinimum = 0.0f;
+					layerFirst.typeAmount = 1.0f;
+					layerFirst.typeMinimum = 0.0f;
+					layerFirst.rainAmount = 0.0f; // Rain clouds disabled by default.
+					layerFirst.rainMinimum = 0.0f;
+
+					// Cloud types: 4 positions of a black, white, white, black gradient
+					layerFirst.gradientSmall = XMFLOAT4(0.01f, 0.1f, 0.11f, 0.2f);
+					layerFirst.gradientMedium = XMFLOAT4(0.01f, 0.08f, 0.3f, 0.4f);
+					layerFirst.gradientLarge = XMFLOAT4(0.01f, 0.06f, 0.75f, 0.95f);
+
+					// amountTop, offsetTop, amountBot, offsetBot: Control with 'amount' the coverage scale along the current gradient height, and can be adjusted with 'offset'
+					layerFirst.anvilDeformationSmall = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+					layerFirst.anvilDeformationMedium = XMFLOAT4(15.0f, 0.1f, 15.0f, 0.1f);
+					layerFirst.anvilDeformationLarge = XMFLOAT4(5.0f, 0.25f, 5.0f, 0.15f);
+
+					// Animation
+					layerFirst.windSpeed = 15.0f;
+					layerFirst.windAngle = 0.75f;
+					layerFirst.windUpAmount = 0.5f;
+					layerFirst.coverageWindSpeed = 30.0f;
+					layerFirst.coverageWindAngle = 0.0f;
+				}
+
+				// Second
+				{
+					// Lighting
+					layerSecond.albedo = XMFLOAT3(0.9f, 0.9f, 0.9f);
+					layerSecond.extinctionCoefficient = XMFLOAT3(0.71f * 0.01f, 0.86f * 0.01f, 1.0f * 0.01f);
+
+					// Modelling
+					layerSecond.skewAlongWindDirection = 400.0f;
+					layerSecond.totalNoiseScale = 0.0006f;
+					layerSecond.curlScale = 0.1f;
+					layerSecond.curlNoiseHeightFraction = 500.0f;
+					layerSecond.curlNoiseModifier = 250.0f;
+					layerSecond.detailScale = 2.0f;
+					layerSecond.detailNoiseHeightFraction = 0.0f;
+					layerSecond.detailNoiseModifier = 1.0f;
+					layerSecond.skewAlongCoverageWindDirection = 0.0f;
+					layerSecond.weatherScale = 0.000025f;
+					layerSecond.coverageAmount = 0.0f;
+					layerSecond.coverageMinimum = 0.0f;
+					layerSecond.typeAmount = 1.0f;
+					layerSecond.typeMinimum = 0.0f;
+					layerSecond.rainAmount = 0.0f; // Rain clouds disabled by default.
+					layerSecond.rainMinimum = 0.0f;
+
+					// Cloud types: 4 positions of a black, white, white, black gradient
+					layerSecond.gradientSmall = XMFLOAT4(0.6f, 0.62f, 0.63f, 0.65f);
+					layerSecond.gradientMedium = XMFLOAT4(0.6f, 0.64f, 0.66f, 0.7f);
+					layerSecond.gradientLarge = XMFLOAT4(0.6f, 0.66f, 0.69f, 0.75f);
+
+					// amountTop, offsetTop, amountBot, offsetBot: Control with 'amount' the coverage scale along the current gradient height, and can be adjusted with 'offset'
+					layerSecond.anvilDeformationSmall = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+					layerSecond.anvilDeformationMedium = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+					layerSecond.anvilDeformationLarge = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+
+					// Animation
+					layerSecond.windSpeed = 10.0f;
+					layerSecond.windAngle = 1.0f;
+					layerSecond.windUpAmount = 0.1f;
+					layerSecond.coverageWindSpeed = 50.0f;
+					layerSecond.coverageWindAngle = 1.0f;
+				}
+
+				// Animation
+				animationMultiplier = 2.0f;
+
+				// Performance
+				maxStepCount = 96;
+				maxMarchingDistance = 30000.0f;
+				inverseDistanceStepCount = 15000.0f;
+				renderDistance = 70000.0f;
+				LODDistance = 30000.0f;
+				LODMin = 0.0f;
+				bigStepMarch = 2.0f;
+				transmittanceThreshold = 0.005f;
+				shadowSampleCount = 5.0f;
+				groundContributionSampleCount = 3.0f;
+			}
+
+			VolumetricCloudParameters() { Init(); }
+		};
+
+	protected:
+		uint32_t flag_ = EMPTY;
+
+		XMFLOAT3 sunColor_ = XMFLOAT3(0, 0, 0);
+		XMFLOAT3 sunDirection_ = XMFLOAT3(0, 0, -1);
+		float skyExposure_ = 1.f;
+		XMFLOAT3 horizon_ = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		XMFLOAT3 zenith_ = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		XMFLOAT3 ambient_ = XMFLOAT3(0.2f, 0.2f, 0.2f);
+		float fogStart_ = 100.f;
+		float fogDensity_ = 0;
+		float fogHeightStart_ = 1;
+		float fogHeightEnd_ = 3;
+		XMFLOAT3 windDirection_ = XMFLOAT3(0, 0, 0);
+		float windRandomness_ = 5.f;
+		float windWaveSize_ = 1.f;
+		float windSpeed_ = 1.f;
+		float stars_ = 0.5f;
+		XMFLOAT3 gravity_ = XMFLOAT3(0, 0, -10.f);
+		float skyRotation_ = 0; // horizontal rotation for skyMap texture (in radians)
+
+		float rainAmount_ = 0;
+		float rainLength_ = 0.04f;
+		float rainSpeed_ = 1;
+		float rainScale_ = 0.005f;
+		float rainSplashScale_ = 0.1f;
+		XMFLOAT4 rainColor_ = XMFLOAT4(0.6f, 0.8f, 1, 0.5f);
+
+		OceanParameters oceanParameters_;
+		AtmosphereParameters atmosphereParameters_;
+		VolumetricCloudParameters volumetricCloudParameters_;
+
+		// default is from filename
+		std::string skyMapName_;
+		std::string colorGradingMapName_;
+		std::string volumetricCloudsWeatherMapFirstName_;
+		std::string volumetricCloudsWeatherMapSecondName_;
+
+		// Non-serialized attributes:
+	public:
+		EnvironmentComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::ENVIRONMENT, entity, vuid) {}
+		virtual ~EnvironmentComponent() = default;
+
+		// Non-serialized attributes:
+		XMFLOAT4 starsRotationQuaternion = XMFLOAT4(0, 0, 0, 1);
+		uint32_t mostImportantLightIndex = ~0u;
+
+		inline bool IsOceanEnabled() const { return flag_ & OCEAN_ENABLED; }
+		inline bool IsRealisticSky() const { return flag_ & REALISTIC_SKY; }
+		inline bool IsVolumetricClouds() const { return flag_ & VOLUMETRIC_CLOUDS; }
+		inline bool IsHeightFog() const { return flag_ & HEIGHT_FOG; }
+		inline bool IsVolumetricCloudsCastShadow() const { return flag_ & VOLUMETRIC_CLOUDS_CAST_SHADOW; }
+		inline bool IsOverrideFogColor() const { return flag_ & OVERRIDE_FOG_COLOR; }
+		inline bool IsRealisticSkyAerialPerspective() const { return flag_ & REALISTIC_SKY_AERIAL_PERSPECTIVE; }
+		inline bool IsRealisticSkyHighQuality() const { return flag_ & REALISTIC_SKY_HIGH_QUALITY; }
+		inline bool IsRealisticSkyReceiveShadow() const { return flag_ & REALISTIC_SKY_RECEIVE_SHADOW; }
+		inline bool IsVolumetricCloudsReceiveShadow() const { return flag_ & VOLUMETRIC_CLOUDS_RECEIVE_SHADOW; }
+
+		inline void SetOceanEnabled(bool value = true) { if (value) { flag_ |= OCEAN_ENABLED; } else { flag_ &= ~OCEAN_ENABLED; } }
+		inline void SetRealisticSky(bool value = true) { if (value) { flag_ |= REALISTIC_SKY; } else { flag_ &= ~REALISTIC_SKY; } }
+		inline void SetVolumetricClouds(bool value = true) { if (value) { flag_ |= VOLUMETRIC_CLOUDS; } else { flag_ &= ~VOLUMETRIC_CLOUDS; } }
+		inline void SetHeightFog(bool value = true) { if (value) { flag_ |= HEIGHT_FOG; } else { flag_ &= ~HEIGHT_FOG; } }
+		inline void SetVolumetricCloudsCastShadow(bool value = true) { if (value) { flag_ |= VOLUMETRIC_CLOUDS_CAST_SHADOW; } else { flag_ &= ~VOLUMETRIC_CLOUDS_CAST_SHADOW; } }
+		inline void SetOverrideFogColor(bool value = true) { if (value) { flag_ |= OVERRIDE_FOG_COLOR; } else { flag_ &= ~OVERRIDE_FOG_COLOR; } }
+		inline void SetRealisticSkyAerialPerspective(bool value = true) { if (value) { flag_ |= REALISTIC_SKY_AERIAL_PERSPECTIVE; } else { flag_ &= ~REALISTIC_SKY_AERIAL_PERSPECTIVE; } }
+		inline void SetRealisticSkyHighQuality(bool value = true) { if (value) { flag_ |= REALISTIC_SKY_HIGH_QUALITY; } else { flag_ &= ~REALISTIC_SKY_HIGH_QUALITY; } }
+		inline void SetRealisticSkyReceiveShadow(bool value = true) { if (value) { flag_ |= REALISTIC_SKY_RECEIVE_SHADOW; } else { flag_ &= ~REALISTIC_SKY_RECEIVE_SHADOW; } }
+		inline void SetVolumetricCloudsReceiveShadow(bool value = true) { if (value) { flag_ |= VOLUMETRIC_CLOUDS_RECEIVE_SHADOW; } else { flag_ &= ~VOLUMETRIC_CLOUDS_RECEIVE_SHADOW; } }
+
+		// Getters
+		inline const XMFLOAT3& GetSunColor() const { return sunColor_; }
+		inline const XMFLOAT3& GetSunDirection() const { return sunDirection_; }
+		inline float GetSkyExposure() const { return skyExposure_; }
+		inline const XMFLOAT3& GetHorizon() const { return horizon_; }
+		inline const XMFLOAT3& GetZenith() const { return zenith_; }
+		inline const XMFLOAT3& GetAmbient() const { return ambient_; }
+		inline float GetFogStart() const { return fogStart_; }
+		inline float GetFogDensity() const { return fogDensity_; }
+		inline float GetFogHeightStart() const { return fogHeightStart_; }
+		inline float GetFogHeightEnd() const { return fogHeightEnd_; }
+		inline const XMFLOAT3& GetWindDirection() const { return windDirection_; }
+		inline float GetWindRandomness() const { return windRandomness_; }
+		inline float GetWindWaveSize() const { return windWaveSize_; }
+		inline float GetWindSpeed() const { return windSpeed_; }
+		inline float GetStars() const { return stars_; }
+		inline const XMFLOAT3& GetGravity() const { return gravity_; }
+		inline float GetSkyRotation() const { return skyRotation_; }
+		inline float GetRainAmount() const { return rainAmount_; }
+		inline float GetRainLength() const { return rainLength_; }
+		inline float GetRainSpeed() const { return rainSpeed_; }
+		inline float GetRainScale() const { return rainScale_; }
+		inline float GetRainSplashScale() const { return rainSplashScale_; }
+		inline const XMFLOAT4& GetRainColor() const { return rainColor_; }
+		inline const OceanParameters& GetOceanParameters() const { return oceanParameters_; }
+		inline const AtmosphereParameters& GetAtmosphereParameters() const { return atmosphereParameters_; }
+		inline const VolumetricCloudParameters& GetVolumetricCloudParameters() const { return volumetricCloudParameters_; }
+		inline OceanParameters& GetMutableOceanParameters() { return oceanParameters_; timeStampSetter_ = TimerNow; }
+		inline AtmosphereParameters& GetMutableAtmosphereParameters() { return atmosphereParameters_; timeStampSetter_ = TimerNow; }
+		inline VolumetricCloudParameters& GetMutableVolumetricCloudParameters() { return volumetricCloudParameters_; timeStampSetter_ = TimerNow; }
+		inline const std::string& GetSkyMapName() const { return skyMapName_; }
+		inline const std::string& GetColorGradingMapName() const { return colorGradingMapName_; }
+		inline const std::string& GetVolumetricCloudsWeatherMapFirstName() const { return volumetricCloudsWeatherMapFirstName_; }
+		inline const std::string& GetVolumetricCloudsWeatherMapSecondName() const { return volumetricCloudsWeatherMapSecondName_; }
+
+		// Setters
+		inline void SetSunColor(const XMFLOAT3& sunColor) { sunColor_ = sunColor; timeStampSetter_ = TimerNow; }
+		inline void SetSunDirection(const XMFLOAT3& sunDirection) { sunDirection_ = sunDirection; timeStampSetter_ = TimerNow; }
+		inline void SetSkyExposure(const float skyExposure) { skyExposure_ = skyExposure; timeStampSetter_ = TimerNow; }
+		inline void SetHorizon(const XMFLOAT3& horizon) { horizon_ = horizon; timeStampSetter_ = TimerNow; }
+		inline void SetZenith(const XMFLOAT3& zenith) { zenith_ = zenith; timeStampSetter_ = TimerNow; }
+		inline void SetAmbient(const XMFLOAT3& ambient) { ambient_ = ambient; timeStampSetter_ = TimerNow; }
+		inline void SetFogStart(const float fogStart) { fogStart_ = fogStart; timeStampSetter_ = TimerNow; }
+		inline void SetFogDensity(const float fogDensity) { fogDensity_ = fogDensity; timeStampSetter_ = TimerNow; }
+		inline void SetFogHeightStart(const float fogHeightStart) { fogHeightStart_ = fogHeightStart; timeStampSetter_ = TimerNow; }
+		inline void SetFogHeightEnd(const float fogHeightEnd) { fogHeightEnd_ = fogHeightEnd; timeStampSetter_ = TimerNow; }
+		inline void SetWindDirection(const XMFLOAT3& windDirection) { windDirection_ = windDirection; timeStampSetter_ = TimerNow; }
+		inline void SetWindRandomness(const float windRandomness) { windRandomness_ = windRandomness; timeStampSetter_ = TimerNow; }
+		inline void SetWindWaveSize(const float windWaveSize) { windWaveSize_ = windWaveSize; timeStampSetter_ = TimerNow; }
+		inline void SetWindSpeed(const float windSpeed) { windSpeed_ = windSpeed; timeStampSetter_ = TimerNow; }
+		inline void SetStars(const float stars) { stars_ = stars; timeStampSetter_ = TimerNow; }
+		inline void SetGravity(const XMFLOAT3& gravity) { gravity_ = gravity; timeStampSetter_ = TimerNow; }
+		inline void SetSkyRotation(const float skyRotation) { skyRotation_ = skyRotation; timeStampSetter_ = TimerNow; }
+		inline void SetRainAmount(const float rainAmount) { rainAmount_ = rainAmount; timeStampSetter_ = TimerNow; }
+		inline void SetRainLength(const float rainLength) { rainLength_ = rainLength; timeStampSetter_ = TimerNow; }
+		inline void SetRainSpeed(const float rainSpeed) { rainSpeed_ = rainSpeed; timeStampSetter_ = TimerNow; }
+		inline void SetRainScale(const float rainScale) { rainScale_ = rainScale; timeStampSetter_ = TimerNow; }
+		inline void SetRainSplashScale(const float rainSplashScale) { rainSplashScale_ = rainSplashScale; timeStampSetter_ = TimerNow; }
+		inline void SetRainColor(const XMFLOAT4& rainColor) { rainColor_ = rainColor; timeStampSetter_ = TimerNow; }
+		inline void SetOceanParameters(const OceanParameters& oceanParameters) { oceanParameters_ = oceanParameters; timeStampSetter_ = TimerNow; }
+		inline void SetAtmosphereParameters(const AtmosphereParameters& atmosphereParameters) { atmosphereParameters_ = atmosphereParameters; timeStampSetter_ = TimerNow; }
+		inline void SetVolumetricCloudParameters(const VolumetricCloudParameters& volumetricCloudParameters) { volumetricCloudParameters_ = volumetricCloudParameters; timeStampSetter_ = TimerNow; }
+		
+		virtual void LoadSkyMap(const std::string& fileName) = 0;
+		virtual void LoadColorGradingMap(const std::string& fileName) = 0;
+		virtual void LoadVolumetricCloudsWeatherMapFirst(const std::string& fileName) = 0;
+		virtual void LoadVolumetricCloudsWeatherMapSecond(const std::string& fileName) = 0;
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		inline static const ComponentType IntrinsicType = ComponentType::ENVIRONMENT;
+	};
 }
 
 // component factory
@@ -2191,6 +2666,7 @@ namespace vz::compfactory
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponent(const Entity entity);
 	CORE_EXPORT LayeredMaskComponent* GetLayeredMaskComponent(const Entity entity);
 	CORE_EXPORT ColliderComponent* GetColliderComponent(const Entity entity);
+	CORE_EXPORT EnvironmentComponent* GetEnvironmentComponent(const Entity entity);
 	CORE_EXPORT MaterialComponent* GetMaterialComponent(const Entity entity);
 	CORE_EXPORT GeometryComponent* GetGeometryComponent(const Entity entity);
 	CORE_EXPORT TextureComponent* GetTextureComponent(const Entity entity);
@@ -2206,6 +2682,7 @@ namespace vz::compfactory
 	CORE_EXPORT TransformComponent* GetTransformComponentByVUID(const VUID vuid);
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponentByVUID(const VUID vuid);
 	CORE_EXPORT ColliderComponent* GetColliderComponentByVUID(const VUID vuid);
+	CORE_EXPORT EnvironmentComponent* GetEnvironmentComponentByVUID(const VUID vuid);
 	CORE_EXPORT MaterialComponent* GetMaterialComponentByVUID(const VUID vuid);
 	CORE_EXPORT GeometryComponent* GetGeometryComponentByVUID(const VUID vuid);
 	CORE_EXPORT TextureComponent* GetTextureComponentByVUID(const VUID vuid);
@@ -2220,6 +2697,7 @@ namespace vz::compfactory
 	CORE_EXPORT bool ContainHierarchyComponent(const Entity entity);
 	CORE_EXPORT bool ContainLayeredMaskComponent(const Entity entity);
 	CORE_EXPORT bool ContainColliderComponent(const Entity entity);
+	CORE_EXPORT bool ContainEnvironmentComponent(const Entity entity);
 	CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
 	CORE_EXPORT bool ContainGeometryComponent(const Entity entity);
 	CORE_EXPORT bool ContainRenderableComponent(const Entity entity);

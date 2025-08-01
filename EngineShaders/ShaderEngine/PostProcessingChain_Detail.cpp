@@ -134,7 +134,7 @@ namespace vz::renderer
 				camera->GetSensorContrast(),
 				camera->GetSensorSaturation(),
 				false, //getDitherEnabled(),
-				isColorGradingEnabled ? (const graphics::Texture*)scene->GetTextureGradientMap() : nullptr,
+				isColorGradingEnabled ? &scene_Gdetails->envrironment->colorGradingMap.GetTexture() : nullptr,
 				&rtParticleDistortion,
 				camera->IsSensorEyeAdaptationEnabled() ? &luminanceResources.luminance : nullptr,
 				camera->IsSensorBloomEnabled() ? &bloomResources.texture_bloom : nullptr,

@@ -34,6 +34,8 @@ namespace vz::compfactory
 	ComponentManager<GTextureComponent>& textureManager = componentLibrary.Register<GTextureComponent>("TEXTURE");
 	ComponentManager<GVolumeComponent>& volumeManager = componentLibrary.Register<GVolumeComponent>("VOLUMETEXTURE");
 
+	ComponentManager<GEnvironmentComponent>& environmentManager = componentLibrary.Register<GEnvironmentComponent>("Environment");
+
 	ComponentBase* GetComponentByVUID(const VUID vuid)
 	{
 		ComponentType comp_type = static_cast<ComponentType>(uint32_t(vuid & 0xFF)); // using magic bits
@@ -186,6 +188,12 @@ namespace vz::compfactory
 		SpriteFontComponent* comp = &spritefontManager.Create(entity_update);
 		return comp;
 	}
+	EnvironmentComponent* CreateEnvironmentComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		EnvironmentComponent* comp = &environmentManager.Create(entity_update);
+		return comp;
+	}
 
 #define RETURN_GET_COMP(COMP_TYPE, COMP_MNG, ENTITY) COMP_TYPE* comp = COMP_MNG.GetComponent(entity); return comp;
 	NameComponent* GetNameComponent(const Entity entity)
@@ -258,6 +266,10 @@ namespace vz::compfactory
 	{
 		RETURN_GET_COMP(SlicerComponent, slicerManager, entity);
 	}
+	EnvironmentComponent* GetEnvironmentComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(EnvironmentComponent, environmentManager, entity);
+	}
 
 	NameComponent* GetNameComponentByVUID(const VUID vuid)
 	{
@@ -306,6 +318,10 @@ namespace vz::compfactory
 	SlicerComponent* GetSlicerComponentByVUID(const VUID vuid)
 	{
 		return GetSlicerComponent(GetEntityByVUID(vuid));
+	}
+	EnvironmentComponent* GetEnvironmentComponentByVUID(const VUID vuid)
+	{
+		return GetEnvironmentComponent(GetEntityByVUID(vuid));
 	}
 
 	bool ContainNameComponent(const Entity entity)
@@ -367,6 +383,10 @@ namespace vz::compfactory
 	bool ContainVolumeComponent(const Entity entity)
 	{
 		return volumeManager.Contains(entity);
+	}
+	bool ContainEnvironmentComponent(const Entity entity)
+	{
+		return environmentManager.Contains(entity);
 	}
 
 	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components)
