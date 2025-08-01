@@ -135,7 +135,7 @@ namespace vz::renderer
 
 				params.enableSprite();
 				GTextureComponent* texture = sprite->texture;
-				image::Draw(texture ? &texture->GetTexture() : nullptr, params, cmd);
+				image::Draw(texture ? &texture->resource.GetTexture() : nullptr, params, cmd);
 			}
 			break;
 			case FONT:

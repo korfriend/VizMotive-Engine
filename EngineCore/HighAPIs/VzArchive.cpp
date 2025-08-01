@@ -4,6 +4,9 @@
 #include "Utils/Backlog.h"
 #include "Utils/helpers.h"
 
+#include <mutex>
+#include <thread>
+
 using namespace vz;
 using namespace std;
 using namespace backlog;

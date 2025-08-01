@@ -64,7 +64,7 @@ namespace vz
 			viewport_composite.width = (float)canvasWidth_;
 			viewport_composite.height = (float)canvasHeight_;
 			device->BindViewports(1, &viewport_composite, cmd);
-			image::Draw(&texture->GetTexture(), fx, cmd);
+			image::Draw(&texture->resource.GetTexture(), fx, cmd);
 
 			device->RenderPassEnd(cmd);
 			

@@ -172,6 +172,7 @@ namespace vzm
 		// systems for rendering
 		SCENE,
 		RENDERER,
+		ENVIRONMENT,
 
 		// scene objects
 		ACTOR_NODE,

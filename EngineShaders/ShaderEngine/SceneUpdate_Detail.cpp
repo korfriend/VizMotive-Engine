@@ -288,7 +288,7 @@ namespace vz
 						if (texture_comp)
 						{
 							assert(texture_comp && texture_comp->GetComponentType() == ComponentType::TEXTURE);
-							shader_material.textures[i].uvset_lodclamp = (texture_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(texture_comp->GetLodClamp()) << 1u);
+							shader_material.textures[i].uvset_lodclamp = (texture_comp->resource.uvSet & 1) | (XMConvertFloatToHalf(texture_comp->resource.lodClamp) << 1u);
 							if (texture_comp->IsValid())
 							{
 								int subresource = -1;
@@ -298,19 +298,19 @@ namespace vz
 									//case EMISSIVEMAP:
 									//case SPECULARMAP:
 									//case SHEENCOLORMAP:
-									subresource = texture_comp->GetTextureSRGBSubresource();
+									subresource = texture_comp->resource.GetTextureSRGBSubresource();
 									break;
 								default:
 									break;
 								}
-								shader_material.textures[i].texture_descriptor = device->GetDescriptorIndex(texture_comp->GetGPUResource(), SubresourceType::SRV, subresource);
+								shader_material.textures[i].texture_descriptor = device->GetDescriptorIndex(texture_comp->resource.GetGPUResource(), SubresourceType::SRV, subresource);
 							}
 							else
 							{
 								shader_material.textures[i].texture_descriptor = -1;
 							}
-							shader_material.textures[i].sparse_residencymap_descriptor = texture_comp->GetSparseResidencymapDescriptor();
-							shader_material.textures[i].sparse_feedbackmap_descriptor = texture_comp->GetSparseFeedbackmapDescriptor();
+							shader_material.textures[i].sparse_residencymap_descriptor = texture_comp->resource.sparseResidencymapDescriptor;
+							shader_material.textures[i].sparse_feedbackmap_descriptor = texture_comp->resource.sparseFeedbackmapDescriptor;
 						}
 					}
 					for (int i = 0; i < VOLUME_TEXTURESLOT_COUNT; ++i)
@@ -321,14 +321,14 @@ namespace vz
 							assert(volume_comp && volume_comp->GetComponentType() == ComponentType::VOLUMETEXTURE);
 							if (volume_comp->IsValid())
 							{
-								shader_material.volume_textures[i].texture_descriptor = device->GetDescriptorIndex(volume_comp->GetGPUResource(), SubresourceType::SRV);
+								shader_material.volume_textures[i].texture_descriptor = device->GetDescriptorIndex(volume_comp->resource.GetGPUResource(), SubresourceType::SRV);
 							}
 							else
 							{
 								shader_material.volume_textures[i].texture_descriptor = -1;
 							}
-							shader_material.volume_textures[i].sparse_residencymap_descriptor = volume_comp->GetSparseResidencymapDescriptor();
-							shader_material.volume_textures[i].sparse_feedbackmap_descriptor = volume_comp->GetSparseFeedbackmapDescriptor();
+							shader_material.volume_textures[i].sparse_residencymap_descriptor = volume_comp->resource.sparseResidencymapDescriptor;
+							shader_material.volume_textures[i].sparse_feedbackmap_descriptor = volume_comp->resource.sparseFeedbackmapDescriptor;
 						}
 					}
 					for (int i = 0; i < LOOKUPTABLE_COUNT; ++i)
@@ -337,17 +337,17 @@ namespace vz
 						if (lookup_comp)
 						{
 							assert(lookup_comp && lookup_comp->GetComponentType() == ComponentType::TEXTURE);
-							shader_material.lookup_textures[i].uvset_lodclamp = (lookup_comp->GetUVSet() & 1) | (XMConvertFloatToHalf(lookup_comp->GetLodClamp()) << 1u);
+							shader_material.lookup_textures[i].uvset_lodclamp = (lookup_comp->resource.uvSet & 1) | (XMConvertFloatToHalf(lookup_comp->resource.lodClamp) << 1u);
 							if (lookup_comp->IsValid())
 							{
-								shader_material.lookup_textures[i].texture_descriptor = device->GetDescriptorIndex(lookup_comp->GetGPUResource(), SubresourceType::SRV, -1);
+								shader_material.lookup_textures[i].texture_descriptor = device->GetDescriptorIndex(lookup_comp->resource.GetGPUResource(), SubresourceType::SRV, -1);
 							}
 							else
 							{
 								shader_material.lookup_textures[i].texture_descriptor = -1;
 							}
-							shader_material.lookup_textures[i].sparse_residencymap_descriptor = lookup_comp->GetSparseResidencymapDescriptor();
-							shader_material.lookup_textures[i].sparse_feedbackmap_descriptor = lookup_comp->GetSparseFeedbackmapDescriptor();
+							shader_material.lookup_textures[i].sparse_residencymap_descriptor = lookup_comp->resource.sparseResidencymapDescriptor;
+							shader_material.lookup_textures[i].sparse_feedbackmap_descriptor = lookup_comp->resource.sparseFeedbackmapDescriptor;
 						}
 					}
 
@@ -380,7 +380,7 @@ namespace vz
 						{
 							if (texture_comp->IsValid())
 							{
-								texture_comp->StreamingRequestResolution(texture_comp->GetUVSet() == 0 ? request_uvset0 : request_uvset1);
+								texture_comp->resource.StreamingRequestResolution(texture_comp->resource.uvSet ? request_uvset0 : request_uvset1);
 							}
 						}
 					}
@@ -701,6 +701,8 @@ namespace vz
 		}
 
 		font::UpdateAtlas();
+
+		envrironment = (GEnvironmentComponent*)compfactory::GetEnvironmentComponent(scene_->GetEnvironment());
 
 		lightComponents = scene_->GetLightComponents();
 		geometryComponents = scene_->GetGeometryComponents();

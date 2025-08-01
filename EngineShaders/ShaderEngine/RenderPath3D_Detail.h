@@ -748,6 +748,8 @@ namespace vz::renderer
 		//	supposed to be safe in a single frame
 		float deltaTime = 0.f;
 		const Scene* GetScene() const { return scene_; }
+
+		GEnvironmentComponent* envrironment = nullptr;
 		
 		std::vector<GLightComponent*> lightComponents; // cached (non enclosing for jobsystem)
 		std::vector<GGeometryComponent*> geometryComponents; // cached (non enclosing for jobsystem)

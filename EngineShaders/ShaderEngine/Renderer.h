@@ -14,6 +14,7 @@
 #include "../Shaders/ShaderInterop_GaussianSplatting.h"
 #include "../Shaders/ShaderInterop_BVH.h"
 #include "../Shaders/ShaderInterop_FSR2.h"
+#include "../Shaders/ShaderInterop_Environment.h"
 
 
 using namespace vz::graphics;
@@ -28,7 +29,6 @@ static_assert(LOOKUPTABLE_COUNT == SCU32(vz::MaterialComponent::LookupTableSlot:
 static_assert(INST_CLIPBOX == SCU32(vz::RenderableComponent::RenderableFlags::CLIP_BOX));
 static_assert(INST_CLIPPLANE == SCU32(vz::RenderableComponent::RenderableFlags::CLIP_PLANE));
 static_assert(INST_JITTERING == SCU32(vz::RenderableComponent::RenderableFlags::JITTER_SAMPLE));
-
 //----- global constants -----
 namespace vz::renderer
 {

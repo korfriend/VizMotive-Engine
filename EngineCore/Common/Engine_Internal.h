@@ -10,6 +10,7 @@ namespace vz
 		HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
 		LayeredMaskComponent* CreateLayeredMaskComponent(const Entity entity);
 		ColliderComponent* CreateColliderComponent(const Entity entity);
+		EnvironmentComponent* CreateEnvironmentComponent(const Entity entity);
 		MaterialComponent* CreateMaterialComponent(const Entity entity);
 		GeometryComponent* CreateGeometryComponent(const Entity entity);
 		TextureComponent* CreateTextureComponent(const Entity entity);
@@ -34,6 +35,7 @@ namespace vz
 		void RemoveEntityForScenes(const Entity entity);	// calling when the entity is removed
 		bool DestroyScene(const Entity entity);
 		void DestroyAll();
+		size_t ResetRefEnvironment(const Entity entityEnv);
 	}
 }
 

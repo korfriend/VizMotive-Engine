@@ -68,6 +68,11 @@ namespace vzcompmanager
 		case COMPONENT_TYPE::ARCHIVE: archives.erase(vid); Archive::DestroyArchive(vid); is_engine_component = false;  break;
 		case COMPONENT_TYPE::SCENE: scenes.erase(vid); scenefactory::DestroyScene(vid); is_engine_component = false; break;
 		case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); is_engine_component = false; break;
+		case COMPONENT_TYPE::ENVIRONMENT:
+		{
+			scenefactory::ResetRefEnvironment(vid);
+			break;
+		}
 		case COMPONENT_TYPE::CAMERA:
 		case COMPONENT_TYPE::SLICER:
 			cameras.erase(vid); break;

@@ -214,7 +214,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GModuleLoader.h">
       <Filter>GBackend</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GSceneRenderPath.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)GBackend\GShaderInterface.h">
       <Filter>GBackend</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Geometrics.h">
@@ -430,6 +430,9 @@
       <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\SpriteComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Detail</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\EnvironmentComponent.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private\Component Detail</Filter>
     </ClCompile>
   </ItemGroup>
