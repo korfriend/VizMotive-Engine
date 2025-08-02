@@ -65,14 +65,15 @@ namespace vz
 		std::unordered_map<Entity, uint32_t> lookupSpriteRenderables;
 		std::unordered_map<Entity, uint32_t> lookupSpritefontRenderables;
 		std::unordered_map<Entity, uint32_t> lookupLights;
+		std::unordered_map<Entity, uint32_t> lookupProbes;
 		std::unordered_map<Entity, uint32_t> lookupCameras;
 		std::unordered_map<Entity, uint32_t> lookupChildren;
 
 		// AABB culling streams:
 		std::vector<geometrics::AABB> aabbRenderables;
 		std::vector<geometrics::AABB> aabbLights;
-		//std::vector<geometrics::AABB> aabbProbes_;
-		//std::vector<geometrics::AABB> aabbDecals_;
+		std::vector<geometrics::AABB> aabbProbes;
+		//std::vector<geometrics::AABB> aabbDecals;
 		std::vector<geometrics::AABB> parallelBounds;
 
 		std::atomic<uint32_t> geometryAllocator{ 0 }; // for Geometry::Primitive
@@ -104,6 +105,7 @@ namespace vz
 		std::vector<GGeometryComponent*> geometryComponents;
 		std::vector<GMaterialComponent*> materialComponents;
 		std::vector<GLightComponent*> lightComponents;
+		std::vector<GProbeComponent*> probeComponents;
 		std::vector<CameraComponent*> cameraComponents;
 		std::vector<ColliderComponent*> colliderComponents;
 
@@ -129,6 +131,7 @@ namespace vz
 		const std::vector<GGeometryComponent*>& GetGeometryComponents() const override { return geometryComponents; }
 		const std::vector<GMaterialComponent*>& GetMaterialComponents() const override { return materialComponents; }
 		const std::vector<GLightComponent*>& GetLightComponents() const override { return lightComponents; }
+		const std::vector<GProbeComponent*>& GetProbeComponents() const override { return probeComponents; }
 		const std::vector<CameraComponent*>& GetCameraComponents() const override { return cameraComponents; }
 
 		const uint32_t GetGeometryPrimitivesAllocatorSize() const override { return geometryAllocator.load(); }
@@ -136,6 +139,7 @@ namespace vz
 
 		void RunTransformUpdateSystem(jobsystem::context& ctx)
 		{
+			// local matrix update
 			jobsystem::Dispatch(ctx, (uint32_t)transforms_.size(), SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 				Entity entity = transforms_[args.jobIndex];
@@ -386,6 +390,54 @@ namespace vz
 				}
 
 				isContentChanged_ |= TimeDurationCount(light->GetTimeStamp(), recentUpdateTime_) > 0;
+
+				});
+		}
+		void RunProbeUpdateSystem(jobsystem::context& ctx)
+		{
+			uint32_t num_probes = (uint32_t)probes_.size();
+			aabbProbes.resize(num_probes);
+			probeComponents.resize(num_probes);
+			jobsystem::Dispatch(ctx, num_probes, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+				Entity entity = probes_[args.jobIndex];
+				TransformComponent* transform = compfactory::GetTransformComponent(entity);
+				vzlog_assert(transform, "Probe cannot be used without transform component!");
+				transform->UpdateWorldMatrix();
+
+				GProbeComponent* probe = (GProbeComponent*)compfactory::GetProbeComponent(entity);
+				assert(probe);
+				probeComponents[args.jobIndex] = probe;
+				probe->probeIndex = args.jobIndex;
+
+				probe->position = transform->GetPosition();
+
+				XMMATRIX W = XMLoadFloat4x4(&transform->GetWorldMatrix());
+				XMStoreFloat4x4(&probe->inverseMatrix, XMMatrixInverse(nullptr, W));
+
+				XMVECTOR S, R, T;
+				XMMatrixDecompose(&S, &R, &T, W);
+				XMFLOAT3 scale;
+				XMStoreFloat3(&scale, S);
+				probe->range = std::max(scale.x, std::max(scale.y, scale.z)) * 2;
+
+				AABB& aabb = aabbProbes[args.jobIndex];
+				aabb.createFromHalfWidth(XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+				aabb = aabb.transform(W);
+
+				probe->layeredmask = compfactory::GetLayeredMaskComponent(entity);
+
+				if (probe->layeredmask)
+				{
+					aabb.layerMask = probe->layeredmask->GetVisibleLayerMask();
+				}
+				else
+				{
+					aabb.layerMask = ~0u;
+				}
+
+				probe->renderDirty = TimeDurationCount(probe->GetTimeStamp(), recentUpdateTime_) > 0;
+				isContentChanged_ |= probe->renderDirty;
 
 				});
 		}
@@ -827,6 +879,7 @@ namespace vz
 			jobsystem::Wait(ctx); // dependencies
 			RunRenderableUpdateSystem(ctx);
 			RunLightUpdateSystem(ctx);
+			RunProbeUpdateSystem(ctx);
 			RunGeometryUpdateSystem(ctx);
 			RunMaterialUpdateSystem(ctx);
 			jobsystem::Wait(ctx); // dependencies
@@ -888,7 +941,7 @@ namespace vz
 
 		const std::vector<geometrics::AABB>& GetRenderableAABBs() const { return aabbRenderables; }
 		const std::vector<geometrics::AABB>& GetLightAABBs() const { return aabbLights; }
-
+		const std::vector<geometrics::AABB>& GetProbeAABBs() const { return aabbProbes; }
 
 		void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const override
 		{
@@ -976,6 +1029,7 @@ namespace vz
 		//std::unordered_map<Entity, uint32_t>& lookupSpriteRenderables = DOWNCAST->lookupSpriteRenderables;
 		//std::unordered_map<Entity, uint32_t>& lookupSpritefontRenderables = DOWNCAST->lookupSpritefontRenderables;
 		std::unordered_map<Entity, uint32_t>& lookupLights = DOWNCAST->lookupLights;
+		std::unordered_map<Entity, uint32_t>& lookupProbes = DOWNCAST->lookupProbes;
 		std::unordered_map<Entity, uint32_t>& lookupCameras = DOWNCAST->lookupCameras;
 		std::unordered_map<Entity, uint32_t>& lookupChildren = DOWNCAST->lookupChildren;
 
@@ -2056,6 +2110,17 @@ namespace vz
 				AddEntity(entity);
 			}
 
+			size_t num_probes;
+			archive >> num_probes;
+			for (size_t i = 0; i < num_probes; ++i)
+			{
+				VUID vuid;
+				archive >> vuid;
+				Entity entity = compfactory::GetEntityByVUID(vuid);
+				assert(compfactory::ContainProbeComponent(entity));
+				AddEntity(entity);
+			}
+
 			size_t num_cameras;
 			archive >> num_cameras;
 			for (size_t i = 0; i < num_cameras; ++i)
@@ -2096,6 +2161,13 @@ namespace vz
 			for (Entity entity : lights_)
 			{
 				LightComponent* comp = compfactory::GetLightComponent(entity);
+				assert(comp);
+				archive << comp->GetVUID();
+			}
+			archive << probes_.size();
+			for (Entity entity : probes_)
+			{
+				ProbeComponent* comp = compfactory::GetProbeComponent(entity);
 				assert(comp);
 				archive << comp->GetVUID();
 			}

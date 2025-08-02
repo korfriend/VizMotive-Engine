@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250801_1";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250802_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -69,6 +69,7 @@ namespace vz
 	struct GGeometryComponent;
 	struct GMaterialComponent;
 	struct GLightComponent;
+	struct GProbeComponent;
 
 	class WaitForBool {
 	private:
@@ -157,6 +158,7 @@ namespace vz
 		std::vector<Entity> transforms_;
 		std::vector<Entity> renderables_;
 		std::vector<Entity> lights_;
+		std::vector<Entity> probes_;
 		std::vector<Entity> cameras_;
 
 		// TODO
@@ -248,6 +250,7 @@ namespace vz
 
 		inline const std::vector<Entity>& GetRenderableEntities() const noexcept { return renderables_; }
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
+		inline const std::vector<Entity>& GetProbeEntities() const noexcept { return probes_; }
 		inline const std::vector<Entity>& GetCameraEntities() const noexcept { return cameras_; }
 
 		inline const std::vector<Entity>& GetChildrenEntities() const noexcept { return children_; }
@@ -336,6 +339,7 @@ namespace vz
 
 		virtual const std::vector<geometrics::AABB>& GetRenderableAABBs() const = 0;
 		virtual const std::vector<geometrics::AABB>& GetLightAABBs() const = 0;
+		virtual const std::vector<geometrics::AABB>& GetProbeAABBs() const = 0;
 
 		virtual const std::vector<GRenderableComponent*>& GetRenderableComponents() const = 0;
 		virtual const std::vector<GRenderableComponent*>& GetRenderableMeshComponents() const = 0;
@@ -346,6 +350,7 @@ namespace vz
 		virtual const std::vector<GGeometryComponent*>& GetGeometryComponents() const = 0;
 		virtual const std::vector<GMaterialComponent*>& GetMaterialComponents() const = 0;
 		virtual const std::vector<GLightComponent*>& GetLightComponents() const = 0;
+		virtual const std::vector<GProbeComponent*>& GetProbeComponents() const = 0;
 		virtual const std::vector<CameraComponent*>& GetCameraComponents() const = 0;
 
 		virtual const uint32_t GetGeometryPrimitivesAllocatorSize() const = 0;
@@ -380,6 +385,7 @@ namespace vz
 		CAMERA,
 		SLICER,
 		ENVIRONMENT,
+		PROBE,
 	};
 
 	struct CORE_EXPORT ComponentBase
@@ -2631,14 +2637,57 @@ namespace vz
 		inline void SetAtmosphereParameters(const AtmosphereParameters& atmosphereParameters) { atmosphereParameters_ = atmosphereParameters; timeStampSetter_ = TimerNow; }
 		inline void SetVolumetricCloudParameters(const VolumetricCloudParameters& volumetricCloudParameters) { volumetricCloudParameters_ = volumetricCloudParameters; timeStampSetter_ = TimerNow; }
 		
-		virtual void LoadSkyMap(const std::string& fileName) = 0;
-		virtual void LoadColorGradingMap(const std::string& fileName) = 0;
-		virtual void LoadVolumetricCloudsWeatherMapFirst(const std::string& fileName) = 0;
-		virtual void LoadVolumetricCloudsWeatherMapSecond(const std::string& fileName) = 0;
+		virtual bool LoadSkyMap(const std::string& fileName) = 0;
+		virtual bool LoadColorGradingMap(const std::string& fileName) = 0;
+		virtual bool LoadVolumetricCloudsWeatherMapFirst(const std::string& fileName) = 0;
+		virtual bool LoadVolumetricCloudsWeatherMapSecond(const std::string& fileName) = 0;
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::ENVIRONMENT;
+	};
+
+	struct CORE_EXPORT ProbeComponent : ComponentBase
+	{
+		static constexpr uint32_t envmapMSAASampleCount = 8;
+		enum FLAGS
+		{
+			EMPTY = 0,
+			PERFRAME_UPDATE = 1 << 0, // force to lower quality rendering
+			MSAA = 1 << 1,
+		};
+	protected:
+		uint32_t flags_ = EMPTY;
+		uint32_t resolution_ = 128; // power of two
+		std::string textureName_; // if texture is coming from an asset
+
+	public:
+		ProbeComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::PROBE, entity, vuid) {}
+		virtual ~ProbeComponent() = default;
+
+		// Non-serialized attributes: (read only, DO NOT modify)
+		// which will be updated by TransformUpdates (world space) during scene updates
+		XMFLOAT3 position;
+		float range;
+		XMFLOAT4X4 inverseMatrix; // world to local (probe), i.e., ws2os
+
+		inline void SetUpdatePerFrameEnabled(const bool value) { if (value) { flags_ |= PERFRAME_UPDATE; } else { flags_ &= ~PERFRAME_UPDATE; } timeStampSetter_ = TimerNow; }
+		inline void SetMSAA(const bool value) { if (value) { flags_ |= MSAA; } else { flags_ &= ~MSAA; } timeStampSetter_ = TimerNow; }
+		inline void SetResolution(const uint32_t resolution) { resolution_ = math::GetNextPowerOfTwo(resolution); timeStampSetter_ = TimerNow; }
+
+		inline bool IsRealTime() const { return flags_ & PERFRAME_UPDATE; }
+		inline bool IsMSAA() const { return flags_ & MSAA; }
+		inline uint32_t GetResolution() const { return resolution_; };
+		inline uint32_t GetSampleCount() const { return IsMSAA() ? envmapMSAASampleCount : 1; }
+
+		virtual bool LoadTexture(const std::string& fileName) = 0;
+		virtual void RemoveTexture() = 0;
+
+		size_t GetMemorySizeInBytes() const;
+
+		void Serialize(vz::Archive& archive, const uint64_t version) override;
+
+		inline static const ComponentType IntrinsicType = ComponentType::PROBE;
 	};
 }
 
@@ -2666,7 +2715,6 @@ namespace vz::compfactory
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponent(const Entity entity);
 	CORE_EXPORT LayeredMaskComponent* GetLayeredMaskComponent(const Entity entity);
 	CORE_EXPORT ColliderComponent* GetColliderComponent(const Entity entity);
-	CORE_EXPORT EnvironmentComponent* GetEnvironmentComponent(const Entity entity);
 	CORE_EXPORT MaterialComponent* GetMaterialComponent(const Entity entity);
 	CORE_EXPORT GeometryComponent* GetGeometryComponent(const Entity entity);
 	CORE_EXPORT TextureComponent* GetTextureComponent(const Entity entity);
@@ -2677,12 +2725,13 @@ namespace vz::compfactory
 	CORE_EXPORT LightComponent* GetLightComponent(const Entity entity);
 	CORE_EXPORT CameraComponent* GetCameraComponent(const Entity entity);
 	CORE_EXPORT SlicerComponent* GetSlicerComponent(const Entity entity);
+	CORE_EXPORT EnvironmentComponent* GetEnvironmentComponent(const Entity entity);
+	CORE_EXPORT ProbeComponent* GetProbeComponent(const Entity entity);
 
 	CORE_EXPORT NameComponent* GetNameComponentByVUID(const VUID vuid);
 	CORE_EXPORT TransformComponent* GetTransformComponentByVUID(const VUID vuid);
 	CORE_EXPORT HierarchyComponent* GetHierarchyComponentByVUID(const VUID vuid);
 	CORE_EXPORT ColliderComponent* GetColliderComponentByVUID(const VUID vuid);
-	CORE_EXPORT EnvironmentComponent* GetEnvironmentComponentByVUID(const VUID vuid);
 	CORE_EXPORT MaterialComponent* GetMaterialComponentByVUID(const VUID vuid);
 	CORE_EXPORT GeometryComponent* GetGeometryComponentByVUID(const VUID vuid);
 	CORE_EXPORT TextureComponent* GetTextureComponentByVUID(const VUID vuid);
@@ -2691,13 +2740,14 @@ namespace vz::compfactory
 	CORE_EXPORT LightComponent* GetLightComponentByVUID(const VUID vuid);
 	CORE_EXPORT CameraComponent* GetCameraComponentByVUID(const VUID vuid);
 	CORE_EXPORT SlicerComponent* GetSlicerComponentByVUID(const VUID vuid);
+	CORE_EXPORT EnvironmentComponent* GetEnvironmentComponentByVUID(const VUID vuid);
+	CORE_EXPORT ProbeComponent* GetProbeComponentByVUID(const VUID vuid);
 
 	CORE_EXPORT bool ContainNameComponent(const Entity entity);
 	CORE_EXPORT bool ContainTransformComponent(const Entity entity);
 	CORE_EXPORT bool ContainHierarchyComponent(const Entity entity);
 	CORE_EXPORT bool ContainLayeredMaskComponent(const Entity entity);
 	CORE_EXPORT bool ContainColliderComponent(const Entity entity);
-	CORE_EXPORT bool ContainEnvironmentComponent(const Entity entity);
 	CORE_EXPORT bool ContainMaterialComponent(const Entity entity);
 	CORE_EXPORT bool ContainGeometryComponent(const Entity entity);
 	CORE_EXPORT bool ContainRenderableComponent(const Entity entity);
@@ -2708,6 +2758,8 @@ namespace vz::compfactory
 	CORE_EXPORT bool ContainSlicerComponent(const Entity entity);
 	CORE_EXPORT bool ContainTextureComponent(const Entity entity);
 	CORE_EXPORT bool ContainVolumeComponent(const Entity entity);
+	CORE_EXPORT bool ContainEnvironmentComponent(const Entity entity);
+	CORE_EXPORT bool ContainProbeComponent(const Entity entity);
 
 	CORE_EXPORT size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	CORE_EXPORT size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component
@@ -2731,5 +2783,5 @@ namespace vz::compfactory
 	CORE_EXPORT Entity MakeResMaterial(const std::string& name);
 	CORE_EXPORT Entity MakeResTexture(const std::string& name);
 	CORE_EXPORT Entity MakeResVolume(const std::string& name);
-	CORE_EXPORT size_t RemoveEntity(const Entity entity, const bool includeDescendants = false); // Only ECS compoenents
+	CORE_EXPORT size_t RemoveEntity(const Entity entity, const bool includeDescendants = false); // Only ECS components
 }

@@ -65,6 +65,9 @@
     <ClCompile Include="DebugVisualizer_Details.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
+    <ClCompile Include="Environment_Detail.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\dxcapi.h">
@@ -109,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="Font.h">
       <Filter>Processing</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene_Detail.h">
+      <Filter>Renderer\Header</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

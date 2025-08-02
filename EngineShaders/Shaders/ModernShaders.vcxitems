@@ -200,6 +200,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\shadowPS_alphatest.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\shadowPS_transparent.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\shadowPS_water.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\skyPS_dynamic.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\skyPS_static.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\sunPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\vertexcolorPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLightPS_Directional.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLightPS_Point.hlsl" />
@@ -222,6 +225,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\shadowVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\shadowVS_alphatest.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\shadowVS_transparent.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\skyVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\vertexcolorVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetricLightVS_directional.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetricLightVS_point.hlsl" />

@@ -35,6 +35,7 @@ namespace vz::compfactory
 	ComponentManager<GVolumeComponent>& volumeManager = componentLibrary.Register<GVolumeComponent>("VOLUMETEXTURE");
 
 	ComponentManager<GEnvironmentComponent>& environmentManager = componentLibrary.Register<GEnvironmentComponent>("Environment");
+	ComponentManager<GProbeComponent>& probeManager = componentLibrary.Register<GProbeComponent>("Probe");
 
 	ComponentBase* GetComponentByVUID(const VUID vuid)
 	{
@@ -194,6 +195,12 @@ namespace vz::compfactory
 		EnvironmentComponent* comp = &environmentManager.Create(entity_update);
 		return comp;
 	}
+	ProbeComponent* CreateProbeComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		ProbeComponent* comp = &probeManager.Create(entity_update);
+		return comp;
+	}
 
 #define RETURN_GET_COMP(COMP_TYPE, COMP_MNG, ENTITY) COMP_TYPE* comp = COMP_MNG.GetComponent(entity); return comp;
 	NameComponent* GetNameComponent(const Entity entity)
@@ -270,6 +277,10 @@ namespace vz::compfactory
 	{
 		RETURN_GET_COMP(EnvironmentComponent, environmentManager, entity);
 	}
+	ProbeComponent* GetProbeComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(ProbeComponent, probeManager, entity);
+	}
 
 	NameComponent* GetNameComponentByVUID(const VUID vuid)
 	{
@@ -322,6 +333,10 @@ namespace vz::compfactory
 	EnvironmentComponent* GetEnvironmentComponentByVUID(const VUID vuid)
 	{
 		return GetEnvironmentComponent(GetEntityByVUID(vuid));
+	}
+	ProbeComponent* GetProbeComponentByVUID(const VUID vuid)
+	{
+		return GetProbeComponent(GetEntityByVUID(vuid));
 	}
 
 	bool ContainNameComponent(const Entity entity)
@@ -387,6 +402,10 @@ namespace vz::compfactory
 	bool ContainEnvironmentComponent(const Entity entity)
 	{
 		return environmentManager.Contains(entity);
+	}
+	bool ContainProbeComponent(const Entity entity)
+	{
+		return probeManager.Contains(entity);
 	}
 
 	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components)

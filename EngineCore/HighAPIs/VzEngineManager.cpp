@@ -1042,6 +1042,15 @@ namespace vzm
 		return vzcompmanager::Destroy(vid, includeDescendants);	// jobsystem
 	}
 
+	size_t RemoveResource(const std::string& resourceName)
+	{
+		CHECK_API_LOCKGUARD_VALIDITY(0);
+		// TODO AUG
+		// 1. resourcemanager remove...
+		// 2. detach the resource from entities
+		return 0;
+	}
+
 	size_t GetResourceManagerUsageCPU(std::unordered_map<std::string, size_t>& usageMap)
 	{
 		assert(0 && "TODO");

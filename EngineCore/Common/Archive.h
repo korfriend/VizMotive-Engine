@@ -24,6 +24,7 @@ namespace vz
 		static Archive* CreateArchive(const std::string& name, const Entity entity = 0);
 		static bool DestroyArchive(const Entity entity);
 		static void DestroyAll();
+		static bool StoreSerializedResources(const std::string& sourceDir);
 
 	public:
 		struct Header
