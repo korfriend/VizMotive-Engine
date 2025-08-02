@@ -10,7 +10,6 @@ namespace vz
 		HierarchyComponent* CreateHierarchyComponent(const Entity entity, const Entity parent = INVALID_ENTITY);
 		LayeredMaskComponent* CreateLayeredMaskComponent(const Entity entity);
 		ColliderComponent* CreateColliderComponent(const Entity entity);
-		EnvironmentComponent* CreateEnvironmentComponent(const Entity entity);
 		MaterialComponent* CreateMaterialComponent(const Entity entity);
 		GeometryComponent* CreateGeometryComponent(const Entity entity);
 		TextureComponent* CreateTextureComponent(const Entity entity);
@@ -21,6 +20,8 @@ namespace vz
 		RenderableComponent* CreateRenderableComponent(const Entity entity);
 		SpriteComponent* CreateSpriteComponent(const Entity entity);
 		SpriteFontComponent* CreateSpriteFontComponent(const Entity entity);
+		EnvironmentComponent* CreateEnvironmentComponent(const Entity entity);
+		ProbeComponent* CreateProbeComponent(const Entity entity);
 
 		size_t Destroy(const Entity entity);
 		size_t DestroyAll();

@@ -52,6 +52,7 @@ namespace vz::renderer
 
 	PipelineState		PSO_wireframe;											// shaders
 	PipelineState		PSO_occlusionquery;										// shaders
+	PipelineState		PSO_sky[SKY_RENDERING_COUNT];							// shaders
 	PipelineState		PSO_RenderableShapes[SHAPE_RENDERING_COUNT];			// shaders
 	PipelineState		PSO_lightvisualizer[SCU32(LightComponent::LightType::COUNT)];	// shaders
 	PipelineState		PSO_volumetriclight[SCU32(LightComponent::LightType::COUNT)];	// shaders
@@ -472,7 +473,10 @@ namespace vz::shader
 
 		renderer::PSO_wireframe = {};
 		renderer::PSO_occlusionquery = {};
+
 		ReleaseRenderRes(renderer::PSO_RenderableShapes, SHAPE_RENDERING_COUNT);
+		ReleaseRenderRes(renderer::PSO_sky, SKY_RENDERING_COUNT);
+		
 		ReleaseRenderRes(renderer::PSO_lightvisualizer, SCU32(LightComponent::LightType::COUNT));
 		ReleaseRenderRes(renderer::PSO_volumetriclight, SCU32(LightComponent::LightType::COUNT));
 
@@ -549,8 +553,10 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_LIGHTVISUALIZER_SPOTLIGHT], "vSpotLightVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_LIGHTVISUALIZER_POINTLIGHT], "vPointLightVS.cso"); });
 
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_SKY], "skyVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_ENVMAP], "envMapVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_ENVMAP_SKY], "envMapVS_sky.cso"); });
+
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_SHADOW], "shadowVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_SHADOW_ALPHATEST], "shadowVS_alphatest.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_SHADOW_TRANSPARENT], "shadowVS_transparent.cso"); });
@@ -582,6 +588,9 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_ENVMAP_SKY_DYNAMIC], "envMapPS_sky_dynamic.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_CUBEMAP], "cubeMapPS.cso"); });
 
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_SKY_STATIC], "skyPS_static.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_SKY_DYNAMIC], "skyPS_dynamic.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_SUN], "sunPS.cso"); });
 		
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_SHADOW_ALPHATEST], "shadowPS_alphatest.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_SHADOW_TRANSPARENT], "shadowPS_transparent.cso"); });
@@ -764,6 +773,44 @@ namespace vz::shader
 		//
 		//	device->CreatePipelineState(&desc, &PSO_outline);
 		//	});
+
+
+		jobsystem::Dispatch(ctx, SKY_RENDERING_COUNT, 1, [](jobsystem::JobArgs args) {
+			PipelineStateDesc desc;
+			desc.rs = &rasterizers[RSTYPE_SKY];
+			desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+
+			switch (args.jobIndex)
+			{
+			case SKY_RENDERING_STATIC:
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
+				desc.vs = &shaders[VSTYPE_SKY];
+				desc.ps = &shaders[PSTYPE_SKY_STATIC];
+				break;
+			case SKY_RENDERING_DYNAMIC:
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
+				desc.vs = &shaders[VSTYPE_SKY];
+				desc.ps = &shaders[PSTYPE_SKY_DYNAMIC];
+				break;
+			case SKY_RENDERING_SUN:
+				desc.bs = &blendStates[BSTYPE_ADDITIVE];
+				desc.vs = &shaders[VSTYPE_SKY];
+				desc.ps = &shaders[PSTYPE_SUN];
+				break;
+			case SKY_RENDERING_ENVMAPCAPTURE_STATIC:
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
+				desc.vs = &shaders[VSTYPE_ENVMAP_SKY];
+				desc.ps = &shaders[PSTYPE_ENVMAP_SKY_STATIC];
+				break;
+			case SKY_RENDERING_ENVMAPCAPTURE_DYNAMIC:
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
+				desc.vs = &shaders[VSTYPE_ENVMAP_SKY];
+				desc.ps = &shaders[PSTYPE_ENVMAP_SKY_DYNAMIC];
+				break;
+			}
+
+			device->CreatePipelineState(&desc, &PSO_sky[args.jobIndex]);
+			});
 
 		jobsystem::Dispatch(ctx, SHAPE_RENDERING_COUNT, 1, [](jobsystem::JobArgs args) {
 			PipelineStateDesc desc = {};

@@ -210,6 +210,7 @@
     <ClCompile Include="DebugVisualizer_Details.cpp" />
     <ClCompile Include="DeferredProcessing_Detail.cpp" />
     <ClCompile Include="DirectVolumes_Detail.cpp" />
+    <ClCompile Include="Environment_Detail.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="GaussianSplatting_Detail.cpp" />
     <ClCompile Include="GPUBVH.cpp" />
@@ -237,6 +238,7 @@
     <ClInclude Include="Image.h" />
     <ClInclude Include="Noise.h" />
     <ClInclude Include="RenderPath3D_Detail.h" />
+    <ClInclude Include="Scene_Detail.h" />
     <ClInclude Include="ShaderEngine.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderCompiler.h" />

@@ -4,6 +4,7 @@
 
 #include "Utils/ECS.h"
 #include "Utils/Helpers.h"
+#include "Utils/Helpers2.h"
 
 namespace vz
 {
@@ -48,7 +49,58 @@ namespace vz
 		}
 	};
 
+	std::string appendLastSeparator(const std::string& path_string) 
+	{
+		if (path_string.empty()) {
+			return path_string;
+		}
+
+		char last_char = path_string.back();
+		if (last_char == '/' || last_char == '\\') {
+			return path_string;
+		}
+
+		size_t last_sep_pos = path_string.find_last_of("/\\");
+
+		if (last_sep_pos != std::string::npos) {
+			return path_string + path_string.substr(last_sep_pos, 1);
+		}
+		return path_string;
+	}
+
 	EntitySerializer entitySerializer;
+	bool Archive::StoreSerializedResources(const std::string& sourceDir)
+	{
+		if (sourceDir.empty())
+		{
+			return false;
+		}
+		
+		std::string dir = appendLastSeparator(sourceDir);
+		helper::DirectoryCreate(dir);
+		
+		for (auto it : entitySerializer.resourceRegistration)
+		{
+			Resource resource = resourcemanager::Load(it);
+		
+			std::string file_name = helper::GetFileNameFromPath(it);
+		
+			if (resource.IsValid())
+			{
+				const std::vector<uint8_t>& filedata = resource.GetFileData();
+				if (filedata.empty())
+				{
+					helper2::saveTextureToFile(resource.GetTexture(), dir + file_name);
+				}
+				else
+				{
+					helper::FileWrite(dir + file_name, filedata.data(), filedata.size());
+				}
+			}
+		}
+		entitySerializer.resourceRegistration.clear();
+		return true;
+	}
 
 	void NameComponent::Serialize(vz::Archive& archive, const uint64_t version) 
 	{
@@ -862,7 +914,7 @@ namespace vz
 		}
 	}
 
-	void EnvironmentComponent::Serialize(Archive& archive, const uint64_t version)
+	void EnvironmentComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
 		std::string dir = archive.GetSourceDirectory();
 
@@ -1049,6 +1101,8 @@ namespace vz
 			archive >> rainColor_;
 			
 			archive >> oceanParameters_.extinctionColor;
+
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -1215,6 +1269,33 @@ namespace vz
 			archive << rainSplashScale_;
 			archive << rainColor_;
 			archive << oceanParameters_.extinctionColor;
+		}
+	}
+
+	void ProbeComponent::Serialize(vz::Archive& archive, const uint64_t version)
+	{
+		const std::string& dir = archive.GetSourceDirectory();
+
+		if (archive.IsReadMode())
+		{
+			archive >> flags_;
+			archive >> resolution_;
+			archive >> textureName_;
+
+			if (!textureName_.empty())
+			{
+				textureName_ = dir + textureName_;
+			}
+			timeStampSetter_ = TimerNow;
+		}
+		else
+		{
+			entitySerializer.RegisterResource(textureName_);
+
+			archive << flags_;
+
+			archive << resolution_;
+			archive << helper::GetPathRelative(dir, textureName_);
 		}
 	}
 }

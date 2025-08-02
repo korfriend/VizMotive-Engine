@@ -1294,7 +1294,7 @@ struct alignas(16) FrameCB
 	VXGI vxgi;
 
 	// Lights
-	uint probes;	// NOTE YET SUPPORTED
+	uint probes;
 	uint directional_lights;
 	uint spot_lights;
 	uint point_lights;

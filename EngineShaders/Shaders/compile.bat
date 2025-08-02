@@ -16,6 +16,7 @@ dxc -T vs_6_0 ./VS/shadowVS_alphatest.hlsl -spirv
 dxc -T vs_6_0 ./VS/shadowVS_transparent.hlsl -spirv 
 dxc -T vs_6_0 ./VS/meshVS_voxelizer.hlsl -spirv 
 dxc -T vs_6_0 ./VS/voxelVS.hlsl -spirv 
+dxc -T vs_6_0 ./VS/skyVS.hlsl -spirv 
 
 dxc -T ps_6_0 ./PS/meshPS_debug.hlsl -spirv
 dxc -T ps_6_0 ./PS/meshPS_simple.hlsl -spirv
@@ -34,6 +35,9 @@ dxc -T ps_6_0 ./PS/envMapPS.hlsl -spirv
 dxc -T ps_6_0 ./PS/envMapPS_sky_static.hlsl -spirv
 dxc -T ps_6_0 ./PS/envMapPS_sky_dynamic.hlsl -spirv
 dxc -T ps_6_0 ./PS/cubeMapPS.hlsl -spirv
+dxc -T ps_6_0 ./PS/sunPS.hlsl -spirv
+dxc -T ps_6_0 ./PS/skyPS_static.hlsl -spirv
+dxc -T ps_6_0 ./PS/skyPS_dynamic.hlsl -spirv
 
 dxc -T ps_6_0 ./PS/shadowPS_alphatest.hlsl -spirv
 dxc -T ps_6_0 ./PS/shadowPS_transparent.hlsl -spirv

@@ -633,9 +633,31 @@ namespace vz
 		Resource volumetricCloudsWeatherMapFirst;
 		Resource volumetricCloudsWeatherMapSecond;
 
-		void LoadSkyMap(const std::string& fileName) override;
-		void LoadColorGradingMap(const std::string& fileName) override;
-		void LoadVolumetricCloudsWeatherMapFirst(const std::string& fileName) override;
-		void LoadVolumetricCloudsWeatherMapSecond(const std::string& fileName) override;
+		bool LoadSkyMap(const std::string& fileName) override;
+		bool LoadColorGradingMap(const std::string& fileName) override;
+		bool LoadVolumetricCloudsWeatherMapFirst(const std::string& fileName) override;
+		bool LoadVolumetricCloudsWeatherMapSecond(const std::string& fileName) override;
+	};
+
+	struct CORE_EXPORT GProbeComponent : ProbeComponent
+	{
+		GProbeComponent() : ProbeComponent(0u, 0u) {};
+		GProbeComponent(const Entity entity, const VUID vuid = 0) : ProbeComponent(entity, vuid) {}
+		virtual ~GProbeComponent() = default;
+
+		Resource resource; // static resource from file, if this is valid, resource.GetTexture() == texture
+
+		// 1. probe's static texture from resource
+		// 2. probe's dynamic rendering result, 6 views, used for GI and reflection
+		// we can identify if the probe is static or dynamic
+		graphics::Texture texture;
+
+		LayeredMaskComponent* layeredmask = nullptr;
+		uint32_t probeIndex = ~0u;	// scene's cached array index
+
+		mutable bool renderDirty = false;
+
+		bool LoadTexture(const std::string& fileName) override;
+		void RemoveTexture() override;
 	};
 }

@@ -1729,7 +1729,7 @@ namespace vz::renderer
 		}
 		
 		// Shadow maps:
-		if (isShadowsEnabled)
+		if (renderer::isShadowsEnabled)
 		{
 			cmd = device->BeginCommandList();
 			jobsystem::Execute(ctx, [this, cmd](jobsystem::JobArgs args) {

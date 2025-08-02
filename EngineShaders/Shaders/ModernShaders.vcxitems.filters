@@ -712,5 +712,17 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetricLightVS_spot.hlsl">
       <Filter>Raster-Pipeline Shaders\VS</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\skyVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\sunPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\skyPS_dynamic.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\skyPS_static.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

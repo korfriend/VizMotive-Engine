@@ -126,4 +126,17 @@ namespace vzm
 
 		return true;
 	}
+
+	bool VzScene::LoadIBL(const std::string& iblPath)
+	{
+		Scene* scene = scenefactory::GetScene(this->componentVID_);
+		assert(scene);
+		EnvironmentComponent* env = compfactory::GetEnvironmentComponent(scene->GetEnvironment());
+		if (env == nullptr)
+		{
+			vzlog_error("VzScene(%s) has no EnvironmentComponent!", scene->GetSceneName().c_str());
+			return false;
+		}
+		return env->LoadSkyMap(iblPath);
+	}
 }

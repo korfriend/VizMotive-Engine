@@ -74,6 +74,7 @@ namespace vzm
 	API_EXPORT std::string GetNameByVid(const VID vid);
 	// Remove an entity (scene, scene components, renderer, asset) 
 	API_EXPORT bool RemoveComponent(const VID vid, const bool includeDescendants = false);
+	API_EXPORT size_t RemoveResource(const std::string& resourceName);
 	inline bool RemoveComponent(const VzBaseComp* comp, const bool includeDescendants = false) { return RemoveComponent(comp->GetVID(), includeDescendants); }
 
 	size_t GetResourceManagerUsageCPU(std::unordered_map<std::string, size_t>& usageMap);

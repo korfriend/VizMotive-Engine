@@ -13,14 +13,7 @@ namespace vzm
 		}
 		virtual ~VzScene() = default;
 
-		//std::vector<VID> GetSceneCompChildren();
-		//bool LoadIBL(const std::string& iblPath);
-		//float GetIBLIntensity();
-		//float GetIBLRotation();
-		//void SetIBLIntensity(float intensity);
-		//void SetIBLRotation(float rotation);
-		//void SetSkyboxVisibleLayerMask(const uint8_t layerBits = 0x7, const uint8_t maskBits = 0x4);
-		//void SetLightmapVisibleLayerMask(const uint8_t layerBits = 0x3, const uint8_t maskBits = 0x2); // check where to set
+		bool LoadIBL(const std::string& iblPath);
 
 		void AppendChild(const VzBaseComp* child);
 		void DetachChild(const VzBaseComp* child);

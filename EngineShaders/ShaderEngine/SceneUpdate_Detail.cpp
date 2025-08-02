@@ -692,6 +692,56 @@ namespace vz
 
 			});
 	}
+	void GSceneDetails::RunProbeUpdateSystem(jobsystem::context& ctx)
+	{
+		if (deltaTime == 0)
+			return;
+
+		auto tryCreateProbeRenderData = [&](GProbeComponent& probe) {
+				if (probe.resource.IsValid())
+				{
+					assert(probe.texture.IsValid());
+					return;
+				}
+
+				uint32_t resolution = probe.GetResolution();
+				if (probe.texture.IsValid() && resolution == probe.texture.desc.width)
+					return;
+
+				probe.renderDirty = true;
+
+				graphics::TextureDesc desc;
+				desc.array_size = 6;
+				desc.height = resolution;
+				desc.width = resolution;
+				desc.usage = Usage::DEFAULT;
+				desc.format = Format::BC6H_UF16;
+				desc.sample_count = 1; // Note that this texture is always non-MSAA, even if probe is rendered as MSAA, because this contains resolved result
+				desc.bind_flags = BindFlag::SHADER_RESOURCE;
+				desc.mip_levels = GetMipCount(resolution, resolution, 1, 16);
+				desc.misc_flags = ResourceMiscFlag::TEXTURECUBE;
+				desc.layout = ResourceState::SHADER_RESOURCE;
+				device->CreateTexture(&desc, nullptr, &probe.texture);
+				device->SetName(&probe.texture, "EnvironmentProbeComponent::texture");
+			};
+
+		size_t num_probes = probeComponents.size();
+		if (num_probes == 0)
+		{
+			globalDynamicProbe.SetUpdatePerFrameEnabled(true);
+			globalDynamicProbe.SetResolution(64);
+			tryCreateProbeRenderData(globalDynamicProbe);
+			return;
+		}
+
+		jobsystem::Dispatch(ctx, num_probes, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
+
+			GProbeComponent& probe = *(GProbeComponent*)probeComponents[args.jobIndex];
+			assert(probe.probeIndex == args.jobIndex);
+			tryCreateProbeRenderData(probe);
+
+			});
+	}
 
 	bool GSceneDetails::Update(const float dt)
 	{
@@ -705,6 +755,7 @@ namespace vz
 		envrironment = (GEnvironmentComponent*)compfactory::GetEnvironmentComponent(scene_->GetEnvironment());
 
 		lightComponents = scene_->GetLightComponents();
+		probeComponents = scene_->GetProbeComponents();
 		geometryComponents = scene_->GetGeometryComponents();
 		materialComponents = scene_->GetMaterialComponents();
 		renderableComponents = scene_->GetRenderableComponents();
@@ -715,16 +766,18 @@ namespace vz
 
 		aabbRenderables = scene_->GetRenderableAABBs();
 		aabbLights = scene_->GetLightAABBs();
+		aabbProbes = scene_->GetProbeAABBs();
 
 		deltaTime = dt;
 		jobsystem::context ctx;
 
-		size_t num_lights = lightComponents.size();
 		size_t num_geometries = geometryComponents.size();
 		size_t num_materials = materialComponents.size();
 		size_t num_renderables = renderableComponents.size();
 		size_t num_sprites = spriteComponents.size();
 		size_t num_spriteFonts = spriteFontComponents.size();
+		size_t num_lights = lightComponents.size();
+		size_t num_probes = probeComponents.size();
 		
 		device = graphics::GetDevice();
 		uint32_t pingpong_buffer_index = device->GetBufferIndex();
@@ -972,7 +1025,7 @@ namespace vz
 
 		RunRenderableUpdateSystem(ctx);
 		//RunCameraUpdateSystem(ctx); .. in render function
-		//RunProbeUpdateSystem(ctx); .. future feature
+		RunProbeUpdateSystem(ctx);
 		//RunParticleUpdateSystem(ctx); .. future feature
 		//RunSpriteUpdateSystem(ctx); .. future feature
 		//RunFontUpdateSystem(ctx); .. future feature
@@ -1046,12 +1099,11 @@ namespace vz
 		shaderscene.meshletbuffer = device->GetDescriptorIndex(&meshletBuffer, SubresourceType::SRV);
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
 		
-		// TODO : Scene 의 SkyBox 리소스 및 attributes 참조
-		//if (weather.skyMap.IsValid())
-		//{
-		//	shaderscene.globalenvmap = device->GetDescriptorIndex(&weather.skyMap.GetTexture(), SubresourceType::SRV, weather.skyMap.GetTextureSRGBSubresource());
-		//}
-		//else
+		if (envrironment->skyMap.IsValid())
+		{
+			shaderscene.globalenvmap = device->GetDescriptorIndex(&envrironment->skyMap.GetTexture(), SubresourceType::SRV, envrironment->skyMap.GetTextureSRGBSubresource());
+		}
+		else
 		{
 			shaderscene.globalenvmap = -1;
 		}
