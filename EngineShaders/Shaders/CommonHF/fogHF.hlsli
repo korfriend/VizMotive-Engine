@@ -13,7 +13,7 @@
 //	V			: sample to point vector
 inline float GetFogAmount(float distance, float3 O, float3 V)
 {
-    //ShaderFog fog = GetWeather().fog;
+    //ShaderFog fog = GetEnvironment().fog;
 	ShaderFog fog = GetEnvironment().fog;
 	
 	float startDistanceFalloff = saturate((distance - fog.start) / fog.start);

@@ -167,6 +167,7 @@ int main(int, char**)
 		vzm::VzMaterial* material_test = vzm::NewMaterial("icosahedron's material");
 		material_test->SetShadowCast(true);
 		material_test->SetShadowReceive(true);
+		material_test->SetBaseColor({ 0, 1, 1, 1 });
 
 		vzm::VzActorStaticMesh* actor_test1 = vzm::NewActorStaticMesh("my actor1-IcosahedronGeometry", geometry_test->GetVID(), material_test->GetVID());
 		scene->AppendChild(actor_test1);
@@ -176,8 +177,9 @@ int main(int, char**)
 		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
 		material_test2->SetShadowCast(true);
 		material_test2->SetShadowReceive(true);
+		material_test2->SetBaseColor({ 1, 1, 0, 1 });
 		vzm::VzActorStaticMesh* actor_test2 = vzm::NewActorStaticMesh("my actor2-TorusKnot", geometry_test2->GetVID(), material_test2->GetVID());
-		scene->AppendChild(actor_test2);
+		scene->AppendChild(actor_test2); 
 
 		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
 		{

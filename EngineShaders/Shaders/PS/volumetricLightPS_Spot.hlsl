@@ -51,7 +51,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 	V /= cameraDistance;
 
 	// Fix for ocean: because ocean is not in linear depth, we trace it instead
-	//const ShaderOcean ocean = GetWeather().ocean;
+	//const ShaderOcean ocean = GetEnvironment().ocean;
 	//if(ocean.IsValid() && V.y > 0)
 	//{
 	//	float3 ocean_surface_pos = intersectPlaneClampInfinite(GetCamera().position, V, float3(0, 1, 0), ocean.water_height);

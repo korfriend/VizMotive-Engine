@@ -95,10 +95,14 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Postprocess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Raytracing.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Renderer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_SurfelGI.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_VXGI.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\aerialPerspectiveCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\aerialPerspectiveCS_capture.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\aerialPerspectiveCS_capture_MSAA.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC1.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC3.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\blockcompressCS_BC4.hlsl" />
@@ -160,6 +164,11 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS_denoise_tileclassification.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS_upsample.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\screenspaceshadowCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_cameraVolumeLutCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_multiScatteredLuminanceLutCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_skyLuminanceLutCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_skyViewLutCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_transmittanceLutCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\slicerResolveCS_KB2.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\lightCullingCS_ADVANCED.hlsl" />
@@ -174,6 +183,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\upsample_bilateral_float4CS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS_capture.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS_capture_MSAA.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_shadow_renderCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\wetmap_updateCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)GS\meshGS_voxelizer.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)GS\thicknessLineGS.hlsl" />

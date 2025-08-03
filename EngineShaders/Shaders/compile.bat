@@ -81,6 +81,19 @@ dxc -T cs_6_0 ./CS/rtshadowCS_denoise_tileclassification.hlsl -spirv -fspv-targe
 dxc -T cs_6_0 ./CS/rtshadowCS_upsample.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T cs_6_5 ./CS/rtshadowCS.hlsl -spirv -fspv-target-env=vulkan1.1
 
+dxc -T cs_6_5 ./CS/skyAtmosphere_cameraVolumeLutCS.hlsl -spirv
+dxc -T cs_6_5 ./CS/skyAtmosphere_multiScatteredLuminanceLutCS.hlsl -spirv
+dxc -T cs_6_5 ./CS/skyAtmosphere_skyLuminanceLutCS.hlsl -spirv
+dxc -T cs_6_5 ./CS/skyAtmosphere_skyViewLutCS.hlsl -spirv
+dxc -T cs_6_5 ./CS/skyAtmosphere_transmittanceLutCS.hlsl -spirv
+dxc -T cs_6_5 ./CS/aerialPerspectiveCS.hlsl -spirv
+dxc -T cs_6_5 ./CS/aerialPerspectiveCS_capture.hlsl -spirv
+dxc -T cs_6_5 ./CS/aerialPerspectiveCS_capture_MSAA.hlsl -spirv
+dxc -T cs_6_5 ./CS/volumetricCloud_shadow_renderCS.hlsl -spirv
+dxc -T cs_6_5 ./CS/volumetricCloud_renderCS.hlsl -spirv
+dxc -T cs_6_5 ./CS/volumetricCloud_renderCS_capture.hlsl -spirv
+dxc -T cs_6_5 ./CS/volumetricCloud_renderCS_capture_MSAA.hlsl -spirv
+
 dxc -T cs_6_0 ./CS/bvh_hierarchyCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/bvh_primitivesCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/bvh_primitivesCS_geometryspace.hlsl -spirv

@@ -32,7 +32,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250802_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250804_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -177,6 +177,7 @@ namespace vz
 
 		Entity environment_ = INVALID_ENTITY;
 		
+		// Non-serialized Attributes
 		//	instant parameters during render-process
 		float dt_ = 0.f;
 		float deltaTimeAccumulator_ = 0.f;
@@ -192,7 +193,9 @@ namespace vz
 		float targetFrameRate = 60;
 		bool frameskip = true; // just for fixed update (later for physics-based simulations)
 		bool framerateLock = true;
-		TimeStamp timerStamp = TimerNow;
+		TimeStamp timerStamp = TimerNow; // scene update (same to ComponentBase::timeStampSetter_
+		Entity cameraMain = INVALID_ENTITY; // Main camera for the scene; defaults to the renderer's first 3D camera (not slicer) if not set.
+
 		double RecordElapsedSeconds() {
 			TimeStamp timestamp2 = TimerNow;
 			double duration = TimeDurationCount(timestamp2, timerStamp);
@@ -551,8 +554,8 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::LAYERDMASK;
 	};
 
-#define FLAG_SETTER(FLAG, FLAG_ENUM) enabled ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
-#define UNFLAG_SETTER(FLAG, FLAG_ENUM) !enabled ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
+#define FLAG_SETTER(FLAG, FLAG_ENUM) value ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
+#define UNFLAG_SETTER(FLAG, FLAG_ENUM) !value ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
 
 	// resources
 	struct CORE_EXPORT MaterialComponent : ComponentBase
@@ -703,19 +706,19 @@ namespace vz
 		inline void SetEmissiveColor(const XMFLOAT4& emissiveColor) { emissiveColor_ = emissiveColor; timeStampSetter_ = TimerNow;}
 		inline void SetMatalness(const float metalness) { metalness_ = metalness; timeStampSetter_ = TimerNow; }
 		inline void SetRoughness(const float roughness) { roughness_ = roughness; timeStampSetter_ = TimerNow; }
-		inline void SetWetmapEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WETMAP); timeStampSetter_ = TimerNow; }
-		inline void SetShadowCastEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::SHADOW_CAST); timeStampSetter_ = TimerNow; }
-		inline void SetShadowReceiveEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
-		inline void SetDoubleSidedEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED); timeStampSetter_ = TimerNow; }
-		inline void SetGaussianSplattingEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING); timeStampSetter_ = TimerNow; }
-		inline void SetWireframeEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME); timeStampSetter_ = TimerNow; }
-		inline void SetUseVertexColorEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::USE_VERTEXCOLORS); timeStampSetter_ = TimerNow; }
-		inline void SetUseSpecularGlossinessWorkflowEnabled(bool enabled) { FLAG_SETTER(flags_, RenderFlags::USE_VERTEXCOLORS); timeStampSetter_ = TimerNow; }
+		inline void SetWetmapEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::WETMAP); timeStampSetter_ = TimerNow; }
+		inline void SetShadowCastEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::SHADOW_CAST); timeStampSetter_ = TimerNow; }
+		inline void SetShadowReceiveEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
+		inline void SetDoubleSidedEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::DOUBLE_SIDED); timeStampSetter_ = TimerNow; }
+		inline void SetGaussianSplattingEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::GAUSSIAN_SPLATTING); timeStampSetter_ = TimerNow; }
+		inline void SetWireframeEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::WIREFRAME); timeStampSetter_ = TimerNow; }
+		inline void SetUseVertexColorEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::USE_VERTEXCOLORS); timeStampSetter_ = TimerNow; }
+		inline void SetUseSpecularGlossinessWorkflowEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::USE_VERTEXCOLORS); timeStampSetter_ = TimerNow; }
 		inline void SetPhongFactors(const XMFLOAT4& phongFactors) { phongFactors_ = phongFactors; timeStampSetter_ = TimerNow; }
-		inline void SetOcclusionEnabled_Primary(bool enabled) { FLAG_SETTER(flags_, RenderFlags::OCCLUSION_PRIMARY); timeStampSetter_ = TimerNow; }
-		inline void SetOcclusionEnabled_Secondary(bool enabled) { FLAG_SETTER(flags_, RenderFlags::OCCLUSION_SECONDARY); timeStampSetter_ = TimerNow; }
-		inline void SetUseWindEnabled(const bool enabled) { FLAG_SETTER(flags_, RenderFlags::USE_WIND); timeStampSetter_ = TimerNow; }
-		inline void SetCapsuleShadowEnabled(const bool enabled) { UNFLAG_SETTER(flags_, RenderFlags::DISABLE_CAPSULE_SHADOW); timeStampSetter_ = TimerNow; }
+		inline void SetOcclusionEnabled_Primary(const bool value) { FLAG_SETTER(flags_, RenderFlags::OCCLUSION_PRIMARY); timeStampSetter_ = TimerNow; }
+		inline void SetOcclusionEnabled_Secondary(const bool value) { FLAG_SETTER(flags_, RenderFlags::OCCLUSION_SECONDARY); timeStampSetter_ = TimerNow; }
+		inline void SetUseWindEnabled(const bool value) { FLAG_SETTER(flags_, RenderFlags::USE_WIND); timeStampSetter_ = TimerNow; }
+		inline void SetCapsuleShadowEnabled(const bool value) { UNFLAG_SETTER(flags_, RenderFlags::DISABLE_CAPSULE_SHADOW); timeStampSetter_ = TimerNow; }
 		
 		inline void SetSheenColor(const XMFLOAT4& value) { sheenColor_ = value; timeStampSetter_ = TimerNow; }
 		inline void SetSubsurfaceScattering(const XMFLOAT4& value) { subsurfaceScattering_ = value; timeStampSetter_ = TimerNow; }
@@ -879,7 +882,7 @@ namespace vz
 			//  this is supposed to be called by GeometryComponent!
 			//	true: BVH will be built immediately if it doesn't exist yet
 			//	false: BVH will be deleted immediately if it exists
-			void updateBVH(const bool enabled);
+			void updateBVH(const bool value);
 
 		public:
 			mutable bool autoUpdateRenderData = true;
@@ -1008,7 +1011,7 @@ namespace vz
 		void SetTessellationFactor(const float tessllationFactor) { tessellationFactor_ = tessllationFactor; }
 		float GetTessellationFactor() const { return tessellationFactor_; }
 
-		void UpdateBVH(const bool enabled);
+		void UpdateBVH(const bool value);
 		bool IsBusyForBVH() { return !waiter_->isFree(); }
 
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
@@ -1016,7 +1019,7 @@ namespace vz
 		// GPU interfaces //
 		bool HasRenderData() const { return hasRenderData_; }
 		bool IsGPUBVHEnabled() const { return isGPUBVHEnabled_; }
-		void SetGPUBVHEnabled(const bool enabled) { isGPUBVHEnabled_ = enabled; }
+		void SetGPUBVHEnabled(const bool value) { isGPUBVHEnabled_ = value; }
 
 		virtual void DeleteRenderData() = 0;
 		virtual void UpdateRenderData() = 0;
@@ -1353,6 +1356,9 @@ namespace vz
 			UNDERCUT = 1 << 10,
 			DISABLE_SHADOW_CAST = 1 << 11,
 			DISABLE_SHADOW_RECEIVE = 1 << 12,
+			INVISIBLE_IN_MAIN_CAMERA = 1 << 13,
+			INVISIBLE_IN_REFLECTIONS = 1 << 14,
+			WETMAP_ENABLED = 1 << 15,
 		};
 		enum RenderableType : uint8_t
 		{
@@ -1430,9 +1436,9 @@ namespace vz
 		inline RenderableType GetRenderableType() const { return renderableType_; }
 		inline void ReserveRenderableType(const RenderableType rType) { renderableReservedType_ = rType; timeStampSetter_ = TimerNow; }
 
-		inline void SetForeground(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
+		inline void SetForeground(const bool value) { FLAG_SETTER(flags_, RenderableFlags::FOREGROUND) timeStampSetter_ = TimerNow; }
 		inline bool IsForeground() const { return flags_ & RenderableFlags::FOREGROUND; }
-		inline void SetPickable(const bool enabled) { UNFLAG_SETTER(flags_, RenderableFlags::UNPICKABLE) timeStampSetter_ = TimerNow; }
+		inline void SetPickable(const bool value) { UNFLAG_SETTER(flags_, RenderableFlags::UNPICKABLE) timeStampSetter_ = TimerNow; }
 		inline bool IsPickable() const { return !(flags_ & RenderableFlags::UNPICKABLE); }
 
 		inline uint32_t GetFlags() const { return flags_; }
@@ -1460,20 +1466,26 @@ namespace vz
 		inline void SetOutineThreshold(const float v) { outlineThreshold_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutDirection(const XMFLOAT3& v) { undercutDirection_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetUndercutColor(const XMFLOAT3& v) { undercutColor_ = v; timeStampSetter_ = TimerNow; }
-		inline void SetOutlineEnabled(const bool enabled) { enabled ? flags_ |= RenderableFlags::OUTLINE : flags_ &= ~RenderableFlags::OUTLINE; timeStampSetter_ = TimerNow; }
-		inline void SetUndercutEnabled(const bool enabled) { enabled ? flags_ |= RenderableFlags::UNDERCUT : flags_ &= ~RenderableFlags::UNDERCUT; timeStampSetter_ = TimerNow; }
+		inline void SetOutlineEnabled(const bool value) { FLAG_SETTER(flags_, RenderableFlags::OUTLINE); timeStampSetter_ = TimerNow; }
+		inline void SetUndercutEnabled(const bool value) { FLAG_SETTER(flags_, RenderableFlags::UNDERCUT); timeStampSetter_ = TimerNow; }
 
-		inline void SetSlicerSolidFillEnabled(const bool enabled) { 
-			enabled? flags_ &= ~RenderableFlags::SLICER_NO_SOLID_FILL : flags_ |= RenderableFlags::SLICER_NO_SOLID_FILL; 
-			timeStampSetter_ = TimerNow; 
-		}
+		inline void SetInvisibleInMainCamera(bool value) { FLAG_SETTER(flags_, RenderableFlags::INVISIBLE_IN_MAIN_CAMERA); timeStampSetter_ = TimerNow; }
+		// With this you can disable object rendering for reflections
+		inline void SetInvisibleInReflections(bool value) { FLAG_SETTER(flags_, RenderableFlags::INVISIBLE_IN_REFLECTIONS); timeStampSetter_ = TimerNow; }
+		inline void SetWetmapEnabled(bool value) { FLAG_SETTER(flags_, RenderableFlags::WETMAP_ENABLED); timeStampSetter_ = TimerNow; }
 
-		inline void DisableShadowCast(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::DISABLE_SHADOW_CAST); timeStampSetter_ = TimerNow; }
-		inline void DisableShadowReceive(const bool enabled) { FLAG_SETTER(flags_, RenderableFlags::DISABLE_SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
+		inline void SetSlicerSolidFillEnabled(const bool value) { UNFLAG_SETTER(flags_, RenderableFlags::SLICER_NO_SOLID_FILL); timeStampSetter_ = TimerNow; }
+
+		inline void DisableShadowCast(const bool value) { FLAG_SETTER(flags_, RenderableFlags::DISABLE_SHADOW_CAST); timeStampSetter_ = TimerNow; }
+		inline void DisableShadowReceive(const bool value) { FLAG_SETTER(flags_, RenderableFlags::DISABLE_SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
 
 		inline bool IsShadowCastDisabled() const { return flags_ & SCU32(RenderableFlags::DISABLE_SHADOW_CAST); }
 		inline bool IsShadowReceiveDisabled() const { return flags_ & SCU32(RenderableFlags::DISABLE_SHADOW_RECEIVE); }
 		inline bool IsSlicerSolidFill() const { return !(flags_ & RenderableFlags::SLICER_NO_SOLID_FILL); };
+
+		inline bool IsInvisibleInMainCamera() const { return flags_ & INVISIBLE_IN_MAIN_CAMERA; }
+		inline bool IsInvisibleInReflections() const { return flags_ & INVISIBLE_IN_REFLECTIONS; }
+		inline bool IsWetmapEnabled() const { return flags_ & WETMAP_ENABLED; }
 
 		inline float GetFadeDistance() const { return fadeDistance_; }
 		inline float GetVisibleRadius() const { return visibleRadius_; }

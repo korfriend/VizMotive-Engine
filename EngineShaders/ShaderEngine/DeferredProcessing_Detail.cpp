@@ -388,7 +388,7 @@ namespace vz::renderer
 		}
 	}
 
-	void GRenderPath3DDetails::BlockCompress(const graphics::Texture& texture_src, graphics::Texture& texture_bc, graphics::CommandList cmd, uint32_t dst_slice_offset)
+	void GRenderPath3DDetails::BlockCompress(const graphics::Texture& texture_src, const graphics::Texture& texture_bc, graphics::CommandList cmd, uint32_t dst_slice_offset)
 	{
 		const uint32_t block_size = GetFormatBlockSize(texture_bc.desc.format);
 		TextureDesc desc;

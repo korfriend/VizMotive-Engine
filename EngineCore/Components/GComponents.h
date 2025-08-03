@@ -625,6 +625,7 @@ namespace vz
 
 	struct CORE_EXPORT GEnvironmentComponent : EnvironmentComponent
 	{
+		GEnvironmentComponent() : EnvironmentComponent(0, 0) {}
 		GEnvironmentComponent(const Entity entity, const VUID vuid = 0) : EnvironmentComponent(entity, vuid) {}
 		virtual ~GEnvironmentComponent() = default;
 
