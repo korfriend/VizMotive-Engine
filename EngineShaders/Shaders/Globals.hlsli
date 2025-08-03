@@ -387,6 +387,7 @@ RWTexture2D<float> bindless_rwtextures_float[] : register(space116);
 
 
 #include "ShaderInterop.h"
+#include "ShaderInterop_Renderer.h"
 
 #if defined(__spirv__)
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMeshInstance> bindless_structured_meshinstance[];

@@ -76,6 +76,9 @@
     <Filter Include="FFX Packages\ffx-shadows-dnsr">
       <UniqueIdentifier>{fcb41e9f-0596-4282-8a0c-516b6d8f7951}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compute Shaders\Environment">
+      <UniqueIdentifier>{ad0c38d6-f368-432b-a2c4-e611fea298eb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)compile.bat">
@@ -319,6 +322,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)ffx-shadows-dnsr\ffx_denoiser_shadows_util.h">
       <Filter>FFX Packages\ffx-shadows-dnsr</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Renderer.h">
+      <Filter>Interop %28root%29</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -723,6 +729,42 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\skyPS_static.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_shadow_renderCS.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS_capture.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS_capture_MSAA.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\aerialPerspectiveCS_capture.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\aerialPerspectiveCS_capture_MSAA.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\aerialPerspectiveCS.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_cameraVolumeLutCS.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_multiScatteredLuminanceLutCS.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_skyLuminanceLutCS.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_skyViewLutCS.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_transmittanceLutCS.hlsl">
+      <Filter>Compute Shaders\Environment</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

@@ -26,8 +26,6 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::UpdateProcess(const float dt)
 	{
-		scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
-
 		// Frustum culling for main camera:
 		visMain.layerMask = layerMask_;
 		LayeredMaskComponent* layeredmask = camera->GetLayeredMaskComponent();
@@ -55,9 +53,9 @@ namespace vz::renderer
 			visReflection.camera = &cameraReflection;
 			visReflection.layerMask = layeredmaskReflection.GetVisibleLayerMask();
 			visReflection.flags =
-				//renderer::View::ALLOW_OBJECTS |
-				//renderer::View::ALLOW_EMITTERS |
-				//renderer::View::ALLOW_HAIRS |
+				renderer::Visibility::ALLOW_RENDERABLES |
+				//renderer::Visibility::ALLOW_EMITTERS |
+				//renderer::Visibility::ALLOW_HAIRS |
 				renderer::Visibility::ALLOW_LIGHTS;
 			UpdateVisibility(visReflection);
 		}
@@ -68,7 +66,7 @@ namespace vz::renderer
 			*scene,
 			visMain,
 			frameCB,
-			renderer::isSceneUpdateEnabled ? dt : 0
+			scene_Gdetails->isSceneEffectUpdateEnabled ? dt : 0
 		);
 
 
@@ -1339,6 +1337,9 @@ namespace vz::renderer
 			ResizeCanvas(canvasWidth_, canvasHeight_);
 		}
 
+		scene_Gdetails = (GSceneDetails*)scene->GetGSceneHandle();
+		scene_Gdetails->isSceneEffectUpdateEnabled = false;
+
 		// color space check
 		// if swapChain is invalid, rtRenderFinal_ is supposed to be valid!
 		if (swapChain_.IsValid())
@@ -1375,6 +1376,16 @@ namespace vz::renderer
 		else
 		{
 			vzlog_assert(camera->GetComponentType() == ComponentType::CAMERA, "RenderProcess requires CAMERA component!!");
+
+			if (scene_Gdetails->cameraMain == nullptr)
+			{
+				scene_Gdetails->cameraMain = (GCameraComponent*)camera;
+			}
+			if (scene_Gdetails->cameraMain == camera && dt != 0)
+			{
+				scene_Gdetails->isSceneEffectUpdateEnabled = true;
+			}
+
 			RenderProcess();
 		}
 		profiler::EndRange(range);
@@ -1457,7 +1468,7 @@ namespace vz::renderer
 			BindCameraCB(*camera, cameraPrevious, cameraReflection, cmd);
 			UpdateRenderDataAsync(visMain, frameCB, cmd);
 
-			if (isWetmapRefreshEnabled)
+			if (scene_Gdetails->isWetmapRefreshEnabled)
 			{
 				RefreshWetmaps(visMain, cmd);
 			}
@@ -1746,22 +1757,23 @@ namespace vz::renderer
 		//}
 
 		// Updating textures:
-		//if (getSceneUpdateEnabled())
-		//{
-		//	cmd = device->BeginCommandList();
+		if (scene_Gdetails->isSceneEffectUpdateEnabled)
+		{
+			cmd = device->BeginCommandList();
 			device->WaitCommandList(cmd, cmd_prepareframe_async);
-		//	jobsystem::Execute(ctx, [cmd, this](jobsystem::JobArgs args) {
-		//		BindCommonResources(cmd);
-		//		BindCameraCB(
-		//			*camera,
-		//			cameraPrevious,
-		//			cameraReflection,
-		//			cmd
-		//		);
-		//		renderer::RefreshLightmaps(*scene, cmd);
-		//		renderer::RefreshEnvProbes(visibility_main, cmd);
-		//		});
-		//}
+			jobsystem::Execute(ctx, [cmd, this](jobsystem::JobArgs args) {
+				BindCommonResources(cmd);
+				BindCameraCB(
+					*camera,
+					cameraPrevious,
+					cameraReflection,
+					cmd
+				);
+				RefreshLightmaps(*scene, cmd);
+				RefreshEnvProbes(visMain, cmd);
+				//renderer::PaintDecals(*scene, cmd);
+				});
+		}
 
 		//if (getReflectionsEnabled() && visibility_main.IsRequestedPlanarReflections())
 		//{
@@ -2063,7 +2075,25 @@ namespace vz::renderer
 					cmd,
 					drawscene_regular_flags
 				);
+				DrawSky(cmd);
 				profiler::EndRange(range); // Opaque Scene
+			}
+
+			// Blend Aerial Perspective on top:
+			if (scene_Gdetails->environment->IsRealisticSky() && scene_Gdetails->environment->IsRealisticSkyAerialPerspective())
+			{
+				//device->EventBegin("Aerial Perspective Blend", cmd);
+				//image::Params fx;
+				//fx.enableFullScreen();
+				//fx.blendFlag = BLENDMODE_PREMULTIPLIED;
+				//image::Draw(&aerialperspectiveResources.texture_output, fx, cmd);
+				//device->EventEnd(cmd);
+			}
+
+			// Blend the volumetric clouds on top:
+			if (scene_Gdetails->environment->IsVolumetricClouds())
+			{
+				//renderer::Postprocess_VolumetricClouds_Upsample(volumetriccloudResources, cmd);
 			}
 
 			//RenderOutline(cmd);

@@ -45,9 +45,9 @@ namespace vz::renderer
 			EMPTY = 0,
 			ALLOW_RENDERABLES = 1 << 0,
 			ALLOW_LIGHTS = 1 << 1,
-			//ALLOW_DECALS = 1 << 2,
-			//ALLOW_ENVPROBES = 1 << 3,
-			//ALLOW_EMITTERS = 1 << 4,
+			ALLOW_DECALS = 1 << 2,
+			ALLOW_ENVPROBES = 1 << 3,
+			ALLOW_EMITTERS = 1 << 4,
 			ALLOW_OCCLUSION_CULLING = 1 << 5,
 			ALLOW_SHADOW_ATLAS_PACKING = 1 << 6,
 
@@ -66,7 +66,7 @@ namespace vz::renderer
 		std::vector<uint32_t> visibleRenderables_GSplat;
 
 		//std::vector<uint32_t> visibleDecals;
-		//std::vector<uint32_t> visibleEnvProbes;
+		std::vector<uint32_t> visibleEnvProbes;
 		//std::vector<uint32_t> visibleEmitters;
 		std::vector<uint32_t> visibleLights; // scene_Gdetails->lightComponents
 		std::vector<ColliderComponent> visibleColliders;
@@ -94,7 +94,7 @@ namespace vz::renderer
 			visibleRenderables_GSplat.clear();
 			visibleLights.clear();
 			//visibleDecals.clear();
-			//visibleEnvProbes.clear();
+			visibleEnvProbes.clear();
 			//visibleEmitters.clear();
 
 			counterRenderableMesh.store(0);
@@ -548,17 +548,18 @@ namespace vz::renderer
 		void UpdateRenderDataAsync(const renderer::Visibility& vis, const FrameCB& frameCB, CommandList cmd);
 
 		void RefreshLightmaps(const Scene& scene, CommandList cmd);
+		void RefreshEnvProbes(const Visibility& vis, CommandList cmd);
 		void RefreshWetmaps(const Visibility& vis, CommandList cmd);
 
 		void TextureStreamingReadbackCopy(const Scene& scene, graphics::CommandList cmd);
 
-		void GenerateMipChain(const Texture& texture, MIPGENFILTER filter, CommandList cmd, const MIPGEN_OPTIONS& options);
+		void GenerateMipChain(const Texture& texture, MIPGENFILTER filter, CommandList cmd, const MIPGEN_OPTIONS& options = {});
 
 		// Compress a texture into Block Compressed format
 		//	textureSrc	: source uncompressed texture
 		//	textureBC	: destination compressed texture, must be a supported BC format (BC1/BC3/BC4/BC5/BC6H_UFLOAT)
 		//	Currently this will handle simple Texture2D with mip levels, and additionally BC6H cubemap
-		void BlockCompress(const graphics::Texture& textureSrc, graphics::Texture& textureBC, graphics::CommandList cmd, uint32_t dstSliceOffset = 0);
+		void BlockCompress(const graphics::Texture& textureSrc, const graphics::Texture& textureBC, graphics::CommandList cmd, uint32_t dstSliceOffset = 0);
 		// Updates the per camera constant buffer need to call for each different camera that is used when calling DrawScene() and the like
 		//	cameraPrevious : camera from previous frame, used for reprojection effects.
 		//	cameraReflection : camera that renders planar reflection
@@ -581,6 +582,11 @@ namespace vz::renderer
 		void Visibility_Surface(const VisibilityResources& res, const Texture& output, CommandList cmd);
 		void Visibility_Surface_Reduced(const VisibilityResources& res, CommandList cmd);
 		void Visibility_Shade(const VisibilityResources& res, const Texture& output, CommandList cmd);
+
+		void ComputeVolumetricCloudShadows(CommandList cmd, const Texture* envMapFirst, const Texture* envMapSecond);
+		void ComputeSkyAtmosphereTextures(CommandList cmd);
+		void ComputeSkyAtmosphereSkyViewLut(CommandList cmd);
+		void ComputeSkyAtmosphereCameraVolumeLut(CommandList cmd);
 
 		// render based on raster-graphics pipeline
 		void DrawScene(const Visibility& vis, RENDERPASS renderPass, CommandList cmd, uint32_t flags);

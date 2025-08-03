@@ -94,8 +94,11 @@ namespace vz::renderer
 		float deltaTime = 0.f;
 		const Scene* GetScene() const { return scene_; }
 
-		GEnvironmentComponent* envrironment = nullptr;
+		GEnvironmentComponent environmentDefault;
+		GEnvironmentComponent* environment = nullptr;
+		GCameraComponent* cameraMain = nullptr;
 		GProbeComponent globalDynamicProbe;
+
 
 		std::vector<GGeometryComponent*> geometryComponents; // cached (non enclosing for jobsystem)
 		std::vector<GMaterialComponent*> materialComponents; // cached (non enclosing for jobsystem)
@@ -112,14 +115,17 @@ namespace vz::renderer
 
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
+
 		//const bool occlusionQueryEnabled = false;
 		//const bool cameraFreezeCullingEnabled = false;
 		bool isWetmapProcessingRequired = false;
 		bool isOutlineEnabled = false;
+		bool isWetmapRefreshEnabled = false;
+		bool isSceneEffectUpdateEnabled = false;	// scene preparation for 3D effect, not affecting Slicer
+		bool isAccelerationStructureUpdateRequested = false;
 
 		ShaderScene shaderscene = {};
 
-		bool isAccelerationStructureUpdateRequested = false;
 		graphics::RaytracingAccelerationStructure TLAS;
 		graphics::GPUBuffer TLAS_instancesUpload[graphics::GraphicsDevice::GetBufferCount()];
 		void* TLAS_instancesMapped = nullptr;

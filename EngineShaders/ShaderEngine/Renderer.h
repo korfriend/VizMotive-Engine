@@ -9,6 +9,7 @@
 #include "Utils/Spinlock.h"
 
 #include "../Shaders/ShaderInterop.h"
+#include "../Shaders/ShaderInterop_Renderer.h"
 #include "../Shaders/ShaderInterop_Postprocess.h"
 #include "../Shaders/ShaderInterop_DVR.h"
 #include "../Shaders/ShaderInterop_GaussianSplatting.h"
@@ -66,13 +67,15 @@ namespace vz::renderer
 	// textures
 	enum TEXTYPES
 	{
-		//TEXTYPE_2D_SKYATMOSPHERE_TRANSMITTANCELUT,
-		//TEXTYPE_2D_SKYATMOSPHERE_MULTISCATTEREDLUMINANCELUT,
-		//TEXTYPE_2D_SKYATMOSPHERE_SKYVIEWLUT,
-		//TEXTYPE_2D_SKYATMOSPHERE_SKYLUMINANCELUT,
-		//TEXTYPE_3D_SKYATMOSPHERE_CAMERAVOLUMELUT,
+		TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW,
+		TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW_GAUSSIAN_TEMP,
+		TEXTYPE_2D_SKYATMOSPHERE_TRANSMITTANCELUT,
+		TEXTYPE_2D_SKYATMOSPHERE_MULTISCATTEREDLUMINANCELUT,
+		TEXTYPE_2D_SKYATMOSPHERE_SKYVIEWLUT,
+		TEXTYPE_2D_SKYATMOSPHERE_SKYLUMINANCELUT,
+		TEXTYPE_3D_SKYATMOSPHERE_CAMERAVOLUMELUT,
 		TEXTYPE_2D_SHEENLUT,
-		//TEXTYPE_2D_CAUSTICS,
+		TEXTYPE_2D_CAUSTICS,
 		TEXTYPE_COUNT
 	};
 
@@ -220,6 +223,11 @@ namespace vz::renderer
 	extern Sampler				samplers[SAMPLER_COUNT];
 	extern Texture				textures[TEXTYPE_COUNT];
 
+	extern Texture				textureShapeNoise;
+	extern Texture				textureDetailNoise;
+	extern Texture				textureCurlNoise;
+	extern Texture				textureEnvMap;
+
 	extern GPUBuffer			indirectDebugStatsReadback[GraphicsDevice::GetBufferCount()];
 	extern bool					indirectDebugStatsReadback_available[GraphicsDevice::GetBufferCount()];
 
@@ -250,12 +258,11 @@ namespace vz::renderer
 // ----- Rendering System Options -----
 namespace vz::renderer
 {
+	// configuration as renderer feature
 	extern float giBoost;
 	extern float renderingSpeed;
 	extern bool isOcclusionCullingEnabled;
 	extern bool isFreezeCullingCameraEnabled;
-	extern bool isWetmapRefreshEnabled;
-	extern bool isSceneUpdateEnabled;
 	extern bool isTemporalAAEnabled;
 	extern bool isTemporalAADebugEnabled;
 	extern bool isDisableAlbedoMaps;

@@ -216,7 +216,6 @@ namespace vz::renderer
 
 		if (vis.flags & Visibility::ALLOW_LIGHTS)
 		{
-			// 차이??
 			// Cull lights:
 			const uint32_t light_loop = (uint32_t)scene_Gdetails->lightComponents.size();
 			vis.visibleLights.resize(light_loop);
@@ -347,6 +346,22 @@ namespace vz::renderer
 					}
 				}
 
+				});
+		}
+
+		if (vis.flags & Visibility::ALLOW_ENVPROBES)
+		{
+			// Note: probes must be appended in order for correct blending, must not use parallelization!
+			jobsystem::Execute(ctx, [&](jobsystem::JobArgs args) {
+				for (size_t i = 0; i < scene_Gdetails->aabbProbes.size(); ++i)
+				{
+					const AABB& aabb = scene_Gdetails->aabbProbes[i];
+
+					if ((aabb.layerMask & vis.layerMask) && vis.frustum.CheckBoxFast(aabb))
+					{
+						vis.visibleEnvProbes.push_back((uint32_t)i);
+					}
+				}
 				});
 		}
 
@@ -510,8 +525,113 @@ namespace vz::renderer
 	}
 	void GRenderPath3DDetails::UpdatePerFrameData(Scene& scene, const Visibility& vis, FrameCB& frameCB, float dt)
 	{
-		GraphicsDevice* device = graphics::GetDevice();
+		// Calculate volumetric cloud shadow data:
+		GEnvironmentComponent* environment = scene_Gdetails->environment;
+		if (environment->IsVolumetricClouds() && environment->IsVolumetricCloudsCastShadow())
+		{
+			if (!textures[TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW].IsValid())
+			{
+				TextureDesc desc;
+				desc.type = TextureDesc::Type::TEXTURE_2D;
+				desc.width = 512;
+				desc.height = 512;
+				desc.format = Format::R11G11B10_FLOAT;
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+				device->CreateTexture(&desc, nullptr, &textures[TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW]);
+				device->SetName(&textures[TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW], "textures[TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW]");
+				device->CreateTexture(&desc, nullptr, &textures[TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW_GAUSSIAN_TEMP]);
+				device->SetName(&textures[TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW_GAUSSIAN_TEMP], "textures[TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW_GAUSSIAN_TEMP]");
+			}
 
+			const float cloudShadowSnapLength = 5000.0f;
+			const float cloudShadowExtent = 10000.0f; // The cloud shadow bounding box size
+			const float cloudShadowNearPlane = 0.0f;
+			const float cloudShadowFarPlane = cloudShadowExtent * 2.0;
+
+			const float metersToSkyUnit = 0.001f; // Engine units are in meters (must be same as globals.hlsli)
+			const float skyUnitToMeters = 1.0f / metersToSkyUnit;
+
+			const EnvironmentComponent::AtmosphereParameters& atmosphere_parameters = environment->GetAtmosphereParameters();
+
+			XMVECTOR atmosphereCenter = XMLoadFloat3(&atmosphere_parameters.planetCenter);
+			XMVECTOR sunDirection = XMLoadFloat3(&environment->GetSunDirection());
+			const float planetRadius = atmosphere_parameters.bottomRadius;
+
+			// Point on the surface of the planet relative to camera position and planet normal
+			XMVECTOR lookAtPosition = XMVector3Normalize(XMLoadFloat3(&camera->GetWorldEye()) - (atmosphereCenter * skyUnitToMeters));
+			lookAtPosition = (atmosphereCenter + lookAtPosition * planetRadius) * skyUnitToMeters;
+
+			// Snap with user defined value
+			lookAtPosition = XMVectorFloor(XMVectorAdd(lookAtPosition, XMVectorReplicate(0.5f * cloudShadowSnapLength)) / cloudShadowSnapLength) * cloudShadowSnapLength;
+
+			XMVECTOR lightPosition = lookAtPosition + sunDirection * cloudShadowExtent; // far plane not needed here
+
+			const XMMATRIX lightRotation = XMMatrixRotationQuaternion(XMLoadFloat4(&environment->starsRotationQuaternion)); // We only care about prioritized directional light anyway
+			const XMVECTOR up = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), lightRotation);
+
+			XMMATRIX cloudShadowProjection = XMMatrixOrthographicOffCenterLH(-cloudShadowExtent, cloudShadowExtent, -cloudShadowExtent, cloudShadowExtent, cloudShadowNearPlane, cloudShadowFarPlane);
+			XMMATRIX cloudShadowView = XMMatrixLookAtLH(lightPosition, lookAtPosition, up);
+
+			XMMATRIX cloudShadowLightSpaceMatrix = XMMatrixMultiply(cloudShadowView, cloudShadowProjection);
+			XMMATRIX cloudShadowLightSpaceMatrixInverse = XMMatrixInverse(nullptr, cloudShadowLightSpaceMatrix);
+
+			XMStoreFloat4x4(&frameCB.cloudShadowLightSpaceMatrix, cloudShadowLightSpaceMatrix);
+			XMStoreFloat4x4(&frameCB.cloudShadowLightSpaceMatrixInverse, cloudShadowLightSpaceMatrixInverse);
+			frameCB.cloudShadowFarPlaneKm = cloudShadowFarPlane * metersToSkyUnit;
+			frameCB.texture_volumetricclouds_shadow_index = device->GetDescriptorIndex(&textures[TEXTYPE_2D_VOLUMETRICCLOUDS_SHADOW], SubresourceType::SRV);
+		}
+
+		if (environment->IsRealisticSky() && !textures[TEXTYPE_2D_SKYATMOSPHERE_TRANSMITTANCELUT].IsValid())
+		{
+			TextureDesc desc;
+			desc.type = TextureDesc::Type::TEXTURE_2D;
+			desc.width = 256;
+			desc.height = 64;
+			desc.format = Format::R16G16B16A16_FLOAT;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			device->CreateTexture(&desc, nullptr, &textures[TEXTYPE_2D_SKYATMOSPHERE_TRANSMITTANCELUT]);
+			device->SetName(&textures[TEXTYPE_2D_SKYATMOSPHERE_TRANSMITTANCELUT], "textures[TEXTYPE_2D_SKYATMOSPHERE_TRANSMITTANCELUT]");
+
+			desc.type = TextureDesc::Type::TEXTURE_2D;
+			desc.width = 32;
+			desc.height = 32;
+			desc.format = Format::R16G16B16A16_FLOAT;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			device->CreateTexture(&desc, nullptr, &textures[TEXTYPE_2D_SKYATMOSPHERE_MULTISCATTEREDLUMINANCELUT]);
+			device->SetName(&textures[TEXTYPE_2D_SKYATMOSPHERE_MULTISCATTEREDLUMINANCELUT], "textures[TEXTYPE_2D_SKYATMOSPHERE_MULTISCATTEREDLUMINANCELUT]");
+
+			desc.type = TextureDesc::Type::TEXTURE_2D;
+			desc.width = 192;
+			desc.height = 104;
+			desc.format = Format::R16G16B16A16_FLOAT;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			device->CreateTexture(&desc, nullptr, &textures[TEXTYPE_2D_SKYATMOSPHERE_SKYVIEWLUT]);
+			device->SetName(&textures[TEXTYPE_2D_SKYATMOSPHERE_SKYVIEWLUT], "textures[TEXTYPE_2D_SKYATMOSPHERE_SKYVIEWLUT]");
+
+			desc.type = TextureDesc::Type::TEXTURE_2D;
+			desc.width = 1;
+			desc.height = 1;
+			desc.format = Format::R16G16B16A16_FLOAT;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			device->CreateTexture(&desc, nullptr, &textures[TEXTYPE_2D_SKYATMOSPHERE_SKYLUMINANCELUT]);
+			device->SetName(&textures[TEXTYPE_2D_SKYATMOSPHERE_SKYLUMINANCELUT], "textures[TEXTYPE_2D_SKYATMOSPHERE_SKYLUMINANCELUT]");
+
+			desc.type = TextureDesc::Type::TEXTURE_3D;
+			desc.width = 32;
+			desc.height = 32;
+			desc.depth = 32;
+			desc.format = Format::R16G16B16A16_FLOAT;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			device->CreateTexture(&desc, nullptr, &textures[TEXTYPE_3D_SKYATMOSPHERE_CAMERAVOLUMELUT]);
+			device->SetName(&textures[TEXTYPE_3D_SKYATMOSPHERE_CAMERAVOLUMELUT], "textures[TEXTYPE_3D_SKYATMOSPHERE_CAMERAVOLUMELUT]");
+		}
+		 
 		// Update CPU-side frame constant buffer:
 		frameCB.Init();
 		frameCB.delta_time = dt * renderingSpeed;
@@ -544,7 +664,7 @@ namespace vz::renderer
 			frameCB.options |= OPTION_BIT_FORCE_DIFFUSE_LIGHTING;
 		}
 		
-		if (scene_Gdetails->envrironment->skyMap.IsValid() && !has_flag(scene_Gdetails->envrironment->skyMap.GetTexture().desc.misc_flags, ResourceMiscFlag::TEXTURECUBE))
+		if (scene_Gdetails->environment->skyMap.IsValid() && !has_flag(scene_Gdetails->environment->skyMap.GetTexture().desc.misc_flags, ResourceMiscFlag::TEXTURECUBE))
 		{
 			frameCB.options |= OPTION_BIT_STATIC_SKY_SPHEREMAP;
 		}
@@ -606,7 +726,7 @@ namespace vz::renderer
 		frameCB.entity_culling_count = 0;
 		{
 			ShaderEntity* entity_array = frameCB.entityArray;
-			float4x4* light_matrix_array = frameCB.matrixArray;
+			float4x4* matrix_array = frameCB.matrixArray;
 
 			uint32_t entity_counter = 0;
 			uint32_t matrix_counter = 0;
@@ -695,62 +815,61 @@ namespace vz::renderer
 			//}
 
 			// Write environment probes into entity array:
-			//envprobearray_offset = entityCounter;
-			//const size_t probe_iterations = std::min((size_t)MAX_SHADER_PROBE_COUNT, vis.visibleEnvProbes.size());
-			//for (size_t i = 0; i < probe_iterations; ++i)
-			//{
-			//	if (entity_counter == SHADER_ENTITY_COUNT)
-			//	{
-			//		backlog::post("Shader Entity Overflow!! >> LIGHT PROBES");
-			//		entity_counter--;
-			//		break;
-			//	}
-			//	if (matrix_counter >= MATRIXARRAY_COUNT)
-			//	{
-			//		matrix_counter--;
-			//		break;
-			//	}
-			//	ShaderEntity shaderentity = {};
-			//	XMMATRIX shadermatrix;
-			//
-			//	const uint32_t probeIndex = vis.visibleEnvProbes[vis.visibleEnvProbes.size() - 1 - i]; // note: reverse order, for correct blending!
-			//	const EnvironmentProbeComponent& probe = vis.scene->probes[probeIndex];
-			//
-			//	shaderentity = {}; // zero out!
-			//	shaderentity.layerMask = ~0u;
-			//
-			//	Entity entity = vis.scene->probes.GetEntity(probeIndex);
-			//	const LayerComponent* layer = vis.scene->layers.GetComponent(entity);
-			//	if (layer != nullptr)
-			//	{
-			//		shaderentity.layerMask = layer->layerMask;
-			//	}
-			//
-			//	shaderentity.SetType(ENTITY_TYPE_ENVMAP);
-			//	shaderentity.position = probe.position;
-			//	shaderentity.SetRange(probe.range);
-			//
-			//	shaderentity.SetIndices(matrixCounter, 0);
-			//	shadermatrix = XMLoadFloat4x4(&probe.inverseMatrix);
-			//
-			//	int texture = -1;
-			//	if (probe.texture.IsValid())
-			//	{
-			//		texture = device->GetDescriptorIndex(&probe.texture, SubresourceType::SRV);
-			//	}
-			//
-			//	shadermatrix.r[0] = XMVectorSetW(shadermatrix.r[0], *(float*)&texture);
-			//	shadermatrix.r[1] = XMVectorSetW(shadermatrix.r[1], 0);
-			//	shadermatrix.r[2] = XMVectorSetW(shadermatrix.r[2], 0);
-			//	shadermatrix.r[3] = XMVectorSetW(shadermatrix.r[3], 0);
-			//
-			//	XMStoreFloat4x4(matrixArray + matrixCounter, shadermatrix);
-			//	matrixCounter++;
-			//
-			//	std::memcpy(entityArray + entityCounter, &shaderentity, sizeof(ShaderEntity));
-			//	entityCounter++;
-			//	envprobearray_count++;
-			//}
+			envprobearray_offset = entity_counter;
+			const size_t probe_iterations = std::min((size_t)MAX_SHADER_PROBE_COUNT, vis.visibleEnvProbes.size());
+			for (size_t i = 0; i < probe_iterations; ++i)
+			{
+				if (entity_counter == SHADER_ENTITY_COUNT)
+				{
+					backlog::post("Shader Entity Overflow!! >> LIGHT PROBES");
+					entity_counter--;
+					break;
+				}
+				if (matrix_counter >= MATRIXARRAY_COUNT)
+				{
+					matrix_counter--;
+					break;
+				}
+				ShaderEntity shaderentity = {};
+				XMMATRIX shadermatrix;
+
+				const uint32_t probeIndex = vis.visibleEnvProbes[vis.visibleEnvProbes.size() - 1 - i]; // note: reverse order, for correct blending!
+				const GProbeComponent& probe = *scene_Gdetails->probeComponents[probeIndex];
+
+				shaderentity = {}; // zero out!
+				shaderentity.layerMask = ~0u;
+
+				const LayeredMaskComponent* layer = probe.layeredmask;
+				if (layer != nullptr)
+				{
+					shaderentity.layerMask = layer->GetVisibleLayerMask();
+				}
+
+				shaderentity.SetType(ENTITY_TYPE_ENVMAP);
+				shaderentity.position = probe.position;
+				shaderentity.SetRange(probe.range);
+
+				shaderentity.SetIndices(matrix_counter, 0);
+				shadermatrix = XMLoadFloat4x4(&probe.inverseMatrix);
+
+				int texture = -1;
+				if (probe.texture.IsValid())
+				{
+					texture = device->GetDescriptorIndex(&probe.texture, SubresourceType::SRV);
+				}
+
+				shadermatrix.r[0] = XMVectorSetW(shadermatrix.r[0], *(float*)&texture);
+				shadermatrix.r[1] = XMVectorSetW(shadermatrix.r[1], 0);
+				shadermatrix.r[2] = XMVectorSetW(shadermatrix.r[2], 0);
+				shadermatrix.r[3] = XMVectorSetW(shadermatrix.r[3], 0);
+
+				XMStoreFloat4x4(matrix_array + matrix_counter, shadermatrix);
+				matrix_counter++;
+
+				std::memcpy(entity_array + matrix_counter, &shaderentity, sizeof(ShaderEntity));
+				matrix_counter++;
+				envprobearray_count++;
+			}
 
 			const XMFLOAT2 atlas_dim_rcp = XMFLOAT2(1.0f / float(shadowMapAtlas.desc.width), 1.0f / float(shadowMapAtlas.desc.height));
 
@@ -814,7 +933,7 @@ namespace vz::renderer
 					CreateDirLightShadowCams(light, *vis.camera, shcams, cascade_count, shadow_rect);
 					for (size_t cascade = 0; cascade < cascade_count; ++cascade)
 					{
-						XMStoreFloat4x4(&light_matrix_array[matrix_counter++], shcams[cascade].view_projection);
+						XMStoreFloat4x4(&matrix_array[matrix_counter++], shcams[cascade].view_projection);
 					}
 				}
 
@@ -906,7 +1025,7 @@ namespace vz::renderer
 				{
 					SHCAM shcam;
 					CreateSpotLightShadowCam(light, shcam);
-					XMStoreFloat4x4(&light_matrix_array[matrix_counter++], shcam.view_projection);
+					XMStoreFloat4x4(&matrix_array[matrix_counter++], shcam.view_projection);
 				}
 
 				if (light.IsCastingShadow())
@@ -1913,7 +2032,7 @@ namespace vz::renderer
 		for (size_t i = 0; i < std::min(size_t(64), vis.visibleLights.size()); ++i) // only support indexing 64 lights at max for now
 		{
 			const uint32_t lightIndex = vis.visibleLights[i];
-			const AABB& light_aabb = scene_Gdetails->GetScene()->GetLightAABBs()[lightIndex];
+			const AABB& light_aabb = scene_Gdetails->aabbLights[lightIndex];
 			if (light_aabb.intersects(batch_aabb))
 			{
 				const uint8_t bucket_index = uint8_t(i / 32);
@@ -1935,169 +2054,21 @@ namespace vz::renderer
 		//	}
 		//}
 
-		//if (renderPass != RENDERPASS_ENVMAPCAPTURE)
-		//{
-		//	for (size_t i = 0; i < std::min(size_t(32), vis.visibleEnvProbes.size()); ++i)
-		//	{
-		//		const uint32_t probeIndex = vis.visibleEnvProbes[vis.visibleEnvProbes.size() - 1 - i]; // note: reverse order, for correct blending!
-		//		const AABB& probe_aabb = vis.scene->aabb_probes[probeIndex];
-		//		if (probe_aabb.intersects(batch_aabb))
-		//		{
-		//			const uint8_t bucket_place = uint8_t(i % 32);
-		//			cb.xForwardEnvProbeMask |= 1 << bucket_place;
-		//		}
-		//	}
-		//}
-
-		return cb;
-	}
-
-	void GRenderPath3DDetails::RefreshLightmaps(const Scene& scene, CommandList cmd)
-	{
-		// TODO for lightmap_request_allocator
-		/*
-		const uint32_t lightmap_request_count = lightmapRequestAllocator.load();
-		if (lightmap_request_count > 0)
+		if (renderPass != RENDERPASS_ENVMAPCAPTURE)
 		{
-			auto range = profiler::BeginRangeGPU("Lightmap Processing", cmd);
-
-			if (!scene.TLAS.IsValid() && !scene.BVH.IsValid())
-				return;
-
-			jobsystem::Wait(raytracing_ctx);
-
-			BindCommonResources(cmd);
-
-			// Render lightmaps for each object:
-			for (uint32_t requestIndex = 0; requestIndex < lightmap_request_count; ++requestIndex)
+			for (size_t i = 0; i < std::min(size_t(32), vis.visibleEnvProbes.size()); ++i)
 			{
-				uint32_t objectIndex = *(scene.lightmap_requests.data() + requestIndex);
-				const ObjectComponent& object = scene.objects[objectIndex];
-				if (!object.lightmap.IsValid())
-					continue;
-
-				if (object.IsLightmapRenderRequested())
+				const uint32_t probeIndex = vis.visibleEnvProbes[vis.visibleEnvProbes.size() - 1 - i]; // note: reverse order, for correct blending!
+				const AABB& probe_aabb = scene_Gdetails->aabbProbes[probeIndex];
+				if (probe_aabb.intersects(batch_aabb))
 				{
-					device->EventBegin("RenderObjectLightMap", cmd);
-
-					const MeshComponent& mesh = scene.meshes[object.mesh_index];
-					assert(!mesh.vertex_atlas.empty());
-					assert(mesh.vb_atl.IsValid());
-
-					const TextureDesc& desc = object.lightmap.GetDesc();
-
-					if (object.lightmapIterationCount == 0)
-					{
-						RenderPassImage rp = RenderPassImage::RenderTarget(&object.lightmap, RenderPassImage::LoadOp::CLEAR);
-						device->RenderPassBegin(&rp, 1, cmd);
-					}
-					else
-					{
-						RenderPassImage rp = RenderPassImage::RenderTarget(&object.lightmap, RenderPassImage::LoadOp::LOAD);
-						device->RenderPassBegin(&rp, 1, cmd);
-					}
-
-					Viewport vp;
-					vp.width = (float)desc.width;
-					vp.height = (float)desc.height;
-					device->BindViewports(1, &vp, cmd);
-
-					device->BindPipelineState(&PSO_renderlightmap, cmd);
-
-					device->BindIndexBuffer(&mesh.generalBuffer, mesh.GetIndexFormat(), mesh.ib.offset, cmd);
-
-					LightmapPushConstants push;
-					push.vb_pos_w = mesh.vb_pos_wind.descriptor_srv;
-					push.vb_nor = mesh.vb_nor.descriptor_srv;
-					push.vb_atl = mesh.vb_atl.descriptor_srv;
-					push.instanceIndex = objectIndex;
-					device->PushConstants(&push, sizeof(push), cmd);
-
-					RaytracingCB cb;
-					cb.xTraceResolution.x = desc.width;
-					cb.xTraceResolution.y = desc.height;
-					cb.xTraceResolution_rcp.x = 1.0f / cb.xTraceResolution.x;
-					cb.xTraceResolution_rcp.y = 1.0f / cb.xTraceResolution.y;
-					XMFLOAT4 halton = math::GetHaltonSequence(object.lightmapIterationCount); // for jittering the rasterization (good for eliminating atlas border artifacts)
-					cb.xTracePixelOffset.x = (halton.x * 2 - 1) * cb.xTraceResolution_rcp.x;
-					cb.xTracePixelOffset.y = (halton.y * 2 - 1) * cb.xTraceResolution_rcp.y;
-					cb.xTracePixelOffset.x *= 1.4f;	// boost the jitter by a bit
-					cb.xTracePixelOffset.y *= 1.4f;	// boost the jitter by a bit
-					cb.xTraceAccumulationFactor = 1.0f / (object.lightmapIterationCount + 1.0f); // accumulation factor (alpha)
-					cb.xTraceUserData.x = raytraceBounceCount;
-					uint8_t instanceInclusionMask = 0xFF;
-					cb.xTraceUserData.y = instanceInclusionMask;
-					cb.xTraceSampleIndex = object.lightmapIterationCount;
-					device->BindDynamicConstantBuffer(cb, CB_GETBINDSLOT(RaytracingCB), cmd);
-
-					uint32_t first_subset = 0;
-					uint32_t last_subset = 0;
-					mesh.GetLODSubsetRange(0, first_subset, last_subset);
-					for (uint32_t subsetIndex = first_subset; subsetIndex < last_subset; ++subsetIndex)
-					{
-						const MeshComponent::MeshSubset& subset = mesh.subsets[subsetIndex];
-						if (subset.indexCount == 0)
-							continue;
-						device->DrawIndexed(subset.indexCount, subset.indexOffset, 0, cmd);
-					}
-					object.lightmapIterationCount++;
-
-					device->RenderPassEnd(cmd);
-
-					device->EventEnd(cmd);
+					const uint8_t bucket_place = uint8_t(i % 32);
+					cb.xForwardEnvProbeMask |= 1 << bucket_place;
 				}
 			}
-
-			profiler::EndRange(range);
-		}
-		/**/
-	}
-
-	void GRenderPath3DDetails::RefreshWetmaps(const Visibility& vis, CommandList cmd)
-	{
-		return; // this will be useful for wetmap simulation for rainny weather...
-
-		device->EventBegin("RefreshWetmaps", cmd);
-
-		BindCommonResources(cmd);
-		device->BindComputeShader(&shaders[CSTYPE_WETMAP_UPDATE], cmd);
-
-		WetmapPush push = {};
-		push.wet_amount = 1.f;
-
-		// Note: every object wetmap is updated, not just visible
-		for (uint32_t i = 0, n = (uint32_t)vis.visibleRenderables_Mesh.size(); i < n; ++i)
-		{
-			push.instanceIndex = vis.visibleRenderables_Mesh[i];
-			GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[push.instanceIndex];
-
-			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
-
-			GGeometryComponent& geometry = *renderable.geometry;
-
-			std::vector<Entity> materials(renderable.GetNumParts());
-			assert(geometry.GetNumParts() == renderable.bufferEffects.size());
-			renderable.GetMaterials(materials.data());
-			for (size_t part_index = 0, n = renderable.bufferEffects.size(); part_index < n; ++part_index)
-			{
-				GPrimEffectBuffers& prim_effect_buffers = renderable.bufferEffects[part_index];
-				GMaterialComponent& material = *renderable.materials[part_index];
-				if (!material.IsWetmapEnabled() && prim_effect_buffers.wetmapBuffer.IsValid())
-					continue;
-				uint32_t vertex_count = uint32_t(prim_effect_buffers.wetmapBuffer.desc.size
-					/ GetFormatStride(prim_effect_buffers.wetmapBuffer.desc.format));
-				push.wetmap = device->GetDescriptorIndex(&prim_effect_buffers.wetmapBuffer, SubresourceType::UAV);
-				if (push.wetmap < 0)
-					continue;
-
-				push.subsetIndex = part_index;
-
-				device->PushConstants(&push, sizeof(push), cmd);
-				device->Dispatch((vertex_count + 63u) / 64u, 1, 1, cmd);
-			}
 		}
 
-		device->EventEnd(cmd);
+		return cb;
 	}
 
 	void GRenderPath3DDetails::CreateTiledLightResources(TiledLightResources& res, XMUINT2 resolution)
@@ -2126,9 +2097,9 @@ namespace vz::renderer
 		device->Barrier(GPUBarrier::Buffer(&res.entityTiles, ResourceState::SHADER_RESOURCE, ResourceState::UNORDERED_ACCESS), cmd);
 
 		if (
-			vis.visibleLights.empty() //&&
+			vis.visibleLights.empty() &&
 			//vis.visibleDecals.empty() &&
-			//vis.visibleEnvProbes.empty()
+			vis.visibleEnvProbes.empty()
 			)
 		{
 			device->EventBegin("Tiled Entity Clear Only", cmd);

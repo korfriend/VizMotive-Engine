@@ -752,7 +752,12 @@ namespace vz
 
 		font::UpdateAtlas();
 
-		envrironment = (GEnvironmentComponent*)compfactory::GetEnvironmentComponent(scene_->GetEnvironment());
+		environment = (GEnvironmentComponent*)compfactory::GetEnvironmentComponent(scene_->GetEnvironment());
+		if (environment == nullptr)
+		{
+			environment = &environmentDefault;
+		}
+		cameraMain = (GCameraComponent*)compfactory::GetCameraComponent(scene_->cameraMain);
 
 		lightComponents = scene_->GetLightComponents();
 		probeComponents = scene_->GetProbeComponents();
@@ -1099,24 +1104,24 @@ namespace vz
 		shaderscene.meshletbuffer = device->GetDescriptorIndex(&meshletBuffer, SubresourceType::SRV);
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
 		
-		if (envrironment->skyMap.IsValid())
+		if (environment->skyMap.IsValid())
 		{
-			shaderscene.globalenvmap = device->GetDescriptorIndex(&envrironment->skyMap.GetTexture(), SubresourceType::SRV, envrironment->skyMap.GetTextureSRGBSubresource());
+			shaderscene.globalenvmap = device->GetDescriptorIndex(&environment->skyMap.GetTexture(), SubresourceType::SRV, environment->skyMap.GetTextureSRGBSubresource());
 		}
 		else
 		{
 			shaderscene.globalenvmap = -1;
 		}
 
-		//if (probes.GetCount() > 0 && probes[0].texture.IsValid())
-		//{
-		//	shaderscene.globalprobe = device->GetDescriptorIndex(&probes[0].texture, SubresourceType::SRV);
-		//}
-		//else if (global_dynamic_probe.texture.IsValid())
-		//{
-		//	shaderscene.globalprobe = device->GetDescriptorIndex(&global_dynamic_probe.texture, SubresourceType::SRV);
-		//}
-		//else
+		if (probeComponents.size() > 0 && probeComponents[0]->texture.IsValid())
+		{
+			shaderscene.globalprobe = device->GetDescriptorIndex(&probeComponents[0]->texture, SubresourceType::SRV);
+		}
+		else if (globalDynamicProbe.texture.IsValid())
+		{
+			shaderscene.globalprobe = device->GetDescriptorIndex(&globalDynamicProbe.texture, SubresourceType::SRV);
+		}
+		else
 		{
 			shaderscene.globalprobe = -1;
 		}
@@ -1197,6 +1202,68 @@ namespace vz
 		//shaderscene.ddgi.cell_size_rcp.y = 1.0f / shaderscene.ddgi.cell_size.y;
 		//shaderscene.ddgi.cell_size_rcp.z = 1.0f / shaderscene.ddgi.cell_size.z;
 		//shaderscene.ddgi.max_distance = std::max(shaderscene.ddgi.cell_size.x, std::max(shaderscene.ddgi.cell_size.y, shaderscene.ddgi.cell_size.z)) * 1.5f;
+
+		// Create volumetric cloud static resources if needed:
+		if (environment->IsVolumetricClouds() && !textureShapeNoise.IsValid())
+		{
+			TextureDesc shape_desc;
+			shape_desc.type = TextureDesc::Type::TEXTURE_3D;
+			shape_desc.width = 64;
+			shape_desc.height = 64;
+			shape_desc.depth = 64;
+			shape_desc.mip_levels = 6;
+			shape_desc.format = Format::R8G8B8A8_UNORM;
+			shape_desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			shape_desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			device->CreateTexture(&shape_desc, nullptr, &textureShapeNoise);
+			device->SetName(&textureShapeNoise, "textureShapeNoise");
+
+			for (uint32_t i = 0; i < textureShapeNoise.GetDesc().mip_levels; ++i)
+			{
+				int subresource_index;
+				subresource_index = device->CreateSubresource(&textureShapeNoise, SubresourceType::SRV, 0, 1, i, 1);
+				assert(subresource_index == i);
+				subresource_index = device->CreateSubresource(&textureShapeNoise, SubresourceType::UAV, 0, 1, i, 1);
+				assert(subresource_index == i);
+			}
+
+			TextureDesc detail_desc;
+			detail_desc.type = TextureDesc::Type::TEXTURE_3D;
+			detail_desc.width = 32;
+			detail_desc.height = 32;
+			detail_desc.depth = 32;
+			detail_desc.mip_levels = 6;
+			detail_desc.format = Format::R8G8B8A8_UNORM;
+			detail_desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			detail_desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			device->CreateTexture(&detail_desc, nullptr, &textureDetailNoise);
+			device->SetName(&textureDetailNoise, "textureDetailNoise");
+
+			for (uint32_t i = 0; i < textureDetailNoise.GetDesc().mip_levels; ++i)
+			{
+				int subresource_index;
+				subresource_index = device->CreateSubresource(&textureDetailNoise, SubresourceType::SRV, 0, 1, i, 1);
+				assert(subresource_index == i);
+				subresource_index = device->CreateSubresource(&textureDetailNoise, SubresourceType::UAV, 0, 1, i, 1);
+				assert(subresource_index == i);
+			}
+
+			TextureDesc texture_desc;
+			texture_desc.type = TextureDesc::Type::TEXTURE_2D;
+			texture_desc.width = 128;
+			texture_desc.height = 128;
+			texture_desc.format = Format::R8G8B8A8_UNORM;
+			texture_desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			texture_desc.layout = ResourceState::SHADER_RESOURCE_COMPUTE;
+			device->CreateTexture(&texture_desc, nullptr, &textureCurlNoise);
+			device->SetName(&textureCurlNoise, "textureCurlNoise");
+
+			texture_desc.width = 1024;
+			texture_desc.height = 1024;
+			texture_desc.format = Format::R8G8B8A8_UNORM;
+			device->CreateTexture(&texture_desc, nullptr, &textureEnvMap);
+			device->SetName(&textureEnvMap, "textureEnvMap");
+		}
 
 		return true;
 	}

@@ -134,7 +134,7 @@ inline void light_directional(in ShaderEntity light, in Surface surface, inout L
 			
 #ifndef WATER
 	// On non-water surfaces there can be procedural caustic if it's under ocean:
-	//const ShaderOcean ocean = GetWeather().ocean;
+	//const ShaderOcean ocean = GetEnvironment().ocean;
 	//if (ocean.texture_displacementmap >= 0)
 	//{
 	//	Texture2D displacementmap = bindless_textures[descriptor_index(ocean.texture_displacementmap)];

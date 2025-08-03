@@ -27,8 +27,6 @@ namespace vz::renderer
 	float renderingSpeed = 1.f;
 	bool isOcclusionCullingEnabled = true;
 	bool isFreezeCullingCameraEnabled = false;
-	bool isWetmapRefreshEnabled = false;
-	bool isSceneUpdateEnabled = true;
 	bool isTemporalAAEnabled = true;
 	bool isTemporalAADebugEnabled = false;
 	bool isDisableAlbedoMaps = false;
@@ -63,6 +61,10 @@ namespace vz::renderer
 	// must be released
 	GPUBuffer			buffers[BUFFERTYPE_COUNT];		// engine
 	Texture				textures[TEXTYPE_COUNT];		// engine
+	Texture				textureShapeNoise;		// engine
+	Texture				textureDetailNoise;		// engine
+	Texture				textureCurlNoise;		// engine
+	Texture				textureEnvMap;			// engine
 
 	GPUBuffer			indirectDebugStatsReadback[GraphicsDevice::GetBufferCount()];
 	bool				indirectDebugStatsReadback_available[GraphicsDevice::GetBufferCount()] = {};
@@ -126,7 +128,6 @@ namespace vz::renderer
 			device->SetName(&buf, "indirectDebugStatsReadback");
 		}
 
-		// to do (future features)
 		{
 			TextureDesc desc;
 			desc.bind_flags = BindFlag::SHADER_RESOURCE;
@@ -138,6 +139,16 @@ namespace vz::renderer
 			InitData.row_pitch = desc.width;
 			device->CreateTexture(&desc, &InitData, &textures[TEXTYPE_2D_SHEENLUT]);
 			device->SetName(&textures[TEXTYPE_2D_SHEENLUT], "textures[TEXTYPE_2D_SHEENLUT]");
+		}
+		{
+			TextureDesc desc;
+			desc.type = TextureDesc::Type::TEXTURE_2D;
+			desc.format = Format::R8G8B8A8_UNORM;
+			desc.width = 256;
+			desc.height = 256;
+			desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+			device->CreateTexture(&desc, nullptr, &textures[TEXTYPE_2D_CAUSTICS]);
+			device->SetName(&textures[TEXTYPE_2D_CAUSTICS], "textures[TEXTYPE_2D_CAUSTICS]");
 		}
 	}
 	void SetUpStates()
@@ -550,6 +561,10 @@ namespace vz::renderer
 
 		ReleaseRenderRes(buffers, BUFFERTYPE_COUNT);
 		ReleaseRenderRes(textures, TEXTYPE_COUNT);
+		textureShapeNoise = {};
+		textureDetailNoise = {};
+		textureCurlNoise = {};
+		textureEnvMap = {};
 
 		ReleaseRenderRes(rasterizers, SAMPLER_COUNT);
 		ReleaseRenderRes(depthStencils, SAMPLER_COUNT);

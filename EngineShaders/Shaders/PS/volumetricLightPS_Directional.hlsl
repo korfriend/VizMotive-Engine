@@ -18,7 +18,7 @@ float4 main(VertexToPixel input) : SV_Target
 	V /= cameraDistance;
 
 	// Fix for ocean: because ocean is not in linear depth, we trace it instead
-	//const ShaderOcean ocean = GetWeather().ocean;
+	//const ShaderOcean ocean = GetEnvironment().ocean;
 	//if(ocean.IsValid() && V.y > 0)
 	//{
 	//	float3 ocean_surface_pos = intersectPlaneClampInfinite(GetCamera().position, V, float3(0, 1, 0), ocean.water_height);
@@ -86,7 +86,7 @@ float4 main(VertexToPixel input) : SV_Target
 	half3 atmosphere_transmittance = 1;
 	//if (GetFrame().options & OPTION_BIT_REALISTIC_SKY)
 	//{
-	//	atmosphere_transmittance = GetAtmosphericLightTransmittance(GetWeather().atmosphere, P, L, texture_transmittancelut);
+	//	atmosphere_transmittance = GetAtmosphericLightTransmittance(GetEnvironment().atmosphere, P, L, texture_transmittancelut);
 	//}
 
 	return max(0, half4(accumulation * light.GetColor().rgb * atmosphere_transmittance, 1));
