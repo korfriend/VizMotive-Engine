@@ -84,7 +84,7 @@ static const uint IndirectDispatchArgsAlignment = 4u;
 
 static const uint32_t SHADERTYPE_BIN_COUNT = 4;
 
-#define GLOBAL_WORLD_UP float3(0, 0, 1)
+#define GLOBAL_WORLD_UP float3(0, 1, 0)
 
 // Common buffers:
 // These are usable by all shaders

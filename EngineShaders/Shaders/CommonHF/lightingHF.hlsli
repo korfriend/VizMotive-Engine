@@ -370,7 +370,7 @@ inline half3 GetAmbient(in float3 N)
 	ambient = (half3)lerp(
 		GetDynamicSkyColor(-GLOBAL_WORLD_UP, false, false, true),
 		GetDynamicSkyColor(GLOBAL_WORLD_UP, false, false, true),
-		saturate(N.z * 0.5 + 0.5));
+		saturate(N.y * 0.5 + 0.5));
 
 #else
 
