@@ -388,5 +388,4 @@ namespace vz::renderer
 		profiler::EndRange(range_cpu);
 		device->EventEnd(cmd);
 	}
-	/**/
 }

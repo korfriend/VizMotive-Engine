@@ -368,9 +368,9 @@ inline half3 GetAmbient(in float3 N)
 
 	// Set realistic_sky_stationary to true so we capture ambient at float3(0.0, 0.0, 0.0), similar to the standard sky to avoid flickering and weird behavior
 	ambient = (half3)lerp(
-		GetDynamicSkyColor(float3(0, -1, 0), false, false, true),
-		GetDynamicSkyColor(float3(0, 1, 0), false, false, true),
-		saturate(N.y * 0.5 + 0.5));
+		GetDynamicSkyColor(-GLOBAL_WORLD_UP, false, false, true),
+		GetDynamicSkyColor(GLOBAL_WORLD_UP, false, false, true),
+		saturate(N.z * 0.5 + 0.5));
 
 #else
 

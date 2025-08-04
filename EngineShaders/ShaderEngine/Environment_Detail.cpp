@@ -500,7 +500,6 @@ namespace vz::renderer
 
 		BindCommonResources(cmd);
 
-
 		float z_near_p, z_far_p;
 		camera->GetNearFar(&z_near_p, &z_far_p);
 		const float z_near_p_rcp = 1.0f / z_near_p;

@@ -141,6 +141,7 @@ float3 GetDynamicSkyColor(in float2 pixel, in float3 V, bool sun_enabled = true,
     else
     {
 		sky = lerp(GetHorizonColor(), GetZenithColor(), saturate(V.y * 0.5f + 0.5f));
+		//sky = lerp(GetHorizonColor(), GetZenithColor(), saturate(V.z * 0.5f + 0.5f));
     }
 
 	sky *= GetEnvironment().sky_exposure;
@@ -170,7 +171,6 @@ float3 GetStaticSkyColor(in float3 V)
 	else
 	{
 		sky = bindless_cubemaps[descriptor_index(GetScene().globalenvmap)].SampleLevel(sampler_linear_clamp, V, 0).rgb;
-
 	}
 	
 	sky *= GetEnvironment().sky_exposure;

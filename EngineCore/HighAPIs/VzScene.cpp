@@ -137,6 +137,8 @@ namespace vzm
 			vzlog_error("VzScene(%s) has no EnvironmentComponent!", scene->GetSceneName().c_str());
 			return false;
 		}
+		env->SetRealisticSky(true);
+
 		return env->LoadSkyMap(iblPath);
 	}
 }
