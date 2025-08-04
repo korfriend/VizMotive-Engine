@@ -465,10 +465,10 @@ namespace vz
 		// recommend checking IsDirtyWorldMatrix with scene's timeStampWorldUpdate
 		inline const XMFLOAT3 GetWorldPosition() const;
 		inline const XMFLOAT4 GetWorldRotation() const;
-		inline const XMFLOAT3 GetWorldScale() const;
-		inline const XMFLOAT3 GetWorldForward() const; // z-axis
-		inline const XMFLOAT3 GetWorldUp() const;
-		inline const XMFLOAT3 GetWorldRight() const;
+		inline const XMFLOAT3 GetWorldScale() const; 
+		inline const XMFLOAT3 GetWorldForward() const;	// (-)z axis
+		inline const XMFLOAT3 GetWorldUp() const;		// y axis
+		inline const XMFLOAT3 GetWorldRight() const;	// x axis
 		inline const XMFLOAT4X4& GetWorldMatrix() const { return world_; };
 
 		// Local
@@ -479,8 +479,10 @@ namespace vz
 
 		inline void SetPosition(const XMFLOAT3& p) { isDirty_ = true; position_ = p; timeStampSetter_ = TimerNow; }
 		inline void SetScale(const XMFLOAT3& s) { isDirty_ = true; scale_ = s; timeStampSetter_ = TimerNow; }
-		inline void SetEulerAngleZXY(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
-		inline void SetEulerAngleZXYInDegree(const XMFLOAT3& rotAngles); // ROLL->PITCH->YAW (mainly used CG-convention) 
+		inline void SetEulerAngleRPY(const XMFLOAT3& rotAngles) { SetEulerAngleZXY({ -rotAngles.z, rotAngles.x, rotAngles.y }); }
+		inline void SetEulerAngleZXY(const XMFLOAT3& rotAngles); // ROLL(-z)->PITCH(x)->YAW(y) (mainly used CG-convention) 
+		inline void SetEulerAngleRPYInDegree(const XMFLOAT3& rotAngles) { SetEulerAngleZXYInDegree({ -rotAngles.z, rotAngles.x, rotAngles.y }); }
+		inline void SetEulerAngleZXYInDegree(const XMFLOAT3& rotAngles); // ROLL(-z)->PITCH(x)->YAW(y) (mainly used CG-convention) 
 		inline void SetQuaternion(const XMFLOAT4& q) { isDirty_ = true; rotation_ = q; timeStampSetter_ = TimerNow; }
 		inline void SetRotateAxis(const XMFLOAT3& axis, const float rotAngle);
 		inline void SetMatrix(const XMFLOAT4X4& local);
@@ -1400,7 +1402,7 @@ namespace vz
 		float outlineThickness_ = 0.f; // zero means 1 pixel
 		XMFLOAT3 outlineColor_ = XMFLOAT3(1, 1, 1);
 		float outlineThreshold_ = 1000.f;
-		XMFLOAT3 undercutDirection_ = XMFLOAT3(1, 0, 0);
+		XMFLOAT3 undercutDirection_ = XMFLOAT3(0, -1, 0);
 		XMFLOAT3 undercutColor_ = XMFLOAT3(1, 0, 0);
 
 		// Non-serialized attributes:
@@ -1899,7 +1901,7 @@ namespace vz
 		// Non-serialized attributes: (these variables are supposed to be updated via transformers)
 		// read-only
 		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
-		XMFLOAT3 direction = XMFLOAT3(0, 1, 0);
+		XMFLOAT3 direction = XMFLOAT3(0, 0, -1); // forward
 		XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);
 		XMFLOAT3 scale = XMFLOAT3(1, 1, 1);
 
@@ -2007,7 +2009,7 @@ namespace vz
 		bool isDirty_ = true;
 		XMFLOAT3 eye_ = XMFLOAT3(0, 0, 0);
 		XMFLOAT3 at_ = XMFLOAT3(0, 0, 1);
-		XMFLOAT3 forward_ = XMFLOAT3(0, 0, 1); // viewing direction
+		XMFLOAT3 forward_ = XMFLOAT3(0, 0, -1); // viewing direction
 		XMFLOAT3 up_ = XMFLOAT3(0, 1, 0);
 		XMFLOAT3X3 rotationMatrix_ = math::IDENTITY_MATRIX33;	// used for the rendering object to face camera
 		XMFLOAT4X4 view_ = math::IDENTITY_MATRIX;

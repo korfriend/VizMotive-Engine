@@ -39,6 +39,7 @@ float4 ImportanceSampleGGX(float2 Xi, float Roughness, float3 N)
 	H.y = SinTheta * sin(Phi); 
 	H.z = CosTheta;
 	float3 UpVector = abs(N.z) < 0.999 ? float3(0, 0, 1) : float3(1, 0, 0);
+	//float3 UpVector = abs(N.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
 	float3 TangentX = normalize(cross(UpVector, N));
 	float3 TangentY = cross(N, TangentX);
 	// Tangent to world space

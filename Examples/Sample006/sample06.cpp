@@ -149,6 +149,7 @@ int main(int, char **)
 		VzLight *light = NewLight("my light");
 		light->SetIntensity(5.f);
 		light->EnableCastShadow(true);
+		light->SetEulerAngleZXYInDegree({0, -90, 0});
 		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
@@ -157,7 +158,7 @@ int main(int, char **)
 
 		// === camera ===
 		camera = NewCamera("my camera");
-		glm::fvec3 pos(0, 0, 100), up(0, 1, 0), view(0, 0, -1);
+		glm::fvec3 pos(0, 0, -100), up(0, 1, 0), view(0, 0, 1);
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.1f, 1000.f, 60.f, 1.f);
 
@@ -180,7 +181,7 @@ int main(int, char **)
 
 		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
 		{
-			vz::geometrics::Curve curve({ { -30, -30, -5 }, { 20, -10, -5 }, { -20, 10, -5 }, { 10, 20, -5 } });
+			vz::geometrics::Curve curve({ { -30, -5, -30 }, { 20, -5, -10 }, { -20, -5, 10 }, { 10, -5, 20 } });
 			std::vector<XMFLOAT3> curve_points(1000);
 			for (size_t i = 0, n = curve_points.size(); i < n; ++i)
 			{
@@ -206,8 +207,7 @@ int main(int, char **)
 		floor_material->SetShadowReceive(true);
 		vzm::VzActorStaticMesh* floor_actor = vzm::NewActorStaticMesh("floor", floor_geo->GetVID(), floor_material->GetVID());
 		floor_actor->SetScale({ 100.f, 5.f, 100.f });
-		floor_actor->SetPosition({ 0.f, 0.f, -50.f });
-		floor_actor->SetEulerAngleZXYInDegree({ 90, 0, 0 });
+		floor_actor->SetPosition({ 0.f, -50.f, 0.f });
 		scene->AppendChild(floor_actor);
 
 		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
@@ -222,6 +222,7 @@ int main(int, char **)
 			material_stl->SetBaseColor({ 1, 0.5, 0.5, 1 });
 			vzm::VzActorStaticMesh* actor_test3 = vzm::NewActorStaticMesh("my actor3", geometry_stl->GetVID(), material_stl->GetVID());
 			actor_test3->SetScale({ 1.f, 1.f, 1.f });
+			actor_test3->SetEulerAngleZXYInDegree({0, -90, 0});
 			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
 		
 			});

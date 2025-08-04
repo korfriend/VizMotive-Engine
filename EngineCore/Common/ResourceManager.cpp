@@ -252,6 +252,7 @@ namespace vz::resourcemanager
 			}
 			else
 			{
+				vzlog_error("UNSUPPOTRED FORMAT! %s", ext.c_str());
 				return false;
 			}
 		}

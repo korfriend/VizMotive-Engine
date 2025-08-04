@@ -146,10 +146,13 @@ int main(int, char**)
 	{
 		scene = NewScene("my scene");
 		scene->LoadIBL("../Assets/sky.dds");
+		//scene->LoadIBL("../Assets/environments/debug/debug.png");
+		//scene->LoadIBL("../Assets/ibl/lightroom_14b/lightroom_14b_ibl.ktx2");
 
 		VzLight* light = NewLight("my light");
 		light->SetIntensity(5.f);
 		light->EnableCastShadow(true);
+		light->SetEulerAngleZXYInDegree({ 0, -90, 0 });
 		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
@@ -183,7 +186,7 @@ int main(int, char**)
 
 		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
 		{
-			vz::geometrics::Curve curve({ { -30, -30, -5 }, { 20, -10, -5 }, { -20, 10, -5 }, { 10, 20, -5 } });
+			vz::geometrics::Curve curve({ { -30, -5, -30 }, { 20, -5, -10 }, { -20, -5, 10 }, { 10, -5, 20 } });
 			std::vector<XMFLOAT3> curve_points(1000);
 			for (size_t i = 0, n = curve_points.size(); i < n; ++i)
 			{
@@ -209,8 +212,8 @@ int main(int, char**)
 		floor_material->SetShadowReceive(true);
 		vzm::VzActorStaticMesh* floor_actor = vzm::NewActorStaticMesh("floor", floor_geo->GetVID(), floor_material->GetVID());
 		floor_actor->SetScale({ 100.f, 5.f, 100.f });
-		floor_actor->SetPosition({ 0.f, 0.f, -50.f });
-		floor_actor->SetEulerAngleZXYInDegree({ 90, 0, 0 });
+		floor_actor->SetPosition({ 0.f, -50.f, 0.f });
+		floor_actor->SetEulerAngleZXYInDegree({ 0, 0, 0 });
 		scene->AppendChild(floor_actor);
 
 		VzArchive* archive = vzm::NewArchive("test archive");
@@ -267,11 +270,6 @@ int main(int, char**)
 				rot.x += 0.02f;
 				rot.y += 0.03f;
 				actor_test1->SetEulerAngleZXY(*(vfloat3*)&rot);
-
-				for (VID vid : actor_test1->GetMaterials())
-				{
-					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
-				}
 			}
 
 			geo2_pos.x = cos(time + 10) * 30;
@@ -286,11 +284,6 @@ int main(int, char**)
 				rot.x += 0.02f;
 				rot.y += 0.03f;
 				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
-
-				for (VID vid : actor_test2->GetMaterials())
-				{
-					((VzMaterial*)vzm::GetComponent(vid))->SetBaseColor({ 1, 1, 1, 1 });
-				}
 			}
 
 			ImGui::Begin("3D Viewer");

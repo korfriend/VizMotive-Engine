@@ -1350,6 +1350,7 @@ inline float caustic_pattern(float2 uv, float time)
 // uv			: UV texture coordinates on cubemap face in range [0, 1]
 // faceIndex	: cubemap face index as in the backing texture2DArray in range [0, 5]
 // returns direction to be used in cubemap sampling
+// refer to: void CreateCubemapCameras(const XMFLOAT3& position, float zNearP, float zFarP, SHCAM* shcams, size_t shcam_count)
 inline float3 uv_to_cubemap(in float2 uv, in uint faceIndex)
 {
 	// get uv in [-1, 1] range:

@@ -218,9 +218,9 @@ namespace vz
 		//XMVECTOR x = XMQuaternionRotationRollPitchYaw(rotAngles.x, 0, 0);
 		//XMVECTOR y = XMQuaternionRotationRollPitchYaw(0, rotAngles.y, 0);
 		//XMVECTOR z = XMQuaternionRotationRollPitchYaw(0, 0, rotAngles.z);
-		XMVECTOR qZ = XMQuaternionRotationRollPitchYaw(0, 0, rotAngles.z);
-		XMVECTOR qX = XMQuaternionRotationRollPitchYaw(rotAngles.x, 0, 0);
-		XMVECTOR qY = XMQuaternionRotationRollPitchYaw(0, rotAngles.y, 0);
+		XMVECTOR qZ = XMQuaternionRotationRollPitchYaw(0, 0, -rotAngles.x);
+		XMVECTOR qX = XMQuaternionRotationRollPitchYaw(rotAngles.y, 0, 0);
+		XMVECTOR qY = XMQuaternionRotationRollPitchYaw(0, rotAngles.z, 0);
 
 		//quat = XMQuaternionMultiply(x, quat);
 		//quat = XMQuaternionMultiply(quat, y);

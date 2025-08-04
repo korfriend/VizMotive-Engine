@@ -171,6 +171,7 @@ namespace vz::renderer
 	void CreateCubemapCameras(const XMFLOAT3& position, float zNearP, float zFarP, SHCAM* shcams, size_t shcam_count)
 	{
 		assert(shcam_count == 6);
+		zNearP = std::max(zNearP, 0.001f);
 		shcams[0].init(position, XMFLOAT4(0.5f, -0.5f, -0.5f, -0.5f), zNearP, zFarP, XM_PIDIV2); //+x
 		shcams[1].init(position, XMFLOAT4(0.5f, 0.5f, 0.5f, -0.5f), zNearP, zFarP, XM_PIDIV2); //-x
 		shcams[2].init(position, XMFLOAT4(1, 0, 0, -0), zNearP, zFarP, XM_PIDIV2); //+y
@@ -1568,16 +1569,6 @@ namespace vz::renderer
 		}
 		else
 		{
-			float dot_v = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&camera.GetWorldForward()), XMVectorSet(0, 0, 1, 0))) - 1.f;
-			float dot_up = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&camera.GetWorldUp()), XMVectorSet(0, 1, 0, 0))) - 1.f;
-			vzlog_assert(dot_v * dot_v < 0.001f, "camera.GetWorldForward() must be (0, 0, 1)!");
-			vzlog_assert(dot_up * dot_up < 0.001f, "camera.GetWorldUp() must be (0, 1, 0)!");
-			//XMMATRIX invP = XMLoadFloat4x4(&shadercam.inverse_projection);
-			//cornersNEAR[0] = XMVector3TransformCoord(XMVectorSet(-1, 1, 1, 1), invP);
-			//cornersNEAR[1] = XMVector3TransformCoord(XMVectorSet(1, 1, 1, 1), invP);
-			//cornersNEAR[2] = XMVector3TransformCoord(XMVectorSet(-1, -1, 1, 1), invP);
-			//cornersNEAR[3] = XMVector3TransformCoord(XMVectorSet(1, -1, 1, 1), invP);
-
 			// SLICER
 			SlicerComponent* slicer = (SlicerComponent*)&camera;
 			float cplane_width = slicer->GetCurvedPlaneWidth();
