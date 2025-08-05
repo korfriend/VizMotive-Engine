@@ -145,9 +145,9 @@ int main(int, char**)
 	vz::jobsystem::context ctx_stl_loader;
 	{
 		scene = NewScene("my scene");
-		scene->LoadIBL("../Assets/sky.dds");
+		//scene->LoadIBL("../Assets/sky.dds");
+		scene->LoadIBL("../Assets/environments/skybox_final.ktx2");
 		//scene->LoadIBL("../Assets/environments/debug/debug.png");
-		//scene->LoadIBL("../Assets/ibl/lightroom_14b/lightroom_14b_ibl.ktx2");
 
 		VzLight* light = NewLight("my light");
 		light->SetIntensity(5.f);
