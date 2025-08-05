@@ -10,7 +10,7 @@ namespace vz::version
 	// minor features, major updates, breaking compatibility changes
 	const int minor = 0;
 	// minor bug fixes, alterations, refactors, updates
-	const int revision = 146;
+	const int revision = 147;
 	
 	const std::string versionString = std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision) + ".preview";
 

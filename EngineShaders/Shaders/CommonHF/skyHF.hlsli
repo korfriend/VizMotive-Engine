@@ -165,7 +165,8 @@ float3 GetStaticSkyColor(in float3 V)
 	float3 sky = 0;
 	if (GetFrame().options & OPTION_BIT_STATIC_SKY_SPHEREMAP)
 	{
-		float2 uv = (float2(-atan2(V.z, V.x) / PI, -V.y) + 1.0) * 0.5;
+		//float2 uv = (float2(atan2(V.x, -V.z) / PI, -V.y) + 1.0) * 0.5;
+		float2 uv = float2(atan2(V.x, -V.z) / (2.0 * PI) + 0.5, acos(V.y) / PI);
 		sky = bindless_textures[descriptor_index(GetScene().globalenvmap)].SampleLevel(sampler_linear_clamp, uv, 0).rgb;
 	}
 	else
