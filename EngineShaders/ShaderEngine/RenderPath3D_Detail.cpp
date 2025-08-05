@@ -178,6 +178,20 @@ namespace vz::renderer
 		shcams[3].init(position, XMFLOAT4(0, 0, 0, -1), zNearP, zFarP, XM_PIDIV2); //-y
 		shcams[4].init(position, XMFLOAT4(0.707f, 0, 0, -0.707f), zNearP, zFarP, XM_PIDIV2); //+z
 		shcams[5].init(position, XMFLOAT4(0, 0.707f, 0.707f, 0), zNearP, zFarP, XM_PIDIV2); //-z
+
+
+
+		// RHS (OpenGL-style) cubemap camera rotations                                            
+		//shcams[0].init(position, XMFLOAT4(0, 0.707f, 0, 0.707f), zNearP, zFarP, XM_PIDIV2); //+x  
+		//shcams[1].init(position, XMFLOAT4(0, 0.707f, 0, -0.707f), zNearP, zFarP, XM_PIDIV2); //-x 
+		//shcams[2].init(position, XMFLOAT4(0.707f, 0, 0, 0.707f), zNearP, zFarP, XM_PIDIV2); //+y  
+		//shcams[3].init(position, XMFLOAT4(-0.707f, 0, 0, 0.707f), zNearP, zFarP, XM_PIDIV2); //-y 
+		//shcams[4].init(position, XMFLOAT4(0, 0, 0, 1), zNearP, zFarP, XM_PIDIV2); //+z            
+		//shcams[5].init(position, XMFLOAT4(0, 1, 0, 0), zNearP, zFarP, XM_PIDIV2); //-z            
+
+
+
+
 	}
 }
 
