@@ -264,17 +264,24 @@ namespace vz::resourcemanager
 		case DataType::IMAGE:
 		{
 			GraphicsDevice* device = graphics::GetDevice();
+
 			if (!ext.compare("KTX2"))
 			{
 				flags &= ~Flags::STREAMING; // disable streaming
 				basist::ktx2_transcoder transcoder;
 				if (transcoder.init(filedata, (uint32_t)filesize))
 				{
+					vzlog("KTX2 - Width: %d, Height: %d, Layers: %d, Faces: %d, Levels: %d", 
+						transcoder.get_width(), transcoder.get_height(), 
+						transcoder.get_layers(), transcoder.get_faces(), transcoder.get_levels());
 					TextureDesc desc;
 					desc.bind_flags = BindFlag::SHADER_RESOURCE;
 					desc.width = transcoder.get_width();
 					desc.height = transcoder.get_height();
-					desc.array_size = std::max(desc.array_size, transcoder.get_layers() * transcoder.get_faces());
+					// For KTX2 cubemaps, layerCount = 0 means it's a single cubemap, not an array. 
+					// The 6 faces are accounted for by the faceCount field.
+					//desc.array_size = std::max(desc.array_size, transcoder.get_layers() * transcoder.get_faces());
+					desc.array_size = std::max(1u, transcoder.get_layers()) * transcoder.get_faces();
 					desc.mip_levels = transcoder.get_levels();
 					desc.misc_flags = ResourceMiscFlag::TYPED_FORMAT_CASTING;
 					if (transcoder.get_faces() == 6)
@@ -284,8 +291,32 @@ namespace vz::resourcemanager
 
 					basist::transcoder_texture_format fmt = basist::transcoder_texture_format::cTFRGBA32;
 					desc.format = Format::R8G8B8A8_UNORM;
+					bool is_srgb = false;
 
-					bool import_compressed = has_flag(flags, Flags::IMPORT_BLOCK_COMPRESSED);
+					const auto& dfd = transcoder.get_dfd();
+					if (dfd.size() >= 24)
+					{
+						// KTX2 DFD: check transfer function (offset 14)           
+						const uint8_t transfer_function_byte = dfd[14];
+						vzlog("KTX2 - Transfer function byte: 0x%02X (%d)", transfer_function_byte, transfer_function_byte);
+						if (transfer_function_byte == 2) // KDF_DF_TRANSFER_SRGB
+						{
+							is_srgb = true;
+							//vzlog("KTX2 - sRGB format detected");
+						}
+						else if (transfer_function_byte == 1) // KHR_DF_TRANSFER_LINEAR
+						{
+							//vzlog("KTX2 - Linear format detected");
+						}
+						else
+						{
+							vzlog_assert(0, "KTX2 - KHR_DF_TRANSFER_UNSPECIFIED!!");
+							return false;
+						}
+					}
+
+					//bool import_compressed = has_flag(flags, Flags::IMPORT_BLOCK_COMPRESSED);
+					bool import_compressed = true;// transcoder.is_etc1s() || transcoder.is_uastc();
 					if (import_compressed)
 					{
 						// BC5 is disabled because it's missing green channel!
@@ -303,12 +334,12 @@ namespace vz::resourcemanager
 							if (transcoder.get_has_alpha())
 							{
 								fmt = basist::transcoder_texture_format::cTFBC3_RGBA;
-								desc.format = Format::BC3_UNORM;
+								desc.format = is_srgb ? Format::BC3_UNORM_SRGB : Format::BC3_UNORM;
 							}
 							else
 							{
 								fmt = basist::transcoder_texture_format::cTFBC1_RGB;
-								desc.format = Format::BC1_UNORM;
+								desc.format = is_srgb ? Format::BC1_UNORM_SRGB : Format::BC1_UNORM;
 							}
 						}
 					}
@@ -388,10 +419,13 @@ namespace vz::resourcemanager
 
 						if (!InitData.empty())
 						{
+							//vzlog("KTX2 - Creating texture with %d subresources, array_size: %d",
+							//	(int)InitData.size(), desc.array_size);
 							success = device->CreateTexture(&desc, InitData.data(), &resource->texture);
 							device->SetName(&resource->texture, name.c_str());
+							//vzlog("KTX2 - Texture creation %s", success ? "SUCCESS" : "FAILED");
 
-							Format srgb_format = getTextureFormatSRGB(desc.format);
+							Format srgb_format = GetFormatSRGB(desc.format);
 							if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
 							{
 								resource->srgb_subresource = device->CreateSubresource(
@@ -405,6 +439,10 @@ namespace vz::resourcemanager
 						}
 					}
 					transcoder.clear();
+				}
+				else
+				{
+					vzlog_error("%s file-loading failure!", name.c_str());
 				}
 			}
 			else if (!ext.compare("BASIS"))
@@ -1495,6 +1533,113 @@ namespace vz::resourcemanager
 		}
 
 		return Resource();
+	}
+
+	bool loadCubeMapResourceDirectly(
+		const std::string& name,
+		Flags flags,
+		const uint8_t* filedata[6],
+		size_t filesize[6],
+		ResourceInternal* resource)
+	{
+		GraphicsDevice* device = graphics::GetDevice();
+		
+		// Load and decode each face
+		std::vector<uint8_t*> face_data(6);
+		std::vector<int> widths(6), heights(6), channels(6);
+		
+		for (int face = 0; face < 6; ++face)
+		{
+			face_data[face] = stbi_load_from_memory(
+				filedata[face], 
+				static_cast<int>(filesize[face]),
+				&widths[face], 
+				&heights[face], 
+				&channels[face], 
+				4 // force RGBA
+			);
+			
+			if (!face_data[face])
+			{
+				// Clean up already loaded faces
+				for (int i = 0; i < face; ++i)
+				{
+					if (face_data[i]) stbi_image_free(face_data[i]);
+				}
+				vzlog_error("Failed to load cubemap face %d for %s", face, name.c_str());
+				return false;
+			}
+			
+			// Verify all faces have the same dimensions
+			if (face > 0 && (widths[face] != widths[0] || heights[face] != heights[0]))
+			{
+				for (int i = 0; i <= face; ++i)
+				{
+					if (face_data[i]) stbi_image_free(face_data[i]);
+				}
+				vzlog_error("Cubemap face %d has different dimensions than face 0 for %s", face, name.c_str());
+				return false;
+			}
+		}
+		
+		// Create texture descriptor
+		TextureDesc desc;
+		desc.type = TextureDesc::Type::TEXTURE_2D;
+		desc.width = static_cast<uint32_t>(widths[0]);
+		desc.height = static_cast<uint32_t>(heights[0]);
+		desc.array_size = 6; // 6 faces for cubemap
+		desc.format = Format::R8G8B8A8_UNORM;
+		desc.bind_flags = BindFlag::SHADER_RESOURCE;
+		desc.usage = Usage::DEFAULT;
+		desc.layout = ResourceState::SHADER_RESOURCE;
+		desc.misc_flags = ResourceMiscFlag::TEXTURECUBE | ResourceMiscFlag::TYPED_FORMAT_CASTING;
+		desc.mip_levels = 1; // Single mip level for now
+		
+		// Prepare subresource data for all 6 faces
+		SubresourceData init_data[6];
+		for (int face = 0; face < 6; ++face)
+		{
+			init_data[face].data_ptr = face_data[face];
+			init_data[face].row_pitch = static_cast<uint32_t>(widths[face] * 4); // 4 bytes per pixel (RGBA)
+			init_data[face].slice_pitch = init_data[face].row_pitch * static_cast<uint32_t>(heights[face]);
+		}
+		
+		// Create the cubemap texture
+		bool success = device->CreateTexture(&desc, init_data, &resource->texture);
+		if (success)
+		{
+			device->SetName(&resource->texture, name.c_str());
+			
+			// Create shader resource view for the cubemap
+			int subresource_index = device->CreateSubresource(&resource->texture, SubresourceType::SRV, 0, 6, 0, 1);
+			assert(subresource_index >= 0);
+			
+			// Create sRGB subresource if needed
+			Format srgb_format = getTextureFormatSRGB(desc.format);
+			if (srgb_format != Format::UNKNOWN && srgb_format != desc.format)
+			{
+				resource->srgb_subresource = device->CreateSubresource(
+					&resource->texture,
+					SubresourceType::SRV,
+					0, 6, // all 6 faces
+					0, 1, // single mip level
+					&srgb_format
+				);
+			}
+		}
+		
+		// Clean up temporary face data
+		for (int face = 0; face < 6; ++face)
+		{
+			if (face_data[face]) stbi_image_free(face_data[face]);
+		}
+		
+		if (!success)
+		{
+			vzlog_error("Failed to create cubemap texture for %s", name.c_str());
+		}
+		
+		return success;
 	}
 
 	bool Contains(const std::string& name)
