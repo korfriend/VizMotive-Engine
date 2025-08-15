@@ -22,6 +22,8 @@ namespace vz
 		SpriteFontComponent* CreateSpriteFontComponent(const Entity entity);
 		EnvironmentComponent* CreateEnvironmentComponent(const Entity entity);
 		ProbeComponent* CreateProbeComponent(const Entity entity);
+		AnimationComponent* CreateAnimationComponent(const Entity entity);
+		AnimationDataComponent* CreateAnimationDataComponent(const Entity entity);
 
 		size_t Destroy(const Entity entity);
 		size_t DestroyAll();

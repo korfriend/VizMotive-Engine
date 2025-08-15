@@ -113,6 +113,7 @@ namespace vz
 			std::string name;
 			archive >> name;
 			SetName(name);
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -167,6 +168,7 @@ namespace vz
 			{
 				children_.insert(it);
 			}
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -188,6 +190,7 @@ namespace vz
 			archive >> visibleLayerMask_;
 			archive >> stencilLayerMask_;
 			archive >> userLayerMask_;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -198,6 +201,109 @@ namespace vz
 			archive << userLayerMask_;
 		}
 	}
+
+	void AnimationDataComponent::Serialize(Archive& archive, const uint64_t version)
+	{
+		if (archive.IsReadMode())
+		{
+			archive >> flags_;
+			archive >> keyframeTimes_;
+			archive >> keyframeData_;
+			timeStampSetter_ = TimerNow;
+		}
+		else
+		{
+			archive << flags_;
+			archive << keyframeTimes_;
+			archive << keyframeData_;
+		}
+	}
+
+	void AnimationComponent::Serialize(Archive& archive, const uint64_t version)
+	{
+		if (archive.IsReadMode())
+		{
+			archive >> flags_;
+			archive >> start_;
+			archive >> end_;
+			archive >> playTimer_;
+			archive >> amount_;
+			archive >> speed_;
+
+			size_t channelCount;
+			archive >> channelCount;
+			channels_.resize(channelCount);
+			for (size_t i = 0; i < channelCount; ++i)
+			{
+				archive >> channels_[i].flags;
+				archive >> (uint32_t&)channels_[i].path;
+				archive >> channels_[i].target;
+				archive >> channels_[i].samplerIndex;
+				archive >> channels_[i].retargetIndex;
+			}
+
+			size_t samplerCount;
+			archive >> samplerCount;
+			samplers_.resize(samplerCount);
+			for (size_t i = 0; i < samplerCount; ++i)
+			{
+				archive >> samplers_[i].flags;
+				archive >> (uint32_t&)samplers_[i].mode;
+				archive >> samplers_[i].dataVUID;
+			}
+
+			size_t retargetCount;
+			archive >> retargetCount;
+			retargets_.resize(retargetCount);
+			for (size_t i = 0; i < retargetCount; ++i)
+			{
+				archive >> retargets_[i].source;
+				archive >> retargets_[i].dstRelativeMatrix;
+				archive >> retargets_[i].srcRelativeParentMatrix;
+			}
+
+			timeStampSetter_ = TimerNow;
+		}
+		else
+		{
+			archive << flags_;
+			archive << start_;
+			archive << end_;
+			archive << playTimer_;
+			archive << amount_;
+			archive << speed_;
+
+			archive << channels_.size();
+			for (size_t i = 0; i < channels_.size(); ++i)
+			{
+				archive << channels_[i].flags;
+				archive << (uint32_t&)channels_[i].path;
+				archive << channels_[i].target;
+				archive << channels_[i].samplerIndex;
+				archive << channels_[i].retargetIndex;
+			}
+
+			archive << samplers_.size();
+			for (size_t i = 0; i < samplers_.size(); ++i)
+			{
+				archive << samplers_[i].flags;
+				archive << samplers_[i].mode;
+				archive << samplers_[i].dataVUID;
+			}
+
+			archive << retargets_.size();
+			for (size_t i = 0; i < retargets_.size(); ++i)
+			{
+				archive << retargets_[i].source;
+				archive << retargets_[i].dstRelativeMatrix;
+				archive << retargets_[i].srcRelativeParentMatrix;
+			}
+		}
+
+		// Root Bone Name
+		archive << rootMotionBone;
+	}
+
 
 	void MaterialComponent::Serialize(vz::Archive& archive, const uint64_t version)
 	{
@@ -421,6 +527,7 @@ namespace vz
 
 			update();
 			isDirty_ = true;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -457,6 +564,7 @@ namespace vz
 			archive >> resName_;
 			archive >> stride_;
 			archive >> tableValidBeginEndX_;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -499,6 +607,7 @@ namespace vz
 			archive >> histogram_.range;
 			archive >> histogram_.range_rcp;
 			archive >> histogram_.histogram;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -535,6 +644,7 @@ namespace vz
 			archive >> radius_;
 			archive >> offset_;
 			archive >> tail_;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -587,6 +697,7 @@ namespace vz
 			{
 				archive >> vuidMaterials_[i];
 			}
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -658,6 +769,7 @@ namespace vz
 			archive >> anim_.wobbleAnim.amount;
 			archive >> anim_.wobbleAnim.speed;
 			archive >> anim_.drawRectAnim._currentFrame;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -731,6 +843,7 @@ namespace vz
 			archive >> anim_.typewriter.elapsed;
 			archive >> anim_.typewriter.time;
 			archive >> anim_.typewriter.looped;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -783,6 +896,7 @@ namespace vz
 			archive >> length_;
 			archive >> outerConeAngle_;
 			archive >> innerConeAngle_;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -848,6 +962,7 @@ namespace vz
 
 			isDirty_ = true;
 			SetWorldLookAtFromHierarchyTransforms();
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{
@@ -899,6 +1014,7 @@ namespace vz
 			archive >> isReverseSide_;
 
 			archive >> curvedSlicerUp_;
+			timeStampSetter_ = TimerNow;
 		}
 		else
 		{

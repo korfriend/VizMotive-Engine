@@ -33,7 +33,6 @@ namespace vzm
 
 			VOLUME_TEXTURESLOT_COUNT
 		};
-
 		enum class ShaderType : uint32_t
 		{
 			PHONG = 0,
@@ -74,6 +73,7 @@ namespace vzm
 		bool IsShadowCast() const;
 		bool IsShadowReceive() const;
 	};
+
 	using TextureSlot = VzMaterial::TextureSlot;
 	using VolumeTextureSlot = VzMaterial::VolumeTextureSlot;
 	using ShaderType = VzMaterial::ShaderType;
