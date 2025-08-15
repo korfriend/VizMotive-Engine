@@ -86,4 +86,7 @@ namespace vzm
 		// "PRIMITIVE_ID"
 		void ShowDebugBuffer(const std::string& debugMode = "NONE");
 	};
+
+	using ActorFilter = VzRenderer::ActorFilter;
+	using Tonemap = VzRenderer::Tonemap;
 }

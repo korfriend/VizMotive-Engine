@@ -173,6 +173,7 @@ namespace vzm
 		SCENE,
 		RENDERER,
 		ENVIRONMENT,
+		ANIMATION,
 
 		// scene objects
 		ACTOR_NODE,
@@ -372,5 +373,6 @@ namespace vzm
 #include "VzMaterial.h"
 #include "VzTexture.h"
 #include "VzScene.h"
+#include "VzAnimation.h"
 #include "VzRenderer.h"
 #endif

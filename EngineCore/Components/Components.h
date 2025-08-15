@@ -30,6 +30,9 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 #define TimerNow std::chrono::high_resolution_clock::now()
 #define TimerMin {} // indicating 1970/1/1 (00:00:00 UTC), DO NOT USE 'std::chrono::high_resolution_clock::time_point::min()'
 
+#define FLAG_SETTER(FLAG, FLAG_ENUM) value ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
+#define UNFLAG_SETTER(FLAG, FLAG_ENUM) !value ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
+
 namespace vz
 {
 	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250806_0";
@@ -376,6 +379,8 @@ namespace vz
 		TRANSFORM,
 		LAYERDMASK,
 		HIERARCHY,
+		ANIMATIONDATA,
+		ANIMATION,
 		MATERIAL,
 		GEOMETRY,
 		RENDERABLE,
@@ -556,8 +561,217 @@ namespace vz
 		inline static const ComponentType IntrinsicType = ComponentType::LAYERDMASK;
 	};
 
-#define FLAG_SETTER(FLAG, FLAG_ENUM) value ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
-#define UNFLAG_SETTER(FLAG, FLAG_ENUM) !value ? FLAG |= SCU32(FLAG_ENUM) : FLAG &= ~SCU32(FLAG_ENUM);
+	struct CORE_EXPORT AnimationDataComponent : ComponentBase
+	{
+		enum FLAGS
+		{
+			EMPTY = 0,
+		};
+	protected:
+		uint32_t flags_ = EMPTY;
+
+		std::vector<float> keyframeTimes_;	// time (seconds)
+		std::vector<float> keyframeData_;	// frame data (float-array depending on AnimationComponent::Path)
+
+	public:
+		AnimationDataComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LAYERDMASK, entity, vuid) {}
+		virtual ~AnimationDataComponent() = default;
+
+		void SetKeyFrameTimes(std::vector<float>& times) { keyframeTimes_ = times; timeStampSetter_ = TimerNow; }
+		void SetKeyFrameData(std::vector<float>& data) { keyframeData_ = data; timeStampSetter_ = TimerNow; }
+
+		std::vector<float>& GetMutableKeyFrameTimes() { return keyframeTimes_; timeStampSetter_ = TimerNow; }
+		std::vector<float>& GetMutableKeyFrameData() { return keyframeData_; timeStampSetter_ = TimerNow; }
+		const std::vector<float>& GetKeyFrameTimes() const { return keyframeTimes_; }
+		const std::vector<float>& GetKeyFrameData() const { return keyframeData_; }
+		float GetDuration() const { return keyframeTimes_.size() > 0 ? keyframeTimes_[keyframeTimes_.size() - 1] : -1.f; }
+
+		void Serialize(Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::ANIMATIONDATA;
+	};
+
+	struct CORE_EXPORT AnimationComponent : ComponentBase
+	{
+		enum FLAGS
+		{
+			EMPTY = 0,
+			PLAYING = 1 << 0,
+			LOOPED = 1 << 1,	// exclusive with PING_PONG
+			ROOT_MOTION = 1 << 2,
+			PING_PONG = 1 << 3, // exclusive with PING_PONG
+		};
+		uint32_t flags_ = LOOPED;
+		float start_ = 0;
+		float end_ = 0;
+		float playTimer_ = 0;
+		float amount_ = 1.f;	// blend amount
+		float speed_ = 1.f;
+
+		struct AnimationChannel
+		{
+			enum FLAGS
+			{
+				EMPTY = 0,
+			};
+			uint32_t flags = EMPTY;
+
+			VUID target = INVALID_VUID;
+			int samplerIndex = -1;
+			int retargetIndex = -1;
+
+			enum class Path
+			{
+				TRANSLATION,
+				ROTATION,
+				SCALE,
+				WEIGHTS,
+
+				LIGHT_COLOR,
+				LIGHT_INTENSITY,
+				LIGHT_RANGE,
+				LIGHT_INNERCONE,
+				LIGHT_OUTERCONE,
+				// additional light paths can go here...
+				_LIGHT_RANGE_END = LIGHT_COLOR + 1000,
+
+				EMITTER_EMITCOUNT,
+				// additional emitter paths can go here...
+				_EMITTER_RANGE_END = EMITTER_EMITCOUNT + 1000,
+
+				CAMERA_FOV,
+				CAMERA_FOCAL_LENGTH,
+				CAMERA_APERTURE_SIZE,
+				CAMERA_APERTURE_SHAPE,
+				// additional camera paths can go here...
+				_CAMERA_RANGE_END = CAMERA_FOV + 1000,
+
+				// future work: SCRIPT-binding...
+				SCRIPT_PLAY,	
+				SCRIPT_STOP,
+				// additional script paths can go here...
+				_SCRIPT_RANGE_END = SCRIPT_PLAY + 1000,
+
+				MATERIAL_COLOR,
+				MATERIAL_EMISSIVE,
+				MATERIAL_ROUGHNESS,
+				MATERIAL_METALNESS,
+				MATERIAL_REFLECTANCE,
+				MATERIAL_TEXMULADD,
+				// additional material paths can go here...
+				_MATERIAL_RANGE_END = MATERIAL_COLOR + 1000,
+
+				UNKNOWN,
+			} path = Path::UNKNOWN;
+
+			enum class PathDataType
+			{
+				Event,
+				Float,
+				Float2,
+				Float3,
+				Float4,
+				Weights,
+
+				Count,
+			};
+			PathDataType GetPathDataType() const;
+
+			// Non-serialized attributes:
+			mutable int next_event = 0;
+		};
+		struct AnimationSampler
+		{
+			enum FLAGS
+			{
+				EMPTY = 0,
+			};
+			uint32_t flags = LOOPED;
+
+			VUID dataVUID = INVALID_VUID;	// AnimationDataComponent
+
+			enum Mode
+			{
+				LINEAR,
+				STEP,
+				CUBICSPLINE,
+				MODE_FORCE_UINT32 = 0xFFFFFFFF
+			} mode = LINEAR;
+		};
+		struct RetargetSourceData
+		{
+			VUID source = INVALID_VUID;
+			XMFLOAT4X4 dstRelativeMatrix = math::IDENTITY_MATRIX;
+			XMFLOAT4X4 srcRelativeParentMatrix = math::IDENTITY_MATRIX;
+		};
+
+		std::vector<AnimationChannel> channels_;
+		std::vector<AnimationSampler> samplers_;
+		std::vector<RetargetSourceData> retargets_;
+
+		// Non-serialzied attributes:
+		std::vector<float> morphWeightsTemp;
+		float lastUpdateTime = 0;
+
+		// Root Motion
+		XMFLOAT3 rootTranslationOffset;
+		XMFLOAT4 rootRotationOffset;
+		VUID rootMotionBone;
+
+		XMVECTOR rootPrevTranslation = XMVectorSet(-69, 420, 69, -420);
+		XMVECTOR rootPrevRotation = XMVectorSet(-69, 420, 69, -420);
+		XMVECTOR INVALID_VECTOR = XMVectorSet(-69, 420, 69, -420);
+		float prevLocTimer;
+		float prevRotTimer;
+		// Root Motion
+
+	public:
+		AnimationComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LAYERDMASK, entity, vuid) {}
+		virtual ~AnimationComponent() = default;
+
+		inline bool IsPlaying() const { return flags_ & PLAYING; }
+		inline bool IsLooped() const { return flags_ & LOOPED; }
+		inline bool IsPingPong() const { return flags_ & PING_PONG; }
+		inline bool IsPlayingOnce() const { return (flags_ & (LOOPED | PING_PONG)) == 0; }
+		inline float GetLength() const { return end_ - start_; }
+		inline bool IsEnded() const { return playTimer_ >= end_; }
+		inline bool IsRootMotion() const { return flags_ & ROOT_MOTION; }
+		inline float GetTime() const { return playTimer_; }
+		inline float GetSpeed() const { return speed_; }
+
+		inline void Play() { flags_ |= PLAYING; timeStampSetter_ = TimerNow; }
+		inline void Pause() { flags_ &= ~PLAYING; timeStampSetter_ = TimerNow; }
+		inline void Stop() { Pause(); playTimer_ = 0.0f; lastUpdateTime = playTimer_; timeStampSetter_ = TimerNow; }
+		inline void SetTime(const float time) { playTimer_ = time; timeStampSetter_ = TimerNow; }
+		inline void SetLooped(const bool value = true) { if (value) { flags_ |= LOOPED; flags_ &= ~PING_PONG; } else { flags_ &= ~LOOPED; } timeStampSetter_ = TimerNow; }
+		inline void SetPingPong(const bool value = true) { if (value) { flags_ |= PING_PONG; flags_ &= ~LOOPED; } else { flags_ &= ~PING_PONG; } timeStampSetter_ = TimerNow; }
+		inline void SetPlayOnce() { flags_ &= ~(LOOPED | PING_PONG); timeStampSetter_ = TimerNow; }
+		inline void SetSpeed(const float speed) { speed_ = speed; timeStampSetter_ = TimerNow; }
+
+		inline void RootMotionOn() { flags_ |= ROOT_MOTION; timeStampSetter_ = TimerNow; }
+		inline void RootMotionOff() { flags_ &= ~ROOT_MOTION; timeStampSetter_ = TimerNow; }
+		inline XMFLOAT3 GetRootTranslation() const { return rootTranslationOffset; }
+		inline XMFLOAT4 GetRootRotation() const { return rootRotationOffset; }
+		inline Entity GetRootMotionBone() const { return rootMotionBone; }
+		inline float GetDuration() const;
+		inline void SetRootMotionBone(Entity _rootMotionBone) { rootMotionBone = _rootMotionBone; timeStampSetter_ = TimerNow; }
+
+		inline bool GetAnimationChannel(const uint32_t index, AnimationChannel& channel) const { if (index >= channels_.size()) return false;  channel = channels_[index]; return true; }
+		inline bool GetAnimationSampler(const uint32_t index, AnimationSampler& sampler) const { if (index >= samplers_.size()) return false;  sampler = samplers_[index]; return true; }
+		inline bool GetRetargetSource(const uint32_t index, RetargetSourceData& retargetSrc) const { if (index >= retargets_.size()) return false;  retargetSrc = retargets_[index]; return true; }
+
+		inline bool SetAnimationChannel(const uint32_t index, const AnimationChannel& channel) { if (index >= channels_.size()) return false;  channels_[index] = channel; timeStampSetter_ = TimerNow; return true; }
+		inline bool SetAnimationSampler(const uint32_t index, const AnimationSampler& sampler) { if (index >= samplers_.size()) return false;  samplers_[index] = sampler; timeStampSetter_ = TimerNow; return true; }
+		inline bool SetRetargetSource(const uint32_t index, const RetargetSourceData& retargetSrc) { if (index >= retargets_.size()) return false;  retargets_[index] = retargetSrc; timeStampSetter_ = TimerNow; return true; }
+
+		inline uint32_t AddAnimationChannel(const AnimationChannel& channel) { channels_.push_back(channel); return (uint32_t)channels_.size(); }
+		inline uint32_t AddAnimationSampler(const AnimationSampler& sampler) { samplers_.push_back(sampler); return (uint32_t)samplers_.size(); }
+		inline uint32_t AddRetargetSource(const RetargetSourceData& retargetSrc) { retargets_.push_back(retargetSrc); return (uint32_t)retargets_.size(); }
+
+		void Serialize(Archive& archive, const uint64_t version);
+
+		inline static const ComponentType IntrinsicType = ComponentType::ANIMATION;
+	};
 
 	// resources
 	struct CORE_EXPORT MaterialComponent : ComponentBase
@@ -2741,6 +2955,8 @@ namespace vz::compfactory
 	CORE_EXPORT SlicerComponent* GetSlicerComponent(const Entity entity);
 	CORE_EXPORT EnvironmentComponent* GetEnvironmentComponent(const Entity entity);
 	CORE_EXPORT ProbeComponent* GetProbeComponent(const Entity entity);
+	CORE_EXPORT AnimationComponent* GetAnimationComponent(const Entity entity);
+	CORE_EXPORT AnimationDataComponent* GetAnimationDataComponent(const Entity entity);
 
 	CORE_EXPORT NameComponent* GetNameComponentByVUID(const VUID vuid);
 	CORE_EXPORT TransformComponent* GetTransformComponentByVUID(const VUID vuid);
@@ -2756,6 +2972,8 @@ namespace vz::compfactory
 	CORE_EXPORT SlicerComponent* GetSlicerComponentByVUID(const VUID vuid);
 	CORE_EXPORT EnvironmentComponent* GetEnvironmentComponentByVUID(const VUID vuid);
 	CORE_EXPORT ProbeComponent* GetProbeComponentByVUID(const VUID vuid);
+	CORE_EXPORT AnimationComponent* GetAnimationComponentByVUID(const VUID vuid);
+	CORE_EXPORT AnimationDataComponent* GetAnimationDataComponentByVUID(const VUID vuid);
 
 	CORE_EXPORT bool ContainNameComponent(const Entity entity);
 	CORE_EXPORT bool ContainTransformComponent(const Entity entity);
@@ -2774,6 +2992,8 @@ namespace vz::compfactory
 	CORE_EXPORT bool ContainVolumeComponent(const Entity entity);
 	CORE_EXPORT bool ContainEnvironmentComponent(const Entity entity);
 	CORE_EXPORT bool ContainProbeComponent(const Entity entity);
+	CORE_EXPORT bool ContainAnimationComponent(const Entity entity);
+	CORE_EXPORT bool ContainAnimationDataComponent(const Entity entity);
 
 	CORE_EXPORT size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components);
 	CORE_EXPORT size_t GetEntitiesByName(const std::string& name, std::vector<Entity>& entities); // when there is a name component

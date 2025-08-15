@@ -20,6 +20,8 @@ namespace vz::compfactory
 	ComponentManager<HierarchyComponent>& hierarchyManager = componentLibrary.Register<HierarchyComponent>("HIERARCHY");
 	ComponentManager<LayeredMaskComponent>& layeredmaskManager = componentLibrary.Register<LayeredMaskComponent>("LAYERDMASK");
 	ComponentManager<ColliderComponent>& colliderManager = componentLibrary.Register<ColliderComponent>("COLLIDER");
+	ComponentManager<AnimationComponent>& animationManager = componentLibrary.Register<AnimationComponent>("ANIMATION");
+	ComponentManager<AnimationDataComponent>& animationdataManager = componentLibrary.Register<AnimationDataComponent>("ANIMATIONDATA");
 
 	// ----- Graphics-related components -----
 	ComponentManager<GRenderableComponent>& renderableManager = componentLibrary.Register<GRenderableComponent>("RENDERABLE");
@@ -201,6 +203,18 @@ namespace vz::compfactory
 		ProbeComponent* comp = &probeManager.Create(entity_update);
 		return comp;
 	}
+	AnimationComponent* CreateAnimationComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		AnimationComponent* comp = &animationManager.Create(entity_update);
+		return comp;
+	}
+	AnimationDataComponent* CreateAnimationDataComponent(const Entity entity)
+	{
+		ENTITY_UPDATE(entity_update);
+		AnimationDataComponent* comp = &animationdataManager.Create(entity_update);
+		return comp;
+	}
 
 #define RETURN_GET_COMP(COMP_TYPE, COMP_MNG, ENTITY) COMP_TYPE* comp = COMP_MNG.GetComponent(entity); return comp;
 	NameComponent* GetNameComponent(const Entity entity)
@@ -281,6 +295,14 @@ namespace vz::compfactory
 	{
 		RETURN_GET_COMP(ProbeComponent, probeManager, entity);
 	}
+	AnimationComponent* GetAnimationComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(AnimationComponent, animationManager, entity);
+	}
+	AnimationDataComponent* GetAnimationDataComponent(const Entity entity)
+	{
+		RETURN_GET_COMP(AnimationDataComponent, animationdataManager, entity);
+	}
 
 	NameComponent* GetNameComponentByVUID(const VUID vuid)
 	{
@@ -337,6 +359,14 @@ namespace vz::compfactory
 	ProbeComponent* GetProbeComponentByVUID(const VUID vuid)
 	{
 		return GetProbeComponent(GetEntityByVUID(vuid));
+	}
+	AnimationComponent* GetAnimationComponentByVUID(const VUID vuid)
+	{
+		return GetAnimationComponent(GetEntityByVUID(vuid));
+	}
+	AnimationDataComponent* GetAnimationDataComponentByVUID(const VUID vuid)
+	{
+		return GetAnimationDataComponent(GetEntityByVUID(vuid));
 	}
 
 	bool ContainNameComponent(const Entity entity)
@@ -406,6 +436,14 @@ namespace vz::compfactory
 	bool ContainProbeComponent(const Entity entity)
 	{
 		return probeManager.Contains(entity);
+	}
+	bool ContainAnimationComponent(const Entity entity)
+	{
+		return animationManager.Contains(entity);
+	}
+	bool ContainAnimationDataComponent(const Entity entity)
+	{
+		return animationdataManager.Contains(entity);
 	}
 
 	size_t GetComponents(const Entity entity, std::vector<ComponentBase*>& components)

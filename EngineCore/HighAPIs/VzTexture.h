@@ -86,7 +86,6 @@ namespace vzm
 
 			NV12,				// video YUV420; SRV Luminance aspect: R8_UNORM, SRV Chrominance aspect: R8G8_UNORM
 		};
-
 		enum class SamplerType
 		{
 			SAMPLER_DEFAULT, // SAMPLER_LINEAR_CLAMP
