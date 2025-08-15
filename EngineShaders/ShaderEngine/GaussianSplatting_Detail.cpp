@@ -160,6 +160,8 @@ namespace vz::renderer
 			int threads_per_group = GSPLAT_GROUP_SIZE;
 			int num_groups = (num_gaussians + threads_per_group - 1) / threads_per_group; // num_groups
 
+			//device->BindUAV(&rtMain, 10, cmd); // just for debug
+			
 			// ------ preprocess -----
 			device->EventBegin("GaussianSplatting - Preprocess", cmd);
 			{
@@ -174,7 +176,6 @@ namespace vz::renderer
 					barrierStack.push_back(GPUBarrier::Buffer(&gaussianSHs, ResourceState::UNDEFINED, ResourceState::SHADER_RESOURCE_COMPUTE));
 					BarrierStackFlush(cmd);
 				}
-				//device->BindUAV(&rtMain, 10, cmd); // just for debug
 
 				//device->BindUAV(&touchedTiles, 0, cmd);
 				device->BindUAV(&gaussianKernelAttributes, 1, cmd);
@@ -351,6 +352,7 @@ namespace vz::renderer
 			}
 			device->EventEnd(cmd);
 
+			goto DEBUG_GO;
 
 			// ------ Sort of Gaussian Replications -----
 			device->EventBegin("GaussianSplatting - Sort Gaussian Replications", cmd);
@@ -461,6 +463,8 @@ namespace vz::renderer
 
 			device->EventEnd(cmd);
 		}
+
+DEBUG_GO:
 
 		profiler::EndRange(range);
 		device->EventEnd(cmd);

@@ -50,9 +50,6 @@
     <ClCompile Include="RenderPath2D_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="GaussianSplatting.cpp">
-      <Filter>Processing</Filter>
-    </ClCompile>
     <ClCompile Include="Font.cpp">
       <Filter>Processing</Filter>
     </ClCompile>
@@ -106,9 +103,6 @@
     </ClInclude>
     <ClInclude Include="RenderPath3D_Detail.h">
       <Filter>Renderer\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="GaussianSplatting.h">
-      <Filter>Processing</Filter>
     </ClInclude>
     <ClInclude Include="Font.h">
       <Filter>Processing</Filter>

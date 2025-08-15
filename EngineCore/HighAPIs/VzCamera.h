@@ -97,6 +97,7 @@ namespace vzm
 		SliceControl* GetSlicerControl() const { return slicerControl_.get(); }
 	};
 
-	using SlicerControl = VzSlicer::SliceControl;
 	using DVR_TYPE = VzCamera::DVR_TYPE;
+	using OrbitalControl = VzCamera::OrbitalControl;
+	using SlicerControl = VzSlicer::SliceControl;
 }
