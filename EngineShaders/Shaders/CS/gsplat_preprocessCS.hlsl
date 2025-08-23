@@ -218,7 +218,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     ShaderMeshInstance inst = load_instance(push.instanceIndex);
     float4 pos_ws_h = mul(inst.transform.GetMatrix(), float4(pos, 1));
     float3 pos_ws = pos_ws_h.xyz / pos_ws_h.w;
-    pos_ws = pos;   // TEST //
+    //pos_ws = pos;   // TEST //
 
     float3 p_view, p_proj;
     if (!in_frustum(pos_ws, camera.view, camera.projection, p_view, p_proj))
