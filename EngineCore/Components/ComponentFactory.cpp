@@ -60,6 +60,8 @@ namespace vz::compfactory
 		case ComponentType::LIGHT: return lightManager.GetComponentByVUID(vuid);
 		case ComponentType::CAMERA: return cameraManager.GetComponentByVUID(vuid);
 		case ComponentType::SLICER: return slicerManager.GetComponentByVUID(vuid);
+		case ComponentType::ANIMATIONDATA: return animationdataManager.GetComponentByVUID(vuid);
+		case ComponentType::ANIMATION: return animationManager.GetComponentByVUID(vuid);
 		default: assert(0);
 		}
 		return nullptr;

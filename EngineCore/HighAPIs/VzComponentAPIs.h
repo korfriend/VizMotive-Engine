@@ -56,6 +56,7 @@ using GeometryVID = VID;
 using MaterialVID = VID;
 using TextureVID = VID;
 using VolumeVID = VID;
+using KeyFrameVID = VID;
 
 constexpr VID INVALID_VID = 0;
 using TimeStamp = std::chrono::high_resolution_clock::time_point;
@@ -174,6 +175,7 @@ namespace vzm
 		RENDERER,
 		ENVIRONMENT,
 		ANIMATION,
+		KEYFRAMEDATA,
 
 		// scene objects
 		ACTOR_NODE,

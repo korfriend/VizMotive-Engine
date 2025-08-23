@@ -580,10 +580,9 @@ namespace vz
 		void SetKeyFrameTimes(std::vector<float>& times) { keyframeTimes_ = times; timeStampSetter_ = TimerNow; }
 		void SetKeyFrameData(std::vector<float>& data) { keyframeData_ = data; timeStampSetter_ = TimerNow; }
 
-		std::vector<float>& GetMutableKeyFrameTimes() { return keyframeTimes_; timeStampSetter_ = TimerNow; }
-		std::vector<float>& GetMutableKeyFrameData() { return keyframeData_; timeStampSetter_ = TimerNow; }
 		const std::vector<float>& GetKeyFrameTimes() const { return keyframeTimes_; }
 		const std::vector<float>& GetKeyFrameData() const { return keyframeData_; }
+
 		float GetDuration() const { return keyframeTimes_.size() > 0 ? keyframeTimes_[keyframeTimes_.size() - 1] : -1.f; }
 
 		void Serialize(Archive& archive, const uint64_t version);
@@ -608,7 +607,7 @@ namespace vz
 		float amount_ = 1.f;	// blend amount
 		float speed_ = 1.f;
 
-		struct AnimationChannel
+		struct Channel
 		{
 			enum FLAGS
 			{
@@ -680,7 +679,7 @@ namespace vz
 			// Non-serialized attributes:
 			mutable int next_event = 0;
 		};
-		struct AnimationSampler
+		struct Sampler
 		{
 			enum FLAGS
 			{
@@ -705,8 +704,8 @@ namespace vz
 			XMFLOAT4X4 srcRelativeParentMatrix = math::IDENTITY_MATRIX;
 		};
 
-		std::vector<AnimationChannel> channels_;
-		std::vector<AnimationSampler> samplers_;
+		std::vector<Channel> channels_;
+		std::vector<Sampler> samplers_;
 		std::vector<RetargetSourceData> retargets_;
 
 		// Non-serialzied attributes:
@@ -756,16 +755,18 @@ namespace vz
 		inline float GetDuration() const;
 		inline void SetRootMotionBone(Entity _rootMotionBone) { rootMotionBone = _rootMotionBone; timeStampSetter_ = TimerNow; }
 
-		inline bool GetAnimationChannel(const uint32_t index, AnimationChannel& channel) const { if (index >= channels_.size()) return false;  channel = channels_[index]; return true; }
-		inline bool GetAnimationSampler(const uint32_t index, AnimationSampler& sampler) const { if (index >= samplers_.size()) return false;  sampler = samplers_[index]; return true; }
+		inline bool GetChannel(const uint32_t index, Channel& channel) const { if (index >= channels_.size()) return false;  channel = channels_[index]; return true; }
+		inline bool GetSampler(const uint32_t index, Sampler& sampler) const { if (index >= samplers_.size()) return false;  sampler = samplers_[index]; return true; }
 		inline bool GetRetargetSource(const uint32_t index, RetargetSourceData& retargetSrc) const { if (index >= retargets_.size()) return false;  retargetSrc = retargets_[index]; return true; }
+		inline uint32_t GetChannelCount() const { return (uint32_t)channels_.size(); }
+		inline uint32_t GetSamplerCount() const { return (uint32_t)samplers_.size(); }
 
-		inline bool SetAnimationChannel(const uint32_t index, const AnimationChannel& channel) { if (index >= channels_.size()) return false;  channels_[index] = channel; timeStampSetter_ = TimerNow; return true; }
-		inline bool SetAnimationSampler(const uint32_t index, const AnimationSampler& sampler) { if (index >= samplers_.size()) return false;  samplers_[index] = sampler; timeStampSetter_ = TimerNow; return true; }
+		inline bool SetChannel(const uint32_t index, const Channel& channel) { if (index >= channels_.size()) return false;  channels_[index] = channel; timeStampSetter_ = TimerNow; return true; }
+		inline bool SetSampler(const uint32_t index, const Sampler& sampler) { if (index >= samplers_.size()) return false;  samplers_[index] = sampler; timeStampSetter_ = TimerNow; return true; }
 		inline bool SetRetargetSource(const uint32_t index, const RetargetSourceData& retargetSrc) { if (index >= retargets_.size()) return false;  retargets_[index] = retargetSrc; timeStampSetter_ = TimerNow; return true; }
 
-		inline uint32_t AddAnimationChannel(const AnimationChannel& channel) { channels_.push_back(channel); return (uint32_t)channels_.size(); }
-		inline uint32_t AddAnimationSampler(const AnimationSampler& sampler) { samplers_.push_back(sampler); return (uint32_t)samplers_.size(); }
+		inline uint32_t AddChannel(const Channel& channel) { channels_.push_back(channel); return (uint32_t)channels_.size(); }
+		inline uint32_t AddSampler(const Sampler& sampler) { samplers_.push_back(sampler); return (uint32_t)samplers_.size(); }
 		inline uint32_t AddRetargetSource(const RetargetSourceData& retargetSrc) { retargets_.push_back(retargetSrc); return (uint32_t)retargets_.size(); }
 
 		void Serialize(Archive& archive, const uint64_t version);

@@ -352,8 +352,6 @@ namespace vz::renderer
 			}
 			device->EventEnd(cmd);
 
-			goto DEBUG_GO;
-
 			// ------ Sort of Gaussian Replications -----
 			device->EventBegin("GaussianSplatting - Sort Gaussian Replications", cmd);
 			{
