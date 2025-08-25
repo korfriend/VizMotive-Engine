@@ -237,7 +237,7 @@ namespace vz
 			{
 				archive >> channels_[i].flags;
 				archive >> (uint32_t&)channels_[i].path;
-				archive >> channels_[i].target;
+				archive >> channels_[i].targetNameVUID;
 				archive >> channels_[i].samplerIndex;
 				archive >> channels_[i].retargetIndex;
 			}
@@ -278,7 +278,7 @@ namespace vz
 			{
 				archive << channels_[i].flags;
 				archive << (uint32_t&)channels_[i].path;
-				archive << channels_[i].target;
+				archive << channels_[i].targetNameVUID;
 				archive << channels_[i].samplerIndex;
 				archive << channels_[i].retargetIndex;
 			}

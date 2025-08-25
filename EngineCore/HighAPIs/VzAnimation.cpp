@@ -9,23 +9,6 @@ using namespace vz;
 using namespace std;
 using namespace backlog;
 
-/*
-> 하나의 데이터를 여러 채널이 공유할 수도 있지
-
-● 맞습니다!여러 채널이 하나의 AnimationDataComponent를 공유할 수 있습니다.
-
-구조를 다시 보면 :
--AnimationSampler의 data 필드(1724줄)는 wi::ecs::Entity로 AnimationDataComponent를 가리킵니다
-- 여러 AnimationSampler가 같은 data 엔티티를 참조할 수 있습니다
-- 주석(1734줄)에서도 "The data is now not part of the sampler, so it can be shared"라고 명시되어 있습니다
-
-예를 들어 :
--하나의 AnimationDataComponent에 translation 키프레임 데이터가 있다면
-- 여러 채널의 sampler들이 이 같은 데이터를 공유해서 서로 다른 타겟 오브젝트들에 같은 애니메이션을 적용할 수
-있습니다
-
-이렇게 설계된 이유는 메모리 효율성과 데이터 재사용을 위해서입니다.
-/**/
 namespace vzm
 {
 	// VzAnimation member functions
@@ -33,30 +16,35 @@ namespace vzm
 	{
 		GET_ANI_COMP(comp, );
 		comp->Play();
+		UpdateTimeStamp();
 	}
 
 	void VzAnimation::Pause()
 	{
 		GET_ANI_COMP(comp, );
 		comp->Pause();
+		UpdateTimeStamp();
 	}
 
 	void VzAnimation::Stop()
 	{
 		GET_ANI_COMP(comp, );
 		comp->Stop();
+		UpdateTimeStamp();
 	}
 
 	void VzAnimation::Reset()
 	{
 		GET_ANI_COMP(comp, );
 		comp->SetTime(0);
+		UpdateTimeStamp();
 	}
 
 	void VzAnimation::SetTime(float time)
 	{
 		GET_ANI_COMP(comp, );
 		comp->SetTime(time);
+		UpdateTimeStamp();
 	}
 
 	float VzAnimation::GetTime() const
@@ -75,6 +63,7 @@ namespace vzm
 	{
 		GET_ANI_COMP(comp, );
 		comp->SetSpeed(speed);
+		UpdateTimeStamp();
 	}
 
 	float VzAnimation::GetSpeed() const
@@ -87,16 +76,19 @@ namespace vzm
 	{
 		GET_ANI_COMP(comp, );
 		comp->SetLooped(value);
+		UpdateTimeStamp();
 	}
 	void VzAnimation::SetPingPong(const bool value)
 	{
 		GET_ANI_COMP(comp, );
 		comp->SetPingPong(value);
+		UpdateTimeStamp();
 	}
 	void VzAnimation::SetPlayOnce()
 	{
 		GET_ANI_COMP(comp, );
 		comp->SetPlayOnce();
+		UpdateTimeStamp();
 	}
 	bool VzAnimation::IsLooped() const
 	{
@@ -124,31 +116,116 @@ namespace vzm
 		return comp->IsEnded();
 	}
 
-	uint32_t VzAnimation::AddChannel(const Channel& channel)
-	{
-		GET_ANI_COMP(comp, true);
+	auto convertChannelAPI = [](AnimationComponent* comp, const VzAnimation::Channel& channel) -> AnimationComponent::Channel {
 		AnimationComponent::Channel ani_channel;
 		ani_channel.samplerIndex = channel.samplerIndex;
 		ani_channel.retargetIndex = channel.retargetIndex;
 		ani_channel.path = (AnimationComponent::Channel::Path)channel.path;
-		VzBaseComp* target_comp = vzm::GetComponent(channel.targetVID);
-		if (target_comp == nullptr)
+		NameComponent* name = compfactory::GetNameComponent(channel.targetNameVID);
+		if (name == nullptr)
 		{
 			vzlog_error("Invalid Target VID!");
-			return comp->GetChannelCount();
+			return AnimationComponent::Channel();
 		}
-		compfactory::GetEntityByVUID()
-		return comp->AddChannel();
+		ani_channel.targetNameVUID = name->GetVUID();
+		return ani_channel;
+		};
+
+	auto convertSamplerAPI = [](AnimationComponent* comp, const VzAnimation::Sampler& sampler) -> AnimationComponent::Sampler {
+		AnimationComponent::Sampler ani_sampler;
+		ani_sampler.mode = (AnimationComponent::Sampler::Mode)sampler.mode;
+		AnimationDataComponent* ani_data = compfactory::GetAnimationDataComponent(sampler.keyframeVID);
+		if (ani_data == nullptr)
+		{
+			vzlog_error("Invalid Target VID!");
+			return AnimationComponent::Sampler();
+		}
+		ani_sampler.dataVUID = ani_data->GetVUID();
+		return ani_sampler;
+		};
+
+	uint32_t VzAnimation::AddChannel(const Channel& channel)
+	{
+		GET_ANI_COMP(comp, 0);
+		AnimationComponent::Channel ani_channel = convertChannelAPI(comp, channel);
+		UpdateTimeStamp();
+		return comp->AddChannel(ani_channel);
 	}
-	uint32_t VzAnimation::AddSampler(const Sampler& sampler);
-	void VzAnimation::SetChennel(const int index, const Channel& channel) const;
-	void VzAnimation::SetSampler(const int index, const Sampler& sampler) const;
-	const VzAnimation::Channel& GetChennel(const int index) const;
-	const VzAnimation::Sampler& GetSampler(const int index) const;
-	void VzAnimation::RemoveChannel(const int index);
-	void VzAnimation::RemoveSampler(const int index);
-	void VzAnimation::ClearChannels();
-	void VzAnimation::ClearSampler();
-	size_t VzAnimation::GetChannelCount() const;
-	size_t VzAnimation::GetSamplerCount() const;
+	uint32_t VzAnimation::AddSampler(const Sampler& sampler)
+	{
+		GET_ANI_COMP(comp, 0);
+		AnimationComponent::Sampler ani_sampler = convertSamplerAPI(comp, sampler);
+		UpdateTimeStamp();
+		return comp->AddSampler(ani_sampler);
+	}
+	void VzAnimation::SetChennel(const int index, const Channel& channel)
+	{
+		GET_ANI_COMP(comp, );
+		AnimationComponent::Channel ani_channel = convertChannelAPI(comp, channel);
+		vzlog_assert(comp->SetChannel(index, ani_channel), "Failure! VzAnimation::SetChennel");
+		UpdateTimeStamp();
+	}
+	void VzAnimation::SetSampler(const int index, const Sampler& sampler)
+	{
+		GET_ANI_COMP(comp, );
+		AnimationComponent::Sampler ani_sampler = convertSamplerAPI(comp, sampler);
+		vzlog_assert(comp->SetSampler(index, ani_sampler), "Failure! VzAnimation::SetSampler");
+		UpdateTimeStamp();
+	}
+	VzAnimation::Channel VzAnimation::GetChennel(const int index) const
+	{
+		GET_ANI_COMP(comp, Channel());
+		AnimationComponent::Channel ani_channel;
+		vzlog_assert(comp->GetChannel(index, ani_channel), "Failure! VzAnimation::GetChennel");
+		Channel channel;
+		channel.retargetIndex = ani_channel.retargetIndex;
+		channel.samplerIndex = ani_channel.samplerIndex;
+		channel.path = (Channel::Path)ani_channel.path;
+		channel.targetNameVID = compfactory::GetEntityByVUID(ani_channel.targetNameVUID);
+		return channel;
+	}
+	VzAnimation::Sampler VzAnimation::GetSampler(const int index) const
+	{
+		GET_ANI_COMP(comp, VzAnimation::Sampler());
+		AnimationComponent::Sampler ani_sampler;
+		vzlog_assert(comp->GetSampler(index, ani_sampler), "Failure! VzAnimation::GetSampler");
+		VzAnimation::Sampler sampler;
+		sampler.mode = (VzAnimation::Sampler::Interpolation)ani_sampler.mode;
+		sampler.keyframeVID = compfactory::GetEntityByVUID(ani_sampler.dataVUID);
+		return sampler;
+	}
+	void VzAnimation::RemoveChannel(const int index)
+	{
+		GET_ANI_COMP(comp, );
+		vzlog_assert(comp->RemoveChannel(index), "Failure! VzAnimation::RemoveChannel");
+		UpdateTimeStamp();
+	}
+	void VzAnimation::RemoveSampler(const int index)
+	{
+		GET_ANI_COMP(comp, );
+		vzlog_assert(comp->RemoveSampler(index), "Failure! VzAnimation::RemoveSampler");
+		UpdateTimeStamp();
+	}
+	void VzAnimation::ClearChannels()
+	{
+		GET_ANI_COMP(comp, );
+		comp->ClearChannels();
+		UpdateTimeStamp();
+	}
+	void VzAnimation::ClearSamplers()
+	{
+		GET_ANI_COMP(comp, );
+		comp->ClearSamplers();
+		UpdateTimeStamp();
+	}
+	size_t VzAnimation::GetChannelCount() const
+	{
+		GET_ANI_COMP(comp, 0);
+		return comp->GetChannelCount();
+	}
+	size_t VzAnimation::GetSamplerCount() const
+	{
+		GET_ANI_COMP(comp, 0);
+		return comp->GetSamplerCount();
+	}
 }
