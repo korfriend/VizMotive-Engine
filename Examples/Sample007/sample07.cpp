@@ -360,8 +360,8 @@ int main(int, char**)
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
 				{
 					ImGui::SetWindowSize(ImVec2(0, 0));
-					canvas_size.x = std::max(canvas_size.x, 1.f);
-					canvas_size.y = std::max(canvas_size.y, 1.f);
+					canvas_size.x = std::max(canvas_size.x, 100.f);
+					canvas_size.y = std::max(canvas_size.y, 100.f);
 				}
 
 				bool resized = canvas_size_prev.x != canvas_size.x || canvas_size_prev.y != canvas_size.y;
@@ -475,8 +475,8 @@ int main(int, char**)
 				if (canvas_size_prev.x * canvas_size_prev.y == 0)
 				{
 					ImGui::SetWindowSize(ImVec2(0, 0));
-					canvas_size.x = std::max(canvas_size.x, 1.f);
-					canvas_size.y = std::max(canvas_size.y, 1.f);
+					canvas_size.x = std::max(canvas_size.x, 100.f);
+					canvas_size.y = std::max(canvas_size.y, 100.f);
 				}
 
 				bool resized = canvas_size_prev.x != canvas_size.x || canvas_size_prev.y != canvas_size.y;
@@ -1224,11 +1224,25 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		if (g_pd3dDevice != nullptr && wParam != SIZE_MINIMIZED)
 		{
+			UINT width = (UINT)LOWORD(lParam);
+			UINT height = (UINT)HIWORD(lParam);
+			
+			// Enforce minimum size of 100x100
+			width = std::max(width, 100u);
+			height = std::max(height, 100u);
+			
 			WaitForLastSubmittedFrame();
 			CleanupRenderTarget();
-			HRESULT result = g_pSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
+			HRESULT result = g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
 			assert(SUCCEEDED(result) && "Failed to resize swapchain.");
 			CreateRenderTarget();
+		}
+		return 0;
+	case WM_GETMINMAXINFO:
+		{
+			LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
+			lpMMI->ptMinTrackSize.x = 100;
+			lpMMI->ptMinTrackSize.y = 100;
 		}
 		return 0;
 	case WM_SYSCOMMAND:
