@@ -615,7 +615,7 @@ namespace vz
 			};
 			uint32_t flags = EMPTY;
 
-			VUID target = INVALID_VUID;
+			VUID targetNameVUID = INVALID_VUID;	// name component's VUID
 			int samplerIndex = -1;
 			int retargetIndex = -1;
 
@@ -768,6 +768,15 @@ namespace vz
 		inline uint32_t AddChannel(const Channel& channel) { channels_.push_back(channel); return (uint32_t)channels_.size(); }
 		inline uint32_t AddSampler(const Sampler& sampler) { samplers_.push_back(sampler); return (uint32_t)samplers_.size(); }
 		inline uint32_t AddRetargetSource(const RetargetSourceData& retargetSrc) { retargets_.push_back(retargetSrc); return (uint32_t)retargets_.size(); }
+
+#define ERAGE_ANIMSRC(A) timeStampSetter_ = TimerNow; if (index >= 0 && index < A.size()) { A.erase(A.begin() + index); return true; } return false;
+		inline bool RemoveChannel(const uint32_t index) { ERAGE_ANIMSRC(channels_) }
+		inline bool RemoveSampler(const uint32_t index) { ERAGE_ANIMSRC(samplers_) }
+		inline bool RemoveRetargetSource(const uint32_t index) { ERAGE_ANIMSRC(retargets_) }
+
+		inline void ClearChannels() { channels_.clear(); timeStampSetter_ = TimerNow; }
+		inline void ClearSamplers() { samplers_.clear(); timeStampSetter_ = TimerNow; }
+		inline void ClearRetargetSources() { retargets_.clear(); timeStampSetter_ = TimerNow; }
 
 		void Serialize(Archive& archive, const uint64_t version);
 

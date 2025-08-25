@@ -73,7 +73,7 @@ namespace vzm
 			int samplerIndex = -1;
 			int retargetIndex = -1;
 
-			VID targetVID = INVALID_VID;
+			VID targetNameVID = INVALID_VID;
 		};
 		struct Sampler
 		{
@@ -111,14 +111,14 @@ namespace vzm
 
 		uint32_t AddChannel(const Channel& channel);
 		uint32_t AddSampler(const Sampler& sampler);
-		void SetChennel(const int index, const Channel& channel) const;
-		void SetSampler(const int index, const Sampler& sampler) const;
-		const Channel& GetChennel(const int index) const;
-		const Sampler& GetSampler(const int index) const;
+		void SetChennel(const int index, const Channel& channel);
+		void SetSampler(const int index, const Sampler& sampler);
+		Channel GetChennel(const int index) const;
+		Sampler GetSampler(const int index) const;
 		void RemoveChannel(const int index);
 		void RemoveSampler(const int index);
 		void ClearChannels();
-		void ClearSampler();
+		void ClearSamplers();
 		size_t GetChannelCount() const;
 		size_t GetSamplerCount() const;
 	};
