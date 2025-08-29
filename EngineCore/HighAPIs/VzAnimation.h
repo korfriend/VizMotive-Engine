@@ -73,7 +73,7 @@ namespace vzm
 			int samplerIndex = -1;
 			int retargetIndex = -1;
 
-			VID targetNameVID = INVALID_VID;
+			VID targetVID = INVALID_VID; // target must be VzSceneObject
 		};
 		struct Sampler
 		{

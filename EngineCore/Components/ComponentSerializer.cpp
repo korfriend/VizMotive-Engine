@@ -301,7 +301,7 @@ namespace vz
 		}
 
 		// Root Bone Name
-		archive << rootMotionBone;
+		archive << rootMotionBone_;
 	}
 
 
@@ -464,6 +464,17 @@ namespace vz
 			ptype_ = static_cast<PrimitiveType>(data32t);
 
 			archive >> data32t;
+			morphTargets_.resize(data32t);
+			for (uint32_t i = 0; i < data32t; ++i)
+			{
+				archive >> morphTargets_[i].vertexPositions;
+				archive >> morphTargets_[i].vertexNormals;
+				archive >> morphTargets_[i].weight;
+				archive >> morphTargets_[i].sparseIndicesPositions;
+				archive >> morphTargets_[i].sparseIndicesNormals;
+			}
+
+			archive >> data32t;
 			customBuffers_.resize(data32t);
 			for (uint32_t i = 0; i < data32t; ++i)
 			{
@@ -490,6 +501,16 @@ namespace vz
 			archive << vertexColors_;
 			archive << indexPrimitives_;
 			archive << SCU32(ptype_);
+
+			archive << (uint32_t)morphTargets_.size();
+			for (size_t i = 0; i < morphTargets_.size(); ++i)
+			{
+				archive << morphTargets_[i].vertexPositions;
+				archive << morphTargets_[i].vertexNormals;
+				archive << morphTargets_[i].weight;
+				archive << morphTargets_[i].sparseIndicesPositions;
+				archive << morphTargets_[i].sparseIndicesNormals;
+			}
 
 			archive << (uint32_t)customBuffers_.size();
 			for (auto& it : customBuffers_)

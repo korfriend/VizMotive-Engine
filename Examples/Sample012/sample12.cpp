@@ -142,6 +142,7 @@ int main(int, char**)
 	VzCamera* camera = nullptr;
 	VzRenderer* renderer = nullptr;
 
+	VzAnimation* animation = NewAnimation("my animation");
 	vz::jobsystem::context ctx_stl_loader;
 	{
 		scene = NewScene("my scene");
@@ -249,7 +250,7 @@ int main(int, char**)
 		{
 			static size_t count = 0;
 			static bool play = true;
-			static bool shadowmap_debug = false;
+			static bool animation_play = false;
 			//static auto since = std::chrono::system_clock::now();
 			//auto now = std::chrono::system_clock::now();
 			//auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
@@ -383,17 +384,54 @@ int main(int, char**)
 				{
 					play = !play;
 				}
-				if (ImGui::Button(shadowmap_debug ? "Hide ShadowMap" : "Show ShadowMap"))
+
+				static float anim_time = 0;
+				static std::vector<float> anim_times;
+				static std::vector<float> anim_kf_t;
+				static std::vector<float> anim_kf_r;
+				static VzKeyFrameData* keyframe_t = NewKeyFrame("my keyframe: T");
+				static VzKeyFrameData* keyframe_r = NewKeyFrame("my keyframe: R");
+
+				if (ImGui::Button("Add Camera Keyframe"))
 				{
-					shadowmap_debug = !shadowmap_debug;
-					if (shadowmap_debug)
-					{
-						renderer->ShowDebugBuffer("CASCADE_SHADOW_MAP");
-					}
-					else
-					{
-						renderer->ShowDebugBuffer("NONE");
-					}
+					anim_times.push_back(anim_time += 5.f);
+					keyframe_t->SetKeyFrameTimes(anim_times);
+					keyframe_r->SetKeyFrameTimes(anim_times);
+
+					vfloat3 p;
+					camera->GetWorldPosition(p);
+					anim_kf_t.push_back(p.x);
+					anim_kf_t.push_back(p.y);
+					anim_kf_t.push_back(p.z);
+					keyframe_t->SetKeyFrameData(anim_kf_t);
+					vfloat4 q;
+					camera->GetWorldRotation(q);
+					anim_kf_r.push_back(q.x);
+					anim_kf_r.push_back(q.y);
+					anim_kf_r.push_back(q.z);
+					anim_kf_r.push_back(q.w);
+					keyframe_r->SetKeyFrameData(anim_kf_r);
+					
+					AnimationChannel channel;
+					channel.targetVID = camera->GetVID();
+					channel.path = AnimationChannel::Path::TRANSLATION;
+					channel.samplerIndex = 0;
+					animation->AddChannel(channel);
+					channel.path = AnimationChannel::Path::ROTATION;
+					channel.samplerIndex = 1;
+					animation->AddChannel(channel);
+
+					AnimationSampler sampler;
+					sampler.keyframeVID = keyframe_t->GetVID();
+					animation->AddSampler(sampler);
+					sampler.keyframeVID = keyframe_r->GetVID();
+					animation->AddSampler(sampler);
+				}
+
+				if (ImGui::Button(animation_play ? "Animation Stop" : "Animation Play"))
+				{
+					animation_play = !animation_play;
+					animation_play? animation->Play() : animation->Stop();
 				}
 
 				static int detail_Icosahedron = 5;

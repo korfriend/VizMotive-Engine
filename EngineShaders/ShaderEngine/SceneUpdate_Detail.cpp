@@ -154,7 +154,7 @@ namespace vz
 					// will add the material feature..
 					const float roughness = material.GetRoughness();
 					const float reflectance = material.GetReflectance();
-					const float metalness = material.GetMatalness();
+					const float metalness = material.GetMetalness();
 					const float refraction = material.GetRefraction();
 					const float normalMapStrength = material.GetNormalMapStrength();
 					const float parallaxOcclusionMapping = material.GetParallaxOcclusionMapping();

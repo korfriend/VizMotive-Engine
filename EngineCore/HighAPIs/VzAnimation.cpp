@@ -121,7 +121,7 @@ namespace vzm
 		ani_channel.samplerIndex = channel.samplerIndex;
 		ani_channel.retargetIndex = channel.retargetIndex;
 		ani_channel.path = (AnimationComponent::Channel::Path)channel.path;
-		NameComponent* name = compfactory::GetNameComponent(channel.targetNameVID);
+		NameComponent* name = compfactory::GetNameComponent(channel.targetVID);
 		if (name == nullptr)
 		{
 			vzlog_error("Invalid Target VID!");
@@ -181,7 +181,7 @@ namespace vzm
 		channel.retargetIndex = ani_channel.retargetIndex;
 		channel.samplerIndex = ani_channel.samplerIndex;
 		channel.path = (Channel::Path)ani_channel.path;
-		channel.targetNameVID = compfactory::GetEntityByVUID(ani_channel.targetNameVUID);
+		channel.targetVID = compfactory::GetEntityByVUID(ani_channel.targetNameVUID);
 		return channel;
 	}
 	VzAnimation::Sampler VzAnimation::GetSampler(const int index) const

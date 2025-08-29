@@ -87,7 +87,7 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
-	void VzMaterial::SetPhongFactors(const vfloat4 phongFactors)
+	void VzMaterial::SetPhongFactors(const vfloat4& phongFactors)
 	{
 		GET_MATERIAL_COMP(material, );
 		material->SetPhongFactors(*(XMFLOAT4*)&phongFactors);

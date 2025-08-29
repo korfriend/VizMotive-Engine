@@ -1,6 +1,8 @@
 // Filament highlevel APIs
 #include "vzm2/VzEngineAPIs.h"
 #include "vzm2/utils/JobSystem.h"
+#include "vzm2/utils/Profiler.h"
+
 
 #include <iostream>
 #include <windowsx.h>
@@ -261,6 +263,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     const float navi_width = 200.f;
     cam_navi->SetOrthogonalProjection(navi_width, navi_width, 0.f, 100.f, 10.f);
 
+	vzm::VzActorSpriteFont* actor_font = vzm::NewActorSpriteFont("my sprite font");
+	{
+		vz::profiler::SetEnabled(true);
+
+		actor_font->SetText("ACTIVATE PROFILER!");
+		actor_font->SetFontScale(0.01);
+		actor_font->EnableCameraFacing(true);
+		scene->AppendChild(actor_font);
+    }
+
     //vzm::ChainUnitRCam
     
     // Main loop
@@ -288,6 +300,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		u = glm::rotateX(u, x_rot);
 		cam->SetWorldPose(__FC3 p, __FC3 v, __FC3 u);
 		cam_navi->SetWorldPose(__FC3 p, __FC3 v, __FC3 u);
+
+        {
+			std::string performance_info, memory_info;
+			vz::profiler::GetProfileInfo(performance_info, memory_info);
+			actor_font->SetText(performance_info);
+        }
+
 
         static uint32_t index0 = 120, index1 = 210;
         static bool add_index = true;

@@ -19,13 +19,21 @@ namespace vzm
 	API_EXPORT bool IsValidEngineLib();
 
 	API_EXPORT VzArchive* NewArchive(const std::string& name);
-	// Create new scene and return scene (NOT a scene item) ID, a scene 
+	// Create new scene and return a scene 
 	//  - return zero in case of failure (the name is already registered or overflow VID)
 	API_EXPORT VzScene* NewScene(const std::string& name);
-	// Create new renderer and return renderer ID, a renderer
+	// Create new renderer and return a renderer
 	//  - renderer has canvas which involves rendertarget buffers and textures
 	//  - return zero in case of failure (the name is already registered or overflow VID)
 	API_EXPORT VzRenderer* NewRenderer(const std::string& name);
+	// Create new Animation and return a animation system component
+	//  - animation has player and container of channels/samplers
+	//  - return zero in case of failure (the name is already registered or overflow VID)
+	API_EXPORT VzAnimation* NewAnimation(const std::string& name);
+	// Create new Keyframe and return a Keyframe container
+	//  - keyframedata has container of sampler's data
+	//  - return zero in case of failure (the name is already registered or overflow VID)
+	API_EXPORT VzKeyFrameData* NewKeyFrame(const std::string& name);
 
 	// Create new scene component (CAMERA, ACTOR, LIGHT) INCLUDE HIERARCHY and TRANSFORMS
 	//  - Must belong to a scene

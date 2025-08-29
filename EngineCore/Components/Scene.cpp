@@ -41,6 +41,7 @@ namespace vz
 		SceneDetails(const Entity entity, const std::string& name) : Scene(entity, name) 
 		{
 			environment_ = compfactory::CreateEnvironmentComponent(0)->GetEntity();
+			compfactory::CreateNameComponent(environment_, name_ + "'s default environment");
 
 			sceneShader = shaderEngine.pluginNewGScene(this);
 			assert(sceneShader->version == GScene::GScene_INTERFACE_VERSION);
@@ -57,7 +58,8 @@ namespace vz
 		//	Note: 
 		//		* transform states are based on those streams
 		//		* each entity has also TransformComponent and HierarchyComponent
-		//	index-map
+		//	index-map to handle and access lineararray efficiently
+		
 		std::unordered_map<Entity, uint32_t> lookupRenderables; // All types of renderables
 		std::unordered_map<Entity, uint32_t> lookupMeshRenderables;
 		std::unordered_map<Entity, uint32_t> lookupVolumeRenderables;
@@ -68,6 +70,7 @@ namespace vz
 		std::unordered_map<Entity, uint32_t> lookupProbes;
 		std::unordered_map<Entity, uint32_t> lookupCameras;
 		std::unordered_map<Entity, uint32_t> lookupChildren;
+		std::unordered_map<Entity, uint32_t> lookupAnimations;
 
 		// AABB culling streams:
 		std::vector<geometrics::AABB> aabbRenderables;
@@ -120,6 +123,17 @@ namespace vz
 		geometrics::BVH colliderBvh;
 		geometrics::BVH colliderBvhNext;
 		jobsystem::context colliderBvhWorkload;
+
+		// Animation processing optimizer:
+		struct AnimationQueue
+		{
+			// The animations within one queue must be processed on the same thread in order
+			std::vector<AnimationComponent*> animations; // pointers for one frame only!
+			std::unordered_set<Entity> entities;
+		};
+		std::vector<AnimationQueue> animationQueues; // different animation queues can be processed in different threads in any order
+		size_t animationQueueCount = 0; // to avoid resizing animation queues downwards because the internals for them needs to be reallocated in that case
+		jobsystem::context animationDependencyScanWorkload;
 
 		// Method Details:
 		const std::vector<GRenderableComponent*>& GetRenderableComponents() const override { return renderableComponents; }
@@ -646,6 +660,27 @@ namespace vz
 
 			profiler::EndRange(range);
 		}
+		void RunAnimationUpdateSystem(jobsystem::context& ctx)
+		{
+			auto range = profiler::BeginRangeCPU("Animations");
+
+			jobsystem::Wait(animationDependencyScanWorkload);
+			
+			jobsystem::Dispatch(ctx, (uint32_t)animationQueueCount, 1, [&](jobsystem::JobArgs args) {
+
+				AnimationQueue& animation_queue = animationQueues[args.jobIndex];
+				for (size_t animation_index = 0; animation_index < animation_queue.animations.size(); ++animation_index)
+				{
+					AnimationComponent& animation = *animation_queue.animations[animation_index];
+
+					animation.Update(dt_);
+				}
+				});
+
+			jobsystem::Wait(ctx);
+
+			profiler::EndRange(range);
+		}
 
 		void CountCPUandGPUColliders()
 		{
@@ -745,27 +780,25 @@ namespace vz
 			remove_entity(lookupRenderables, renderables_, entity);
 			remove_entity(lookupLights, lights_, entity);
 			remove_entity(lookupCameras, cameras_, entity);
+			remove_entity(lookupAnimations, animations_, entity);
 
 			remove_entity(lookupChildren, children_, entity);
 
-			// others will be updated via Update()
-
 			timeStampSetter_ = TimerNow;
+
+			// others will be updated via Update()
 
 			//removeEntityLinearArray(lookupTransforms_, transforms_, std::vector<ComponentBase*>(), entity);
 			//removeEntityLinearArray(DOWNCAST->lookupRenderables, renderables_, renderableMeshComponents, entity);
 			//removeEntityLinearArray(DOWNCAST->lookupLights, lights_, lightComponents, entity);
 			//removeEntityLinearArray(DOWNCAST->lookupCameras, cameras_, cameraComponents, entity);
-			//
 			//removeEntityLinearArray(DOWNCAST->lookupMeshRenderables, std::vector<Entity>(), renderableMeshComponents, entity);
 			//removeEntityLinearArray(DOWNCAST->lookupVolumeRenderables, std::vector<Entity>(), renderableVolumeComponents, entity);
 			//removeEntityLinearArray(DOWNCAST->lookupGSplatRenderables, std::vector<Entity>(), renderableGSplatComponents, entity);
 			//removeEntityLinearArray(DOWNCAST->lookupSpriteRenderables, std::vector<Entity>(), renderableSpriteComponents, entity);
 			//removeEntityLinearArray(DOWNCAST->lookupSpritefontRenderables, std::vector<Entity>(), renderableSpritefontComponents, entity);
-			//
 			//removeEntityLinearArray(DOWNCAST->lookupChildren, children_, std::vector<ComponentBase*>(), entity);
-
-			timeStampSetter_ = TimerNow;
+			//timeStampSetter_ = TimerNow;
 		}
 
 		void scanResourceEntities()
@@ -837,6 +870,75 @@ namespace vz
 			colliders_.insert(colliders_.end(), collider_set.begin(), collider_set.end());
 		}
 
+		void scanAnimationDependencies()
+		{
+			if (animations_.size() == 0)
+			{
+				animationQueueCount = 0;
+				return;
+			}
+
+			animationQueues.reserve(animations_.size());
+			animationQueueCount = 0;
+
+			jobsystem::Execute(animationDependencyScanWorkload, [&](jobsystem::JobArgs args) {
+				auto range = profiler::BeginRangeCPU("Animation Dependencies");
+				for (size_t i = 0; i < animations_.size(); ++i)
+				{
+					AnimationComponent& animationA = *compfactory::GetAnimationComponent(animations_[i]);
+					if (!animationA.IsPlaying() && animationA.GetLastUpdateTime() == animationA.GetTime())
+					{
+						continue;
+					}
+					bool dependency = false;
+					for (size_t queue_index = 0; queue_index < animationQueueCount; ++queue_index)
+					{
+						AnimationQueue& queue = animationQueues[queue_index];
+						for (auto& channelA : animationA.GetChannels())
+						{
+							NameComponent* name = compfactory::GetNameComponentByVUID(channelA.targetNameVUID);
+							vzlog_assert(name, "Channel has invalid target!");
+							Entity target_ett = name->GetEntity();
+							if (dependency)
+							{
+								// If dependency has been found, record all other entities in this animation too:
+								queue.entities.insert(target_ett);
+							}
+							else if (queue.entities.find(target_ett) != queue.entities.end())
+							{
+								// If two animations target the same entity, they have a dependency and need to be executed in order:
+								dependency = true;
+								queue.animations.push_back(&animationA);
+							}
+						}
+						if (dependency) break;
+					}
+					if (!dependency)
+					{
+						// No dependency, it can be executed on a separate queue (thread)
+						if (animationQueues.size() <= animationQueueCount)
+						{
+							animationQueues.resize(animationQueueCount + 1);
+						}
+						AnimationQueue& queue = animationQueues[animationQueueCount];
+						queue.animations.clear();
+						queue.animations.push_back(&animationA);
+						queue.entities.clear();
+						for (auto& channelA : animationA.GetChannels())
+						{
+							NameComponent* name = compfactory::GetNameComponentByVUID(channelA.targetNameVUID);
+							vzlog_assert(name, "Channel has invalid target!");
+							queue.entities.insert(name->GetEntity());
+						}
+						animationQueueCount++;
+					}
+				}
+				profiler::EndRange(range);
+				});
+
+			// We don't wait for this job here, it will be waited just before animation update
+		}
+
 		void Update(const float dt) override
 		{
 			isContentChanged_ = false;
@@ -844,6 +946,7 @@ namespace vz
 			deltaTimeAccumulator_ += dt;
 
 			scanResourceEntities();
+			scanAnimationDependencies();
 
 			//ScanAnimationDependencies();
 			// count colliders in background thread before procedural anim system
@@ -966,6 +1069,7 @@ namespace vz
 		renderables_.clear();
 		lights_.clear();
 		cameras_.clear();
+		animations_.clear();
 
 		children_.clear();
 		materials_.clear();
@@ -982,6 +1086,7 @@ namespace vz
 		DOWNCAST->lookupLights.clear();
 		DOWNCAST->lookupCameras.clear();
 		DOWNCAST->lookupChildren.clear();
+		DOWNCAST->lookupAnimations.clear();
 
 		DOWNCAST->aabbRenderables.clear();
 		DOWNCAST->aabbLights.clear();
@@ -1013,11 +1118,49 @@ namespace vz
 	void Scene::AddEntity(const Entity entity)
 	{
 		TransformComponent* transform = compfactory::GetTransformComponent(entity);
-		if (transform == nullptr || lookupTransforms_.find(entity) != lookupTransforms_.end())
+		NameComponent* name = compfactory::GetNameComponent(entity);
+		assert(name);
+		if (transform == nullptr)
 		{
+			AnimationComponent* animation = compfactory::GetAnimationComponent(entity);
+			if (animation)
+			{
+				std::unordered_map<Entity, uint32_t>& lookupAnimations = DOWNCAST->lookupAnimations;
+				if (lookupAnimations.find(entity) != lookupAnimations.end())
+				{
+					vzlog_warning("The entity (%s) already exists!", name->GetName().c_str());
+					return;
+				}
+				assert(lookupAnimations.count(entity) == 0);
+				lookupAnimations[entity] = animations_.size();
+				animations_.push_back(entity);
+				timeStampSetter_ = TimerNow;
+				return;
+			}
+			EnvironmentComponent* environment = compfactory::GetEnvironmentComponent(entity);
+			if (environment)
+			{
+				vzlog("Scene(%s)'s environment is replaced to (%s)", name_.c_str(), name->GetName().c_str());
+				NameComponent* prev_envname = compfactory::GetNameComponent(environment_);
+				if (prev_envname)
+				{
+					vzlog_warning("Environment(%s) becomes lost state!", prev_envname->GetName().c_str());
+				}
+				environment_ = entity;
+				timeStampSetter_ = TimerNow;
+				return;
+			}
 			vzlog_error("Scene::Invalid Entity, No Transform Entity (%llu)", entity);
 			return;
 		}
+
+		if (lookupTransforms_.find(entity) != lookupTransforms_.end())
+		{
+			vzlog_warning("The entity (%s) already exists!", name->GetName().c_str());
+			return;
+		}
+		lookupTransforms_[entity] = transforms_.size();
+		transforms_.push_back(entity);
 
 		bool is_attached = false;
 		ComponentBase* comp = nullptr;
@@ -1033,10 +1176,7 @@ namespace vz
 		std::unordered_map<Entity, uint32_t>& lookupCameras = DOWNCAST->lookupCameras;
 		std::unordered_map<Entity, uint32_t>& lookupChildren = DOWNCAST->lookupChildren;
 
-		RenderableComponent* renderable = compfactory::GetRenderableComponent(entity);
-		lookupTransforms_[entity] = transforms_.size();
-		transforms_.push_back(entity);
-		if (renderable)
+		if (compfactory::ContainRenderableComponent(entity))
 		{
 			assert(lookupRenderables.count(entity) == 0);
 			lookupRenderables[entity] = renderables_.size();
@@ -2067,7 +2207,6 @@ namespace vz
 			assert(seri_name == "Scene");
 			archive >> name_;
 
-
 			archive >> ambient_;
 			{
 				VUID vuid;
@@ -2131,6 +2270,17 @@ namespace vz
 				assert(compfactory::ContainCameraComponent(entity));
 				AddEntity(entity);
 			}
+
+			size_t num_animations;
+			archive >> num_animations;
+			for (size_t i = 0; i < num_animations; ++i)
+			{
+				VUID vuid;
+				archive >> vuid;
+				Entity entity = compfactory::GetEntityByVUID(vuid);
+				assert(compfactory::ContainAnimationComponent(entity));
+				AddEntity(entity);
+			}
 		}
 		else
 		{
@@ -2175,6 +2325,13 @@ namespace vz
 			for (Entity entity : cameras_)
 			{
 				CameraComponent* comp = compfactory::GetCameraComponent(entity);
+				assert(comp);
+				archive << comp->GetVUID();
+			}
+			archive << animations_.size();
+			for (Entity entity : animations_)
+			{
+				AnimationComponent* comp = compfactory::GetAnimationComponent(entity);
 				assert(comp);
 				archive << comp->GetVUID();
 			}
