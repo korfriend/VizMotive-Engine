@@ -360,21 +360,6 @@ namespace vz
 
 namespace vz
 {
-	float AnimationComponent::GetDuration() const
-	{
-		float duration = -1.f;
-		for (auto& sampler : samplers_)
-		{
-			AnimationDataComponent* ani_data_comp = compfactory::GetAnimationDataComponentByVUID(sampler.dataVUID);
-			vzlog_assert(ani_data_comp, "sampler.dataVUID is INVALID!");
-			duration = std::max(duration, ani_data_comp->GetDuration());
-		}
-		return duration;
-	}
-}
-
-namespace vz
-{
 	const XMVECTOR BASE_LIGHT_DIR = XMVectorSet(0, 0, -1, 0); // Forward direction
 	inline void LightComponent::Update()
 	{

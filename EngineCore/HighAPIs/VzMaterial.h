@@ -63,7 +63,7 @@ namespace vzm
 		void SetBaseColor(const vfloat4& color);
 		void SetGaussianSplattingEnabled(const bool enabled);
 		void SetWireframe(const bool enabled);
-		void SetPhongFactors(const vfloat4 phongFactors);
+		void SetPhongFactors(const vfloat4& phongFactors);
 
 		void SetVolumeMapper(const ActorVID targetVolumeActorVID, const VolumeTextureSlot volumetextureSlot, const LookupTableSlot lookuptextureSlot);
 

@@ -126,6 +126,11 @@ namespace vz
 		return &parts_[slot];
 	}
 
+	std::vector<Primitive>& GeometryComponent::GetMutablePrimitives()
+	{
+		waiter_->waitForFree();
+		return parts_;
+	}
 }
 
 namespace vz

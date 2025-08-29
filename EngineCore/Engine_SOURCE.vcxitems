@@ -90,6 +90,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\RenderPath3D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\ResourceManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Version.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\AnimationComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\CameraComponent.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)components\ComponentFactory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentRefReset.cpp" />

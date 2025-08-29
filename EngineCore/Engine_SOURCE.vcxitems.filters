@@ -441,6 +441,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzAnimation.cpp">
       <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\AnimationComponent.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private\Component Detail</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Utils\DirectXMath\DirectXMathMatrix.inl">

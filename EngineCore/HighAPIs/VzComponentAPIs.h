@@ -56,6 +56,7 @@ using GeometryVID = VID;
 using MaterialVID = VID;
 using TextureVID = VID;
 using VolumeVID = VID;
+using AnimationVID = VID;
 using KeyFrameVID = VID;
 
 constexpr VID INVALID_VID = 0;

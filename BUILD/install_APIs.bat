@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 REM ------------------------------------------
 REM Header files in HighAPIs folder (outdated copy)
 REM Target: ..\Install\vzm2\
-set "highapis=VzComponentAPIs.h VzEngineAPIs.h VzActor.h VzLight.h VzArchive.h VzCamera.h VzGeometry.h VzMaterial.h VzRenderer.h VzScene.h VzTexture.h"
+set "highapis=VzComponentAPIs.h VzEngineAPIs.h VzActor.h VzLight.h VzArchive.h VzCamera.h VzGeometry.h VzMaterial.h VzRenderer.h VzScene.h VzTexture.h VzAnimation.h"
 for %%F in (%highapis%) do (
     xcopy "..\EngineCore\HighAPIs\%%F" "..\Install\vzm2\" /D /Y
 )

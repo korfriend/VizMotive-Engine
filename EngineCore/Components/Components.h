@@ -35,7 +35,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250806_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250829_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -163,6 +163,9 @@ namespace vz
 		std::vector<Entity> lights_;
 		std::vector<Entity> probes_;
 		std::vector<Entity> cameras_;
+		std::vector<Entity> animations_;
+
+		Entity environment_ = INVALID_ENTITY;
 
 		// TODO
 		// camera for reflection 
@@ -170,15 +173,13 @@ namespace vz
 		// -----------------------------------------
 		// Non-serialized attributes:
 		Entity entity_ = INVALID_ENTITY;
-		std::unordered_map<Entity, uint32_t> lookupTransforms_;	// note: all entities have TransformComponent
+		std::unordered_map<Entity, uint32_t> lookupTransforms_;	// note: all entities (except animation and environment) have TransformComponent
 		std::vector<Entity> children_;
 		std::vector<Entity> materials_;
 		std::vector<Entity> geometries_;
 		std::vector<Entity> colliders_;
 
 		geometrics::AABB aabb_;	// entire scene box (renderables, lights, ...)
-
-		Entity environment_ = INVALID_ENTITY;
 		
 		// Non-serialized Attributes
 		//	instant parameters during render-process
@@ -258,6 +259,7 @@ namespace vz
 		inline const std::vector<Entity>& GetLightEntities() const noexcept { return lights_; }
 		inline const std::vector<Entity>& GetProbeEntities() const noexcept { return probes_; }
 		inline const std::vector<Entity>& GetCameraEntities() const noexcept { return cameras_; }
+		inline const std::vector<Entity>& GetAnimationEntities() const noexcept { return animations_; }
 
 		inline const std::vector<Entity>& GetChildrenEntities() const noexcept { return children_; }
 
@@ -709,20 +711,19 @@ namespace vz
 		std::vector<RetargetSourceData> retargets_;
 
 		// Non-serialzied attributes:
-		std::vector<float> morphWeightsTemp;
-		float lastUpdateTime = 0;
+		std::vector<float> morphWeightsTemp_;
+		float lastUpdateTime_ = 0;
 
 		// Root Motion
-		XMFLOAT3 rootTranslationOffset;
-		XMFLOAT4 rootRotationOffset;
-		VUID rootMotionBone;
+		XMFLOAT3 rootTranslationOffset_;
+		XMFLOAT4 rootRotationOffset_;
+		Entity rootMotionBone_;
 
-		XMVECTOR rootPrevTranslation = XMVectorSet(-69, 420, 69, -420);
-		XMVECTOR rootPrevRotation = XMVectorSet(-69, 420, 69, -420);
+		XMVECTOR rootPrevTranslation_ = XMVectorSet(-69, 420, 69, -420);	// magic vector
+		XMVECTOR rootPrevRotation_ = XMVectorSet(-69, 420, 69, -420);
 		XMVECTOR INVALID_VECTOR = XMVectorSet(-69, 420, 69, -420);
-		float prevLocTimer;
-		float prevRotTimer;
-		// Root Motion
+		float prevLocTimer_;
+		float prevRotTimer_;
 
 	public:
 		AnimationComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LAYERDMASK, entity, vuid) {}
@@ -738,9 +739,11 @@ namespace vz
 		inline float GetTime() const { return playTimer_; }
 		inline float GetSpeed() const { return speed_; }
 
+		inline float GetLastUpdateTime() const { return lastUpdateTime_; }
+
 		inline void Play() { flags_ |= PLAYING; timeStampSetter_ = TimerNow; }
 		inline void Pause() { flags_ &= ~PLAYING; timeStampSetter_ = TimerNow; }
-		inline void Stop() { Pause(); playTimer_ = 0.0f; lastUpdateTime = playTimer_; timeStampSetter_ = TimerNow; }
+		inline void Stop() { Pause(); playTimer_ = 0.0f; lastUpdateTime_ = playTimer_; timeStampSetter_ = TimerNow; }
 		inline void SetTime(const float time) { playTimer_ = time; timeStampSetter_ = TimerNow; }
 		inline void SetLooped(const bool value = true) { if (value) { flags_ |= LOOPED; flags_ &= ~PING_PONG; } else { flags_ &= ~LOOPED; } timeStampSetter_ = TimerNow; }
 		inline void SetPingPong(const bool value = true) { if (value) { flags_ |= PING_PONG; flags_ &= ~LOOPED; } else { flags_ &= ~PING_PONG; } timeStampSetter_ = TimerNow; }
@@ -749,11 +752,15 @@ namespace vz
 
 		inline void RootMotionOn() { flags_ |= ROOT_MOTION; timeStampSetter_ = TimerNow; }
 		inline void RootMotionOff() { flags_ &= ~ROOT_MOTION; timeStampSetter_ = TimerNow; }
-		inline XMFLOAT3 GetRootTranslation() const { return rootTranslationOffset; }
-		inline XMFLOAT4 GetRootRotation() const { return rootRotationOffset; }
-		inline Entity GetRootMotionBone() const { return rootMotionBone; }
+		inline XMFLOAT3 GetRootTranslation() const { return rootTranslationOffset_; }
+		inline XMFLOAT4 GetRootRotation() const { return rootRotationOffset_; }
+		inline Entity GetRootMotionBone() const { return rootMotionBone_; }
 		inline float GetDuration() const;
-		inline void SetRootMotionBone(Entity _rootMotionBone) { rootMotionBone = _rootMotionBone; timeStampSetter_ = TimerNow; }
+		inline void SetRootMotionBone(Entity _rootMotionBone) { rootMotionBone_ = _rootMotionBone; timeStampSetter_ = TimerNow; }
+
+		inline const std::vector<Channel>& GetChannels() const { return channels_; }
+		inline const std::vector<Sampler>& GetSamplers() const { return samplers_; }
+		inline const std::vector<RetargetSourceData>& GetRetargetSources() const { return retargets_; }
 
 		inline bool GetChannel(const uint32_t index, Channel& channel) const { if (index >= channels_.size()) return false;  channel = channels_[index]; return true; }
 		inline bool GetSampler(const uint32_t index, Sampler& sampler) const { if (index >= samplers_.size()) return false;  sampler = samplers_[index]; return true; }
@@ -769,14 +776,16 @@ namespace vz
 		inline uint32_t AddSampler(const Sampler& sampler) { samplers_.push_back(sampler); return (uint32_t)samplers_.size(); }
 		inline uint32_t AddRetargetSource(const RetargetSourceData& retargetSrc) { retargets_.push_back(retargetSrc); return (uint32_t)retargets_.size(); }
 
-#define ERAGE_ANIMSRC(A) timeStampSetter_ = TimerNow; if (index >= 0 && index < A.size()) { A.erase(A.begin() + index); return true; } return false;
-		inline bool RemoveChannel(const uint32_t index) { ERAGE_ANIMSRC(channels_) }
-		inline bool RemoveSampler(const uint32_t index) { ERAGE_ANIMSRC(samplers_) }
-		inline bool RemoveRetargetSource(const uint32_t index) { ERAGE_ANIMSRC(retargets_) }
+#define REMOVE_ANIMSRC(A) timeStampSetter_ = TimerNow; if (index >= 0 && index < A.size()) { A.erase(A.begin() + index); return true; } return false;
+		inline bool RemoveChannel(const uint32_t index) { REMOVE_ANIMSRC(channels_) }
+		inline bool RemoveSampler(const uint32_t index) { REMOVE_ANIMSRC(samplers_) }
+		inline bool RemoveRetargetSource(const uint32_t index) { REMOVE_ANIMSRC(retargets_) }
 
 		inline void ClearChannels() { channels_.clear(); timeStampSetter_ = TimerNow; }
 		inline void ClearSamplers() { samplers_.clear(); timeStampSetter_ = TimerNow; }
 		inline void ClearRetargetSources() { retargets_.clear(); timeStampSetter_ = TimerNow; }
+
+		void Update(const float dt);
 
 		void Serialize(Archive& archive, const uint64_t version);
 
@@ -963,6 +972,7 @@ namespace vz
 		inline void SetBlendWithTerrainHeight(const float value) { blendWithTerrainHeight_ = value; timeStampSetter_ = TimerNow; }
 		inline void SetCloak(const float value) { cloak_ = value; timeStampSetter_ = TimerNow; }
 		inline void SetChromaticAberration(const float value) { chromaticAberration_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetTexMulAdd(const XMFLOAT4 value) { texMulAdd_ = value; timeStampSetter_ = TimerNow; }
 
 		inline void SetTexture(const Entity textureEntity, const TextureSlot textureSlot);
 		inline void SetVolumeTexture(const Entity volumetextureEntity, const VolumeTextureSlot volumetextureSlot);
@@ -994,14 +1004,12 @@ namespace vz
 
 		inline float GetAlphaRef() const { return alphaRef_; }
 		inline float GetSaturate() const { return saturation_; }
-		inline float GetMatalness() const { return metalness_; }
+		inline float GetMetalness() const { return metalness_; }
 		inline float GetRoughness() const { return roughness_; }
 		inline BlendMode GetBlendMode() const { return blendMode_; }
 		inline VUID GetTextureVUID(const TextureSlot slot) const { return vuidTextureComponents_[SCU32(slot)]; }
 		inline VUID GetVolumeTextureVUID(const VolumeTextureSlot slot) const { return vuidVolumeTextureComponents_[SCU32(slot)]; }
 		inline VUID GetLookupTableVUID(const LookupTableSlot slot) const { return vuidLookupTextureComponents_[SCU32(slot)]; }
-		inline XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
-		inline XMFLOAT4 GetPhongFactors() const { return phongFactors_; }
 
 		inline XMFLOAT4 GetSheenColor() const { return sheenColor_; }
 		inline XMFLOAT4 GetSubsurfaceScattering() const { return subsurfaceScattering_; }
@@ -1020,6 +1028,8 @@ namespace vz
 		inline float GetBlendWithTerrainHeight() const { return blendWithTerrainHeight_; }
 		inline float GetCloak() const { return cloak_; }
 		inline float GetChromaticAberration() const { return chromaticAberration_; }
+		inline XMFLOAT4 GetTexMulAdd() const { return texMulAdd_; }
+		inline XMFLOAT4 GetPhongFactors() const { return phongFactors_; }
 
 		inline void SetStencilRef(StencilRef value) { engineStencilRef_ = value; }
 		inline StencilRef GetStencilRef() const { return engineStencilRef_; }
@@ -1065,6 +1075,24 @@ namespace vz
 		};
 
 		struct Primitive {
+		public:
+			struct Subset // LOD
+			{
+				uint32_t indexOffset = 0;
+				uint32_t indexCount = 0;
+			};
+			struct MorphTarget
+			{
+				std::vector<XMFLOAT3> vertexPositions;
+				std::vector<XMFLOAT3> vertexNormals;
+				std::vector<uint32_t> sparseIndicesPositions;	// optional, these can be used to target vertices indirectly
+				std::vector<uint32_t> sparseIndicesNormals;		// optional, these can be used to target vertices indirectly
+				float weight = 0;
+
+				// Non-serialized attributes:
+				uint64_t offset_pos = ~0ull;
+				uint64_t offset_nor = ~0ull;
+			};
 		private:
 			std::vector<XMFLOAT3> vertexPositions_;
 			std::vector<XMFLOAT3> vertexNormals_;
@@ -1074,12 +1102,8 @@ namespace vz
 			std::vector<uint32_t> vertexColors_;
 			std::vector<uint32_t> indexPrimitives_;
 
-			struct Subset // LOD
-			{
-				uint32_t indexOffset = 0;
-				uint32_t indexCount = 0;
-			};
 			std::vector<Subset> subsets_;	// will be updated via GeometryComponent::update()
+			std::vector<MorphTarget> morphTargets_;
 
 			// --- User Custom Buffers ---
 			std::vector<std::vector<uint8_t>> customBuffers_;
@@ -1146,7 +1170,9 @@ namespace vz
 			inline const std::vector<XMFLOAT2>& GetVtxUVSet0() const { return vertexUVset0_; }
 			inline const std::vector<XMFLOAT2>& GetVtxUVSet1() const { return vertexUVset1_; }
 			inline const std::vector<uint32_t>& GetVtxColors() const { return vertexColors_; }
+			inline const std::vector<MorphTarget>& GetMorphTargets() const { return morphTargets_; }
 			inline const std::vector<std::vector<uint8_t>>& GetCustomBuffers() const { return customBuffers_; }
+
 			inline std::vector<XMFLOAT3>& GetMutableVtxPositions() { return vertexPositions_; }
 			inline std::vector<uint32_t>& GetMutableIdxPrimives() { return indexPrimitives_; }
 			inline std::vector<XMFLOAT3>& GetMutableVtxNormals() { return vertexNormals_; }
@@ -1154,6 +1180,7 @@ namespace vz
 			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet0() { return vertexUVset0_; }
 			inline std::vector<XMFLOAT2>& GetMutableVtxUVSet1() { return vertexUVset1_; }
 			inline std::vector<uint32_t>& GetMutableVtxColors() { return vertexColors_; }
+			inline std::vector<MorphTarget>& GetMutableMorphTargets() { return morphTargets_; }
 			inline std::vector<std::vector<uint8_t>>& GetMutableCustomBuffers() { return customBuffers_; }	
 
 			inline std::vector<Subset>& GetSubsets() { return subsets_; }
@@ -1229,6 +1256,7 @@ namespace vz
 		void AddCopyPrimitiveFrom(const Primitive& primitive);
 		void ClearGeometry();
 		Primitive* GetMutablePrimitive(const size_t slot);
+		std::vector<Primitive>& GetMutablePrimitives();
 		// ----- ----------- -----
 		
 		const Primitive* GetPrimitive(const size_t slot) const;
@@ -2255,7 +2283,7 @@ namespace vz
 		// Non-serialized attributes:
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);
 
-		inline void SetDirty() { isDirty_ = true; }
+		inline void SetDirty() { isDirty_ = true; timeStampSetter_ = TimerNow; }
 		inline bool IsDirty() const { return isDirty_; }
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
 		inline bool SetWorldLookAtFromHierarchyTransforms();
@@ -2270,10 +2298,11 @@ namespace vz
 
 		inline void SetClipperEnabled(const bool clipBoxEnabled, const bool clipPlaneEnabled) {
 			clipBoxEnabled ? flags_ |= CamFlags::CLIP_BOX : flags_ &= ~CamFlags::CLIP_BOX;
-			clipPlaneEnabled ? flags_ |= CamFlags::CLIP_PLANE : flags_ &= ~CamFlags::CLIP_PLANE;
+			clipPlaneEnabled ? flags_ |= CamFlags::CLIP_PLANE : flags_ &= ~CamFlags::CLIP_PLANE; 
+			timeStampSetter_ = TimerNow;
 		}
-		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; }
-		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; }
+		inline void SetClipPlane(const XMFLOAT4& clipPlane) { clipPlane_ = clipPlane; timeStampSetter_ = TimerNow; }
+		inline void SetClipBox(const XMFLOAT4X4& clipBox) { clipBox_ = clipBox; timeStampSetter_ = TimerNow; }
 		bool IsBoxClipperEnabled() const { return flags_ & CamFlags::CLIP_BOX; }
 		bool IsPlaneClipperEnabled() const { return flags_ & CamFlags::CLIP_PLANE; };
 
@@ -2305,6 +2334,11 @@ namespace vz
 		inline float GetFocalLength() const { return focalLength_; }
 		inline float GetApertureSize() const { return apertureSize_; }
 		inline XMFLOAT2 GetApertureShape() const { return apertureShape_; }
+
+		inline void SetFovVertical(float value) { fovY_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetFocalLength(float value) { focalLength_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetApertureSize(float value) { apertureSize_ = value; timeStampSetter_ = TimerNow; }
+		inline void SetApertureShape(XMFLOAT2 value) { apertureShape_ = value; timeStampSetter_ = TimerNow; }
 
 		inline void GetWidthHeight(float* w, float* h) const { if (w) *w = width_; if (h) *h = height_; }
 		inline void GetNearFar(float* n, float* f) const { if (n) *n = zNearP_; if (f) *f = zFarP_; }

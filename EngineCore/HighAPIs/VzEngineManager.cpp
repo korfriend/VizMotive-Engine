@@ -35,6 +35,8 @@ namespace vzcompmanager
 	std::unordered_map<SceneVID, std::unique_ptr<VzScene>> scenes;
 
 	std::unordered_map<RendererVID, std::unique_ptr<VzRenderer>> renderers;
+	std::unordered_map<AnimationVID, std::unique_ptr<VzAnimation>> animations;
+	std::unordered_map<KeyFrameVID, std::unique_ptr<VzKeyFrameData>> keyframes;
 
 	std::unordered_map<CamVID, std::unique_ptr<VzCamera>> cameras;
 	std::unordered_map<ActorVID, std::unique_ptr<VzActor>> actors;
@@ -62,12 +64,14 @@ namespace vzcompmanager
 
 		VzBaseComp* vcomp = it->second;
 		COMPONENT_TYPE comp_type = vcomp->GetType();
-		bool is_engine_component = true;
+		bool is_scene_resource = true;
 		switch (comp_type)
 		{
-		case COMPONENT_TYPE::ARCHIVE: archives.erase(vid); Archive::DestroyArchive(vid); is_engine_component = false;  break;
-		case COMPONENT_TYPE::SCENE: scenes.erase(vid); scenefactory::DestroyScene(vid); is_engine_component = false; break;
-		case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); is_engine_component = false; break;
+		case COMPONENT_TYPE::ARCHIVE: archives.erase(vid); Archive::DestroyArchive(vid); is_scene_resource = false; break;
+		case COMPONENT_TYPE::SCENE: scenes.erase(vid); scenefactory::DestroyScene(vid); is_scene_resource = false; break;
+		case COMPONENT_TYPE::RENDERER: renderers.erase(vid); canvas::DestroyCanvas(vid); is_scene_resource = false; break;
+		case COMPONENT_TYPE::ANIMATION: animations.erase(vid); canvas::DestroyCanvas(vid); is_scene_resource = false; break;
+		case COMPONENT_TYPE::KEYFRAMEDATA: keyframes.erase(vid); canvas::DestroyCanvas(vid); is_scene_resource = false; break;
 		case COMPONENT_TYPE::ENVIRONMENT:
 		{
 			scenefactory::ResetRefEnvironment(vid);
@@ -88,7 +92,7 @@ namespace vzcompmanager
 			assert(0);
 		}
 
-		if (is_engine_component)
+		if (is_scene_resource)
 		{
 			if (includeDescendants)
 			{
@@ -116,6 +120,8 @@ namespace vzcompmanager
 		archives.clear();
 		scenes.clear();
 		renderers.clear();
+		animations.clear();
+		keyframes.clear();
 		cameras.clear();
 		actors.clear();
 		lights.clear();
@@ -658,6 +664,26 @@ namespace vzm
 		auto it = vzcompmanager::renderers.emplace(vid, std::make_unique<VzRenderer>(vid, "vzm::NewRenderer"));
 		compfactory::CreateNameComponent(vid, name);
 		vzcompmanager::lookup[vid] = it.first->second.get();
+		return it.first->second.get();
+	}
+	VzAnimation* NewAnimation(const std::string& name)
+	{
+		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
+		Entity entity = ecs::CreateEntity();
+		compfactory::CreateNameComponent(entity, name);
+		compfactory::CreateAnimationComponent(entity);
+		auto it = vzcompmanager::animations.emplace(entity, std::make_unique<VzAnimation>(entity, "vzm::NewAnimation"));
+		vzcompmanager::lookup[entity] = it.first->second.get();
+		return it.first->second.get();
+	}
+	VzKeyFrameData* NewKeyFrame(const std::string& name)
+	{
+		CHECK_API_LOCKGUARD_VALIDITY(nullptr);
+		Entity entity = ecs::CreateEntity();
+		compfactory::CreateNameComponent(entity, name);
+		compfactory::CreateAnimationDataComponent(entity);
+		auto it = vzcompmanager::keyframes.emplace(entity, std::make_unique<VzKeyFrameData>(entity, "vzm::NewKeyFrame"));
+		vzcompmanager::lookup[entity] = it.first->second.get();
 		return it.first->second.get();
 	}
 
