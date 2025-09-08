@@ -945,7 +945,7 @@ namespace vz
 			dt_ = dt;
 			deltaTimeAccumulator_ += dt;
 
-			scanResourceEntities();
+			scanResourceEntities(); // include Hierarchy Updates
 			scanAnimationDependencies();
 
 			//ScanAnimationDependencies();
@@ -977,7 +977,7 @@ namespace vz
 			// 1. fully CPU-based operations
 
 			jobsystem::context ctx;
-
+			RunAnimationUpdateSystem(ctx);
 			RunTransformUpdateSystem(ctx);
 			jobsystem::Wait(ctx); // dependencies
 			RunRenderableUpdateSystem(ctx);

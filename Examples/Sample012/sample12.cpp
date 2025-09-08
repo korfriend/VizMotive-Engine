@@ -147,6 +147,7 @@ int main(int, char**)
 	{
 		scene = NewScene("my scene");
 		scene->LoadIBL("../Assets/sky.dds");
+		scene->AppendAnimation(animation);
 		//scene->LoadIBL("../Assets/environments/skybox_final.ktx2");
 		//scene->LoadIBL("../Assets/environments/debug/debug.png");
 
@@ -165,6 +166,8 @@ int main(int, char**)
 		glm::fvec3 pos(0, 0, 100), up(0, 1, 0), view(0, 0, -1);
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.1f, 1000.f, 60.f, 1.f);
+
+		//scene->AppendChild(camera);
 
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
 		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 5);
@@ -394,7 +397,10 @@ int main(int, char**)
 
 				if (ImGui::Button("Add Camera Keyframe"))
 				{
-					anim_times.push_back(anim_time += 5.f);
+					anim_times.push_back(anim_time);
+					animation->SetStartTime(0.f);
+					animation->SetEndTime(anim_time + 1.f);
+					anim_time += 5.f;
 					keyframe_t->SetKeyFrameTimes(anim_times);
 					keyframe_r->SetKeyFrameTimes(anim_times);
 
@@ -422,6 +428,7 @@ int main(int, char**)
 					animation->AddChannel(channel);
 
 					AnimationSampler sampler;
+					sampler.mode = AnimationSampler::Interpolation::LINEAR;
 					sampler.keyframeVID = keyframe_t->GetVID();
 					animation->AddSampler(sampler);
 					sampler.keyframeVID = keyframe_r->GetVID();

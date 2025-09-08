@@ -11,6 +11,9 @@ using namespace vz;
 using namespace std;
 using namespace backlog;
 
+#define GET_SCENE(SCENE, RET) Scene* scene = scenefactory::GetScene(componentVID_); \
+	if (!SCENE) {post("Scene(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+
 namespace vzm
 {
 	void VzScene::AppendChild(const VzBaseComp* child)
@@ -37,6 +40,17 @@ namespace vzm
 	void VzScene::AttachToParent(const VzBaseComp* parent)
 	{
 		vzm::AppendSceneCompTo(this, parent);
+	}
+
+	void VzScene::AppendAnimation(const VzBaseComp* animation)
+	{
+		GET_SCENE(scene, );
+		scene->AddEntity(animation->GetVID());
+	}
+	void VzScene::DetachAnimation(const VzBaseComp* animation)
+	{
+		GET_SCENE(scene, );
+		scene->Remove(animation->GetVID());
 	}
 
 	const std::vector<VID>& VzScene::GetChildrenVIDs() const

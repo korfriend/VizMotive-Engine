@@ -5,9 +5,41 @@
 #define GET_ANI_COMP(COMP, RET) AnimationComponent* COMP = compfactory::GetAnimationComponent(componentVID_); \
 	if (!COMP) {post("AnimationFontComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
 
+#define GET_KEYFRAME_COMP(COMP, RET) AnimationDataComponent* COMP = compfactory::GetAnimationDataComponent(componentVID_); \
+	if (!COMP) {post("AnimationFontComponent(" + to_string(componentVID_) + ") is INVALID!", LogLevel::Error); return RET;}
+
 using namespace vz;
 using namespace std;
 using namespace backlog;
+
+namespace vzm
+{
+	void VzKeyFrameData::SetKeyFrameTimes(std::vector<float>& times)
+	{
+		GET_KEYFRAME_COMP(comp, );
+		comp->SetKeyFrameTimes(times);
+	}
+	void VzKeyFrameData::SetKeyFrameData(std::vector<float>& data)
+	{
+		GET_KEYFRAME_COMP(comp, );
+		comp->SetKeyFrameData(data);
+	}
+	std::vector<float> VzKeyFrameData::GetKeyFrameTimes() const
+	{
+		GET_KEYFRAME_COMP(comp, std::vector<float>());
+		return comp->GetKeyFrameTimes();
+	}
+	std::vector<float> VzKeyFrameData::GetKeyFrameData() const
+	{
+		GET_KEYFRAME_COMP(comp, std::vector<float>());
+		return comp->GetKeyFrameData();
+	}
+	float VzKeyFrameData::GetDuration() const
+	{
+		GET_KEYFRAME_COMP(comp, 0);
+		return comp->GetDuration();
+	}
+}
 
 namespace vzm
 {
@@ -40,10 +72,23 @@ namespace vzm
 		UpdateTimeStamp();
 	}
 
-	void VzAnimation::SetTime(float time)
+	void VzAnimation::SetTime(const float time)
 	{
 		GET_ANI_COMP(comp, );
 		comp->SetTime(time);
+		UpdateTimeStamp();
+	}
+
+	void VzAnimation::SetStartTime(const float time)
+	{
+		GET_ANI_COMP(comp, );
+		comp->SetStart(time);
+		UpdateTimeStamp();
+	}
+	void VzAnimation::SetEndTime(const float time)
+	{
+		GET_ANI_COMP(comp, );
+		comp->SetEnd(time);
 		UpdateTimeStamp();
 	}
 
@@ -57,6 +102,17 @@ namespace vzm
 	{
 		GET_ANI_COMP(comp, 0.0f);
 		return comp->GetDuration();
+	}
+
+	float VzAnimation::GetStartTime() const
+	{
+		GET_ANI_COMP(comp, 0.0f);
+		return comp->GetStart();
+	}
+	float VzAnimation::GetEndTime() const
+	{
+		GET_ANI_COMP(comp, 0.0f);
+		return comp->GetEnd();
 	}
 
 	void VzAnimation::SetSpeed(float speed)

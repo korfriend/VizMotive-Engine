@@ -141,18 +141,31 @@ namespace vz
 		stableCountTest();
 
 		// this must be called after scene's update
-		HierarchyComponent* hier = compfactory::GetHierarchyComponent(camera->GetEntity());
-		if (hier->GetParentEntity() != INVALID_ENTITY)
-		{
-			camera->SetWorldLookAtFromHierarchyTransforms();
-		}
 
 		camLayerMask = compfactory::GetLayeredMaskComponent(camera->GetEntity());
+		TransformComponent* transform = compfactory::GetTransformComponent(camera->GetEntity());
+		if (transform)
+		{
+			if (transform->IsDirtyWorldMatrix())
+			{
+				transform->UpdateWorldMatrix();
+			}
+
+			// two update scenarios
+			// 1. camera's world pose to transform (automatic)
+			//	* skip calling SetWorldLookAtFromHierarchyTransforms()
+			// 2. transform and hierarchy to camera's world pose
+			//	* transform's dirty state without camera sync.
+			if (TimeDurationCount(transform->GetTimeStamp(), camera->GetTimeStampPoseUpdate()) > 0)
+			{
+				camera->SetWorldLookAtFromHierarchyTransforms();
+			}
+		}
 
 		if (camera->IsSlicer())
 		{
 			((GSlicerComponent*)camera)->layeredmask = camLayerMask;
-			((GSlicerComponent*)camera)->transform = compfactory::GetTransformComponent(camera->GetEntity());
+			((GSlicerComponent*)camera)->transform = transform;
 			if (camera->IsCurvedSlicer())
 			{
 				((GSlicerComponent*)camera)->UpdateCurve(); // include dirty check!
@@ -161,7 +174,7 @@ namespace vz
 		else
 		{
 			((GCameraComponent*)camera)->layeredmask = camLayerMask;
-			((GCameraComponent*)camera)->transform = compfactory::GetTransformComponent(camera->GetEntity());
+			((GCameraComponent*)camera)->transform = transform;
 			if (camera->IsDirty())
 			{
 				camera->UpdateMatrix();
