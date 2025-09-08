@@ -266,7 +266,7 @@ namespace vz
 		{
 			local_ = local;
 		}
-		isDirty_ = false;
+		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
 	}
 

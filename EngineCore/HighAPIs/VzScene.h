@@ -3,6 +3,17 @@
 
 namespace vzm
 {
+	struct API_EXPORT VzEnvironment : VzBaseComp
+	{
+	public:
+		VzEnvironment(const VID vid, const std::string& originFrom)
+			: VzBaseComp(vid, originFrom, COMPONENT_TYPE::ENVIRONMENT) {
+		}
+		virtual ~VzEnvironment() = default;
+
+		// TODO : ADD COMPONENT's APIs
+	};
+
 	struct API_EXPORT VzScene : VzBaseComp
 	{
 	public:
@@ -16,6 +27,9 @@ namespace vzm
 		void AppendChild(const VzBaseComp* child);
 		void DetachChild(const VzBaseComp* child);
 		void AttachToParent(const VzBaseComp* parent);
+
+		void AppendAnimation(const VzBaseComp* animation);
+		void DetachAnimation(const VzBaseComp* animation);
 
 		const std::vector<VID>& GetChildrenVIDs() const;
 

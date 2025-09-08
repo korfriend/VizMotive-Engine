@@ -78,6 +78,7 @@ namespace vz
 
 		isDirty_ = true;
 		timeStampSetter_ = TimerNow;
+		timeStampPoseUpdate_ = TimerNow;
 		return true;
 	}
 
@@ -85,6 +86,7 @@ namespace vz
 	{
 		eye_ = eye; at_ = at; up_ = up; XMStoreFloat3(&forward_, XMVector3Normalize(XMLoadFloat3(&at) - XMLoadFloat3(&eye)));
 		isDirty_ = true;
+		timeStampPoseUpdate_ = TimerNow;
 
 		TransformComponent* tr_comp = compfactory::GetTransformComponent(entity_);
 		if (tr_comp)

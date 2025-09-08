@@ -35,7 +35,7 @@ using TimeStamp = std::chrono::high_resolution_clock::time_point;
 
 namespace vz
 {
-	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250829_0";
+	inline static const std::string COMPONENT_INTERFACE_VERSION = "VZ::20250909_0";
 	CORE_EXPORT std::string GetComponentVersion();
 
 	// engine stencil reference values. These can be in range of [0, 15].
@@ -497,7 +497,7 @@ namespace vz
 
 		inline void UpdateMatrix();	// local matrix
 		inline void UpdateWorldMatrix(); // call UpdateMatrix() if necessary
-		inline bool IsDirtyWorldMatrix(const TimeStamp timeStampRecentWorldUpdate) { return TimeDurationCount(timeStampRecentWorldUpdate, timeStampWorldUpdate_) <= 0; }
+		inline bool IsDirtyWorldMatrix() { return TimeDurationCount(timeStampSetter_, timeStampWorldUpdate_) > 0; }
 
 		inline void Serialize(vz::Archive& archive, const uint64_t version) override;
 
@@ -576,7 +576,7 @@ namespace vz
 		std::vector<float> keyframeData_;	// frame data (float-array depending on AnimationComponent::Path)
 
 	public:
-		AnimationDataComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LAYERDMASK, entity, vuid) {}
+		AnimationDataComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::ANIMATIONDATA, entity, vuid) {}
 		virtual ~AnimationDataComponent() = default;
 
 		void SetKeyFrameTimes(std::vector<float>& times) { keyframeTimes_ = times; timeStampSetter_ = TimerNow; }
@@ -726,7 +726,7 @@ namespace vz
 		float prevRotTimer_;
 
 	public:
-		AnimationComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::LAYERDMASK, entity, vuid) {}
+		AnimationComponent(const Entity entity, const VUID vuid = 0) : ComponentBase(ComponentType::ANIMATION, entity, vuid) {}
 		virtual ~AnimationComponent() = default;
 
 		inline bool IsPlaying() const { return flags_ & PLAYING; }
@@ -734,6 +734,8 @@ namespace vz
 		inline bool IsPingPong() const { return flags_ & PING_PONG; }
 		inline bool IsPlayingOnce() const { return (flags_ & (LOOPED | PING_PONG)) == 0; }
 		inline float GetLength() const { return end_ - start_; }
+		inline float GetStart() const { return start_; }
+		inline float GetEnd() const { return end_; }
 		inline bool IsEnded() const { return playTimer_ >= end_; }
 		inline bool IsRootMotion() const { return flags_ & ROOT_MOTION; }
 		inline float GetTime() const { return playTimer_; }
@@ -749,6 +751,8 @@ namespace vz
 		inline void SetPingPong(const bool value = true) { if (value) { flags_ |= PING_PONG; flags_ &= ~LOOPED; } else { flags_ &= ~PING_PONG; } timeStampSetter_ = TimerNow; }
 		inline void SetPlayOnce() { flags_ &= ~(LOOPED | PING_PONG); timeStampSetter_ = TimerNow; }
 		inline void SetSpeed(const float speed) { speed_ = speed; timeStampSetter_ = TimerNow; }
+		inline void SetStart(const float time = 0) { start_ = time; timeStampSetter_ = TimerNow; }
+		inline void SetEnd(const float time = 0) { end_ = time; timeStampSetter_ = TimerNow; }
 
 		inline void RootMotionOn() { flags_ |= ROOT_MOTION; timeStampSetter_ = TimerNow; }
 		inline void RootMotionOff() { flags_ &= ~ROOT_MOTION; timeStampSetter_ = TimerNow; }
@@ -2259,6 +2263,7 @@ namespace vz
 
 		// Non-serialized attributes:
 		bool isDirty_ = true;
+		TimeStamp timeStampPoseUpdate_ = TimerMin;
 		XMFLOAT3 eye_ = XMFLOAT3(0, 0, 0);
 		XMFLOAT3 at_ = XMFLOAT3(0, 0, 1);
 		XMFLOAT3 forward_ = XMFLOAT3(0, 0, -1); // viewing direction
@@ -2284,6 +2289,7 @@ namespace vz
 		XMFLOAT2 jitter = XMFLOAT2(0, 0);
 
 		inline void SetDirty() { isDirty_ = true; timeStampSetter_ = TimerNow; }
+		inline TimeStamp GetTimeStampPoseUpdate() const { return timeStampPoseUpdate_; }
 		inline bool IsDirty() const { return isDirty_; }
 		// consider TransformComponent and HierarchyComponent that belong to this CameraComponent entity
 		inline bool SetWorldLookAtFromHierarchyTransforms();

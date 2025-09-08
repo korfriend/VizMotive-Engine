@@ -92,9 +92,13 @@ namespace vzm
 		void Pause();
 		void Stop();
 		void Reset();
-		void SetTime(float time);
+		void SetTime(const float time);
+		void SetStartTime(const float time);
+		void SetEndTime(const float time);
 		float GetTime() const;
 		float GetDuration() const;
+		float GetStartTime() const;
+		float GetEndTime() const;
 
 		void SetSpeed(float speed);
 		float GetSpeed() const;
