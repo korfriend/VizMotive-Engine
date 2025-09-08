@@ -151,12 +151,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortStepCS_uint64.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_indirectCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_replicateCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_identifyTileRangeCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_offsetCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_preprocessCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_blendCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshSlicerCS_curvedplane.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\rtshadowCS_denoise_filter.hlsl" />

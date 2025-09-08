@@ -574,12 +574,6 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gpusortlib_sortStepCS_uint64.hlsl">
       <Filter>Compute Shaders\Sort</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_histCS.hlsl">
-      <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\gs_sortCS.hlsl">
-      <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
-    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\gsplat_offsetCS.hlsl">
       <Filter>Compute Shaders\GaussianSplatting\unused</Filter>
     </FxCompile>
