@@ -195,6 +195,24 @@ namespace vz::renderer
 		uint32_t queryheapIdx = 0;
 		mutable std::atomic<uint32_t> queryAllocator{ 0 };
 
+		// DDGI resources:
+		struct DDGI
+		{
+			uint frameIndex = 0;
+			uint3 gridDimensions = uint3(32, 8, 32); // The scene extents will be subdivided into a grid of this resolution, each grid cell will have one probe
+			float3 gridMin = float3(-1, -1, -1);
+			float3 gridMax = float3(1, 1, 1);
+			float smooth_backface = 0.01f; // smoothness of backface test
+			graphics::GPUBuffer rayBuffer;
+			graphics::GPUBuffer varianceBuffer;
+			graphics::GPUBuffer raycountBuffer;
+			graphics::GPUBuffer rayallocationBuffer;
+			graphics::GPUBuffer probeBuffer;
+			graphics::Texture depthTexture;
+
+			void Serialize(Archive& archive);
+		} ddgi;
+
 		DebugShapeCollection debugShapes; // dynamic allocation
 
 		bool Update(const float dt) override;

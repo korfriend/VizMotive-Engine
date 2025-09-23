@@ -259,6 +259,16 @@ namespace vz::graphics
 			return CreateBuffer2(desc, [&](void* dest) { std::memcpy(dest, initial_data, desc->size); }, buffer, alias, alias_offset);
 		}
 
+		bool CreateBufferCleared(const GPUBufferDesc* desc, uint8_t value, GPUBuffer* buffer, const GPUResource* alias = nullptr, uint64_t alias_offset = 0ull) const
+		{
+			return CreateBuffer2(desc, [&](void* dest) { std::memset(dest, value, desc->size); }, buffer, alias, alias_offset);
+		}
+
+		bool CreateBufferZeroed(const GPUBufferDesc* desc, GPUBuffer* buffer, const GPUResource* alias = nullptr, uint64_t alias_offset = 0ull) const
+		{
+			return CreateBufferCleared(desc, 0, buffer, alias, alias_offset);
+		}
+
 		void Barrier(const GPUBarrier& barrier, CommandList cmd)
 		{
 			Barrier(&barrier, 1, cmd);

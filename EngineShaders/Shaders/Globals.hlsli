@@ -24,6 +24,7 @@ inline uint descriptor_index(in int x)
 #include "ColorSpaceUtility.hlsli"
 #include "PixelPacking_R11G11B10.hlsli"
 #include "PixelPacking_RGBE.hlsli"
+#include "CommonHF/SH_Lite.hlsli"
 
 inline uint pack_unitvector(in half3 value)
 {
@@ -237,7 +238,8 @@ float3x3 adjoint(in float4x4 m)
 		"SRV(t0, space = 204, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
 		"SRV(t0, space = 205, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
 		"SRV(t0, space = 206, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
-		"SRV(t0, space = 207, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)" \
+		"SRV(t0, space = 207, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)," \
+		"SRV(t0, space = 208, offset = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE | DATA_VOLATILE)" \
 	"), " \
 	"StaticSampler(s100, addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP, filter = FILTER_MIN_MAG_MIP_LINEAR)," \
 	"StaticSampler(s101, addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP, filter = FILTER_MIN_MAG_MIP_LINEAR)," \
@@ -398,6 +400,7 @@ RWTexture2D<float> bindless_rwtextures_float[] : register(space116);
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderMaterial> bindless_structured_material[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<ShaderInstanceResLookup> bindless_structured_inst_reslookup[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<uint> bindless_structured_uint[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<DDGIProbe> bindless_structured_ddi_probes[];
 #else
 StructuredBuffer<ShaderMeshInstance> bindless_structured_meshinstance[] : register(space200);
 StructuredBuffer<ShaderGeometry> bindless_structured_geometry[] : register(space201);
@@ -407,6 +410,7 @@ StructuredBuffer<ShaderMeshlet> bindless_structured_meshlet[] : register(space20
 StructuredBuffer<ShaderMaterial> bindless_structured_material[] : register(space205);
 StructuredBuffer<ShaderInstanceResLookup> bindless_structured_inst_reslookup[] : register(space206);
 StructuredBuffer<uint> bindless_structured_uint[] : register(space207); // used for load_entitytile
+StructuredBuffer<DDGIProbe> bindless_structured_ddi_probes[] : register(space208);
 #endif // __spirv__
 
 

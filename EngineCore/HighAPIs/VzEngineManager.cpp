@@ -455,6 +455,10 @@ namespace vzm
 				std::vector<float> default_dist = { 8, 80, 800 };
 				ses_section.Set("DEFAULT_CASCADE_DISTANCES", default_dist);
 			}
+			if (!ses_section.Has("DDGI_ENABLED"))
+			{
+				ses_section.Set("DDGI_ENABLED", false);
+			}
 			configFile.Commit();
 		}
 

@@ -461,10 +461,5 @@ namespace vz::renderer
 
 			device->EventEnd(cmd);
 		}
-
-DEBUG_GO:
-
-		profiler::EndRange(range);
-		device->EventEnd(cmd);
 	}
 }
