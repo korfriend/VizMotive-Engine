@@ -1029,11 +1029,9 @@ namespace vz
 		jobsystem::Wait(ctx); // dependencies
 
 		RunRenderableUpdateSystem(ctx);
-		//RunCameraUpdateSystem(ctx); .. in render function
 		RunProbeUpdateSystem(ctx);
+
 		//RunParticleUpdateSystem(ctx); .. future feature
-		//RunSpriteUpdateSystem(ctx); .. future feature
-		//RunFontUpdateSystem(ctx); .. future feature
 
 		jobsystem::Wait(ctx); // dependencies
 
@@ -1082,7 +1080,92 @@ namespace vz
 			}
 		}
 
-		// content updates...
+		// Content Updates...
+		const geometrics::AABB& bounds = scene_->GetAABB();
+
+		if (renderer::isDDGIEnabled)
+		{
+			ddgi.frameIndex++;
+			if (!TLAS.IsValid() && !sceneBVH.IsValid())
+			{
+				ddgi.frameIndex = 0;
+			}
+			if (!ddgi.rayBuffer.IsValid()) // Check the ray_buffer here because that is invalid with serialized DDGI data, and we can detect if dynamic resources need recreation when serialized is loaded
+			{
+				ddgi.frameIndex = 0;
+
+				const uint32_t probe_count = ddgi.gridDimensions.x * ddgi.gridDimensions.y * ddgi.gridDimensions.z;
+
+				GPUBufferDesc buf;
+				buf.stride = sizeof(DDGIRayDataPacked);
+				buf.size = buf.stride * probe_count * DDGI_MAX_RAYCOUNT;
+				buf.bind_flags = BindFlag::UNORDERED_ACCESS | BindFlag::SHADER_RESOURCE;
+				buf.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				device->CreateBufferZeroed(&buf, &ddgi.rayBuffer);
+				device->SetName(&ddgi.rayBuffer, "ddgi.rayBuffer");
+
+				buf.stride = sizeof(DDGIVarianceDataPacked);
+				buf.size = buf.stride * probe_count * DDGI_COLOR_RESOLUTION * DDGI_COLOR_RESOLUTION;
+				buf.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				device->CreateBufferZeroed(&buf, &ddgi.varianceBuffer);
+				device->SetName(&ddgi.varianceBuffer, "ddgi.varianceBuffer");
+
+				buf.stride = sizeof(uint8_t);
+				buf.size = buf.stride * probe_count;
+				buf.misc_flags = ResourceMiscFlag::NONE;
+				buf.format = Format::R8_UINT;
+				device->CreateBufferZeroed(&buf, &ddgi.raycountBuffer);
+				device->SetName(&ddgi.raycountBuffer, "ddgi.raycountBuffer");
+
+				buf.stride = sizeof(uint32_t);
+				buf.size = buf.stride * (probe_count * DDGI_MAX_RAYCOUNT + 4); // +4: counter/indirect dispatch args
+				buf.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED | ResourceMiscFlag::INDIRECT_ARGS;
+				buf.format = Format::UNKNOWN;
+				device->CreateBufferZeroed(&buf, &ddgi.rayallocationBuffer);
+				device->SetName(&ddgi.rayallocationBuffer, "ddgi.rayallocationBuffer");
+
+				buf.stride = sizeof(DDGIProbe);
+				buf.size = buf.stride * probe_count;
+				buf.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				buf.format = Format::UNKNOWN;
+				device->CreateBufferZeroed(&buf, &ddgi.probeBuffer);
+				device->SetName(&ddgi.probeBuffer, "ddgi.probeBuffer");
+
+				TextureDesc tex;
+				tex.width = DDGI_DEPTH_TEXELS * ddgi.gridDimensions.x * ddgi.gridDimensions.y;
+				tex.height = DDGI_DEPTH_TEXELS * ddgi.gridDimensions.z;
+				tex.format = Format::R16G16_FLOAT;
+				tex.misc_flags = {};
+				tex.bind_flags = BindFlag::UNORDERED_ACCESS | BindFlag::SHADER_RESOURCE;
+				tex.layout = ResourceState::SHADER_RESOURCE;
+				std::vector<uint8_t> zerodata(ComputeTextureMemorySizeInBytes(tex));
+				SubresourceData initdata;
+				initdata.data_ptr = zerodata.data();
+				initdata.row_pitch = tex.width * GetFormatStride(tex.format);
+				device->CreateTexture(&tex, &initdata, &ddgi.depthTexture);
+				device->SetName(&ddgi.depthTexture, "ddgi.depthTexture");
+			}
+			float3 grid_min = bounds.getMin();
+			grid_min.x -= 1;
+			grid_min.y -= 1;
+			grid_min.z -= 1;
+			float3 grid_max = bounds.getMax();
+			grid_max.x += 1;
+			grid_max.y += 1;
+			grid_max.z += 1;
+			float bounds_blend = 0.01f;
+			const float area = AABB(ddgi.gridMin, ddgi.gridMax).getArea();
+			if (ddgi.frameIndex == 0 || area < 0.001f)
+			{
+				bounds_blend = 1;
+			}
+			ddgi.gridMin = math::Lerp(ddgi.gridMin, grid_min, bounds_blend);
+			ddgi.gridMax = math::Lerp(ddgi.gridMax, grid_max, bounds_blend);
+		}
+		else if (ddgi.rayBuffer.IsValid()) // if ray_buffer is valid, it means DDGI was not from serialization, so it will be deleted when DDGI is disabled
+		{
+			ddgi = {};
+		}
 
 		// Shader scene resources:
 		shaderscene.Init();
@@ -1131,7 +1214,6 @@ namespace vz
 		shaderscene.BVH_nodes = device->GetDescriptorIndex(&sceneBVH.bvhNodeBuffer, SubresourceType::SRV);
 		shaderscene.BVH_primitives = device->GetDescriptorIndex(&sceneBVH.primitiveBuffer, SubresourceType::SRV);
 
-		const geometrics::AABB& bounds = scene_->GetAABB();
 		shaderscene.aabb_min = bounds.getMin();
 		shaderscene.aabb_max = bounds.getMax();
 		shaderscene.aabb_extents.x = abs(shaderscene.aabb_max.x - shaderscene.aabb_min.x);
@@ -1142,6 +1224,7 @@ namespace vz
 		shaderscene.aabb_extents_rcp.z = 1.0f / shaderscene.aabb_extents.z;
 
 		{
+			// environment
 			shaderscene.environment.sun_color = math::pack_half3(XMFLOAT3(0, 0, 0));
 			shaderscene.environment.sun_direction = math::pack_half3(XMFLOAT3(0, 1, 0));
 			shaderscene.environment.most_important_light_index = ~0u;
@@ -1177,31 +1260,30 @@ namespace vz
 			shaderscene.environment.rain_splash_scale = 0.1f;
 			shaderscene.environment.rain_color = XMFLOAT4(0.6f, 0.8f, 1, 0.5f);
 		}
-
-		//shaderscene.ddgi.grid_dimensions = ddgi.grid_dimensions;
-		//shaderscene.ddgi.probe_count = ddgi.grid_dimensions.x * ddgi.grid_dimensions.y * ddgi.grid_dimensions.z;
-		//shaderscene.ddgi.color_texture_resolution = uint2(ddgi.color_texture.desc.width, ddgi.color_texture.desc.height);
-		//shaderscene.ddgi.color_texture_resolution_rcp = float2(1.0f / shaderscene.ddgi.color_texture_resolution.x, 1.0f / shaderscene.ddgi.color_texture_resolution.y);
-		//shaderscene.ddgi.depth_texture_resolution = uint2(ddgi.depth_texture.desc.width, ddgi.depth_texture.desc.height);
-		//shaderscene.ddgi.depth_texture_resolution_rcp = float2(1.0f / shaderscene.ddgi.depth_texture_resolution.x, 1.0f / shaderscene.ddgi.depth_texture_resolution.y);
-		shaderscene.ddgi.color_texture = -1;//shaderscene.ddgi.color_texture = device->GetDescriptorIndex(&ddgi.color_texture, SubresourceType::SRV);
-		//shaderscene.ddgi.depth_texture = device->GetDescriptorIndex(&ddgi.depth_texture, SubresourceType::SRV);
-		//shaderscene.ddgi.offset_texture = device->GetDescriptorIndex(&ddgi.offset_texture, SubresourceType::SRV);
-		//shaderscene.ddgi.grid_min = ddgi.grid_min;
-		//shaderscene.ddgi.grid_extents.x = abs(ddgi.grid_max.x - ddgi.grid_min.x);
-		//shaderscene.ddgi.grid_extents.y = abs(ddgi.grid_max.y - ddgi.grid_min.y);
-		//shaderscene.ddgi.grid_extents.z = abs(ddgi.grid_max.z - ddgi.grid_min.z);
-		//shaderscene.ddgi.grid_extents_rcp.x = 1.0f / shaderscene.ddgi.grid_extents.x;
-		//shaderscene.ddgi.grid_extents_rcp.y = 1.0f / shaderscene.ddgi.grid_extents.y;
-		//shaderscene.ddgi.grid_extents_rcp.z = 1.0f / shaderscene.ddgi.grid_extents.z;
-		//shaderscene.ddgi.smooth_backface = ddgi.smooth_backface;
-		//shaderscene.ddgi.cell_size.x = shaderscene.ddgi.grid_extents.x / (ddgi.grid_dimensions.x - 1);
-		//shaderscene.ddgi.cell_size.y = shaderscene.ddgi.grid_extents.y / (ddgi.grid_dimensions.y - 1);
-		//shaderscene.ddgi.cell_size.z = shaderscene.ddgi.grid_extents.z / (ddgi.grid_dimensions.z - 1);
-		//shaderscene.ddgi.cell_size_rcp.x = 1.0f / shaderscene.ddgi.cell_size.x;
-		//shaderscene.ddgi.cell_size_rcp.y = 1.0f / shaderscene.ddgi.cell_size.y;
-		//shaderscene.ddgi.cell_size_rcp.z = 1.0f / shaderscene.ddgi.cell_size.z;
-		//shaderscene.ddgi.max_distance = std::max(shaderscene.ddgi.cell_size.x, std::max(shaderscene.ddgi.cell_size.y, shaderscene.ddgi.cell_size.z)) * 1.5f;
+		{
+			// ddgi
+			shaderscene.ddgi.grid_dimensions = ddgi.gridDimensions;
+			shaderscene.ddgi.probe_count = ddgi.gridDimensions.x * ddgi.gridDimensions.y * ddgi.gridDimensions.z;
+			shaderscene.ddgi.probe_buffer = device->GetDescriptorIndex(&ddgi.probeBuffer, SubresourceType::SRV);
+			shaderscene.ddgi.depth_texture_resolution = uint2(ddgi.depthTexture.desc.width, ddgi.depthTexture.desc.height);
+			shaderscene.ddgi.depth_texture_resolution_rcp = float2(1.0f / shaderscene.ddgi.depth_texture_resolution.x, 1.0f / shaderscene.ddgi.depth_texture_resolution.y);
+			shaderscene.ddgi.depth_texture = device->GetDescriptorIndex(&ddgi.depthTexture, SubresourceType::SRV);
+			shaderscene.ddgi.grid_min = ddgi.gridMin;
+			shaderscene.ddgi.grid_extents.x = abs(ddgi.gridMax.x - ddgi.gridMin.x);
+			shaderscene.ddgi.grid_extents.y = abs(ddgi.gridMax.y - ddgi.gridMin.y);
+			shaderscene.ddgi.grid_extents.z = abs(ddgi.gridMax.z - ddgi.gridMin.z);
+			shaderscene.ddgi.grid_extents_rcp.x = 1.0f / shaderscene.ddgi.grid_extents.x;
+			shaderscene.ddgi.grid_extents_rcp.y = 1.0f / shaderscene.ddgi.grid_extents.y;
+			shaderscene.ddgi.grid_extents_rcp.z = 1.0f / shaderscene.ddgi.grid_extents.z;
+			shaderscene.ddgi.smooth_backface = ddgi.smooth_backface;
+			shaderscene.ddgi.cell_size.x = shaderscene.ddgi.grid_extents.x / (ddgi.gridDimensions.x - 1);
+			shaderscene.ddgi.cell_size.y = shaderscene.ddgi.grid_extents.y / (ddgi.gridDimensions.y - 1);
+			shaderscene.ddgi.cell_size.z = shaderscene.ddgi.grid_extents.z / (ddgi.gridDimensions.z - 1);
+			shaderscene.ddgi.cell_size_rcp.x = 1.0f / shaderscene.ddgi.cell_size.x;
+			shaderscene.ddgi.cell_size_rcp.y = 1.0f / shaderscene.ddgi.cell_size.y;
+			shaderscene.ddgi.cell_size_rcp.z = 1.0f / shaderscene.ddgi.cell_size.z;
+			shaderscene.ddgi.max_distance = std::max(shaderscene.ddgi.cell_size.x, std::max(shaderscene.ddgi.cell_size.y, shaderscene.ddgi.cell_size.z)) * 1.5f;
+		}
 
 		// Create volumetric cloud static resources if needed:
 		if (environment->IsVolumetricClouds() && !textureShapeNoise.IsValid())
@@ -1277,6 +1359,8 @@ namespace vz
 
 		TLAS = {};
 		sceneBVH = {};
+
+		ddgi = {};
 
 		constexpr uint32_t buffer_count = graphics::GraphicsDevice::GetBufferCount();
 		instanceBuffer = {};

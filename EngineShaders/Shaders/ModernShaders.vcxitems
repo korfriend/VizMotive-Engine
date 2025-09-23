@@ -37,6 +37,7 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\raytracingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\shadingHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\shadowHF.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\SH_Lite.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\skyAtmosphere.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\skyHF.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)CommonHF\stochasticSSRHF.hlsli" />

@@ -16,6 +16,7 @@
 #include "../Shaders/ShaderInterop_BVH.h"
 #include "../Shaders/ShaderInterop_FSR2.h"
 #include "../Shaders/ShaderInterop_Environment.h"
+#include "../Shaders/ShaderInterop_DDGI.h"
 
 
 using namespace vz::graphics;
@@ -283,6 +284,7 @@ namespace vz::renderer
 	extern bool isSurfelGIDebugEnabled;
 	extern bool isColorGradingEnabled;
 	extern bool isGaussianSplattingEnabled;
+	extern bool isDDGIEnabled;
 
 	extern bool isDebugShapeEnabled;
 	extern bool isDebugShapeCleanStart;

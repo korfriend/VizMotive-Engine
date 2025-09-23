@@ -867,20 +867,16 @@ struct alignas(16) ShaderScene
 	// ----- IBL and scene color -----
 	ShaderEnvironment environment;
 
-	// TODO
 	struct alignas(16) DDGI
 	{
 		uint3 grid_dimensions;
 		uint probe_count;
 
-		uint2 color_texture_resolution;
-		float2 color_texture_resolution_rcp;
-
 		uint2 depth_texture_resolution;
 		float2 depth_texture_resolution_rcp;
 
 		float3 grid_min;
-		int color_texture;
+		int probe_buffer;
 
 		float3 grid_extents;
 		int depth_texture;
@@ -889,15 +885,10 @@ struct alignas(16) ShaderScene
 		float max_distance;
 
 		float3 grid_extents_rcp;
-		int offset_texture;
+		float padding;
 
 		float3 cell_size_rcp;
 		float smooth_backface;
-		
-		void Init()
-		{
-			color_texture = depth_texture = offset_texture = -1;
-		}
 	};
 	DDGI ddgi;
 
@@ -912,8 +903,6 @@ struct alignas(16) ShaderScene
 		BVH_counter = -1;
 		BVH_nodes = -1;
 		BVH_primitives = -1;
-
-		ddgi.Init();
 	}
 };
 
@@ -1616,5 +1605,41 @@ CBUFFER(VolumeLightCB, CBSLOT_RENDERER_VOLUMELIGHT)
 	float4 xLightEnerdis;
 };
 
+#ifdef __cplusplus
+// Copied here from SH_Lite.hlsli to share with C++:
+namespace SH
+{
+	struct L1
+	{
+		static const uint NumCoefficients = 4;
+		float C[NumCoefficients];
+	};
+	struct L1_RGB
+	{
+		static const uint NumCoefficients = 4;
+		float3 C[NumCoefficients];
+		struct Packed
+		{
+			uint C[3 * NumCoefficients / 2];
+		};
+	};
+	struct L2
+	{
+		static const uint NumCoefficients = 9;
+		float C[NumCoefficients];
+	};
+	struct L2_RGB
+	{
+		static const uint NumCoefficients = 9;
+		float3 C[NumCoefficients];
+	};
+}
+#endif // __cplusplus
+
+struct alignas(16) DDGIProbe
+{
+	SH::L1_RGB::Packed radiance;
+	uint2 offset;
+};
 
 #endif

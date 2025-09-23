@@ -47,6 +47,7 @@ namespace vz::renderer
 	bool isSurfelGIDebugEnabled = false;
 	bool isColorGradingEnabled = false;
 	bool isGaussianSplattingEnabled = true;
+	bool isDDGIEnabled = false;
 
 	bool isDebugShapeEnabled = true;
 	bool isDebugShapeCleanStart = true;
@@ -615,6 +616,7 @@ namespace vz
 		renderer::isGaussianSplattingEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "GAUSSIAN_SPLATTING");
 		renderer::isTonemapping = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TONEMAPPING");
 		renderer::isShadowsEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "SHADOW_ENABLED");
+		renderer::isDDGIEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "DDGI_ENABLED");
 
 		renderer::isDebugLightCulling = config::GetBoolConfig("DEBUG_SETTINGS", "LIGHT_CULLING");
 		renderer::isDebugShapeEnabled = config::GetBoolConfig("DEBUG_SETTINGS", "DEBUG_SHAPE");

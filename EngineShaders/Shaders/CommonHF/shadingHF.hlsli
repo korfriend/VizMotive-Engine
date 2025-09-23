@@ -102,9 +102,9 @@ inline void ForwardLighting(inout Surface surface, inout Lighting lighting)
 #endif //DISABLE_VOXELGI
 
 	[branch]
-	if (!surface.IsGIApplied() && GetScene().ddgi.color_texture >= 0)
+	if (!surface.IsGIApplied() && GetScene().ddgi.probe_buffer >= 0)
 	{
-		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, (half3)surface.N);
+		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, (half3)surface.N, surface.dominant_lightdir, surface.dominant_lightcolor);
 		surface.SetGIApplied(true);
 	}
 
@@ -373,10 +373,19 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 #endif // TRANSPARENT
 
 	[branch]
-	if (!surface.IsGIApplied() && GetScene().ddgi.color_texture >= 0)
+	if (GetScene().ddgi.probe_buffer >= 0)
 	{
-		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, (half3)surface.N);
-		surface.SetGIApplied(true);
+		// Note: even if GI is already applied, the dominant light dir is still computed by this!
+		half3 irradiance = ddgi_sample_irradiance(surface.P, (half3)surface.N, surface.dominant_lightdir, surface.dominant_lightcolor);
+		if (!surface.IsGIApplied())
+		{
+			lighting.indirect.diffuse = irradiance;
+			surface.SetGIApplied(true);
+		}
+
+		SurfaceToLight surface_to_light;
+		surface_to_light.create(surface, surface.dominant_lightdir);
+		lighting.indirect.specular += max(0, BRDF_GetSpecular(surface, surface_to_light) * surface.dominant_lightcolor);
 	}
 	
 	[branch]

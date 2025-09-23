@@ -189,6 +189,9 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\cube.hlsli">
       <Filter>CommonHF\Shapes</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\SH_Lite.hlsli">
+      <Filter>CommonHF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_GaussianSplatting.h">
