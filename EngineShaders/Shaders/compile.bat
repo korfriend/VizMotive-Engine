@@ -46,7 +46,8 @@ dxc -T ps_6_0 ./PS/shadowPS_water.hlsl -spirv
 dxc -T ps_6_0 ./PS/imagePS.hlsl -spirv
 dxc -T ps_6_0 ./PS/debugPS.hlsl -spirv
 
-dxc -T cs_6_0 ./CS/view_resolveCS.hlsl -spirv -fspv-target-env=vulkan1.1
+dxc -T cs_6_0 ./CS/visibility_resolveCS.hlsl -spirv -fspv-target-env=vulkan1.1
+dxc -T cs_6_0 ./CS/visibility_resolveCS_MSAA.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T cs_6_0 ./CS/lightCullingCS.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T cs_6_0 ./CS/lightCullingCS_ADVANCED.hlsl -spirv -fspv-target-env=vulkan1.1
 dxc -T cs_6_0 ./CS/lightCullingCS_ADVANCED_DEBUG.hlsl -spirv -fspv-target-env=vulkan1.1
@@ -108,11 +109,6 @@ dxc -T cs_6_0 ./CS/gsplat_replicateCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gsplat_identifyTileRangeCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/gsplat_blendCS.hlsl -spirv
 
-//dxc -T cs_6_0 ./CS/gsplat_kickoffCS.hlsl -spirv
-//dxc -T cs_6_0 ./CS/gsplat_offsetCS.hlsl -spirv
-//dxc -T cs_6_6 ./CS/gsplat_histCS.hlsl -spirv
-//dxc -T cs_6_6 ./CS/gsplat_sortCS.hlsl -spirv
-
 dxc -T cs_6_0 ./CS/meshSlicerCS.hlsl -spirv
 dxc -T cs_6_0 ./CS/meshSlicerCS_curvedplane.hlsl -spirv
 dxc -T cs_6_0 ./CS/slicerOutlineCS.hlsl -spirv
@@ -143,6 +139,13 @@ dxc -T cs_6_0 ./CS/upsample_bilateral_float4CS.hlsl -spirv
 dxc -T cs_6_0 ./CS/downsample4xCS.hlsl -spirv
 
 dxc -T cs_6_0 ./CS/filterEnvMapCS.hlsl -spirv
+
+dxc -T cs_6_0 ./CS/ddgi_indirectprepareCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/ddgi_rayallocationCS.hlsl -spirv -fspv-target-env="vulkan1.1"
+dxc -T cs_6_0 ./CS/ddgi_raytraceCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/ddgi_raytraceCS_rtapi.hlsl -spirv
+dxc -T cs_6_0 ./CS/ddgi_updateCS.hlsl -spirv
+dxc -T cs_6_0 ./CS/ddgi_updateCS_depth.hlsl -spirv
 
 dxc -T vs_6_0 ./VS/fontVS.hlsl -spirv
 dxc -T ps_6_0 ./PS/fontPS.hlsl -spirv

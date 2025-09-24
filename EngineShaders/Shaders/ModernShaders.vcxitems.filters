@@ -79,6 +79,9 @@
     <Filter Include="Compute Shaders\Environment">
       <UniqueIdentifier>{ad0c38d6-f368-432b-a2c4-e611fea298eb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compute Shaders\DDGI">
+      <UniqueIdentifier>{96cf097e-c5d8-4256-90dc-3642b00e7877}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)compile.bat">
@@ -329,6 +332,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)ShaderInterop_Renderer.h">
       <Filter>Interop %28root%29</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\WickedEngine\WickedEngine\shaders\ShaderInterop_VoxelGrid.h">
+      <Filter>Interop %28root%29</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryspace.hlsl">
@@ -376,10 +382,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\meshlet_prepareCS.hlsl">
       <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\visibility_resolveCS.hlsl">
       <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\visibility_resolveCS_MSAA.hlsl">
       <Filter>Compute Shaders\Rendering Processing</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\wetmap_updateCS.hlsl">
@@ -762,6 +768,24 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\skyAtmosphere_transmittanceLutCS.hlsl">
       <Filter>Compute Shaders\Environment</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_indirectprepareCS.hlsl">
+      <Filter>Compute Shaders\DDGI</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_rayallocationCS.hlsl">
+      <Filter>Compute Shaders\DDGI</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_raytraceCS.hlsl">
+      <Filter>Compute Shaders\DDGI</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_raytraceCS_rtapi.hlsl">
+      <Filter>Compute Shaders\DDGI</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_updateCS.hlsl">
+      <Filter>Compute Shaders\DDGI</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_updateCS_depth.hlsl">
+      <Filter>Compute Shaders\DDGI</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

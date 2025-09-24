@@ -20,6 +20,25 @@ namespace vz
 		return new GSceneDetails(scene);
 	}
 
+	void GSceneDetails::AllocatorSettingUp(jobsystem::context& ctx)
+	{
+		size_t num_renderables = renderableComponents.size();
+
+		// Scan objects to check if lightmap rendering is requested:
+		lightmapRequestAllocator.store(0);
+		lightmapRequests.reserve(num_renderables);
+		jobsystem::Dispatch(ctx, (uint32_t)num_renderables, SMALL_SUBTASK_GROUPSIZE, [this](jobsystem::JobArgs args) {
+
+			GRenderableComponent& renderable = *renderableComponents[args.jobIndex];
+			assert(renderable.renderableIndex == args.jobIndex);
+
+			if (renderable.IsLightmapRenderRequested())
+			{
+				uint32_t request_index = lightmapRequestAllocator.fetch_add(1);
+				*(lightmapRequests.data() + request_index) = args.jobIndex;
+			}
+			});
+	}
 	void GSceneDetails::RunGeometryUpdateSystem(jobsystem::context& ctx)
 	{
 		meshletAllocator.store(0u);
@@ -783,6 +802,29 @@ namespace vz
 		size_t num_spriteFonts = spriteFontComponents.size();
 		size_t num_lights = lightComponents.size();
 		size_t num_probes = probeComponents.size();
+
+		const bool hw_raytrace = device->CheckCapability(GraphicsDeviceCapability::RAYTRACING);
+		if (GetScene()->IsContentChanged())
+		{
+			if (renderer::isSurfelGIDebugEnabled ||
+				renderer::isDDGIEnabled ||
+				(hw_raytrace && renderer::isRaytracedShadowsEnabled) ||
+				(hw_raytrace && renderer::isRTAOEnabled) ||
+				(hw_raytrace && renderer::isRaytracedReflectionEnabled) ||
+				(hw_raytrace && renderer::isRaytracedDiffuseEnabled)
+				)
+			{
+				isAccelerationStructureUpdateRequested = true;
+			}
+		}
+
+		if (dt > 0)
+		{
+			// actually, this is supposed to be called during main Scene's update
+			// but the allocators are used for special features of renderer (shader engine)
+			// this is why AllocatorSettingUp is implemented here
+			AllocatorSettingUp(ctx);
+		}
 		
 		device = graphics::GetDevice();
 		uint32_t pingpong_buffer_index = device->GetBufferIndex();
@@ -918,6 +960,7 @@ namespace vz
 		if (dt > 0)
 		{
 			jobsystem::Wait(ctx); // dependencies
+
 			// Scan mesh subset counts and skinning data sizes to allocate GPU geometry data:
 			// TODO
 
@@ -936,14 +979,14 @@ namespace vz
 		jobsystem::Wait(ctx); // dependencies
 
 		// Lightmap requests are determined at this point, so we know if we need TLAS or not:
-		//if (lightmap_request_allocator.load() > 0)
-		//{
-		//	SetAccelerationStructureUpdateRequested(true);
-		//}
+		if (lightmapRequestAllocator.load() > 0)
+		{
+			isAccelerationStructureUpdateRequested = true;
+		}
 
 		// This must be after lightmap requests were determined:
 		TLAS_instancesMapped = nullptr;
-		if (this->isAccelerationStructureUpdateRequested && device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+		if (isAccelerationStructureUpdateRequested && hw_raytrace)
 		{
 			GPUBufferDesc desc;
 			desc.stride = (uint32_t)device->GetTopLevelAccelerationStructureInstanceSize();
@@ -1049,9 +1092,9 @@ namespace vz
 			device->SetName(&meshletBuffer, "meshletBuffer");
 		}
 		
-		if (this->isAccelerationStructureUpdateRequested)
+		if (isAccelerationStructureUpdateRequested)
 		{
-			if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+			if (hw_raytrace)
 			{
 				// Recreate top level acceleration structure if the object count changed:
 				if (TLAS.desc.top_level.count < instanceArraySize)

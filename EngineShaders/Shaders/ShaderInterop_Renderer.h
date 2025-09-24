@@ -4,7 +4,7 @@
 #include "ShaderInterop.h"
 #include "ShaderInterop_VXGI.h"
 #include "ShaderInterop_Environment.h"
-//#include "ShaderInterop_VoxelGrid.h"
+#include "ShaderInterop_VoxelGrid.h"
 
 static const uint SHADER_ENTITY_COUNT = 256;
 static const uint SHADER_ENTITY_TILE_BUCKET_COUNT = SHADER_ENTITY_COUNT / 32;
@@ -891,6 +891,8 @@ struct alignas(16) ShaderScene
 		float smooth_backface;
 	};
 	DDGI ddgi;
+
+	ShaderVoxelGrid voxelgrid;
 
 	void Init()
 	{

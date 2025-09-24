@@ -53,16 +53,19 @@
     <ClCompile Include="Font.cpp">
       <Filter>Processing</Filter>
     </ClCompile>
-    <ClCompile Include="ShadowMap_Details.cpp">
+    <ClCompile Include="ShadowMap_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="SpriteDraw_Details.cpp">
+    <ClCompile Include="SpriteDraw_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
     <ClCompile Include="DebugVisualizer_Details.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
     <ClCompile Include="Environment_Detail.cpp">
+      <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="GI_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
   </ItemGroup>

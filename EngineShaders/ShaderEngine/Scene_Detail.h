@@ -122,7 +122,7 @@ namespace vz::renderer
 		bool isOutlineEnabled = false;
 		bool isWetmapRefreshEnabled = false;
 		bool isSceneEffectUpdateEnabled = false;	// scene preparation for 3D effect, not affecting Slicer
-		bool isAccelerationStructureUpdateRequested = false;
+		bool isAccelerationStructureUpdateRequested = false; // this will be false when the ASU is completed
 
 		ShaderScene shaderscene = {};
 
@@ -213,11 +213,15 @@ namespace vz::renderer
 			void Serialize(Archive& archive);
 		} ddgi;
 
+		std::atomic<uint32_t> lightmapRequestAllocator{ 0 };
+		std::vector<uint32_t> lightmapRequests;
+
 		DebugShapeCollection debugShapes; // dynamic allocation
 
 		bool Update(const float dt) override;
 		bool Destroy() override;
 
+		void AllocatorSettingUp(jobsystem::context& ctx);
 		void RunGeometryUpdateSystem(jobsystem::context& ctx);
 		void RunMaterialUpdateSystem(jobsystem::context& ctx);
 		void RunRenderableUpdateSystem(jobsystem::context& ctx); // note a single renderable can generate multiple mesh instances

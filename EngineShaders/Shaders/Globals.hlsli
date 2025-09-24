@@ -665,6 +665,8 @@ struct PrimitiveID
 #define M_TO_SKY_UNIT 0.001
 #define SKY_UNIT_TO_M rcp(M_TO_SKY_UNIT)
 #define MEDIUMP_FLT_MAX 65504.0
+#define SPHERE_SAMPLING_PDF rcp(4 * PI)
+#define HEMISPHERE_SAMPLING_PDF rcp(2 * PI)
 
 #define sqr(a) ((a)*(a))
 #define pow4(a) ((a)*(a)*(a)*(a))

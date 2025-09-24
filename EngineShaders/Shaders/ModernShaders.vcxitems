@@ -54,6 +54,7 @@
     <None Include="$(MSBuildThisFileDirectory)PixelPacking_RGBE.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\WickedEngine\WickedEngine\shaders\ShaderInterop_VoxelGrid.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)compressonator\bcn_common_api.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)compressonator\bcn_common_kernel.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)compressonator\common_def.h" />
@@ -124,6 +125,12 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_primitivesCS_geometryspace.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\bvh_propagateaabbCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_indirectprepareCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_rayallocationCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_raytraceCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_raytraceCS_rtapi.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_updateCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_updateCS_depth.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\downsample4xCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\dvrCS_curved_slicer_2KB.hlsl" />
@@ -180,8 +187,8 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\tonemapCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\upsample_bilateral_float1CS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\upsample_bilateral_float4CS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS.hlsl" />
-    <FxCompile Include="$(MSBuildThisFileDirectory)CS\view_resolveCS_MSAA.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\visibility_resolveCS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)CS\visibility_resolveCS_MSAA.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS_capture.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\volumetricCloud_renderCS_capture_MSAA.hlsl" />

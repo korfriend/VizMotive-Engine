@@ -113,8 +113,8 @@ namespace vz::shader
 
 		CSTYPE_MESHLET_PREPARE, // to save GBffuer size: refers to "view_resolveCS.hlsl"
 
-		CSTYPE_VIEW_RESOLVE, 
-		CSTYPE_VIEW_RESOLVE_MSAA,
+		CSTYPE_VISIBILITY_RESOLVE, 
+		CSTYPE_VISIBILITY_RESOLVE_MSAA,
 		CSTYPE_LIGHTCULLING_ADVANCED, 
 		CSTYPE_LIGHTCULLING_ADVANCED_DEBUG,
 		CSTYPE_LIGHTCULLING_DEBUG,
@@ -180,6 +180,13 @@ namespace vz::shader
 		CSTYPE_POSTPROCESS_RTSHADOW_DENOISE_FILTER,
 		CSTYPE_POSTPROCESS_RTSHADOW_DENOISE_TEMPORAL,
 		CSTYPE_POSTPROCESS_RTSHADOW_UPSAMPLE,
+
+		// DDGI
+		CSTYPE_DDGI_RAYALLOCATION,
+		CSTYPE_DDGI_INDIRECTPREPARE,
+		CSTYPE_DDGI_RAYTRACE,
+		CSTYPE_DDGI_UPDATE,
+		CSTYPE_DDGI_UPDATE_DEPTH,
 
 		// Difered Mipmap
 		CSTYPE_GENERATEMIPCHAINCUBEARRAY_FLOAT4,
@@ -254,6 +261,8 @@ namespace vz::shader
 		ShaderModel minshadermodel = graphics::ShaderModel::SM_6_0,
 		const std::vector<std::string>& permutation_defines = {}
 	);
+
+	void WaitShaderLoad_RayTracing();
 
 	void LoadShaders();
 
