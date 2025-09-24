@@ -1744,6 +1744,9 @@ namespace vz
 		inline bool IsInvisibleInMainCamera() const { return flags_ & INVISIBLE_IN_MAIN_CAMERA; }
 		inline bool IsInvisibleInReflections() const { return flags_ & INVISIBLE_IN_REFLECTIONS; }
 		inline bool IsWetmapEnabled() const { return flags_ & WETMAP_ENABLED; }
+		inline bool IsRequestPlanarReflection() const { return flags_ & REQUEST_PLANAR_REFLECTION; }
+		inline bool IsLightmapRenderRequested() const { return flags_ & LIGHTMAP_RENDER_REQUEST; }
+		inline bool IsLightmapDisableBlockCompression() const { return flags_ & LIGHTMAP_DISABLE_BLOCK_COMPRESSION; }
 
 		inline float GetFadeDistance() const { return fadeDistance_; }
 		inline float GetVisibleRadius() const { return visibleRadius_; }

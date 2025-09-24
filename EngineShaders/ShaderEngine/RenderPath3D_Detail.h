@@ -583,6 +583,9 @@ namespace vz::renderer
 		void Visibility_Surface_Reduced(const VisibilityResources& res, CommandList cmd);
 		void Visibility_Shade(const VisibilityResources& res, const Texture& output, CommandList cmd);
 
+		// GI
+		void Update_DDGI(CommandList cmd);
+
 		void ComputeVolumetricCloudShadows(CommandList cmd, const Texture* envMapFirst, const Texture* envMapSecond);
 		void ComputeSkyAtmosphereTextures(CommandList cmd);
 		void ComputeSkyAtmosphereSkyViewLut(CommandList cmd);

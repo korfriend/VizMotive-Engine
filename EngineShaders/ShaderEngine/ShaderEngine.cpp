@@ -48,6 +48,13 @@ namespace vz::renderer
 	bool isColorGradingEnabled = false;
 	bool isGaussianSplattingEnabled = true;
 	bool isDDGIEnabled = false;
+	bool isRaytracedShadowsEnabled = false;
+	bool isRTAOEnabled = false;
+	bool isRaytracedReflectionEnabled = false;
+	bool isRaytracedDiffuseEnabled = false;
+
+	uint32_t DDGI_RAYCOUNT = 256u;
+	float DDGI_BLEND_SPEED = 0.1f;
 
 	bool isDebugShapeEnabled = true;
 	bool isDebugShapeCleanStart = true;

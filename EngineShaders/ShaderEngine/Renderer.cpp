@@ -1477,6 +1477,10 @@ namespace vz::renderer
 			// ComputeSkyAtmosphere
 			// SurfelGI
 			// DDGI
+			if (renderer::isDDGIEnabled && scene->IsContentChanged())
+			{
+				Update_DDGI(cmd);
+			}
 
 			});
 

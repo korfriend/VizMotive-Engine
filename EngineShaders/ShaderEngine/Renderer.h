@@ -285,6 +285,13 @@ namespace vz::renderer
 	extern bool isColorGradingEnabled;
 	extern bool isGaussianSplattingEnabled;
 	extern bool isDDGIEnabled;
+	extern bool isRaytracedShadowsEnabled;
+	extern bool isRTAOEnabled;
+	extern bool isRaytracedReflectionEnabled;
+	extern bool isRaytracedDiffuseEnabled;
+
+	extern uint32_t DDGI_RAYCOUNT;
+	extern float DDGI_BLEND_SPEED;
 
 	extern bool isDebugShapeEnabled;
 	extern bool isDebugShapeCleanStart;

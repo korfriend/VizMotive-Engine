@@ -1345,7 +1345,7 @@ namespace vz::renderer
 			}
 			BarrierStackFlush(cmd);
 
-			device->BindComputeShader(&shaders[msaa ? CSTYPE_VIEW_RESOLVE_MSAA : CSTYPE_VIEW_RESOLVE], cmd);
+			device->BindComputeShader(&shaders[msaa ? CSTYPE_VISIBILITY_RESOLVE_MSAA : CSTYPE_VISIBILITY_RESOLVE], cmd);
 
 			device->Dispatch(
 				tile_count.x,
