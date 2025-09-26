@@ -74,6 +74,11 @@ namespace vz::renderer
 	Texture				textureCurlNoise;		// engine
 	Texture				textureEnvMap;			// engine
 
+	std::unordered_map<uint32_t, Texture> envProbeTextures;	// engine
+	Texture bcRawTexture_uint2;			// engine
+	Texture bcRawTexture_uint4;			// engine
+	Texture bcRawTexture_uint4_cubemap;	// engine
+
 	GPUBuffer			indirectDebugStatsReadback[GraphicsDevice::GetBufferCount()];
 	bool				indirectDebugStatsReadback_available[GraphicsDevice::GetBufferCount()] = {};
 
@@ -574,12 +579,17 @@ namespace vz::renderer
 		textureCurlNoise = {};
 		textureEnvMap = {};
 
-		ReleaseRenderRes(rasterizers, SAMPLER_COUNT);
-		ReleaseRenderRes(depthStencils, SAMPLER_COUNT);
-		ReleaseRenderRes(blendStates, SAMPLER_COUNT);
+		ReleaseRenderRes(rasterizers, RSTYPE_COUNT);
+		ReleaseRenderRes(depthStencils, DSSTYPE_COUNT);
+		ReleaseRenderRes(blendStates, BSTYPE_COUNT);
 		ReleaseRenderRes(samplers, SAMPLER_COUNT);
 
 		ReleaseRenderRes(indirectDebugStatsReadback, GraphicsDevice::GetBufferCount());
+
+		envProbeTextures.clear();
+		bcRawTexture_uint2 = {};
+		bcRawTexture_uint4 = {};
+		bcRawTexture_uint4_cubemap = {};
 
 		deferredTextureCopy.clear();
 		deferredBufferUpdate.clear();

@@ -207,7 +207,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DebugVisualizer_Details.cpp" />
+    <ClCompile Include="DebugVisualizer_Detail.cpp" />
     <ClCompile Include="DeferredProcessing_Detail.cpp" />
     <ClCompile Include="DirectVolumes_Detail.cpp" />
     <ClCompile Include="Environment_Detail.cpp" />

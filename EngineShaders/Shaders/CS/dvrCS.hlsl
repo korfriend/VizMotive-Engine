@@ -179,7 +179,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
 		// NOTE:
 		// The linear_depth is a normalized depth [0, 1]
 		//  where the depth is defined along the z-axis from the plane where CAMERA places
-		//	refer to "view_resolveCS.hlsl" 152-th line
+		//	refer to "visibility_resolveCS.hlsl" 152-th line
 		float3 cam_forward = camera.forward; // supposed to be a unit vector
 		float z_hit = dot(vec_o2start, cam_forward) + camera.z_near;
 		float linear_depth = z_hit * camera.z_far_rcp;

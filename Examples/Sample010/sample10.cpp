@@ -139,7 +139,7 @@ int main(int, char **)
 	VzScene *scene = nullptr;
 	VzCamera *camera = nullptr;
 	VzRenderer *renderer = nullptr;
-	const int NUM_RANDOM_OBJS = 50;
+	const int NUM_RANDOM_OBJS = 10;
 	const int LIGHT_TYPE = 0;
 
 	{

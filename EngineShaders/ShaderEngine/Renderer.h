@@ -229,6 +229,11 @@ namespace vz::renderer
 	extern Texture				textureCurlNoise;
 	extern Texture				textureEnvMap;
 
+	extern std::unordered_map<uint32_t, Texture> envProbeTextures;
+	extern Texture bcRawTexture_uint2;		
+	extern Texture bcRawTexture_uint4;		
+	extern Texture bcRawTexture_uint4_cubemap;
+
 	extern GPUBuffer			indirectDebugStatsReadback[GraphicsDevice::GetBufferCount()];
 	extern bool					indirectDebugStatsReadback_available[GraphicsDevice::GetBufferCount()];
 

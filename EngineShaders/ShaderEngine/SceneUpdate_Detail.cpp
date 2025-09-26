@@ -764,6 +764,8 @@ namespace vz
 
 	bool GSceneDetails::Update(const float dt)
 	{
+		device = graphics::GetDevice();
+
 		if (renderer::isDebugShapeCleanStart && renderer::isDebugShapeEnabled)
 		{
 			debugShapes.Clear();
@@ -826,7 +828,6 @@ namespace vz
 			AllocatorSettingUp(ctx);
 		}
 		
-		device = graphics::GetDevice();
 		uint32_t pingpong_buffer_index = device->GetBufferIndex();
 		// GPU Setting-up for Update IF necessary
 		{

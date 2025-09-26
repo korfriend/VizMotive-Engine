@@ -1,2 +1,2 @@
 #define VIEW_MSAA
-#include "view_resolveCS.hlsl"
+#include "visibility_resolveCS.hlsl"

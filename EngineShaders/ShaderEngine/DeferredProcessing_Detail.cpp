@@ -402,35 +402,32 @@ namespace vz::renderer
 			// Find a raw block texture that will fit the request:
 			static std::mutex locker;
 			std::scoped_lock lock(locker);
-			static Texture bc_raw_uint2;
-			static Texture bc_raw_uint4;
-			static Texture bc_raw_uint4_cubemap;
 			Texture* bc_raw = nullptr;
 			switch (texture_bc.desc.format)
 			{
 			case Format::BC1_UNORM:
 			case Format::BC1_UNORM_SRGB:
 				desc.format = Format::R32G32_UINT;
-				bc_raw = &bc_raw_uint2;
+				bc_raw = &bcRawTexture_uint2;
 				device->BindComputeShader(&shaders[CSTYPE_BLOCKCOMPRESS_BC1], cmd);
 				device->EventBegin("BlockCompress - BC1", cmd);
 				break;
 			case Format::BC3_UNORM:
 			case Format::BC3_UNORM_SRGB:
 				desc.format = Format::R32G32B32A32_UINT;
-				bc_raw = &bc_raw_uint4;
+				bc_raw = &bcRawTexture_uint4;
 				device->BindComputeShader(&shaders[CSTYPE_BLOCKCOMPRESS_BC3], cmd);
 				device->EventBegin("BlockCompress - BC3", cmd);
 				break;
 			case Format::BC4_UNORM:
 				desc.format = Format::R32G32_UINT;
-				bc_raw = &bc_raw_uint2;
+				bc_raw = &bcRawTexture_uint2;
 				device->BindComputeShader(&shaders[CSTYPE_BLOCKCOMPRESS_BC4], cmd);
 				device->EventBegin("BlockCompress - BC4", cmd);
 				break;
 			case Format::BC5_UNORM:
 				desc.format = Format::R32G32B32A32_UINT;
-				bc_raw = &bc_raw_uint4;
+				bc_raw = &bcRawTexture_uint4;
 				device->BindComputeShader(&shaders[CSTYPE_BLOCKCOMPRESS_BC5], cmd);
 				device->EventBegin("BlockCompress - BC5", cmd);
 				break;
@@ -438,14 +435,14 @@ namespace vz::renderer
 				desc.format = Format::R32G32B32A32_UINT;
 				if (has_flag(texture_src.desc.misc_flags, ResourceMiscFlag::TEXTURECUBE))
 				{
-					bc_raw = &bc_raw_uint4_cubemap;
+					bc_raw = &bcRawTexture_uint4_cubemap;
 					device->BindComputeShader(&shaders[CSTYPE_BLOCKCOMPRESS_BC6H_CUBEMAP], cmd);
 					device->EventBegin("BlockCompress - BC6H - Cubemap", cmd);
 					desc.array_size = texture_src.desc.array_size; // src array size not dst!!
 				}
 				else
 				{
-					bc_raw = &bc_raw_uint4;
+					bc_raw = &bcRawTexture_uint4;
 					device->BindComputeShader(&shaders[CSTYPE_BLOCKCOMPRESS_BC6H], cmd);
 					device->EventBegin("BlockCompress - BC6H", cmd);
 				}

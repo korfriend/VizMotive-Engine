@@ -571,7 +571,6 @@ namespace vz::renderer
 				} bits;
 				uint32_t raw;
 			};
-			static std::unordered_map<uint32_t, Texture> render_textures;
 			static std::mutex locker;
 			{
 				const uint32_t required_sample_count = probe.GetSampleCount();
@@ -583,21 +582,21 @@ namespace vz::renderer
 				id_depth.bits.sample_count = required_sample_count;
 				id_depth.bits.is_depth = 1;
 				id_depth.bits.is_filtered = 0;
-				envrenderingDepthBuffer = render_textures[id_depth.raw];
+				envrenderingDepthBuffer = envProbeTextures[id_depth.raw];
 
 				RenderTextureID id_color = {};
 				id_color.bits.width = resolution;
 				id_color.bits.sample_count = 1;
 				id_color.bits.is_depth = 0;
 				id_color.bits.is_filtered = 0;
-				envrenderingColorBuffer = render_textures[id_color.raw];
+				envrenderingColorBuffer = envProbeTextures[id_color.raw];
 
 				RenderTextureID id_color_filtered = {};
 				id_color_filtered.bits.width = resolution;
 				id_color_filtered.bits.sample_count = 1;
 				id_color_filtered.bits.is_depth = 0;
 				id_color_filtered.bits.is_filtered = 1;
-				envrenderingColorBuffer_Filtered = render_textures[id_color_filtered.raw];
+				envrenderingColorBuffer_Filtered = envProbeTextures[id_color_filtered.raw];
 
 				TextureDesc desc;
 				desc.array_size = 6;
@@ -618,7 +617,7 @@ namespace vz::renderer
 					}
 					device->CreateTexture(&desc, nullptr, &envrenderingDepthBuffer);
 					device->SetName(&envrenderingDepthBuffer, "envrenderingDepthBuffer");
-					render_textures[id_depth.raw] = envrenderingDepthBuffer;
+					envProbeTextures[id_depth.raw] = envrenderingDepthBuffer;
 
 					std::string info;
 					info += "Created envprobe depth buffer for request";
@@ -641,7 +640,7 @@ namespace vz::renderer
 					desc.sample_count = 1;
 					device->CreateTexture(&desc, nullptr, &envrenderingColorBuffer);
 					device->SetName(&envrenderingColorBuffer, "envrenderingColorBuffer");
-					render_textures[id_color.raw] = envrenderingColorBuffer;
+					envProbeTextures[id_color.raw] = envrenderingColorBuffer;
 
 					// Cubes per mip level:
 					for (uint32_t i = 0; i < envrenderingColorBuffer.desc.mip_levels; ++i)
@@ -674,7 +673,7 @@ namespace vz::renderer
 					desc.sample_count = 1;
 					device->CreateTexture(&desc, nullptr, &envrenderingColorBuffer_Filtered);
 					device->SetName(&envrenderingColorBuffer_Filtered, "envrenderingColorBuffer_Filtered");
-					render_textures[id_color_filtered.raw] = envrenderingColorBuffer_Filtered;
+					envProbeTextures[id_color_filtered.raw] = envrenderingColorBuffer_Filtered;
 
 					// Cubes per mip level:
 					for (uint32_t i = 0; i < envrenderingColorBuffer_Filtered.desc.mip_levels; ++i)
@@ -704,7 +703,7 @@ namespace vz::renderer
 					id_color_msaa.bits.sample_count = required_sample_count;
 					id_color_msaa.bits.is_depth = 0;
 					id_color_msaa.bits.is_filtered = 0;
-					envrenderingColorBuffer_MSAA = render_textures[id_color_msaa.raw];
+					envrenderingColorBuffer_MSAA = envProbeTextures[id_color_msaa.raw];
 
 					if (!envrenderingColorBuffer_MSAA.IsValid())
 					{
@@ -716,7 +715,7 @@ namespace vz::renderer
 						desc.format = FORMAT_rendertargetEnvprobe;
 						device->CreateTexture(&desc, nullptr, &envrenderingColorBuffer_MSAA);
 						device->SetName(&envrenderingColorBuffer_MSAA, "envrenderingColorBuffer_MSAA");
-						render_textures[id_color_msaa.raw] = envrenderingColorBuffer_MSAA;
+						envProbeTextures[id_color_msaa.raw] = envrenderingColorBuffer_MSAA;
 
 						std::string info;
 						info += "Created envprobe render target for request";
