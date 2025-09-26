@@ -70,7 +70,7 @@ namespace vz
 			desc.height = height_;
 			desc.allow_hdr = allowHDR;
 			bool success = graphicsDevice_->CreateSwapChain(&desc, (vz::platform::window_type)window_, &swapChain_);
-			assert(success);
+			vzlog_assert(success, "swapchain creation failed! the target window may become invalid!");
 		}
 		else
 		{

@@ -59,7 +59,7 @@
     <ClCompile Include="SpriteDraw_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="DebugVisualizer_Details.cpp">
+    <ClCompile Include="DebugVisualizer_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
     <ClCompile Include="Environment_Detail.cpp">

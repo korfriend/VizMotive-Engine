@@ -88,6 +88,7 @@ namespace vzcompmanager
 		case COMPONENT_TYPE::GEOMETRY: geometries.erase(vid); break;
 		case COMPONENT_TYPE::MATERIAL: materials.erase(vid); break;
 		case COMPONENT_TYPE::TEXTURE: textures.erase(vid); break;
+		case COMPONENT_TYPE::VOLUME: volumes.erase(vid); break;
 		default:
 			assert(0);
 		}
@@ -128,6 +129,7 @@ namespace vzcompmanager
 		geometries.clear();
 		materials.clear();
 		textures.clear();
+		volumes.clear();
 		lookup.clear();
 
 		Archive::DestroyAll();
