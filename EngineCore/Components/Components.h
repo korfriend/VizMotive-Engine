@@ -1993,7 +1993,6 @@ namespace vz
 			} typewriter;
 		};
 		inline static int FONTSIZE_DEFAULT = 16;
-
 	protected:
 
 		uint32_t flags_ = DEPTH_TEST;
@@ -2233,7 +2232,7 @@ namespace vz
 		float fovY_ = XM_PI / 3.0f;
 		float focalLength_ = 1;
 		float apertureSize_ = 0;
-		float orthoVerticalSize_ = 1.f;
+		float orthoVerticalSize_ = 1.f;	
 		float fx_ = 1.f, fy_ = 1.f, sc_ = 1.f, cx_ = 0.f, cy_ = 0.f;
 		XMFLOAT2 apertureShape_ = XMFLOAT2(1, 1);
 

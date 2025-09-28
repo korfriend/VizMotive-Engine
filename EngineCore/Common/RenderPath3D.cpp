@@ -266,14 +266,6 @@ namespace vz
 		return &handlerRenderPath3D_->GetLastProcessRT(); 
 	}
 
-	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {
-		for (char c : str) {
-			hash ^= static_cast<size_t>(c);
-			hash *= 1099511628211ULL;
-		}
-		return hash;
-	}
-
 	geometrics::Ray RenderPath3D::GetPickRay(float screenX, float screenY, const CameraComponent& camera)
 	{
 		XMMATRIX V = XMLoadFloat4x4(&camera.GetView());
@@ -285,6 +277,13 @@ namespace vz
 		return geometrics::Ray(lineStart, rayDirection);
 	}
 
+	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {
+		for (char c : str) {
+			hash ^= static_cast<size_t>(c);
+			hash *= 1099511628211ULL;
+		}
+		return hash;
+	}
 	constexpr static size_t HASH_PRIMITIVE_ID = FNV1aHash("PRIMITIVE_ID"); // target at rtPrimitiveID
 	constexpr static size_t HASH_INSTANCE_ID = FNV1aHash("INSTANCE_ID");   // target at rtPrimitiveID
 	constexpr static size_t HASH_LINEAR_DEPTH = FNV1aHash("LINEAR_DEPTH"); // target at rtLinearDepth
@@ -305,5 +304,10 @@ namespace vz
 		case HASH_CASCADE_SHADOW_MAP: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::CASCADE_SHADOW_MAP; break;
 		default: handlerRenderPath3D_->debugMode = DEBUG_BUFFER::NONE; break;
 		}
+	}
+
+	void RenderPath3D::SetRenderOptionEnabled(const std::string& optionName, const bool enabled)
+	{
+		handlerRenderPath3D_->SetOptionEnabled(optionName, enabled);
 	}
 }

@@ -387,9 +387,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\ComponentSerializer.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
-      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighAPIs\VzCamera.cpp">
       <Filter>HighAPIs %28API_EXPORT%29\Private %28Components%29</Filter>
     </ClCompile>
@@ -443,6 +440,9 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Components\AnimationComponent.cpp">
       <Filter>Components %28CORE_EXPORT%29\Private\Component Detail</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Components\Scene.cpp">
+      <Filter>Components %28CORE_EXPORT%29\Private</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

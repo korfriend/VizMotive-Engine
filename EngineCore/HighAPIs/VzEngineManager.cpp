@@ -468,17 +468,13 @@ namespace vzm
 		const char* dbs_string_c = dbs_string.c_str();
 		config::Section& dbs_section = configFile.GetSection(dbs_string_c);
 		{
-			if (!dbs_section.Has("LIGHT_CULLING"))
-			{
-				dbs_section.Set("LIGHT_CULLING", false);
-			}
 			if (!dbs_section.Has("DEBUG_SHAPE"))
 			{
-				dbs_section.Set("DEBUG_SHAPE", false);
+				dbs_section.Set("DEBUG_SHAPE", true);
 			}
 			if (!dbs_section.Has("DEBUG_SHAPE_CLEAN_START"))
 			{
-				dbs_section.Set("DEBUG_SHAPE_CLEAN_START", false);
+				dbs_section.Set("DEBUG_SHAPE_CLEAN_START", true);
 			}
 			configFile.Commit();
 		}

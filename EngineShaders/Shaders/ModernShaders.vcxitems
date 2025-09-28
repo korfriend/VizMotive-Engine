@@ -198,6 +198,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)GS\thicknessLineGS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)GS\voxelGS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\cubeMapPS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\ddgi_debugPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\debugPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS_advanced.hlsl" />
@@ -227,6 +228,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLightPS_Point.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\volumetricLightPS_Spot.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\voxelPS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\ddgi_debugVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\envMapVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\envMapVS_sky.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\fontVS.hlsl" />
@@ -245,6 +247,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\shadowVS_alphatest.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\shadowVS_transparent.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\skyVS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\sphereVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\vertexcolorVS.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetricLightVS_directional.hlsl" />
     <FxCompile Include="$(MSBuildThisFileDirectory)VS\volumetricLightVS_point.hlsl" />

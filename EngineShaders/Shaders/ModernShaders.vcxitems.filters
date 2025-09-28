@@ -787,5 +787,14 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\ddgi_updateCS_depth.hlsl">
       <Filter>Compute Shaders\DDGI</Filter>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)PS\ddgi_debugPS.hlsl">
+      <Filter>Raster-Pipeline Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\ddgi_debugVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)VS\sphereVS.hlsl">
+      <Filter>Raster-Pipeline Shaders\VS</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

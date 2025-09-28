@@ -217,7 +217,7 @@
     <ClCompile Include="GPUBVH.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="PostProcessingChain_Detail.cpp" />
-    <ClCompile Include="DebugShapes_Detail.cpp" />
+    <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="RenderPath2D_Detail.cpp" />
     <ClCompile Include="RenderPath3D_Detail.cpp" />
     <ClCompile Include="samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp.cpp" />
@@ -232,6 +232,7 @@
     <ClCompile Include="TextureHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DebugRenderer.h" />
     <ClInclude Include="Font.h" />
     <ClInclude Include="GPUBVH.h" />
     <ClInclude Include="Image.h" />

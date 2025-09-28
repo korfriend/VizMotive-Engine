@@ -234,6 +234,12 @@ namespace vz::renderer
 	extern Texture bcRawTexture_uint4;		
 	extern Texture bcRawTexture_uint4_cubemap;
 
+	extern GPUBuffer wirecubeVB;
+	extern GPUBuffer wirecubeIB;
+	extern GPUBuffer wirecamVB;
+	extern GPUBuffer wirecamIB;
+	extern GPUBuffer gridVB;
+
 	extern GPUBuffer			indirectDebugStatsReadback[GraphicsDevice::GetBufferCount()];
 	extern bool					indirectDebugStatsReadback_available[GraphicsDevice::GetBufferCount()];
 
@@ -280,7 +286,6 @@ namespace vz::renderer
 	extern bool isFSREnabled;
 	extern bool isTonemapping;
 	extern bool isWireRender;
-	extern bool isDebugLightCulling;
 	extern bool isAdvancedLightCulling;
 	extern bool isMeshShaderAllowed;
 	extern bool isShadowsEnabled;
@@ -298,6 +303,7 @@ namespace vz::renderer
 	extern uint32_t DDGI_RAYCOUNT;
 	extern float DDGI_BLEND_SPEED;
 
+	// renderer only (not scene)
 	extern bool isDebugShapeEnabled;
 	extern bool isDebugShapeCleanStart;
 }

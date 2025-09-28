@@ -1,5 +1,4 @@
-// Filament highlevel APIs
-#include "vzm2/VzEngineAPIs.h"
+﻿#include "vzm2/VzEngineAPIs.h"
 #include "vzm2/utils/Backlog.h"
 #include "vzm2/utils/EventHandler.h"
 #include "vzm2/utils/JobSystem.h"
@@ -8,19 +7,17 @@
 #include "vzm2/utils/Profiler.h"
 #include "vzm2/utils/Config.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+
+#include "imgui/vzImGuiHelpers.h"
+#include "imgui/IconsMaterialDesign.h"
+#include "imgui/device_manager_dx12.h"
+
 #include <iostream>
 #include <windowsx.h>
-
-// imgui
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_impl_dx12.h"
-#include "imgui/device_manager_dx12.h"
-#include <d3d12.h>
-#include <dxgi1_4.h>
-
-#include <tchar.h>
-#include <shellscalingapi.h>
+#include <cstdlib> 
+#include <ctime>
+#include <random>
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
@@ -84,6 +81,7 @@ int main(int, char**)
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 30, 30, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
 	vzm::ParamMap<std::string> arguments;
+	//arguments.SetParam("MAX_THREADS", 1u);
 	if (!vzm::InitEngineLib(arguments))
 	{
 		std::cerr << "Failed to initialize engine library." << std::endl;
@@ -141,88 +139,104 @@ int main(int, char**)
 	VzScene* scene = nullptr;
 	VzCamera* camera = nullptr;
 	VzRenderer* renderer = nullptr;
+	const int NUM_RANDOM_OBJS = 10;
+	const int LIGHT_TYPE = 0;
 
-	VzAnimation* animation = NewAnimation("my animation");
-	vz::jobsystem::context ctx_stl_loader;
 	{
 		scene = NewScene("my scene");
-		scene->LoadIBL("../Assets/sky.dds");
-		scene->AppendAnimation(animation);
-		//scene->LoadIBL("../Assets/environments/skybox_final.ktx2");
-		//scene->LoadIBL("../Assets/environments/debug/debug.png");
-
-		VzLight* light = NewLight("my light");
-		light->SetIntensity(5.f);
-		light->EnableCastShadow(true);
-		light->SetEulerAngleZXYInDegree({ 0, -90, 0 });
-		scene->AppendChild(light);
-
-		renderer = NewRenderer("my renderer");
+		renderer = NewRenderer("main renderer");
 		renderer->SetCanvas(1, 1, 96.f, nullptr);
-		renderer->SetClearColor({ 1.f, 1.f, 0.f, 1.f });
-
-		// === camera ===
-		camera = NewCamera("my camera");
-		glm::fvec3 pos(0, 0, 100), up(0, 1, 0), view(0, 0, -1);
+		renderer->SetClearColor({ 0.2f, 0.2f, 0.3f, 1.f });
+		camera = NewCamera("main camera");
+		glm::fvec3 pos(0.f, 3.f, 6.f), up(0, 1, 0), view = glm::fvec3(0, 0, 0) - pos;
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
-		camera->SetPerspectiveProjection(0.1f, 1000.f, 60.f, 1.f);
+		camera->SetPerspectiveProjection(0.01f, 50.f, 60.f, 1.f);
 
-		//scene->AppendChild(camera);
+		VzActor* plane = vzm::LoadModelFile("../Assets/models/cube/cube.obj");
+		plane->SetScale({ 3.f, 0.01f, 3.f });
+		plane->SetPosition({ 0.f, 0.f, 0.f });
+		plane->SetVisibleLayerMask(0x4, true);
+		scene->AppendChild(plane);
 
-		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
-		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 5);
-		vzm::VzMaterial* material_test = vzm::NewMaterial("icosahedron's material");
-		material_test->SetShadowCast(true);
-		material_test->SetShadowReceive(true);
-		material_test->SetBaseColor({ 0, 1, 1, 1 });
-
-		vzm::VzActorStaticMesh* actor_test1 = vzm::NewActorStaticMesh("my actor1-IcosahedronGeometry", geometry_test->GetVID(), material_test->GetVID());
-		scene->AppendChild(actor_test1);
-
-		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
-		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 8.f, 3, 128, 16);
-		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
-		material_test2->SetShadowCast(true);
-		material_test2->SetShadowReceive(true);
-		material_test2->SetBaseColor({ 1, 1, 0, 1 });
-		vzm::VzActorStaticMesh* actor_test2 = vzm::NewActorStaticMesh("my actor2-TorusKnot", geometry_test2->GetVID(), material_test2->GetVID());
-		scene->AppendChild(actor_test2); 
-
-		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
-		{
-			vz::geometrics::Curve curve({ { -30, -5, -30 }, { 20, -5, -10 }, { -20, -5, 10 }, { 10, -5, 20 } });
-			std::vector<XMFLOAT3> curve_points(1000);
-			for (size_t i = 0, n = curve_points.size(); i < n; ++i)
-			{
-				curve_points[i] = curve.getPoint(i / (float)(n - 1));
-			}
-			vz::geogen::GenerateTubeGeometry(geometry_canal->GetVID(), curve_points, 64, 3.f);
-		}
-		vzm::VzMaterial* material_canal = vzm::NewMaterial("my material canal");
-		material_canal->SetShadowCast(true);
-		material_canal->SetShadowReceive(true);
-		material_canal->SetBaseColor({ 0.5, 0.5, 1, 1 });
-		vzm::VzActorStaticMesh* actor_canal = vzm::NewActorStaticMesh("my actor-canal", geometry_canal->GetVID(), material_canal->GetVID());
-		scene->AppendChild(actor_canal);
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<float> dist_x(-1.f, 1.f);
+		std::uniform_real_distribution<float> dist_y(0.2f, 2.f);
+		std::uniform_real_distribution<float> dist_z(-1.f, 1.f);
+		std::uniform_real_distribution<float> dist_color(0.0f, 1.0f);
+		const float lightRange = 1.0f;
+		VzGeometry* sphereGeometry = vzm::NewGeometry("sphere_geometry");
+		VzMaterial* sphereMaterial = vzm::NewMaterial("sphere_material");
+		sphereMaterial->SetBaseColor({ 0.8f, 0.8f, 0.8f, 1.0f }); // ���� ȸ��  
+		vz::geogen::GenerateIcosahedronGeometry(
+			sphereGeometry->GetVID(),
+			0.1f,    // radius    
+			2         // detail level for smoother sphere    
+		);
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
-		axis_helper->SetScale({ 10, 10, 10 });
-		axis_helper->EnableUnlit(true);
+		axis_helper->SetScale({ 1, 1, 1 });
+		axis_helper->SetVisibleLayerMask(0xF, true);
 		scene->AppendChild(axis_helper);
+		//std::vector<ActorVID> axis_helper_children = axis_helper->GetChildren();
 
-		vzm::VzGeometry* floor_geo = vzm::NewGeometry("floor mesh");
-		vz::geogen::GenerateBoxGeometry(floor_geo->GetVID());
-		vzm::VzMaterial* floor_material = vzm::NewMaterial("floor mesh");
-		floor_material->SetShadowReceive(true);
-		vzm::VzActorStaticMesh* floor_actor = vzm::NewActorStaticMesh("floor", floor_geo->GetVID(), floor_material->GetVID());
-		floor_actor->SetScale({ 100.f, 5.f, 100.f });
-		floor_actor->SetPosition({ 0.f, -50.f, 0.f });
-		floor_actor->SetEulerAngleZXYInDegree({ 0, 0, 0 });
-		scene->AppendChild(floor_actor);
+		vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
+		std::vector<ActorVID> axis_helper_children = axis_helper_light->GetChildren();
+		axis_helper_light->EnableUnlit(true);
 
-		VzArchive* archive = vzm::NewArchive("test archive");
-		archive->Store(camera);
+		for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+		{
+			VzActorStaticMesh* sphere = vzm::NewActorStaticMesh(
+				"sphere_" + std::to_string(idx),
+				sphereGeometry->GetVID(),
+				sphereMaterial->GetVID()
+			);
+			float x = dist_x(gen);
+			float y = dist_y(gen);
+			float z = dist_z(gen);
+			sphere->SetPosition({ x, y, z });
+			sphere->SetVisibleLayerMask(0x1, true);
+			scene->AppendChild(sphere);
+
+			VzLight* light = vzm::NewLight("light_" + std::to_string(idx));
+			light->SetLightType(LIGHT_TYPE == 0 ? VzLight::LightType::POINT : VzLight::LightType::SPOT);
+			float lx = dist_x(gen);
+			float ly = dist_y(gen);
+			float lz = dist_z(gen);
+			float r = dist_color(gen);
+			float g = dist_color(gen);
+			float b = dist_color(gen);
+			light->SetColor({ r, g, b });
+			light->SetIntensity(5.0f);
+			light->SetRange(lightRange);
+			light->SetPosition({ lx, ly, lz });
+			light->EnableVisualizer(false);
+			light->SetRadius(0.01f);
+			light->SetRotateToLookUp({ -lx, -ly, -lz }, { 0, 1, 0 });
+			light->SetVisibleLayerMask(0x8, true);
+			scene->AppendChild(light);
+
+			//vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
+			//axis_light->SetName("light_" + std::to_string(idx) + "_axis");
+			vzm::VzActor* axis_light = vzm::NewActorNode("light_" + std::to_string(idx) + "_axis");
+			for (ActorVID vid : axis_helper_children)
+			{
+				vzm::VzActorStaticMesh* mesh_loaded = (vzm::VzActorStaticMesh*)vzm::GetComponent(vid);
+				vzm::VzActorStaticMesh* mesh = vzm::NewActorStaticMesh(axis_light->GetName() + "_" + std::to_string(vid),
+					mesh_loaded->GetGeometry(), mesh_loaded->GetMaterial(), axis_light->GetVID());
+
+				//mesh->SetGeometry(mesh_loaded->GetGeometry());
+				//mesh->SetMaterials(mesh_loaded->GetMaterials());
+			}
+			axis_light->SetScale({ 0.2f, 0.2f, 0.2f });
+			axis_light->SetVisibleLayerMask(0x2, true);
+			axis_light->EnableUnlit(true);
+			light->AppendChild(axis_light);
+		}
+
 	}
+	//renderer->SetLayerMask(0xF);
+	camera->SetVisibleLayerMask(0xF);
 
 	// Our state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -251,44 +265,15 @@ int main(int, char**)
 
 		using namespace vzm;
 		{
-			static size_t count = 0;
-			static bool play = true;
-			static bool animation_play = false;
-			//static auto since = std::chrono::system_clock::now();
-			//auto now = std::chrono::system_clock::now();
-			//auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
-			//float time = msTime.count() / 1000.f;
-			if (play) count++;
-			float time = (float)count * 0.01f;// msTime.count() / 1000.f;
+			static auto since = std::chrono::system_clock::now();
+			auto now = std::chrono::system_clock::now();
+			auto msTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - since);
+			float time = msTime.count() / 1000.f;
 
-			glm::fvec3 geo1_pos, geo2_pos;
-			geo1_pos.x = cos(time) * 30;
-			geo1_pos.y = sin(time) * 30;
-			geo1_pos.z = sin(time) * 30;
+			static size_t play_count = 0;
 
-			vzm::VzActorStaticMesh* actor_test1 = (vzm::VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor1-IcosahedronGeometry");
-			if (actor_test1 && play)
-			{
-				actor_test1->SetPosition(*(vfloat3*)&geo1_pos);
-				static glm::fvec3 rot(0, 0, 0);
-				rot.x += 0.02f;
-				rot.y += 0.03f;
-				actor_test1->SetEulerAngleZXY(*(vfloat3*)&rot);
-			}
-
-			geo2_pos.x = cos(time + 10) * 30;
-			geo2_pos.y = sin(time + 10) * 30;
-			geo2_pos.z = sin(time + 10) * 30;
-
-			vzm::VzActorStaticMesh* actor_test2 = (vzm::VzActorStaticMesh*)vzm::GetFirstComponentByName("my actor2-TorusKnot");
-			if (actor_test2 && play)
-			{
-				actor_test2->SetPosition(*(vfloat3*)&geo2_pos);
-				static glm::fvec3 rot(0, 0, 0);
-				rot.x += 0.02f;
-				rot.y += 0.03f;
-				actor_test2->SetEulerAngleZXY(*(vfloat3*)&rot);
-			}
+			const size_t duration = 150;
+			static size_t offset = 0;
 
 			ImGui::Begin("3D Viewer");
 			{
@@ -326,7 +311,7 @@ int main(int, char**)
 					glm::fvec2 pos_ss = m_pos;
 
 					OrbitalControl* orbit_control = camera->GetOrbitControl();
-					orbit_control->Initialize(renderer->GetVID(), { 0, 0, 0 }, 20.f);
+					orbit_control->Initialize(renderer->GetVID(), { 0, 0, 0 }, 2.f);
 
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 					{
@@ -375,78 +360,101 @@ int main(int, char**)
 
 			ImGui::Begin("Controls");
 			{
+				ImGui::Separator();
+				static bool bits[4] = { true, true, true, true };
+				static uint32_t camera_layeredmask_prev = 0u;
+				vzimgui::IGTextTitle("----- Camera VisbleLayerMask -----");
+				ImGui::Checkbox("Sphere##0", &bits[0]);
+				ImGui::SameLine(); ImGui::Checkbox("LightAxis##1", &bits[1]);
+				ImGui::SameLine(); ImGui::Checkbox("Floor##2", &bits[2]);
+				ImGui::SameLine(); ImGui::Checkbox("Light##3", &bits[3]);
+				uint32_t camera_layeredmask = (uint32_t)bits[0] | ((uint32_t)bits[1] << 1)
+					| ((uint32_t)bits[2] << 2) | ((uint32_t)bits[3] << 3);
+				if (camera_layeredmask != camera_layeredmask_prev)
+				{
+					camera_layeredmask_prev = camera_layeredmask;
+					camera->SetVisibleLayerMask(camera_layeredmask);
+					//renderer->SetLayerMask(camera_layeredmask);
+				}
+
+				ImGui::Separator();
 				if (ImGui::Button("Shader Reload"))
 				{
 					vzm::ReloadShader();
+				}
+				static bool light_visualizer = false;
+				static float light_radius = 0.1f;
+				static float light_range = 2.f;
+				static float light_intensity = 5.f;
+				if (ImGui::Checkbox("Light Visualizer", &light_visualizer))
+				{
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->EnableVisualizer(light_visualizer);
+					}
+				}
+				if (ImGui::SliderFloat("Light Radius", &light_radius, 0.01f, 1.f))
+				{
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->SetRadius(light_radius);
+					}
+				}
+				if (ImGui::SliderFloat("Light Intensity", &light_intensity, 0.1f, 10.f))
+				{
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->SetIntensity(light_intensity);
+					}
+				}
+				if (ImGui::SliderFloat("Light Range", &light_range, 0.1f, 10.f))
+				{
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->SetRange(light_range);
+					}
+				}
+				static int ltype = LIGHT_TYPE, ltype_prev = LIGHT_TYPE;
+				ImGui::RadioButton("Point", &ltype, 0); ImGui::SameLine();
+				ImGui::RadioButton("Spot", &ltype, 1); ImGui::SameLine();
+				if (ltype_prev != ltype)
+				{
+					ltype_prev = ltype;
+					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					{
+						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
+						light->SetLightType(ltype == 0 ? VzLight::LightType::POINT : VzLight::LightType::SPOT);
+					}
 				}
 				if (ImGui::Button("Export File"))
 				{
 					renderer->StoreRenderTargetInfoFile("d:\\test.jpg");
 				}
-				if (ImGui::Button(play ? "Stop" : "Play"))
+
+				ImGui::Separator();
+				ImGui::Text("Rendering Options");
+				static bool TAA_enabled = vz::config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "TEMPORAL_AA");
+				if (ImGui::Checkbox("TAA", &TAA_enabled))
 				{
-					play = !play;
+					vzm::ParamMap<std::string> config_options;
+					config_options.SetParam("TEMPORAL_AA", TAA_enabled);
+					vzm::SetConfigure(config_options);
 				}
 
-				static float anim_time = 0;
-				static std::vector<float> anim_times;
-				static std::vector<float> anim_kf_t;
-				static std::vector<float> anim_kf_r;
-				static VzKeyFrameData* keyframe_t = NewKeyFrame("my keyframe: T");
-				static VzKeyFrameData* keyframe_r = NewKeyFrame("my keyframe: R");
+				ImGui::Separator();
 
-				if (ImGui::Button("Add Camera Keyframe"))
+				ImGui::Text("Debug Options");
+				static bool debug_lightculling_enabled = false;
+				if (ImGui::Checkbox("DEBUG_LIGHT_CULLING", &debug_lightculling_enabled))
 				{
-					anim_times.push_back(anim_time);
-					animation->SetStartTime(0.f);
-					animation->SetEndTime(anim_time + 1.f);
-					anim_time += 5.f;
-					keyframe_t->SetKeyFrameTimes(anim_times);
-					keyframe_r->SetKeyFrameTimes(anim_times);
-
-					vfloat3 p;
-					camera->GetWorldPosition(p);
-					anim_kf_t.push_back(p.x);
-					anim_kf_t.push_back(p.y);
-					anim_kf_t.push_back(p.z);
-					keyframe_t->SetKeyFrameData(anim_kf_t);
-					vfloat4 q;
-					camera->GetWorldRotation(q);
-					anim_kf_r.push_back(q.x);
-					anim_kf_r.push_back(q.y);
-					anim_kf_r.push_back(q.z);
-					anim_kf_r.push_back(q.w);
-					keyframe_r->SetKeyFrameData(anim_kf_r);
-					
-					AnimationChannel channel;
-					channel.targetVID = camera->GetVID();
-					channel.path = AnimationChannel::Path::TRANSLATION;
-					channel.samplerIndex = 0;
-					animation->AddChannel(channel);
-					channel.path = AnimationChannel::Path::ROTATION;
-					channel.samplerIndex = 1;
-					animation->AddChannel(channel);
-
-					AnimationSampler sampler;
-					sampler.mode = AnimationSampler::Interpolation::LINEAR;
-					sampler.keyframeVID = keyframe_t->GetVID();
-					animation->AddSampler(sampler);
-					sampler.keyframeVID = keyframe_r->GetVID();
-					animation->AddSampler(sampler);
+					renderer->SetRenderOptionEnabled("DEBUG_LIGHT_CULLING", debug_lightculling_enabled);
 				}
 
-				if (ImGui::Button(animation_play ? "Animation Stop" : "Animation Play"))
-				{
-					animation_play = !animation_play;
-					animation_play? animation->Play() : animation->Stop();
-				}
-
-				static int detail_Icosahedron = 5;
-				if (ImGui::SliderInt("Icosahedron's detail", &detail_Icosahedron, 0, 10))
-				{
-					VID geometry_vid = vzm::GetFirstVidByName("my icosahedron");
-					vz::geogen::GenerateIcosahedronGeometry(geometry_vid, 15.f, detail_Icosahedron);
-				}
+				ImGui::Separator();
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
@@ -465,6 +473,21 @@ int main(int, char**)
 					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
 				}
+
+				ImGui::Separator();
+				vzimgui::IGTextTitle("----- Scene Tree -----");
+				const std::vector<VID> root_children = scene->GetChildrenVIDs();
+				static VID selected_vid = 0u;
+				for (auto vid_root : root_children)
+				{
+					vzimgui::UpdateTreeNode(vid_root, selected_vid, [](const VID vid) {});
+				}
+			}
+			ImGui::End();
+
+			ImGui::Begin("System Monitor");
+			{
+				vzimgui::UpdateResourceMonitor([](const VID vid) {});
 			}
 			ImGui::End();
 		}
@@ -552,7 +575,6 @@ bool CreateDeviceD3D(HWND hWnd)
 	//	pdx12Debug->EnableDebugLayer();
 #endif
 
-	// Create device
 	if ((g_pd3dDevice = CreateDeviceHelper()) == nullptr)
 		return false;
 
@@ -783,7 +805,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	vzm::VzRenderer* renderer = nullptr;
 	if (vzm::IsValidEngineLib())
 	{
-		renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("my renderer");
+		renderer = (vzm::VzRenderer*)vzm::GetFirstComponentByName("main renderer");
 	}
 
 	switch (msg)
@@ -816,6 +838,16 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
 			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Store(camera);
+			archive->SaveFile("D:\\VizMotive2\\Examples\\Sample013\\cam_save.ini");
+		}
+		break;
+		case 'L':
+		{
+			using namespace vzm;
+			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
+			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
+			archive->ReadFile("D:\\VizMotive2\\Examples\\Sample013\\cam_save.ini");
+			archive->Load(camera);
 		}
 		break;
 		case 'M':
@@ -835,11 +867,11 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
 			UINT width = (UINT)LOWORD(lParam);
 			UINT height = (UINT)HIWORD(lParam);
-			
+
 			// Enforce minimum size of 100x100
 			width = std::max(width, 100u);
 			height = std::max(height, 100u);
-			
+
 			WaitForLastSubmittedFrame();
 			CleanupRenderTarget();
 			HRESULT result = g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
@@ -848,12 +880,12 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		return 0;
 	case WM_GETMINMAXINFO:
-		{
-			LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
-			lpMMI->ptMinTrackSize.x = 100;
-			lpMMI->ptMinTrackSize.y = 100;
-		}
-		return 0;
+	{
+		LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
+		lpMMI->ptMinTrackSize.x = 100;
+		lpMMI->ptMinTrackSize.y = 100;
+	}
+	return 0;
 	case WM_SYSCOMMAND:
 		if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
 			return 0;

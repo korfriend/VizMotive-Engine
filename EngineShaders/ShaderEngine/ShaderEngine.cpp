@@ -38,7 +38,6 @@ namespace vz::renderer
 	bool isFSREnabled = false;
 	bool isTonemapping = true;
 	bool isWireRender = false;
-	bool isDebugLightCulling = false;
 	bool isAdvancedLightCulling = false;
 	bool isMeshShaderAllowed = false;
 	bool isShadowsEnabled = true;
@@ -78,6 +77,13 @@ namespace vz::renderer
 	Texture bcRawTexture_uint2;			// engine
 	Texture bcRawTexture_uint4;			// engine
 	Texture bcRawTexture_uint4_cubemap;	// engine
+
+	// debug resources
+	GPUBuffer wirecubeVB;
+	GPUBuffer wirecubeIB;
+	GPUBuffer wirecamVB;
+	GPUBuffer wirecamIB;
+	GPUBuffer gridVB;
 
 	GPUBuffer			indirectDebugStatsReadback[GraphicsDevice::GetBufferCount()];
 	bool				indirectDebugStatsReadback_available[GraphicsDevice::GetBufferCount()] = {};
@@ -591,6 +597,12 @@ namespace vz::renderer
 		bcRawTexture_uint4 = {};
 		bcRawTexture_uint4_cubemap = {};
 
+		wirecubeVB = {};
+		wirecubeIB = {};
+		wirecamVB = {};
+		wirecamIB = {};
+		gridVB = {};
+
 		deferredTextureCopy.clear();
 		deferredBufferUpdate.clear();
 		deferredBCQueue.clear();
@@ -635,7 +647,6 @@ namespace vz
 		renderer::isShadowsEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "SHADOW_ENABLED");
 		renderer::isDDGIEnabled = config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "DDGI_ENABLED");
 
-		renderer::isDebugLightCulling = config::GetBoolConfig("DEBUG_SETTINGS", "LIGHT_CULLING");
 		renderer::isDebugShapeEnabled = config::GetBoolConfig("DEBUG_SETTINGS", "DEBUG_SHAPE");
 		renderer::isDebugShapeCleanStart = config::GetBoolConfig("DEBUG_SETTINGS", "DEBUG_SHAPE_CLEAN_START");
 

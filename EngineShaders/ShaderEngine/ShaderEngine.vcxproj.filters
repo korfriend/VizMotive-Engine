@@ -41,10 +41,7 @@
     <ClCompile Include="DeferredProcessing_Detail.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="SceneUpdate_Detail.cpp">
-      <Filter>Renderer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="DebugShapes_Detail.cpp">
+    <ClCompile Include="DebugRenderer.cpp">
       <Filter>Renderer\Source</Filter>
     </ClCompile>
     <ClCompile Include="RenderPath2D_Detail.cpp">
@@ -67,6 +64,9 @@
     </ClCompile>
     <ClCompile Include="GI_Detail.cpp">
       <Filter>Renderer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneUpdate_Detail.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -111,6 +111,9 @@
       <Filter>Processing</Filter>
     </ClInclude>
     <ClInclude Include="Scene_Detail.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugRenderer.h">
       <Filter>Renderer\Header</Filter>
     </ClInclude>
   </ItemGroup>
@@ -135,6 +138,9 @@
     </Filter>
     <Filter Include="Renderer\Source">
       <UniqueIdentifier>{1d8dae60-c4c9-4073-8ccc-226a8828cf07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{120bd5ad-3355-492a-8644-ebcc7749d8bc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

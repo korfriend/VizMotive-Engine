@@ -139,7 +139,7 @@ int main(int, char **)
 	VzScene *scene = nullptr;
 	VzCamera *camera = nullptr;
 	VzRenderer *renderer = nullptr;
-	const int NUM_RANDOM_OBJS = 10;
+	const int NUM_RANDOM_OBJS = 50;
 	const int LIGHT_TYPE = 0;
 
 	{
@@ -448,12 +448,10 @@ int main(int, char **)
 				ImGui::Separator();
 
 				ImGui::Text("Debug Options");
-				static bool debug_lightculling_enabled = vz::config::GetBoolConfig("DEBUG_SETTINGS", "LIGHT_CULLING");
+				static bool debug_lightculling_enabled = false;
 				if (ImGui::Checkbox("DEBUG_LIGHT_CULLING", &debug_lightculling_enabled))
 				{
-					vzm::ParamMap<std::string> config_options;
-					config_options.SetParam("LIGHT_CULLING", debug_lightculling_enabled);
-					vzm::SetConfigure(config_options, "DEBUG_SETTINGS");
+					renderer->SetRenderOptionEnabled("DEBUG_LIGHT_CULLING", debug_lightculling_enabled);
 				}
 
 				ImGui::Separator();
@@ -840,7 +838,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
 			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Store(camera);
-			archive->SaveFile("D:\\VizMotive2\\Examples\\Sample008\\cam_save.ini");
+			archive->SaveFile("D:\\VizMotive2\\Examples\\Sample010\\cam_save.ini");
 		}
 		break;
 		case 'L':
@@ -848,7 +846,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			using namespace vzm;
 			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
 			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
-			archive->ReadFile("D:\\VizMotive2\\Examples\\Sample008\\cam_save.ini");
+			archive->ReadFile("D:\\VizMotive2\\Examples\\Sample010\\cam_save.ini");
 			archive->Load(camera);
 		}
 		break;
