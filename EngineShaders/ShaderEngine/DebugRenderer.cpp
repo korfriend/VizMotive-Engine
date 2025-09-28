@@ -1,9 +1,10 @@
-#include "RenderPath3D_Detail.h"
+#include "DebugRenderer.h"
+#include "Font.h"
 #include "Utils/Color.h"
 
 namespace vz::renderer
 {
-	void DebugShapeCollection::drawAndClearLines(const CameraComponent& camera, std::vector<DebugLine>& renderableLines, CommandList cmd, bool clearEnabled)
+	void DebugShapeCollection::drawAndClearLines(const CameraComponent& camera, std::vector<RenderableLine>& renderableLines, CommandList cmd, bool clearEnabled)
 	{
 		if (renderableLines.empty())
 			return;
@@ -116,7 +117,7 @@ namespace vz::renderer
 			size_t n = part.GetNumVertices() - 1;
 			for (size_t line_idx = 0; line_idx < n; ++line_idx)
 			{
-				DebugLine line;
+				RenderableLine line;
 				XMStoreFloat3(&line.start, XMVector3TransformCoord(XMLoadFloat3(&positions[line_idx]), W));
 				XMStoreFloat3(&line.end, XMVector3TransformCoord(XMLoadFloat3(&positions[line_idx + 1]), W));
 				if (is_color_vtx)
@@ -136,7 +137,7 @@ namespace vz::renderer
 			size_t n = part.GetNumIndices() / 2;
 			for (size_t line_idx = 0; line_idx < n; ++line_idx)
 			{
-				DebugLine line;
+				RenderableLine line;
 				uint32_t idx0 = indices[2 * line_idx + 0];
 				uint32_t idx1 = indices[2 * line_idx + 1];
 				XMStoreFloat3(&line.start, XMVector3TransformCoord(XMLoadFloat3(&positions[idx0]), W));
@@ -157,5 +158,65 @@ namespace vz::renderer
 		default:
 			break;
 		}
+	}
+
+	void DebugShapeCollection::DrawDebugTextStorage(const CameraComponent& camera, CommandList cmd, bool clearEnabled)
+	{
+		GraphicsDevice* device = GetDevice();
+
+		device->EventBegin("DebugTexts", cmd);
+		const XMMATRIX VP = XMLoadFloat4x4(&camera.GetViewProjection());
+		const XMMATRIX R = XMLoadFloat3x3(&camera.GetRotationToFaceCamera());
+		struct DebugTextSorter
+		{
+			DebugTextParams params;
+			float distance;
+		};
+		static thread_local std::vector<DebugTextSorter> sorted_texts;
+		sorted_texts.clear();
+		size_t offset = 0;
+
+		for (size_t i = 0; i < renderableTextStorages_.size(); ++i)
+		{
+			auto& x = sorted_texts.emplace_back();
+			x.params = renderableTextStorages_[i];
+			x.distance = math::Distance(x.params.position, camera.GetWorldEye());
+		}
+		std::sort(sorted_texts.begin(), sorted_texts.end(), [](const DebugTextSorter& a, const DebugTextSorter& b) {
+			return a.distance > b.distance;
+			});
+		for (auto& x : sorted_texts)
+		{
+			font::Params params;
+			params.position = x.params.position;
+			params.size = x.params.pixel_height;
+			params.scaling = 1.0f / params.size * x.params.scaling;
+			params.color = Color::fromFloat4(x.params.color);
+			params.intensity = x.params.color.w > 1 ? x.params.color.w : 1;
+			params.h_align = font::Alignment::FONTALIGN_CENTER;
+			params.v_align = font::Alignment::FONTALIGN_CENTER;
+			params.softness = 0.0f;
+			params.shadowColor = Color::Black();
+			params.shadow_softness = 0.8f;
+			params.customProjection = &VP;
+			if (x.params.flags & DebugTextParams::DEPTH_TEST)
+			{
+				params.enableDepthTest();
+			}
+			if (x.params.flags & DebugTextParams::CAMERA_FACING)
+			{
+				params.customRotation = &R;
+			}
+			if (x.params.flags & DebugTextParams::CAMERA_SCALING)
+			{
+				params.scaling *= x.distance * 0.05f;
+			}
+			font::Draw(x.params.text, params, cmd);
+		}
+		if (clearEnabled)
+		{
+			renderableTextStorages_.clear();
+		}
+		device->EventEnd(cmd);
 	}
 }

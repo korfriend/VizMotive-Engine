@@ -558,6 +558,7 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VOLUMETRICLIGHT_SPOT], "volumetricLightVS_spot.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_LIGHTVISUALIZER_SPOTLIGHT], "vSpotLightVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_LIGHTVISUALIZER_POINTLIGHT], "vPointLightVS.cso"); });
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_SPHERE], "sphereVS.cso"); });
 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_SKY], "skyVS.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_ENVMAP], "envMapVS.cso"); });
@@ -568,6 +569,8 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_SHADOW_TRANSPARENT], "shadowVS_transparent.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VOXELIZER], "meshVS_voxelizer.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_VOXEL], "voxelVS.cso"); });
+		
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::VS, shaders[VSTYPE_DDGI_DEBUG], "ddgi_debugVS.cso"); });
 
 		//----- GS 
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::GS, shaders[GSTYPE_LINE_ASSIGNTHICKNESS], "thicknessLineGS.cso"); });
@@ -601,7 +604,8 @@ namespace vz::shader
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_SHADOW_ALPHATEST], "shadowPS_alphatest.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_SHADOW_TRANSPARENT], "shadowPS_transparent.cso"); });
 		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_SHADOW_WATER], "shadowPS_water.cso"); });
-
+		
+		jobsystem::Execute(ctx, [](jobsystem::JobArgs args) { LoadShader(ShaderStage::PS, shaders[PSTYPE_DDGI_DEBUG], "ddgi_debugPS.cso"); });
 
 		//----- PS materials by permutation -----
 		static const std::vector<std::string> shaderTypeDefines[] = {
@@ -854,6 +858,31 @@ namespace vz::shader
 
 			switch (args.jobIndex)
 			{
+			case DEBUG_RENDERING_ENVPROBE:
+				desc.vs = &shaders[VSTYPE_SPHERE];
+				desc.ps = &shaders[PSTYPE_CUBEMAP];
+				desc.dss = &depthStencils[DSSTYPE_DEFAULT];
+				desc.rs = &rasterizers[RSTYPE_FRONT];
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
+				desc.pt = PrimitiveTopology::TRIANGLELIST;
+				break;
+			case DEBUG_RENDERING_DDGI:
+				desc.vs = &shaders[VSTYPE_DDGI_DEBUG];
+				desc.ps = &shaders[PSTYPE_DDGI_DEBUG];
+				desc.dss = &depthStencils[DSSTYPE_DEFAULT];
+				desc.rs = &rasterizers[RSTYPE_FRONT];
+				desc.bs = &blendStates[BSTYPE_OPAQUE];
+				desc.pt = PrimitiveTopology::TRIANGLELIST;
+				break;
+			case DEBUG_RENDERING_GRID:
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
+				desc.pt = PrimitiveTopology::LINELIST;
+				break;
 			case DEBUG_RENDERING_LINES:
 				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
 				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
@@ -871,6 +900,24 @@ namespace vz::shader
 				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
 				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
 				desc.bs = &blendStates[BSTYPE_OPAQUE];
+				desc.pt = PrimitiveTopology::LINELIST;
+				break;
+			case DEBUG_RENDERING_CUBE:
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHDISABLED];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
+				desc.pt = PrimitiveTopology::LINELIST;
+				break;
+			case DEBUG_RENDERING_CUBE_DEPTH:
+				desc.vs = &shaders[VSTYPE_VERTEXCOLOR];
+				desc.ps = &shaders[PSTYPE_VERTEXCOLOR];
+				desc.il = &inputLayouts[ILTYPE_VERTEXCOLOR];
+				desc.dss = &depthStencils[DSSTYPE_DEPTHREAD];
+				desc.rs = &rasterizers[RSTYPE_WIRE_DOUBLESIDED_SMOOTH];
+				desc.bs = &blendStates[BSTYPE_TRANSPARENT];
 				desc.pt = PrimitiveTopology::LINELIST;
 				break;
 			case MESH_RENDERING_LINES_DEPTH:

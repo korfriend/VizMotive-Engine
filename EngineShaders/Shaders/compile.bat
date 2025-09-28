@@ -161,5 +161,7 @@ dxc -T ps_6_0 ./PS/volumetricLightPS_Directional.hlsl -spirv
 dxc -T ps_6_0 ./PS/volumetricLightPS_Point.hlsl -spirv
 dxc -T ps_6_0 ./PS/volumetricLightPS_Spot.hlsl -spirv
 
-
+dxc -T ps_6_0 ./PS/ddgi_debugPS.hlsl -spirv
+dxc -T vs_6_0 ./VS/ddgi_debugVS.hlsl -spirv
+dxc -T vs_6_0 ./VS/sphereVS.hlsl -spirv
 

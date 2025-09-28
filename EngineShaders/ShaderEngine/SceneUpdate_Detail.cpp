@@ -1431,7 +1431,7 @@ namespace vz
 
 	void GSceneDetails::Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const
 	{
-		DebugLine line;
+		RenderableLine line;
 		line.start = p0;
 		line.end = p1;
 		line.color_start = color0;

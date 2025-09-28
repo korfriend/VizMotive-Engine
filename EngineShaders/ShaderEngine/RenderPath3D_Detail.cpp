@@ -2121,7 +2121,7 @@ namespace vz::renderer
 		{
 			device->EventBegin("Entity Culling", cmd);
 
-			if (isDebugLightCulling && debugUAV.IsValid())
+			if (options.debugLightCulling && debugUAV.IsValid())
 			{
 				device->BindComputeShader(&shaders[isAdvancedLightCulling ? CSTYPE_LIGHTCULLING_ADVANCED_DEBUG : CSTYPE_LIGHTCULLING_DEBUG], cmd);
 				device->BindUAV(&debugUAV, 3, cmd);

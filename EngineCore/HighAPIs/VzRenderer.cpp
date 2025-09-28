@@ -452,4 +452,11 @@ namespace vzm
 		renderer->ShowDebugBuffer(debugMode);
 		renderer->forceToRenderCall = true;
 	}
+
+	void VzRenderer::SetRenderOptionEnabled(const std::string& optionName, const bool enabled)
+	{
+		GET_RENDERPATH(renderer, );
+		renderer->SetRenderOptionEnabled(optionName, enabled);
+		renderer->forceToRenderCall = true;
+	}
 }

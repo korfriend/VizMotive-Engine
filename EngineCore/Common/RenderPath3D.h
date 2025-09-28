@@ -67,6 +67,7 @@ namespace vz
 		const graphics::Texture* GetLastProcessRT() const;
 
 		void ShowDebugBuffer(const std::string& debugMode = "NONE");
+		void SetRenderOptionEnabled(const std::string& optionName, const bool enabled);
 
 		geometrics::Ray GetPickRay(float screenX, float screenY, const CameraComponent& camera);
 	};

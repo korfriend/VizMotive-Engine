@@ -462,10 +462,27 @@ namespace vz::renderer
 		mutable bool firstFrame = true;
 
 		// this needs to be renderpath option NOR renderer engine option
-		//  visibilityShadingInCS is good to a complex scene rather than a simple scene (e.g., axis view)
-		bool visibilityShadingInCS = false; 
+		struct RPathShaderOptions
+		{
+			// Shader pipeline options
+			//  visibilityShadingInCS is good to a complex scene rather than a simple scene (e.g., axis view)
+			bool visibilityShadingInCS = false;
+
+			bool lightVisualizer = false;
+
+			// debug options
+			bool debugLightCulling = false;
+			bool debugCameras = false;
+			bool debugEnvProbes = false;
+			bool debugDDGI = false;
+			bool debugVXGI = false;
+			bool debugRT_BVH = false;
+			bool debugTextStorage = false;
+			bool debugGridHelpers = false;
+		} options;
 		
 		GSceneDetails* scene_Gdetails = nullptr;
+		DebugShapeCollection renderPathDebugShapes; // dynamic allocation
 
 		FrameCB frameCB = {};
 		// separate graphics pipelines for the combination of special rendering effects
@@ -670,6 +687,7 @@ namespace vz::renderer
 		bool ResizeCanvasSlicer(uint32_t canvasWidth, uint32_t canvasHeight); // must delete all canvas-related resources and re-create
 		bool Render(const float dt) override;
 		bool Destroy() override;
+		bool SetOptionEnabled(const std::string& optionName, const bool enabled) override;
 
 		const Texture& GetLastProcessRT() const override { return *lastPostprocessRT; }
 	};

@@ -835,7 +835,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
 			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
 			archive->Store(camera);
-			archive->SaveFile("D:\\VizMotive2\\Examples\\Sample008\\cam_save.ini");
+			archive->SaveFile("D:\\VizMotive2\\Examples\\Sample009\\cam_save.ini");
 		}
 		break;
 		case 'L':
@@ -843,7 +843,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			using namespace vzm;
 			VzArchive* archive = (VzArchive*)GetFirstComponentByName("test archive");
 			VzCamera* camera = (VzCamera*)GetFirstComponentByName("my camera");
-			archive->ReadFile("D:\\VizMotive2\\Examples\\Sample008\\cam_save.ini");
+			archive->ReadFile("D:\\VizMotive2\\Examples\\Sample009\\cam_save.ini");
 			archive->Load(camera);
 		}
 		break;

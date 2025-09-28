@@ -1,5 +1,6 @@
 #pragma once
 #include "Renderer.h"
+#include "DebugRenderer.h"
 
 #include "Utils/vzMath.h"
 #include "Utils/Geometrics.h"
@@ -8,75 +9,6 @@ using namespace vz::geometrics;
 
 namespace vz::renderer
 {
-	struct DebugLine
-	{
-		XMFLOAT3 start = XMFLOAT3(0, 0, 0);
-		XMFLOAT3 end = XMFLOAT3(0, 0, 0);
-		XMFLOAT4 color_start = XMFLOAT4(1, 1, 1, 1);
-		XMFLOAT4 color_end = XMFLOAT4(1, 1, 1, 1);
-	};
-
-	struct DebugPoint
-	{
-		XMFLOAT3 position = XMFLOAT3(0, 0, 0);
-		float size = 1.0f;
-		XMFLOAT4 color = XMFLOAT4(1, 1, 1, 1);
-	};
-
-	struct DebugShapeCollection
-	{
-	private:
-		mutable std::vector<DebugLine> renderableLines_;
-		mutable std::vector<DebugLine> renderableLines_depth_;
-		mutable std::vector<DebugPoint> renderablePoints_;
-		mutable std::vector<DebugPoint> renderablePoints_depth_;
-
-		mutable std::vector<std::pair<XMFLOAT4X4, XMFLOAT4>> renderableBoxes_;
-		mutable std::vector<std::pair<XMFLOAT4X4, XMFLOAT4>> renderableBoxes_depth_;
-		mutable std::vector<std::pair<Sphere, XMFLOAT4>> renderableSpheres_;
-		mutable std::vector<std::pair<Sphere, XMFLOAT4>> renderableSpheres_depth_;
-		mutable std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_;
-		mutable std::vector<std::pair<Capsule, XMFLOAT4>> renderableCapsules_depth_;
-
-		void drawAndClearLines(const CameraComponent& camera, std::vector<DebugLine>& renderableLines, CommandList cmd, bool clearEnabled);
-	public:
-		float depthLineThicknessPixel = 1.3f;
-
-		static constexpr size_t RENDERABLE_SHAPE_RESERVE = 2048; // for fast growing
-		DebugShapeCollection() {
-			renderableLines_.reserve(RENDERABLE_SHAPE_RESERVE);
-			renderableLines_depth_.reserve(RENDERABLE_SHAPE_RESERVE);
-			renderablePoints_.reserve(RENDERABLE_SHAPE_RESERVE);
-			renderablePoints_depth_.reserve(RENDERABLE_SHAPE_RESERVE);
-		}
-
-		void AddDrawLine(const DebugLine& line, bool depth) const
-		{
-			if (depth)
-				renderableLines_depth_.push_back(line);
-			else
-				renderableLines_.push_back(line);
-		}
-		void DrawLines(const CameraComponent& camera, CommandList cmd, bool clearEnabled = true);
-
-		void AddPrimitivePart(const GeometryComponent::Primitive& part, const XMFLOAT4& baseColor, const XMFLOAT4X4& world);
-
-		void Clear() const
-		{
-			// *this = RenderableShapeCollection(); // not recommend this due to inefficient memory footprint
-			renderableLines_.clear();
-			renderableLines_depth_.clear();
-			renderablePoints_.clear();
-			renderablePoints_depth_.clear();
-			renderableBoxes_.clear();
-			renderableBoxes_depth_.clear();
-			renderableSpheres_.clear();
-			renderableSpheres_depth_.clear();
-			renderableCapsules_.clear();
-			renderableCapsules_depth_.clear();
-		}
-	};
-
 	struct GSceneDetails : GScene
 	{
 		GSceneDetails(Scene* scene) : GScene(scene) {}

@@ -26,6 +26,11 @@ namespace vz::renderer
 
 	void GRenderPath3DDetails::UpdateProcess(const float dt)
 	{
+		if (renderer::isDebugShapeCleanStart && renderer::isDebugShapeEnabled)
+		{
+			renderPathDebugShapes.Clear();
+		}
+
 		// Frustum culling for main camera:
 		visMain.layerMask = layerMask_;
 		LayeredMaskComponent* layeredmask = camera->GetLayeredMaskComponent();
@@ -239,7 +244,7 @@ namespace vz::renderer
 
 		// Check whether visibility resources are required:
 		if (
-			visibilityShadingInCS// ||
+			options.visibilityShadingInCS// ||
 			//getSSREnabled() ||
 			//getSSGIEnabled() ||
 			//getRaytracedReflectionEnabled() ||
@@ -840,9 +845,15 @@ namespace vz::renderer
 			profiler::EndRange(range); // Transparent Scene
 		}
 
-		//DrawDebugWorld(*scene, *camera, cmd);
+		if (renderer::isDebugShapeEnabled)
+		{
+			DrawDebugWorld(*scene, *camera, cmd);
+		}
 
-		DrawLightVisualizers(visMain, cmd);
+		if (options.lightVisualizer)
+		{
+			DrawLightVisualizers(visMain, cmd);
+		}
 
 		//DrawSoftParticles(visMain, false, cmd);
 		
@@ -1312,7 +1323,7 @@ namespace vz::renderer
 		device->EventEnd(cmd);
 
 		if (
-			isDebugLightCulling || 
+			options.debugLightCulling || 
 			isVariableRateShadingClassification || 
 			isSurfelGIDebugEnabled
 			)
@@ -1450,7 +1461,7 @@ namespace vz::renderer
 				GPUBarrier::Aliasing(&rtPostprocess, &rtPrimitiveID_1),
 				GPUBarrier::Image(&rtMain, rtMain.desc.layout, ResourceState::SHADER_RESOURCE_COMPUTE), // prepares transition for discard in dx12
 			};
-			if (visibilityShadingInCS)
+			if (options.visibilityShadingInCS)
 			{
 				num_barriers++;
 			}
@@ -1623,7 +1634,7 @@ namespace vz::renderer
 				cmd
 			);
 
-			if (visibilityShadingInCS)
+			if (options.visibilityShadingInCS)
 			{
 				Visibility_Surface(
 					visibilityResources,
@@ -1991,7 +2002,7 @@ namespace vz::renderer
 			//	device->Barrier(&barrier, 1, cmd);
 			//}
 
-			if (visibilityShadingInCS)
+			if (options.visibilityShadingInCS)
 			{
 				Visibility_Shade(
 					visibilityResources,
@@ -2033,7 +2044,7 @@ namespace vz::renderer
 			uint32_t rp_count = 0;
 			rp[rp_count++] = RenderPassImage::RenderTarget(
 				&rtMain_render,
-				visibilityShadingInCS || !clearEnabled ? RenderPassImage::LoadOp::LOAD : RenderPassImage::LoadOp::CLEAR
+				options.visibilityShadingInCS || !clearEnabled ? RenderPassImage::LoadOp::LOAD : RenderPassImage::LoadOp::CLEAR
 			);
 			rp[rp_count++] = RenderPassImage::DepthStencil(
 				&depthBufferMain,
@@ -2053,7 +2064,7 @@ namespace vz::renderer
 			}
 			device->RenderPassBegin(rp, rp_count, cmd, RenderPassFlags::ALLOW_UAV_WRITES);
 
-			if (!visibilityShadingInCS)
+			if (!options.visibilityShadingInCS)
 			{
 				auto range = profiler::BeginRangeGPU("Opaque Scene", (CommandList*)&cmd);
 
@@ -2101,10 +2112,6 @@ namespace vz::renderer
 			}
 
 			//RenderOutline(cmd);
-			if (renderer::isDebugShapeEnabled)
-			{
-				scene_Gdetails->debugShapes.DrawLines(*camera, cmd, false);
-			}
 
 			device->RenderPassEnd(cmd);
 
@@ -2258,6 +2265,45 @@ namespace vz::renderer
 		jobsystem::Wait(ctx);
 
 		firstFrame = false;
+		return true;
+	}
+
+	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {
+		for (char c : str) {
+			hash ^= static_cast<size_t>(c);
+			hash *= 1099511628211ULL;
+		}
+		return hash;
+	}
+	constexpr static size_t LIGHT_VISUALIZER_ENABLED = FNV1aHash("LIGHT_VISUALIZER_ENABLED");
+	constexpr static size_t DEBUG_LIGHT_CULLING = FNV1aHash("DEBUG_LIGHT_CULLING");
+	constexpr static size_t DEBUG_CAMERAS = FNV1aHash("DEBUG_CAMERAS");
+	constexpr static size_t DEBUG_ENVPROBES = FNV1aHash("DEBUG_ENVPROBES");
+	constexpr static size_t DEBUG_DDGI = FNV1aHash("DEBUG_DDGI");
+	constexpr static size_t DEBUG_VXGI = FNV1aHash("DEBUG_VXGI");
+	constexpr static size_t DEBUG_RT_BVH = FNV1aHash("DEBUG_RT_BVH");
+	constexpr static size_t DEBUG_TEXT_STORAGE = FNV1aHash("DEBUG_TEXT_STORAGE");
+	constexpr static size_t DEBUG_GRID_HELPERS = FNV1aHash("DEBUG_GRID_HELPERS");
+
+	bool GRenderPath3DDetails::SetOptionEnabled(const std::string& optionName, const bool enabled)
+	{
+		size_t hash_option = FNV1aHash(optionName);
+		switch (hash_option)
+		{
+		case LIGHT_VISUALIZER_ENABLED: options.lightVisualizer = enabled; break;
+		case DEBUG_LIGHT_CULLING: options.debugLightCulling = enabled; break;
+		case DEBUG_CAMERAS: options.debugCameras = enabled; break;
+		case DEBUG_ENVPROBES: options.debugEnvProbes = enabled; break;
+		case DEBUG_DDGI: options.debugDDGI = enabled; break;
+		case DEBUG_VXGI: options.debugVXGI = enabled; break;
+		case DEBUG_RT_BVH: options.debugRT_BVH = enabled; break;
+		case DEBUG_TEXT_STORAGE: options.debugTextStorage = enabled; break;
+		case DEBUG_GRID_HELPERS: options.debugGridHelpers = enabled; break;
+		default:
+			vzlog_error("Invalid RenderPath Option Name! (%s)", optionName.c_str());
+			return false;
+		}
+
 		return true;
 	}
 

@@ -48,7 +48,7 @@ namespace vz
 
 	struct GRenderPath3D : GRenderPath2D
 	{
-		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250730";
+		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250929";
 		// this will be a component of vz::RenderPath3D
 
 		enum class Tonemap
@@ -91,6 +91,7 @@ namespace vz
 		virtual bool Render2D(const float dt) override { return GRenderPath2D::Render2D(dt); }
 		virtual bool Destroy() override = 0;
 		virtual const graphics::Texture& GetLastProcessRT() const = 0;
+		virtual bool SetOptionEnabled(const std::string& optionName, const bool enabled) = 0;
 	};
 
 	struct GScene
