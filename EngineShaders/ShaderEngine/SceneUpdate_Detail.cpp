@@ -134,6 +134,56 @@ namespace vz
 			{
 				AddDeferredGeometryGPUBVHUpdate(geometry.GetEntity());
 			}
+
+			if (TLAS_instancesMapped != nullptr) // check TLAS, to know if we need to care about BLAS
+			{
+				assert(device->CheckCapability(GraphicsDeviceCapability::RAYTRACING));
+
+				if (geometry.BLASes.empty() || !geometry.BLASes[0].IsValid())
+				{
+					geometry.UpdateRayTracingRenderData();
+				}
+
+				const uint32_t lod_count = geometry.GetLODCount();
+				assert(uint32_t(geometry.BLASes.size()) == lod_count);
+
+				for (uint32_t lod = 0; lod < lod_count; ++lod)
+				{
+					for (size_t part_index = 0, n = geometry.GetNumParts(); part_index < n; ++part_index)
+					{
+						const Primitive& part = *geometry.GetPrimitive(part_index);
+						GPrimBuffers& part_buffers = *geometry.GetGPrimBuffer(part_index);;
+
+						Primitive::Subset subset = part.GetSubset(lod);
+						vzlog_assert(subset.indexCount > 0, "Invalid geometry subset!");
+
+						auto& blas_geometry = geometry.BLASes[lod].desc.bottom_level.geometries[geometry.geometryIndex];
+
+						uint32_t flags = blas_geometry.flags;
+
+						// Set BLAS conservatively: 
+						//	Setting FLAG_OPAQUE in BLAS completely disables the any-hit shader, 
+						//	making it impossible to override in TLAS. On the other hand, 
+						//	if you leave it as non-opaque in BLAS, it can be controlled via TLAS instance flags.
+						blas_geometry.flags &= ~RaytracingAccelerationStructureDesc::BottomLevel::Geometry::FLAG_OPAQUE;
+						
+						if (flags != blas_geometry.flags)
+						{
+							geometry.stateBLAS = GGeometryComponent::BLAS_STATE_NEEDS_REBUILD;
+						}
+						if (part_buffers.streamoutBuffer.IsValid())
+						{
+							if (geometry.stateBLAS != GGeometryComponent::BLAS_STATE_NEEDS_REBUILD)
+							{
+								// refit if it doesn't need full rebuild:
+								geometry.stateBLAS = GGeometryComponent::BLAS_STATE_NEEDS_REFIT;
+							}
+							blas_geometry.triangles.vertex_buffer = part_buffers.streamoutBuffer;
+							blas_geometry.triangles.vertex_byte_offset = part_buffers.soPosW.offset;
+						}
+					}
+				}
+			}
 			});
 	}
 	void GSceneDetails::RunMaterialUpdateSystem(jobsystem::context& ctx)
@@ -457,6 +507,7 @@ namespace vz
 			aabb.layerMask = layermask;
 
 			renderable.renderFlags = 0u;
+
 			switch (renderable.GetRenderableType())
 			{
 			case RenderableType::GSPLAT_RENDERABLE:
@@ -601,6 +652,8 @@ namespace vz
 				inst.rimHighlight = math::pack_half4(XMFLOAT4(rimHighlightColor.x * rimHighlightColor.w, rimHighlightColor.y * rimHighlightColor.w, rimHighlightColor.z * rimHighlightColor.w, rimHighlightFalloff));
 
 				std::memcpy(instanceArrayMapped + renderable.renderableIndex, &inst, sizeof(ShaderMeshInstance)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
+
+
 			} break;
 			case RenderableType::VOLUME_RENDERABLE:
 			{
@@ -816,6 +869,7 @@ namespace vz
 				(hw_raytrace && renderer::isRaytracedDiffuseEnabled)
 				)
 			{
+				// this will be FALSE when the acceleration structures are updated in this frame
 				isAccelerationStructureUpdateRequested = true;
 			}
 		}
@@ -1118,9 +1172,10 @@ namespace vz
 			}
 			else
 			{
-				// Software GPU BVH:
-				// sceneBVH is supposed to be updated
-				gpubvh::UpdateSceneGPUBVH(scene_->GetSceneEntity());
+				// Software GPU BVH is required!
+				// gpubvh::UpdateSceneGPUBVH will update sceneBVH during the rendering process (w/ cmd)
+				//  note that gpubvh::UpdateSceneGPUBVH includes resource allocations
+				//	so, we do not care for allocation of the GPU BVH buffers
 			}
 		}
 
@@ -1392,6 +1447,104 @@ namespace vz
 		}
 
 		return true;
+	}
+
+	void GSceneDetails::UpdateRaytracingAccelerationStructures(CommandList cmd)
+	{
+		if (device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+		{
+			if (!TLAS.IsValid())
+				return;
+
+			device->CopyBuffer(
+				&TLAS.desc.top_level.instance_buffer,
+				0,
+				&TLAS_instancesUpload[device->GetBufferIndex()],
+				0,
+				TLAS.desc.top_level.instance_buffer.desc.size,
+				cmd
+			);
+
+			// BLAS:
+			{
+				auto rangeCPU = profiler::BeginRangeCPU("BLAS Update (CPU)");
+				auto range = profiler::BeginRangeGPU("BLAS Update (GPU)", &cmd);
+				device->EventBegin("BLAS Update", cmd);
+
+				for (size_t i = 0; i < geometryComponents.size(); ++i)
+				{
+					GGeometryComponent& geometry = *geometryComponents[i];
+					for (auto& BLAS : geometry.BLASes)
+					{
+						if (BLAS.IsValid())
+						{
+							switch (geometry.stateBLAS)
+							{
+							default:
+							case GGeometryComponent::BLAS_STATE_COMPLETE:
+								break;
+							case GGeometryComponent::BLAS_STATE_NEEDS_REBUILD:
+								device->BuildRaytracingAccelerationStructure(&BLAS, cmd, nullptr);
+								break;
+							case GGeometryComponent::BLAS_STATE_NEEDS_REFIT:
+								device->BuildRaytracingAccelerationStructure(&BLAS, cmd, &BLAS);
+								break;
+							}
+						}
+					}
+					geometry.stateBLAS = GGeometryComponent::BLAS_STATE_COMPLETE;
+				}
+
+				//for (size_t i = 0; i < scene.emitters.GetCount(); ++i)
+				//{
+				//	const EmittedParticleSystem& emitter = scene.emitters[i];
+				//
+				//	if (emitter.BLAS.IsValid())
+				//	{
+				//		device->BuildRaytracingAccelerationStructure(&emitter.BLAS, cmd, nullptr);
+				//	}
+				//}
+
+				{
+					GPUBarrier barriers[] = {
+						GPUBarrier::Buffer(&TLAS.desc.top_level.instance_buffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE_COMPUTE),
+						GPUBarrier::Memory(), // sync BLAS
+					};
+					device->Barrier(barriers, arraysize(barriers), cmd);
+				}
+
+				device->EventEnd(cmd);
+				profiler::EndRange(range);
+				profiler::EndRange(rangeCPU);
+			}
+
+			// TLAS:
+			{
+				auto rangeCPU = profiler::BeginRangeCPU("TLAS Update (CPU)");
+				auto range = profiler::BeginRangeGPU("TLAS Update (GPU)", &cmd);
+				device->EventBegin("TLAS Update", cmd);
+
+				device->BuildRaytracingAccelerationStructure(&TLAS, cmd, nullptr);
+
+				{
+					GPUBarrier barriers[] = {
+						GPUBarrier::Memory(&TLAS),
+					};
+					device->Barrier(barriers, arraysize(barriers), cmd);
+				}
+
+				device->EventEnd(cmd);
+				profiler::EndRange(range);
+				profiler::EndRange(rangeCPU);
+			}
+		}
+		else
+		{
+			BindCommonResources(cmd);
+			gpubvh::UpdateSceneGPUBVH(this, cmd);
+		}
+
+		isAccelerationStructureUpdateRequested = false;
 	}
 
 	bool GSceneDetails::Destroy()

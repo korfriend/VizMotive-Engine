@@ -1484,11 +1484,19 @@ namespace vz::renderer
 				RefreshWetmaps(visMain, cmd);
 			}
 
+			// IMPORTANT NOTE:
+			//	GI updates are progressive!
+			
+			if (scene_Gdetails->isAccelerationStructureUpdateRequested)
+			{
+				scene_Gdetails->UpdateRaytracingAccelerationStructures(cmd);
+			}
+
 			// UpdateRaytracingAccelerationStructures
 			// ComputeSkyAtmosphere
 			// SurfelGI
 			// DDGI
-			if (renderer::isDDGIEnabled && scene->IsContentChanged())
+			if (renderer::isDDGIEnabled)
 			{
 				Update_DDGI(cmd);
 			}

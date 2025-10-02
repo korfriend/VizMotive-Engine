@@ -581,7 +581,6 @@ namespace vz::renderer
 		//	cameraPrevious : camera from previous frame, used for reprojection effects.
 		//	cameraReflection : camera that renders planar reflection
 		void BindCameraCB(const CameraComponent& camera, const CameraComponent& cameraPrevious, const CameraComponent& cameraReflection, CommandList cmd);
-		void BindCommonResources(CommandList cmd);
 
 		void OcclusionCulling_Reset(const Visibility& vis, CommandList cmd);
 		void OcclusionCulling_Render(const CameraComponent& camera, const Visibility& vis, CommandList cmd);

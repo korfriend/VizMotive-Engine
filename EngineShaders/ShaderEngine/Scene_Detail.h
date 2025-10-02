@@ -158,6 +158,7 @@ namespace vz::renderer
 		void RunMaterialUpdateSystem(jobsystem::context& ctx);
 		void RunRenderableUpdateSystem(jobsystem::context& ctx); // note a single renderable can generate multiple mesh instances
 		void RunProbeUpdateSystem(jobsystem::context& ctx);
+		void UpdateRaytracingAccelerationStructures(CommandList cmd);
 
 		void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const override;
 		void Debug_AddPoint(const XMFLOAT3 p, const XMFLOAT4 color, const bool depthTest) const override;

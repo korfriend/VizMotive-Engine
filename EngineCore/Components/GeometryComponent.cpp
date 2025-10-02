@@ -1081,7 +1081,16 @@ namespace vz
 	// general buffer
 	void GGeometryComponent::UpdateRenderData()
 	{
-		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+		if (parts_.size() == 0)
+		{
+			return;
+		}
+
+		//std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+		std::unique_lock<std::recursive_mutex> lock(vzm::GetEngineMutex(), std::try_to_lock);
+		if (!lock.owns_lock()) {
+			return;
+		}
 
 		DeleteRenderData();
 
@@ -1095,10 +1104,6 @@ namespace vz
 		const size_t position_stride = GetFormatStride(positionFormat);
 
 		hasRenderData_ = false;
-		if (parts_.size() == 0)
-		{
-			return;
-		}
 
 		// general buffer creation
 		for (size_t part_index = 0, n = parts_.size(); part_index < n; ++part_index)
@@ -1620,6 +1625,79 @@ namespace vz
 				so_tan.descriptor_srv = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::SRV, so_tan.subresource_srv);
 				so_tan.descriptor_uav = device->GetDescriptorIndex(&streamoutBuffer, SubresourceType::UAV, so_tan.subresource_uav);
 			}
+		}
+	}
+
+	void GGeometryComponent::UpdateRayTracingRenderData()
+	{
+		if (!hasRenderData_)
+		{
+			UpdateRenderData();
+		}
+
+		GraphicsDevice* device = graphics::GetDevice();
+
+		if (!device->CheckCapability(GraphicsDeviceCapability::RAYTRACING))
+		{
+			vzlog_error("The device does NOT support GraphicsDeviceCapability::RAYTRACING.");
+			return;
+		}
+
+		stateBLAS = GGeometryComponent::BLAS_STATE_NEEDS_REBUILD;
+
+		const uint32_t lod_count = GetLODCount();
+		BLASes.resize(lod_count);
+
+		for (uint32_t lod = 0; lod < lod_count; ++lod)
+		{
+			RaytracingAccelerationStructureDesc desc;
+			desc.type = RaytracingAccelerationStructureDesc::Type::BOTTOMLEVEL;
+
+			for (size_t part_index = 0, n = parts_.size(); part_index < n; ++part_index)
+			{
+				Primitive& primitive = parts_[part_index];
+
+				Primitive::Subset subset = primitive.GetSubset(lod);
+				vzlog_assert(subset.indexCount > 0, "Invalid geometry subset!");
+
+
+				GPrimBuffers& part_buffers = *GetGPrimBuffer(part_index);
+
+				if (part_buffers.streamoutBuffer.IsValid())
+				{
+					desc.flags |= RaytracingAccelerationStructureDesc::FLAG_ALLOW_UPDATE;
+					desc.flags |= RaytracingAccelerationStructureDesc::FLAG_PREFER_FAST_BUILD;
+				}
+				else
+				{
+					desc.flags |= RaytracingAccelerationStructureDesc::FLAG_PREFER_FAST_TRACE;
+				}
+
+				desc.bottom_level.geometries.emplace_back();
+				auto& geometry = desc.bottom_level.geometries.back();
+				geometry.type = RaytracingAccelerationStructureDesc::BottomLevel::Geometry::Type::TRIANGLES;
+				geometry.triangles.vertex_buffer = part_buffers.generalBuffer;
+				geometry.triangles.vertex_byte_offset = part_buffers.vbPosW.offset;
+				geometry.triangles.index_buffer = part_buffers.generalBuffer;
+				geometry.triangles.index_format = GetIndexFormat(part_index);
+				geometry.triangles.index_count = subset.indexCount;
+				geometry.triangles.index_offset = part_buffers.ib.offset / GetIndexStride(part_index) + subset.indexOffset; // element unit
+				geometry.triangles.vertex_count = (uint32_t)primitive.GetNumVertices();
+				if (part_buffers.soPosW.IsValid())
+				{
+					geometry.triangles.vertex_format = Format::R32G32B32_FLOAT;
+					geometry.triangles.vertex_stride = sizeof(Vertex_POS32W);
+				}
+				else
+				{
+					geometry.triangles.vertex_format = positionFormat == Format::R32G32B32A32_FLOAT ? Format::R32G32B32_FLOAT : positionFormat;
+					geometry.triangles.vertex_stride = GetFormatStride(positionFormat);
+				}
+			}
+
+			bool success = device->CreateRaytracingAccelerationStructure(&desc, &BLASes[lod]);
+			assert(success);
+			device->SetName(&BLASes[lod], std::string("GGeometryComponent::BLAS[LOD" + std::to_string(lod) + "]").c_str());
 		}
 	}
 

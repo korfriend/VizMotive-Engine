@@ -1718,11 +1718,6 @@ namespace vz::renderer
 		delete cameraCB;
 	}
 
-	void GRenderPath3DDetails::BindCommonResources(CommandList cmd)
-	{
-		device->BindConstantBuffer(&buffers[BUFFERTYPE_FRAMECB], CBSLOT_RENDERER_FRAME, cmd);
-	}
-
 	void GRenderPath3DDetails::UpdateRenderData(const Visibility& vis, const FrameCB& frameCB, CommandList cmd)
 	{
 		device->EventBegin("UpdateRenderData", cmd);

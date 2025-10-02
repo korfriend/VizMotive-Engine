@@ -1187,7 +1187,8 @@ namespace vz
 			inline std::vector<MorphTarget>& GetMutableMorphTargets() { return morphTargets_; }
 			inline std::vector<std::vector<uint8_t>>& GetMutableCustomBuffers() { return customBuffers_; }	
 
-			inline std::vector<Subset>& GetSubsets() { return subsets_; }
+			inline const std::vector<Subset>& GetSubsets() const { return subsets_; }
+			inline const Subset GetSubset(const size_t subsetIndex) const { return subsetIndex < subsets_.size() ? subsets_[subsetIndex] : Subset(); }
 
 			inline size_t GetNumVertices() const { return vertexPositions_.size(); }
 			inline size_t GetNumIndices() const { return indexPrimitives_.size(); }
@@ -1249,7 +1250,7 @@ namespace vz
 		bool IsDirty() { return isDirty_; }
 		const geometrics::AABB& GetAABB() { return aabb_; }
 
-		uint32_t GetLODCount() const { return partLODs_; }
+		uint32_t GetLODCount() const { return std::max(partLODs_, 1u); }
 
 		// ----- WaitForBool -----
 		void MovePrimitivesFrom(std::vector<Primitive>&& primitives);

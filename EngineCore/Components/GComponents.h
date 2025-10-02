@@ -131,6 +131,8 @@ namespace vz
 			bool IsValid() const { return primitiveCounterBuffer.IsValid(); }
 		};
 
+		std::vector<graphics::RaytracingAccelerationStructure> BLASes; // one BLAS per geometry subset
+
 		struct GPrimBuffers
 		{
 			//std::atomic<bool> busyUpdate = { false };
@@ -208,12 +210,21 @@ namespace vz
 			return graphics::GetIndexBufferFormat((uint32_t)parts_[slot].GetNumIndices());
 		}
 		inline size_t GetIndexStride(const size_t slot) const { return GetIndexFormat(slot) == graphics::IndexBufferFormat::UINT32 ? sizeof(uint32_t) : sizeof(uint16_t); }
-		GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
+		inline GPrimBuffers* GetGPrimBuffer(const size_t slot) { return (GPrimBuffers*)parts_[slot].bufferHandle_.get(); }
 		
+		enum BLAS_STATE
+		{
+			BLAS_STATE_NEEDS_REBUILD,
+			BLAS_STATE_NEEDS_REFIT,
+			BLAS_STATE_COMPLETE,
+		};
+		mutable BLAS_STATE stateBLAS = BLAS_STATE_NEEDS_REBUILD;
+
 		void DeleteRenderData() override;
 		void UpdateRenderData() override;
 		void UpdateCustomRenderData(const std::function<void(graphics::GraphicsDevice* device)>& task);
 		void UpdateStreamoutRenderData();
+		void UpdateRayTracingRenderData();
 		size_t GetMemoryUsageCPU() const override;
 		size_t GetMemoryUsageGPU() const override;
 
