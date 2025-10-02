@@ -210,6 +210,7 @@ namespace vz::renderer
 	bool IsInitialized();
 	uint32_t ComputeObjectLODForView(const RenderableComponent& renderable, 
 		const geometrics::AABB& aabb, const GeometryComponent& geometry, const XMMATRIX& ViewProjection);
+	void BindCommonResources(CommandList cmd);
 }
 
 // external parameters

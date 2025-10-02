@@ -454,6 +454,12 @@ int main(int, char**)
 					renderer->SetRenderOptionEnabled("DEBUG_LIGHT_CULLING", debug_lightculling_enabled);
 				}
 
+				static bool debug_ddgi_enabled = false;
+				if (ImGui::Checkbox("DEBUG_DDGI", &debug_ddgi_enabled))
+				{
+					renderer->SetRenderOptionEnabled("DEBUG_DDGI", debug_ddgi_enabled);
+				}
+
 				ImGui::Separator();
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);

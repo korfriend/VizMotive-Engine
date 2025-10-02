@@ -66,8 +66,12 @@ namespace vz::renderer
 		std::vector<Entity> wait_entities;
 		for (auto& it : deferredGeometryGPUBVHGens)
 		{
-			if (!gpubvh::UpdateGeometryGPUBVH(it, cmd)) {
-				wait_entities.push_back(it);
+			GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(it);
+			if (geometry)
+			{
+				if (!gpubvh::UpdateGeometryGPUBVH(geometry, cmd)) {
+					wait_entities.push_back(it);
+				}
 			}
 		}
 		deferredGeometryGPUBVHGens.clear();

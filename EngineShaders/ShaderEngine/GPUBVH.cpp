@@ -1,10 +1,9 @@
 #include "GPUBVH.h"
 #include "../Shaders/ShaderInterop_BVH.h"
 
+#include "Scene_Detail.h"
 #include "ShaderLoader.h"
 #include "SortLib.h"
-
-#include "Components/GComponents.h"
 
 #include "Utils/Profiler.h"
 #include "Utils/Backlog.h"
@@ -49,11 +48,9 @@ namespace vz::gpubvh
 		bvhPropagateAABB = {};
 	}
 
-	bool UpdateGeometryGPUBVH(const Entity geometryEntity, graphics::CommandList cmd)
+	bool UpdateGeometryGPUBVH(GGeometryComponent* geometry, graphics::CommandList cmd)
 	{
 		GraphicsDevice* device = GetDevice();
-
-		GGeometryComponent* geometry = (GGeometryComponent*)compfactory::GetGeometryComponent(geometryEntity);
 		assert(geometry);
 
 		if (geometry->GetNumParts() == 0 || !geometry->HasRenderData())
@@ -77,10 +74,10 @@ namespace vz::gpubvh
 				continue;
 			}
 
-			uint totalTriangles = (uint)prim.GetNumIndices() / 3;
+			uint total_tris = (uint)prim.GetNumIndices() / 3;
 
 			BVHBuffers& bvhBuffers = part_buffers->bvhBuffers;
-			if (totalTriangles > 0 && !bvhBuffers.primitiveCounterBuffer.IsValid())
+			if (total_tris > 0 && !bvhBuffers.primitiveCounterBuffer.IsValid())
 			{
 				GPUBufferDesc desc;
 				desc.bind_flags = BindFlag::SHADER_RESOURCE;
@@ -91,14 +88,15 @@ namespace vz::gpubvh
 				device->CreateBuffer(&desc, nullptr, &bvhBuffers.primitiveCounterBuffer);
 				device->SetName(&bvhBuffers.primitiveCounterBuffer, "GPUBVH::primitiveCounterBuffer");
 			}
-			else
+
+			if (total_tris == 0)
 			{
 				bvhBuffers.primitiveCounterBuffer = {};
 			}
 
-			if (totalTriangles > bvhBuffers.primitiveCapacity)
+			if (total_tris > bvhBuffers.primitiveCapacity)
 			{
-				bvhBuffers.primitiveCapacity = std::max(2u, totalTriangles);
+				bvhBuffers.primitiveCapacity = std::max(2u, total_tris);
 
 				GPUBufferDesc desc;
 
@@ -153,12 +151,12 @@ namespace vz::gpubvh
 
 
 			// ----- build ----- 
-			auto range = profiler::BeginRangeGPU("BVH Rebuild", &cmd);
+			auto range = profiler::BeginRangeGPU("BVH Rebuild (Geometry)", &cmd);
 
-			uint32_t primitiveCount = totalTriangles;
+			uint32_t primitive_count = total_tris;
 
 			GPUResource unbind;
-			const GPUResource* uavs_unbind[4] = { &unbind , &unbind , &unbind , &unbind };
+			const GPUResource* res_unbind[4] = { &unbind , &unbind , &unbind , &unbind };
 
 			device->EventBegin("BVH - Primitive (GEOMETRY-ONLY) Builder", cmd);
 			{
@@ -173,7 +171,7 @@ namespace vz::gpubvh
 				BVHPushConstants push;
 				push.geometryIndex = geometry->geometryOffset;
 				push.subsetIndex = i;
-				push.primitiveCount = primitiveCount;
+				push.primitiveCount = primitive_count;
 				push.instanceIndex = 0; // geometry-binding BVH does NOT require instance!
 				push.vb_pos_w = part_buffers->vbPosW.descriptor_srv;
 				push.ib = part_buffers->ib.descriptor_srv;
@@ -193,7 +191,7 @@ namespace vz::gpubvh
 					1,
 					cmd
 				);
-				device->BindUAVs(uavs_unbind, 0, arraysize(uavs_unbind), cmd);
+				device->BindUAVs(res_unbind, 0, arraysize(res_unbind), cmd);
 
 				GPUBarrier barriers[] = {
 					GPUBarrier::Memory()
@@ -207,7 +205,7 @@ namespace vz::gpubvh
 				};
 				device->Barrier(barriers, arraysize(barriers), cmd);
 			}
-			device->UpdateBuffer(&bvhBuffers.primitiveCounterBuffer, &primitiveCount, cmd);
+			device->UpdateBuffer(&bvhBuffers.primitiveCounterBuffer, &primitive_count, cmd);
 			{
 				GPUBarrier barriers[] = {
 					GPUBarrier::Buffer(&bvhBuffers.primitiveCounterBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE),
@@ -218,7 +216,7 @@ namespace vz::gpubvh
 			device->EventEnd(cmd);
 
 			device->EventBegin("BVH - Sort Primitive Mortons", cmd);
-			gpusortlib::Sort(primitiveCount, gpusortlib::COMPARISON_FLOAT, bvhBuffers.primitiveMortonBuffer, bvhBuffers.primitiveCounterBuffer, 0, bvhBuffers.primitiveIDBuffer, cmd);
+			gpusortlib::Sort(primitive_count, gpusortlib::COMPARISON_FLOAT, bvhBuffers.primitiveMortonBuffer, bvhBuffers.primitiveCounterBuffer, 0, bvhBuffers.primitiveIDBuffer, cmd);
 			device->EventEnd(cmd);
 
 			device->EventBegin("BVH - Build Hierarchy", cmd);
@@ -238,10 +236,10 @@ namespace vz::gpubvh
 				};
 				device->BindResources(res, 0, arraysize(res), cmd);
 
-				device->Dispatch((primitiveCount + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE, 1, 1, cmd);
+				device->Dispatch((primitive_count + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE, 1, 1, cmd);
 
-				device->BindUAVs(uavs_unbind, 0, arraysize(uavs_unbind), cmd);
-				device->BindResources(uavs_unbind, 0, arraysize(uavs_unbind), cmd);
+				device->BindUAVs(res_unbind, 0, arraysize(res_unbind), cmd);
+				device->BindResources(res_unbind, 0, arraysize(res_unbind), cmd);
 
 				GPUBarrier barriers[] = {
 					GPUBarrier::Memory()
@@ -275,7 +273,7 @@ namespace vz::gpubvh
 				// 
 				// In my implementation, for robustness propagation of AABBs, use MAX tree depth!
 
-				uint treeDepth = (uint)ceil(log2(primitiveCount));
+				uint treeDepth = (uint)ceil(log2(primitive_count));
 
 				GPUBarrier barriers[] = {
 					GPUBarrier::Memory()
@@ -298,15 +296,15 @@ namespace vz::gpubvh
 				device->BindResources(res, 0, arraysize(res), cmd);
 
 				for (int i = 0; i < treeDepth; i++) {
-					device->Dispatch((primitiveCount + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE, 1, 1, cmd);
+					device->Dispatch((primitive_count + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE, 1, 1, cmd);
 				}
 
-				device->BindUAVs(uavs_unbind, 0, arraysize(uavs_unbind), cmd);
-				device->BindResources(uavs_unbind, 0, arraysize(uavs_unbind), cmd);
+				device->BindUAVs(res_unbind, 0, arraysize(res_unbind), cmd);
+				device->BindResources(res_unbind, 0, arraysize(res_unbind), cmd);
 
 				device->Barrier(barriers, arraysize(barriers), cmd);
 
-				NameComponent* name = compfactory::GetNameComponent(geometryEntity);
+				NameComponent* name = compfactory::GetNameComponent(geometry->GetEntity());
 				vzlog("GPUBVH Command for (%s) is submitted. (Max TreeDepth: % d)", name->GetName().c_str(), treeDepth);
 			}
 			device->EventEnd(cmd);
@@ -323,10 +321,368 @@ namespace vz::gpubvh
 		return true;
 	}
 
-	bool UpdateSceneGPUBVH(const Entity sceneEntity)
+	bool UpdateSceneGPUBVH(GScene* scene, graphics::CommandList cmd)
 	{
-		//sceneShader.geometrybuffer
-		vzlog_assert(0, "TODO");
+		using Primitive = GeometryComponent::Primitive;
+		using BVHBuffers = GGeometryComponent::BVHBuffers; // GPUBVH 
+
+		renderer::GSceneDetails* scene_Gdetails = (renderer::GSceneDetails*)scene;
+		GraphicsDevice* device = scene_Gdetails->device;
+		BVHBuffers& scene_bvh = scene_Gdetails->sceneBVH;
+
+		size_t bvh_parts = 0;
+
+		std::vector<GRenderableComponent*>& renderables = scene_Gdetails->renderableComponents;
+		// Pre-gather scene properties:
+		uint total_tris = 0;
+		// 1. Update BVH resources //
+		{
+			for (size_t i = 0; i < renderables.size(); ++i)
+			{
+				const GRenderableComponent& renderable = *renderables[i];
+
+				if (renderable.geometry)
+				{
+					GGeometryComponent* geometry = renderable.geometry;
+					assert(geometry);
+
+					if (geometry->GetNumParts() == 0 || !geometry->HasRenderData())
+					{
+						continue;
+					}
+
+					const std::vector<Primitive>& parts = geometry->GetPrimitives();
+
+					for (size_t i = 0; i < parts.size(); ++i)
+					{
+						const Primitive& prim = parts[i];
+						GPrimBuffers* part_buffers = geometry->GetGPrimBuffer(i);
+						if (prim.GetPrimitiveType() != GeometryComponent::PrimitiveType::TRIANGLES
+							|| part_buffers == nullptr)
+						{
+							continue;
+						}
+						total_tris += (uint)prim.GetNumIndices() / 3;
+					}
+				}
+			}
+
+			// for all emitters.. TODO
+
+			if (total_tris > 0 && !scene_bvh.primitiveCounterBuffer.IsValid())
+			{
+				GPUBufferDesc desc;
+				desc.bind_flags = BindFlag::SHADER_RESOURCE;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &scene_bvh.primitiveCounterBuffer);
+				device->SetName(&scene_bvh.primitiveCounterBuffer, "GPUBVH::primitiveCounterBuffer");
+			}
+
+			if (total_tris == 0)
+			{
+				scene_bvh.primitiveCounterBuffer = {};
+			}
+
+			if (total_tris > scene_bvh.primitiveCapacity)
+			{
+				scene_bvh.primitiveCapacity = std::max(2u, total_tris);
+
+				GPUBufferDesc desc;
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(BVHNode);
+				desc.size = desc.stride * scene_bvh.primitiveCapacity * 2;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &scene_bvh.bvhNodeBuffer);
+				device->SetName(&scene_bvh.bvhNodeBuffer, "GPUBVH::BVHNodeBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride * scene_bvh.primitiveCapacity * 2;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &scene_bvh.bvhParentBuffer);
+				device->SetName(&scene_bvh.bvhParentBuffer, "GPUBVH::BVHParentBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride * (((scene_bvh.primitiveCapacity - 1) + 31) / 32); // bitfield for internal nodes
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &scene_bvh.bvhFlagBuffer);
+				device->SetName(&scene_bvh.bvhFlagBuffer, "GPUBVH::BVHFlagBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(uint);
+				desc.size = desc.stride * scene_bvh.primitiveCapacity;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &scene_bvh.primitiveIDBuffer);
+				device->SetName(&scene_bvh.primitiveIDBuffer, "GPUBVH::primitiveIDBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(BVHPrimitive);
+				desc.size = desc.stride * scene_bvh.primitiveCapacity;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_RAW;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &scene_bvh.primitiveBuffer);
+				device->SetName(&scene_bvh.primitiveBuffer, "GPUBVH::primitiveBuffer");
+
+				desc.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
+				desc.stride = sizeof(float); // morton buffer is float because sorting must be done and gpu sort operates on floats for now!
+				desc.size = desc.stride * scene_bvh.primitiveCapacity;
+				desc.misc_flags = ResourceMiscFlag::BUFFER_STRUCTURED;
+				desc.usage = Usage::DEFAULT;
+				device->CreateBuffer(&desc, nullptr, &scene_bvh.primitiveMortonBuffer);
+				device->SetName(&scene_bvh.primitiveMortonBuffer, "GPUBVH::primitiveMortonBuffer");
+			}
+		}
+
+		// 2. Build
+		auto range = profiler::BeginRangeGPU("BVH Rebuild (Scene)", &cmd);
+		{
+			uint32_t primitive_count = 0; // this is supposed to be same to total_tris
+
+			GPUResource unbind;
+			const GPUResource* res_unbind[4] = { &unbind , &unbind , &unbind , &unbind };
+
+			device->EventBegin("BVH - Primitive (Scene) Builder", cmd);
+			device->BindComputeShader(&bvhPrimitives, cmd);
+			const GPUResource* uavs[] = {
+				&scene_bvh.primitiveIDBuffer,
+				&scene_bvh.primitiveBuffer,
+				&scene_bvh.primitiveMortonBuffer,
+			};
+			device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
+
+			for (size_t i = 0; i < renderables.size(); ++i)
+			{
+				const GRenderableComponent& renderable = *renderables[i];
+
+				if (renderable.geometry)
+				{
+					GGeometryComponent* geometry = renderable.geometry;
+					assert(geometry);
+
+					if (geometry->GetNumParts() == 0 || !geometry->HasRenderData())
+					{
+						continue;
+					}
+
+					const std::vector<Primitive>& parts = geometry->GetPrimitives();
+
+					for (size_t part_index = 0; part_index < parts.size(); ++part_index)
+					{
+						const Primitive& prim = parts[part_index];
+						GPrimBuffers* part_buffers = geometry->GetGPrimBuffer(part_index);
+						if (prim.GetPrimitiveType() != GeometryComponent::PrimitiveType::TRIANGLES
+							|| part_buffers == nullptr)
+						{
+							continue;
+						}
+						primitive_count += (uint)prim.GetNumIndices() / 3;
+
+						BVHPushConstants push;
+						push.geometryIndex = geometry->geometryOffset;
+						push.subsetIndex = part_index;
+						push.primitiveCount = primitive_count;
+						push.instanceIndex = i; // same to renderable.renderableIndex
+						assert(i == renderable.renderableIndex);
+						push.vb_pos_w = -1; // not used
+						push.ib = -1; // not used
+
+						device->PushConstants(&push, sizeof(push), cmd);
+
+						primitive_count += push.primitiveCount;
+
+						device->Dispatch(
+							(push.primitiveCount + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE,
+							1,
+							1,
+							cmd
+						);
+
+						device->BindUAVs(res_unbind, 0, arraysize(res_unbind), cmd);
+					}
+				}
+			}
+
+			// for all emitters.. TODO
+
+			GPUBarrier barriers[] = {
+				GPUBarrier::Memory()
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Buffer(&scene_bvh.primitiveCounterBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_DST),
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			device->UpdateBuffer(&scene_bvh.primitiveCounterBuffer, &primitive_count, cmd);
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Buffer(&scene_bvh.primitiveCounterBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE),
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			device->EventEnd(cmd);
+
+			device->EventBegin("BVH - Sort Primitive Mortons", cmd);
+			gpusortlib::Sort(primitive_count, gpusortlib::COMPARISON_FLOAT, scene_bvh.primitiveMortonBuffer, scene_bvh.primitiveCounterBuffer, 0, scene_bvh.primitiveIDBuffer, cmd);
+			device->EventEnd(cmd);
+
+			device->EventBegin("BVH - Build Hierarchy", cmd);
+			{
+				device->BindComputeShader(&bvhHierarchy, cmd);
+				const GPUResource* uavs[] = {
+					&scene_bvh.bvhNodeBuffer,
+					&scene_bvh.bvhParentBuffer,
+					&scene_bvh.bvhFlagBuffer
+				};
+				device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
+
+				const GPUResource* res[] = {
+					&scene_bvh.primitiveCounterBuffer,
+					&scene_bvh.primitiveIDBuffer,
+					&scene_bvh.primitiveMortonBuffer,
+				};
+				device->BindResources(res, 0, arraysize(res), cmd);
+
+				device->Dispatch((primitive_count + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE, 1, 1, cmd);
+
+				device->BindUAVs(res_unbind, 0, arraysize(res_unbind), cmd);
+				device->BindResources(res_unbind, 0, arraysize(res_unbind), cmd);
+
+				GPUBarrier barriers[] = {
+					GPUBarrier::Memory()
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			device->EventEnd(cmd);
+
+			device->EventBegin("BVH - Propagate AABB", cmd);
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Memory()
+				};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+
+				device->BindComputeShader(&bvhPropagateAABB, cmd);
+				const GPUResource* uavs[] = {
+					&scene_bvh.bvhNodeBuffer,
+					&scene_bvh.bvhFlagBuffer,
+				};
+				device->BindUAVs(uavs, 0, arraysize(uavs), cmd);
+
+				const GPUResource* res[] = {
+					&scene_bvh.primitiveCounterBuffer,
+					&scene_bvh.primitiveIDBuffer,
+					&scene_bvh.primitiveBuffer,
+					&scene_bvh.bvhParentBuffer,
+				};
+				device->BindResources(res, 0, arraysize(res), cmd);
+
+				device->Dispatch((primitive_count + BVH_BUILDER_GROUPSIZE - 1) / BVH_BUILDER_GROUPSIZE, 1, 1, cmd);
+
+				device->BindUAVs(res_unbind, 0, arraysize(res_unbind), cmd);
+				device->BindResources(res_unbind, 0, arraysize(res_unbind), cmd);
+
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+			device->EventEnd(cmd);
+		}
+		profiler::EndRange(range); // BVH rebuild
+
+#ifdef BVH_VALIDATE
+		{
+			GPUBufferDesc readback_desc;
+			bool download_success;
+
+			// Download primitive count:
+			readback_desc = scene_bvh.primitiveCounterBuffer.GetDesc();
+			readback_desc.usage = USAGE_STAGING;
+			readback_desc.CPUAccessFlags = CPU_ACCESS_READ;
+			readback_desc.bind_flags = 0;
+			readback_desc.Flags = 0;
+			GPUBuffer readback_primitiveCounterBuffer;
+			device->CreateBuffer(&readback_desc, nullptr, &readback_primitiveCounterBuffer);
+			uint primitiveCount;
+			download_success = device->DownloadResource(&scene_bvh.primitiveCounterBuffer, &readback_primitiveCounterBuffer, &primitiveCount, cmd);
+			assert(download_success);
+
+			if (primitiveCount > 0)
+			{
+				const uint leafNodeOffset = primitiveCount - 1;
+
+				// Validate node buffer:
+				readback_desc = scene_bvh.bvhNodeBuffer.GetDesc();
+				readback_desc.usage = USAGE_STAGING;
+				readback_desc.CPUAccessFlags = CPU_ACCESS_READ;
+				readback_desc.bind_flags = 0;
+				readback_desc.Flags = 0;
+				GPUBuffer readback_nodeBuffer;
+				device->CreateBuffer(&readback_desc, nullptr, &readback_nodeBuffer);
+				vector<BVHNode> nodes(readback_desc.size / sizeof(BVHNode));
+				download_success = device->DownloadResource(&scene_bvh.bvhNodeBuffer, &readback_nodeBuffer, nodes.data(), cmd);
+				assert(download_success);
+				set<uint> visitedLeafs;
+				vector<uint> stack;
+				stack.push_back(0);
+				while (!stack.empty())
+				{
+					uint nodeIndex = stack.back();
+					stack.pop_back();
+
+					if (nodeIndex >= leafNodeOffset)
+					{
+						// leaf node
+						assert(visitedLeafs.count(nodeIndex) == 0); // leaf node was already visited, this must not happen!
+						visitedLeafs.insert(nodeIndex);
+					}
+					else
+					{
+						// internal node
+						BVHNode& node = nodes[nodeIndex];
+						stack.push_back(node.LeftChildIndex);
+						stack.push_back(node.RightChildIndex);
+					}
+				}
+				for (uint i = 0; i < primitiveCount; ++i)
+				{
+					uint nodeIndex = leafNodeOffset + i;
+					BVHNode& leaf = nodes[nodeIndex];
+					assert(leaf.LeftChildIndex == 0 && leaf.RightChildIndex == 0); // a leaf must have no children
+					assert(visitedLeafs.count(nodeIndex) > 0); // every leaf node must have been visited in the traversal above
+				}
+
+				// Validate flag buffer:
+				readback_desc = scene_bvh.bvhFlagBuffer.GetDesc();
+				readback_desc.usage = USAGE_STAGING;
+				readback_desc.CPUAccessFlags = CPU_ACCESS_READ;
+				readback_desc.bind_flags = 0;
+				readback_desc.Flags = 0;
+				GPUBuffer readback_flagBuffer;
+				device->CreateBuffer(&readback_desc, nullptr, &readback_flagBuffer);
+				vector<uint> flags(readback_desc.size / sizeof(uint));
+				download_success = device->DownloadResource(&scene_bvh.bvhFlagBuffer, &readback_flagBuffer, flags.data(), cmd);
+				assert(download_success);
+				for (auto& x : flags)
+				{
+					if (x > 2)
+					{
+						assert(0); // flagbuffer anomaly detected: node can't have more than two children (AABB propagation step)!
+						break;
+					}
+				}
+			}
+		}
+#endif // BVH_VALIDATE
 		return true;
 	}
 }

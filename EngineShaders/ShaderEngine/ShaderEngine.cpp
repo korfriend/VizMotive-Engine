@@ -100,6 +100,7 @@ namespace vz::renderer
 
 namespace vz::renderer
 {
+	GraphicsDevice*& device = GetDevice();
 	static std::atomic_bool initialized{ false };
 	bool IsInitialized()
 	{
@@ -117,7 +118,10 @@ namespace vz::renderer
 		return uint32_t(lod);
 	}
 
-	GraphicsDevice*& device = GetDevice();
+	void BindCommonResources(CommandList cmd)
+	{
+		device->BindConstantBuffer(&buffers[BUFFERTYPE_FRAMECB], CBSLOT_RENDERER_FRAME, cmd);
+	}
 
 	void LoadBuffers()
 	{
