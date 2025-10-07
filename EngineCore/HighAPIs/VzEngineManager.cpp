@@ -461,6 +461,19 @@ namespace vzm
 			{
 				ses_section.Set("DDGI_ENABLED", false);
 			}
+			if (!ses_section.Has("DDGI_RAYCOUNT"))
+			{
+				ses_section.Set("DDGI_RAYCOUNT", 256);
+			}
+			if (!ses_section.Has("DDGI_BLEND_SPEED"))
+			{
+				ses_section.Set("DDGI_BLEND_SPEED", 0.1f);
+			}
+			if (!ses_section.Has("DDGI_GRID"))
+			{
+				std::vector<int> grid_size = { 32, 8, 32 };
+				ses_section.Set("DDGI_GRID", grid_size);
+			}
 			configFile.Commit();
 		}
 

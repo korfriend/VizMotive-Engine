@@ -11,7 +11,7 @@ namespace vz::renderer
 {
 	struct GSceneDetails : GScene
 	{
-		GSceneDetails(Scene* scene) : GScene(scene) {}
+		GSceneDetails(Scene* scene);
 		virtual ~GSceneDetails() = default;
 
 		// note all GPU resources (their pointers) are managed by
@@ -141,8 +141,6 @@ namespace vz::renderer
 			graphics::GPUBuffer rayallocationBuffer;
 			graphics::GPUBuffer probeBuffer;
 			graphics::Texture depthTexture;
-
-			void Serialize(Archive& archive);
 		} ddgi;
 
 		std::atomic<uint32_t> lightmapRequestAllocator{ 0 };
@@ -152,6 +150,9 @@ namespace vz::renderer
 
 		bool Update(const float dt) override;
 		bool Destroy() override;
+
+		bool SetOptionEnabled(const std::string& optionName, const bool enabled) override;
+		bool SetOptionValueArray(const std::string& optionName, const std::vector<float>& values) override;
 
 		void AllocatorSettingUp(jobsystem::context& ctx);
 		void RunGeometryUpdateSystem(jobsystem::context& ctx);

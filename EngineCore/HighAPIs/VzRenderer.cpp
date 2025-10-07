@@ -459,4 +459,11 @@ namespace vzm
 		renderer->SetRenderOptionEnabled(optionName, enabled);
 		renderer->forceToRenderCall = true;
 	}
+
+	void VzRenderer::SetRenderOptionValueArray(const std::string& optionName, const std::vector<float>& values)
+	{
+		GET_RENDERPATH(renderer, );
+		renderer->SetRenderOptionValueArray(optionName, values);
+		renderer->forceToRenderCall = true;
+	}
 }

@@ -155,4 +155,19 @@ namespace vzm
 
 		return env->LoadSkyMap(iblPath);
 	}
+
+
+	void VzScene::SetOptionEnabled(const std::string& optionName, const bool enabled)
+	{
+		Scene* scene = scenefactory::GetScene(this->componentVID_);
+		assert(scene);
+		scene->SetOptionEnabled(optionName, enabled);
+	}
+
+	void VzScene::SetOptionValueArray(const std::string& optionName, const std::vector<float>& values)
+	{
+		Scene* scene = scenefactory::GetScene(this->componentVID_);
+		assert(scene);
+		scene->SetOptionValueArray(optionName, values);
+	}
 }

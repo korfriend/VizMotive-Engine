@@ -687,6 +687,7 @@ namespace vz::renderer
 		bool Render(const float dt) override;
 		bool Destroy() override;
 		bool SetOptionEnabled(const std::string& optionName, const bool enabled) override;
+		bool SetOptionValueArray(const std::string& optionName, const std::vector<float>& values) override;
 
 		const Texture& GetLastProcessRT() const override { return *lastPostprocessRT; }
 	};

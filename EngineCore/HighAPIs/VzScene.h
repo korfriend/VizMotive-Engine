@@ -34,5 +34,8 @@ namespace vzm
 		const std::vector<VID>& GetChildrenVIDs() const;
 
 		bool RenderChain(const std::vector<ChainUnitRCam>& rendererChain, const float dt = -1.f);
+
+		void SetOptionEnabled(const std::string& optionName, const bool enabled);
+		void SetOptionValueArray(const std::string& optionName, const std::vector<float>& values);
 	};
 }

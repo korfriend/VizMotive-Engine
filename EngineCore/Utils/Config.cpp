@@ -144,6 +144,69 @@ namespace vz::config
 		return result;
 	}
 
+	std::vector<int> Section::GetIntArray(const char* name) const
+	{
+		std::vector<int> result;
+		auto it = values.find(name);
+		if (it == values.end())
+		{
+			return result;
+		}
+
+		const std::string& str = it->second;
+		if (str.empty())
+			return result;
+
+		// Parse {10, 20, 30} format
+		size_t start = str.find('{');
+		size_t end = str.find('}');
+		if (start == std::string::npos || end == std::string::npos || start >= end)
+			return result;
+
+		std::string content = str.substr(start + 1, end - start - 1);
+		std::stringstream ss(content);
+		std::string item;
+
+		while (std::getline(ss, item, ','))
+		{
+			// Trim whitespace
+			item.erase(0, item.find_first_not_of(" \t"));
+			item.erase(item.find_last_not_of(" \t") + 1);
+
+			if (!item.empty())
+			{
+				try
+				{
+					result.push_back(std::stoi(item));
+				}
+				catch (...)
+				{
+					// Skip invalid values
+				}
+			}
+		}
+
+		return result;
+	}
+
+	void Section::Set(const char* name, const std::vector<int>& vals)
+	{
+		if (vals.empty())
+		{
+			values[name] = "{}";
+			return;
+		}
+
+		std::string result = "{";
+		for (size_t i = 0; i < vals.size(); ++i)
+		{
+			if (i > 0)
+				result += ", ";
+			result += std::to_string(vals[i]);
+		}
+		result += "}";
+		values[name] = result;
+	}
 	void Section::Set(const char* name, const std::vector<float>& vals)
 	{
 		if (vals.empty())
@@ -410,11 +473,17 @@ namespace vz::config
 		config::Section& section = vzm::configFile.GetSection(string_c);
 		return section.GetFloat(optionName.c_str());
 	}
-	std::vector<float>  GetFloatArrayConfig(const std::string& sectionName, const std::string& optionName)
+	std::vector<float> GetFloatArrayConfig(const std::string& sectionName, const std::string& optionName)
 	{
 		const char* string_c = sectionName.c_str();
 		config::Section& section = vzm::configFile.GetSection(string_c);
 		return section.GetFloatArray(optionName.c_str());
+	}
+	std::vector<int> GetIntArrayConfig(const std::string& sectionName, const std::string& optionName)
+	{
+		const char* string_c = sectionName.c_str();
+		config::Section& section = vzm::configFile.GetSection(string_c);
+		return section.GetIntArray(optionName.c_str());
 	}
 	std::string GetStringConfig(const std::string& sectionName, const std::string& optionName)
 	{

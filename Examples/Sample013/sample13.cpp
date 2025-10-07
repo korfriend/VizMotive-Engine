@@ -460,6 +460,15 @@ int main(int, char**)
 					renderer->SetRenderOptionEnabled("DEBUG_DDGI", debug_ddgi_enabled);
 				}
 
+				static int ddgi_grid[3] = { 32, 8, 32 };
+				{
+					ImGui::InputInt3("DDGI Grid", ddgi_grid, ImGuiInputTextFlags_CharsDecimal);
+					if (ImGui::Button("Apply DDGI Grid"))
+					{
+						scene->SetOptionValueArray("DDGI_GRID", { (float)ddgi_grid[0], (float)ddgi_grid[1], (float)ddgi_grid[2] });
+					}
+				}
+
 				ImGui::Separator();
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -819,25 +828,6 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
-		case 'R':
-			// vz::eventhandler::FireEvent(1, 0);
-			vzm::ReloadShader();
-			break;
-		case '0':
-			renderer->ShowDebugBuffer("NONE");
-			break;
-		case '1':
-			renderer->ShowDebugBuffer("PRIMITIVE_ID");
-			break;
-		case '2':
-			renderer->ShowDebugBuffer("INSTANCE_ID");
-			break;
-		case '3':
-			renderer->ShowDebugBuffer("LINEAR_DEPTH");
-			break;
-		case '4':
-			renderer->ShowDebugBuffer("WITHOUT_POSTPROCESSING");
-			break;
 		case 'N':
 		{
 			using namespace vzm;

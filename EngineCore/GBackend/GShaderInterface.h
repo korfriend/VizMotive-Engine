@@ -48,7 +48,7 @@ namespace vz
 
 	struct GRenderPath3D : GRenderPath2D
 	{
-		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20250929";
+		inline static const std::string GRenderPath3D_INTERFACE_VERSION = "GRenderPath3D::20251008";
 		// this will be a component of vz::RenderPath3D
 
 		enum class Tonemap
@@ -92,11 +92,12 @@ namespace vz
 		virtual bool Destroy() override = 0;
 		virtual const graphics::Texture& GetLastProcessRT() const = 0;
 		virtual bool SetOptionEnabled(const std::string& optionName, const bool enabled) = 0;
+		virtual bool SetOptionValueArray(const std::string& optionName, const std::vector<float>& values) = 0;
 	};
 
 	struct GScene
 	{
-		inline static const std::string GScene_INTERFACE_VERSION = "GScene::20250719";
+		inline static const std::string GScene_INTERFACE_VERSION = "GScene::20251008";
 		// this will be a component of vz::Scene
 	protected:
 		Scene* scene_ = nullptr;
@@ -108,6 +109,9 @@ namespace vz
 
 		virtual bool Update(const float dt) = 0;
 		virtual bool Destroy() = 0;
+
+		virtual bool SetOptionEnabled(const std::string& optionName, const bool enabled) = 0;
+		virtual bool SetOptionValueArray(const std::string& optionName, const std::vector<float>& values) = 0;
 
 		virtual void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const = 0;
 		virtual void Debug_AddPoint(const XMFLOAT3 p, const XMFLOAT4 color, const bool depthTest) const = 0;
