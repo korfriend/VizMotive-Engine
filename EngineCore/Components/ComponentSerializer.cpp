@@ -709,6 +709,7 @@ namespace vz
 			archive >> undercutColor_;
 			archive >> lodBias_;
 			archive >> alphaRef_;
+			archive >> lod_;
 
 			archive >> lineThickness_;
 
@@ -746,6 +747,7 @@ namespace vz
 			archive << undercutColor_;
 			archive << lodBias_;
 			archive << alphaRef_;
+			archive << lod_;
 
 			archive << lineThickness_;
 

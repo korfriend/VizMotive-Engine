@@ -1647,6 +1647,7 @@ namespace vz
 		uint32_t cascadeMask_ = 0; // which shadow cascades to skip from lowest detail to highest detail (0: skip none, 1: skip first, etc...)
 		XMFLOAT4 rimHighlightColor_ = XMFLOAT4(1, 1, 1, 0);
 		float rimHighlightFalloff_ = 8;
+		uint16_t lod_ = 0;
 		float lodBias_ = 0;
 		float alphaRef_ = 1;
 		float lineThickness_ = 1.3f;	// used for line thickness for rendering
@@ -1720,6 +1721,9 @@ namespace vz
 		inline void SetAlphaRef(const float alphaRef) { alphaRef_ = alphaRef; timeStampSetter_ = TimerNow; }
 		inline float GetAlphaRef() const { return alphaRef_; }
 
+		inline void SetLOD(const uint16_t lod) { lod_ = lod; timeStampSetter_ = TimerNow; }
+		inline uint16_t GetLOD() const { return lod_; }
+
 		inline void SetOutineThickness(const float v) { outlineThickness_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetOutineColor(const XMFLOAT3& v) { outlineColor_ = v; timeStampSetter_ = TimerNow; }
 		inline void SetOutineThreshold(const float v) { outlineThreshold_ = v; timeStampSetter_ = TimerNow; }
@@ -1773,6 +1777,8 @@ namespace vz
 
 		inline void SetLineThickness(const float lineThickness) { lineThickness_ = lineThickness; timeStampSetter_ = TimerNow; }
 		inline float GetLineThickness() { return lineThickness_; }
+
+		inline bool HasDoubleSideMaterial() const;
 
 		inline void Update();
 
