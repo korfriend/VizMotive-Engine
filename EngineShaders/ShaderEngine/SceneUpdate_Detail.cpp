@@ -157,7 +157,8 @@ namespace vz
 						Primitive::Subset subset = part.GetSubset(lod);
 						vzlog_assert(subset.indexCount > 0, "Invalid geometry subset!");
 
-						auto& blas_geometry = geometry.BLASes[lod].desc.bottom_level.geometries[geometry.geometryIndex];
+						const uint32_t subset_index = part_index; // TODO : consider LODs
+						auto& blas_geometry = geometry.BLASes[lod].desc.bottom_level.geometries[subset_index];
 
 						uint32_t flags = blas_geometry.flags;
 
@@ -653,7 +654,51 @@ namespace vz
 
 				std::memcpy(instanceArrayMapped + renderable.renderableIndex, &inst, sizeof(ShaderMeshInstance)); // memcpy whole structure into mapped pointer to avoid read from uncached memory
 
+				// mesh
+				if (TLAS_instancesMapped != nullptr)
+				{
+					// TLAS instance data:
+					RaytracingAccelerationStructureDesc::TopLevel::Instance instance;
+					for (int i = 0; i < arraysize(instance.transform); ++i)
+					{
+						for (int j = 0; j < arraysize(instance.transform[i]); ++j)
+						{
+							instance.transform[i][j] = world_matrix.m[j][i];
+						}
+					}
+					instance.instance_id = args.jobIndex;
+					instance.instance_mask = layermask == 0 ? 0 : 0xFF;
+					if (!renderable.IsRenderable() || !geometry.HasRenderData())
+					{
+						instance.instance_mask = 0;
+					}
+					if (renderable.IsShadowCastDisabled())
+					{
+						instance.instance_mask &= ~renderer::RAYTRACING_INCLUSION_MASK_SHADOW;
+					}
+					if (renderable.IsInvisibleInReflections())
+					{
+						instance.instance_mask &= ~renderer::RAYTRACING_INCLUSION_MASK_REFLECTION;
+					}
+					instance.bottom_level = &geometry.BLASes[renderable.GetLOD()];
+					instance.instance_contribution_to_hit_group_index = 0;
+					instance.flags = 0;
 
+					if (renderable.HasDoubleSideMaterial())
+					{
+						instance.flags |= RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_CULL_DISABLE;
+					}
+
+					if (XMVectorGetX(XMMatrixDeterminant(W)) > 0)
+					{
+						// There is a mismatch between object space winding and BLAS winding:
+						//	https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_raytracing_instance_flags
+						instance.flags |= RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
+					}
+
+					void* dest = (void*)((size_t)TLAS_instancesMapped + (size_t)args.jobIndex * device->GetTopLevelAccelerationStructureInstanceSize());
+					device->WriteTopLevelAccelerationStructureInstance(&instance, dest);
+				}
 			} break;
 			case RenderableType::VOLUME_RENDERABLE:
 			{

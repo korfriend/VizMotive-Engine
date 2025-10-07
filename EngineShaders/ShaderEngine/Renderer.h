@@ -271,6 +271,10 @@ namespace vz::renderer
 // ----- Rendering System Options -----
 namespace vz::renderer
 {
+	// const
+	constexpr uint8_t RAYTRACING_INCLUSION_MASK_SHADOW = 1 << 0;
+	constexpr uint8_t RAYTRACING_INCLUSION_MASK_REFLECTION = 1 << 1;
+
 	// configuration as renderer feature
 	extern float giBoost;
 	extern float renderingSpeed;

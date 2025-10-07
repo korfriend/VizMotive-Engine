@@ -176,6 +176,20 @@ namespace vz
 		return n;
 	}
 
+	bool RenderableComponent::HasDoubleSideMaterial() const
+	{ 
+		for (VUID vuid : vuidMaterials_) 
+		{ 
+			MaterialComponent* mat = compfactory::GetMaterialComponentByVUID(vuid);
+			if (mat)
+			{
+				if (mat->IsDoubleSided())
+					return true;
+			}
+		}
+		return false;
+	}
+
 	void RenderableComponent::Update()
 	{
 		updateRenderableFlags();
