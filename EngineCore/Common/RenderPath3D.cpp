@@ -310,4 +310,8 @@ namespace vz
 	{
 		handlerRenderPath3D_->SetOptionEnabled(optionName, enabled);
 	}
+	void RenderPath3D::SetRenderOptionValueArray(const std::string& optionName, const std::vector<float>& values)
+	{
+		handlerRenderPath3D_->SetOptionValueArray(optionName, values);
+	}
 }

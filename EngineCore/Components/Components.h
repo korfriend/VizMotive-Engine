@@ -364,6 +364,9 @@ namespace vz
 		virtual const uint32_t GetGeometryPrimitivesAllocatorSize() const = 0;
 		virtual const uint32_t GetRenderableResLookupAllocatorSize() const = 0;
 
+		virtual void SetOptionEnabled(const std::string& optionName, const bool enabled) = 0;
+		virtual void SetOptionValueArray(const std::string& optionName, const std::vector<float>& values) = 0;
+
 		virtual void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const = 0;
 		virtual void Debug_AddPoint(const XMFLOAT3 p, const XMFLOAT4 color, const bool depthTest) const = 0;
 		virtual void Debug_AddCircle(const XMFLOAT3 p, const float r, const XMFLOAT4 color, const bool depthTest) const = 0;

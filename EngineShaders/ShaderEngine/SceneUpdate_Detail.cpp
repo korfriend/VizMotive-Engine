@@ -5,6 +5,7 @@
 
 #include "Utils/Timer.h"
 #include "Utils/Backlog.h"
+#include "Utils/Config.h"
 
 using namespace vz::renderer;
 namespace vz
@@ -14,6 +15,15 @@ namespace vz
 	using Primitive = GeometryComponent::Primitive;
 
 	const uint32_t SMALL_SUBTASK_GROUPSIZE = 64u;
+
+	GSceneDetails::GSceneDetails(Scene* scene) : GScene(scene)
+	{
+		std::vector<int> grid_size = config::GetIntArrayConfig("SHADER_ENGINE_SETTINGS", "DDGI_GRID");
+		if (grid_size.size() == 3)
+		{
+			ddgi.gridDimensions = uint3(grid_size[0], grid_size[1], grid_size[2]);
+		}
+	}
 
 	GScene* NewGScene(Scene* scene)
 	{
@@ -1289,14 +1299,15 @@ namespace vz
 				device->CreateTexture(&tex, &initdata, &ddgi.depthTexture);
 				device->SetName(&ddgi.depthTexture, "ddgi.depthTexture");
 			}
-			float3 grid_min = bounds.getMin();
-			grid_min.x -= 1;
-			grid_min.y -= 1;
-			grid_min.z -= 1;
-			float3 grid_max = bounds.getMax();
-			grid_max.x += 1;
-			grid_max.y += 1;
-			grid_max.z += 1;
+			XMFLOAT3 grid_min = bounds.getMin();
+			XMFLOAT3 bound_width = bounds.getWidth();
+			grid_min.x -= bound_width.x * 0.05f;
+			grid_min.y -= bound_width.y * 0.05f;
+			grid_min.z -= bound_width.z * 0.05f;
+			XMFLOAT3 grid_max = bounds.getMax();
+			grid_max.x += bound_width.x * 0.05f;
+			grid_max.y += bound_width.y * 0.05f;
+			grid_max.z += bound_width.z * 0.05f;
 			float bounds_blend = 0.01f;
 			const float area = AABB(ddgi.gridMin, ddgi.gridMax).getArea();
 			if (ddgi.frameIndex == 0 || area < 0.001f)
@@ -1641,5 +1652,39 @@ namespace vz
 	}
 	void GSceneDetails::Debug_AddCircle(const XMFLOAT3 p, const float r, const XMFLOAT4 color, const bool depthTest) const
 	{
+	}
+
+
+	constexpr size_t FNV1aHash(std::string_view str, size_t hash = 14695981039346656037ULL) {
+		for (char c : str) {
+			hash ^= static_cast<size_t>(c);
+			hash *= 1099511628211ULL;
+		}
+		return hash;
+	}
+	constexpr static size_t SCENE_OPTION_DDGI_GRID = FNV1aHash("DDGI_GRID");
+	bool GSceneDetails::SetOptionEnabled(const std::string& optionName, const bool enabled)
+	{
+		vzlog_error("Invalid RenderPath Option Name! (%s)", optionName.c_str());
+		return false;
+	}
+	bool GSceneDetails::SetOptionValueArray(const std::string& optionName, const std::vector<float>& values)
+	{
+		size_t hash_option = FNV1aHash(optionName);
+		switch (hash_option)
+		{
+		case SCENE_OPTION_DDGI_GRID:
+			if (values.size() == 3)
+			{
+				ddgi = {};
+				ddgi.gridDimensions.x = (uint)values[0];
+				ddgi.gridDimensions.y = (uint)values[1];
+				ddgi.gridDimensions.z = (uint)values[2];
+				return true;
+			}
+			break;
+		}
+		vzlog_error("Invalid RenderPath Option Name! (%s)", optionName.c_str());
+		return false;
 	}
 }

@@ -2314,6 +2314,11 @@ namespace vz::renderer
 
 		return true;
 	}
+	bool GRenderPath3DDetails::SetOptionValueArray(const std::string& optionName, const std::vector<float>& values) 
+	{
+		vzlog_error("Invalid RenderPath Option Name! (%s)", optionName.c_str());
+		return false;
+	}
 
 	bool GRenderPath3DDetails::Destroy()
 	{

@@ -208,6 +208,5 @@ namespace vz::renderer
 
 		profiler::EndRange(prof_range);
 		device->EventEnd(cmd);
-		/**/
 	}
 }

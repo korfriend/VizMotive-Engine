@@ -787,18 +787,6 @@ namespace vz
 			timeStampSetter_ = TimerNow;
 
 			// others will be updated via Update()
-
-			//removeEntityLinearArray(lookupTransforms_, transforms_, std::vector<ComponentBase*>(), entity);
-			//removeEntityLinearArray(DOWNCAST->lookupRenderables, renderables_, renderableMeshComponents, entity);
-			//removeEntityLinearArray(DOWNCAST->lookupLights, lights_, lightComponents, entity);
-			//removeEntityLinearArray(DOWNCAST->lookupCameras, cameras_, cameraComponents, entity);
-			//removeEntityLinearArray(DOWNCAST->lookupMeshRenderables, std::vector<Entity>(), renderableMeshComponents, entity);
-			//removeEntityLinearArray(DOWNCAST->lookupVolumeRenderables, std::vector<Entity>(), renderableVolumeComponents, entity);
-			//removeEntityLinearArray(DOWNCAST->lookupGSplatRenderables, std::vector<Entity>(), renderableGSplatComponents, entity);
-			//removeEntityLinearArray(DOWNCAST->lookupSpriteRenderables, std::vector<Entity>(), renderableSpriteComponents, entity);
-			//removeEntityLinearArray(DOWNCAST->lookupSpritefontRenderables, std::vector<Entity>(), renderableSpritefontComponents, entity);
-			//removeEntityLinearArray(DOWNCAST->lookupChildren, children_, std::vector<ComponentBase*>(), entity);
-			//timeStampSetter_ = TimerNow;
 		}
 
 		void scanResourceEntities()
@@ -1012,6 +1000,8 @@ namespace vz
 				isContentChanged_ |= TimeDurationCount(env->GetTimeStamp(), recentUpdateTime_) > 0;
 			}
 
+			isContentChanged_ |= TimeDurationCount(timeStampSetter_, recentUpdateTime_) > 0;
+
 			// ?? only when isContentChanged_?
 			sceneShader->Update(dt);
 
@@ -1057,6 +1047,17 @@ namespace vz
 		void Debug_AddCircle(const XMFLOAT3 p, const float r, const XMFLOAT4 color, const bool depthTest) const override
 		{
 			sceneShader->Debug_AddCircle(p, r, color, depthTest);
+		}
+
+		void SetOptionEnabled(const std::string& optionName, const bool enabled) override
+		{
+			sceneShader->SetOptionEnabled(optionName, enabled);
+			timeStampSetter_ = TimerNow;
+		}
+		void SetOptionValueArray(const std::string& optionName, const std::vector<float>& values) override
+		{
+			sceneShader->SetOptionValueArray(optionName, values);
+			timeStampSetter_ = TimerNow;
 		}
 	};
 }

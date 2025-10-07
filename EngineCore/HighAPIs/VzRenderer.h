@@ -87,6 +87,7 @@ namespace vzm
 		void ShowDebugBuffer(const std::string& debugMode = "NONE");
 		// general rendering options and debug options (DEBUG SHAPES)
 		void SetRenderOptionEnabled(const std::string& optionName, const bool enabled);
+		void SetRenderOptionValueArray(const std::string& optionName, const std::vector<float>& values);
 	};
 
 	using ActorFilter = VzRenderer::ActorFilter;

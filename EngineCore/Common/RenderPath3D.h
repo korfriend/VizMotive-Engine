@@ -68,6 +68,7 @@ namespace vz
 
 		void ShowDebugBuffer(const std::string& debugMode = "NONE");
 		void SetRenderOptionEnabled(const std::string& optionName, const bool enabled);
+		void SetRenderOptionValueArray(const std::string& optionName, const std::vector<float>& values);
 
 		geometrics::Ray GetPickRay(float screenX, float screenY, const CameraComponent& camera);
 	};

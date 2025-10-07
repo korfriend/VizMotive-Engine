@@ -1658,8 +1658,11 @@ namespace vz
 				Primitive& primitive = parts_[part_index];
 
 				Primitive::Subset subset = primitive.GetSubset(lod);
-				vzlog_assert(subset.indexCount > 0, "Invalid geometry subset!");
-
+				if (subset.indexCount == 0)
+				{
+					//vzlog_assert(subset.indexCount > 0, "Invalid geometry subset!");
+					vzlog_warning("Geometry has no Subset (maybe... update is Not called!");
+				}
 
 				GPrimBuffers& part_buffers = *GetGPrimBuffer(part_index);
 

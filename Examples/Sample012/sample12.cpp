@@ -155,6 +155,7 @@ int main(int, char**)
 		light->SetIntensity(5.f);
 		light->EnableCastShadow(true);
 		light->SetEulerAngleZXYInDegree({ 0, -90, 0 });
+		light->SetCascadeShadowMapDistances({ 8, 80, 800 });
 		scene->AppendChild(light);
 
 		renderer = NewRenderer("my renderer");
