@@ -2283,6 +2283,7 @@ namespace vz::renderer
 		}
 		return hash;
 	}
+
 	constexpr static size_t LIGHT_VISUALIZER_ENABLED = FNV1aHash("LIGHT_VISUALIZER_ENABLED");
 	constexpr static size_t DEBUG_LIGHT_CULLING = FNV1aHash("DEBUG_LIGHT_CULLING");
 	constexpr static size_t DEBUG_CAMERAS = FNV1aHash("DEBUG_CAMERAS");

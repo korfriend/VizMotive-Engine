@@ -156,12 +156,12 @@ int main(int, char**)
 		VzActor* plane1 = vzm::LoadModelFile("../Assets/models/cube/cube.obj");
 
 		VzGeometry* box_geo = vzm::NewGeometry("Box floor");
-		vz::geogen::GenerateBoxGeometry(box_geo->GetVID());
+		vz::geogen::GenerateBoxGeometry(box_geo->GetVID(), 1.f, 1.f, 1.f, 100, 100, 100);
 		VzMaterial* planeMaterial = vzm::NewMaterial("plane_material");
 		VzActor* plane = vzm::NewActorStaticMesh("Box floor actor", box_geo->GetVID(), planeMaterial->GetVID());
 
-		plane->SetScale({ 3.f, 0.1f, 3.f });
-		plane->SetPosition({ 0.f, 0.f, 0.f });
+		plane->SetScale({ 5.f, 0.3f, 5.f });
+		plane->SetPosition({ 0.f, -1.f, 0.f });
 		plane->SetVisibleLayerMask(0x4, true);
 		scene->AppendChild(plane);
 
@@ -169,9 +169,13 @@ int main(int, char**)
 		std::mt19937 gen(rd());
 		std::uniform_real_distribution<float> dist_x(-1.f, 1.f);
 		std::uniform_real_distribution<float> dist_y(0.5f, 2.f);
-		std::uniform_real_distribution<float> dist_y2(0.0f, 1.f);
 		std::uniform_real_distribution<float> dist_z(-1.f, 1.f);
 		std::uniform_real_distribution<float> dist_color(0.0f, 1.0f);
+
+		std::uniform_real_distribution<float> dist_x2(-3.f, 3.f);
+		std::uniform_real_distribution<float> dist_y2(-0.5f, 1.f);
+		std::uniform_real_distribution<float> dist_z2(-3.f, 3.f);
+
 		const float lightRange = 1.0f;
 		VzGeometry* sphereGeometry = vzm::NewGeometry("sphere_geometry");
 		VzMaterial* sphereMaterial = vzm::NewMaterial("sphere_material");
@@ -186,7 +190,6 @@ int main(int, char**)
 		axis_helper->SetScale({ 1, 1, 1 });
 		axis_helper->SetVisibleLayerMask(0xF, true);
 		scene->AppendChild(axis_helper);
-		//std::vector<ActorVID> axis_helper_children = axis_helper->GetChildren();
 
 		vzm::VzActor* axis_helper_light = vzm::LoadModelFile("../Assets/axis.obj");
 		std::vector<ActorVID> axis_helper_children = axis_helper_light->GetChildren();
@@ -199,10 +202,10 @@ int main(int, char**)
 				sphereGeometry->GetVID(),
 				sphereMaterial->GetVID()
 			);
-			float x = dist_x(gen);
+			float x = dist_x2(gen);
 			float y = dist_y2(gen);
-			float z = dist_z(gen);
-			sphere->SetScale({3, 3, 3});
+			float z = dist_z2(gen);
+			sphere->SetScale({5, 5, 5});
 			sphere->SetPosition({ x, y, z });
 			sphere->SetVisibleLayerMask(0x1, true);
 			scene->AppendChild(sphere);
@@ -405,6 +408,7 @@ int main(int, char**)
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->EnableVisualizer(light_visualizer);
 					}
+					renderer->SetRenderOptionEnabled("LIGHT_VISUALIZER_ENABLED", light_visualizer);
 				}
 				if (ImGui::SliderFloat("Light Radius", &light_radius, 0.01f, 1.f))
 				{
@@ -454,6 +458,14 @@ int main(int, char**)
 				{
 					vzm::ParamMap<std::string> config_options;
 					config_options.SetParam("TEMPORAL_AA", TAA_enabled);
+					vzm::SetConfigure(config_options);
+				}
+
+				static bool ddgi_enabled = vz::config::GetBoolConfig("SHADER_ENGINE_SETTINGS", "DDGI_ENABLED");
+				if (ImGui::Checkbox("DDGI", &ddgi_enabled))
+				{
+					vzm::ParamMap<std::string> config_options;
+					config_options.SetParam("DDGI_ENABLED", ddgi_enabled);
 					vzm::SetConfigure(config_options);
 				}
 

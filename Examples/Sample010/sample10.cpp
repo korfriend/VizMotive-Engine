@@ -393,6 +393,7 @@ int main(int, char **)
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->EnableVisualizer(light_visualizer);
 					}
+					renderer->SetRenderOptionEnabled("LIGHT_VISUALIZER_ENABLED", light_visualizer);
 				}
 				if (ImGui::SliderFloat("Light Radius", &light_radius, 1.f, 30.f))
 				{
