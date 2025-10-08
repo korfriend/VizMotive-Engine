@@ -139,7 +139,8 @@ int main(int, char**)
 	VzScene* scene = nullptr;
 	VzCamera* camera = nullptr;
 	VzRenderer* renderer = nullptr;
-	const int NUM_RANDOM_OBJS = 10;
+	const int NUM_RANDOM_LIGHTS = 5;
+	const int NUM_RANDOM_OBJS = 5;
 	const int LIGHT_TYPE = 0;
 
 	{
@@ -152,8 +153,14 @@ int main(int, char**)
 		camera->SetWorldPose(__FC3 pos, __FC3 view, __FC3 up);
 		camera->SetPerspectiveProjection(0.01f, 50.f, 60.f, 1.f);
 
-		VzActor* plane = vzm::LoadModelFile("../Assets/models/cube/cube.obj");
-		plane->SetScale({ 3.f, 0.01f, 3.f });
+		VzActor* plane1 = vzm::LoadModelFile("../Assets/models/cube/cube.obj");
+
+		VzGeometry* box_geo = vzm::NewGeometry("Box floor");
+		vz::geogen::GenerateBoxGeometry(box_geo->GetVID());
+		VzMaterial* planeMaterial = vzm::NewMaterial("plane_material");
+		VzActor* plane = vzm::NewActorStaticMesh("Box floor actor", box_geo->GetVID(), planeMaterial->GetVID());
+
+		plane->SetScale({ 3.f, 0.1f, 3.f });
 		plane->SetPosition({ 0.f, 0.f, 0.f });
 		plane->SetVisibleLayerMask(0x4, true);
 		scene->AppendChild(plane);
@@ -161,13 +168,14 @@ int main(int, char**)
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_real_distribution<float> dist_x(-1.f, 1.f);
-		std::uniform_real_distribution<float> dist_y(0.2f, 2.f);
+		std::uniform_real_distribution<float> dist_y(0.5f, 2.f);
+		std::uniform_real_distribution<float> dist_y2(0.0f, 1.f);
 		std::uniform_real_distribution<float> dist_z(-1.f, 1.f);
 		std::uniform_real_distribution<float> dist_color(0.0f, 1.0f);
 		const float lightRange = 1.0f;
 		VzGeometry* sphereGeometry = vzm::NewGeometry("sphere_geometry");
 		VzMaterial* sphereMaterial = vzm::NewMaterial("sphere_material");
-		sphereMaterial->SetBaseColor({ 0.8f, 0.8f, 0.8f, 1.0f }); // ���� ȸ��  
+		sphereMaterial->SetBaseColor({ 0.8f, 0.8f, 0.8f, 1.0f });
 		vz::geogen::GenerateIcosahedronGeometry(
 			sphereGeometry->GetVID(),
 			0.1f,    // radius    
@@ -192,12 +200,16 @@ int main(int, char**)
 				sphereMaterial->GetVID()
 			);
 			float x = dist_x(gen);
-			float y = dist_y(gen);
+			float y = dist_y2(gen);
 			float z = dist_z(gen);
+			sphere->SetScale({3, 3, 3});
 			sphere->SetPosition({ x, y, z });
 			sphere->SetVisibleLayerMask(0x1, true);
 			scene->AppendChild(sphere);
+		}
 
+		for (int idx = 0; idx < NUM_RANDOM_LIGHTS; ++idx)
+		{
 			VzLight* light = vzm::NewLight("light_" + std::to_string(idx));
 			light->SetLightType(LIGHT_TYPE == 0 ? VzLight::LightType::POINT : VzLight::LightType::SPOT);
 			float lx = dist_x(gen);
@@ -388,7 +400,7 @@ int main(int, char**)
 				static float light_intensity = 5.f;
 				if (ImGui::Checkbox("Light Visualizer", &light_visualizer))
 				{
-					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					for (int idx = 0; idx < NUM_RANDOM_LIGHTS; ++idx)
 					{
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->EnableVisualizer(light_visualizer);
@@ -396,7 +408,7 @@ int main(int, char**)
 				}
 				if (ImGui::SliderFloat("Light Radius", &light_radius, 0.01f, 1.f))
 				{
-					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					for (int idx = 0; idx < NUM_RANDOM_LIGHTS; ++idx)
 					{
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->SetRadius(light_radius);
@@ -404,7 +416,7 @@ int main(int, char**)
 				}
 				if (ImGui::SliderFloat("Light Intensity", &light_intensity, 0.1f, 10.f))
 				{
-					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					for (int idx = 0; idx < NUM_RANDOM_LIGHTS; ++idx)
 					{
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->SetIntensity(light_intensity);
@@ -412,7 +424,7 @@ int main(int, char**)
 				}
 				if (ImGui::SliderFloat("Light Range", &light_range, 0.1f, 10.f))
 				{
-					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					for (int idx = 0; idx < NUM_RANDOM_LIGHTS; ++idx)
 					{
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->SetRange(light_range);
@@ -424,7 +436,7 @@ int main(int, char**)
 				if (ltype_prev != ltype)
 				{
 					ltype_prev = ltype;
-					for (int idx = 0; idx < NUM_RANDOM_OBJS; ++idx)
+					for (int idx = 0; idx < NUM_RANDOM_LIGHTS; ++idx)
 					{
 						VzLight* light = (VzLight*)vzm::GetFirstComponentByName("light_" + std::to_string(idx));
 						light->SetLightType(ltype == 0 ? VzLight::LightType::POINT : VzLight::LightType::SPOT);

@@ -656,7 +656,6 @@ namespace vz
 
 		renderer::isDebugShapeEnabled = config::GetBoolConfig("DEBUG_SETTINGS", "DEBUG_SHAPE");
 		renderer::isDebugShapeCleanStart = config::GetBoolConfig("DEBUG_SETTINGS", "DEBUG_SHAPE_CLEAN_START");
-
 		return true;
 	}
 

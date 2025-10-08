@@ -221,21 +221,24 @@ half3 ddgi_sample_irradiance(in float3 P, in half3 N, inout half3 out_dominant_l
 				//float2 tex_coord = texture_coord_from_direction(-dir, p, ddgi.depth_texture_width, ddgi.depth_texture_height, ddgi.depth_probe_side_length);
 				float2 tex_coord = ddgi_probe_depth_uv(probe_grid_coord, -dir);
 
-				half dist_to_probe = length(probe_to_point);
-
 				//float2 temp = textureLod(depth_texture, tex_coord, 0.0f).rg;
 				half2 temp = bindless_textures_half4[descriptor_index(GetScene().ddgi.depth_texture)].SampleLevel(sampler_linear_clamp, tex_coord, 0).xy;
-				half mean = temp.x;
 				half variance = abs(sqr(temp.x) - temp.y);
 
-				// http://www.punkuser.net/vsm/vsm_paper.pdf; equation 5
-				// Need the max in the denominator because biasing can cause a negative displacement
-				half chebyshev_weight = variance / (variance + sqr(max(dist_to_probe - mean, 0.0)));
+				if (variance > 0.001)
+				{
+					half dist_to_probe = length(probe_to_point);
+					half mean = temp.x;
 
-				// Increase contrast in the weight 
-				chebyshev_weight = max(pow(chebyshev_weight, 3), 0.0);
+					// http://www.punkuser.net/vsm/vsm_paper.pdf; equation 5
+					// Need the max in the denominator because biasing can cause a negative displacement
+					half chebyshev_weight = variance / (variance + sqr(max(dist_to_probe - mean, 0.0)));
 
-				weight *= (dist_to_probe <= mean) ? 1.0 : chebyshev_weight;
+					// Increase contrast in the weight 
+					chebyshev_weight = max(pow(chebyshev_weight, 3), 0.0);
+
+					weight *= (dist_to_probe <= mean) ? 1.0 : chebyshev_weight;
+				}
 			}
 #endif
 
