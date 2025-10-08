@@ -397,7 +397,7 @@ namespace vzm
 			file.close();
 			vzlog_error("The configue file (%s) does NOT exist, so create new config file!", configFilename.c_str());
 		}
-		assert(configFile.Open(configFilename.c_str()));
+		vzlog_assert(configFile.Open(configFilename.c_str()), "Config file open Failure!");
 
 		// COMMON OPTIONS //
 		// RENDERING OPTIONS //
