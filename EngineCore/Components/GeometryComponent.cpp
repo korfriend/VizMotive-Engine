@@ -1083,16 +1083,20 @@ namespace vz
 	{
 		if (parts_.size() == 0)
 		{
+			NameComponent* name = compfactory::GetNameComponent(entity_);
+			vzlog_warning("UpdateRenderData >> No Part ! (%s)", name->GetName().c_str());
 			return;
 		}
 
-		//std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
-		std::unique_lock<std::recursive_mutex> lock(vzm::GetEngineMutex(), std::try_to_lock);
-		if (!lock.owns_lock()) {
-			return;
-		}
+		std::lock_guard<std::recursive_mutex> lock(vzm::GetEngineMutex());
+		//std::unique_lock<std::recursive_mutex> lock(vzm::GetEngineMutex(), std::try_to_lock);
+		//if (!lock.owns_lock()) {
+		//	NameComponent* name = compfactory::GetNameComponent(entity_);
+		//	vzlog_warning("UpdateRenderData >> already called!! (%s)", name->GetName().c_str());
+		//	return;
+		//}
 
-		DeleteRenderData();
+		 DeleteRenderData();
 
 		if (isDirty_)
 		{
@@ -1632,6 +1636,8 @@ namespace vz
 	{
 		if (!hasRenderData_)
 		{
+			NameComponent* name = compfactory::GetNameComponent(entity_);
+			vzlog_warning("UpdateRayTracingRenderData >> Update! (%s)", name->GetName().c_str());
 			UpdateRenderData();
 		}
 
@@ -1661,7 +1667,9 @@ namespace vz
 				if (subset.indexCount == 0)
 				{
 					//vzlog_assert(subset.indexCount > 0, "Invalid geometry subset!");
-					vzlog_warning("Geometry has no Subset (maybe... update is Not called!");
+					NameComponent* name = compfactory::GetNameComponent(entity_);
+					vzlog_warning("Geometry(%s) has no Subset (maybe... update is Not called!)", name->GetName().c_str());
+					continue;
 				}
 
 				GPrimBuffers& part_buffers = *GetGPrimBuffer(part_index);
