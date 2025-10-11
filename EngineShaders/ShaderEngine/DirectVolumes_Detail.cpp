@@ -173,11 +173,7 @@ namespace vz::renderer
 			};
 
 		auto range_1 = profiler::BeginRangeGPU("Slicer Ray-Processing", &cmd);
-		// The following loop is writing the instancing batches to a GPUBuffer:
-		//	RenderQueue is sorted based on mesh index, so when a new mesh or stencil request is encountered, we need to flush the batch
-		//	Imagine a scenario:
-		//		* tens of sphere-shaped renderables (actors) that have the same sphere geoemtry
-		//		* multiple draw calls of the renderables vs. a single drawing of multiple instances (composed of spheres)
+		// each batch must rendered separately (compared to mesh renderer (instance batch for sharing shapes) :
 		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
 		{
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
@@ -192,21 +188,13 @@ namespace vz::renderer
 			const AABB& instanceAABB = renderable.GetAABB();
 			const uint8_t lod = batch.lod_override == 0xFF ? (uint8_t)renderable.lod : batch.lod_override;
 
-			// When we encounter a new mesh inside the global instance array, we begin a new RenderBatch:
-			if (geometry_index != instancedBatch.geometryIndex ||
-				lod != instancedBatch.lod
-				)
-			{
-				BatchDrawingFlush();
-
-				instancedBatch = {};
-				//instancedBatch.userStencilRefOverride = userStencilRefOverride;
-				instancedBatch.geometryIndex = geometry_index;
-				instancedBatch.renderableIndex = renderable_index;
-				instancedBatch.forceAlphatestForDithering = 0;
-				instancedBatch.aabb = AABB();
-				instancedBatch.lod = lod;
-			}
+			instancedBatch = {};
+			//instancedBatch.userStencilRefOverride = userStencilRefOverride;
+			instancedBatch.geometryIndex = geometry_index;
+			instancedBatch.renderableIndex = renderable_index;
+			instancedBatch.forceAlphatestForDithering = 0;
+			instancedBatch.aabb = AABB();
+			instancedBatch.lod = lod;
 
 			const float dither = std::max(0.0f, batch.GetDistance() - renderable.GetFadeDistance()) / renderable.GetVisibleRadius();
 			if (dither > 0.99f)
@@ -217,8 +205,8 @@ namespace vz::renderer
 			{
 				instancedBatch.forceAlphatestForDithering = 1;
 			}
+			BatchDrawingFlush();
 		}
-		BatchDrawingFlush();
 		profiler::EndRange(range_1);
 
 		if (slicer_thickness > 0)
@@ -356,7 +344,7 @@ namespace vz::renderer
 			VolumePushConstants volume_push;
 			{
 				const XMFLOAT3& vox_size = volume->GetVoxelSize();
-				volume_push.instanceIndex = batch.instanceIndex;
+				volume_push.instanceIndex = batch.renderableIndex;
 				volume_push.sculptStep = -1;
 				volume_push.opacity_correction = 1.f;
 				volume_push.main_visible_min_sample = tableValidBeginEndRatioX.x;

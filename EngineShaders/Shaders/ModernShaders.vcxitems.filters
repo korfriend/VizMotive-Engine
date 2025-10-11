@@ -141,7 +141,7 @@
     <None Include="$(MSBuildThisFileDirectory)CommonHF\shadingHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)CommonHF\objectRayHF.hlsli">
+    <None Include="$(MSBuildThisFileDirectory)CommonHF\slicerRayHF.hlsli">
       <Filter>CommonHF</Filter>
     </None>
     <None Include="$(MSBuildThisFileDirectory)CommonHF\zfragmentHF.hlsli">
@@ -656,12 +656,6 @@
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS_sky_static.hlsl">
-      <Filter>Raster-Pipeline Shaders\PS</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS_basic.hlsl">
-      <Filter>Raster-Pipeline Shaders\PS</Filter>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)PS\envMapPS_advanced.hlsl">
       <Filter>Raster-Pipeline Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)CS\filterEnvMapCS.hlsl">

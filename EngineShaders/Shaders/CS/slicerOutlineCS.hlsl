@@ -1,5 +1,5 @@
 #include "../Globals.hlsli"
-#include "../CommonHF/objectRayHF.hlsli"
+#include "../CommonHF/slicerRayHF.hlsli"
 #define K_NUM 2
 #include "../CommonHF/kbufferHF.hlsli"
 

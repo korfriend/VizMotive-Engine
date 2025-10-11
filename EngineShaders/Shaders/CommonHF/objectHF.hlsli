@@ -55,6 +55,8 @@ inline ShaderGeometry GetMesh()
 }
 inline ShaderMaterial GetMaterial()
 {
+	// we support instances which have different materials
+	// ref. [renderer.cpp] device->DrawIndexedInstanced(part.GetNumIndices(), instancedBatch.instanceCount, 0, 0, 0, cmd);
 	return load_material(push.materialIndex);
 }
 

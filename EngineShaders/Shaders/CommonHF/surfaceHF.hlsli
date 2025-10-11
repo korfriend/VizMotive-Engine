@@ -365,7 +365,7 @@ struct Surface
 
 		return true;
 	}
-	void load_internal(uint flatTileIndex = 0)
+	void load_internal(uint flatTileIndex = 0)	// note that preload_internal is called prior to this
 	{
 		SamplerState sam = bindless_samplers[NonUniformResourceIndex(descriptor_index(material.sampler_descriptor))];
 		
@@ -435,13 +435,13 @@ struct Surface
 			const float lod_uvset1 = compute_texture_lod(65536, 65536, lod_constant1, ray_direction, surf_normal, cone_width);
 			const uint resolution0 = 65536u >> uint(max(0, lod_uvset0));
 			const uint resolution1 = 65536u >> uint(max(0, lod_uvset1));
-			write_mipmap_feedback(geometry.materialIndex, resolution0, resolution1);
+			write_mipmap_feedback(instResLookup.materialIndex, resolution0, resolution1);
 #endif // SURFACE_LOAD_MIPCONE
 
 #ifdef SURFACE_LOAD_QUAD_DERIVATIVES
 			uvsets_dx = uvsets - attribute_at_bary(uv0, uv1, uv2, bary_quad_x);
 			uvsets_dy = uvsets - attribute_at_bary(uv0, uv1, uv2, bary_quad_y);
-			write_mipmap_feedback(geometry.materialIndex, uvsets_dx, uvsets_dy);
+			write_mipmap_feedback(instResLookup.materialIndex, uvsets_dx, uvsets_dy);
 #endif // SURFACE_LOAD_QUAD_DERIVATIVES
 		}
 
