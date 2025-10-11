@@ -245,6 +245,8 @@ namespace vz::renderer
 	struct InstancedBatch
 	{
 		uint32_t geometryIndex = ~0u;
+		uint32_t partIndex = ~0u;
+		uint32_t materialIndex = ~0u;
 		uint32_t renderableIndex = ~0u;
 		uint32_t instanceCount = 0;
 		uint32_t dataOffset = 0;
@@ -286,18 +288,23 @@ namespace vz::renderer
 	// Direct reference to a renderable instance:
 	struct RenderBatch
 	{
-		uint32_t geometryIndex; // used for sort
-		uint32_t instanceIndex;	// renderable index
-		uint16_t distance;
+		uint32_t geometryIndex; // geometry index used for sort
+		uint32_t partIndex;
+		uint32_t materialIndex; // material index used for sort
+		uint32_t renderableIndex;	// renderable index
+		uint32_t distance;
 		uint8_t camera_mask;
 		uint8_t lod_override; // if overriding the base object LOD is needed, specify less than 0xFF in this
 		uint32_t sort_bits; // an additional bitmask for sorting only, it should be used to reduce pipeline changes
 
-		inline void Create(uint32_t geometryIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint8_t camera_mask = 0xFF, uint8_t lod_override = 0xFF)
+		inline void Create(uint32_t geometryIndex, uint32_t partIndex, uint32_t materialIndex, uint32_t renderableIndex, float distance, uint32_t sort_bits, uint8_t camera_mask = 0xFF, uint8_t lod_override = 0xFF)
 		{
 			this->geometryIndex = geometryIndex;
-			this->instanceIndex = instanceIndex;
-			this->distance = XMConvertFloatToHalf(distance);
+			this->partIndex = partIndex;
+			this->materialIndex = materialIndex;
+			this->renderableIndex = renderableIndex;
+			assert(distance >= 0);
+			this->distance = *(uint32_t*)&distance; // XMConvertFloatToHalf(distance);
 			this->sort_bits = sort_bits;
 			this->camera_mask = camera_mask;
 			this->lod_override = lod_override;
@@ -310,9 +317,17 @@ namespace vz::renderer
 		{
 			return geometryIndex;
 		}
+		constexpr uint32_t GetPartIndex() const
+		{
+			return partIndex;
+		}
+		constexpr uint32_t GetMaterialIndex() const
+		{
+			return materialIndex;
+		}
 		constexpr uint32_t GetRenderableIndex() const
 		{
-			return instanceIndex;
+			return renderableIndex;
 		}
 
 		// opaque sorting
@@ -320,60 +335,62 @@ namespace vz::renderer
 		//	distance is second priority (front to back Z-buffering)
 		constexpr bool operator<(const RenderBatch& other) const
 		{
-			union SortKey
+			struct SortKey
 			{
-				struct
+				uint64_t low;
+				uint64_t high;
+				constexpr bool operator<(const SortKey& o) const
 				{
-					// The order of members is important here, it means the sort priority (low to high)!
-					uint64_t distance : 16;
-					uint64_t meshIndex : 16;
-					uint64_t sort_bits : 32;
-				} bits;
-				uint64_t value;
+					if (high != o.high) return high < o.high;
+					return low < o.low;
+				}
 			};
-			static_assert(sizeof(SortKey) == sizeof(uint64_t));
+
+			// Layout (low to high priority):                                             
+			// low:  distance(32) | materialIndex(32)                   
+			// high: partIndex(8) | meshIndex(24) | sort_bits(32)                                        
 			SortKey a = {};
-			a.bits.distance = distance;
-			a.bits.meshIndex = geometryIndex;
-			a.bits.sort_bits = sort_bits;
+			a.low = (uint64_t)distance | ((uint64_t)materialIndex << 32);
+			a.high = (uint64_t)((partIndex & 0xFF) | ((uint32_t)geometryIndex << 8)) | ((uint64_t)sort_bits << 32);
+
 			SortKey b = {};
-			b.bits.distance = other.distance;
-			b.bits.meshIndex = other.geometryIndex;
-			b.bits.sort_bits = other.sort_bits;
-			return a.value < b.value;
+			b.low = (uint64_t)other.distance | ((uint64_t)other.materialIndex << 32);
+			b.high = (uint64_t)((partIndex & 0xFF) | ((uint32_t)geometryIndex << 8)) | ((uint64_t)sort_bits << 32);
+
+			return a < b;
 		}
 		// transparent sorting
 		//	Priority is distance for correct alpha blending (back to front rendering)
 		//	mesh index is second priority for instancing
 		constexpr bool operator>(const RenderBatch& other) const
 		{
-			union SortKey
+			struct SortKey
 			{
-				struct
+				uint64_t low;
+				uint64_t high;
+				constexpr bool operator>(const SortKey& o) const
 				{
-					// The order of members is important here, it means the sort priority (low to high)!
-					uint64_t meshIndex : 16;
-					uint64_t sort_bits : 32;
-					uint64_t distance : 16;
-				} bits;
-				uint64_t value;
+					if (high != o.high) return high > o.high;
+					return low > o.low;
+				}
 			};
-			static_assert(sizeof(SortKey) == sizeof(uint64_t));
+
+			// Layout (low to high priority):                                             
+			// low:  distance(32) | materialIndex(32)                   
+			// high: partIndex(8) | meshIndex(24) | sort_bits(32)                                        
 			SortKey a = {};
-			a.bits.distance = distance;
-			a.bits.sort_bits = sort_bits;
-			a.bits.meshIndex = geometryIndex;
+			a.low = (uint64_t)distance | ((uint64_t)materialIndex << 32);
+			a.high = (uint64_t)((partIndex & 0xFF) | ((uint32_t)geometryIndex << 8)) | ((uint64_t)sort_bits << 32);
+
 			SortKey b = {};
-			b.bits.distance = other.distance;
-			b.bits.sort_bits = other.sort_bits;
-			b.bits.meshIndex = other.geometryIndex;
-			return a.value > b.value;
+			b.low = (uint64_t)other.distance | ((uint64_t)other.materialIndex << 32);
+			b.high = (uint64_t)((partIndex & 0xFF) | ((uint32_t)geometryIndex << 8)) | ((uint64_t)sort_bits << 32);
+
+			return a > b;
 		}
 	};
 
-	static_assert(sizeof(RenderBatch) == 16ull);
-
-	struct RenderQueue
+	struct RenderQueue	// for each draw call (e.g., each part of a geometry)
 	{
 		std::vector<RenderBatch> batches;
 
@@ -381,9 +398,9 @@ namespace vz::renderer
 		{
 			batches.clear();
 		}
-		inline void add(uint32_t geometryIndex, uint32_t instanceIndex, float distance, uint32_t sort_bits, uint8_t camera_mask = 0xFF, uint8_t lod_override = 0xFF)
+		inline void add(uint32_t geometryIndex, uint32_t partIndex, uint32_t materialIndex, uint32_t renderableIndex, float distance, uint32_t sort_bits, uint8_t camera_mask = 0xFF, uint8_t lod_override = 0xFF)
 		{
-			batches.emplace_back().Create(geometryIndex, instanceIndex, distance, sort_bits, camera_mask, lod_override);
+			batches.emplace_back().Create(geometryIndex, partIndex, materialIndex, renderableIndex, distance, sort_bits, camera_mask, lod_override);
 		}
 		inline void add(const RenderBatch& batch)
 		{

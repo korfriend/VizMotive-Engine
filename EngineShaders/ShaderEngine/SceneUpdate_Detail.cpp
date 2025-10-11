@@ -575,6 +575,7 @@ namespace vz
 					ShaderInstanceResLookup inst_res_lookup;
 					inst_res_lookup.Init();
 					inst_res_lookup.materialIndex = material.materialIndex;
+
 					if (hasBufferEffect)
 					{
 						GPrimEffectBuffers& effect_buffers = renderable.bufferEffects[shader_index];

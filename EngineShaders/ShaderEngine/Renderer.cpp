@@ -337,7 +337,19 @@ namespace vz::renderer
 				if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 					continue;
 
-				renderQueue.add(renderable.geometry->geometryIndex, instanceIndex, distance, renderable.sortBits);
+				GGeometryComponent& geometry = *renderable.geometry;
+				const std::vector<Primitive>& parts = geometry.GetPrimitives();
+				assert(parts.size() == renderable.materials.size());
+				for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
+				{
+					const Primitive& part = parts[part_index];
+					if (!part.HasRenderData())
+					{
+						continue;
+					}
+					GMaterialComponent& material = *renderable.materials[part_index];
+					renderQueue.add(geometry.geometryIndex, part_index, material.materialIndex, instanceIndex, distance, renderable.sortBits);
+				}
 			}
 			if (!renderQueue.empty())
 			{
@@ -415,26 +427,20 @@ namespace vz::renderer
 		const int instanceBufferDescriptorIndex = device->GetDescriptorIndex(&instances.buffer, SubresourceType::SRV);
 
 		InstancedBatch instancedBatch = {};
-
 		uint32_t prev_stencilref = SCU32(StencilRef::STENCILREF_DEFAULT);
 		device->BindStencilRef(prev_stencilref, cmd);
 
 		const GPUBuffer* prev_ib = nullptr;
 
 		// This will be called every time we start a new draw call:
-		//	calls draw per a geometry part
+		//	calls draw per A geometry part
 		auto BatchDrawingFlush = [&]()
 			{
 				if (instancedBatch.instanceCount == 0)
 					return;
 
-				//if (!geometry.HasRenderData())
-				//{
-				//	return;
-				//}
-
 				GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[instancedBatch.renderableIndex];
-				GGeometryComponent& geometry = *renderable.geometry;
+				GGeometryComponent& geometry = *renderable.geometry; // the same to scene_Gdetails->geometryComponents[instancedBatch.geometryIndex];
 
 				bool forceAlphaTestForDithering = instancedBatch.forceAlphatestForDithering != 0;
 
@@ -451,23 +457,10 @@ namespace vz::renderer
 				}
 
 				// Note: geometries and materials are scanned resources from the scene.	
-
-				const std::vector<Primitive>& parts = geometry.GetPrimitives();
-				assert(parts.size() == renderable.materials.size());
-				for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 				{
-					const Primitive& part = parts[part_index];
-					const GMaterialComponent& material = *renderable.materials[part_index];
-
-					if (!part.HasRenderData())
-					{
-						//if (renderPass == RENDERPASS_MAIN)
-						//{
-						//	XMFLOAT4X4 world_matrix = scene->GetRenderableWorldMatrices()[instancedBatch.renderableIndex];
-						//	renderableShapes.AddPrimitivePart(part, material.GetBaseColor(), world_matrix);
-						//}
-						continue;
-					}
+					uint32_t part_index = instancedBatch.partIndex;
+					const Primitive& part = *geometry.GetPrimitive(part_index);
+					assert(part.HasRenderData());
 
 					GPrimBuffers& part_buffer = *(GPrimBuffers*)geometry.GetGPrimBuffer(part_index);
 
@@ -475,7 +468,7 @@ namespace vz::renderer
 					{
 						if (renderPass != RENDERPASS_MAIN)
 						{
-							continue;
+							return;
 						}
 
 						MiscCB sb;
@@ -490,7 +483,7 @@ namespace vz::renderer
 
 						MeshPushConstants push;
 						push.geometryIndex = geometry.geometryOffset + part_index;
-						push.materialIndex = material.materialIndex;
+						push.materialIndex = instancedBatch.materialIndex;
 						push.instBufferResIndex = renderable.resLookupOffset + part_index;
 						push.instances = instanceBufferDescriptorIndex;
 						push.instance_offset = (uint)instancedBatch.dataOffset;
@@ -501,6 +494,8 @@ namespace vz::renderer
 						device->DrawIndexed(part.GetNumIndices(), 0, 0, cmd);
 					}
 					
+					GMaterialComponent& material = *renderable.materials[part_index];
+
 					if (material.GetAlphaRef() < 1)
 					{
 						forceAlphaTestForDithering = 1;
@@ -518,7 +513,7 @@ namespace vz::renderer
 
 					if (!is_renderable)
 					{
-						continue;
+						return;
 					}
 
 					const PipelineState* pso = nullptr;
@@ -574,7 +569,7 @@ namespace vz::renderer
 
 					if (pso == nullptr || !pso->IsValid())
 					{
-						continue;
+						return;
 					}
 
 					const bool is_meshshader_pso = pso->desc.ms != nullptr;
@@ -604,6 +599,7 @@ namespace vz::renderer
 					MeshPushConstants push;
 					push.geometryIndex = geometry.geometryOffset + part_index;
 					push.materialIndex = material.materialIndex;
+
 					push.instBufferResIndex = renderable.resLookupOffset + part_index;
 					push.instances = instanceBufferDescriptorIndex;
 					push.instance_offset = (uint)instancedBatch.dataOffset;
@@ -633,6 +629,9 @@ namespace vz::renderer
 					}
 					else
 					{
+						if (renderPass == 0)
+							vzlog_warning("geometry_index %d, renderable_index %d, instanceCount %d, renderPass %d", instancedBatch.geometryIndex, instancedBatch.renderableIndex, instancedBatch.instanceCount, renderPass);
+
 						//device->DrawIndexedInstanced(part.indexCount, instancedBatch.instanceCount, part.indexOffset, 0, 0, cmd);
 						device->DrawIndexedInstanced(part.GetNumIndices(), instancedBatch.instanceCount, 0, 0, 0, cmd);
 					}
@@ -649,7 +648,9 @@ namespace vz::renderer
 		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
 		{
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
-			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
+			const uint32_t part_index = batch.GetPartIndex();	// part index
+			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index 
+			const uint32_t material_index = batch.GetMaterialIndex();	// material index 
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
 			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
 
@@ -662,6 +663,8 @@ namespace vz::renderer
 
 			// When we encounter a new mesh inside the global instance array, we begin a new RenderBatch:
 			if (geometry_index != instancedBatch.geometryIndex ||
+				part_index != instancedBatch.partIndex ||
+				material_index != instancedBatch.materialIndex ||
 				lod != instancedBatch.lod
 				)
 			{
@@ -669,6 +672,8 @@ namespace vz::renderer
 
 				instancedBatch = {};
 				instancedBatch.geometryIndex = geometry_index;
+				instancedBatch.partIndex = part_index;
+				instancedBatch.materialIndex = material_index;
 				instancedBatch.renderableIndex = renderable_index;
 				instancedBatch.instanceCount = 0;	
 				instancedBatch.dataOffset = (uint32_t)(instances.offset + instanceCount * sizeof(ShaderMeshInstancePointer));

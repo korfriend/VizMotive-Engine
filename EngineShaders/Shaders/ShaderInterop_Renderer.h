@@ -190,15 +190,13 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable // packed to VolumeInst
 	uint2 color; // packed half4
 	uint2 emissive; // packed half4
 
-	int vb_ao;
-	int vb_wetmap;
+	// int vb_ao; ==> resLookupIndex
+	// int vb_wetmap; ==> resLookupIndex
 	int lightmap;
 	uint alphaTest_size; // packed half2
 
 	uint resLookupIndex;
 	uint clipIndex;
-	uint padding0;
-	uint padding1;
 
 	float3 center;
 	float radius;
@@ -238,8 +236,6 @@ struct alignas(16) ShaderMeshInstance	// mesh renderable // packed to VolumeInst
 		transformRaw.Init();
 		transformRawInv.Init();
 
-		vb_ao = -1;
-		vb_wetmap = -1;
 		alphaTest_size = 0;
 		rimHighlight = uint2(0, 0);
 	}

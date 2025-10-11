@@ -43,7 +43,7 @@ static const uint GAUSSIANKERNELATTRIBUTE_OFFSET_UV = (12) * 4;
 
 struct GaussianPushConstants
 {
-	uint instanceIndex; // to get ShaderMeshInstance
+	uint renderableIndex; // to get ShaderMeshInstance
 	uint numGaussians;
 	int geometryIndex;
 	uint tileWidth;

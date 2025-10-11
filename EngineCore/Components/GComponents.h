@@ -190,8 +190,8 @@ namespace vz
 
 		// https://www.nvidia.com/en-us/drivers/bindless-graphics/
 
-		uint32_t geometryIndex = ~0u; // scene's cached array index
-		uint32_t geometryOffset = ~0u; // (including # of parts)
+		uint32_t geometryIndex = ~0u; // Scene's cached array for indexing GGeometryComponent
+		uint32_t geometryOffset = ~0u; // Allocator index for indexing Geometry's Primitive (part)
 
 		// ----- BVH -----
 		TimeStamp timeStampGPUBVHUpdate = TimerMin;

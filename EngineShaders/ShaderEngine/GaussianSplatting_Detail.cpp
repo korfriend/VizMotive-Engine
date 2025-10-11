@@ -73,7 +73,7 @@ namespace vz::renderer
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 
-			renderQueue.add(renderable.geometry->geometryIndex, instanceIndex, distance, renderable.sortBits);
+			renderQueue.add(geometry.geometryIndex, 0,  instanceIndex, distance, renderable.sortBits);
 		}
 		if (!renderQueue.empty())
 		{
@@ -186,7 +186,7 @@ namespace vz::renderer
 				device->BindResource(&gaussianQuaterinions, 1, cmd);
 				device->BindResource(&gaussianSHs, 2, cmd);
 
-				gsplat_push.instanceIndex = batch.instanceIndex;
+				gsplat_push.renderableIndex = batch.renderableIndex;
 				gsplat_push.tileWidth = tileWidth;
 				gsplat_push.tileHeight = tileHeight;
 				gsplat_push.numGaussians = num_gaussians;

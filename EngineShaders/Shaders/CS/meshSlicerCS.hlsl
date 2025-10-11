@@ -1,5 +1,5 @@
 #include "../Globals.hlsli"
-#include "../CommonHF/objectRayHF.hlsli"
+#include "../CommonHF/slicerRayHF.hlsli"
 #ifdef CURVED_PLANE
 #include "../CommonHF/curvedSlicerHF.hlsli"
 #endif
