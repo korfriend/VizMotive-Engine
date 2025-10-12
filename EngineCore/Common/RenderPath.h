@@ -34,6 +34,7 @@ namespace vz
 		float prevDpi_ = 96;
 		graphics::ColorSpace prevColorSpace_ = colorSpace_;
 		uint32_t prevMsaaSampleCount_ = 1;
+		size_t stableCount_ = 0;
 
 	public:
 		RenderPath(const Entity entity, graphics::GraphicsDevice* graphicsDevice)
@@ -45,7 +46,6 @@ namespace vz
 		Tonemap tonemap = Tonemap::ACES;
 		float clearColor[4] = {};
 
-		mutable bool forceToRenderCall = false;
 		// framerate controllers
 		uint64_t frameCount = 0;
 		float deltaTimeAccumulator = 0;
@@ -75,11 +75,13 @@ namespace vz
 		//const graphics::SwapChain& GetSwapChain() const { return swapChain_; }
 		bool GetSharedRendertargetView(const void* device2, const void* srvDescHeap2, const int descriptorIndex, uint64_t& descriptorHandle, void** resPtr);
 
+		virtual void ResetStableCount() { stableCount_ = 0; }
+
 		uint32_t GetLayerMask() const { return layerMask_; }
 		void SetlayerMask(uint32_t value) {
 			if (layerMask_ != value) {
 				layerMask_ = value; 
-				forceToRenderCall = true;
+				ResetStableCount();
 			}
 		}
 

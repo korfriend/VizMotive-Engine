@@ -27,8 +27,6 @@ namespace vz
 		XMFLOAT4X4 matScreen_ = math::IDENTITY_MATRIX;
 		XMFLOAT4X4 matScreenInv_ = math::IDENTITY_MATRIX;
 
-		size_t stableCount_ = 0;
-
 		void updateViewportTransforms();
 		void stableCountTest();
 
@@ -53,6 +51,9 @@ namespace vz
 
 		void DeleteGPUResources(const bool resizableOnly) override;
 		void ResizeResources() override;
+		void ResetStableCount() override {
+			RenderPath::ResetStableCount(); if (scene) scene->ResetStableCount();
+		}
 		// cpu side... in scene
 		void Update(const float dt) override;
 		void Render(const float dt) override;
