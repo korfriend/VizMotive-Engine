@@ -49,4 +49,5 @@ namespace vzm
 	void ResetPendingSubmitCommand();
 	void CountPendingSubmitCommand();
 	size_t GetCountPendingSubmitCommand();
+	int GetEngineStableCount();
 }

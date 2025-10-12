@@ -199,6 +199,9 @@ namespace vzm
 		return result;
 	}
 
+	static int skipStableCount = -1; // -1 refers to ignore the skip
+	int GetEngineStableCount() { return skipStableCount; }
+
 	inline void forceToRenderSet()
 	{
 		for (auto& it : vzcompmanager::renderers)
@@ -553,7 +556,7 @@ namespace vzm
 			RenderPath::framerateLock = false;
 		}
 
-		RenderPath3D::skipStableCount = section.GetInt("RENDERING_SKIP_STABLES");
+		skipStableCount = section.GetInt("RENDERING_SKIP_STABLES");
 
 		// initialize the graphics backend
 		graphics::ValidationMode validationMode = graphics::ValidationMode::Disabled;

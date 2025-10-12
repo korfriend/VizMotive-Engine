@@ -1002,9 +1002,6 @@ namespace vz
 
 			isContentChanged_ |= TimeDurationCount(timeStampSetter_, recentUpdateTime_) > 0;
 
-			// ?? only when isContentChanged_?
-			sceneShader->Update(dt);
-
 			if (!isContentChanged_)
 			{
 				stableCount++;
@@ -1014,6 +1011,17 @@ namespace vz
 				recentUpdateTime_ = TimerNow;
 				stableCount = 0;
 			}
+
+			int skip_stable_count = vzm::GetEngineStableCount(); // -1 refers to ignore the skip
+			if (skip_stable_count > 0)
+			{
+				if (stableCount > skip_stable_count)
+				{
+					return;
+				}
+			}
+			// ?? only when isContentChanged_?
+			sceneShader->Update(dt);
 		}
 
 		uint32_t GetRenderableMeshCount() const override
