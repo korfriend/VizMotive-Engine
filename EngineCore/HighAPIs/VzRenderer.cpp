@@ -450,20 +450,20 @@ namespace vzm
 	{
 		GET_RENDERPATH(renderer, );
 		renderer->ShowDebugBuffer(debugMode);
-		renderer->forceToRenderCall = true;
+		renderer->ResetStableCount();
 	}
 
 	void VzRenderer::SetRenderOptionEnabled(const std::string& optionName, const bool enabled)
 	{
 		GET_RENDERPATH(renderer, );
 		renderer->SetRenderOptionEnabled(optionName, enabled);
-		renderer->forceToRenderCall = true;
+		renderer->ResetStableCount();
 	}
 
 	void VzRenderer::SetRenderOptionValueArray(const std::string& optionName, const std::vector<float>& values)
 	{
 		GET_RENDERPATH(renderer, );
 		renderer->SetRenderOptionValueArray(optionName, values);
-		renderer->forceToRenderCall = true;
+		renderer->ResetStableCount();
 	}
 }

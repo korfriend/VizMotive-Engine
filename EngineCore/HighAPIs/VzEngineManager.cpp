@@ -207,7 +207,7 @@ namespace vzm
 		for (auto& it : vzcompmanager::renderers)
 		{
 			RenderPath3D* renderer = (RenderPath3D*)canvas::GetCanvas(it.first);
-			renderer->forceToRenderCall = true;
+			renderer->ResetStableCount();
 		}
 	}
 

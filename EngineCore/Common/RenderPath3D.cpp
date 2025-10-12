@@ -194,16 +194,10 @@ namespace vz
 		int skip_stable_count = vzm::GetEngineStableCount(); // -1 refers to ignore the skip
 		if (skip_stable_count > 0)
 		{
-			if (scene->stableCount > skip_stable_count && stableCount_ > skip_stable_count
-				&& !forceToRenderCall)
+			if (scene->stableCount > skip_stable_count && stableCount_ > skip_stable_count)
 			{
 				return;
 			}
-		}
-		if (forceToRenderCall)
-		{
-			stableCount_ = 0;
-			forceToRenderCall = false;
 		}
 
 		// This involves the following process

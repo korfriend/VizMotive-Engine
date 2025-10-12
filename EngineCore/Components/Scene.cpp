@@ -1044,6 +1044,8 @@ namespace vz
 		const std::vector<geometrics::AABB>& GetLightAABBs() const { return aabbLights; }
 		const std::vector<geometrics::AABB>& GetProbeAABBs() const { return aabbProbes; }
 
+		void ResetStableCount() override { stableCount = 0; }
+
 		void Debug_AddLine(const XMFLOAT3 p0, const XMFLOAT3 p1, const XMFLOAT4 color0, const XMFLOAT4 color1, const bool depthTest) const override
 		{
 			sceneShader->Debug_AddLine(p0, p1, color0, color1, depthTest);
