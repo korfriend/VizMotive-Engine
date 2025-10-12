@@ -1930,6 +1930,11 @@ namespace vz::renderer
 				int queryIndex = occlusion_result.occlusionQueries[query_write];
 				if (queryIndex >= 0)
 				{
+					if (queryIndex >= queryHeap.desc.query_count) 
+					{ 
+						vzlog_error("visibleRenderables_All :: queryIndex >= queryHeap.desc.query_count !");
+						return;
+					}
 					const AABB& aabb = scene_Gdetails->aabbRenderables[renderable.renderableIndex];
 					const XMMATRIX transform = aabb.getAsBoxMatrix() * VP;
 					device->PushConstants(&transform, sizeof(transform), cmd);
@@ -1958,6 +1963,12 @@ namespace vz::renderer
 					const AABB& aabb = scene_Gdetails->aabbLights[light.lightIndex];
 					const XMMATRIX transform = aabb.getAsBoxMatrix() * VP;
 					device->PushConstants(&transform, sizeof(transform), cmd);
+
+					if (queryIndex >= queryHeap.desc.query_count)
+					{
+						vzlog_error("visibleLights :: queryIndex >= queryHeap.desc.query_count !");
+						return;
+					}
 
 					device->QueryBegin(&queryHeap, queryIndex, cmd);
 					device->Draw(14, 0, cmd);

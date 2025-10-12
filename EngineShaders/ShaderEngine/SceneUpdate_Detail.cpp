@@ -1028,7 +1028,7 @@ namespace vz
 
 			// 4. Occlusion culling read: (Non Thread Task)
 			//	per each MeshInstance
-			if (isOcclusionCullingEnabled && !isFreezeCullingCameraEnabled)
+			if (renderer::isOcclusionCullingEnabled && !renderer::isFreezeCullingCameraEnabled)
 			{
 				uint32_t min_query_count = instanceArraySize + num_lights;
 				if (queryHeap.desc.query_count < min_query_count)
@@ -1059,13 +1059,12 @@ namespace vz
 						device->SetName(&queryPredicationBuffer, "GSceneDetails::queryPredicationBuffer");
 					}
 				}
-
-				// Advance to next query result buffer to use (this will be the oldest one that was written)
-				queryheapIdx = pingpong_buffer_index;
-
-				// Clear query allocation state:
-				queryAllocator.store(0);
 			}
+
+			// Advance to next query result buffer to use (this will be the oldest one that was written)
+			//queryheapIdx = pingpong_buffer_index;
+			// Clear query allocation state:
+			//queryAllocator.store(0);
 		}
 
 		if (dt > 0)
