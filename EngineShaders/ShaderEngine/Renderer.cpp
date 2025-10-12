@@ -629,9 +629,6 @@ namespace vz::renderer
 					}
 					else
 					{
-						if (renderPass == 0)
-							vzlog_warning("geometry_index %d, renderable_index %d, instanceCount %d, renderPass %d", instancedBatch.geometryIndex, instancedBatch.renderableIndex, instancedBatch.instanceCount, renderPass);
-
 						//device->DrawIndexedInstanced(part.indexCount, instancedBatch.instanceCount, part.indexOffset, 0, 0, cmd);
 						device->DrawIndexedInstanced(part.GetNumIndices(), instancedBatch.instanceCount, 0, 0, 0, cmd);
 					}
