@@ -31,6 +31,14 @@ namespace vz::renderer
 			renderPathDebugShapes.Clear();
 		}
 
+		if (renderer::isOcclusionCullingEnabled && !renderer::isFreezeCullingCameraEnabled)
+		{
+			// Advance to next query result buffer to use (this will be the oldest one that was written)
+			scene_Gdetails->queryheapIdx = device->GetBufferIndex();
+			// Clear query allocation state:
+			scene_Gdetails->queryAllocator.store(0, std::memory_order_relaxed);
+		}
+
 		// Frustum culling for main camera:
 		visMain.layerMask = layerMask_;
 		LayeredMaskComponent* layeredmask = camera->GetLayeredMaskComponent();
