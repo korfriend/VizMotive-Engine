@@ -138,7 +138,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     
     cam->SetPerspectiveProjection(1.f, 100.f, 45.f, (float)w / (float)h);
 
-    vz::jobsystem::context ctx_load_obj;
+	vz::jobsystem::context ctx_load_obj;
+    ctx_load_obj.priority = vz::jobsystem::Priority::Low;
     vz::jobsystem::Execute(ctx_load_obj, [scene](vz::jobsystem::JobArgs args) {
 		vzm::VzActor* root_obj_actor = vzm::LoadModelFile("../Assets/obj_files/skull/12140_Skull_v3_L2.obj");
 		root_obj_actor->SetScale({ 0.1f, 0.1f, 0.1f });

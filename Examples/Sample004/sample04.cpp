@@ -165,6 +165,7 @@ int main(int, char **)
 		// Load PLY geometry
 		
 		vz::jobsystem::context ctx;
+		ctx.priority = vz::jobsystem::Priority::Low;
 		//vz::jobsystem::Execute(ctx, [scene](vz::jobsystem::JobArgs args) {
 		vzm::VzGeometry* geometry_splat = vzm::NewGeometry("my splat geometry");
 			//assert(geometry_splat->LoadGeometryFile("D:\\point_cloud.splat"));

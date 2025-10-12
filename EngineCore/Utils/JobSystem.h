@@ -82,5 +82,9 @@ namespace vz::jobsystem
 	//	Current thread will become a worker thread, executing jobs
 	UTIL_EXPORT void Wait(const context& ctx);
 
+	// Wait for the given context to finish without executing queued jobs on the calling thread.
+	// Use this inside critical sections (e.g., when holding engine-wide mutex) to avoid re-entrant execution.
+	UTIL_EXPORT void WaitNoWork(const context& ctx);
+
 	UTIL_EXPORT void WaitAllJobs();
 }

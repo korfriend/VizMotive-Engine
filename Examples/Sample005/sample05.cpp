@@ -235,6 +235,7 @@ int main(int, char**)
 		archive->Store(camera);
 
 		vz::jobsystem::context ctx_stl_loader1;
+		ctx_stl_loader1.priority = vz::jobsystem::Priority::Low;
 		vz::jobsystem::Execute(ctx_stl_loader1, [scene](vz::jobsystem::JobArgs args) {
 
 			VzGeometry* geometry = vzm::NewGeometry("TS3M3008S.stl");
@@ -258,6 +259,7 @@ int main(int, char**)
 			});
 
 		vz::jobsystem::context ctx_stl_loader2;
+		ctx_stl_loader2.priority = vz::jobsystem::Priority::Low;
 		vz::jobsystem::Execute(ctx_stl_loader2, [scene](vz::jobsystem::JobArgs args) {
 
 			VzGeometry* geometry = vzm::NewGeometry("PreparationScan.stl");
@@ -276,6 +278,7 @@ int main(int, char**)
 			});
 
 		vz::jobsystem::context ctx_vol_loader;
+		ctx_vol_loader.priority = vz::jobsystem::Priority::Low;
 		vz::jobsystem::Execute(ctx_vol_loader, [scene, slicer, slicer_curved](vz::jobsystem::JobArgs args) {
 
 			vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");

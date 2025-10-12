@@ -600,6 +600,35 @@ namespace vz::jobsystem
 		}
 	}
 
+	void WaitNoWork(const context& ctx)
+	{
+		vzlog_assert(ctx.IsAvailable(), "CRITICAL JOBSYSTEM MISUSE!: Invalid context passed to jobsystem API");
+		if (!IsBusy(ctx))
+		{
+			return;
+		}
+
+		PriorityResources& res = internal_state.resources[int(ctx.priority)];
+
+		// Wake worker threads so they can continue processing queued jobs:
+		res.wakeCondition.notify_all();
+
+		// If there are no worker threads for this priority, fall back to regular Wait()
+		// to avoid deadlock (it will execute queued jobs on this thread):
+		if (res.numThreads < 1)
+		{
+			Wait(ctx);
+			return;
+		}
+
+		// Passive waiting: do not execute queued jobs on this thread.
+		// Yield CPU while other workers drain the queue for this context.
+		while (IsBusy(ctx))
+		{
+			std::this_thread::yield();
+		}
+	}
+
 	void WaitAllJobs()
 	{
 		bool is_alive_state = internal_state.alive.load();

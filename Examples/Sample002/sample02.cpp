@@ -139,6 +139,7 @@ int main(int, char **)
 	VzRenderer *renderer = nullptr;
 
 	vz::jobsystem::context ctx_stl_loader;
+	ctx_stl_loader.priority = vz::jobsystem::Priority::Low;
 	{
 		scene = NewScene("my scene");
 
