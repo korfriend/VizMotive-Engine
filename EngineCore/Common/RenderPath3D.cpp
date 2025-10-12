@@ -1,6 +1,7 @@
 #include "RenderPath3D.h"
 #include "GBackend/GModuleLoader.h"
 #include "Common/Initializer.h"
+#include "Common/Engine_Internal.h"
 #include "Components/GComponents.h"
 #include "Utils/Profiler.h"
 #include "Utils/Jobsystem.h"
@@ -190,9 +191,10 @@ namespace vz
 			return;
 		}
 
-		if (skipStableCount > 0)
+		int skip_stable_count = vzm::GetEngineStableCount(); // -1 refers to ignore the skip
+		if (skip_stable_count > 0)
 		{
-			if (scene->stableCount > skipStableCount && stableCount_ > skipStableCount
+			if (scene->stableCount > skip_stable_count && stableCount_ > skip_stable_count
 				&& !forceToRenderCall)
 			{
 				return;

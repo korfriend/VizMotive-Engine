@@ -33,8 +33,6 @@ namespace vz
 		void stableCountTest();
 
 	public:
-		inline static int skipStableCount = -1; // -1 refers to ignore the skip
-
 		RenderPath3D(const Entity entity, graphics::GraphicsDevice* graphicsDevice);
 		virtual ~RenderPath3D();
 
