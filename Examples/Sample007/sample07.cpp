@@ -188,30 +188,30 @@ int main(int, char**)
 		slicer_curved->SetOrthogonalProjection(1, 1, 10);
 		slicer_curved->SetHorizontalCurveControls({ {-5, -3, 0}, {0, 2, 0}, {3, -3, 0} }, 0.01);
 		slicer_curved->SetCurvedPlaneHeight(5.f);
-		//{
-		//	vzm::VzGeometry* geometry_cslicer_helper = vzm::NewGeometry("geometry helper for curved slicer");
-		//	slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
-		//	vzm::VzMaterial* material_curvedslicer0 = vzm::NewMaterial("curved slicer helper material: Plane");
-		//	material_curvedslicer0->SetDoubleSided(true);
-		//	vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Lines");
-		//	material_curvedslicer1->SetBaseColor({ 1, 1, 1, 1 });
-		//	vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper->GetVID(), material_curvedslicer0->GetVID());
-		//	//vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper->GetVID(), material_curvedslicer1->GetVID());
-		//	actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
-		//	scene->AppendChild(actor_cslicer_helper);
-		//	vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
-		//}
+		{
+			vzm::VzGeometry* geometry_cslicer_helper = vzm::NewGeometry("geometry helper for curved slicer");
+			slicer_curved->MakeCurvedSlicerHelperGeometry(geometry_cslicer_helper->GetVID());
+			vzm::VzMaterial* material_curvedslicer0 = vzm::NewMaterial("curved slicer helper material: Plane");
+			material_curvedslicer0->SetDoubleSided(true);
+			vzm::VzMaterial* material_curvedslicer1 = vzm::NewMaterial("curved slicer helper material: Lines");
+			material_curvedslicer1->SetBaseColor({ 1, 1, 1, 1 });
+			vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper->GetVID(), material_curvedslicer0->GetVID());
+			//vzm::VzActorStaticMesh* actor_cslicer_helper = vzm::NewActorStaticMesh("actor: geometry helper for curved slicer", geometry_cslicer_helper->GetVID(), material_curvedslicer1->GetVID());
+			actor_cslicer_helper->SetMaterial(material_curvedslicer1, 1);
+			scene->AppendChild(actor_cslicer_helper);
+			vzlog("actor_cslicer_helper: %d", actor_cslicer_helper->GetVID());
+		}
 
-		//vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
-		//axis_helper->SetScale({ 3.f, 3.f, 3.f });
-		//axis_helper->EnablePickable(false, true);
-		//scene->AppendChild(axis_helper);
+		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		axis_helper->SetScale({ 3.f, 3.f, 3.f });
+		axis_helper->EnablePickable(false, true);
+		scene->AppendChild(axis_helper);
 		
 		VzArchive* archive = vzm::NewArchive("test archive");
 		archive->Store(camera);
 
 		vz::jobsystem::context ctx_stl_loader1;
-		//vz::jobsystem::Execute(ctx_stl_loader1, [scene](vz::jobsystem::JobArgs args) {
+		vz::jobsystem::Execute(ctx_stl_loader1, [scene](vz::jobsystem::JobArgs args) {
 
 			VzGeometry* geometry = vzm::NewGeometry("TS3M3008S.stl");
 			geometry->LoadGeometryFile("../Assets/stl_files/TS3M3008S.stl");
@@ -232,81 +232,81 @@ int main(int, char**)
 			actor_test5->SetPosition({ -5, 0, 0 });
 			actor_test5->SetRotateAxis({ 0, 1, 0 }, 90.f);
 			scene->AppendChild(actor_test5);
-			//});
+			});
 
-		//vz::jobsystem::context ctx_stl_loader2;
-		//vz::jobsystem::Execute(ctx_stl_loader2, [scene](vz::jobsystem::JobArgs args) {
-		//
-		//	VzGeometry* geometry = vzm::NewGeometry("PreparationScan.stl");
-		//	geometry->LoadGeometryFile("../Assets/stl_files/PreparationScan.stl");
-		//	vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material 2");
-		//	material_stl->SetShaderType(vzm::ShaderType::PBR);
-		//	material_stl->SetDoubleSided(true);
-		//	material_stl->SetBaseColor({ 0, 1, 1, 1 });
-		//	vzm::VzActorStaticMesh* actor_test4 = vzm::NewActorStaticMesh("my actor4", geometry->GetVID(), material_stl->GetVID());
-		//	actor_test4->SetScale({ 0.2f, 0.2f, 0.2f });
-		//	actor_test4->EnableSlicerSolidFill(false);
-		//	actor_test4->SetRotateAxis({ 0, 0, 1 }, 45.f);
-		//	geometry->EnableGPUBVH(true);
-		//	scene->AppendChild(actor_test4);
-		//
-		//	});
+		vz::jobsystem::context ctx_stl_loader2;
+		vz::jobsystem::Execute(ctx_stl_loader2, [scene](vz::jobsystem::JobArgs args) {
 
-		//vz::jobsystem::context ctx_vol_loader;
-		//vz::jobsystem::Execute(ctx_vol_loader, [scene, slicer_curved](vz::jobsystem::JobArgs args) {
-		//
-		//	vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
-		//	{
-		//		vzm::ParamMap<std::string> io;
-		//		io.SetParam("filename", std::string("d:/aaa.dcm"));
-		//		io.SetParam("volume texture entity", volume->GetVID());
-		//		vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
-		//	}
-		//
-		//	vzm::VzTexture* otf_volume = vzm::NewTexture("volume material's OTF");
-		//	std::vector<uint8_t> otf_array(otfW * 4 * 1);
-		//	for (size_t i = 0; i < otfW; i++)
-		//	{
-		//		otf_array[(otfW * 4 * 0) + 4 * i + 0] = 255;
-		//		otf_array[(otfW * 4 * 0) + 4 * i + 1] = 0;
-		//		otf_array[(otfW * 4 * 0) + 4 * i + 2] = 0;
-		//		otf_array[(otfW * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
-		//			i < 210 ? (uint8_t)((float)(i - 180) / curOtfBandWidth * 255.f) : 255;
-		//
-		//	}
-		//	otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
-		//	otf_volume->UpdateLookup(otf_array, 180, 255);
-		//
-		//	vzm::VzTexture* windowing_volume = vzm::NewTexture("volume material's windowing");
-		//	for (size_t i = 0; i < otfW; i++)
-		//	{
-		//		otf_array[4 * i + 0] = 255;
-		//		otf_array[4 * i + 1] = 255;
-		//		otf_array[4 * i + 2] = 255;
-		//		otf_array[4 * i + 3] = std::max(std::min((uint)(linearWindowing(i, curWindowCenter, curWindowBandWidth) * 255.f), 255u), 0u);
-		//	}
-		//	windowing_volume->CreateLookupTexture("windowing otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
-		//	windowing_volume->UpdateLookup(otf_array, curWindowCenter - curWindowBandWidth * 0.5f, curWindowCenter + curWindowBandWidth * 0.5f);
-		//
-		//	vzm::VzMaterial* material_volume = vzm::NewMaterial("volume material");
-		//	material_volume->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
-		//	material_volume->SetLookupTable(otf_volume, vzm::LookupTableSlot::LOOKUP_OTF);
-		//	material_volume->SetLookupTable(windowing_volume, vzm::LookupTableSlot::LOOKUP_WINDOWING);
-		//
-		//	slicer_curved->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
-		//	slicer_curved->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
-		//
-		//	vzm::VzActorVolume* volume_actor = vzm::NewActorVolume("my volume actor", material_volume->GetVID());
-		//	volume_actor->SetScale({ 3, 3, 3 });
-		//	scene->AppendChild(volume_actor);
-		//
-		//	vzm::VzMaterial* material_curvedslicer0 = (vzm::VzMaterial*)vzm::GetFirstComponentByName("curved slicer helper material: Plane");
-		//	material_curvedslicer0->SetShaderType(vzm::ShaderType::VOLUMEMAP);
-		//	material_curvedslicer0->SetVolumeMapper(volume_actor->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP, LookupTableSlot::LOOKUP_WINDOWING);
-		//	material_curvedslicer0->SetVolumeTexture(volume->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP);
-		//	material_curvedslicer0->SetLookupTable(windowing_volume->GetVID(), LookupTableSlot::LOOKUP_WINDOWING);
-		//
-		//	});
+			VzGeometry* geometry = vzm::NewGeometry("PreparationScan.stl");
+			geometry->LoadGeometryFile("../Assets/stl_files/PreparationScan.stl");
+			vzm::VzMaterial* material_stl = vzm::NewMaterial("my stl's material 2");
+			material_stl->SetShaderType(vzm::ShaderType::PBR);
+			material_stl->SetDoubleSided(true);
+			material_stl->SetBaseColor({ 0, 1, 1, 1 });
+			vzm::VzActorStaticMesh* actor_test4 = vzm::NewActorStaticMesh("my actor4", geometry->GetVID(), material_stl->GetVID());
+			actor_test4->SetScale({ 0.2f, 0.2f, 0.2f });
+			actor_test4->EnableSlicerSolidFill(false);
+			actor_test4->SetRotateAxis({ 0, 0, 1 }, 45.f);
+			geometry->EnableGPUBVH(true);
+			scene->AppendChild(actor_test4);
+
+			});
+
+		vz::jobsystem::context ctx_vol_loader;
+		vz::jobsystem::Execute(ctx_vol_loader, [scene, slicer_curved](vz::jobsystem::JobArgs args) {
+		
+			vzm::VzVolume* volume = vzm::NewVolume("my dicom volume");
+			{
+				vzm::ParamMap<std::string> io;
+				io.SetParam("filename", std::string("d:/aaa.dcm"));
+				io.SetParam("volume texture entity", volume->GetVID());
+				vzm::ExecutePluginFunction("PluginSample001", "ImportDicom", io);
+			}
+		
+			vzm::VzTexture* otf_volume = vzm::NewTexture("volume material's OTF");
+			std::vector<uint8_t> otf_array(otfW * 4 * 1);
+			for (size_t i = 0; i < otfW; i++)
+			{
+				otf_array[(otfW * 4 * 0) + 4 * i + 0] = 255;
+				otf_array[(otfW * 4 * 0) + 4 * i + 1] = 0;
+				otf_array[(otfW * 4 * 0) + 4 * i + 2] = 0;
+				otf_array[(otfW * 4 * 0) + 4 * i + 3] = i < 180 ? 0 :
+					i < 210 ? (uint8_t)((float)(i - 180) / curOtfBandWidth * 255.f) : 255;
+		
+			}
+			otf_volume->CreateLookupTexture("volume otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
+			otf_volume->UpdateLookup(otf_array, 180, 255);
+		
+			vzm::VzTexture* windowing_volume = vzm::NewTexture("volume material's windowing");
+			for (size_t i = 0; i < otfW; i++)
+			{
+				otf_array[4 * i + 0] = 255;
+				otf_array[4 * i + 1] = 255;
+				otf_array[4 * i + 2] = 255;
+				otf_array[4 * i + 3] = std::max(std::min((uint)(linearWindowing(i, curWindowCenter, curWindowBandWidth) * 255.f), 255u), 0u);
+			}
+			windowing_volume->CreateLookupTexture("windowing otf", otf_array, vzm::TextureFormat::R8G8B8A8_UNORM, otfW, 1, 1);
+			windowing_volume->UpdateLookup(otf_array, curWindowCenter - curWindowBandWidth * 0.5f, curWindowCenter + curWindowBandWidth * 0.5f);
+		
+			vzm::VzMaterial* material_volume = vzm::NewMaterial("volume material");
+			material_volume->SetVolumeTexture(volume, vzm::VolumeTextureSlot::VOLUME_DENSITYMAP);
+			material_volume->SetLookupTable(otf_volume, vzm::LookupTableSlot::LOOKUP_OTF);
+			material_volume->SetLookupTable(windowing_volume, vzm::LookupTableSlot::LOOKUP_WINDOWING);
+		
+			slicer_curved->SetDVRLookupSlot(LookupTableSlot::LOOKUP_WINDOWING);
+			slicer_curved->SetDVRType(DVR_TYPE::XRAY_AVERAGE);
+		
+			vzm::VzActorVolume* volume_actor = vzm::NewActorVolume("my volume actor", material_volume->GetVID());
+			volume_actor->SetScale({ 3, 3, 3 });
+			scene->AppendChild(volume_actor);
+		
+			vzm::VzMaterial* material_curvedslicer0 = (vzm::VzMaterial*)vzm::GetFirstComponentByName("curved slicer helper material: Plane");
+			material_curvedslicer0->SetShaderType(vzm::ShaderType::VOLUMEMAP);
+			material_curvedslicer0->SetVolumeMapper(volume_actor->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP, LookupTableSlot::LOOKUP_WINDOWING);
+			material_curvedslicer0->SetVolumeTexture(volume->GetVID(), VolumeTextureSlot::VOLUME_DENSITYMAP);
+			material_curvedslicer0->SetLookupTable(windowing_volume->GetVID(), LookupTableSlot::LOOKUP_WINDOWING);
+		
+			});
 
 	}
 

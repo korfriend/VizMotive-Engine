@@ -27,7 +27,19 @@ namespace vz::renderer
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 
-			renderQueue.add(renderable.geometry->geometryIndex, instanceIndex, distance, renderable.sortBits);
+			GGeometryComponent& geometry = *renderable.geometry;
+			const std::vector<Primitive>& parts = geometry.GetPrimitives();
+			assert(parts.size() == renderable.materials.size());
+			for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
+			{
+				const Primitive& part = parts[part_index];
+				if (!part.HasRenderData())
+				{
+					continue;
+				}
+				GMaterialComponent& material = *renderable.materials[part_index];
+				renderQueue.add(geometry.geometryIndex, part_index, material.materialIndex, instanceIndex, distance, renderable.sortBits);
+			}
 		}
 
 		graphics::Texture slicer_textures[] = {
@@ -177,24 +189,36 @@ namespace vz::renderer
 		for (const RenderBatch& batch : renderQueue.batches) // Do not break out of this loop!
 		{
 			const uint32_t geometry_index = batch.GetGeometryIndex();	// geometry index
-			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index (base renderable)
+			const uint32_t part_index = batch.GetPartIndex();	// part index
+			const uint32_t renderable_index = batch.GetRenderableIndex();	// renderable index 
+			const uint32_t material_index = batch.GetMaterialIndex();	// material index 
 			const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[renderable_index];
 			assert(renderable.GetRenderableType() == RenderableType::MESH_RENDERABLE);
 
-			// TODO.. 
-			//	to implement multi-instancing
 			//	here, apply instance meta information
 			//		e.g., AABB, transforms, colors, ...
 			const AABB& instanceAABB = renderable.GetAABB();
 			const uint8_t lod = batch.lod_override == 0xFF ? (uint8_t)renderable.lod : batch.lod_override;
+			
+			if (geometry_index != instancedBatch.geometryIndex ||
+				part_index != instancedBatch.partIndex ||
+				material_index != instancedBatch.materialIndex ||
+				lod != instancedBatch.lod
+				)
+			{
+				BatchDrawingFlush();
 
-			instancedBatch = {};
-			//instancedBatch.userStencilRefOverride = userStencilRefOverride;
-			instancedBatch.geometryIndex = geometry_index;
-			instancedBatch.renderableIndex = renderable_index;
-			instancedBatch.forceAlphatestForDithering = 0;
-			instancedBatch.aabb = AABB();
-			instancedBatch.lod = lod;
+				instancedBatch.geometryIndex = geometry_index;
+				instancedBatch.partIndex = part_index;
+				instancedBatch.materialIndex = material_index;
+				instancedBatch.renderableIndex = renderable_index;
+				instancedBatch.instanceCount = 0;
+				instancedBatch.dataOffset = 0;
+				instancedBatch.forceAlphatestForDithering = 0;
+				instancedBatch.aabb = AABB();
+				instancedBatch.lod = lod;
+				//instancedBatch.userStencilRefOverride = userStencilRefOverride;
+			}
 
 			const float dither = std::max(0.0f, batch.GetDistance() - renderable.GetFadeDistance()) / renderable.GetVisibleRadius();
 			if (dither > 0.99f)
@@ -205,8 +229,11 @@ namespace vz::renderer
 			{
 				instancedBatch.forceAlphatestForDithering = 1;
 			}
-			BatchDrawingFlush();
+			instancedBatch.instanceCount++;
 		}
+
+		BatchDrawingFlush();
+
 		profiler::EndRange(range_1);
 
 		if (slicer_thickness > 0)
@@ -299,7 +326,8 @@ namespace vz::renderer
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 
-			renderQueue.add(~0u, instanceIndex, distance, renderable.sortBits);
+			GMaterialComponent& material = *renderable.materials[0];
+			renderQueue.add(~0u, 0, material.materialIndex, instanceIndex, distance, renderable.sortBits);
 		}
 		if (!renderQueue.empty())
 		{

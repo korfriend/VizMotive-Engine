@@ -73,7 +73,8 @@ namespace vz::renderer
 			if (distance > renderable.GetFadeDistance() + renderable.GetAABB().getRadius())
 				continue;
 
-			renderQueue.add(geometry.geometryIndex, 0,  instanceIndex, distance, renderable.sortBits);
+			GMaterialComponent& material = *renderable.materials[0];
+			renderQueue.add(geometry.geometryIndex, 0, material.materialIndex, instanceIndex, distance, renderable.sortBits);
 		}
 		if (!renderQueue.empty())
 		{

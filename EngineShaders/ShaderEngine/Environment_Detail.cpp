@@ -804,7 +804,19 @@ namespace vz::renderer
 							if (camera_mask == 0)
 								continue;
 
-							renderQueue.add(renderable.geometry->geometryIndex, uint32_t(i), 0, renderable.sortBits, camera_mask);
+							GGeometryComponent& geometry = *renderable.geometry;
+							const std::vector<Primitive>& parts = geometry.GetPrimitives();
+							assert(parts.size() == renderable.materials.size());
+							for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
+							{
+								const Primitive& part = parts[part_index];
+								if (!part.HasRenderData())
+								{
+									continue;
+								}
+								GMaterialComponent& material = *renderable.materials[part_index];
+								renderQueue.add(geometry.geometryIndex, part_index, material.materialIndex, uint32_t(i), 0, renderable.sortBits, camera_mask);
+							}
 						}
 					}
 				}

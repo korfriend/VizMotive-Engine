@@ -215,7 +215,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     Buffer<float4> gsplatPosition = bindless_buffers_float4[push.geometryIndex];
     float3 pos = gsplatPosition[idx].xyz;
 
-    ShaderMeshInstance inst = load_instance(push.instanceIndex);
+    ShaderMeshInstance inst = load_instance(push.renderableIndex);
     float4 pos_ws_h = mul(inst.transform.GetMatrix(), float4(pos, 1));
     float3 pos_ws = pos_ws_h.xyz / pos_ws_h.w;
     //pos_ws = pos;   // TEST //
