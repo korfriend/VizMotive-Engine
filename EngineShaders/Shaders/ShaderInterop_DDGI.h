@@ -280,6 +280,146 @@ half3 ddgi_sample_irradiance(in float3 P, in half3 N, inout half3 out_dominant_l
 
 	return 0;
 }
+half3 ddgi_sample_irradiance_float(in float3 P, in float3 N, inout half3 out_dominant_lightdir, inout half3 out_dominant_lightcolor)
+{
+	StructuredBuffer<DDGIProbe> probe_buffer = bindless_structured_ddi_probes[descriptor_index(GetScene().ddgi.probe_buffer)];
+	const min16uint3 base_grid_coord = (min16uint3)ddgi_base_probe_coord(P);
+	const float3 reference_probe_pos = ddgi_probe_position_rest(base_grid_coord); // taking the rest pose!
+
+	//float3 N = (float3)N_half;
+	float sum_weight = 0;
+
+	// Note: the quality seems to be a lot better when weighting the whole SH instead of
+	//	blending irradiance, specular and dld separately
+	SH::L1_RGB sum_sh = SH::L1_RGB::Zero();
+
+	// alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
+	float3 alpha = saturate((P - reference_probe_pos) * ddgi_cellsize_rcp());
+
+	// Iterate over adjacent probe cage
+	for (min16uint i = 0; i < 8; ++i)
+	{
+		// Compute the offset grid coord and clamp to the probe grid boundary
+		// Offset = 0 or 1 along each axis
+		min16uint3 offset = min16uint3(i, i >> 1, i >> 2) & 1;
+		min16uint3 probe_grid_coord = (min16uint3)clamp(base_grid_coord + offset, 0u.xxx, GetScene().ddgi.grid_dimensions - 1);
+		uint probe_index = ddgi_probe_index(probe_grid_coord);
+		DDGIProbe probe = probe_buffer[probe_index];
+
+		// Make cosine falloff in tangent plane with respect to the angle from the surface to the probe so that we never
+		// test a probe that is *behind* the surface.
+		// It doesn't have to be cosine, but that is efficient to compute and we must clip to the tangent plane.
+		float3 probe_pos = ddgi_probe_position(probe_grid_coord);
+
+		// Bias the position at which visibility is computed; this
+		// avoids performing a shadow test *at* a surface, which is a
+		// dangerous location because that is exactly the line between
+		// shadowed and unshadowed. If the normal bias is too small,
+		// there will be light and dark leaks. If it is too large,
+		// then samples can pass through thin occluders to the other
+		// side (this can only happen if there are MULTIPLE occluders
+		// near each other, a wall surface won't pass through itself.)
+		float3 probe_to_point = (P - probe_pos + N * 0.001);
+		float3 dir = normalize(-probe_to_point);
+
+		// Compute the trilinear weights based on the grid cell vertex to smoothly
+		// transition between probes. Avoid ever going entirely to zero because that
+		// will cause problems at the border probes. This isn't really a lerp. 
+		// We're using 1-a when offset = 0 and a when offset = 1.
+		float3 trilinear = lerp(1.0 - alpha, alpha, half3(offset));
+		float weight = 1.0;
+
+		// Clamp all of the multiplies. We can't let the weight go to zero because then it would be 
+		// possible for *all* weights to be equally low and get normalized
+		// up to 1/n. We want to distinguish between weights that are 
+		// low because of different factors.
+
+		// Smooth backface test
+		{
+			// Computed without the biasing applied to the "dir" variable. 
+			// This test can cause reflection-map looking errors in the image
+			// (stuff looks shiny) if the transition is poor.
+			float3 true_direction_to_probe = normalize(probe_pos - P);
+
+			// The naive soft backface weight would ignore a probe when
+			// it is behind the surface. That's good for walls. But for small details inside of a
+			// room, the normals on the details might rule out all of the probes that have mutual
+			// visibility to the point. So, we instead use a "wrap shading" test below inspired by
+			// NPR work.
+			// weight *= max(0.0001, dot(trueDirectionToProbe, wsN));
+
+			// The small offset at the end reduces the "going to zero" impact
+			// where this is really close to exactly opposite
+			weight *= lerp(saturate(dot(dir, N)), sqr(max(0.0001, (dot(true_direction_to_probe, N) + 1.0) * 0.5)) + 0.2, GetScene().ddgi.smooth_backface);
+		}
+
+		// Moment visibility test
+#if 1
+		[branch]
+			if (GetScene().ddgi.depth_texture >= 0)
+			{
+				//float2 tex_coord = texture_coord_from_direction(-dir, p, ddgi.depth_texture_width, ddgi.depth_texture_height, ddgi.depth_probe_side_length);
+				float2 tex_coord = ddgi_probe_depth_uv(probe_grid_coord, -dir);
+
+				//float2 temp = textureLod(depth_texture, tex_coord, 0.0f).rg;
+				float2 temp = (float2)bindless_textures_half4[descriptor_index(GetScene().ddgi.depth_texture)].SampleLevel(sampler_linear_clamp, tex_coord, 0).xy;
+				float variance = abs(sqr(temp.x) - temp.y);
+
+				if (variance > 0.001)
+				{
+					float dist_to_probe = length(probe_to_point);
+					float mean = temp.x;
+
+					// http://www.punkuser.net/vsm/vsm_paper.pdf; equation 5
+					// Need the max in the denominator because biasing can cause a negative displacement
+					float chebyshev_weight = variance / (variance + sqr(max(dist_to_probe - mean, 0.0)));
+
+					// Increase contrast in the weight 
+					chebyshev_weight = max(pow(chebyshev_weight, 3), 0.0);
+
+					weight *= (dist_to_probe <= mean) ? 1.0 : chebyshev_weight;
+				}
+			}
+#endif
+
+		// Avoid zero weight
+		weight = max(0.01, weight);
+
+		float3 irradiance_dir = N;
+
+		// A tiny bit of light is really visible due to log perception, so
+		// crush tiny weights but keep the curve continuous. This must be done
+		// before the trilinear weights, because those should be preserved.
+		const float crush_threshold = 0.2;
+		if (weight < crush_threshold)
+			weight *= weight * weight / sqr(crush_threshold);
+
+		// Trilinear weights
+		weight *= trilinear.x * trilinear.y * trilinear.z;
+
+		sum_sh = SH::Add(sum_sh, SH::Multiply(probe.radiance.Unpack(), weight));
+
+		sum_weight += weight;
+	}
+
+	if (sum_weight > 0)
+	{
+		sum_sh = SH::Multiply(sum_sh, rcp(sum_weight));
+
+		half3 net_irradiance = SH::CalculateIrradiance(sum_sh, N) / PI;
+
+		SH::ApproximateDirectionalLight(sum_sh, out_dominant_lightdir, out_dominant_lightcolor);
+
+		// DLD notes:
+		// 1: casting to float3 avoids the "stickman" artifact when close to some walls with capsule shadow
+		// 2: bending with normal direction to push dld above surface level since light can't fall to surface from behind
+		out_dominant_lightdir = (half3)normalize(float3(out_dominant_lightdir) + N * 0.8);
+
+		return net_irradiance;
+	}
+
+	return 0;
+}
 
 static const uint4 DDGI_COLOR_BORDER_OFFSETS[] = {
 	uint4(6, 1, 1, 0),

@@ -552,14 +552,31 @@ namespace vz::compfactory
 				num_destroyed++;
 			}
 		}
+		size_t num_modified = 0;
 		for (auto& entry : componentLibrary.entries)
 		{
 			for (auto vuid : vuids)
 			{
-				entry.second.component_manager->ResetAllRefComponents(vuid);
+				num_modified += entry.second.component_manager->ResetAllRefComponents(vuid);
 			}
 		}
+		vzlog("Destroy(%llu) # of Components (%d), Modifying # of Components (%d)",
+			entity, (int)num_destroyed, (int)num_modified);
 		return num_destroyed;
+	}
+
+	size_t FreeResource(const std::string& resName)
+	{
+		if (!resourcemanager::Delete(resName))
+		{
+			return 0;
+		}
+		size_t num_modified = 0u;
+		for (auto& entry : componentLibrary.entries)
+		{
+			num_modified += entry.second.component_manager->ResetAllResources(resName);
+		}
+		return num_modified;
 	}
 
 	size_t DestroyAll()

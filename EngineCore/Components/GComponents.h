@@ -430,6 +430,8 @@ namespace vz
 		virtual ~GTextureComponent() = default;
 
 		Resource resource;
+
+		bool ResetResources(const std::string& resName) override;
 	};
 
 	struct CORE_EXPORT GVolumeComponent : VolumeComponent
@@ -463,6 +465,8 @@ namespace vz
 		const graphics::GPUBuffer& GetVisibleBitmaskBuffer(const Entity entityVisibleMap) const;
 		const uint32_t* GetVisibleBitmaskData(const Entity entityVisibleMap) const;
 		const uint8_t* GetMinMaxBlocksData() const { return volumeMinMaxBlocksData_.data(); }
+
+		bool ResetResources(const std::string& resName) override;
 	};
 
 	// scene 
@@ -649,6 +653,8 @@ namespace vz
 		bool LoadColorGradingMap(const std::string& fileName) override;
 		bool LoadVolumetricCloudsWeatherMapFirst(const std::string& fileName) override;
 		bool LoadVolumetricCloudsWeatherMapSecond(const std::string& fileName) override;
+
+		bool ResetResources(const std::string& resName) override;
 	};
 
 	struct CORE_EXPORT GProbeComponent : ProbeComponent
@@ -671,5 +677,7 @@ namespace vz
 
 		bool LoadTexture(const std::string& fileName) override;
 		void RemoveTexture() override;
+
+		bool ResetResources(const std::string& resName) override;
 	};
 }

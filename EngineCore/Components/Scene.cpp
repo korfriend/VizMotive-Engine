@@ -85,8 +85,6 @@ namespace vz
 		// Separate stream of world matrices:
 		std::vector<XMFLOAT4X4> matrixRenderables;
 		std::vector<XMFLOAT4X4> matrixRenderablesPrev;
-		std::shared_ptr<Resource> skyMap;
-		std::shared_ptr<Resource> colorGradingMap;
 		GScene* sceneShader = nullptr;
 
 		// Here, "stream" refers to the GPU memory upload via a single upload operation
@@ -1108,8 +1106,6 @@ namespace vz
 
 		DOWNCAST->matrixRenderables.clear();
 		DOWNCAST->matrixRenderablesPrev.clear();
-		DOWNCAST->skyMap.reset();
-		DOWNCAST->colorGradingMap.reset();
 
 		DOWNCAST->counterRenderable_Mesh.store(0);
 		DOWNCAST->counterRenderable_Volume.store(0);

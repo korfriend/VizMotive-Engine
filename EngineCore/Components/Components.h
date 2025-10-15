@@ -428,7 +428,8 @@ namespace vz
 		//bool IsLocked() const { return isLocked_.load(); }
 		//void TryLock() { isLocked_ = { true }; }
 
-		virtual void ResetRefComponents(const VUID vuidRef) {}
+		virtual bool ResetRefComponents(const VUID vuidRef) { return false; }
+		virtual bool ResetResources(const std::string& resName) { return false; }
 		virtual void Serialize(vz::Archive& archive, const uint64_t version) = 0;
 	};
 
@@ -536,7 +537,7 @@ namespace vz
 		inline void RemoveChild(const VUID vuidChild);
 		inline const std::vector<VUID>& GetChildren() { if (children_.size() != childrenCache_.size()) updateChildren(); return childrenCache_; }
 		
-		void ResetRefComponents(const VUID vuidRef) override;
+		bool ResetRefComponents(const VUID vuidRef) override;
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::HIERARCHY;
@@ -1049,7 +1050,7 @@ namespace vz
 
 		virtual void UpdateAssociatedTextures() = 0;
 
-		void ResetRefComponents(const VUID vuidRef) override;
+		bool ResetRefComponents(const VUID vuidRef) override;
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::MATERIAL;
@@ -1788,7 +1789,7 @@ namespace vz
 
 		inline void Update();
 
-		void ResetRefComponents(const VUID vuidRef) override;
+		bool ResetRefComponents(const VUID vuidRef) override;
 		void Serialize(vz::Archive& archive, const uint64_t version) override;
 
 		inline static const ComponentType IntrinsicType = ComponentType::RENDERABLE;

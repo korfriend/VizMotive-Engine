@@ -1659,11 +1659,10 @@ namespace vz::resourcemanager
 
 	bool Delete(const std::string& name)
 	{
-		bool result = false;
 		locker.lock();
-		resources.erase(name);
+		size_t erased = resources.erase(name);
 		locker.unlock();
-		return result;
+		return erased > 0;
 	}
 
 	void Clear()

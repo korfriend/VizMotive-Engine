@@ -1,18 +1,27 @@
-#include "Components.h"
+#include "GComponents.h"
 #include "Utils/Backlog.h"
 
 namespace vz
 {
-	void HierarchyComponent::ResetRefComponents(const VUID vuidRef)
+	bool HierarchyComponent::ResetRefComponents(const VUID vuidRef)
 	{
+		bool is_modified = false;
 		if (vuidParentHierarchy_ == vuidRef)
+		{
 			vuidParentHierarchy_ = INVALID_VUID;
+			is_modified = true;
+		}
 		auto it = children_.find(vuidRef);
 		if (it != children_.end())
+		{
 			children_.erase(it);
+			is_modified = true;
+		}
+		timeStampSetter_ = TimerNow;
+		return is_modified;
 	}
 
-	void MaterialComponent::ResetRefComponents(const VUID vuidRef)
+	bool MaterialComponent::ResetRefComponents(const VUID vuidRef)
 	{
 		bool is_modified = false;
 		for (size_t i = 0; i < SCU32(TextureSlot::TEXTURESLOT_COUNT); i++)
@@ -48,9 +57,11 @@ namespace vz
 		{
 			UpdateAssociatedTextures();
 		}
+		timeStampSetter_ = TimerNow;
+		return is_modified;
 	}
 
-	void RenderableComponent::ResetRefComponents(const VUID vuidRef)
+	bool RenderableComponent::ResetRefComponents(const VUID vuidRef)
 	{
 		bool is_modified = false;
 		if (vuidGeometry_ == vuidRef)
@@ -70,5 +81,78 @@ namespace vz
 		{
 			updateRenderableFlags();
 		}
+		timeStampSetter_ = TimerNow;
+		return is_modified;
+	}
+}
+
+namespace vz
+{
+	bool GTextureComponent::ResetResources(const std::string& resName)
+	{
+		if (resName != resName_)
+		{
+			return false;
+		}
+		*this = GTextureComponent(entity_, vuid_);
+		timeStampSetter_ = TimerNow;
+		return true;
+	}
+
+	bool GVolumeComponent::ResetResources(const std::string& resName)
+	{
+		if (resName != resName_)
+		{
+			return false;
+		}
+		*this = GVolumeComponent(entity_, vuid_);
+		timeStampSetter_ = TimerNow;
+		return true;
+	}
+
+	bool GProbeComponent::ResetResources(const std::string& resName)
+	{
+		if (resName != textureName_)
+		{
+			return false;
+		}
+		resource = Resource();
+		timeStampSetter_ = TimerNow;
+		return true;
+	}
+
+	bool GEnvironmentComponent::ResetResources(const std::string& resName)
+	{
+		bool is_modified = false;
+		if (resName == skyMapName_)
+		{
+			skyMapName_ = "";
+			skyMap = Resource();
+			is_modified = true;
+		}
+		if (resName == colorGradingMapName_)
+		{
+			skyMapName_ = "";
+			skyMap = Resource();
+			is_modified = true;
+		}
+		if (resName == volumetricCloudsWeatherMapFirstName_)
+		{
+			skyMapName_ = "";
+			skyMap = Resource();
+			is_modified = true;
+		}
+		if (resName == volumetricCloudsWeatherMapSecondName_)
+		{
+			skyMapName_ = "";
+			skyMap = Resource();
+			is_modified = true;
+		}
+		if (is_modified)
+		{
+			timeStampSetter_ = TimerNow;
+			return true;
+		}
+		return false;
 	}
 }

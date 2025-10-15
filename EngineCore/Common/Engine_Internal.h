@@ -25,6 +25,8 @@ namespace vz
 		AnimationComponent* CreateAnimationComponent(const Entity entity);
 		AnimationDataComponent* CreateAnimationDataComponent(const Entity entity);
 
+		size_t FreeResource(const std::string& resName);
+
 		size_t Destroy(const Entity entity);
 		size_t DestroyAll();
 	}

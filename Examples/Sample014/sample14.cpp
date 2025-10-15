@@ -205,7 +205,7 @@ int main(int, char**)
 			float x = dist_x2(gen);
 			float y = dist_y2(gen);
 			float z = dist_z2(gen);
-			sphere->SetScale({5, 5, 5});
+			sphere->SetScale({ 5, 5, 5 });
 			sphere->SetPosition({ x, y, z });
 			sphere->SetVisibleLayerMask(0x1, true);
 			scene->AppendChild(sphere);
@@ -613,15 +613,6 @@ int main(int, char**)
 				static float light_radius = 0.1f;
 				static float light_range = 2.f;
 				static float light_intensity = 5.f;
-				static bool env_map = false;
-				if (ImGui::Checkbox("Environment Map", &env_map))
-				{
-					scene->LoadIBL(env_map ? "../Assets/sky.dds" : "");
-				}
-				if (ImGui::Button("Resource Delete"))
-				{
-					vzm::RemoveResource("../Assets/sky.dds");
-				}
 				if (ImGui::Checkbox("Light Visualizer", &light_visualizer))
 				{
 					for (int idx = 0; idx < NUM_RANDOM_LIGHTS; ++idx)
