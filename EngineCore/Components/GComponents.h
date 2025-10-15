@@ -42,6 +42,9 @@ namespace vz
 		void MoveFromData(std::vector<uint8_t>&& data);
 		void SetOutdated(); // Resource marked for recreate on resourcemanager::Load()
 
+		void SetCurrentInternalResourceName(const std::string& resName);
+		const std::string GetCurrentInternalResourceName();
+
 		// GRAPHICS interfaces //
 		const graphics::Texture& GetTexture() const;
 		int GetTextureSRGBSubresource() const;
