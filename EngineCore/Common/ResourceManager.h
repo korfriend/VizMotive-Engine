@@ -21,6 +21,8 @@ namespace vz
 		std::vector<std::string> GetSupportedImageExtensions();
 		std::vector<std::string> GetSupportedFontStyleExtensions();
 
+		void GetResourceStats(std::vector<std::string>& stats);
+
 		// Order of these must not change as the flags can be serialized!
 		enum class Flags
 		{

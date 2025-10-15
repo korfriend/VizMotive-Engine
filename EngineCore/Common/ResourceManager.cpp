@@ -5,6 +5,7 @@
 #include "Utils/Helpers.h"
 #include "Utils/Backlog.h"
 #include "Utils/JobSystem.h"
+#include "Utils/ECS.h"
 
 #include "ThirdParty/qoi.h"
 #include "ThirdParty/stb_image.h"
@@ -39,8 +40,13 @@ namespace vz
 	//static constexpr size_t streaming_texture_min_size = 4096; // 4KB is the minimum texture memory alignment
 	static constexpr size_t streaming_texture_min_size = 64 * 1024; // 64KB is the usual texture memory alignment, this allows higher base tex size than 4KB
 
+	struct ResourceInternal;
+	static std::unordered_map<Entity, ResourceInternal*> internalResourceMap;
+
 	struct ResourceInternal
 	{
+		Entity entity = INVALID_ENTITY;
+
 		vz::resourcemanager::Flags flags = vz::resourcemanager::Flags::NONE;
 		vz::graphics::Texture texture;
 		vz::graphics::Texture textureUpdate;
@@ -54,6 +60,9 @@ namespace vz
 		std::string filename;
 		std::string dataType = "";
 
+		// Optional
+		std::string resource_name; // just for debug or monitoring
+
 		// Container file is different from original filename when
 		//	multiple resources are embedded inside one file:
 		std::string container_filename;
@@ -66,13 +75,39 @@ namespace vz
 		std::atomic<uint32_t> streaming_resolution{ 0 };
 		uint32_t streaming_unload_delay = 0;
 
+		ResourceInternal()
+		{
+			entity = ecs::CreateEntity();
+			internalResourceMap[entity] = this;
+		}
+
 		~ResourceInternal()
 		{
-			//backlog::post("res(" + filename + ") has been removed", LogLevel::Info);
+			vzlog("resource (%d)(%s) has been removed", (int)entity, resource_name.c_str());
 			texture = {};
 			textureUpdate = {};
+			internalResourceMap.erase(entity);
 		}
 	};
+
+	void Resource::SetCurrentInternalResourceName(const std::string& resName)
+	{
+		if (internalState == nullptr)
+		{
+			return;
+		}
+		ResourceInternal* resourceinternal = (ResourceInternal*)internalState.get();
+		resourceinternal->resource_name = resName;
+	}
+	const std::string Resource::GetCurrentInternalResourceName()
+	{
+		if (internalState == nullptr)
+		{
+			return "";
+		}
+		ResourceInternal* resourceinternal = (ResourceInternal*)internalState.get();
+		return resourceinternal->resource_name;
+	}
 
 	const std::vector<uint8_t>& Resource::GetFileData() const
 	{
@@ -170,6 +205,29 @@ namespace vz::resourcemanager
 	Mode GetMode()
 	{
 		return mode;
+	}
+
+	void GetResourceStats(std::vector<std::string>& stats)
+	{
+		auto format_with_commas = [](float value) -> std::string {
+			std::stringstream ss;
+			ss.imbue(std::locale(""));  // 시스템 로케일 (예: en_US) 사용 → 천 단위 콤마 자동
+			ss << std::fixed << std::setprecision(2) << value; // 소수점 2자리까지
+			return ss.str();
+			};
+
+		for (auto& kv : internalResourceMap)
+		{
+			ResourceInternal* resourceinternal = kv.second;
+			assert(resourceinternal);
+
+			std::string stat = resourceinternal->resource_name + " (" + std::to_string(resourceinternal->entity) + ")";
+			size_t cpu_size = resourceinternal->filedata.size();
+			stat += " : " + format_with_commas((float)cpu_size / 1024.f) + " KB";
+			stat += " GPU Texture (" + (resourceinternal->texture.IsValid() ? std::string("O") : std::string("X")) + ")";
+		
+			stats.push_back(stat);
+		}
 	}
 
 	enum class DataType

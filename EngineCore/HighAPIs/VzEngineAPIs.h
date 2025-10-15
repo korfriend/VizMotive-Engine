@@ -85,8 +85,7 @@ namespace vzm
 	API_EXPORT size_t RemoveResource(const std::string& resourceName);
 	inline bool RemoveComponent(const VzBaseComp* comp, const bool includeDescendants = false) { return RemoveComponent(comp->GetVID(), includeDescendants); }
 
-	size_t GetResourceManagerUsageCPU(std::unordered_map<std::string, size_t>& usageMap);
-	size_t GetResourceManagerUsageGPU(std::unordered_map<std::string, size_t>& usageMap);
+	API_EXPORT void GetResourceStats(std::vector<std::string>& stats);
 
 	// Load a mesh file (obj) into actors and return the first actor
 	//  - return root-node actor (empty)

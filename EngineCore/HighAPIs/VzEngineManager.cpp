@@ -2,6 +2,7 @@
 #include "Common/Engine_Internal.h"
 #include "Common/RenderPath3D.h"
 #include "Common/Initializer.h"
+#include "Common/ResourceManager.h"
 #include "Utils/Config.h"
 #include "Utils/Backlog.h"
 #include "Utils/Platform.h"
@@ -1092,16 +1093,9 @@ namespace vzm
 		return compfactory::FreeResource(resourceName);
 	}
 
-	size_t GetResourceManagerUsageCPU(std::unordered_map<std::string, size_t>& usageMap)
+	void GetResourceStats(std::vector<std::string>& stats)
 	{
-		assert(0 && "TODO");
-		return 0u;
-	}
-
-	size_t GetResourceManagerUsageGPU(std::unordered_map<std::string, size_t>& usageMap)
-	{
-		assert(0 && "TODO");
-		return 0u;
+		resourcemanager::GetResourceStats(stats);
 	}
 
 	VzActor* LoadModelFile(const std::string& filename)

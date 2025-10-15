@@ -327,13 +327,28 @@ namespace vzimgui
 				VID vid = it->GetVID();
 				std::string name = it->GetName();
 				const char* label = name.c_str();
-				std::string shader_type_str =  ShaderTypeToString[((VzMaterial*)it)->GetShaderType()];
+				std::string shader_type_str = ShaderTypeToString[((VzMaterial*)it)->GetShaderType()];
 				if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Leaf,
 					"%s(%d): %s", label, vid, shader_type_str.c_str())) {
 					if (ImGui::IsItemClicked())
 					{
 						vzlog("Clicked! %s", label);
 					}
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("RESOURCES", flags, "RESOURCE MANAGER")) {
+
+			std::vector<std::string> stats;
+			vzm::GetResourceStats(stats);
+
+			for (auto it : stats)
+			{
+				if (ImGui::TreeNodeEx(it.c_str(), ImGuiTreeNodeFlags_Leaf,
+					"%s", it.c_str())) {
 					ImGui::TreePop();
 				}
 			}
