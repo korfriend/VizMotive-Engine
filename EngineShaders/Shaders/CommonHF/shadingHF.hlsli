@@ -104,7 +104,7 @@ inline void ForwardLighting(inout Surface surface, inout Lighting lighting)
 	[branch]
 	if (!surface.IsGIApplied() && GetScene().ddgi.probe_buffer >= 0)
 	{
-		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, (half3)surface.N, surface.dominant_lightdir, surface.dominant_lightcolor);
+		lighting.indirect.diffuse = ddgi_sample_irradiance(surface.P, surface.N, surface.dominant_lightdir, surface.dominant_lightcolor);
 		surface.SetGIApplied(true);
 	}
 
@@ -376,7 +376,7 @@ inline void TiledLighting(inout Surface surface, inout Lighting lighting, uint f
 	if (GetScene().ddgi.probe_buffer >= 0)
 	{
 		// Note: even if GI is already applied, the dominant light dir is still computed by this!
-		half3 irradiance = ddgi_sample_irradiance(surface.P, (half3)surface.N, surface.dominant_lightdir, surface.dominant_lightcolor);
+		half3 irradiance = ddgi_sample_irradiance(surface.P, surface.N, surface.dominant_lightdir, surface.dominant_lightcolor);
 		if (!surface.IsGIApplied())
 		{
 			lighting.indirect.diffuse = irradiance;

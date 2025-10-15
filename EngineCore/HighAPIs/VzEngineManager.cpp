@@ -1089,10 +1089,7 @@ namespace vzm
 	size_t RemoveResource(const std::string& resourceName)
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(0);
-		// TODO AUG
-		// 1. resourcemanager remove...
-		// 2. detach the resource from entities
-		return 0;
+		return compfactory::FreeResource(resourceName);
 	}
 
 	size_t GetResourceManagerUsageCPU(std::unordered_map<std::string, size_t>& usageMap)

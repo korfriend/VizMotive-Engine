@@ -57,7 +57,8 @@ namespace vz::ecs
 		virtual const std::vector<Entity>& GetEntityArray() const = 0;
 
 		virtual VUID GetVUID(Entity entity) const = 0;
-		virtual void ResetAllRefComponents(VUID vuid) = 0;
+		virtual size_t ResetAllRefComponents(VUID vuid) = 0;
+		virtual size_t ResetAllResources(const std::string& resName) = 0;
 	};
 
 	class ComponentLibrary;
@@ -585,10 +586,26 @@ namespace vz::ecs
 			return comp == nullptr ? INVALID_VUID : comp->GetVUID();
 		}
 
-		inline void ResetAllRefComponents(VUID vuid) override {
+		inline size_t ResetAllRefComponents(VUID vuid) override {
+			size_t num_modified = 0u;
 			for (Component& comp : components) {
-				comp.ResetRefComponents(vuid);
+				if (comp.ResetRefComponents(vuid))
+				{
+					num_modified++;
+				}
 			}
+			return num_modified;
+		}
+
+		inline size_t ResetAllResources(const std::string& resName) override {
+			size_t num_modified = 0u;
+			for (Component& comp : components) {
+				if (comp.ResetResources(resName))
+				{
+					num_modified++;
+				}
+			}
+			return num_modified;
 		}
 
 	private:
