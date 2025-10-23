@@ -264,15 +264,18 @@ namespace vz::renderer
 				bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
 
 				bd.size = num_replicate_kernels * sizeof(UINT) * 2; // uint_64
-				assert(device->CreateBuffer(&bd, nullptr, &replicatedGaussianKey));
+				bool success = device->CreateBuffer(&bd, nullptr, &replicatedGaussianKey);
+				assert(success);
 				device->SetName(&replicatedGaussianKey, "GaussianSplattingBuffers::replicatedGaussianKey");
 
 				bd.size = num_replicate_kernels * sizeof(UINT);
-				assert(device->CreateBuffer(&bd, nullptr, &replicatedGaussianValue));
+				success = device->CreateBuffer(&bd, nullptr, &replicatedGaussianValue);
+				assert(success);
 				device->SetName(&replicatedGaussianValue, "GaussianSplattingBuffers::replicatedGaussianValue");
 
 				bd.size = num_replicate_kernels * sizeof(UINT);
-				assert(device->CreateBuffer(&bd, nullptr, &sortedIndices));
+				success = device->CreateBuffer(&bd, nullptr, &sortedIndices);
+				assert(success);
 				device->SetName(&sortedIndices, "GaussianSplattingBuffers::sortedIndices");
 			}
 
