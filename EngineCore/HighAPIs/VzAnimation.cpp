@@ -218,21 +218,24 @@ namespace vzm
 	{
 		GET_ANI_COMP(comp, );
 		AnimationComponent::Channel ani_channel = convertChannelAPI(comp, channel);
-		vzlog_assert(comp->SetChannel(index, ani_channel), "Failure! VzAnimation::SetChennel");
+		bool success = comp->SetChannel(index, ani_channel);
+		vzlog_assert(success, "Failure! VzAnimation::SetChennel");
 		UpdateTimeStamp();
 	}
 	void VzAnimation::SetSampler(const int index, const Sampler& sampler)
 	{
 		GET_ANI_COMP(comp, );
 		AnimationComponent::Sampler ani_sampler = convertSamplerAPI(comp, sampler);
-		vzlog_assert(comp->SetSampler(index, ani_sampler), "Failure! VzAnimation::SetSampler");
+		bool success = comp->SetSampler(index, ani_sampler);
+		vzlog_assert(success, "Failure! VzAnimation::SetSampler");
 		UpdateTimeStamp();
 	}
 	VzAnimation::Channel VzAnimation::GetChennel(const int index) const
 	{
 		GET_ANI_COMP(comp, Channel());
 		AnimationComponent::Channel ani_channel;
-		vzlog_assert(comp->GetChannel(index, ani_channel), "Failure! VzAnimation::GetChennel");
+		bool success = comp->GetChannel(index, ani_channel);
+		vzlog_assert(success, "Failure! VzAnimation::GetChennel");
 		Channel channel;
 		channel.retargetIndex = ani_channel.retargetIndex;
 		channel.samplerIndex = ani_channel.samplerIndex;
@@ -244,7 +247,8 @@ namespace vzm
 	{
 		GET_ANI_COMP(comp, VzAnimation::Sampler());
 		AnimationComponent::Sampler ani_sampler;
-		vzlog_assert(comp->GetSampler(index, ani_sampler), "Failure! VzAnimation::GetSampler");
+		bool success = comp->GetSampler(index, ani_sampler);
+		vzlog_assert(success, "Failure! VzAnimation::GetSampler");
 		VzAnimation::Sampler sampler;
 		sampler.mode = (VzAnimation::Sampler::Interpolation)ani_sampler.mode;
 		sampler.keyframeVID = compfactory::GetEntityByVUID(ani_sampler.dataVUID);
@@ -253,13 +257,15 @@ namespace vzm
 	void VzAnimation::RemoveChannel(const int index)
 	{
 		GET_ANI_COMP(comp, );
-		vzlog_assert(comp->RemoveChannel(index), "Failure! VzAnimation::RemoveChannel");
+		bool success = comp->RemoveChannel(index);
+		vzlog_assert(success, "Failure! VzAnimation::RemoveChannel");
 		UpdateTimeStamp();
 	}
 	void VzAnimation::RemoveSampler(const int index)
 	{
 		GET_ANI_COMP(comp, );
-		vzlog_assert(comp->RemoveSampler(index), "Failure! VzAnimation::RemoveSampler");
+		bool success = comp->RemoveSampler(index);
+		vzlog_assert(success, "Failure! VzAnimation::RemoveSampler");
 		UpdateTimeStamp();
 	}
 	void VzAnimation::ClearChannels()

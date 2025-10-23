@@ -331,15 +331,18 @@ void updateRenderDataGaussianSplatting(GGeometryComponent* geometry, const Splat
 					uint32_t num_replicate_kernels = num_gaussian_kernels * 2;
 
 					bd.size = num_replicate_kernels * sizeof(UINT) * 2; // uint_64
-					assert(device->CreateBuffer(&bd, nullptr, &part_buffers.customBuffers[GAUSSIAN_REPLICATE_KEY]));
+					bool success = device->CreateBuffer(&bd, nullptr, &part_buffers.customBuffers[GAUSSIAN_REPLICATE_KEY]);
+					assert(success);
 					device->SetName(&part_buffers.customBuffers[GAUSSIAN_REPLICATE_KEY], "GaussianSplattingBuffers::replicatedGaussianKey");
 
 					bd.size = num_replicate_kernels * sizeof(UINT);
-					assert(device->CreateBuffer(&bd, nullptr, &part_buffers.customBuffers[GAUSSIAN_REPLICATE_VALUE]));
+					success = device->CreateBuffer(&bd, nullptr, &part_buffers.customBuffers[GAUSSIAN_REPLICATE_VALUE]);
+					assert(success);
 					device->SetName(&part_buffers.customBuffers[GAUSSIAN_REPLICATE_VALUE], "GaussianSplattingBuffers::replicatedGaussianValue");
 
 					bd.size = num_replicate_kernels * sizeof(UINT);
-					assert(device->CreateBuffer(&bd, nullptr, &part_buffers.customBuffers[GAUSSIAN_SORTED_INDICES]));
+					success = device->CreateBuffer(&bd, nullptr, &part_buffers.customBuffers[GAUSSIAN_SORTED_INDICES]);
+					assert(success);
 					device->SetName(&part_buffers.customBuffers[GAUSSIAN_SORTED_INDICES], "GaussianSplattingBuffers::sortedIndices");
 				}
 
@@ -360,49 +363,6 @@ void updateRenderDataGaussianSplatting(GGeometryComponent* geometry, const Splat
 		}
 		});
 }
-
-//void updateCapacityGaussians(uint32_t capacityGaussians)
-//{
-//	GPrimBuffers* prim_buffers = GetGPrimBuffer(0);
-//	if (!allowGaussianSplatting || prim_buffers == nullptr)
-//	{
-//		return;
-//	}
-//	GaussianSplattingBuffers& gaussianSplattingBuffers = prim_buffers->gaussianSplattingBuffers;
-//	if (capacityGaussians > gaussianSplattingBuffers.capacityGaussians)
-//	{
-//		GraphicsDevice* device = graphics::GetDevice();
-//
-//		gaussianSplattingBuffers.capacityGaussians = capacityGaussians * 2;
-//
-//		vzlog("GaussianSplattingBuffers's capacity update: request (%d) and allocate (%d)", capacityGaussians, gaussianSplattingBuffers.capacityGaussians);
-//
-//		GPUBufferDesc bd;
-//		if (device->CheckCapability(GraphicsDeviceCapability::CACHE_COHERENT_UMA))
-//		{
-//			// In UMA mode, it is better to create UPLOAD buffer, this avoids one copy from UPLOAD to DEFAULT
-//			bd.usage = Usage::UPLOAD;
-//		}
-//		else
-//		{
-//			bd.usage = Usage::DEFAULT;
-//		}
-//		bd.bind_flags = BindFlag::SHADER_RESOURCE | BindFlag::UNORDERED_ACCESS;
-//		bd.misc_flags = ResourceMiscFlag::BUFFER_RAW;
-//
-//		bd.size = gaussianSplattingBuffers.capacityGaussians * sizeof(UINT) * 2; // uint_64
-//		assert(device->CreateBuffer(&bd, nullptr, &gaussianSplattingBuffers.replicatedGaussianKey));
-//		device->SetName(&gaussianSplattingBuffers.replicatedGaussianKey, "GaussianSplattingBuffers::duplicatedGaussianKey");
-//
-//		bd.size = gaussianSplattingBuffers.capacityGaussians * sizeof(UINT);
-//		assert(device->CreateBuffer(&bd, nullptr, &gaussianSplattingBuffers.replicatedGaussianValue));
-//		device->SetName(&gaussianSplattingBuffers.replicatedGaussianValue, "GaussianSplattingBuffers::duplicatedGaussianValue");
-//
-//		bd.size = gaussianSplattingBuffers.capacityGaussians * sizeof(UINT);
-//		assert(device->CreateBuffer(&bd, nullptr, &gaussianSplattingBuffers.sortedIndices));
-//		device->SetName(&gaussianSplattingBuffers.sortedIndices, "GaussianSplattingBuffers::sortedIndices");
-//	}
-//}
 
 bool ImportModel_SPLAT(const std::string& fileName, const Entity geometryEntity)
 {
