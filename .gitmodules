@@ -1,3 +1,4 @@
 [submodule "EnginePlugins/AssetIO/External/assimp"]
 	path = EnginePlugins/AssetIO/External/assimp
-	url = https://github.com/assimp/assimp/tree/v5.4.3
+	url = https://github.com/assimp/assimp.git
+	branch = v5.4.3
