@@ -169,7 +169,7 @@ int main(int, char **)
 		//vz::jobsystem::Execute(ctx, [scene](vz::jobsystem::JobArgs args) {
 		vzm::VzGeometry* geometry_splat = vzm::NewGeometry("my splat geometry");
 			//assert(geometry_splat->LoadGeometryFile("D:\\point_cloud.splat"));
-			assert(geometry_splat->LoadGeometryFile("D:\\web_gs\\plush.splat"));
+			assert(geometry_splat->LoadGeometryFile("../Assets/splat/plush.splat"));
 			//assert(geometry_splat->LoadGeometryFile("D:\\point_cloud_car.splat"));
 			vzm::VzMaterial* splat_material = vzm::NewMaterial("my splat material");
 			splat_material->SetShaderType(vzm::ShaderType::PBR);
