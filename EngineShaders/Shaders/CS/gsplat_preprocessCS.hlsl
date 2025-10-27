@@ -224,7 +224,7 @@ void main(uint2 Gid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint groupIn
     if (!in_frustum(pos_ws, camera.view, camera.projection, p_view, p_proj))
         return;
     float4 scale_opacity = gaussianScale_Opacities[idx];
-    float3 scale = scale_opacity.xyz;
+    float3 scale = scale_opacity.xyz;   // actually, this is log-scale
     float opacity = scale_opacity.w;
     float4 rotation = gaussianQuaterinions[idx];
 
