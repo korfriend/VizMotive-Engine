@@ -162,6 +162,9 @@ namespace vz
 					for (size_t part_index = 0, n = geometry.GetNumParts(); part_index < n; ++part_index)
 					{
 						const Primitive& part = *geometry.GetPrimitive(part_index);
+						if (part.GetPrimitiveType() != GeometryComponent::PrimitiveType::TRIANGLES)
+							continue;
+
 						GPrimBuffers& part_buffers = *geometry.GetGPrimBuffer(part_index);;
 
 						Primitive::Subset subset = part.GetSubset(lod);
