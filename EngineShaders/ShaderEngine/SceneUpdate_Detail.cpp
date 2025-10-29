@@ -703,9 +703,10 @@ namespace vz
 						instance.flags |= RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_CULL_DISABLE;
 					}
 
-					if (XMVectorGetX(XMMatrixDeterminant(W)) > 0)
+					if (XMVectorGetX(XMMatrixDeterminant(W)) < 0)
 					{
-						// There is a mismatch between object space winding and BLAS winding:
+						// Mirrored/reflected transform: flip winding interpretation
+						// VizMotive geometry is CW by default, so only set CCW flag when mirrored
 						//	https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_raytracing_instance_flags
 						instance.flags |= RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
 					}
