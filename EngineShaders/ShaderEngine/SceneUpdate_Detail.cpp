@@ -708,7 +708,7 @@ namespace vz
 						// VizMotive uses RHS (Right-Handed System), but DXR operates in LHS (Left-Handed System)
 						// RHS CCW geometry is interpreted as CW by DXR, matching DXR's default CW=frontface behavior
 						// Only mirrored transforms (det < 0) need CCW flag: RHS CCW → mirror → RHS CW = DXR CCW
-						//	https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_raytracing_instance_flags
+						// https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_raytracing_instance_flags
 						instance.flags |= RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
 					}
 
