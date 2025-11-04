@@ -97,7 +97,7 @@ namespace vz::renderer
 					if (aabb.layerMask & vis.layerMask)
 					{
 						const GRenderableComponent& renderable = *scene_Gdetails->renderableComponents[i];
-						if (renderable.IsRenderable() && !renderable.IsShadowCastDisabled())	// first chechk the renderable's shadow option 
+						if (renderable.IsRenderable() && !renderable.IsShadowCastDisabled())	// first check the renderable's shadow option 
 						{
 							const float distanceSq = math::DistanceSquared(EYE, renderable.center);
 							if (distanceSq > sqr(renderable.GetFadeDistance() + renderable.radius))
@@ -121,17 +121,31 @@ namespace vz::renderer
 							if (camera_mask == 0)
 								continue;
 
-							RenderBatch batch;
-							batch.Create(renderable.geometry->geometryIndex, uint32_t(i), 0, renderable.sortBits, camera_mask, shadow_lod);
-
+							const std::vector<Primitive>& parts = renderable.geometry->GetPrimitives();
+							assert(parts.size() == renderable.materials.size());
 							const uint32_t filterMask = renderable.materialFilterFlags;
-							if (filterMask & GMaterialComponent::FILTER_OPAQUE)
+							
+							for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 							{
-								renderQueue.add(batch);
-							}
-							if ((filterMask & GMaterialComponent::FILTER_TRANSPARENT) || (filterMask & GMaterialComponent::FILTER_WATER))
-							{
-								renderQueue_transparent.add(batch);
+								const Primitive& part = parts[part_index];
+								if (!part.HasRenderData())
+								{
+									continue;
+								}
+								GMaterialComponent& material = *renderable.materials[part_index];
+
+								RenderBatch batch;
+								assert(i == renderable.renderableIndex);
+								batch.Create(renderable.geometry->geometryIndex, part_index, material.materialIndex, renderable.renderableIndex, 0, renderable.sortBits, camera_mask, shadow_lod);
+
+								if (filterMask & GMaterialComponent::FILTER_OPAQUE)
+								{
+									renderQueue.add(batch);
+								}
+								if ((filterMask & GMaterialComponent::FILTER_TRANSPARENT) || (filterMask & GMaterialComponent::FILTER_WATER))
+								{
+									renderQueue_transparent.add(batch);
+								}
 							}
 						}
 					}
@@ -201,17 +215,32 @@ namespace vz::renderer
 								shadow_lod = std::min(shadow_lod, candidate_lod);
 							}
 
-							RenderBatch batch;
-							batch.Create(renderable.geometry->geometryIndex, uint32_t(i), 0, renderable.sortBits, 0xFF, shadow_lod);
 
+							const std::vector<Primitive>& parts = renderable.geometry->GetPrimitives();
+							assert(parts.size() == renderable.materials.size());
 							const uint32_t filterMask = renderable.materialFilterFlags;
-							if (filterMask & GMaterialComponent::FILTER_OPAQUE)
+
+							for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 							{
-								renderQueue.add(batch);
-							}
-							if ((filterMask & GMaterialComponent::FILTER_TRANSPARENT) || (filterMask & GMaterialComponent::FILTER_WATER))
-							{
-								renderQueue_transparent.add(batch);
+								const Primitive& part = parts[part_index];
+								if (!part.HasRenderData())
+								{
+									continue;
+								}
+								GMaterialComponent& material = *renderable.materials[part_index];
+
+								RenderBatch batch;
+								batch.Create(renderable.geometry->geometryIndex, part_index, material.materialIndex, renderable.renderableIndex, 0, renderable.sortBits, 0xFF, shadow_lod);
+
+								const uint32_t filterMask = renderable.materialFilterFlags;
+								if (filterMask & GMaterialComponent::FILTER_OPAQUE)
+								{
+									renderQueue.add(batch);
+								}
+								if ((filterMask & GMaterialComponent::FILTER_TRANSPARENT) || (filterMask & GMaterialComponent::FILTER_WATER))
+								{
+									renderQueue_transparent.add(batch);
+								}
 							}
 						}
 					}
@@ -334,17 +363,33 @@ namespace vz::renderer
 							if (camera_mask == 0)
 								continue;
 							
-							RenderBatch batch;
-							batch.Create(renderable.geometry->geometryIndex, uint32_t(i), 0, renderable.sortBits, camera_mask, shadow_lod);
 
+
+							const std::vector<Primitive>& parts = renderable.geometry->GetPrimitives();
+							assert(parts.size() == renderable.materials.size());
 							const uint32_t filterMask = renderable.materialFilterFlags;
-							if (filterMask & GMaterialComponent::FILTER_OPAQUE)
+
+							for (uint32_t part_index = 0, num_parts = parts.size(); part_index < num_parts; ++part_index)
 							{
-								renderQueue.add(batch);
-							}
-							if ((filterMask & GMaterialComponent::FILTER_TRANSPARENT) || (filterMask & GMaterialComponent::FILTER_WATER))
-							{
-								renderQueue_transparent.add(batch);
+								const Primitive& part = parts[part_index];
+								if (!part.HasRenderData())
+								{
+									continue;
+								}
+								GMaterialComponent& material = *renderable.materials[part_index];
+
+								RenderBatch batch;
+								assert(i == renderable.renderableIndex);
+								batch.Create(renderable.geometry->geometryIndex, part_index, material.materialIndex, renderable.renderableIndex, 0, renderable.sortBits, camera_mask, shadow_lod);
+
+								if (filterMask & GMaterialComponent::FILTER_OPAQUE)
+								{
+									renderQueue.add(batch);
+								}
+								if ((filterMask & GMaterialComponent::FILTER_TRANSPARENT) || (filterMask & GMaterialComponent::FILTER_WATER))
+								{
+									renderQueue_transparent.add(batch);
+								}
 							}
 						}
 					}
