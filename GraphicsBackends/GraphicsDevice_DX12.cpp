@@ -6282,6 +6282,12 @@ std::mutex queue_locker;
 					DSV.StencilBeginningAccess = DSV.DepthBeginningAccess;
 					DSV.StencilEndingAccess = DSV.DepthEndingAccess;
 				}
+				else
+				{
+					// Use NO_ACCESS for formats that do not support stencil operations
+					DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+					DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
+				}
 			}
 			break;
 
