@@ -1136,15 +1136,12 @@ namespace vzm
 	{
 		CHECK_API_LOCKGUARD_VALIDITY(;);
 		isPandingSubmitCommand.store(pending);
+	}
 
-		//if (GetCountPendingSubmitCommand() > 0)
-		//{
-		//	graphics::GraphicsDevice* device = graphics::GetDevice();
-		//	graphics::CommandList cmd = device->BeginCommandList();
-		//	profiler::EndFrame(&cmd); // cmd must be assigned before SubmitCommandLists
-		//	device->SubmitCommandLists();
-		//	vzm::ResetPendingSubmitCommand();
-		//}
+	void WaitForSubmitCommand()
+	{
+		CHECK_API_LOCKGUARD_VALIDITY(;);
+		graphicsDevice->WaitForGPU();
 	}
 
 	void ReloadShader()

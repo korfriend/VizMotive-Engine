@@ -434,6 +434,10 @@ int main(int, char**)
 								
 								vzlog("PICKING %s", vzm::GetNameByVid(actor_vid).c_str());
 							}
+							else
+							{
+								belongto = -1;
+							}
 						}
 						else
 						{
