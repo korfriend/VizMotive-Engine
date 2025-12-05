@@ -213,11 +213,9 @@ namespace vzm
 		GET_RENDERPATH(renderer, );
 	}
 
-	void VzRenderer::EnableFrameLock(const bool enabled, const bool frameSkip, const float targetFrameRate)
+	void VzRenderer::EnableFrameLock(const float targetFrameRate)
 	{
 		GET_RENDERPATH(renderer, );
-		renderer->framerateLock = enabled;
-		renderer->frameskip = frameSkip;
 		renderer->targetFrameRate = targetFrameRate;
 	}
 
@@ -236,24 +234,29 @@ namespace vzm
 			return false;
 		}
 
-		auto timestamp_prev = renderer->timer.timestamp;
-		float delta_time = float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
-		const float target_deltaTime = 1.0f / renderer->targetFrameRate;
-		if (renderer->framerateLock && delta_time < target_deltaTime)
+		renderer->deltaTimeSinceLastRender += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+		if (renderer->targetFrameRate > 0)
 		{
-			if (renderer->frameskip)
+			const float target_deltaTime = 1.0f / renderer->targetFrameRate;
+			if (renderer->deltaTimeSinceLastRender < target_deltaTime)
 			{
-				renderer->timer.timestamp = timestamp_prev;
-				return true;
+				return false; 
 			}
-			helper::QuickSleep((target_deltaTime - delta_time) * 1000);
-			delta_time += float(std::max(0.0, renderer->timer.record_elapsed_seconds()));
+			renderer->deltaTimeSinceLastRender -= target_deltaTime;
 		}
-		renderer->deltaTimeAccumulator += delta_time;
 
 		if (GetCountPendingSubmitCommand() == 0)
 		{
 			profiler::BeginFrame();
+		}
+
+		float delta_time = renderer->targetFrameRate > 0
+			? (1.0f / renderer->targetFrameRate)  // 고정 deltaTime
+			: renderer->deltaTimeSinceLastRender;  // 가변 deltaTime
+
+		if (renderer->targetFrameRate == 0)
+		{
+			renderer->deltaTimeSinceLastRender = 0;  // 가변 모드는 매번 리셋
 		}
 
 		// Update the target Scene of this RenderPath 

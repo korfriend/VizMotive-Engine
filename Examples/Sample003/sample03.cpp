@@ -11,9 +11,8 @@
 #include <windowsx.h>
 
 // imgui
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_impl_dx12.h"
+#include "imgui/vzImGuiHelpers.h"
+#include "imgui/IconsMaterialDesign.h"
 #include "imgui/device_manager_dx12.h"
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -255,6 +254,9 @@ int main(int, char**)
 		}
 		if (done)
 			break;
+
+		if (!vzimgui::CheckFixedFrame(1.f / 60.f))
+			continue;
 
 		// Start the Dear ImGui frame
 		ImGui_ImplDX12_NewFrame();

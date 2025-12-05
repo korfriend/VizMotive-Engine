@@ -46,12 +46,12 @@ namespace vz
 		Tonemap tonemap = Tonemap::ACES;
 		float clearColor[4] = {};
 
+		inline static float targetFrameRate = 60;
+
 		// framerate controllers
 		uint64_t frameCount = 0;
 		float deltaTimeAccumulator = 0;
-		inline static float targetFrameRate = 60;
-		inline static bool frameskip = true; // just for fixed update (later for physics-based simulations)
-		inline static bool framerateLock = true;
+		float deltaTimeSinceLastRender = 0;
 		vz::Timer timer; // this is for computing fps
 		TimeStamp recentRender3D_UpdateTime = TimerMin;
 
