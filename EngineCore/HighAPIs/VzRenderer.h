@@ -54,7 +54,7 @@ namespace vzm
 
 		void SetTonemap(const Tonemap tonemap);
 
-		void EnableFrameLock(const bool enabled, const bool frameSkip = true, const float targetFrameRate = 60.f);
+		void EnableFrameLock(const float targetFrameRate = 60.f);	// for disable setting, set -1 
 		// MUST BE CALLED WITHIN THE SAME THREAD
 		bool Render(const SceneVID vidScene, const CamVID vidCam, const float dt = -1.f);
 		bool Render(const VzScene* scene, const VzCamera* camera, const float dt = -1.f) { return Render(scene->GetVID(), camera->GetVID(), dt); };

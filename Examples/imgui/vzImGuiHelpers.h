@@ -25,6 +25,8 @@ namespace vzimgui
 {
 	using namespace vzm;
 
+	bool CheckFixedFrame(const float delta);
+
 	void UpdateTreeNode(const VID vid, const VID vidSelected, const std::function<void(const VID)>& callback);
 	void UpdateResourceMonitor(const std::function<void(const VID)>& callback);
 	

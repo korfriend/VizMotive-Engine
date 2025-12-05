@@ -195,6 +195,9 @@ int main(int, char **)
 		if (done)
 			break;
 
+		if (!vzimgui::CheckFixedFrame(1.f / 60.f))
+			continue;
+
 		// Start the Dear ImGui frame
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();

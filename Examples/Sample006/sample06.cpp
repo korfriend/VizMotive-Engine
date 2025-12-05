@@ -12,9 +12,8 @@
 #include <windowsx.h>
 
 // imgui
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_impl_dx12.h"
+#include "imgui/vzImGuiHelpers.h"
+#include "imgui/IconsMaterialDesign.h"
 #include "imgui/device_manager_dx12.h"
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -49,6 +48,9 @@ static int const NUM_FRAMES_IN_FLIGHT = 3;
 static FrameContext g_frameContext[NUM_FRAMES_IN_FLIGHT] = {};
 static UINT g_frameIndex = 0;
 
+// VSync configuration for 60fps
+static UINT g_syncInterval = 1;  // Default to vsync (will be calculated based on monitor refresh rate)
+
 static int const NUM_BACK_BUFFERS = 3;
 static ID3D12Device *g_pd3dDevice = nullptr;
 static ID3D12DescriptorHeap *g_pd3dRtvDescHeap = nullptr;
@@ -70,6 +72,7 @@ void CreateRenderTarget();
 void CleanupRenderTarget();
 void WaitForLastSubmittedFrame();
 FrameContext *WaitForNextFrameResources();
+UINT GetMonitorRefreshRate(HWND hWnd);
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Main code
@@ -235,6 +238,10 @@ int main(int, char **)
 	// Our state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+	// FPS tracking
+	static int actual_render_count = 0;
+	static auto fps_timer_start = std::chrono::high_resolution_clock::now();
+
 	// Main loop
 	bool done = false;
 	while (!done)
@@ -251,6 +258,9 @@ int main(int, char **)
 		}
 		if (done)
 			break;
+
+		if (!vzimgui::CheckFixedFrame(1.f / 60.f))
+			continue;
 
 		// Start the Dear ImGui frame
 		ImGui_ImplDX12_NewFrame();
@@ -415,7 +425,8 @@ int main(int, char **)
 
 				ImGui::SetCursorPos(cur_item_pos);
 
-				renderer->Render(scene, camera);
+				bool rendered = renderer->Render(scene, camera);
+				if (rendered) actual_render_count++;
 
 				uint32_t w, h;
 				VzRenderer::SharedResourceTarget srt;
@@ -477,7 +488,19 @@ int main(int, char **)
 					PairwiseCollision(actor_test3, actor_test1, { 1, 1, 0, 1 });
 				}
 
-				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+				ImGui::Text("ImGui Loop FPS: %.1f", io.Framerate);
+				//ImGui::Text("VSync Interval: %u (Monitor Hz / %u)", g_syncInterval, g_syncInterval);
+
+				// Calculate actual 3D render FPS
+				static float actual_fps_display = 0.0f;
+				auto now = std::chrono::high_resolution_clock::now();
+				float elapsed = std::chrono::duration<float>(now - fps_timer_start).count();
+				if (elapsed >= 1.0f) {
+					actual_fps_display = actual_render_count / elapsed;
+					actual_render_count = 0;
+					fps_timer_start = now;
+				}
+				ImGui::Text("Actual 3D Render FPS: %.1f", actual_fps_display);
 
 				static bool profile_enabled = false;
 				if (ImGui::Checkbox("Profile Enabled", &profile_enabled))
@@ -528,7 +551,9 @@ int main(int, char **)
 
 		g_pd3dCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList *const *)&g_pd3dCommandList);
 
-		g_pSwapChain->Present(1, 0); // Present with vsync
+		// Present with calculated sync interval for 60fps
+		//g_pSwapChain->Present(g_syncInterval, 0);
+		g_pSwapChain->Present(1, 0);
 		// g_pSwapChain->Present(0, 0); // Present without vsync
 
 		UINT64 fenceValue = g_fenceLastSignaledValue + 1;
@@ -665,6 +690,14 @@ bool CreateDeviceD3D(HWND hWnd)
 		g_hSwapChainWaitableObject = g_pSwapChain->GetFrameLatencyWaitableObject();
 	}
 
+	// Calculate sync interval for 60fps based on monitor refresh rate
+	UINT monitorRefreshRate = GetMonitorRefreshRate(hWnd);
+	g_syncInterval = 1;// (monitorRefreshRate + 30) / 60; // Round to nearest integer (e.g., 240Hz->4, 144Hz->2, 120Hz->2, 60Hz->1)
+	if (g_syncInterval < 1) g_syncInterval = 1;
+
+	vzlog("Monitor refresh rate: %u Hz, Sync interval: %u (target: ~%.1f fps)",
+		monitorRefreshRate, g_syncInterval, (float)monitorRefreshRate / g_syncInterval);
+
 	CreateRenderTarget();
 	return true;
 }
@@ -794,6 +827,33 @@ FrameContext *WaitForNextFrameResources()
 	WaitForMultipleObjects(numWaitableObjects, waitableObjects, TRUE, INFINITE);
 
 	return frameCtx;
+}
+
+// Get monitor refresh rate to calculate sync interval for 60fps
+UINT GetMonitorRefreshRate(HWND hWnd)
+{
+	UINT refreshRate = 60; // Default fallback
+
+	// Get the monitor handle for this window
+	HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+
+	// Get monitor info
+	MONITORINFOEX monitorInfo;
+	monitorInfo.cbSize = sizeof(MONITORINFOEX);
+	if (GetMonitorInfo(hMonitor, &monitorInfo))
+	{
+		// Get device name and query display settings
+		DEVMODE devMode;
+		devMode.dmSize = sizeof(DEVMODE);
+		devMode.dmDriverExtra = 0;
+
+		if (EnumDisplaySettings(monitorInfo.szDevice, ENUM_CURRENT_SETTINGS, &devMode))
+		{
+			refreshRate = devMode.dmDisplayFrequency;
+		}
+	}
+
+	return refreshRate;
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp

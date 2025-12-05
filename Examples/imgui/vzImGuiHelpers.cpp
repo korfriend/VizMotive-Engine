@@ -6,6 +6,19 @@
 
 namespace vzimgui
 {
+	bool CheckFixedFrame(const float fixed_frame_delta)
+	{
+		static float delta = 0;
+		static auto record_time = std::chrono::high_resolution_clock::now();
+		auto cur_time = std::chrono::high_resolution_clock::now();
+		delta += std::chrono::duration<float>(cur_time - record_time).count();
+		record_time = cur_time;
+		if (delta < fixed_frame_delta)
+			return false;
+		delta -= fixed_frame_delta;
+		return true;
+	}
+
 	void UpdateTreeNode(const VID vid, const VID vidSelected, const std::function<void(const VID)>& callback)
 	{
 		vzm::VzSceneObject* component = (vzm::VzSceneObject*)vzm::GetComponent(vid);

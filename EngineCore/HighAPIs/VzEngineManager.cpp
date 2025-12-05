@@ -548,14 +548,14 @@ namespace vzm
 			return false;
 		}
 
-		if (int targetFPS = section.GetInt("TARGET_FPS") > 0)
+		int targetFPS = section.GetInt("TARGET_FPS");
+		if (targetFPS > 0)
 		{
-			RenderPath::framerateLock = true;
 			RenderPath::targetFrameRate = (float)targetFPS;
 		}
 		else
 		{
-			RenderPath::framerateLock = false;
+			RenderPath::targetFrameRate = -1.f;
 		}
 
 		skipStableCount = section.GetInt("RENDERING_SKIP_STABLES");
