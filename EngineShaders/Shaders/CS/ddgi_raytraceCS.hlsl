@@ -259,6 +259,9 @@ void main(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID, uint groupIn
 			prim.instanceIndex = q.CommittedInstanceID();
 			prim.subsetIndex = q.CommittedGeometryIndex();
 
+			// DEBUG: Save for later debugging
+			uint debug_instanceIdx = prim.instanceIndex;
+
 			surface.SetBackface(!q.CommittedTriangleFrontFace());
 
 			if (!surface.load(prim, q.CommittedTriangleBarycentrics()))
@@ -427,9 +430,33 @@ void main(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID, uint groupIn
 				ddgi *= energy_conservation;
 				hit_result += ddgi;
 			}
-			hit_result *= surface.albedo;
-			hit_result += surface.emissiveColor;
-			radiance += hit_result;
+
+			// DEBUG: Visualize albedo and instance info
+			// Temporarily enabled for debugging - change to #if 0 to deactivate
+#if 1
+			if (probeIndex < 100) // DEBUG: Expanded to 100 probes to see more coverage
+			{
+				// DEBUG: Test direct buffer read
+			uint instanceIdx = debug_instanceIdx;
+			uint resLookupIdx = surface.inst.resLookupIndex;
+
+			// Try reading multiple indices from the buffer
+			ShaderInstanceResLookup lookup0 = load_instResLookup(0);
+			ShaderInstanceResLookup lookup1 = load_instResLookup(1);
+			ShaderInstanceResLookup lookup2 = load_instResLookup(2);
+			ShaderInstanceResLookup lookupN = load_instResLookup(resLookupIdx);
+
+			// Show materialIndex from different buffer positions
+			// R = lookup0.materialIndex, G = lookup1.materialIndex, B = lookupN.materialIndex
+			radiance = float3(lookup0.materialIndex, lookup1.materialIndex, lookupN.materialIndex) * 1.0;
+            }
+			else
+#endif
+			{
+				hit_result *= surface.albedo;
+				hit_result += surface.emissiveColor;
+				radiance += hit_result;
+			}
 
 			DDGIRayData rayData;
 			rayData.direction = ray.Direction;

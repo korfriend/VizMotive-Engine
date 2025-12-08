@@ -169,19 +169,29 @@ int main(int, char **)
 		vzm::VzGeometry* geometry_test = vzm::NewGeometry("my icosahedron");
 		vz::geogen::GenerateIcosahedronGeometry(geometry_test->GetVID(), 15.f, 5);
 		vzm::VzMaterial* material_test = vzm::NewMaterial("icosahedron's material");
+		material_test->SetBaseColor({ 1.0f, 0.0f, 0.0f, 1.0f });  // RED for DDGI test
 		material_test->SetShadowCast(true);
 		material_test->SetShadowReceive(true);
 		
 		vzm::VzActorStaticMesh *actor_test1 = vzm::NewActorStaticMesh("my actor1-IcosahedronGeometry", geometry_test->GetVID(), material_test->GetVID());
+		actor_test1->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 		scene->AppendChild(actor_test1);
+		vzlog("actor_test1 (icosahedron) material baseColor: %.2f %.2f %.2f, material VID: %llu",
+			material_test->GetBaseColor().x, material_test->GetBaseColor().y, material_test->GetBaseColor().z,
+			material_test->GetVID());
 
 		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
 		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 8.f, 3, 128, 16);
 		vzm::VzMaterial* material_test2 = vzm::NewMaterial("my material2");
+		material_test2->SetBaseColor({ 0.0f, 1.0f, 0.0f, 1.0f });  // GREEN for DDGI test
 		material_test2->SetShadowCast(true);
 		material_test2->SetShadowReceive(true);
 		vzm::VzActorStaticMesh* actor_test2 = vzm::NewActorStaticMesh("my actor2-TorusKnot", geometry_test2->GetVID(), material_test2->GetVID());
+		actor_test2->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 		scene->AppendChild(actor_test2);
+		vzlog("actor_test2 (torus knot) material baseColor: %.2f %.2f %.2f, material VID: %llu",
+			material_test2->GetBaseColor().x, material_test2->GetBaseColor().y, material_test2->GetBaseColor().z,
+			material_test2->GetVID());
 
 		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
 		{
@@ -198,9 +208,14 @@ int main(int, char **)
 		material_canal->SetShadowReceive(true);
 		material_canal->SetBaseColor({ 0.5, 0.5, 1, 1 });
 		vzm::VzActorStaticMesh* actor_canal = vzm::NewActorStaticMesh("my actor-canal", geometry_canal->GetVID(), material_canal->GetVID());
+		actor_canal->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 		scene->AppendChild(actor_canal);
+		vzlog("actor_canal (tube) material baseColor: %.2f %.2f %.2f, material VID: %llu",
+			material_canal->GetBaseColor().x, material_canal->GetBaseColor().y, material_canal->GetBaseColor().z,
+			material_canal->GetVID());
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
+		axis_helper->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 		axis_helper->SetScale({ 10, 10, 10 });
 		axis_helper->EnableUnlit(true);
 		scene->AppendChild(axis_helper);
@@ -208,11 +223,16 @@ int main(int, char **)
 		vzm::VzGeometry* floor_geo = vzm::NewGeometry("floor mesh");
 		vz::geogen::GenerateBoxGeometry(floor_geo->GetVID());
 		vzm::VzMaterial* floor_material = vzm::NewMaterial("floor mesh");
+		floor_material->SetBaseColor({ 0.8f, 0.8f, 0.8f, 1.0f });  // GRAY for DDGI test
 		floor_material->SetShadowReceive(true);
 		vzm::VzActorStaticMesh* floor_actor = vzm::NewActorStaticMesh("floor", floor_geo->GetVID(), floor_material->GetVID());
+		floor_actor->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 		floor_actor->SetScale({ 100.f, 5.f, 100.f });
 		floor_actor->SetPosition({ 0.f, -50.f, 0.f });
 		scene->AppendChild(floor_actor);
+		vzlog("floor_actor material baseColor: %.2f %.2f %.2f, material VID: %llu",
+			floor_material->GetBaseColor().x, floor_material->GetBaseColor().y, floor_material->GetBaseColor().z,
+			floor_material->GetVID());
 
 		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
 		
@@ -225,6 +245,7 @@ int main(int, char **)
 			material_stl->SetDoubleSided(true);
 			material_stl->SetBaseColor({ 1, 0.5, 0.5, 1 });
 			vzm::VzActorStaticMesh* actor_test3 = vzm::NewActorStaticMesh("my actor3", geometry_stl->GetVID(), material_stl->GetVID());
+			actor_test3->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 			actor_test3->SetScale({ 1.f, 1.f, 1.f });
 			actor_test3->SetEulerAngleZXYInDegree({0, -90, 0});
 			scene->AppendChild(vzm::GetFirstComponentByName("my actor3"));
@@ -487,6 +508,25 @@ int main(int, char **)
 
 					PairwiseCollision(actor_test3, actor_test1, { 1, 1, 0, 1 });
 				}
+
+				ImGui::Separator();
+				ImGui::Text("Debug Options");
+				static bool debug_ddgi_enabled = false;
+				if (ImGui::Checkbox("DEBUG_DDGI", &debug_ddgi_enabled))
+				{
+					renderer->SetRenderOptionEnabled("DEBUG_DDGI", debug_ddgi_enabled);
+				}
+
+				static int ddgi_grid[3] = { 32, 8, 32 };
+				{
+					ImGui::InputInt3("DDGI Grid", ddgi_grid, ImGuiInputTextFlags_CharsDecimal);
+					if (ImGui::Button("Apply DDGI Grid"))
+					{
+						scene->SetOptionValueArray("DDGI_GRID", { (float)ddgi_grid[0], (float)ddgi_grid[1], (float)ddgi_grid[2] });
+					}
+				}
+
+				ImGui::Separator();
 
 				ImGui::Text("ImGui Loop FPS: %.1f", io.Framerate);
 				//ImGui::Text("VSync Interval: %u (Monitor Hz / %u)", g_syncInterval, g_syncInterval);

@@ -261,9 +261,22 @@ namespace vz
 				std::vector<Entity> material_entities = renderable->GetMaterials();
 				size_t num_materials = material_entities.size();
 				renderable->materials.resize(num_materials);
+
+				// DEBUG: Log renderable material assignment
+				static std::atomic<int> renderable_log_count(0);
+				int log_idx = renderable_log_count.fetch_add(1);
+				if (log_idx < 10) {
+					vzlog("  Renderable[%u] Entity %u:", args.jobIndex, entity);
+				}
+
 				for (size_t i = 0; i < num_materials; ++i)
 				{
 					renderable->materials[i] = (GMaterialComponent*)compfactory::GetMaterialComponent(material_entities[i]);
+
+					if (log_idx < 10 && renderable->materials[i]) {
+						vzlog("    Material[%zu]: Entity %u -> materialIndex %u",
+							i, material_entities[i], renderable->materials[i]->materialIndex);
+					}
 				}
 				
 				if (renderable->IsDirty())
@@ -279,6 +292,13 @@ namespace vz
 				}
 
 				renderable->resLookupOffset = instanceResLookupAllocator.fetch_add(num_materials);
+
+			// DEBUG: Log resLookupOffset assignment
+			static std::atomic<int> lookup_log_count(0);
+			if (lookup_log_count.fetch_add(1) < 10) {
+				vzlog("  Renderable Entity %u -> resLookupOffset %u, num_materials %zu",
+					entity, renderable->resLookupOffset, num_materials);
+			}
 
 				AABB& aabb = aabbRenderables[args.jobIndex];
 				aabb = renderable->GetAABB();
@@ -477,6 +497,13 @@ namespace vz
 			uint32_t num_materials = (uint32_t)materials_.size();
 			materialComponents.resize(num_materials);
 
+			// DEBUG: Log materials count and indices
+			static bool logged_once = false;
+			if (!logged_once && num_materials > 0) {
+				vzlog("DEBUG: RunMaterialUpdateSystem - num_materials = %u", num_materials);
+				logged_once = true;
+			}
+
 			jobsystem::Dispatch(ctx, num_materials, SMALL_SUBTASK_GROUPSIZE, [&](jobsystem::JobArgs args) {
 
 				Entity entity = materials_[args.jobIndex];
@@ -485,6 +512,14 @@ namespace vz
 				assert(material);
 				materialComponents[args.jobIndex] = material;
 				material->materialIndex = args.jobIndex;
+
+				// DEBUG: Log material assignment
+				static std::atomic<int> log_count(0);
+				if (log_count.fetch_add(1) < 8) {
+					vzlog("  Material Entity %u -> materialIndex %u, baseColor=(%.2f,%.2f,%.2f)",
+						entity, args.jobIndex,
+						material->GetBaseColor().x, material->GetBaseColor().y, material->GetBaseColor().z);
+				}
 				material->layeredmask = compfactory::GetLayeredMaskComponent(entity);
 				if (material->layeredmask)
 				{

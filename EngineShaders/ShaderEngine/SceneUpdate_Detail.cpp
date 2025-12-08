@@ -680,7 +680,7 @@ namespace vz
 							instance.transform[i][j] = world_matrix.m[j][i];
 						}
 					}
-					instance.instance_id = args.jobIndex;
+					instance.instance_id = renderable.renderableIndex; // FIX: Must match the index where ShaderMeshInstance is stored (line 669)
 					instance.instance_mask = layermask == 0 ? 0 : 0xFF;
 					if (!renderable.IsRenderable() || !geometry.HasRenderData())
 					{
@@ -712,7 +712,8 @@ namespace vz
 						instance.flags |= RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
 					}
 
-					void* dest = (void*)((size_t)TLAS_instancesMapped + (size_t)args.jobIndex * device->GetTopLevelAccelerationStructureInstanceSize());
+					// FIX: TLAS index must match ShaderMeshInstance index
+				void* dest = (void*)((size_t)TLAS_instancesMapped + (size_t)renderable.renderableIndex * device->GetTopLevelAccelerationStructureInstanceSize());
 					device->WriteTopLevelAccelerationStructureInstance(&instance, dest);
 				}
 			} break;
@@ -1154,7 +1155,10 @@ namespace vz
 
 		// GPU instance-mapping material count allocation is ready at this point:
 		instanceResLookupSize = scene_->GetRenderableResLookupAllocatorSize();
-		if (instanceResLookupUploadBuffer[0].desc.size < (instanceResLookupSize * sizeof(uint)))
+		// FIX: Use correct struct size, not sizeof(uint)
+	// Force recreate to ensure proper size (remove this after first run)
+	bool force_recreate = !instanceResLookupBuffer.IsValid();
+	if (force_recreate || instanceResLookupUploadBuffer[0].desc.size < (instanceResLookupSize * sizeof(ShaderInstanceResLookup)))
 		{
 			GPUBufferDesc desc;
 			desc.stride = sizeof(ShaderInstanceResLookup);
@@ -1168,8 +1172,8 @@ namespace vz
 				device->SetName(&instanceResLookupBuffer, "GSceneDetails::instanceMaterialLookup");
 
 				// Upload buffer shouldn't be used by shaders with Non-UMA:
-				desc.bind_flags = BindFlag::NONE;
-				desc.misc_flags = ResourceMiscFlag::NONE;
+// 				desc.bind_flags = BindFlag::NONE;
+// 				desc.misc_flags = ResourceMiscFlag::NONE;
 			}
 
 			desc.usage = Usage::UPLOAD;
@@ -1180,6 +1184,13 @@ namespace vz
 			}
 		}
 		instanceResLookupMapped = (ShaderInstanceResLookup*)instanceResLookupUploadBuffer[pingpong_buffer_index].mapped_data;
+
+	// DEBUG: Check if mapped pointer is valid
+	static bool logged_mapped = false;
+	if (!logged_mapped) {
+		vz::backlog::post("DEBUG: instanceResLookup buffer mapped");
+		logged_mapped = true;
+	}
 
 		RunGeometryUpdateSystem(ctx);
 		RunMaterialUpdateSystem(ctx);
@@ -1339,10 +1350,18 @@ namespace vz
 		}
 		else
 		{
+			// DEBUG: Check if Non-UMA buffer is valid
+			static bool logged_nonuma = false;
+			if (!logged_nonuma) {
+				vz::backlog::post("DEBUG: Non-UMA mode detected");
+				logged_nonuma = true;
+			}
+
 			shaderscene.instancebuffer = device->GetDescriptorIndex(&instanceBuffer, SubresourceType::SRV);
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryBuffer, SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialBuffer, SubresourceType::SRV);
-			shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupBuffer, SubresourceType::SRV);
+			// TEMP FIX: Use Upload buffer directly (Non-UMA copy not implemented)
+		shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
 		}			
 		shaderscene.meshletbuffer = device->GetDescriptorIndex(&meshletBuffer, SubresourceType::SRV);
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
