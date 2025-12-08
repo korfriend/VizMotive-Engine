@@ -176,9 +176,6 @@ int main(int, char **)
 		vzm::VzActorStaticMesh *actor_test1 = vzm::NewActorStaticMesh("my actor1-IcosahedronGeometry", geometry_test->GetVID(), material_test->GetVID());
 		actor_test1->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 		scene->AppendChild(actor_test1);
-		vzlog("actor_test1 (icosahedron) material baseColor: %.2f %.2f %.2f, material VID: %llu",
-			material_test->GetBaseColor().x, material_test->GetBaseColor().y, material_test->GetBaseColor().z,
-			material_test->GetVID());
 
 		vzm::VzGeometry* geometry_test2 = vzm::NewGeometry("my geometry2");
 		vz::geogen::GenerateTorusKnotGeometry(geometry_test2->GetVID(), 8.f, 3, 128, 16);
@@ -189,9 +186,6 @@ int main(int, char **)
 		vzm::VzActorStaticMesh* actor_test2 = vzm::NewActorStaticMesh("my actor2-TorusKnot", geometry_test2->GetVID(), material_test2->GetVID());
 		actor_test2->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 		scene->AppendChild(actor_test2);
-		vzlog("actor_test2 (torus knot) material baseColor: %.2f %.2f %.2f, material VID: %llu",
-			material_test2->GetBaseColor().x, material_test2->GetBaseColor().y, material_test2->GetBaseColor().z,
-			material_test2->GetVID());
 
 		vzm::VzGeometry* geometry_canal = vzm::NewGeometry("my geometry canal");
 		{
@@ -210,9 +204,6 @@ int main(int, char **)
 		vzm::VzActorStaticMesh* actor_canal = vzm::NewActorStaticMesh("my actor-canal", geometry_canal->GetVID(), material_canal->GetVID());
 		actor_canal->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
 		scene->AppendChild(actor_canal);
-		vzlog("actor_canal (tube) material baseColor: %.2f %.2f %.2f, material VID: %llu",
-			material_canal->GetBaseColor().x, material_canal->GetBaseColor().y, material_canal->GetBaseColor().z,
-			material_canal->GetVID());
 
 		vzm::VzActor* axis_helper = vzm::LoadModelFile("../Assets/axis.obj");
 		axis_helper->SetVisibleLayerMask(0xFFFFFFFF, true);  // Enable ray tracing for DDGI
@@ -230,9 +221,6 @@ int main(int, char **)
 		floor_actor->SetScale({ 100.f, 5.f, 100.f });
 		floor_actor->SetPosition({ 0.f, -50.f, 0.f });
 		scene->AppendChild(floor_actor);
-		vzlog("floor_actor material baseColor: %.2f %.2f %.2f, material VID: %llu",
-			floor_material->GetBaseColor().x, floor_material->GetBaseColor().y, floor_material->GetBaseColor().z,
-			floor_material->GetVID());
 
 		vz::jobsystem::Execute(ctx_stl_loader, [scene](vz::jobsystem::JobArgs args) {
 		
