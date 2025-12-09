@@ -126,7 +126,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     vzm::VzRenderer* renderer = vzm::NewRenderer("my renderer");
     renderer->SetCanvas(w, h, dpi, hwnd);
     renderer->SetClearColor({ 0.f, 0.f, 0.f, 0.f });
-    renderer->EnableFrameLock(true, false);
+    renderer->EnableFrameLock(60.f);
     //renderer->SetViewport(100, 100, 100, 100);
     
     vzm::VzCamera* cam = vzm::NewCamera("my camera");
