@@ -473,6 +473,12 @@ namespace vz::image
 		desc.ps = &pixelShader;
 		desc.rs = &rasterizerState;
 
+		RenderPassInfo renderpass_image = {};
+		renderpass_image.rt_formats[0] = Format::R10G10B10A2_UNORM;
+		renderpass_image.rt_count = 1;
+		renderpass_image.ds_format = Format::UNKNOWN;
+		renderpass_image.sample_count = 1;
+
 		for (int i = 0; i < 1; i++)
 		{
 			if (i == 1)
@@ -502,7 +508,7 @@ namespace vz::image
 									desc.pt = PrimitiveTopology::TRIANGLELIST;
 									break;
 								}
-								device->CreatePipelineState(&desc, &imagePSO[i][j][k][m][d][n]);
+								device->CreatePipelineState(&desc, &imagePSO[i][j][k][m][d][n], &renderpass_image);
 							}
 						}
 					}
@@ -514,7 +520,13 @@ namespace vz::image
 		desc.bs = &blendStates[BLENDMODE_OPAQUE];
 		desc.dss = &depthStencilStates[STENCILMODE_ALWAYS][STENCILREFMODE_ALL][DEPTH_TEST_OFF];
 		desc.pt = PrimitiveTopology::TRIANGLESTRIP;
-		device->CreatePipelineState(&desc, &debugPSO);
+
+		RenderPassInfo renderpass_debug = {};
+		renderpass_debug.rt_formats[0] = Format::R10G10B10A2_UNORM;
+		renderpass_debug.rt_count = 1;
+		renderpass_debug.ds_format = Format::UNKNOWN;
+		renderpass_debug.sample_count = 1;
+		device->CreatePipelineState(&desc, &debugPSO, &renderpass_debug);
 	}
 
 	bool isInitialized = false;
