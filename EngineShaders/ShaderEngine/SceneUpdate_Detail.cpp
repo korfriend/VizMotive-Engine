@@ -680,7 +680,7 @@ namespace vz
 							instance.transform[i][j] = world_matrix.m[j][i];
 						}
 					}
-					instance.instance_id = args.jobIndex;
+					instance.instance_id = renderable.renderableIndex;
 					instance.instance_mask = layermask == 0 ? 0 : 0xFF;
 					if (!renderable.IsRenderable() || !geometry.HasRenderData())
 					{
@@ -712,7 +712,7 @@ namespace vz
 						instance.flags |= RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
 					}
 
-					void* dest = (void*)((size_t)TLAS_instancesMapped + (size_t)args.jobIndex * device->GetTopLevelAccelerationStructureInstanceSize());
+					void* dest = (void*)((size_t)TLAS_instancesMapped + (size_t)renderable.renderableIndex * device->GetTopLevelAccelerationStructureInstanceSize());
 					device->WriteTopLevelAccelerationStructureInstance(&instance, dest);
 				}
 			} break;
