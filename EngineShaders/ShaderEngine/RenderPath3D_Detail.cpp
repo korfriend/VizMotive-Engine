@@ -1743,6 +1743,10 @@ namespace vz::renderer
 		{
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->materialBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_DST));
 		}
+		if (scene_Gdetails->instanceResLookupBuffer.IsValid())
+		{
+			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->instanceResLookupBuffer, ResourceState::SHADER_RESOURCE, ResourceState::COPY_DST));
+		}
 		BarrierStackFlush(cmd);
 
 		// Indirect debug buffer - clear indirect args:
@@ -1797,6 +1801,19 @@ namespace vz::renderer
 				cmd
 			);
 			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->materialBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE));
+		}
+
+		if (scene_Gdetails->instanceResLookupBuffer.IsValid() && scene_Gdetails->instanceResLookupSize > 0)
+		{
+			device->CopyBuffer(
+				&scene_Gdetails->instanceResLookupBuffer,
+				0,
+				&scene_Gdetails->instanceResLookupUploadBuffer[device->GetBufferIndex()],
+				0,
+				scene_Gdetails->instanceResLookupSize * sizeof(ShaderInstanceResLookup),
+				cmd
+			);
+			barrierStack.push_back(GPUBarrier::Buffer(&scene_Gdetails->instanceResLookupBuffer, ResourceState::COPY_DST, ResourceState::SHADER_RESOURCE));
 		}
 
 		//barrierStack.push_back(GPUBarrier::Image(&common::textures[TEXTYPE_2D_CAUSTICS], common::textures[TEXTYPE_2D_CAUSTICS].desc.layout, ResourceState::UNORDERED_ACCESS));
