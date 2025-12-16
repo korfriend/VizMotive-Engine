@@ -331,7 +331,12 @@ namespace vz::font
 			desc.dss = &depthStencilStates[d];
 			desc.rs = &rasterizerState;
 			desc.pt = PrimitiveTopology::TRIANGLESTRIP;
-			graphics::GetDevice()->CreatePipelineState(&desc, &PSO[d]);
+			RenderPassInfo renderpass_font = {};
+		renderpass_font.rt_formats[0] = Format::R10G10B10A2_UNORM;
+		renderpass_font.rt_count = 1;
+		renderpass_font.ds_format = Format::UNKNOWN;
+		renderpass_font.sample_count = 1;
+		graphics::GetDevice()->CreatePipelineState(&desc, &PSO[d], &renderpass_font);
 		}
 	}
 

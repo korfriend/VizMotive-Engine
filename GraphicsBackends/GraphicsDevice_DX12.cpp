@@ -2447,6 +2447,8 @@ std::mutex queue_locker;
 				d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
 				d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
 				d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+				// Disable break for specific warnings that are expected/safe
+				d3dInfoQueue->SetBreakOnID(D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET, FALSE);
 #endif
 
 				std::vector<D3D12_MESSAGE_SEVERITY> enabledSeverities;
@@ -2466,6 +2468,7 @@ std::mutex queue_locker;
 
 				disabledMessages.push_back(D3D12_MESSAGE_ID_DRAW_EMPTY_SCISSOR_RECTANGLE);
 				disabledMessages.push_back(D3D12_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS);
+				disabledMessages.push_back(D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET);
 
 				D3D12_INFO_QUEUE_FILTER filter = {};
 				filter.AllowList.NumSeverities = static_cast<UINT>(enabledSeverities.size());
