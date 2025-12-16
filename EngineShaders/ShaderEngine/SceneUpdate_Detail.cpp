@@ -1169,8 +1169,8 @@ namespace vz
 				device->SetName(&instanceResLookupBuffer, "GSceneDetails::instanceMaterialLookup");
 
 				// Upload buffer shouldn't be used by shaders with Non-UMA:
-// 				desc.bind_flags = BindFlag::NONE;
-// 				desc.misc_flags = ResourceMiscFlag::NONE;
+				desc.bind_flags = BindFlag::NONE;
+				desc.misc_flags = ResourceMiscFlag::NONE;
 			}
 
 			desc.usage = Usage::UPLOAD;
@@ -1345,7 +1345,7 @@ namespace vz
 			shaderscene.instancebuffer = device->GetDescriptorIndex(&instanceBuffer, SubresourceType::SRV);
 			shaderscene.geometrybuffer = device->GetDescriptorIndex(&geometryBuffer, SubresourceType::SRV);
 			shaderscene.materialbuffer = device->GetDescriptorIndex(&materialBuffer, SubresourceType::SRV);
-		shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupUploadBuffer[pingpong_buffer_index], SubresourceType::SRV);
+		shaderscene.instanceResLookupBuffer = device->GetDescriptorIndex(&instanceResLookupBuffer, SubresourceType::SRV);
 		}			
 		shaderscene.meshletbuffer = device->GetDescriptorIndex(&meshletBuffer, SubresourceType::SRV);
 		shaderscene.texturestreamingbuffer = device->GetDescriptorIndex(&textureStreamingFeedbackBuffer, SubresourceType::UAV);
