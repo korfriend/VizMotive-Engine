@@ -241,29 +241,21 @@ namespace vz::jobsystem
 		}
 		void WaitAll()
 		{
-			alive.store(false); // indicate that new jobs cannot be started from this point
-			bool wake_loop = true;
-			std::thread waker([&] {
-				while (wake_loop)
-				{
-					for (auto& x : resources)
-					{
-						x.wakeCondition.notify_all(); // wakes up sleeping worker threads
-					}
-				}
-				});
-			for (auto& x : resources) // priorities
+			alive.store(false, std::memory_order_release);
+
+			// Wake sleeping workers once
+			for (auto& x : resources)
+				x.wakeCondition.notify_all();
+
+			// Join
+			for (auto& x : resources)
 			{
 				for (auto& thread : x.threads)
 				{
-					if (thread.joinable())  // Check if the thread can be joined
-					{
+					if (thread.joinable())
 						thread.join();
-					}
 				}
 			}
-			wake_loop = false;
-			waker.join();
 		}
 		~InternalState()
 		{
