@@ -490,6 +490,22 @@ namespace vz::image
 						{
 							desc.dss = &depthStencilStates[k][m][d];
 
+							RenderPassInfo renderpass_image = {};
+							renderpass_image.rt_formats[0] = Format::R10G10B10A2_UNORM;
+							renderpass_image.rt_count = 1;
+							renderpass_image.sample_count = 1;
+
+							// Only if both depth and stencil are disabled, use UNKNOWN
+							// Otherwise, use depth+stencil format
+							if (d == DEPTH_TEST_OFF && k == STENCILMODE_DISABLED)
+							{
+								renderpass_image.ds_format = Format::UNKNOWN;  // No depth, no stencil
+							}
+							else
+							{
+								renderpass_image.ds_format = Format::D32_FLOAT_S8X24_UINT;  // Depth and/or stencil
+							}
+
 							for (int n = 0; n < STRIP_MODE_COUNT; ++n)
 							{
 								switch (n)
@@ -502,7 +518,7 @@ namespace vz::image
 									desc.pt = PrimitiveTopology::TRIANGLELIST;
 									break;
 								}
-								device->CreatePipelineState(&desc, &imagePSO[i][j][k][m][d][n]);
+								device->CreatePipelineState(&desc, &imagePSO[i][j][k][m][d][n], &renderpass_image);
 							}
 						}
 					}
@@ -512,9 +528,15 @@ namespace vz::image
 
 		desc.ps = &debugShader;
 		desc.bs = &blendStates[BLENDMODE_OPAQUE];
-		desc.dss = &depthStencilStates[STENCILMODE_ALWAYS][STENCILREFMODE_ALL][DEPTH_TEST_OFF];
+		desc.dss = &depthStencilStates[STENCILMODE_DISABLED][STENCILREFMODE_ALL][DEPTH_TEST_OFF];  // No depth/stencil in Compose()
 		desc.pt = PrimitiveTopology::TRIANGLESTRIP;
-		device->CreatePipelineState(&desc, &debugPSO);
+
+		RenderPassInfo renderpass_debug = {};
+		renderpass_debug.rt_formats[0] = Format::R10G10B10A2_UNORM;
+		renderpass_debug.rt_count = 1;
+		renderpass_debug.ds_format = Format::UNKNOWN;  // debugPSO used in Compose() without depth buffer
+		renderpass_debug.sample_count = 1;
+		device->CreatePipelineState(&desc, &debugPSO, &renderpass_debug);
 	}
 
 	bool isInitialized = false;
