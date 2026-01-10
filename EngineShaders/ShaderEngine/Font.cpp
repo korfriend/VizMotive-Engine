@@ -324,6 +324,22 @@ namespace vz::font
 
 		for (int d = 0; d < DEPTH_TEST_MODE_COUNT; ++d)
 		{
+			RenderPassInfo renderpass_font = {};
+			renderpass_font.rt_formats[0] = Format::R10G10B10A2_UNORM;
+			renderpass_font.rt_count = 1;
+			renderpass_font.sample_count = 1;
+
+			// DEPTH_TEST_OFF: 2D UI (no depth buffer)
+			// DEPTH_TEST_ON: 3D debug text (needs depth buffer)
+			if (d == DEPTH_TEST_OFF)
+			{
+				renderpass_font.ds_format = Format::UNKNOWN;
+			}
+			else
+			{
+				renderpass_font.ds_format = Format::D32_FLOAT_S8X24_UINT;  // Match main depth buffer format
+			}
+
 			PipelineStateDesc desc;
 			desc.vs = &vertexShader;
 			desc.ps = &pixelShader;
@@ -331,7 +347,7 @@ namespace vz::font
 			desc.dss = &depthStencilStates[d];
 			desc.rs = &rasterizerState;
 			desc.pt = PrimitiveTopology::TRIANGLESTRIP;
-			graphics::GetDevice()->CreatePipelineState(&desc, &PSO[d]);
+			graphics::GetDevice()->CreatePipelineState(&desc, &PSO[d], &renderpass_font);
 		}
 	}
 
