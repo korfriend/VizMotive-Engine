@@ -251,12 +251,12 @@ namespace vzm
 		}
 
 		float delta_time = renderer->targetFrameRate > 0
-			? (1.0f / renderer->targetFrameRate)  // 고정 deltaTime
-			: renderer->deltaTimeSinceLastRender;  // 가변 deltaTime
+			? (1.0f / renderer->targetFrameRate)  // fixed deltaTime
+			: renderer->deltaTimeSinceLastRender;  // dynamic deltaTime
 
-		if (renderer->targetFrameRate == 0)
+		if (renderer->targetFrameRate <= 0)
 		{
-			renderer->deltaTimeSinceLastRender = 0;  // 가변 모드는 매번 리셋
+			renderer->deltaTimeSinceLastRender = 0;  // reset at every frame
 		}
 
 		// Update the target Scene of this RenderPath 
