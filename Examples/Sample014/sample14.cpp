@@ -208,6 +208,10 @@ int main(int, char**)
 	const int NUM_RANDOM_OBJS = 5;
 	const int LIGHT_TYPE = 0;
 
+	// For dynamic mesh creation
+	static int dynamic_mesh_counter = 0;
+	static std::vector<ActorVID> dynamic_meshes;
+
 	{
 		scene = NewScene("my scene");
 		renderer = NewRenderer("main renderer");
@@ -791,6 +795,67 @@ int main(int, char**)
 					ImGui::Text(performance_info.c_str());
 					ImGui::Separator();
 					ImGui::Text(memory_info.c_str());
+				}
+
+				ImGui::Separator();
+
+				// ----- Dynamic Mesh Creation -----
+				vzimgui::IGTextTitle("----- Dynamic Mesh Creation -----");
+				ImGui::Text("Total meshes created: %d", dynamic_mesh_counter);
+
+				static float cube_pos[3] = { 0.0f, 0.0f, 0.0f };
+				static float cube_color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
+				ImGui::DragFloat3("Cube Position", cube_pos, 0.1f);
+				ImGui::ColorEdit4("Cube Color", cube_color);
+
+				if (ImGui::Button("Add Cube", ImVec2(-1, 40)))
+				{
+					dynamic_mesh_counter++;
+					std::string name = "dynamic_cube_" + std::to_string(dynamic_mesh_counter);
+
+					// Create geometry
+					VzGeometry* cube_geom = vzm::NewGeometry(name + "_geom");
+					vz::geogen::GenerateBoxGeometry(cube_geom->GetVID(), 1.0f, 1.0f, 1.0f);
+
+					// Create material
+					VzMaterial* cube_mat = vzm::NewMaterial(name + "_mat");
+					cube_mat->SetBaseColor({ cube_color[0], cube_color[1], cube_color[2], cube_color[3] });
+
+					// Create actor
+					VzActorStaticMesh* cube = vzm::NewActorStaticMesh(
+						name,
+						cube_geom->GetVID(),
+						cube_mat->GetVID()
+					);
+
+					cube->SetPosition({ cube_pos[0], cube_pos[1], cube_pos[2] });
+					cube->SetScale({ 1.0f, 1.0f, 1.0f });
+					cube->SetVisibleLayerMask(0x1, true);  // Same layer as spheres
+
+					scene->AppendChild(cube);
+					dynamic_meshes.push_back(cube->GetVID());
+
+					vzlog("✓ Created cube #%d at (%.2f, %.2f, %.2f) with VID=%u",
+						dynamic_mesh_counter, cube_pos[0], cube_pos[1], cube_pos[2], cube->GetVID());
+
+					// Randomize position for next cube
+					std::random_device rd;
+					std::mt19937 gen(rd());
+					std::uniform_real_distribution<float> dist(-3.0f, 3.0f);
+					cube_pos[0] = dist(gen);
+					cube_pos[1] = dist(gen) * 0.5f;
+					cube_pos[2] = dist(gen);
+				}
+
+				if (ImGui::Button("Clear All Dynamic Meshes", ImVec2(-1, 30)))
+				{
+					for (ActorVID vid : dynamic_meshes)
+					{
+						vzm::RemoveComponent(vid, true);
+					}
+					dynamic_meshes.clear();
+					dynamic_mesh_counter = 0;
+					vzlog("✓ Cleared all dynamic meshes");
 				}
 
 				ImGui::Separator();
