@@ -105,6 +105,9 @@ namespace vz::graphics
 		};
 		mutable CopyAllocator copyAllocator;
 
+		// 버퍼 별 fence 값 (monotonically increasing)
+		uint64_t frame_fence_values[BUFFERCOUNT] = {};
+
 		Microsoft::WRL::ComPtr<ID3D12Fence> frame_fence[BUFFERCOUNT][QUEUE_COUNT];
 
 		struct DescriptorBinder

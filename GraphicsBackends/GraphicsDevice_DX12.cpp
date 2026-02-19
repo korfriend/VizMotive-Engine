@@ -2650,6 +2650,7 @@ std::mutex queue_locker;
 		// Create frame-resident resources:
 		for (uint32_t buffer = 0; buffer < BUFFERCOUNT; ++buffer)
 		{
+			frame_fence_values[buffer] = 0;
 			for (int queue = 0; queue < QUEUE_COUNT; ++queue)
 			{
 				hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, PPV_ARGS(frame_fence[buffer][queue]));
@@ -5557,6 +5558,8 @@ std::mutex queue_locker;
 				commandlist.pipelines_worker.clear();
 			}
 
+			frame_fence_values[GetBufferIndex()]++;
+
 			// Mark the completion of queues for this frame:
 			for (int q = 0; q < QUEUE_COUNT; ++q)
 			{
@@ -5566,7 +5569,8 @@ std::mutex queue_locker;
 
 				queue.submit();
 
-				hr = queue.queue->Signal(frame_fence[GetBufferIndex()][q].Get(), 1);
+				hr = queue.queue->Signal(frame_fence[GetBufferIndex()][q].Get(),
+					frame_fence_values[GetBufferIndex()]);
 				assert(SUCCEEDED(hr));
 			}
 
@@ -5614,6 +5618,24 @@ std::mutex queue_locker;
 			}
 		}
 
+		// GPU - GPU frame sync
+		// Sync up every queue to every other queue at the end of the frame:
+		//	Note: it disables overlapping queues into the next frame
+		for (int queue1 = 0; queue1 < QUEUE_COUNT; ++queue1)
+		{
+			if (queues[queue1].queue == nullptr)
+				continue;
+			for (int queue2 = 0; queue2 < QUEUE_COUNT; ++queue2)
+			{
+				if (queue1 == queue2)
+					continue;
+				if (queues[queue2].queue == nullptr)
+					continue;
+				ID3D12Fence* fence = frame_fence[GetBufferIndex()][queue2].Get();
+				queues[queue1].queue->Wait(fence, frame_fence_values[GetBufferIndex()]);
+			}
+		}
+
 		descriptorheap_res.SignalGPU(queues[QUEUE_GRAPHICS].queue.Get());
 		descriptorheap_sam.SignalGPU(queues[QUEUE_GRAPHICS].queue.Get());
 
@@ -5626,14 +5648,14 @@ std::mutex queue_locker;
 		{
 			if (queues[queue].queue == nullptr)
 				continue;
-			if (FRAMECOUNT >= BUFFERCOUNT && frame_fence[bufferindex][queue]->GetCompletedValue() < 1)
+			if (FRAMECOUNT >= BUFFERCOUNT && frame_fence[bufferindex][queue]->GetCompletedValue() < frame_fence_values[bufferindex])
 			{
 				// NULL event handle will simply wait immediately:
 				//	https://docs.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12fence-seteventoncompletion#remarks
-				hr = frame_fence[bufferindex][queue]->SetEventOnCompletion(1, NULL);
+				hr = frame_fence[bufferindex][queue]->SetEventOnCompletion(frame_fence_values[bufferindex], NULL);
 				assert(SUCCEEDED(hr));
 			}
-			hr = frame_fence[bufferindex][queue]->Signal(0);
+			//hr = frame_fence[bufferindex][queue]->Signal(0);
 		}
 		assert(SUCCEEDED(hr));
 
