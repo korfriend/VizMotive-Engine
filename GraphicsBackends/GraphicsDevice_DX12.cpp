@@ -2665,6 +2665,9 @@ std::mutex queue_locker;
 			}
 		}
 
+		// Create frame fence event
+		frameFenceEvent = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
+
 		copyAllocator.init(this);
 
 		// Query features:
@@ -3080,6 +3083,7 @@ std::mutex queue_locker;
 	GraphicsDevice_DX12::~GraphicsDevice_DX12()
 	{
 		WaitForGPU();
+		CloseHandle(frameFenceEvent);
 
 #ifdef PLATFORM_WINDOWS_DESKTOP
 		std::ignore = UnregisterWait(deviceRemovedWaitHandle);
@@ -5650,10 +5654,11 @@ std::mutex queue_locker;
 				continue;
 			if (FRAMECOUNT >= BUFFERCOUNT && frame_fence[bufferindex][queue]->GetCompletedValue() < frame_fence_values[bufferindex])
 			{
-				// NULL event handle will simply wait immediately:
-				//	https://docs.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12fence-seteventoncompletion#remarks
-				hr = frame_fence[bufferindex][queue]->SetEventOnCompletion(frame_fence_values[bufferindex], NULL);
+				// Use event-based wait instead of NULL (spin-wait) to avoid CPU busy-looping:
+				// SetEventOnCompletion registers the fence to signal the event, then WaitForSingleObject sleeps the thread.
+				hr = frame_fence[bufferindex][queue]->SetEventOnCompletion(frame_fence_values[bufferindex], frameFenceEvent);
 				assert(SUCCEEDED(hr));
+				WaitForSingleObject(frameFenceEvent, INFINITE);
 			}
 			//hr = frame_fence[bufferindex][queue]->Signal(0);
 		}
