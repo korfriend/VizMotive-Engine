@@ -5562,7 +5562,11 @@ std::mutex queue_locker;
 				commandlist.pipelines_worker.clear();
 			}
 
-			frame_fence_values[GetBufferIndex()]++;
+			// Buffer index for the frame being submitted.
+			// NOTE: This is based on the current FRAMECOUNT (before increment).
+			const uint32_t submittingFrameBufferIndex = GetBufferIndex();
+
+			frame_fence_values[submittingFrameBufferIndex]++;
 
 			// Mark the completion of queues for this frame:
 			for (int q = 0; q < QUEUE_COUNT; ++q)
@@ -5573,8 +5577,8 @@ std::mutex queue_locker;
 
 				queue.submit();
 
-				hr = queue.queue->Signal(frame_fence[GetBufferIndex()][q].Get(),
-					frame_fence_values[GetBufferIndex()]);
+				hr = queue.queue->Signal(frame_fence[submittingFrameBufferIndex][q].Get(),
+					frame_fence_values[submittingFrameBufferIndex]);
 				assert(SUCCEEDED(hr));
 			}
 
@@ -5620,51 +5624,58 @@ std::mutex queue_locker;
 #endif // PLATFORM_XBOX
 				}
 			}
-		}
 
-		// GPU - GPU frame sync
-		// Sync up every queue to every other queue at the end of the frame:
-		//	Note: it disables overlapping queues into the next frame
-		for (int queue1 = 0; queue1 < QUEUE_COUNT; ++queue1)
-		{
-			if (queues[queue1].queue == nullptr)
-				continue;
-			for (int queue2 = 0; queue2 < QUEUE_COUNT; ++queue2)
+			// GPU - GPU frame sync
+			// Sync up every queue to every other queue at the end of the frame:
+			//	Note: it disables overlapping queues into the next frame
+			for (int queue1 = 0; queue1 < QUEUE_COUNT; ++queue1)
 			{
-				if (queue1 == queue2)
+				if (queues[queue1].queue == nullptr)
 					continue;
-				if (queues[queue2].queue == nullptr)
-					continue;
-				ID3D12Fence* fence = frame_fence[GetBufferIndex()][queue2].Get();
-				queues[queue1].queue->Wait(fence, frame_fence_values[GetBufferIndex()]);
+				for (int queue2 = 0; queue2 < QUEUE_COUNT; ++queue2)
+				{
+					if (queue1 == queue2)
+						continue;
+					if (queues[queue2].queue == nullptr)
+						continue;
+					ID3D12Fence* fence = frame_fence[submittingFrameBufferIndex][queue2].Get();
+					queues[queue1].queue->Wait(fence, frame_fence_values[submittingFrameBufferIndex]);
+				}
 			}
 		}
 
+		// Signal descriptor heap progress to GPU after all queues complete current frame:
+		// Must come after GPU-GPU sync - ensures COMPUTE/COPY queues have finished
+		// before the ring buffer offset is advanced on GPU side.
 		descriptorheap_res.SignalGPU(queues[QUEUE_GRAPHICS].queue.Get());
 		descriptorheap_sam.SignalGPU(queues[QUEUE_GRAPHICS].queue.Get());
 
-		// From here, we begin a new frame, this affects GetBufferIndex()!
-		FRAMECOUNT++;
-
-		// Initiate stalling CPU when GPU is not yet finished with next frame:
-		const uint32_t bufferindex = GetBufferIndex();
-		for (int queue = 0; queue < QUEUE_COUNT; ++queue)
+		// Prepare next frame:
 		{
-			if (queues[queue].queue == nullptr)
-				continue;
-			if (FRAMECOUNT >= BUFFERCOUNT && frame_fence[bufferindex][queue]->GetCompletedValue() < frame_fence_values[bufferindex])
-			{
-				// Use event-based wait instead of NULL (spin-wait) to avoid CPU busy-looping:
-				// SetEventOnCompletion registers the fence to signal the event, then WaitForSingleObject sleeps the thread.
-				hr = frame_fence[bufferindex][queue]->SetEventOnCompletion(frame_fence_values[bufferindex], frameFenceEvent);
-				assert(SUCCEEDED(hr));
-				WaitForSingleObject(frameFenceEvent, INFINITE);
-			}
-			//hr = frame_fence[bufferindex][queue]->Signal(0);
-		}
-		assert(SUCCEEDED(hr));
+			// From here, we begin a new frame, this affects GetBufferIndex()!
+			// submittingFrameBufferIndex -> nextFrameBufferIndex
+			FRAMECOUNT++;
 
-		allocationhandler->Update(FRAMECOUNT, BUFFERCOUNT);
+			// Initiate stalling CPU when GPU is not yet finished with next frame:
+			// Buffer index for the next frame that the CPU will prepare
+			const uint32_t nextFrameBufferIndex = GetBufferIndex();
+			for (int queue = 0; queue < QUEUE_COUNT; ++queue)
+			{
+				if (queues[queue].queue == nullptr)
+					continue;
+				if (FRAMECOUNT >= BUFFERCOUNT && frame_fence[nextFrameBufferIndex][queue]->GetCompletedValue() < frame_fence_values[nextFrameBufferIndex])
+				{
+					// Use event-based wait instead of NULL (spin-wait) to avoid CPU busy-looping:
+					// SetEventOnCompletion registers the fence to signal the event, then WaitForSingleObject sleeps the thread.
+					hr = frame_fence[nextFrameBufferIndex][queue]->SetEventOnCompletion(frame_fence_values[nextFrameBufferIndex], frameFenceEvent);
+					assert(SUCCEEDED(hr));
+					WaitForSingleObject(frameFenceEvent, INFINITE);
+				}
+			}
+			assert(SUCCEEDED(hr));
+
+			allocationhandler->Update(FRAMECOUNT, BUFFERCOUNT);
+		}
 	}
 
 	void GraphicsDevice_DX12::OnDeviceRemoved()
