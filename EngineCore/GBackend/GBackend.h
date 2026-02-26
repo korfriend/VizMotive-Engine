@@ -1,5 +1,6 @@
 #pragma once
 #include "CommonInclude.h"
+#include "Utils/Allocator.h"
 
 #include <vector>
 #include <cassert>
@@ -823,8 +824,8 @@ namespace vz::graphics
 
 	struct GraphicsDeviceChild
 	{
-		std::shared_ptr<void> internal_state;
-		inline bool IsValid() const { return internal_state != nullptr; }
+		vz::allocator::shared_ptr<void> internal_state;
+		constexpr bool IsValid() const { return internal_state.IsValid(); }
 
 		virtual ~GraphicsDeviceChild() = default;
 	};
