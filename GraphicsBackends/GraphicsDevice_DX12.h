@@ -108,8 +108,6 @@ namespace vz::graphics
 		// Fence value per buffer (monotonically increasing)
 		uint64_t frame_fence_values[BUFFERCOUNT] = {};
 
-		HANDLE frameFenceEvent = NULL;
-
 		Microsoft::WRL::ComPtr<ID3D12Fence> frame_fence[BUFFERCOUNT][QUEUE_COUNT];
 
 		struct DescriptorBinder
