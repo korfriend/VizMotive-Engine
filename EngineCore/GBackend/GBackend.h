@@ -1866,6 +1866,18 @@ namespace vz::graphics
 		return mips;
 	}
 
+	constexpr uint32_t GetMipCount(const TextureDesc& desc)
+	{
+		if (desc.mip_levels > 0)
+			return desc.mip_levels;
+		return GetMipCount(desc.width, desc.height, desc.depth);
+	}
+
+	constexpr uint32_t GetTextureSubresourceCount(const TextureDesc& desc)
+	{
+		return GetMipCount(desc) * desc.array_size;
+	}
+
 	// Compute the approximate texture memory usage
 	//	Approximate because this doesn't reflect GPU specific texture memory requirements, like alignment and metadata
 	constexpr size_t ComputeTextureMemorySizeInBytes(const TextureDesc& desc)
@@ -1873,16 +1885,16 @@ namespace vz::graphics
 		size_t size = 0;
 		const uint32_t bytes_per_block = GetFormatStride(desc.format);
 		const uint32_t pixels_per_block = GetFormatBlockSize(desc.format);
-		const uint32_t num_blocks_x = desc.width / pixels_per_block;
-		const uint32_t num_blocks_y = desc.height / pixels_per_block;
 		const uint32_t mips = desc.mip_levels == 0 ? GetMipCount(desc.width, desc.height, desc.depth) : desc.mip_levels;
 		for (uint32_t layer = 0; layer < desc.array_size; ++layer)
 		{
 			for (uint32_t mip = 0; mip < mips; ++mip)
 			{
-				const uint32_t width = std::max(1u, num_blocks_x >> mip);
-				const uint32_t height = std::max(1u, num_blocks_y >> mip);
-				const uint32_t depth = std::max(1u, desc.depth >> mip);
+				const uint32_t mip_width  = std::max(1u, desc.width  >> mip);
+				const uint32_t mip_height = std::max(1u, desc.height >> mip);
+				const uint32_t depth      = std::max(1u, desc.depth  >> mip);
+				const uint32_t width  = (mip_width  + pixels_per_block - 1) / pixels_per_block;
+				const uint32_t height = (mip_height + pixels_per_block - 1) / pixels_per_block;
 				size += width * height * depth * bytes_per_block;
 			}
 		}
