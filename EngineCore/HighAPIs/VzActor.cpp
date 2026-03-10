@@ -124,12 +124,14 @@ namespace vzm
 	}
 	void VzActorStaticMesh::EnableShadowsCast(const bool enabled)
 	{
-		assert(0 && "TODO");
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetShadowCastEnabled(enabled);
 		UpdateTimeStamp();
 	}
 	void VzActorStaticMesh::EnableShadowsReceive(const bool enabled)
 	{
-		assert(0 && "TODO");
+		GET_RENDERABLE_COMP(renderable, );
+		renderable->SetShadowReceiveEnabled(enabled);
 		UpdateTimeStamp();
 	}
 

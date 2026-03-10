@@ -1748,6 +1748,8 @@ namespace vz
 
 		inline void DisableShadowCast(const bool value) { FLAG_SETTER(flags_, RenderableFlags::DISABLE_SHADOW_CAST); timeStampSetter_ = TimerNow; }
 		inline void DisableShadowReceive(const bool value) { FLAG_SETTER(flags_, RenderableFlags::DISABLE_SHADOW_RECEIVE); timeStampSetter_ = TimerNow; }
+		inline void SetShadowCastEnabled(const bool value) { DisableShadowCast(!value); }
+		inline void SetShadowReceiveEnabled(const bool value) { DisableShadowReceive(!value); }
 
 		inline bool IsShadowCastDisabled() const { return flags_ & SCU32(RenderableFlags::DISABLE_SHADOW_CAST); }
 		inline bool IsShadowReceiveDisabled() const { return flags_ & SCU32(RenderableFlags::DISABLE_SHADOW_RECEIVE); }

@@ -313,12 +313,13 @@ int main(int, char**)
 				vzm::VzActorStaticMesh* mesh_loaded = (vzm::VzActorStaticMesh*)vzm::GetComponent(vid);
 				vzm::VzActorStaticMesh* mesh = vzm::NewActorStaticMesh(axis_light->GetName() + "_" + std::to_string(vid),
 					mesh_loaded->GetGeometry(), mesh_loaded->GetMaterial(), axis_light->GetVID());
+				mesh->EnableShadowsCast(false); // axis helper mesh should not block shadow rays
 
 				//mesh->SetGeometry(mesh_loaded->GetGeometry());
 				//mesh->SetMaterials(mesh_loaded->GetMaterials());
 			}
 			axis_light->SetScale({ 0.2f, 0.2f, 0.2f });
-			axis_light->SetVisibleLayerMask(0x2, true);
+			axis_light->SetVisibleLayerMask(0, true); // default OFF: layerMask=0 excludes from TLAS and rendering
 			axis_light->EnableUnlit(true);
 			light->AppendChild(axis_light);
 		}
