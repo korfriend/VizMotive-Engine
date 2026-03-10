@@ -396,7 +396,7 @@ namespace vz::renderer
 					);
 				}
 
-				if (!renderQueue.empty() || !renderQueue_transparent.empty())
+				if (!renderQueue.empty() || renderQueue_transparent.empty())
 				{
 					device->BindDynamicConstantBuffer(cb, CBSLOT_RENDERER_CAMERA, cmd);
 					device->BindViewports(arraysize(vp), vp, cmd);
