@@ -204,7 +204,7 @@ int main(int, char**)
 	VzScene* scene = nullptr;
 	VzCamera* camera = nullptr;
 	VzRenderer* renderer = nullptr;
-	const int NUM_RANDOM_LIGHTS = 5;
+	const int NUM_RANDOM_LIGHTS = 1;
 	const int NUM_RANDOM_OBJS = 5;
 	const int LIGHT_TYPE = 0;
 
@@ -227,6 +227,8 @@ int main(int, char**)
 		VzGeometry* box_geo = vzm::NewGeometry("Box floor");
 		vz::geogen::GenerateBoxGeometry(box_geo->GetVID(), 1.f, 1.f, 1.f, 100, 100, 100);
 		VzMaterial* planeMaterial = vzm::NewMaterial("plane_material");
+		planeMaterial->SetShadowReceive(true);
+		planeMaterial->SetShadowCast(true);
 		VzActor* plane = vzm::NewActorStaticMesh("Box floor actor", box_geo->GetVID(), planeMaterial->GetVID());
 
 		plane->SetScale({ 5.f, 0.3f, 5.f });
@@ -245,10 +247,12 @@ int main(int, char**)
 		std::uniform_real_distribution<float> dist_y2(-0.5f, 1.f);
 		std::uniform_real_distribution<float> dist_z2(-3.f, 3.f);
 
-		const float lightRange = 1.0f;
+		const float lightRange = 5.0f;
 		VzGeometry* sphereGeometry = vzm::NewGeometry("sphere_geometry");
 		VzMaterial* sphereMaterial = vzm::NewMaterial("sphere_material");
 		sphereMaterial->SetBaseColor({ 0.8f, 0.8f, 0.8f, 1.0f });
+		sphereMaterial->SetShadowReceive(true);
+		sphereMaterial->SetShadowCast(true);
 		vz::geogen::GenerateIcosahedronGeometry(
 			sphereGeometry->GetVID(),
 			0.1f,    // radius    
@@ -294,6 +298,7 @@ int main(int, char**)
 			light->SetIntensity(5.0f);
 			light->SetRange(lightRange);
 			light->SetPosition({ lx, ly, lz });
+			light->EnableCastShadow(true);
 			light->EnableVisualizer(false);
 			light->SetRadius(0.01f);
 			light->SetRotateToLookUp({ -lx, -ly, -lz }, { 0, 1, 0 });
@@ -680,6 +685,11 @@ int main(int, char**)
 				if (ImGui::Button("Shader Reload"))
 				{
 					vzm::ReloadShader();
+				}
+				static bool show_shadowmap = false;
+				if (ImGui::Checkbox("Show Shadow Map", &show_shadowmap))
+				{
+					renderer->ShowDebugBuffer(show_shadowmap ? "CASCADE_SHADOW_MAP" : "NONE");
 				}
 				static bool light_visualizer = false;
 				static float light_radius = 0.1f;

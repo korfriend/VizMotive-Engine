@@ -172,22 +172,16 @@ namespace vz::renderer
 	{
 		assert(shcam_count == 6);
 		zNearP = std::max(zNearP, 0.001f);
-		shcams[0].init(position, XMFLOAT4(0.5f, -0.5f, -0.5f, -0.5f), zNearP, zFarP, XM_PIDIV2); //+x
-		shcams[1].init(position, XMFLOAT4(0.5f, 0.5f, 0.5f, -0.5f), zNearP, zFarP, XM_PIDIV2); //-x
-		shcams[2].init(position, XMFLOAT4(1, 0, 0, -0), zNearP, zFarP, XM_PIDIV2); //+y
-		shcams[3].init(position, XMFLOAT4(0, 0, 0, -1), zNearP, zFarP, XM_PIDIV2); //-y
-		shcams[4].init(position, XMFLOAT4(0.707f, 0, 0, -0.707f), zNearP, zFarP, XM_PIDIV2); //+z
-		shcams[5].init(position, XMFLOAT4(0, 0.707f, 0.707f, 0), zNearP, zFarP, XM_PIDIV2); //-z
-
-
-
-		// RHS (OpenGL-style) cubemap camera rotations                                            
-		//shcams[0].init(position, XMFLOAT4(0, 0.707f, 0, 0.707f), zNearP, zFarP, XM_PIDIV2); //+x  
-		//shcams[1].init(position, XMFLOAT4(0, 0.707f, 0, -0.707f), zNearP, zFarP, XM_PIDIV2); //-x 
-		//shcams[2].init(position, XMFLOAT4(0.707f, 0, 0, 0.707f), zNearP, zFarP, XM_PIDIV2); //+y  
-		//shcams[3].init(position, XMFLOAT4(-0.707f, 0, 0, 0.707f), zNearP, zFarP, XM_PIDIV2); //-y 
-		//shcams[4].init(position, XMFLOAT4(0, 0, 0, 1), zNearP, zFarP, XM_PIDIV2); //+z            
-		//shcams[5].init(position, XMFLOAT4(0, 1, 0, 0), zNearP, zFarP, XM_PIDIV2); //-z            
+		// r = -Lunnorm = surface - light. Face selection: face0=r.x>0 (surface at +X), face1=r.x<0, etc.
+		// Camera for slot i must look TOWARD the surface (same direction as r for that face).
+		// LookToRH gives: V correct, U always flipped. U is corrected in shadow_cube shader (1-u).
+		// up vectors chosen so that NDC.y matches cubemap_to_uv V after texture-space Y flip.
+		shcams[0].init(position, XMFLOAT4(0,-0.707f,0,0.707f), zNearP, zFarP, XM_PIDIV2); // face0: looks +X, up=(0,1,0)
+		shcams[1].init(position, XMFLOAT4(0, 0.707f,0,0.707f), zNearP, zFarP, XM_PIDIV2); // face1: looks -X, up=(0,1,0)
+		shcams[2].init(position, XMFLOAT4(0, 0.707f,-0.707f,0), zNearP, zFarP, XM_PIDIV2); // face2: looks +Y, up=(0,0,-1)
+		shcams[3].init(position, XMFLOAT4(0, 0.707f, 0.707f,0), zNearP, zFarP, XM_PIDIV2); // face3: looks -Y, up=(0,0,+1)
+		shcams[4].init(position, XMFLOAT4(0, 1, 0, 0),          zNearP, zFarP, XM_PIDIV2); // face4: looks +Z, up=(0,1,0)
+		shcams[5].init(position, XMFLOAT4(0, 0, 0, 1),          zNearP, zFarP, XM_PIDIV2); // face5: looks -Z, up=(0,1,0)
 
 
 
@@ -1124,6 +1118,11 @@ namespace vz::renderer
 					const float cubemapDepthRemapFar = -fRange * NearZ;
 					shaderentity.SetCubeRemapNear(cubemapDepthRemapNear);
 					shaderentity.SetCubeRemapFar(cubemapDepthRemapFar);
+				}
+
+				if (light.IsCastingShadow())
+				{
+					shaderentity.SetFlags(ENTITY_FLAG_LIGHT_CASTING_SHADOW);
 				}
 
 				if (light.IsStatic())
