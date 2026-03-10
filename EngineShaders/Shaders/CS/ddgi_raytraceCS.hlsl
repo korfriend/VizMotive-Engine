@@ -280,6 +280,16 @@ void main(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID, uint groupIn
 			if (surface.IsBackface())
 			{
 				hit_depth *= 0.9; // push inwards to help avoid shadow leaks from inwards to outside
+
+				// Interior/backface hit: skip lighting to prevent interior probes from becoming incorrectly bright.
+				// Thin geometry causes shadow rays to skip the surface via TMin offset, and the DDGI indirect
+				// bounce through backfaces creates a feedback loop. Record depth for visibility only.
+				DDGIRayData rayData;
+				rayData.direction = ray.Direction;
+				rayData.depth = hit_depth;
+				rayData.radiance = float4(radiance, 1);
+				rayBuffer[probeIndex * DDGI_MAX_RAYCOUNT + rayIndex].store(rayData);
+				return;
 			}
 
 			surface.P = ray.Origin;
