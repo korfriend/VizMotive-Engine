@@ -697,7 +697,17 @@ namespace vz
 					instance.bottom_level = &geometry.BLASes[renderable.GetLOD()];
 					instance.instance_contribution_to_hit_group_index = 0;
 					instance.flags = 0;
-
+					// BLAS is always non-opaque for flexibility (see line 182).
+					// Set FORCE_OPAQUE in TLAS only for shadow-casting opaque renderables,
+					// matching WickedEngine per-material BLAS FLAG_OPAQUE behavior.
+					// Shadow-cast-disabled objects (e.g. light meshes) stay non-opaque
+					// so shadow rays pass through them via the empty while(q.Proceed()) loop.
+					if (!renderable.IsShadowCastDisabled() &&
+						!(renderable.materialFilterFlags & GMaterialComponent::FILTER_TRANSPARENT))
+					{
+						instance.flags |=
+							RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_FORCE_OPAQUE;
+					}
 					if (renderable.HasDoubleSideMaterial())
 					{
 						instance.flags |= RaytracingAccelerationStructureDesc::TopLevel::Instance::FLAG_TRIANGLE_CULL_DISABLE;
