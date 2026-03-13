@@ -2650,6 +2650,7 @@ std::mutex queue_locker;
 		// Create frame-resident resources:
 		for (uint32_t buffer = 0; buffer < BUFFERCOUNT; ++buffer)
 		{
+			frame_fence_values[buffer] = 0;
 			for (int queue = 0; queue < QUEUE_COUNT; ++queue)
 			{
 				hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, PPV_ARGS(frame_fence[buffer][queue]));
@@ -5563,6 +5564,12 @@ std::mutex queue_locker;
 				commandlist.pipelines_worker.clear();
 			}
 
+			// Buffer index for the frame being submitted.
+			// NOTE: This is based on the current FRAMECOUNT (before increment).
+			const uint32_t submittingFrameBufferIndex = GetBufferIndex();
+
+			frame_fence_values[submittingFrameBufferIndex]++;
+
 			// Mark the completion of queues for this frame:
 			for (int q = 0; q < QUEUE_COUNT; ++q)
 			{
@@ -5572,7 +5579,8 @@ std::mutex queue_locker;
 
 				queue.submit();
 
-				hr = queue.queue->Signal(frame_fence[GetBufferIndex()][q].Get(), 1);
+				hr = queue.queue->Signal(frame_fence[submittingFrameBufferIndex][q].Get(),
+					frame_fence_values[submittingFrameBufferIndex]);
 				assert(SUCCEEDED(hr));
 			}
 
@@ -5618,32 +5626,57 @@ std::mutex queue_locker;
 #endif // PLATFORM_XBOX
 				}
 			}
+
+			// GPU - GPU frame sync
+			// Sync up every queue to every other queue at the end of the frame:
+			//	Note: it disables overlapping queues into the next frame
+			for (int queue1 = 0; queue1 < QUEUE_COUNT; ++queue1)
+			{
+				if (queues[queue1].queue == nullptr)
+					continue;
+				for (int queue2 = 0; queue2 < QUEUE_COUNT; ++queue2)
+				{
+					if (queue1 == queue2)
+						continue;
+					if (queues[queue2].queue == nullptr)
+						continue;
+					ID3D12Fence* fence = frame_fence[submittingFrameBufferIndex][queue2].Get();
+					queues[queue1].queue->Wait(fence, frame_fence_values[submittingFrameBufferIndex]);
+				}
+			}
 		}
 
+		// Signal descriptor heap progress to GPU after all queues complete current frame:
+		// Must come after GPU-GPU sync - ensures COMPUTE/COPY queues have finished
+		// before the ring buffer offset is advanced on GPU side.
 		descriptorheap_res.SignalGPU(queues[QUEUE_GRAPHICS].queue.Get());
 		descriptorheap_sam.SignalGPU(queues[QUEUE_GRAPHICS].queue.Get());
 
-		// From here, we begin a new frame, this affects GetBufferIndex()!
-		FRAMECOUNT++;
-
-		// Initiate stalling CPU when GPU is not yet finished with next frame:
-		const uint32_t bufferindex = GetBufferIndex();
-		for (int queue = 0; queue < QUEUE_COUNT; ++queue)
+		// Prepare next frame:
 		{
-			if (queues[queue].queue == nullptr)
-				continue;
-			if (FRAMECOUNT >= BUFFERCOUNT && frame_fence[bufferindex][queue]->GetCompletedValue() < 1)
-			{
-				// NULL event handle will simply wait immediately:
-				//	https://docs.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12fence-seteventoncompletion#remarks
-				hr = frame_fence[bufferindex][queue]->SetEventOnCompletion(1, NULL);
-				assert(SUCCEEDED(hr));
-			}
-			hr = frame_fence[bufferindex][queue]->Signal(0);
-		}
-		assert(SUCCEEDED(hr));
+			// From here, we begin a new frame, this affects GetBufferIndex()!
+			// submittingFrameBufferIndex -> nextFrameBufferIndex
+			FRAMECOUNT++;
 
-		allocationhandler->Update(FRAMECOUNT, BUFFERCOUNT);
+			// Initiate stalling CPU when GPU is not yet finished with next frame:
+			// Buffer index for the next frame that the CPU will prepare
+			const uint32_t nextFrameBufferIndex = GetBufferIndex();
+			for (int queue = 0; queue < QUEUE_COUNT; ++queue)
+			{
+				if (queues[queue].queue == nullptr)
+					continue;
+				if (FRAMECOUNT >= BUFFERCOUNT && frame_fence[nextFrameBufferIndex][queue]->GetCompletedValue() < frame_fence_values[nextFrameBufferIndex])
+				{
+					// NULL event handle will simply wait immediately:
+					//	https://docs.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12fence-seteventoncompletion#remarks
+					hr = frame_fence[nextFrameBufferIndex][queue]->SetEventOnCompletion(frame_fence_values[nextFrameBufferIndex], NULL);
+					assert(SUCCEEDED(hr));
+				}
+			}
+			assert(SUCCEEDED(hr));
+
+			allocationhandler->Update(FRAMECOUNT, BUFFERCOUNT);
+		}
 	}
 
 	void GraphicsDevice_DX12::OnDeviceRemoved()
