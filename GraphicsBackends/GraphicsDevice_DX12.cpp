@@ -1700,13 +1700,10 @@ std::mutex queue_locker;
 		{
 			if (freelist[i].uploadbuffer.desc.size >= staging_size)
 			{
-				if (freelist[i].IsCompleted())
-				{
-					cmd = std::move(freelist[i]);
-					std::swap(freelist[i], freelist.back());
-					freelist.pop_back();
-					break;
-				}
+				cmd = std::move(freelist[i]);
+				std::swap(freelist[i], freelist.back());
+				freelist.pop_back();
+				break;
 			}
 		}
 		locker.unlock();
@@ -1743,14 +1740,7 @@ std::mutex queue_locker;
 	}
 	void GraphicsDevice_DX12::CopyAllocator::submit(CopyCMD cmd)
 	{
-		HRESULT hr;
-
-		locker.lock();
-		cmd.fenceValueSignaled++;
-		freelist.push_back(cmd);
-		locker.unlock();
-
-		cmd.commandList->Close();
+		dx12_check(cmd.commandList->Close());
 		ID3D12CommandList* commandlists[] = {
 			cmd.commandList.Get()
 		};
@@ -1759,21 +1749,14 @@ std::mutex queue_locker;
 		std::scoped_lock lock(queue_locker); // queue operations are not thread-safe on XBOX
 #endif // PLATFORM_XBOX
 
+		dx12_check(cmd.fence->Signal(0));
 		queue->ExecuteCommandLists(1, commandlists);
-		hr = queue->Signal(cmd.fence.Get(), cmd.fenceValueSignaled);
-		assert(SUCCEEDED(hr));
+		dx12_check(queue->Signal(cmd.fence.Get(), 1));
 
-		hr = device->queues[QUEUE_GRAPHICS].queue->Wait(cmd.fence.Get(), cmd.fenceValueSignaled);
-		assert(SUCCEEDED(hr));
-		hr = device->queues[QUEUE_COMPUTE].queue->Wait(cmd.fence.Get(), cmd.fenceValueSignaled);
-		assert(SUCCEEDED(hr));
-		hr = device->queues[QUEUE_COPY].queue->Wait(cmd.fence.Get(), cmd.fenceValueSignaled);
-		assert(SUCCEEDED(hr));
-		if (device->queues[QUEUE_VIDEO_DECODE].queue)
-		{
-			hr = device->queues[QUEUE_VIDEO_DECODE].queue->Wait(cmd.fence.Get(), cmd.fenceValueSignaled);
-			assert(SUCCEEDED(hr));
-		}
+		dx12_check(cmd.fence->SetEventOnCompletion(1, nullptr));
+
+		std::scoped_lock lock(locker);
+		freelist.push_back(cmd);
 	}
 
 	void GraphicsDevice_DX12::DescriptorBinder::init(GraphicsDevice_DX12* device)
