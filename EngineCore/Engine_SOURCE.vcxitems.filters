@@ -263,7 +263,7 @@
       <Filter>HighAPIs %28API_EXPORT%29\Public %28APIs%29\Components</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Utils\Allocator.h">
-      <Filter>Utils %28UTIL_EXPORT%29\Public %28Header Only%29</Filter>
+      <Filter>Utils %28UTIL_EXPORT%29\Public %28APIs managed by core%29</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -311,6 +311,9 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Common\Version.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Allocator.cpp">
+      <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp">
       <Filter>Utils %28UTIL_EXPORT%29\Private</Filter>

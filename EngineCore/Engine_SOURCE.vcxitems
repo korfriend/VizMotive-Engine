@@ -136,6 +136,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vfetchanalyzer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\meshoptimizer\vfetchoptimizer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThirdParty\stb_image.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Allocator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Backlog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\Config.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utils\EventHandler.cpp" />

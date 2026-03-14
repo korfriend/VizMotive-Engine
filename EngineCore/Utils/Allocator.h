@@ -9,6 +9,14 @@
 #include <algorithm>
 #include <vector>
 
+#ifndef UTIL_EXPORT
+#ifdef _WIN32
+#define UTIL_EXPORT __declspec(dllexport)
+#else
+#define UTIL_EXPORT __attribute__((visibility("default")))
+#endif
+#endif
+
 namespace vz::allocator
 {
 	// Allocation and freeing of single elements of the same size
@@ -70,37 +78,30 @@ namespace vz::allocator
 		virtual bool try_inc_refcount(void* ptr) = 0;
 	};
 
-	// The per-type block allocators can be indexed with bottom 8 bits of the shared_ptr's handle:
-	inline SharedBlockAllocator* block_allocators[256] = {};
-	inline std::atomic<uint8_t> next_allocator_id{ 0 };
-	inline uint8_t register_shared_block_allocator(SharedBlockAllocator* allocator)
-	{
-		uint8_t id = next_allocator_id.fetch_add(1);
-		assert(id < 256);
-		block_allocators[id] = allocator;
-		return id;
-	}
-	inline uint8_t get_shared_block_allocator_count() { return next_allocator_id.load(); }
+	// Registration and lookup — implemented in Allocator.cpp (Engine.dll), exported for all DLLs
+	//   block_allocators[] lives in Engine.dll: all DLLs register into and query from the same array
+	UTIL_EXPORT uint8_t register_shared_block_allocator(SharedBlockAllocator* allocator);
+	UTIL_EXPORT uint8_t get_shared_block_allocator_count();
+	UTIL_EXPORT SharedBlockAllocator* get_shared_block_allocator(uint8_t id);
 
 	// Shared ptr using a block allocation strategy, refcounted, thread-safe
-	//	This makes it easy to swap-out std::shared_ptr, but not feature complete, only has minimal feature set
-	//	Use this if you require many object of the same type, their memory allocation will be pooled
-	//	If you require just a single object, it will be better to use std::shared_ptr instead
-	//	Note: allocator pointer is stored directly to support DLL boundaries
+	//	handle encoding: upper 56 bits = pointer, lower 8 bits = allocator_id
+	//	Requires allocated memory to be 256-byte aligned (lower 8 bits of pointer must be 0)
+	//	allocator lookup goes through Engine.dll's exported get_shared_block_allocator() —
+	//	  safe across DLL boundaries because block_allocators[] is a single instance in Engine.dll
 	template<typename T>
 	struct shared_ptr
 	{
-		T* ptr = nullptr;
-		SharedBlockAllocator* allocator = nullptr;
+		uint64_t handle = 0;
 
-		constexpr bool IsValid() const { return ptr != nullptr && allocator != nullptr; }
+		inline T* get_ptr() const { return reinterpret_cast<T*>(handle & (~uint64_t(0xFF))); }
+		inline SharedBlockAllocator* get_allocator() const { return get_shared_block_allocator(uint8_t(handle)); }
 
-		constexpr T* get_ptr() const { return ptr; }
-		constexpr SharedBlockAllocator* get_allocator() const { return allocator; }
+		bool IsValid() const { return (handle >> 8) != 0; }
 
-		constexpr T* operator->() const { return ptr; }
-		constexpr operator T* () const { return ptr; }
-		constexpr T* get() const { return ptr; }
+		inline T* operator->() const { return get_ptr(); }
+		inline operator T* () const { return get_ptr(); }
+		inline T* get() const { return get_ptr(); }
 
 		template<typename U>
 		operator shared_ptr<U>& () const { return *(shared_ptr<U>*)this; }
@@ -116,19 +117,17 @@ namespace vz::allocator
 		{
 			if (IsValid())
 			{
-				allocator->dec_refcount(ptr);
+				get_allocator()->dec_refcount(get_ptr());
 			}
-			ptr = nullptr;
-			allocator = nullptr;
+			handle = 0;
 		}
 		void copy(const shared_ptr& other)
 		{
 			reset();
-			ptr = other.ptr;
-			allocator = other.allocator;
+			handle = other.handle;
 			if (IsValid())
 			{
-				allocator->inc_refcount(ptr);
+				get_allocator()->inc_refcount(get_ptr());
 			}
 		}
 		void move(shared_ptr& other) noexcept
@@ -136,26 +135,22 @@ namespace vz::allocator
 			if (this == &other)
 				return;
 			reset();
-			ptr = other.ptr;
-			allocator = other.allocator;
-			other.ptr = nullptr;
-			other.allocator = nullptr;
+			handle = other.handle;
+			other.handle = 0;
 		}
-		uint32_t use_count() const { return IsValid() ? allocator->get_refcount(ptr) : 0; }
+		uint32_t use_count() const { return IsValid() ? get_allocator()->get_refcount(get_ptr()) : 0; }
 	};
 
 	// Similar to std::weak_ptr but works with the shared block allocator, and reduced feature set
-	//	Note: allocator pointer is stored directly to support DLL boundaries
 	template<typename T>
 	struct weak_ptr
 	{
-		T* ptr = nullptr;
-		SharedBlockAllocator* allocator = nullptr;
+		uint64_t handle = 0;
 
-		constexpr bool IsValid() const { return ptr != nullptr && allocator != nullptr; }
+		inline T* get_ptr() const { return reinterpret_cast<T*>(handle & (~uint64_t(0xFF))); }
+		inline SharedBlockAllocator* get_allocator() const { return get_shared_block_allocator(uint8_t(handle)); }
 
-		constexpr T* get_ptr() const { return ptr; }
-		constexpr SharedBlockAllocator* get_allocator() const { return allocator; }
+		bool IsValid() const { return (handle >> 8) != 0; }
 
 		template<typename U>
 		operator weak_ptr<U>& () const { return *(weak_ptr<U>*)this; }
@@ -170,11 +165,10 @@ namespace vz::allocator
 		weak_ptr(const shared_ptr<T>& other)
 		{
 			reset();
-			ptr = other.ptr;
-			allocator = other.allocator;
+			handle = other.handle;
 			if (IsValid())
 			{
-				allocator->inc_refcount_weak(ptr);
+				get_allocator()->inc_refcount_weak(get_ptr());
 			}
 		}
 
@@ -183,11 +177,10 @@ namespace vz::allocator
 			if (!IsValid())
 				return {};
 
-			if (allocator->try_inc_refcount(ptr))
+			if (get_allocator()->try_inc_refcount(get_ptr()))
 			{
 				shared_ptr<T> ret;
-				ret.ptr = ptr;
-				ret.allocator = allocator;
+				ret.handle = handle;
 				return ret;
 			}
 			return {};
@@ -197,19 +190,17 @@ namespace vz::allocator
 		{
 			if (IsValid())
 			{
-				allocator->dec_refcount_weak(ptr);
+				get_allocator()->dec_refcount_weak(get_ptr());
 			}
-			ptr = nullptr;
-			allocator = nullptr;
+			handle = 0;
 		}
 		void copy(const weak_ptr& other)
 		{
 			reset();
-			ptr = other.ptr;
-			allocator = other.allocator;
+			handle = other.handle;
 			if (IsValid())
 			{
-				allocator->inc_refcount_weak(ptr);
+				get_allocator()->inc_refcount_weak(get_ptr());
 			}
 		}
 		void move(weak_ptr& other) noexcept
@@ -217,12 +208,10 @@ namespace vz::allocator
 			if (this == &other)
 				return;
 			reset();
-			ptr = other.ptr;
-			allocator = other.allocator;
-			other.ptr = nullptr;
-			other.allocator = nullptr;
+			handle = other.handle;
+			other.handle = 0;
 		}
-		uint32_t use_count() const { return IsValid() ? allocator->get_refcount(ptr) : 0; }
+		uint32_t use_count() const { return IsValid() ? get_allocator()->get_refcount(get_ptr()) : 0; }
 		bool expired() const noexcept
 		{
 			return !IsValid() || use_count() == 0;
@@ -241,7 +230,7 @@ namespace vz::allocator
 			std::atomic<uint32_t> refcount;
 			std::atomic<uint32_t> refcount_weak;
 		};
-		static_assert(offsetof(RawStruct, data) == 0); // we assume that data is located at 0 when casting ptr to T*, this avoids having to do a function call that would return T* like the refcounts
+		static_assert(offsetof(RawStruct, data) == 0);
 
 		struct Block
 		{
@@ -267,7 +256,7 @@ namespace vz::allocator
 				}
 			}
 			RawStruct* ptr = free_list.back();
-			assert((uint64_t)ptr == ((uint64_t)ptr & (~0ull << 8ull))); // The pointer lower 8 bits must be 0, it will be used as allocator index
+			assert((uint64_t)ptr == ((uint64_t)ptr & (~0ull << 8ull))); // lower 8 bits must be 0 for handle encoding
 			free_list.pop_back();
 			locker.unlock();
 
@@ -275,8 +264,7 @@ namespace vz::allocator
 			new (ptr) T(std::forward<ARG>(args)...);
 			init_refcount(ptr);
 			shared_ptr<T> allocation;
-			allocation.ptr = reinterpret_cast<T*>(ptr);
-			allocation.allocator = this;
+			allocation.handle = reinterpret_cast<uint64_t>(ptr) | uint64_t(allocator_id);
 			return allocation;
 		}
 
@@ -356,7 +344,9 @@ namespace vz::allocator
 	template<typename T>
 	struct SharedHeapAllocator final : public SharedBlockAllocator
 	{
-		struct RawStruct
+		const uint8_t allocator_id = register_shared_block_allocator(this);
+
+		struct alignas(256) RawStruct  // 256-byte alignment required for handle encoding
 		{
 			uint8_t data[sizeof(T)];
 			std::atomic<uint32_t> refcount;
@@ -368,11 +358,11 @@ namespace vz::allocator
 		inline shared_ptr<T> allocate(ARG&&... args)
 		{
 			RawStruct* ptr = new RawStruct;
+			assert((uint64_t)ptr == ((uint64_t)ptr & (~0ull << 8ull))); // lower 8 bits must be 0 for handle encoding
 			new (ptr) T(std::forward<ARG>(args)...);
 			init_refcount(ptr);
 			shared_ptr<T> allocation;
-			allocation.ptr = reinterpret_cast<T*>(ptr);
-			allocation.allocator = this;
+			allocation.handle = reinterpret_cast<uint64_t>(ptr) | uint64_t(allocator_id);
 			return allocation;
 		}
 
