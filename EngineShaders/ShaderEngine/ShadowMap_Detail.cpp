@@ -307,30 +307,21 @@ namespace vz::renderer
 
 				for (uint32_t shcam = 0; shcam < arraysize(cameras); ++shcam)
 				{
-					// always set up viewport and scissor just to be safe, even if this one is skipped:
 					vp[shcam].top_left_x = float(shadow_rect.x + shcam * shadow_rect.w);
 					vp[shcam].top_left_y = float(shadow_rect.y);
 					vp[shcam].width = float(shadow_rect.w);
 					vp[shcam].height = float(shadow_rect.h);
 					scissors[shcam].from_viewport(vp[shcam]);
 
-					// Check if cubemap face frustum is visible from main camera, otherwise, it will be skipped:
-					if (cam_frustum.Intersects(cameras[shcam].boundingfrustum))
+					XMStoreFloat4x4(&cb.cameras[camera_count].view_projection, cameras[shcam].view_projection);
+					cb.cameras[camera_count].output_index = shcam;
+					cb.cameras[camera_count].options = SHADERCAMERA_OPTION_NONE;
+					for (int i = 0; i < arraysize(cb.cameras[camera_count].frustum.planes); ++i)
 					{
-						XMStoreFloat4x4(&cb.cameras[camera_count].view_projection, cameras[shcam].view_projection);
-						// We no longer have a straight mapping from camera to viewport:
-						//	- there will be always 6 viewports
-						//	- there will be only as many cameras, as many cubemap face frustums are visible from main camera
-						//	- output_index is mapping camera to viewport, used by shader to output to SV_ViewportArrayIndex
-						cb.cameras[camera_count].output_index = shcam;
-						cb.cameras[camera_count].options = SHADERCAMERA_OPTION_NONE;
-						for (int i = 0; i < arraysize(cb.cameras[camera_count].frustum.planes); ++i)
-						{
-							cb.cameras[camera_count].frustum.planes[i] = cameras[shcam].frustum.planes[i];
-						}
-						frusta[camera_count] = cameras[shcam].frustum;
-						camera_count++;
+						cb.cameras[camera_count].frustum.planes[i] = cameras[shcam].frustum.planes[i];
 					}
+					frusta[camera_count] = cameras[shcam].frustum;
+					camera_count++;
 				}
 
 				for (size_t i = 0; i < aabb_renderables.size(); ++i)
