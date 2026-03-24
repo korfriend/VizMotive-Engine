@@ -321,7 +321,7 @@ namespace vz::graphics
 #endif // PLATFORM_XBOX
 		}
 
-		Texture GetBackBuffer(const SwapChain* swapchain) const override;
+		const Texture& GetBackBuffer(const SwapChain* swapchain) const override;
 
 		ColorSpace GetSwapChainColorSpace(const SwapChain* swapchain) const override;
 		bool IsSwapChainSupportsHDR(const SwapChain* swapchain) const override;

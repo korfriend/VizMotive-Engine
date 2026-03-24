@@ -152,7 +152,7 @@ namespace vz::graphics
 		virtual ShaderFormat GetShaderFormat() const = 0;
 
 		// Get a Texture resource that represents the current back buffer of the SwapChain
-		virtual Texture GetBackBuffer(const SwapChain* swapchain) const = 0;
+		virtual const Texture& GetBackBuffer(const SwapChain* swapchain) const = 0;
 		// Returns the current color space of the swapchain output
 		virtual ColorSpace GetSwapChainColorSpace(const SwapChain* swapchain) const = 0;
 		// Returns true if the swapchain could support HDR output regardless of current format
