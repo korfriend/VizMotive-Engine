@@ -92,10 +92,8 @@ namespace vz::graphics
 				Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 				Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 				Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-				uint64_t fenceValueSignaled = 0;
 				GPUBuffer uploadbuffer;
 				inline bool IsValid() const { return commandList != nullptr; }
-				inline bool IsCompleted() const { return fence->GetCompletedValue() >= fenceValueSignaled; }
 			};
 			std::vector<CopyCMD> freelist;
 
@@ -255,7 +253,8 @@ namespace vz::graphics
 				return (ID3D12VideoDecodeCommandList*)commandLists[queue].Get();
 			}
 		};
-		std::vector<std::unique_ptr<CommandList_DX12>> commandlists;
+		vz::allocator::BlockAllocator<CommandList_DX12, 64> cmd_allocator;
+		std::vector<CommandList_DX12*> commandlists;
 		uint32_t cmd_count = 0;
 		vz::SpinLock cmd_locker;
 
@@ -601,7 +600,7 @@ namespace vz::graphics
 				}
 			}
 		};
-		std::shared_ptr<AllocationHandler> allocationhandler;
+		vz::allocator::shared_ptr<AllocationHandler> allocationhandler;
 
 	};
 
